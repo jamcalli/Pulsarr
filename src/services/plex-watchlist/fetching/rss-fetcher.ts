@@ -12,6 +12,7 @@ import {
   parseGenres,
   parseGuids,
 } from '@utils/guid-handler.js'
+import { normalizePosterPath } from '@utils/poster-url.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
@@ -164,7 +165,7 @@ export const fetchWatchlistFromRss = async (
             // Use stable key from GUIDs - replaced with real Plex ratingKey during enrichment
             key: generateStableKey(normalizedGuids) || metadata.title || '',
             type: (metadata.category || 'unknown').toUpperCase(),
-            thumb: metadata.thumbnail?.url || '',
+            thumb: normalizePosterPath(metadata.thumbnail?.url) || '',
             guids: normalizedGuids,
             genres: parseGenres(metadata.keywords)
               .map(normalizeGenre)

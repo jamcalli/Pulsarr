@@ -7,23 +7,31 @@ interface GitHubRelease {
   html_url: string
 }
 
-export const useVersionCheck = (repoOwner: string, repoName: string) => {
+const VERSION_CHECK_KEY = 'version-check-shown'
 
+export const useVersionCheck = (repoOwner: string, repoName: string) => {
   useEffect(() => {
+    // Only check once per session
+    if (sessionStorage.getItem(VERSION_CHECK_KEY)) {
+      return
+    }
+
     const checkForUpdates = async () => {
       try {
-        const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`);
-        
+        const response = await fetch(
+          `https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`
+        )
+
         if (!response.ok) {
-          throw new Error(`GitHub API error: ${response.status}`);
+          throw new Error(`GitHub API error: ${response.status}`)
         }
-        
-        const data: GitHubRelease = await response.json();
-        
+
+        const data: GitHubRelease = await response.json()
+
         // Clean version strings for semver comparison
-        const currentVersion = __APP_VERSION__.replace(/^v/, '');
-        const latestVersion = data.tag_name.replace(/^v/, '');
-        
+        const currentVersion = __APP_VERSION__.replace(/^v/, '')
+        const latestVersion = data.tag_name.replace(/^v/, '')
+
         if (semver.gt(latestVersion, currentVersion)) {
           toast(
             `A new version (${data.tag_name}) is available. You're running v${__APP_VERSION__}.`,
@@ -32,24 +40,28 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
               duration: 8000,
               action: {
                 label: 'View Release',
-                onClick: () => window.open(data.html_url, '_blank', 'noopener,noreferrer')
-              }
+                onClick: () =>
+                  window.open(data.html_url, '_blank', 'noopener,noreferrer'),
+              },
             }
-          );
+          )
         }
+
+        // Mark as checked for this session (regardless of whether update exists)
+        sessionStorage.setItem(VERSION_CHECK_KEY, 'true')
       } catch (err) {
         if (err instanceof Error) {
-          console.error(`Error checking for updates: ${err.message}`);
+          console.error(`Error checking for updates: ${err.message}`)
         } else {
-          console.error("Unknown error checking for updates:", err);
+          console.error('Unknown error checking for updates:', err)
         }
       }
-    };
+    }
 
     const timeoutId = setTimeout(() => {
-      checkForUpdates();
-    }, 3000);
-    
-    return () => clearTimeout(timeoutId);
-  }, [repoOwner, repoName]);
-};
+      checkForUpdates()
+    }, 3000)
+
+    return () => clearTimeout(timeoutId)
+  }, [repoOwner, repoName])
+}

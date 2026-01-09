@@ -14,6 +14,7 @@ import type {
   SonarrEpisodeSchema,
 } from '@root/types/sonarr.types.js'
 import { getTmdbUrl } from '@root/utils/guid-handler.js'
+import { buildPosterUrl } from '@root/utils/poster-url.js'
 import { mapRowToUser } from '@services/database/methods/users.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
@@ -321,7 +322,8 @@ async function buildNotificationResults(
   const watchlistItems = await deps.db.getWatchlistItemsByGuid(mediaInfo.guid)
 
   // Extract shared enrichment data once
-  const posterUrl = watchlistItems.find((item) => item.thumb)?.thumb
+  const rawThumb = watchlistItems.find((item) => item.thumb)?.thumb
+  const posterUrl = buildPosterUrl(rawThumb, 'notification') ?? undefined
   const guidsSet = new Set<string>()
   for (const item of watchlistItems) {
     if (item.guids) {
