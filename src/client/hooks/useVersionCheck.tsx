@@ -29,12 +29,18 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
         const data: GitHubRelease = await response.json()
 
         // Clean version strings for semver comparison
-        const currentVersion = __APP_VERSION__.replace(/^v/, '')
-        const latestVersion = data.tag_name.replace(/^v/, '')
+        const currentVersion =
+          semver.clean(__APP_VERSION__) ?? __APP_VERSION__.replace(/^v/, '')
+        const latestVersion =
+          semver.clean(data.tag_name) ?? data.tag_name.replace(/^v/, '')
 
-        if (semver.gt(latestVersion, currentVersion)) {
+        if (
+          semver.valid(latestVersion) &&
+          semver.valid(currentVersion) &&
+          semver.gt(latestVersion, currentVersion)
+        ) {
           toast(
-            `A new version (${data.tag_name}) is available. You're running v${__APP_VERSION__}.`,
+            `A new version (${data.tag_name}) is available. You're running v${currentVersion}.`,
             {
               id: 'version-update-notification',
               duration: 8000,
