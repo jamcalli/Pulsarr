@@ -57,6 +57,7 @@ const INSTANCE_STATUS_ICONS: Record<string, string> = {
 
 function formatTimeAgo(dateString: string): string {
   const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return 'Unknown'
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffMins = Math.floor(diffMs / 60000)
