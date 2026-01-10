@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useSettings } from '@/components/settings-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -13,13 +13,13 @@ import {
 import { Select } from '@/components/ui/select'
 import MediaCardSkeleton from '@/features/dashboard/components/media-card-skeleton'
 import { RecentRequestCard } from '@/features/dashboard/components/recent-request-card'
+import { useCarouselResponsive } from '@/features/dashboard/hooks/useCarouselResponsive'
 import {
   getLimitLabel,
   LIMIT_PRESETS,
   STATUS_FILTER_OPTIONS,
   useRecentRequests,
 } from '@/features/dashboard/hooks/useRecentRequests'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 
 /**
@@ -27,23 +27,18 @@ import { cn } from '@/lib/utils'
  * Displays a carousel of recent requests with status filter.
  */
 export function RecentRequests() {
+  const navigate = useNavigate()
   const { items, isLoading, error, status, setStatus, limit, setLimit } =
     useRecentRequests()
 
   const [api, setApi] = useState<CarouselApi>()
   const [canScrollPrev, setCanScrollPrev] = useState(false)
   const [canScrollNext, setCanScrollNext] = useState(false)
-  const [minLoadingComplete, setMinLoadingComplete] = useState(false)
   const { fullscreenEnabled } = useSettings()
-
-  // Custom breakpoints for poster visibility - copied from WatchlistCarousel
-  const isXXL = useMediaQuery('(min-width: 2450px)')
-  const isXL = useMediaQuery('(min-width: 1900px)')
-  const isLG = useMediaQuery('(min-width: 1600px)')
-  const isMD2 = useMediaQuery('(min-width: 1200px)')
-  const isMD = useMediaQuery('(min-width: 768px)')
-  const isStacked = useMediaQuery('(max-width: 1279px)')
-  const isSmallStacked = useMediaQuery('(max-width: 1100px)')
+  const { carouselItemClass } = useCarouselResponsive({
+    fullscreenEnabled,
+    fullWidth: true,
+  })
 
   const scrollPrev = useCallback(() => {
     api?.scrollPrev()
@@ -69,51 +64,6 @@ export function RecentRequests() {
       api.off('reInit', onSelect)
     }
   }, [api, onSelect])
-
-  useEffect(() => {
-    if (isLoading) {
-      setMinLoadingComplete(false)
-      const timer = setTimeout(() => {
-        setMinLoadingComplete(true)
-      }, 500)
-      return () => clearTimeout(timer)
-    }
-  }, [isLoading])
-
-  // When stacked (viewport < 1280px): both RecentRequests and WatchlistCarousel are full-width
-  // When side-by-side (viewport >= 1280px): WatchlistCarousel is half-width, RecentRequests is full-width
-  const carouselItemClass = useMemo(() => {
-    if (isStacked) {
-      // Stacked: match WatchlistCarousel exactly (both full-width)
-      if (fullscreenEnabled) {
-        if (isMD2) return 'pl-2 md:pl-4 basis-1/3 p-1' // 3 items (1200-1279px)
-        if (isMD) return 'pl-2 md:pl-4 basis-1/2 p-1' // 2 items (768-1199px)
-        return 'pl-2 md:pl-4 basis-1/2 p-1' // 2 items (<768px)
-      }
-      // Windowed stacked
-      if (isSmallStacked) return 'pl-2 md:pl-4 basis-1/2 p-1' // 2 items (≤1100px)
-      return 'pl-2 md:pl-4 basis-1/3 p-1' // 3 items (1101-1279px)
-    }
-
-    // Side-by-side (viewport >= 1280px): double the items since we're full-width
-    if (fullscreenEnabled) {
-      if (isXXL) return 'pl-2 md:pl-4 basis-[10%] p-1' // 10 items (WatchlistCarousel: 5)
-      if (isXL) return 'pl-2 md:pl-4 basis-[12.5%] p-1' // 8 items (WatchlistCarousel: 4)
-      if (isLG) return 'pl-2 md:pl-4 basis-1/6 p-1' // 6 items (WatchlistCarousel: 3)
-      return 'pl-2 md:pl-4 basis-1/4 p-1' // 4 items (WatchlistCarousel: 2)
-    }
-    // Windowed side-by-side
-    return 'pl-2 md:pl-4 basis-1/4 p-1' // 4 items (WatchlistCarousel: 2)
-  }, [
-    fullscreenEnabled,
-    isXXL,
-    isXL,
-    isLG,
-    isMD2,
-    isMD,
-    isStacked,
-    isSmallStacked,
-  ])
 
   const filterOptions = useMemo(
     () =>
@@ -151,12 +101,14 @@ export function RecentRequests() {
           disabled={isLoading}
           className="w-27.5"
         />
-        <Link to="/approvals">
-          <Button variant="neutralnoShadow" className="flex items-center gap-2">
-            <span>View All</span>
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button
+          variant="neutralnoShadow"
+          className="flex items-center gap-2"
+          onClick={() => navigate('/approvals')}
+        >
+          <span>View All</span>
+          <ArrowRight className="h-4 w-4" />
+        </Button>
       </div>
 
       <div className="grid grid-cols-1">
@@ -197,7 +149,7 @@ export function RecentRequests() {
             ) : (
               <Carousel setApi={setApi} className="w-full">
                 <CarouselContent className="-ml-2 md:-ml-4">
-                  {isLoading && (!minLoadingComplete || items.length === 0)
+                  {isLoading
                     ? Array.from({ length: 10 }, (_, i) => `skeleton-${i}`).map(
                         (skeletonId) => (
                           <CarouselItem
