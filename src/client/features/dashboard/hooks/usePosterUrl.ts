@@ -137,7 +137,7 @@ export function usePosterUrl({
     return () => {
       abortController.abort()
     }
-  }, [needsFetch, contentType, guids.map])
+  }, [needsFetch, contentType, guids])
 
   // Build final URL from fetched path if needed
   const fetchedUrl = useMemo(
