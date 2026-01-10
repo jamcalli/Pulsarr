@@ -120,61 +120,61 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
 
   return (
     <>
-      <Card className={cn('shadow-none', className)}>
-        <CardContent className="p-2.5">
-          <div className="relative w-full overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800">
-            <AspectRatio ratio={2 / 3}>
-              {posterUrl ? (
-                <img
-                  src={posterUrl}
-                  alt={item.title}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
+      <TooltipProvider>
+        <Card className={cn('shadow-none', className)}>
+          <CardContent className="p-2.5">
+            <div className="relative w-full overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800">
+              <AspectRatio ratio={2 / 3}>
+                {posterUrl ? (
+                  <img
+                    src={posterUrl}
+                    alt={item.title}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    {isPosterLoading ? (
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                    ) : (
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {item.contentType === 'movie' ? 'Movie' : 'Show'}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </AspectRatio>
+
+              {/* Status badge with optional instance popover */}
+              {showInstancePopover ? (
+                <Popover>
+                  <PopoverTrigger asChild>{StatusBadgeContent}</PopoverTrigger>
+                  <PopoverContent
+                    side="bottom"
+                    align="end"
+                    className="w-auto min-w-40 p-2 bg-secondary-background"
+                  >
+                    <p className="text-xs font-medium mb-1">Available on:</p>
+                    <ul className="text-xs space-y-0.5">
+                      {item.allInstances.map((instance) => (
+                        <li
+                          key={`${instance.instanceType}-${instance.id}`}
+                          className="flex items-center gap-1"
+                        >
+                          <span>
+                            {INSTANCE_STATUS_ICONS[instance.status] || '\u2022'}
+                          </span>
+                          <span>{instance.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </PopoverContent>
+                </Popover>
               ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  {isPosterLoading ? (
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-                  ) : (
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {item.contentType === 'movie' ? 'Movie' : 'Show'}
-                    </span>
-                  )}
-                </div>
+                StatusBadgeContent
               )}
-            </AspectRatio>
 
-            {/* Status badge with optional instance popover */}
-            {showInstancePopover ? (
-              <Popover>
-                <PopoverTrigger asChild>{StatusBadgeContent}</PopoverTrigger>
-                <PopoverContent
-                  side="bottom"
-                  align="end"
-                  className="w-auto min-w-40 p-2 bg-secondary-background"
-                >
-                  <p className="text-xs font-medium mb-1">Available on:</p>
-                  <ul className="text-xs space-y-0.5">
-                    {item.allInstances.map((instance) => (
-                      <li
-                        key={`${instance.instanceType}-${instance.id}`}
-                        className="flex items-center gap-1"
-                      >
-                        <span>
-                          {INSTANCE_STATUS_ICONS[instance.status] || '\u2022'}
-                        </span>
-                        <span>{instance.name}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </PopoverContent>
-              </Popover>
-            ) : (
-              StatusBadgeContent
-            )}
-
-            {/* Content type indicator */}
-            <TooltipProvider>
+              {/* Content type indicator */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -196,11 +196,9 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
                   {item.contentType === 'movie' ? 'Movie' : 'TV Show'}
                 </TooltipContent>
               </Tooltip>
-            </TooltipProvider>
 
-            {/* Eye button for detail modal */}
-            {hasGuids && (
-              <TooltipProvider>
+              {/* Eye button for detail modal */}
+              {hasGuids && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -220,24 +218,21 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
                   </TooltipTrigger>
                   <TooltipContent>View details</TooltipContent>
                 </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
+              )}
+            </div>
 
-          {/* Title */}
-          <h3
-            className="mt-2 line-clamp-1 text-sm font-medium leading-tight"
-            title={item.title}
-          >
-            {item.title}
-          </h3>
+            {/* Title */}
+            <h3 className="mt-2 line-clamp-1 text-sm font-medium leading-tight">
+              {item.title}
+            </h3>
 
-          {/* User and time */}
-          <p className="text-xs text-muted-foreground truncate">
-            @{item.userName} · {formatTimeAgo(item.createdAt)}
-          </p>
-        </CardContent>
-      </Card>
+            {/* User and time */}
+            <p className="text-xs text-muted-foreground truncate">
+              @{item.userName} · {formatTimeAgo(item.createdAt)}
+            </p>
+          </CardContent>
+        </Card>
+      </TooltipProvider>
 
       {hasGuids && (
         <ContentDetailModal
