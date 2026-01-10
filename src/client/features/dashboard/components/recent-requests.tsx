@@ -89,14 +89,14 @@ export function RecentRequests() {
         <h2 className="text-2xl font-bold text-foreground">Recent Requests</h2>
         <Select
           value={status}
-          onValueChange={(value) => setStatus(value as typeof status)}
+          onValueChange={setStatus}
           options={filterOptions}
           disabled={isLoading}
           className="w-40"
         />
         <Select
           value={limit.toString()}
-          onValueChange={(value) => setLimit(Number(value) as typeof limit)}
+          onValueChange={(value) => setLimit(Number(value))}
           options={limitOptions}
           disabled={isLoading}
           className="w-27.5"
