@@ -174,7 +174,7 @@ export default function PlexUsersPage() {
       </div>
       <div className="grid gap-4">
         {!hasUserData && !isLoading ? (
-          <div className="text-center py-8 text-foreground text-muted-foreground">
+          <div className="text-center py-8 text-foreground">
             No watchlist data available
           </div>
         ) : (

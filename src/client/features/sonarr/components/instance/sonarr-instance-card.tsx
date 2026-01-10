@@ -414,7 +414,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-foreground text-muted-foreground">
+                          <span className="text-sm text-foreground">
                             Automatically monitor new items
                           </span>
                         </div>
@@ -455,7 +455,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-foreground text-muted-foreground">
+                          <span className="text-sm text-foreground">
                             Automatically search for series when added
                           </span>
                         </div>
@@ -495,7 +495,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-foreground text-muted-foreground">
+                          <span className="text-sm text-foreground">
                             Bypass ignore exclusions
                           </span>
                         </div>
@@ -535,7 +535,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-foreground text-muted-foreground">
+                          <span className="text-sm text-foreground">
                             Organize episodes in season folders
                           </span>
                         </div>
@@ -818,7 +818,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-foreground text-muted-foreground">
+                          <span className="text-sm text-foreground">
                             Set as default instance
                           </span>
                         </div>

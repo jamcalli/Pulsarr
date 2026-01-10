@@ -24,6 +24,19 @@ export const RadarrRatingsSchema = z.object({
   trakt: RadarrRatingSourceSchema.optional(),
 })
 
+// Plex Ratings Schema (from stored watchlist metadata)
+export const PlexRatingsSchema = z.object({
+  imdb: z
+    .object({
+      rating: z.number(),
+      votes: z.number().nullable(),
+    })
+    .optional(),
+  rtCritic: z.number().optional(),
+  rtAudience: z.number().optional(),
+  tmdb: z.number().optional(),
+})
+
 // TMDB Genre Schema
 export const TmdbGenreSchema = z.object({
   id: z.number(),
@@ -196,17 +209,19 @@ export const TmdbWatchProviderDataSchema = z.object({
   buy: z.array(TmdbWatchProviderSchema).optional(),
 })
 
-// TMDB Movie Metadata Schema (combined details + watch providers + radarr ratings)
+// TMDB Movie Metadata Schema (combined details + watch providers + ratings)
 export const TmdbMovieMetadataSchema = z.object({
   details: TmdbMovieDetailsSchema,
   watchProviders: TmdbWatchProviderDataSchema.optional(),
   radarrRatings: RadarrRatingsSchema.optional(),
+  plexRatings: PlexRatingsSchema.optional(),
 })
 
-// TMDB TV Metadata Schema (combined details + watch providers)
+// TMDB TV Metadata Schema (combined details + watch providers + ratings)
 export const TmdbTvMetadataSchema = z.object({
   details: TmdbTvDetailsSchema,
   watchProviders: TmdbWatchProviderDataSchema.optional(),
+  plexRatings: PlexRatingsSchema.optional(),
 })
 
 // Union schema for content metadata
@@ -252,6 +267,7 @@ export const TmdbRegionsSuccessResponseSchema = z.object({
 // Type exports
 export type RadarrRatingSource = z.infer<typeof RadarrRatingSourceSchema>
 export type RadarrRatings = z.infer<typeof RadarrRatingsSchema>
+export type PlexRatings = z.infer<typeof PlexRatingsSchema>
 export type TmdbGenre = z.infer<typeof TmdbGenreSchema>
 export type TmdbProductionCompany = z.infer<typeof TmdbProductionCompanySchema>
 export type TmdbProductionCountry = z.infer<typeof TmdbProductionCountrySchema>

@@ -6,6 +6,7 @@
  */
 
 import type { User } from '@root/types/config.types.js'
+import { buildPosterUrl } from '@root/utils/poster-url.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { FastifyBaseLogger } from 'fastify'
 
@@ -87,7 +88,9 @@ export async function getPosterUrl(
   try {
     const watchlistItems = await deps.db.getWatchlistItemsByKeys([contentKey])
     if (watchlistItems.length > 0 && watchlistItems[0].thumb) {
-      return watchlistItems[0].thumb
+      return (
+        buildPosterUrl(watchlistItems[0].thumb, 'notification') ?? undefined
+      )
     }
     return undefined
   } catch (_error) {

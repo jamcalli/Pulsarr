@@ -310,7 +310,7 @@ export function ApprovalSonarrRoutingCard({
                           disabled={disabled || !isConnectionValid}
                         />
                       </FormControl>
-                      <span className="text-sm text-foreground text-muted-foreground">
+                      <span className="text-sm text-foreground">
                         Automatically search for episodes
                       </span>
                     </div>
