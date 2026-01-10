@@ -36,10 +36,10 @@ interface UseRecentRequestsReturn {
   items: RecentRequestItem[]
   isLoading: boolean
   error: string | null
-  status: StatusFilterValue
-  setStatus: (status: StatusFilterValue) => void
-  limit: LimitPreset
-  setLimit: (limit: LimitPreset) => void
+  status: string
+  setStatus: (status: string) => void
+  limit: number
+  setLimit: (limit: number) => void
   refetch: () => Promise<void>
 }
 
@@ -53,10 +53,8 @@ interface UseRecentRequestsReturn {
 export function useRecentRequests(
   options: UseRecentRequestsOptions = {},
 ): UseRecentRequestsReturn {
-  const [limit, setLimit] = useState<LimitPreset>(options.initialLimit ?? 10)
-  const [status, setStatus] = useState<StatusFilterValue>(
-    options.status ?? 'all',
-  )
+  const [limit, setLimit] = useState<number>(options.initialLimit ?? 10)
+  const [status, setStatus] = useState<string>(options.status ?? 'all')
 
   const queryKey = ['recent-requests', { limit, status }]
 
