@@ -142,14 +142,14 @@ export function RecentRequests() {
           onValueChange={(value) => setStatus(value as typeof status)}
           options={filterOptions}
           disabled={isLoading}
-          className="w-[160px]"
+          className="w-40"
         />
         <Select
           value={limit.toString()}
           onValueChange={(value) => setLimit(Number(value) as typeof limit)}
           options={limitOptions}
           disabled={isLoading}
-          className="w-[110px]"
+          className="w-27.5"
         />
         <Link to="/approvals">
           <Button variant="neutralnoShadow" className="flex items-center gap-2">
@@ -192,9 +192,7 @@ export function RecentRequests() {
               </div>
             ) : items.length === 0 && !isLoading ? (
               <div className="flex h-48 items-center justify-center">
-                <span className="text-foreground text-muted-foreground">
-                  No recent requests
-                </span>
+                <span className="text-foreground">No recent requests</span>
               </div>
             ) : (
               <Carousel setApi={setApi} className="w-full">
