@@ -5,6 +5,7 @@ import type {
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
 import { parseGenres, parseGuids } from '@utils/guid-handler.js'
+import { normalizePosterPath } from '@utils/poster-url.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { getWatchlist, getWatchlistForUser } from '../api/graphql.js'
 import { isRateLimitError } from '../api/helpers.js'
@@ -64,7 +65,7 @@ export const fetchSelfWatchlist = async (
                 title: metadata.title || 'Unknown Title',
                 id: key,
                 key: key,
-                thumb: metadata.thumb || null,
+                thumb: normalizePosterPath(metadata.thumb) || null,
                 type: metadata.type || 'unknown',
                 guids: [],
                 genres: [],

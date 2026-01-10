@@ -306,7 +306,7 @@ export function ApprovalRadarrRoutingCard({
                           disabled={disabled || !isConnectionValid}
                         />
                       </FormControl>
-                      <span className="text-sm text-foreground text-muted-foreground">
+                      <span className="text-sm text-foreground">
                         Automatically search for movies
                       </span>
                     </div>

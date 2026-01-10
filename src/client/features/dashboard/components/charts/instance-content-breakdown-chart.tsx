@@ -13,20 +13,23 @@ import { useInstanceContentData } from '@/features/dashboard/hooks/useChartData'
 export default function InstanceContentBreakdownChart() {
   const { data: instanceContentBreakdown, isLoading } = useInstanceContentData()
 
-  const cssColors = {
-    grabbed:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-1')
-        .trim() || '196 39% 33%',
-    notified:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-3')
-        .trim() || '29 85% 87%',
-    requested:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-5')
-        .trim() || '1 54% 50%',
-  }
+  const cssColors = useMemo(
+    () => ({
+      grabbed:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-1')
+          .trim() || '196 39% 33%',
+      notified:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-3')
+          .trim() || '29 85% 87%',
+      requested:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-5')
+          .trim() || '1 54% 50%',
+    }),
+    [],
+  )
 
   const chartData = useMemo(() => {
     if (!instanceContentBreakdown || instanceContentBreakdown.length === 0) {
@@ -89,7 +92,7 @@ export default function InstanceContentBreakdownChart() {
           <CardContent className="pt-4 grow flex flex-col justify-center">
             <div className="grow w-full md:min-h-0 min-h-[450px]">
               <div className="h-full w-full flex items-center justify-center">
-                <span className="text-foreground text-muted-foreground">
+                <span className="text-foreground">
                   {isLoading
                     ? 'Loading instance data...'
                     : 'No instance data available'}

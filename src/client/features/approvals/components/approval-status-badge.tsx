@@ -22,7 +22,7 @@ export function ApprovalStatusBadge({ status }: ApprovalStatusBadgeProps) {
       return (
         <Badge
           variant="neutral"
-          className="bg-yellow-500 hover:bg-yellow-500 text-black"
+          className="bg-status-pending hover:bg-status-pending text-black"
         >
           <Clock className="w-3 h-3 mr-1" />
           Pending
@@ -32,7 +32,7 @@ export function ApprovalStatusBadge({ status }: ApprovalStatusBadgeProps) {
       return (
         <Badge
           variant="default"
-          className="bg-green-500 hover:bg-green-500 text-black"
+          className="bg-status-approved hover:bg-status-approved text-black"
         >
           <CheckCircle className="w-3 h-3 mr-1" />
           Approved
@@ -42,7 +42,7 @@ export function ApprovalStatusBadge({ status }: ApprovalStatusBadgeProps) {
       return (
         <Badge
           variant="warn"
-          className="bg-red-500 hover:bg-red-500 text-black"
+          className="bg-status-rejected hover:bg-status-rejected text-black"
         >
           <XCircle className="w-3 h-3 mr-1" />
           Rejected
@@ -52,7 +52,7 @@ export function ApprovalStatusBadge({ status }: ApprovalStatusBadgeProps) {
       return (
         <Badge
           variant="neutral"
-          className="bg-gray-400 hover:bg-gray-400 text-black"
+          className="bg-status-expired hover:bg-status-expired text-black"
         >
           <AlertCircle className="w-3 h-3 mr-1" />
           Expired
@@ -62,7 +62,7 @@ export function ApprovalStatusBadge({ status }: ApprovalStatusBadgeProps) {
       return (
         <Badge
           variant="default"
-          className="bg-blue-500 hover:bg-blue-500 text-black"
+          className="bg-status-auto-approved hover:bg-status-auto-approved text-black"
         >
           <Bot className="w-3 h-3 mr-1" />
           Auto-Approved

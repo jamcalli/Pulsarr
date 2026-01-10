@@ -1163,7 +1163,7 @@ const AccordionRouteCard = ({
                                   aria-label="Always Require Approval"
                                 />
                               </FormControl>
-                              <span className="text-sm text-foreground text-muted-foreground">
+                              <span className="text-sm text-foreground">
                                 Force approval for this rule regardless of
                                 quotas
                               </span>
@@ -1212,7 +1212,7 @@ const AccordionRouteCard = ({
                                   aria-label="Bypass User Quotas"
                                 />
                               </FormControl>
-                              <span className="text-sm text-foreground text-muted-foreground">
+                              <span className="text-sm text-foreground">
                                 Skip quota checks for this rule
                               </span>
                             </div>
@@ -1314,7 +1314,7 @@ const AccordionRouteCard = ({
                                 </Tooltip>
                               </TooltipProvider>
                             </div>
-                            <span className="text-sm text-foreground text-muted-foreground">
+                            <span className="text-sm text-foreground">
                               {field.value}
                             </span>
                           </div>
@@ -1649,7 +1649,7 @@ const AccordionRouteCard = ({
                                 aria-label="Search on Add"
                               />
                             </FormControl>
-                            <span className="text-sm text-foreground text-muted-foreground">
+                            <span className="text-sm text-foreground">
                               Automatically search for content when added
                             </span>
                           </div>
