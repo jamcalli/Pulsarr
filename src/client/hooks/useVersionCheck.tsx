@@ -40,7 +40,7 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
           semver.gt(latestVersion, currentVersion)
         ) {
           toast(
-            `A new version (${data.tag_name}) is available. You're running v${currentVersion}.`,
+            `A new version (v${latestVersion}) is available. You're running v${currentVersion}.`,
             {
               id: 'version-update-notification',
               duration: 8000,
