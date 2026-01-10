@@ -81,6 +81,7 @@ export function WatchlistCarousel({
     api.on('reInit', onSelect)
     return () => {
       api.off('select', onSelect)
+      api.off('reInit', onSelect)
     }
   }, [api, onSelect])
 
