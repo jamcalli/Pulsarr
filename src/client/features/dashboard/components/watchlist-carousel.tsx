@@ -195,9 +195,7 @@ export function WatchlistCarousel({
           </div>
         ) : sortedItems.length === 0 && !loading ? (
           <div className="flex h-48 items-center justify-center">
-            <span className="text-foreground text-muted-foreground">
-              No data available
-            </span>
+            <span className="text-foreground">No data available</span>
           </div>
         ) : (
           <Carousel setApi={setApi} className="w-full">

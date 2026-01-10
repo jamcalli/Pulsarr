@@ -138,7 +138,7 @@ export function NotificationCharts() {
   if (isLoading || !notificationStats) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <span className="text-foreground text-muted-foreground">
+        <span className="text-foreground">
           {isLoading
             ? 'Loading notification data...'
             : 'No notification data available'}

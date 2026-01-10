@@ -89,7 +89,7 @@ export default function InstanceContentBreakdownChart() {
           <CardContent className="pt-4 grow flex flex-col justify-center">
             <div className="grow w-full md:min-h-0 min-h-[450px]">
               <div className="h-full w-full flex items-center justify-center">
-                <span className="text-foreground text-muted-foreground">
+                <span className="text-foreground">
                   {isLoading
                     ? 'Loading instance data...'
                     : 'No instance data available'}
