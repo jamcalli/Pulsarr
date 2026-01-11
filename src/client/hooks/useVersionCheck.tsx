@@ -8,7 +8,7 @@ interface GitHubRelease {
   html_url: string
 }
 
-interface VersionCheckResult {
+export interface VersionCheckResult {
   updateAvailable: boolean
   latestVersion: string | null
   currentVersion: string
@@ -17,7 +17,7 @@ interface VersionCheckResult {
   isError: boolean
 }
 
-const VERSION_TOAST_KEY = 'version-toast-shown'
+const VERSION_TOAST_KEY = 'version-toast-notified'
 const THIRTY_MINUTES = 30 * 60 * 1000
 
 /**
@@ -35,9 +35,11 @@ export const versionCheckKeys = {
 async function fetchLatestRelease(
   repoOwner: string,
   repoName: string,
+  signal?: AbortSignal,
 ): Promise<GitHubRelease> {
   const response = await fetch(
     `https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`,
+    { signal },
   )
 
   if (!response.ok) {
@@ -107,7 +109,8 @@ export function useVersionCheck(
 
   const { data: release, isLoading, isError } = useAppQuery({
     queryKey: versionCheckKeys.latest(repoOwner, repoName),
-    queryFn: () => fetchLatestRelease(repoOwner, repoName),
+    queryFn: ({ signal }) => fetchLatestRelease(repoOwner, repoName, signal),
+    enabled: Boolean(repoOwner) && Boolean(repoName),
     staleTime: THIRTY_MINUTES,
     refetchInterval: THIRTY_MINUTES,
     refetchOnWindowFocus: false,
@@ -116,16 +119,18 @@ export function useVersionCheck(
 
   const versionInfo = checkVersionUpdate(release)
 
-  // Show toast once per session when update is detected (with 3s delay for UI to settle)
+  // Show toast once per version when update is detected (with 3s delay for UI to settle)
+  // Stores the notified version so newer releases during long sessions still trigger a toast
   useEffect(() => {
+    const notifiedVersion = sessionStorage.getItem(VERSION_TOAST_KEY)
     if (
       versionInfo.updateAvailable &&
       versionInfo.latestVersion &&
       !toastShownRef.current &&
-      !sessionStorage.getItem(VERSION_TOAST_KEY)
+      notifiedVersion !== versionInfo.latestVersion
     ) {
       toastShownRef.current = true
-      sessionStorage.setItem(VERSION_TOAST_KEY, 'true')
+      sessionStorage.setItem(VERSION_TOAST_KEY, versionInfo.latestVersion)
 
       const url = versionInfo.releaseUrl
       const timeoutId = setTimeout(() => {
