@@ -47,9 +47,7 @@ export function TopGenresChart() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <span className="text-foreground text-muted-foreground">
-          Loading chart data...
-        </span>
+        <span className="text-foreground">Loading chart data...</span>
       </div>
     )
   }

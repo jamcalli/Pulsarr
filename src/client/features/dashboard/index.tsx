@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useShallow } from 'zustand/shallow'
 import { AnalyticsDashboard } from '@/features/dashboard/components/analytics-dashboard'
 import { PopularityRankings } from '@/features/dashboard/components/popularity-rankings'
+import { RecentRequests } from '@/features/dashboard/components/recent-requests'
 import { StatsHeader } from '@/features/dashboard/components/stats-header'
+import { useDashboardSSE } from '@/features/dashboard/hooks/useDashboardSSE'
 import { useDashboardStats } from '@/features/dashboard/hooks/useDashboardStats'
 import { toast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
@@ -15,6 +17,9 @@ import { useConfigStore } from '@/stores/configStore'
  * @returns The Dashboard page React element.
  */
 export function DashboardPage() {
+  // Centralized SSE subscription for all dashboard data
+  useDashboardSSE()
+
   const { refreshStats, isLoading } = useDashboardStats()
   const { configInitialize, isConfigInitialized, configError } = useConfigStore(
     useShallow((state) => ({
@@ -83,9 +88,10 @@ export function DashboardPage() {
   }, [refreshStats, isLoading])
 
   return (
-    <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-      <StatsHeader onRefresh={handleRefresh} />
-      <PopularityRankings />
+    <div className="space-y-8">
+      <StatsHeader />
+      <RecentRequests />
+      <PopularityRankings onRefresh={handleRefresh} />
       <AnalyticsDashboard />
     </div>
   )
