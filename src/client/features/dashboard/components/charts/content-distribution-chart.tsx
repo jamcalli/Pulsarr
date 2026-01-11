@@ -56,7 +56,7 @@ export function ContentDistributionChart() {
           .getPropertyValue('--chart-5')
           .trim() || '1 54% 50%',
     }),
-    [],
+    [theme],
   )
 
   const contentDistributionData = useMemo(() => {

@@ -49,7 +49,7 @@ export function NotificationCharts() {
           .getPropertyValue('--chart-5')
           .trim() || '1 54% 50%',
     }),
-    [],
+    [theme],
   )
 
   // Notifications chart data
