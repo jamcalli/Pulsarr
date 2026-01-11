@@ -22769,7 +22769,12 @@
                                 ]
                               },
                               "status": {
-                                "type": "string"
+                                "type": "string",
+                                "enum": [
+                                  "pending",
+                                  "requested",
+                                  "available"
+                                ]
                               }
                             },
                             "required": [
@@ -22799,7 +22804,12 @@
                                   ]
                                 },
                                 "status": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "requested",
+                                    "available"
+                                  ]
                                 }
                               },
                               "required": [
