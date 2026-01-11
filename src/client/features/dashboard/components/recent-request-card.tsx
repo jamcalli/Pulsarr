@@ -1,4 +1,8 @@
-import type { RecentRequestItem } from '@root/schemas/dashboard/recent-requests.schema'
+import type {
+  InstanceStatus,
+  RecentRequestItem,
+  RecentRequestStatus,
+} from '@root/schemas/dashboard/recent-requests.schema'
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { Eye, Monitor, Tv } from 'lucide-react'
 import { useState } from 'react'
@@ -26,30 +30,33 @@ interface RecentRequestCardProps {
   className?: string
 }
 
-const STATUS_CONFIG = {
+const STATUS_CONFIG: Record<
+  RecentRequestStatus,
+  { label: string; variant: 'default'; className: string }
+> = {
   pending_approval: {
     label: 'Awaiting Approval',
-    variant: 'default' as const,
+    variant: 'default',
     className: 'bg-status-pending text-black hover:bg-status-pending',
   },
   pending: {
     label: 'Pending',
-    variant: 'default' as const,
+    variant: 'default',
     className: 'bg-status-requested text-black hover:bg-status-requested',
   },
   requested: {
     label: 'Requested',
-    variant: 'default' as const,
+    variant: 'default',
     className: 'bg-status-requested text-black hover:bg-status-requested',
   },
   available: {
     label: 'Available',
-    variant: 'default' as const,
+    variant: 'default',
     className: 'bg-status-available text-black hover:bg-status-available',
   },
 }
 
-const INSTANCE_STATUS_ICONS: Record<string, string> = {
+const INSTANCE_STATUS_ICONS: Record<InstanceStatus, string> = {
   available: '\u2713',
   requested: '\u2022',
   pending: '\u2022',

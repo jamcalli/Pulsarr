@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-// Status enum for recent requests
+// Status enum for recent requests (includes pending_approval from approvals table)
 export const RecentRequestStatusSchema = z.enum([
   'pending_approval',
   'pending',
@@ -8,12 +8,15 @@ export const RecentRequestStatusSchema = z.enum([
   'available',
 ])
 
+// Status enum for instances (subset - instances can't have pending_approval)
+export const InstanceStatusSchema = z.enum(['pending', 'requested', 'available'])
+
 // Instance info schema
 export const InstanceInfoSchema = z.object({
   id: z.number(),
   name: z.string(),
   instanceType: z.enum(['radarr', 'sonarr']),
-  status: z.string(),
+  status: InstanceStatusSchema,
 })
 
 // Individual recent request item
@@ -46,6 +49,7 @@ export const RecentRequestsResponseSchema = z.object({
 
 // Type exports
 export type RecentRequestStatus = z.infer<typeof RecentRequestStatusSchema>
+export type InstanceStatus = z.infer<typeof InstanceStatusSchema>
 export type InstanceInfo = z.infer<typeof InstanceInfoSchema>
 export type RecentRequestItem = z.infer<typeof RecentRequestItemSchema>
 export type RecentRequestsQuery = z.infer<typeof RecentRequestsQuerySchema>
