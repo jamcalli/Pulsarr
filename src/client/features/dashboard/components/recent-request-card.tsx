@@ -56,10 +56,13 @@ const STATUS_CONFIG: Record<
   },
 }
 
-const INSTANCE_STATUS_ICONS: Record<InstanceStatus, string> = {
-  available: '\u2713',
-  requested: '\u2022',
-  pending: '\u2022',
+const INSTANCE_STATUS_CONFIG: Record<
+  InstanceStatus,
+  { icon: string; label: string }
+> = {
+  available: { icon: '\u2713', label: 'Available' },
+  requested: { icon: '\u25CF', label: 'Requested' },
+  pending: { icon: '\u25CB', label: 'Pending' },
 }
 
 function formatTimeAgo(dateString: string): string {
@@ -88,10 +91,9 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
 
   const hasGuids = Boolean(item.guids?.length)
   const hasInstances = item.allInstances.length > 0
-  const hasMultipleInstances = item.allInstances.length > 1
-  // Show popover for multiple instances OR single instance when available
-  const showInstancePopover =
-    hasMultipleInstances || (hasInstances && item.status === 'available')
+  // Show popover whenever instances exist (junction entries)
+  // Only pending_approval has no junction (hasn't routed yet)
+  const showInstancePopover = hasInstances
   const statusConfig = STATUS_CONFIG[item.status]
 
   // Use unified poster hook - fast path if thumb exists, fallback to TMDB fetch
@@ -162,19 +164,23 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
                     align="end"
                     className="w-auto min-w-40 p-2 bg-secondary-background"
                   >
-                    <p className="text-xs font-medium mb-1">Available on:</p>
+                    <p className="text-xs font-medium mb-1">Status:</p>
                     <ul className="text-xs space-y-0.5">
-                      {item.allInstances.map((instance) => (
-                        <li
-                          key={`${instance.instanceType}-${instance.id}`}
-                          className="flex items-center gap-1"
-                        >
-                          <span>
-                            {INSTANCE_STATUS_ICONS[instance.status] || '\u2022'}
-                          </span>
-                          <span>{instance.name}</span>
-                        </li>
-                      ))}
+                      {item.allInstances.map((instance) => {
+                        const statusConfig =
+                          INSTANCE_STATUS_CONFIG[instance.status]
+                        return (
+                          <li
+                            key={`${instance.instanceType}-${instance.id}`}
+                            className="flex items-center gap-1"
+                          >
+                            <span>{statusConfig.icon}</span>
+                            <span>
+                              {instance.name} ({statusConfig.label})
+                            </span>
+                          </li>
+                        )
+                      })}
                     </ul>
                   </PopoverContent>
                 </Popover>
