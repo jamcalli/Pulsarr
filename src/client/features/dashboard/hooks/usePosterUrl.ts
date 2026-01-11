@@ -83,6 +83,7 @@ export function usePosterUrl({
       contentType === 'show' ? tvdbGuid || tmdbGuid : tmdbGuid || tvdbGuid
 
     if (!guidToUse) {
+      setIsLoading(false)
       return
     }
 

@@ -23,7 +23,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { useTheme } from '@/components/theme-provider'
 import { ChartContainer } from '@/components/ui/chart'
 import { useStatusTransitionData } from '@/features/dashboard/hooks/useChartData'
 
@@ -34,7 +33,6 @@ import { useStatusTransitionData } from '@/features/dashboard/hooks/useChartData
  */
 export function StatusTransitionsChart() {
   const { data: statusTransitions, isLoading } = useStatusTransitionData()
-  const { theme } = useTheme()
 
   // CSS Custom Properties
   const cssColors = useMemo(() => {
@@ -49,7 +47,7 @@ export function StatusTransitionsChart() {
       show: read('--color-show', '#39b978'),
       error: read('--error', '#c1666b'),
     }
-  }, [theme])
+  }, [])
 
   // All transitions to notified chart data
   const notifiedByContentTypeData = useMemo(() => {

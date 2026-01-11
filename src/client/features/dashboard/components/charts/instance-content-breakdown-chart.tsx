@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
-import { useTheme } from '@/components/theme-provider'
 import { Card, CardContent } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer } from '@/components/ui/chart'
 import { InstanceContentBreakdownTooltip } from '@/features/dashboard/components/charts/instance-content-breakdown-tooltip'
@@ -13,7 +12,6 @@ import { useInstanceContentData } from '@/features/dashboard/hooks/useChartData'
  */
 export default function InstanceContentBreakdownChart() {
   const { data: instanceContentBreakdown, isLoading } = useInstanceContentData()
-  const { theme } = useTheme()
 
   const cssColors = useMemo(
     () => ({
@@ -30,7 +28,7 @@ export default function InstanceContentBreakdownChart() {
           .getPropertyValue('--chart-5')
           .trim() || '1 54% 50%',
     }),
-    [theme],
+    [],
   )
 
   const chartData = useMemo(() => {
