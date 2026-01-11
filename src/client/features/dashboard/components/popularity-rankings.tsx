@@ -53,7 +53,7 @@ export function PopularityRankings({ onRefresh }: PopularityRankingsProps) {
   )
 
   return (
-    <div className="mb-8">
+    <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h2 className="text-2xl font-bold text-foreground">
           Popularity Rankings

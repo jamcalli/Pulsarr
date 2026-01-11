@@ -1,73 +1,163 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import semver from 'semver'
 import { toast } from 'sonner'
+import { useAppQuery } from '@/lib/useAppQuery'
 
 interface GitHubRelease {
   tag_name: string
   html_url: string
 }
 
-const VERSION_CHECK_KEY = 'version-check-shown'
+export interface VersionCheckResult {
+  updateAvailable: boolean
+  latestVersion: string | null
+  currentVersion: string
+  releaseUrl: string | null
+  isLoading: boolean
+  isError: boolean
+}
 
-export const useVersionCheck = (repoOwner: string, repoName: string) => {
+const VERSION_TOAST_KEY = 'version-toast-notified'
+const THIRTY_MINUTES = 30 * 60 * 1000
+
+/**
+ * Query key factory for version check
+ */
+export const versionCheckKeys = {
+  all: ['version-check'] as const,
+  latest: (owner: string, repo: string) =>
+    [...versionCheckKeys.all, owner, repo] as const,
+}
+
+/**
+ * Fetches the latest release from GitHub API
+ */
+async function fetchLatestRelease(
+  repoOwner: string,
+  repoName: string,
+  signal?: AbortSignal,
+): Promise<GitHubRelease> {
+  const response = await fetch(
+    `https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`,
+    { signal },
+  )
+
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status}`)
+  }
+
+  return await response.json()
+}
+
+/**
+ * Compares versions and returns update availability info
+ */
+function checkVersionUpdate(release: GitHubRelease | undefined): {
+  updateAvailable: boolean
+  latestVersion: string | null
+  currentVersion: string
+  releaseUrl: string | null
+} {
+  const currentVersion =
+    semver.clean(__APP_VERSION__) ?? __APP_VERSION__.replace(/^v/, '')
+
+  if (!release) {
+    return {
+      updateAvailable: false,
+      latestVersion: null,
+      currentVersion,
+      releaseUrl: null,
+    }
+  }
+
+  const latestVersion =
+    semver.clean(release.tag_name) ?? release.tag_name.replace(/^v/, '')
+
+  const updateAvailable =
+    semver.valid(latestVersion) &&
+    semver.valid(currentVersion) &&
+    semver.gt(latestVersion, currentVersion)
+
+  return {
+    updateAvailable: !!updateAvailable,
+    latestVersion,
+    currentVersion,
+    releaseUrl: release.html_url,
+  }
+}
+
+/**
+ * Hook to check for application updates via GitHub releases.
+ *
+ * Uses React Query for:
+ * - Automatic deduplication across component mounts
+ * - 30-minute stale time (won't re-fetch on navigation)
+ * - 30-minute refetch interval (periodic checks for long sessions)
+ *
+ * Shows a toast notification once per session when update is detected.
+ * Returns version info for use in persistent UI indicators.
+ *
+ * @param repoOwner - GitHub repository owner
+ * @param repoName - GitHub repository name
+ * @returns Version check result with update availability and version info
+ */
+export function useVersionCheck(
+  repoOwner: string,
+  repoName: string,
+): VersionCheckResult {
+  const toastShownRef = useRef(false)
+
+  const { data: release, isLoading, isError } = useAppQuery({
+    queryKey: versionCheckKeys.latest(repoOwner, repoName),
+    queryFn: ({ signal }) => fetchLatestRelease(repoOwner, repoName, signal),
+    enabled: Boolean(repoOwner) && Boolean(repoName),
+    staleTime: THIRTY_MINUTES,
+    refetchInterval: THIRTY_MINUTES,
+    refetchOnWindowFocus: false,
+    retry: false,
+  })
+
+  const versionInfo = checkVersionUpdate(release)
+
+  // Show toast once per version when update is detected (with 3s delay for UI to settle)
+  // Stores the notified version so newer releases during long sessions still trigger a toast
   useEffect(() => {
-    // Only check once per session
-    if (sessionStorage.getItem(VERSION_CHECK_KEY)) {
-      return
-    }
+    const notifiedVersion = sessionStorage.getItem(VERSION_TOAST_KEY)
+    if (
+      versionInfo.updateAvailable &&
+      versionInfo.latestVersion &&
+      !toastShownRef.current &&
+      notifiedVersion !== versionInfo.latestVersion
+    ) {
+      toastShownRef.current = true
+      sessionStorage.setItem(VERSION_TOAST_KEY, versionInfo.latestVersion)
 
-    const checkForUpdates = async () => {
-      try {
-        const response = await fetch(
-          `https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`
-        )
-
-        if (!response.ok) {
-          throw new Error(`GitHub API error: ${response.status}`)
-        }
-
-        const data: GitHubRelease = await response.json()
-
-        // Clean version strings for semver comparison
-        const currentVersion =
-          semver.clean(__APP_VERSION__) ?? __APP_VERSION__.replace(/^v/, '')
-        const latestVersion =
-          semver.clean(data.tag_name) ?? data.tag_name.replace(/^v/, '')
-
-        if (
-          semver.valid(latestVersion) &&
-          semver.valid(currentVersion) &&
-          semver.gt(latestVersion, currentVersion)
-        ) {
-          toast(
-            `A new version (v${latestVersion}) is available. You're running v${currentVersion}.`,
-            {
-              id: 'version-update-notification',
-              duration: 8000,
-              action: {
-                label: 'View Release',
-                onClick: () =>
-                  window.open(data.html_url, '_blank', 'noopener,noreferrer'),
+      const url = versionInfo.releaseUrl
+      const timeoutId = setTimeout(() => {
+        toast(
+          `A new version (v${versionInfo.latestVersion}) is available. You're running v${versionInfo.currentVersion}.`,
+          {
+            id: 'version-update-notification',
+            duration: 8000,
+            action: {
+              label: 'View Release',
+              onClick: () => {
+                if (url) {
+                  window.open(url, '_blank', 'noopener,noreferrer')
+                }
               },
-            }
-          )
-        }
+            },
+          },
+        )
+      }, 3000)
 
-        // Mark as checked for this session (regardless of whether update exists)
-        sessionStorage.setItem(VERSION_CHECK_KEY, 'true')
-      } catch (err) {
-        if (err instanceof Error) {
-          console.error(`Error checking for updates: ${err.message}`)
-        } else {
-          console.error('Unknown error checking for updates:', err)
-        }
-      }
+      return () => clearTimeout(timeoutId)
     }
+  }, [versionInfo.updateAvailable, versionInfo.latestVersion, versionInfo.currentVersion, versionInfo.releaseUrl])
 
-    const timeoutId = setTimeout(() => {
-      checkForUpdates()
-    }, 3000)
-
-    return () => clearTimeout(timeoutId)
-  }, [repoOwner, repoName])
+  return {
+    ...versionInfo,
+    isLoading,
+    isError,
+  }
 }

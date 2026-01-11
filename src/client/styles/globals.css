@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant w600 (@media (max-width: 600px));
+@custom-variant w400 (@media (max-width: 400px));
 
 @theme {
   --breakpoint-xs: 490px;
