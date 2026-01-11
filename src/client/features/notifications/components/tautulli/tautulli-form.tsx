@@ -126,7 +126,7 @@ async function testTautulliConnection(url: string, apiKey: string) {
     throw new Error(errorData.message || `HTTP ${response.status}`)
   }
 
-  return response.json()
+  return await response.json()
 }
 
 /**

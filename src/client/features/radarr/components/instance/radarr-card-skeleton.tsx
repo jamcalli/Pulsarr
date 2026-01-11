@@ -4,7 +4,7 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 
 export const RadarrPageSkeleton = () => {
   return (
-    <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+    <div>
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-foreground">Radarr Instances</h2>
         <p className="text-sm text-foreground mt-1">
