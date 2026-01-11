@@ -34,7 +34,7 @@ export function AnalyticsDashboard() {
   }
 
   return (
-    <div className="mb-8">
+    <div>
       <h2 className="mb-4 text-2xl font-bold text-foreground">
         Media Analytics
       </h2>

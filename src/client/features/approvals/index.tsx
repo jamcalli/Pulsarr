@@ -200,7 +200,7 @@ export default function ApprovalsPage() {
         ? approvalsError.message
         : 'Failed to load approvals'
     return (
-      <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+      <div>
         <div className="text-center py-8">
           <p className="text-red-500 mb-4">{errorMessage}</p>
           <Button onClick={() => refetchApprovals()} variant="default">
@@ -214,7 +214,7 @@ export default function ApprovalsPage() {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+      <div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-foreground">Approvals</h2>
         </div>
@@ -236,7 +236,7 @@ export default function ApprovalsPage() {
   }
 
   return (
-    <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+    <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-foreground">Approvals</h2>
       </div>

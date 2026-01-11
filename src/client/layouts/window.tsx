@@ -48,7 +48,9 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
           {/* Main content area */}
           <main className="bg-background relative flex flex-col h-screen pt-[50px] w-full">
             <ScrollArea className="flex-1 w-full">
-              <div className="pb-32 w-full">{children}</div>
+              <div className="w-full px-8 pt-8 pb-20 w600:px-4 w600:pt-4 w600:text-lg w400:px-3 w400:pt-3 w400:text-base leading-[1.7]">
+                {children}
+              </div>
             </ScrollArea>
           </main>
         </SidebarProvider>
@@ -92,7 +94,11 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
               <VersionDisplay className="px-4 text-xs text-black/70" />
             </header>
             <div className="flex flex-1 flex-col min-h-0">
-              <ScrollArea className="flex-1">{children}</ScrollArea>
+              <ScrollArea className="flex-1">
+                <div className="p-8 w600:px-4 w600:pt-4 w600:text-lg w400:px-3 w400:pt-3 w400:text-base leading-[1.7]">
+                  {children}
+                </div>
+              </ScrollArea>
             </div>
           </SidebarInset>
         </SidebarProvider>
