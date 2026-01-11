@@ -22654,6 +22654,236 @@
         }
       }
     },
+    "/v1/stats/recent-requests": {
+      "get": {
+        "operationId": "getRecentRequests",
+        "summary": "Get recent requests",
+        "tags": [
+          "Statistics"
+        ],
+        "description": "Retrieve recent requests for the dashboard carousel, combining pending approvals and routed watchlist items",
+        "parameters": [
+          {
+            "schema": {
+              "default": 10,
+              "type": "number",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "in": "query",
+            "name": "limit"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending_approval",
+                "pending",
+                "requested",
+                "available"
+              ]
+            },
+            "in": "query",
+            "name": "status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "approval",
+                              "watchlist"
+                            ]
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "contentType": {
+                            "type": "string",
+                            "enum": [
+                              "movie",
+                              "show"
+                            ]
+                          },
+                          "guids": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "thumb": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending_approval",
+                              "pending",
+                              "requested",
+                              "available"
+                            ]
+                          },
+                          "userId": {
+                            "type": "number"
+                          },
+                          "userName": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "primaryInstance": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "instanceType": {
+                                "type": "string",
+                                "enum": [
+                                  "radarr",
+                                  "sonarr"
+                                ]
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "pending",
+                                  "requested",
+                                  "available"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "instanceType",
+                              "status"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "allInstances": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "number"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "instanceType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "radarr",
+                                    "sonarr"
+                                  ]
+                                },
+                                "status": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "requested",
+                                    "available"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name",
+                                "instanceType",
+                                "status"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "source",
+                          "title",
+                          "contentType",
+                          "guids",
+                          "thumb",
+                          "status",
+                          "userId",
+                          "userName",
+                          "createdAt",
+                          "primaryInstance",
+                          "allInstances"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/stats/all": {
       "get": {
         "operationId": "getAllDashboardStats",
@@ -26684,6 +26914,38 @@
                                 }
                               },
                               "additionalProperties": false
+                            },
+                            "plexRatings": {
+                              "type": "object",
+                              "properties": {
+                                "imdb": {
+                                  "type": "object",
+                                  "properties": {
+                                    "rating": {
+                                      "type": "number"
+                                    },
+                                    "votes": {
+                                      "nullable": true,
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "rating",
+                                    "votes"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "rtCritic": {
+                                  "type": "number"
+                                },
+                                "rtAudience": {
+                                  "type": "number"
+                                },
+                                "tmdb": {
+                                  "type": "number"
+                                }
+                              },
+                              "additionalProperties": false
                             }
                           },
                           "required": [
@@ -27254,6 +27516,38 @@
                                     ],
                                     "additionalProperties": false
                                   }
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "plexRatings": {
+                              "type": "object",
+                              "properties": {
+                                "imdb": {
+                                  "type": "object",
+                                  "properties": {
+                                    "rating": {
+                                      "type": "number"
+                                    },
+                                    "votes": {
+                                      "nullable": true,
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "rating",
+                                    "votes"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "rtCritic": {
+                                  "type": "number"
+                                },
+                                "rtAudience": {
+                                  "type": "number"
+                                },
+                                "tmdb": {
+                                  "type": "number"
                                 }
                               },
                               "additionalProperties": false
@@ -27924,6 +28218,38 @@
                                 }
                               },
                               "additionalProperties": false
+                            },
+                            "plexRatings": {
+                              "type": "object",
+                              "properties": {
+                                "imdb": {
+                                  "type": "object",
+                                  "properties": {
+                                    "rating": {
+                                      "type": "number"
+                                    },
+                                    "votes": {
+                                      "nullable": true,
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "rating",
+                                    "votes"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "rtCritic": {
+                                  "type": "number"
+                                },
+                                "rtAudience": {
+                                  "type": "number"
+                                },
+                                "tmdb": {
+                                  "type": "number"
+                                }
+                              },
+                              "additionalProperties": false
                             }
                           },
                           "required": [
@@ -28494,6 +28820,38 @@
                                     ],
                                     "additionalProperties": false
                                   }
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "plexRatings": {
+                              "type": "object",
+                              "properties": {
+                                "imdb": {
+                                  "type": "object",
+                                  "properties": {
+                                    "rating": {
+                                      "type": "number"
+                                    },
+                                    "votes": {
+                                      "nullable": true,
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "rating",
+                                    "votes"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "rtCritic": {
+                                  "type": "number"
+                                },
+                                "rtAudience": {
+                                  "type": "number"
+                                },
+                                "tmdb": {
+                                  "type": "number"
                                 }
                               },
                               "additionalProperties": false
@@ -29164,6 +29522,38 @@
                                 }
                               },
                               "additionalProperties": false
+                            },
+                            "plexRatings": {
+                              "type": "object",
+                              "properties": {
+                                "imdb": {
+                                  "type": "object",
+                                  "properties": {
+                                    "rating": {
+                                      "type": "number"
+                                    },
+                                    "votes": {
+                                      "nullable": true,
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "rating",
+                                    "votes"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "rtCritic": {
+                                  "type": "number"
+                                },
+                                "rtAudience": {
+                                  "type": "number"
+                                },
+                                "tmdb": {
+                                  "type": "number"
+                                }
+                              },
+                              "additionalProperties": false
                             }
                           },
                           "required": [
@@ -29734,6 +30124,38 @@
                                     ],
                                     "additionalProperties": false
                                   }
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "plexRatings": {
+                              "type": "object",
+                              "properties": {
+                                "imdb": {
+                                  "type": "object",
+                                  "properties": {
+                                    "rating": {
+                                      "type": "number"
+                                    },
+                                    "votes": {
+                                      "nullable": true,
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "rating",
+                                    "votes"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "rtCritic": {
+                                  "type": "number"
+                                },
+                                "rtAudience": {
+                                  "type": "number"
+                                },
+                                "tmdb": {
+                                  "type": "number"
                                 }
                               },
                               "additionalProperties": false
