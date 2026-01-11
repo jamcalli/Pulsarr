@@ -9,7 +9,11 @@ export const RecentRequestStatusSchema = z.enum([
 ])
 
 // Status enum for instances (subset - instances can't have pending_approval)
-export const InstanceStatusSchema = z.enum(['pending', 'requested', 'available'])
+export const InstanceStatusSchema = z.enum([
+  'pending',
+  'requested',
+  'available',
+])
 
 // Instance info schema
 export const InstanceInfoSchema = z.object({
