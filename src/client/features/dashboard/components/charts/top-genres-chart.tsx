@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
-import { useTheme } from '@/components/theme-provider'
 import { ChartContainer } from '@/components/ui/chart'
 import { TopGenresTooltip } from '@/features/dashboard/components/charts/top-genres-tooltip'
 import { useTopGenresData } from '@/features/dashboard/hooks/useChartData'
@@ -17,7 +16,6 @@ interface GenreChartData {
  */
 export function TopGenresChart() {
   const { data: topGenres, isLoading } = useTopGenresData()
-  const { theme } = useTheme()
 
   // CSS Custom Properties
   const cssColors = useMemo(() => {
@@ -26,7 +24,7 @@ export function TopGenresChart() {
         .getPropertyValue('--fun')
         .trim() || '#d4b483'
     return { fun }
-  }, [theme])
+  }, [])
 
   // Top Genres data
   const topGenresData = useMemo((): GenreChartData[] => {
