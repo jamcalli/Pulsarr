@@ -9,6 +9,7 @@
  */
 
 import type { ItemRatings, PlexRating } from '@root/types/plex.types.js'
+import { normalizePosterPath } from '@utils/poster-url.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS, PlexRateLimiter } from '../api/index.js'
@@ -174,7 +175,7 @@ export async function lookupByGuid(
       ratingKey: metadata.ratingKey,
       title: metadata.title ?? '',
       type: contentType,
-      thumb: metadata.thumb,
+      thumb: normalizePosterPath(metadata.thumb) ?? undefined,
       guids: metadata.Guid?.map((g) => g.id).filter(Boolean) ?? [],
       genres: metadata.Genre?.map((g) => g.tag).filter(Boolean) ?? [],
       ratings,

@@ -168,13 +168,13 @@ export default function PlexUsersPage() {
   }
 
   return (
-    <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+    <div>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-foreground">User Watchlists</h2>
       </div>
       <div className="grid gap-4">
         {!hasUserData && !isLoading ? (
-          <div className="text-center py-8 text-foreground text-muted-foreground">
+          <div className="text-center py-8 text-foreground">
             No watchlist data available
           </div>
         ) : (

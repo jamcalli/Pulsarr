@@ -15,6 +15,7 @@ import type {
 } from '@root/types/tmdb.types.js'
 import { isTmdbError } from '@root/types/tmdb.types.js'
 import type {
+  PlexRatings,
   RadarrRatings,
   TmdbMovieDetails,
   TmdbMovieMetadata,
@@ -110,13 +111,18 @@ export class TmdbService {
     try {
       const movieRegion = region || this.defaultRegion
 
-      // Fetch movie details, watch providers, and radarr ratings in parallel
-      const [detailsResponse, watchProvidersResponse, radarrRatingsResponse] =
-        await Promise.allSettled([
-          this.fetchMovieDetails(tmdbId),
-          this.fetchMovieWatchProviders(tmdbId, movieRegion),
-          this.fetchRadarrRatings(tmdbId),
-        ])
+      // Fetch movie details, watch providers, radarr ratings, and plex ratings in parallel
+      const [
+        detailsResponse,
+        watchProvidersResponse,
+        radarrRatingsResponse,
+        plexRatingsResponse,
+      ] = await Promise.allSettled([
+        this.fetchMovieDetails(tmdbId),
+        this.fetchMovieWatchProviders(tmdbId, movieRegion),
+        this.fetchRadarrRatings(tmdbId),
+        this.fetchPlexRatings(tmdbId),
+      ])
 
       // Check if details fetch failed
       if (detailsResponse.status === 'rejected') {
@@ -163,10 +169,25 @@ export class TmdbService {
         )
       }
 
+      // Plex ratings are optional, so we continue even if they fail
+      let plexRatings: PlexRatings | undefined
+      if (
+        plexRatingsResponse.status === 'fulfilled' &&
+        plexRatingsResponse.value
+      ) {
+        plexRatings = plexRatingsResponse.value
+      } else if (plexRatingsResponse.status === 'rejected') {
+        this.log.warn(
+          `Failed to fetch Plex ratings for movie TMDB ID ${tmdbId}:`,
+          plexRatingsResponse.reason,
+        )
+      }
+
       return {
         details,
         watchProviders,
         radarrRatings,
+        plexRatings,
       }
     } catch (error) {
       this.log.error({ error, tmdbId }, 'Error fetching movie metadata')
@@ -184,11 +205,12 @@ export class TmdbService {
     try {
       const tvRegion = region || this.defaultRegion
 
-      // Fetch TV details and watch providers in parallel
-      const [detailsResponse, watchProvidersResponse] =
+      // Fetch TV details, watch providers, and plex ratings in parallel
+      const [detailsResponse, watchProvidersResponse, plexRatingsResponse] =
         await Promise.allSettled([
           this.fetchTvDetails(tmdbId),
           this.fetchTvWatchProviders(tmdbId, tvRegion),
+          this.fetchPlexRatings(tmdbId),
         ])
 
       // Check if details fetch failed
@@ -222,9 +244,24 @@ export class TmdbService {
         )
       }
 
+      // Plex ratings are optional, so we continue even if they fail
+      let plexRatings: PlexRatings | undefined
+      if (
+        plexRatingsResponse.status === 'fulfilled' &&
+        plexRatingsResponse.value
+      ) {
+        plexRatings = plexRatingsResponse.value
+      } else if (plexRatingsResponse.status === 'rejected') {
+        this.log.warn(
+          `Failed to fetch Plex ratings for TV TMDB ID ${tmdbId}:`,
+          plexRatingsResponse.reason,
+        )
+      }
+
       return {
         details,
         watchProviders,
+        plexRatings,
       }
     } catch (error) {
       this.log.error({ error, tmdbId }, 'Error fetching TV metadata')
@@ -562,6 +599,40 @@ export class TmdbService {
       return movieData.ratings
     } catch (error) {
       this.log.warn({ error, tmdbId }, 'Failed to fetch Radarr ratings')
+      return null
+    }
+  }
+
+  /**
+   * Fetch Plex ratings from stored watchlist metadata by TMDB ID
+   * Returns null if no matching item found or no ratings stored
+   */
+  private async fetchPlexRatings(tmdbId: number): Promise<PlexRatings | null> {
+    try {
+      const tmdbGuid = `tmdb:${tmdbId}`
+      const items = await this.fastify.db.getWatchlistItemsByGuid(tmdbGuid)
+
+      if (items.length === 0) {
+        this.log.debug(`No watchlist item found for TMDB ID ${tmdbId}`)
+        return null
+      }
+
+      // Get ratings from the first matching item
+      const ratings = items[0].ratings
+      if (!ratings) {
+        this.log.debug(`No Plex ratings stored for TMDB ID ${tmdbId}`)
+        return null
+      }
+
+      // Convert to PlexRatings schema format
+      return {
+        imdb: ratings.imdb,
+        rtCritic: ratings.rtCritic,
+        rtAudience: ratings.rtAudience,
+        tmdb: ratings.tmdb,
+      }
+    } catch (error) {
+      this.log.warn({ error, tmdbId }, 'Failed to fetch Plex ratings from DB')
       return null
     }
   }

@@ -151,14 +151,14 @@ export default function PlexConfigurationPage() {
   // Show skeleton during loading
   if (isLoading) {
     return (
-      <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+      <div>
         <PlexConnectionSkeleton />
       </div>
     )
   }
 
   return (
-    <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+    <div>
       <SetupModal open={showSetupModal} onOpenChange={setShowSetupModal} />
 
       <div className="flex justify-between items-center">

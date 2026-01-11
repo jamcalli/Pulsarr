@@ -17,6 +17,7 @@ import type {
   RssWatchlistItem,
 } from '@root/types/plex.types.js'
 import { normalizeGenre, parseGenres } from '@utils/guid-handler.js'
+import { normalizePosterPath } from '@utils/poster-url.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { fetchRawRssFeed, generateStableKey } from '../fetching/rss-fetcher.js'
 
@@ -264,7 +265,7 @@ export class RssFeedCacheManager {
         title: item.title,
         type: contentType,
         guids: item.guids,
-        thumb: item.thumbnail?.url,
+        thumb: normalizePosterPath(item.thumbnail?.url) ?? undefined,
         // Normalize genres to title case for database consistency with API sources
         genres: parseGenres(item.keywords).map(normalizeGenre).filter(Boolean),
         author: item.author ?? '',

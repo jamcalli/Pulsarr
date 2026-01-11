@@ -165,15 +165,16 @@ export class LogStreamingService {
     }
   }
 
-  private extractLogLevel(line: string): LogLevel {
-    // Simple extraction - look for ] DEBUG:, ] INFO:, etc.
-    if (line.includes('] DEBUG:')) return 'debug'
-    if (line.includes('] INFO:')) return 'info'
-    if (line.includes('] WARN:')) return 'warn'
-    if (line.includes('] ERROR:')) return 'error'
-    if (line.includes('] FATAL:')) return 'fatal'
-    if (line.includes('] TRACE:')) return 'trace'
+  // Regex to match pino-pretty format: [HH:MM:ss TZ] LEVEL: message
+  // Captures the level name after ] and before :
+  private static readonly LOG_LEVEL_REGEX =
+    /]\s*(TRACE|DEBUG|INFO|WARN|ERROR|FATAL):/i
 
+  private extractLogLevel(line: string): LogLevel {
+    const match = LogStreamingService.LOG_LEVEL_REGEX.exec(line)
+    if (match) {
+      return match[1].toLowerCase() as LogLevel
+    }
     // Fallback to info for any unmatched lines
     return 'info'
   }
@@ -275,9 +276,10 @@ export class LogStreamingService {
           this.partialLine = endsWithNewline ? '' : lines[lines.length - 1]
 
           if (newLines.length > 0) {
-            // Just emit raw log lines without complex parsing
             for (const line of newLines) {
-              // Simple parsing to maintain the LogEntry interface
+              // The message contains the full pino-pretty formatted line including timestamp.
+              // The timestamp field here is approximate (when line was read, not logged).
+              // The level is extracted for filtering purposes.
               const entry: LogEntry = {
                 timestamp: new Date().toISOString(),
                 level: this.extractLogLevel(line),

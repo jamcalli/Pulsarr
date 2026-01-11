@@ -11,10 +11,7 @@ export function UserTagsPageSkeleton() {
   const statusInfo = 'unknown' as const
 
   return (
-    <div
-      className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]"
-      aria-busy="true"
-    >
+    <div aria-busy="true">
       <UtilitySectionHeader
         title="User Tags"
         description="Configure user-based tagging for Sonarr and Radarr content"

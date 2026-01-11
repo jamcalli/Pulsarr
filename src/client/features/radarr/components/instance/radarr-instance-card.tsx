@@ -400,7 +400,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-foreground text-muted-foreground">
+                          <span className="text-sm text-foreground">
                             Automatically search for movies when added
                           </span>
                         </div>
@@ -440,7 +440,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-foreground text-muted-foreground">
+                          <span className="text-sm text-foreground">
                             Bypass ignore exclusions
                           </span>
                         </div>
@@ -706,7 +706,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-foreground text-muted-foreground">
+                          <span className="text-sm text-foreground">
                             Set as default instance
                           </span>
                         </div>

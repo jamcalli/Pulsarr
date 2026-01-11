@@ -6,6 +6,7 @@ import type {
 } from '@root/types/plex.types.js'
 import type { ProgressService } from '@root/types/progress.types.js'
 import { normalizeGuid } from '@utils/guid-handler.js'
+import { normalizePosterPath } from '@utils/poster-url.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import {
@@ -220,7 +221,10 @@ export const toItemsSingle = async (
         title: item.title,
         key: item.id,
         type: item.type,
-        thumb: item.thumb || metadata.thumb || '',
+        thumb:
+          normalizePosterPath(item.thumb) ||
+          normalizePosterPath(metadata.thumb) ||
+          '',
         guids:
           metadata.Guid?.map((guid) =>
             guid?.id ? normalizeGuid(guid.id) : null,

@@ -12,7 +12,7 @@ export function DeleteSyncPageSkeleton() {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
-    <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+    <div>
       <UtilitySectionHeader
         title="Delete Sync"
         description="Automatically removes content when it's no longer on any watchlists"

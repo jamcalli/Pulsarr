@@ -75,11 +75,13 @@ import './database/types/watchlist-methods.js'
 import './database/types/webhook-methods.js'
 import './database/types/webhook-endpoint-methods.js'
 import './database/types/api-key-methods.js'
+import './database/types/dashboard-methods.js'
 import * as analyticsMethods from './database/methods/analytics.js'
 import * as animeMethods from './database/methods/anime.js'
 import * as apiKeyMethods from './database/methods/api-keys.js'
 import * as approvalMethods from './database/methods/approval.js'
 import * as configMethods from './database/methods/config.js'
+import * as dashboardMethods from './database/methods/dashboard.js'
 import * as junctionMethods from './database/methods/junction.js'
 import * as notificationMethods from './database/methods/notification.js'
 import * as plexLabelSyncMethods from './database/methods/plex-label-sync.js'
@@ -210,6 +212,7 @@ export class DatabaseService {
       apiKeyMethods,
       approvalMethods,
       configMethods,
+      dashboardMethods,
       junctionMethods,
       notificationMethods,
       plexLabelSyncMethods,

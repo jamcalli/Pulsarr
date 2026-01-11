@@ -1,0 +1,71 @@
+---
+id: get-recent-requests
+title: "Get recent requests"
+description: "Retrieve recent requests for the dashboard carousel, combining pending approvals and routed watchlist items"
+sidebar_label: "Get recent requests"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVV9+L4zYQ/lfEPLXgNEmPe/HbcleO0KOE3W0pLKEo1mysW1vySaPshuD/vYwsJ07i3HbhOOiTjaT5ZuabHxrtwTboJGlrFgpy2CDdYoGGbvFrQE8eMiC58ZA/wB1J0p504WGVgUJfON2wJORwi+Q0blG4KC1cEheP1gkqUSjpy7WVTolCOhs8VpkobL3WRpuNaNAo/sqmcXYrKy+kUcLZQKjEs6SirLQnoQlrtqiRTtZI6NiuPfiixFpCvgeFjzJUBPl8lgHtGoQcTKjX6CCDWhtdhxryeQa1fOn+38/aDDS78DWg20EGRtYsVulaE7TZED4henLabCADNAzxAMn8f3rz2cRuCTJIVKCCDORW6kquK4TVFbWeJAUP7YoFfWONR8+qf53NOgeHrH/s3BW36SRkUFhDaIjPyqapdBFjO/3iWWDEF7v+ggWxwY4zgXSnzoeiQO8HB9fWVigNsN0xDMct6ZxkF87Xr2BrNTiTotNm4G1wBX6L5gG9h5yIRJKmakSyPdBxH9evI9d2q5k9X9rniLgJWv0XF3tNbEQZ6jVvmVB1Mc7JBcwujUox/v4JFTy6xTi7vPVHTLExlhxKQnVDo7uN07V0u4XxJE0XoSsuvi3g5po5Oml6LWpOKum4sr01/LP6BrccISZOO1Qsq1Vfc2f6DhCrDKRSmstHVsuBQ4+y8thmIKuq5+T7V8P/m5xRwFTgfbmeFmdfcn0dHTQdsnqQw8OMvczPs8i80dS+8/UBfFW8zeD9D27OkZkPVuFo6hSnG8fUQeesG92p0Xu5Gc2nWpvPaDZUQj6/4OpoSFLbKzlCvs5f1E+lTfNHvN9ZHUy38ymr8NNuqpi441Di0W37+z+4CnLYN86SLWzV5tPpvrSe2nzfWEctnE8rH4InW4u7iAEZbKXT3M4iuz0M//fFVBI1kMVPGn7SnNHvnOLflyh6GBE8KkGWp506GI45imdNZRyLOjc4BGzwyQgDlS1kFZfH8HmDS1RYJxZLIZVy6L2wjxF3GSovnRvgMxOn+O9ms3fjpltHwhrxXOqiPEBpL1wwpusXPBd1tEdO8ul0Z4ObNN3ZSd80filsfaFi2dVrT/8boPJRkz9qhwUlOHETy1f8FClmT34+05BPpwdmxwE/99ujYCtOviI4TbuYfbLRv+PuJnDKPqziwIjea2sOSwOJOy7xLs+GcsfLIy5Cmg1LlComaBoO/57cLBeT7sCpyTfLhXjCnZCBSjSUOosInqfqg5hIgHwVDG28or6w9imORUl9CsmF8rsOa7KWnOqjJnRQPt402jzaqLOb2qBPsJvlYtQvZYtQo6EOjx8UvcRESLGs8GX4RDCEG3c8ehdvv/icuO1vRG4cHfxf8640PNUytuDk6Sek85fMuWn7Yzf/wa+fFCvCF5o2ldRxJo/5vU+d8wG283SD+jgwnnbPVd9tHmC/56D96aq25eXuMcJZrbTnjqhSn87gCXeHVxF3zCqwEbG2rpw9XODHw6tjr+2KpU9xVtlJcck1QxUXNyWjHC6MT7/dQ9v+Cw1FI4o=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get recent requests"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/stats/recent-requests"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve recent requests for the dashboard carousel, combining pending approvals and routed watchlist items
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"default":10,"type":"number","minimum":1,"maximum":50},"in":"query","name":"limit"},{"schema":{"type":"string","enum":["pending_approval","pending","requested","available"]},"in":"query","name":"status"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"items":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"source":{"type":"string","enum":["approval","watchlist"]},"title":{"type":"string"},"contentType":{"type":"string","enum":["movie","show"]},"guids":{"type":"array","items":{"type":"string"}},"thumb":{"nullable":true,"type":"string"},"status":{"type":"string","enum":["pending_approval","pending","requested","available"]},"userId":{"type":"number"},"userName":{"type":"string"},"createdAt":{"type":"string"},"primaryInstance":{"nullable":true,"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"instanceType":{"type":"string","enum":["radarr","sonarr"]},"status":{"type":"string"}},"required":["id","name","instanceType","status"],"additionalProperties":false},"allInstances":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"instanceType":{"type":"string","enum":["radarr","sonarr"]},"status":{"type":"string"}},"required":["id","name","instanceType","status"],"additionalProperties":false}}},"required":["id","source","title","contentType","guids","thumb","status","userId","userName","createdAt","primaryInstance","allInstances"],"additionalProperties":false}}},"required":["success","items"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

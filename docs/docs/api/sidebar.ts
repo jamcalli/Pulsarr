@@ -752,6 +752,12 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
+          id: "api/get-recent-requests",
+          label: "Get recent requests",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
           id: "api/get-all-dashboard-stats",
           label: "Get all dashboard statistics",
           className: "api-method get",

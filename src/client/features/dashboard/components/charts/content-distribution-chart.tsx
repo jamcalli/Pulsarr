@@ -21,40 +21,43 @@ export function ContentDistributionChart() {
     (theme === 'system' &&
       window.matchMedia('(prefers-color-scheme: dark)').matches)
 
-  const cssColors = {
-    movie:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--color-movie')
-        .trim() || '#1a5999',
-    show:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--color-show')
-        .trim() || '#39b978',
-    count:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--color-count')
-        .trim() || '#f47b30',
-    chart1:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-1')
-        .trim() || '196 39% 33%',
-    chart2:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-2')
-        .trim() || '183 37% 49%',
-    chart3:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-3')
-        .trim() || '29 85% 87%',
-    chart4:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-4')
-        .trim() || '19 91% 59%',
-    chart5:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-5')
-        .trim() || '1 54% 50%',
-  }
+  const cssColors = useMemo(
+    () => ({
+      movie:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-movie')
+          .trim() || '#1a5999',
+      show:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-show')
+          .trim() || '#39b978',
+      count:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-count')
+          .trim() || '#f47b30',
+      chart1:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-1')
+          .trim() || '196 39% 33%',
+      chart2:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-2')
+          .trim() || '183 37% 49%',
+      chart3:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-3')
+          .trim() || '29 85% 87%',
+      chart4:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-4')
+          .trim() || '19 91% 59%',
+      chart5:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-5')
+          .trim() || '1 54% 50%',
+    }),
+    [],
+  )
 
   const contentDistributionData = useMemo(() => {
     return contentTypeDistribution.map((item) => ({

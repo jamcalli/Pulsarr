@@ -159,7 +159,7 @@ export default function NewUserDefaultsPage() {
   }
 
   return (
-    <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+    <div>
       <UtilitySectionHeader
         title="New User Defaults"
         description="Configure default settings for newly discovered Plex users"

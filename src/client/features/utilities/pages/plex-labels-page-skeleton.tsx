@@ -13,7 +13,7 @@ export function PlexLabelsPageSkeleton() {
   const statusInfo = 'unknown' as const
 
   return (
-    <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+    <div>
       <UtilitySectionHeader
         title="Plex Labels"
         description="Configure user-based labeling for Plex content"

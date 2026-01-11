@@ -9,6 +9,7 @@ import { buildRoutedToItem } from '@root/schemas/webhooks/webhook-payloads.schem
 import type { Friend } from '@root/types/plex.types.js'
 import type { RoutingDetails } from '@root/types/router.types.js'
 import { getTmdbUrl } from '@root/utils/guid-handler.js'
+import { buildPosterUrl } from '@root/utils/poster-url.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
@@ -85,7 +86,7 @@ export async function sendWatchlistAdded(
       username,
       title: item.title,
       type: mediaType,
-      posterUrl: item.thumb,
+      posterUrl: buildPosterUrl(item.thumb, 'notification') ?? undefined,
       tmdbUrl,
     })
 
@@ -115,7 +116,7 @@ export async function sendWatchlistAdded(
         addedBy: {
           name: username,
         },
-        posterUrl: item.thumb,
+        posterUrl: buildPosterUrl(item.thumb, 'notification') ?? undefined,
         tmdbUrl,
       })
 
@@ -165,7 +166,7 @@ export async function sendWatchlistAdded(
         content: {
           title: item.title,
           type: contentType,
-          thumb: item.thumb,
+          thumb: buildPosterUrl(item.thumb, 'notification') ?? undefined,
           key: item.key ?? '',
           guids: guidsArray,
         },

@@ -1,9 +1,12 @@
 import type { TmdbMetadataSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
 import { Calendar, Clock, ExternalLink, Film, Tv } from 'lucide-react'
-// Import local rating service icons
+// Import rating service icons
 import imdbIcon from '@/assets/images/rating-icons/imdb.svg'
 import metacriticIcon from '@/assets/images/rating-icons/metacritic.svg'
-import rottenTomatoesIcon from '@/assets/images/rating-icons/rotten-tomatoes.svg'
+import rtAudFreshIcon from '@/assets/images/rating-icons/rt-aud-fresh.svg'
+import rtAudRottenIcon from '@/assets/images/rating-icons/rt-aud-rotten.svg'
+import rtFreshIcon from '@/assets/images/rating-icons/rt-fresh.svg'
+import rtRottenIcon from '@/assets/images/rating-icons/rt-rotten.svg'
 import tmdbIcon from '@/assets/images/rating-icons/tmdb.svg'
 import traktIcon from '@/assets/images/rating-icons/trakt.svg'
 import { AspectRatio } from '@/components/ui/aspect-ratio'
@@ -33,6 +36,8 @@ export function TmdbMetadataDisplay({
   const { details, watchProviders } = metadata
   const radarrRatings =
     'radarrRatings' in metadata ? metadata.radarrRatings : undefined
+  const plexRatings =
+    'plexRatings' in metadata ? metadata.plexRatings : undefined
   const config = useConfigStore((state) => state.config)
 
   // Check if it's movie or TV show based on the presence of 'title' vs 'name'
@@ -72,16 +77,15 @@ export function TmdbMetadataDisplay({
   }
 
   return (
-    <div className="relative">
+    <div className="relative min-h-full">
       {/* Backdrop Image */}
       {backdropUrl && (
         <div className="absolute inset-0 -z-10 overflow-hidden rounded-lg">
           <img
             src={backdropUrl}
             alt={`${title} backdrop`}
-            className="w-full h-full object-cover opacity-40"
+            className="w-full h-full object-cover opacity-50"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/70 to-background" />
         </div>
       )}
 
@@ -154,40 +158,67 @@ export function TmdbMetadataDisplay({
               </div>
             )}
 
-            {/* Ratings - Simplified inline display */}
-            {(radarrRatings || details.vote_average > 0) && isMovie && (
+            {/* Ratings - Unified display for movies and shows */}
+            {(radarrRatings || plexRatings || details.vote_average > 0) && (
               <div className="flex flex-wrap items-center gap-3 text-sm">
-                {details.vote_average > 0 && (
+                {/* TMDB - from details or plexRatings */}
+                {(details.vote_average > 0 || plexRatings?.tmdb) && (
                   <div className="flex items-center gap-1.5">
                     <div className="p-1 bg-secondary-background rounded">
                       <img src={tmdbIcon} alt="TMDB" className="w-4 h-4" />
                     </div>
-                    <span>{details.vote_average.toFixed(1)}</span>
+                    <span>
+                      {(plexRatings?.tmdb ?? details.vote_average).toFixed(1)}
+                    </span>
                   </div>
                 )}
-                {radarrRatings?.imdb && (
+                {/* IMDB - from radarrRatings (movies) or plexRatings (shows) */}
+                {(isMovie ? radarrRatings?.imdb : plexRatings?.imdb) && (
                   <div className="flex items-center gap-1.5">
                     <div className="p-1 bg-secondary-background rounded">
                       <img src={imdbIcon} alt="IMDB" className="w-4 h-4" />
                     </div>
-                    <span>{radarrRatings.imdb.value.toFixed(1)}</span>
-                  </div>
-                )}
-                {radarrRatings?.rottenTomatoes && (
-                  <div className="flex items-center gap-1.5">
-                    <div className="p-1 bg-secondary-background rounded">
-                      <img
-                        src={rottenTomatoesIcon}
-                        alt="Rotten Tomatoes"
-                        className="w-4 h-4"
-                      />
-                    </div>
                     <span>
-                      {Math.round(radarrRatings.rottenTomatoes.value)}%
+                      {isMovie
+                        ? radarrRatings?.imdb?.value.toFixed(1)
+                        : plexRatings?.imdb?.rating.toFixed(1)}
                     </span>
                   </div>
                 )}
-                {radarrRatings?.metacritic && (
+                {/* RT Critic - from plexRatings (both movies and shows) */}
+                {plexRatings?.rtCritic != null && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="p-1 bg-secondary-background rounded">
+                      <img
+                        src={
+                          plexRatings.rtCritic >= 6 ? rtFreshIcon : rtRottenIcon
+                        }
+                        alt="RT Critics"
+                        className="w-4 h-4"
+                      />
+                    </div>
+                    <span>{Math.round(plexRatings.rtCritic * 10)}%</span>
+                  </div>
+                )}
+                {/* RT Audience - from plexRatings (both movies and shows) */}
+                {plexRatings?.rtAudience != null && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="p-1 bg-secondary-background rounded">
+                      <img
+                        src={
+                          plexRatings.rtAudience >= 6
+                            ? rtAudFreshIcon
+                            : rtAudRottenIcon
+                        }
+                        alt="RT Audience"
+                        className="w-4 h-4"
+                      />
+                    </div>
+                    <span>{Math.round(plexRatings.rtAudience * 10)}%</span>
+                  </div>
+                )}
+                {/* Metacritic - from radarrRatings (movies only) */}
+                {isMovie && radarrRatings?.metacritic && (
                   <div className="flex items-center gap-1.5">
                     <div className="p-1 bg-secondary-background rounded">
                       <img
@@ -199,7 +230,8 @@ export function TmdbMetadataDisplay({
                     <span>{Math.round(radarrRatings.metacritic.value)}%</span>
                   </div>
                 )}
-                {radarrRatings?.trakt && (
+                {/* Trakt - from radarrRatings (movies only) */}
+                {isMovie && radarrRatings?.trakt && (
                   <div className="flex items-center gap-1.5">
                     <div className="p-1 bg-secondary-background rounded">
                       <img src={traktIcon} alt="Trakt" className="w-4 h-4" />

@@ -26,28 +26,31 @@ export function NotificationCharts() {
       window.matchMedia('(prefers-color-scheme: dark)').matches)
 
   // CSS Custom Properties
-  const cssColors = {
-    chart1:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-1')
-        .trim() || '196 39% 33%',
-    chart2:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-2')
-        .trim() || '183 37% 49%',
-    chart3:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-3')
-        .trim() || '29 85% 87%',
-    chart4:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-4')
-        .trim() || '19 91% 59%',
-    chart5:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--chart-5')
-        .trim() || '1 54% 50%',
-  }
+  const cssColors = useMemo(
+    () => ({
+      chart1:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-1')
+          .trim() || '196 39% 33%',
+      chart2:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-2')
+          .trim() || '183 37% 49%',
+      chart3:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-3')
+          .trim() || '29 85% 87%',
+      chart4:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-4')
+          .trim() || '19 91% 59%',
+      chart5:
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--chart-5')
+          .trim() || '1 54% 50%',
+    }),
+    [],
+  )
 
   // Notifications chart data
   const notificationsData = useMemo(() => {
@@ -138,7 +141,7 @@ export function NotificationCharts() {
   if (isLoading || !notificationStats) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <span className="text-foreground text-muted-foreground">
+        <span className="text-foreground">
           {isLoading
             ? 'Loading notification data...'
             : 'No notification data available'}

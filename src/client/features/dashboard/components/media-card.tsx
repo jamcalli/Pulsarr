@@ -11,6 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { usePosterUrl } from '@/features/dashboard/hooks/usePosterUrl'
 import { cn } from '@/lib/utils'
 
 interface MediaCardProps {
@@ -39,15 +40,24 @@ export function MediaCard({
   // Only show info button if we have GUIDs available for TMDB lookup
   const hasGuids = Boolean(item.guids?.length)
 
+  // Use unified poster hook - fast path if thumb exists, fallback to TMDB fetch
+  const contentType = item.content_type === 'show' ? 'show' : ('movie' as const)
+  const { posterUrl } = usePosterUrl({
+    thumb: item.thumb,
+    guids: item.guids ?? [],
+    contentType,
+    context: 'card',
+  })
+
   return (
     <>
       <Card className={cn('shadow-none', className)}>
         <CardContent className="p-[10px]">
           <div className="relative w-full overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800">
             <AspectRatio ratio={2 / 3}>
-              {item.thumb ? (
+              {posterUrl ? (
                 <img
-                  src={item.thumb}
+                  src={posterUrl}
                   alt={`${item.title} poster`}
                   className="h-full w-full object-cover"
                   loading={priority ? 'eager' : 'lazy'}

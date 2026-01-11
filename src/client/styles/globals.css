@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant w600 (@media (max-width: 600px));
+@custom-variant w400 (@media (max-width: 400px));
 
 @theme {
   --breakpoint-xs: 490px;
@@ -24,6 +26,15 @@
   --color-fun: var(--fun);
   --color-orange: var(--orange);
   --color-blue: var(--blue);
+
+  /* Status colors */
+  --color-status-pending: var(--status-pending);
+  --color-status-approved: var(--status-approved);
+  --color-status-available: var(--status-available);
+  --color-status-requested: var(--status-requested);
+  --color-status-rejected: var(--status-rejected);
+  --color-status-expired: var(--status-expired);
+  --color-status-auto-approved: var(--status-auto-approved);
 
   --radius-base: 5px;
 
@@ -162,6 +173,15 @@
   --color-movie: #1a5999;
   --color-show: #39b978;
   --color-count: #f47b30;
+
+  /* Status colors */
+  --status-pending: #eab308;
+  --status-approved: #22c55e;
+  --status-available: #22c55e;
+  --status-requested: #3b82f6;
+  --status-rejected: #ef4444;
+  --status-expired: #9ca3af;
+  --status-auto-approved: #3b82f6;
 }
 
 .dark {
