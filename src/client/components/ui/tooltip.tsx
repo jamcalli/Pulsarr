@@ -153,7 +153,7 @@ const TooltipContent = React.forwardRef<
     if (props.onPointerDownOutside) {
       props.onPointerDownOutside(e as any)
     }
-  }, [context?.isMobile, context?.setIsOpen, props.onPointerDownOutside])
+  }, [context?.isMobile, context?.isControlled, context?.setIsOpen, props.onPointerDownOutside])
   
   return (
     <TooltipPrimitive.Portal>
