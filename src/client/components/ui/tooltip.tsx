@@ -165,8 +165,8 @@ const TooltipContent = React.forwardRef<
           context?.isMobile && 'max-w-[90vw]', // Wider on mobile
           className,
         )}
-        onPointerDownOutside={handleOutsidePointer}
         {...props}
+        onPointerDownOutside={handleOutsidePointer}
       />
     </TooltipPrimitive.Portal>
   )
