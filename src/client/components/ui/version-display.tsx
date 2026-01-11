@@ -20,12 +20,13 @@ interface VersionDisplayProps {
  * The update check uses React Query with 30-minute caching and periodic refresh.
  */
 export function VersionDisplay({ className = '', style }: VersionDisplayProps) {
-  const { updateAvailable, latestVersion, releaseUrl, isLoading } = useVersionCheck(
+  const { updateAvailable, latestVersion, releaseUrl, isLoading, isError } = useVersionCheck(
     'jamcalli',
     'Pulsarr',
   )
 
-  if (isLoading) {
+  // Show skeleton only while loading; on error, fall back to showing version without update indicator
+  if (isLoading && !isError) {
     return (
       <span className={className} style={style}>
         <Skeleton className="h-4 w-20 md:w-36 inline-block" />

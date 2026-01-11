@@ -44,7 +44,7 @@ async function fetchLatestRelease(
     throw new Error(`GitHub API error: ${response.status}`)
   }
 
-  return response.json()
+  return await response.json()
 }
 
 /**
