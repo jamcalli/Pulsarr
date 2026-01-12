@@ -30,12 +30,12 @@ async function basePathInjection(fastify: FastifyInstance) {
       // Rewrite asset paths in HTML to include basePath for reverse proxy compatibility
       if (normalizedBasePath !== '/') {
         modifiedPayload = modifiedPayload.replace(
-          /src="\/app\/assets\//g,
-          `src="${normalizedBasePath}/app/assets/`,
+          /src="\/assets\//g,
+          `src="${normalizedBasePath}/assets/`,
         )
         modifiedPayload = modifiedPayload.replace(
-          /href="\/app\/assets\//g,
-          `href="${normalizedBasePath}/app/assets/`,
+          /href="\/assets\//g,
+          `href="${normalizedBasePath}/assets/`,
         )
         modifiedPayload = modifiedPayload.replace(
           /href="\/favicon\./g,

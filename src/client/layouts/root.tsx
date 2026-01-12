@@ -10,7 +10,6 @@ import CRTOverlay from '@/components/ui/crt-overlay'
 import Pulsar from '@/components/ui/pulsar'
 import { Toaster } from '@/components/ui/sonner'
 import ParallaxStarfield from '@/components/ui/starfield'
-import { VersionDisplay } from '@/components/ui/version-display'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface RootLayoutProps {
@@ -58,7 +57,7 @@ function BackgroundLayer() {
           {/* Planet Image */}
           <div className="fixed bottom-0 right-0 z-0 translate-x-1/4 translate-y-1/4">
             <div
-              className={`relative ${isMobile ? 'w-[600px]' : 'w-[1000px]'}`}
+              className={`relative ${isMobile ? 'w-150' : 'w-250'}`}
               aria-hidden="true"
             >
               <AspectRatio ratio={1522 / 1608}>
@@ -100,17 +99,6 @@ function BackgroundLayer() {
           >
             Plex watchlist tracker and notification center.
           </p>
-        </div>
-
-        {/* Version display in bottom right corner */}
-        <div className="absolute bottom-2 right-2 z-10">
-          <VersionDisplay
-            className="text-xs opacity-50"
-            style={{
-              color: 'var(--static-text)',
-              textShadow: '1px 1px 0px rgba(0, 0, 0, 0.5)',
-            }}
-          />
         </div>
       </CRTOverlay>
     </div>
