@@ -29,7 +29,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
@@ -282,21 +281,19 @@ export function ApprovalRadarrRoutingCard({
                       <FormLabel className="text-foreground">
                         Search on Add
                       </FormLabel>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">
-                              When enabled, Radarr will automatically search for
-                              movies when they are added. This setting can be
-                              overridden by content router rules on a per-route
-                              basis.
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">
+                            When enabled, Radarr will automatically search for
+                            movies when they are added. This setting can be
+                            overridden by content router rules on a per-route
+                            basis.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <div className="flex h-10 items-center gap-2 px-3 py-2">
                       <FormControl>
@@ -324,24 +321,22 @@ export function ApprovalRadarrRoutingCard({
                       <FormLabel className="text-foreground">
                         Minimum Availability
                       </FormLabel>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">
-                              Determines when movies are considered available:
-                              <br />• <strong>Announced</strong>: As soon as
-                              movie is added to TMDb
-                              <br />• <strong>In Cinemas</strong>: When movie is
-                              in theaters
-                              <br />• <strong>Released</strong>: When
-                              digital/physical release is available
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">
+                            Determines when movies are considered available:
+                            <br />• <strong>Announced</strong>: As soon as movie
+                            is added to TMDb
+                            <br />• <strong>In Cinemas</strong>: When movie is
+                            in theaters
+                            <br />• <strong>Released</strong>: When
+                            digital/physical release is available
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <FormControl>
                       <Select
@@ -371,24 +366,22 @@ export function ApprovalRadarrRoutingCard({
                   <FormItem>
                     <div className="flex items-center space-x-2">
                       <FormLabel className="text-foreground">Monitor</FormLabel>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">
-                              Determines what to monitor when movies are added:
-                              <br />• <strong>Movie Only</strong>: Monitor only
-                              the movie itself
-                              <br />• <strong>Movie and Collection</strong>:
-                              Monitor the movie and its collection
-                              <br />• <strong>None</strong>: Don't monitor the
-                              movie
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">
+                            Determines what to monitor when movies are added:
+                            <br />• <strong>Movie Only</strong>: Monitor only
+                            the movie itself
+                            <br />• <strong>Movie and Collection</strong>:
+                            Monitor the movie and its collection
+                            <br />• <strong>None</strong>: Don't monitor the
+                            movie
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <FormControl>
                       <Select
@@ -422,41 +415,37 @@ export function ApprovalRadarrRoutingCard({
                 <FormItem>
                   <div className="flex items-center space-x-2">
                     <FormLabel className="text-foreground">Tags</FormLabel>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">
-                            Tags that are automatically applied to all movies
-                            added to this Radarr instance. Content router rules
-                            can override these tags with their own tag settings.
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Tags that are automatically applied to all movies
+                          added to this Radarr instance. Content router rules
+                          can override these tags with their own tag settings.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                   <div className="flex gap-2 items-center w-full">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="noShadow"
-                            size="icon"
-                            className="shrink-0"
-                            onClick={() => setShowTagCreationDialog(true)}
-                            disabled={disabled || !isConnectionValid}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Create a new tag</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="noShadow"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={() => setShowTagCreationDialog(true)}
+                          disabled={disabled || !isConnectionValid}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Create a new tag</p>
+                      </TooltipContent>
+                    </Tooltip>
 
                     <FormControl>
                       {field && (
@@ -487,21 +476,18 @@ export function ApprovalRadarrRoutingCard({
                       <FormLabel className="text-foreground">
                         Synced Instances
                       </FormLabel>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">
-                              Select instances to sync with this Radarr
-                              instance. Any content that reaches the default
-                              instance will also be sent to the selected synced
-                              instance(s).
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">
+                            Select instances to sync with this Radarr instance.
+                            Any content that reaches the default instance will
+                            also be sent to the selected synced instance(s).
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <SyncedInstancesSelect
                       field={{

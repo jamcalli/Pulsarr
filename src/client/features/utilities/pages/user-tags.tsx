@@ -26,7 +26,6 @@ import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
@@ -524,21 +523,19 @@ export function UserTagsPage() {
                           <FormLabel className="text-foreground m-0">
                             Tag Users in Sonarr
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Automatically adds user-specific tags to TV
-                                  shows in Sonarr based on who added them to
-                                  their watchlist. Helps track which users
-                                  requested which content.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Automatically adds user-specific tags to TV
+                                shows in Sonarr based on who added them to their
+                                watchlist. Helps track which users requested
+                                which content.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -559,21 +556,19 @@ export function UserTagsPage() {
                           <FormLabel className="text-foreground m-0">
                             Tag Users in Radarr
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Automatically adds user-specific tags to
-                                  movies in Radarr based on who added them to
-                                  their watchlist. Helps track which users
-                                  requested which content.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Automatically adds user-specific tags to movies
+                                in Radarr based on who added them to their
+                                watchlist. Helps track which users requested
+                                which content.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -594,20 +589,18 @@ export function UserTagsPage() {
                           <FormLabel className="text-foreground m-0">
                             Clean Up Orphaned Tags
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Removes tags that no longer correspond to
-                                  active users. Prevents accumulation of unused
-                                  tags when users are deleted or renamed.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Removes tags that no longer correspond to active
+                                users. Prevents accumulation of unused tags when
+                                users are deleted or renamed.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -622,35 +615,33 @@ export function UserTagsPage() {
                           <FormLabel className="text-foreground">
                             Tag Behavior on Removal
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="max-w-xs space-y-2">
-                                  <p>
-                                    Controls what happens to user tags when
-                                    content is removed from a user's watchlist:
-                                  </p>
-                                  <ul className="list-disc pl-4 space-y-1">
-                                    <li>
-                                      <strong>Remove</strong>: User tag is
-                                      removed (default)
-                                    </li>
-                                    <li>
-                                      <strong>Keep</strong>: User tag is kept
-                                      forever
-                                    </li>
-                                    <li>
-                                      <strong>Special Tag</strong>: User tag is
-                                      removed and a "removed" tag is added
-                                    </li>
-                                  </ul>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  Controls what happens to user tags when
+                                  content is removed from a user's watchlist:
+                                </p>
+                                <ul className="list-disc pl-4 space-y-1">
+                                  <li>
+                                    <strong>Remove</strong>: User tag is removed
+                                    (default)
+                                  </li>
+                                  <li>
+                                    <strong>Keep</strong>: User tag is kept
+                                    forever
+                                  </li>
+                                  <li>
+                                    <strong>Special Tag</strong>: User tag is
+                                    removed and a "removed" tag is added
+                                  </li>
+                                </ul>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <Select
@@ -680,28 +671,26 @@ export function UserTagsPage() {
                             <FormLabel className="text-foreground">
                               Removed Tag Label
                             </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <div className="max-w-xs space-y-2">
-                                    <p>
-                                      Tag used to mark content that was
-                                      previously in a user's watchlist when
-                                      using "Special Tag" mode.
-                                    </p>
-                                    <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
-                                      <strong>Note:</strong> Changing this
-                                      requires removing existing tags first, as
-                                      old removed tags won't be recognized with
-                                      the new value.
-                                    </p>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs space-y-2">
+                                  <p>
+                                    Tag used to mark content that was previously
+                                    in a user's watchlist when using "Special
+                                    Tag" mode.
+                                  </p>
+                                  <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                    <strong>Note:</strong> Changing this
+                                    requires removing existing tags first, as
+                                    old removed tags won't be recognized with
+                                    the new value.
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                           <FormControl>
                             <Input
@@ -743,46 +732,43 @@ export function UserTagsPage() {
                           <FormLabel className="text-foreground">
                             Tag Prefix
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="max-w-xs space-y-2">
-                                  <p>
-                                    Defines the prefix used for all user tags.
-                                    The final tag format will be:
-                                  </p>
-                                  <code className="bg-slate-700 text-white px-1 py-0.5 rounded-xs block text-center">
-                                    {form.watch('tagPrefix') || 'pulsarr-user'}
-                                    -username
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  Defines the prefix used for all user tags. The
+                                  final tag format will be:
+                                </p>
+                                <code className="bg-slate-700 text-white px-1 py-0.5 rounded-xs block text-center">
+                                  {form.watch('tagPrefix') || 'pulsarr-user'}
+                                  -username
+                                </code>
+
+                                <p className="text-xs">
+                                  <span className="font-semibold">
+                                    Examples:
+                                  </span>
+                                  <br />• With default prefix:{' '}
+                                  <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
+                                    pulsarr-user-john_doe
                                   </code>
+                                  <br />• With "user" prefix:{' '}
+                                  <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
+                                    user-john_doe
+                                  </code>
+                                </p>
 
-                                  <p className="text-xs">
-                                    <span className="font-semibold">
-                                      Examples:
-                                    </span>
-                                    <br />• With default prefix:{' '}
-                                    <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
-                                      pulsarr-user-john_doe
-                                    </code>
-                                    <br />• With "user" prefix:{' '}
-                                    <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
-                                      user-john_doe
-                                    </code>
-                                  </p>
-
-                                  <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
-                                    <strong>Note:</strong> Changing this
-                                    requires removing existing tags first, as
-                                    old tags won't be recognized with the new
-                                    prefix.
-                                  </p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                                <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                  <strong>Note:</strong> Changing this requires
+                                  removing existing tags first, as old tags
+                                  won't be recognized with the new prefix.
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <Input

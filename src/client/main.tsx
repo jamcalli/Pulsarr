@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import { SettingsProvider } from '@/components/settings-provider'
 import { ThemeProvider } from '@/components/theme-provider'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { queryClient } from '@/lib/queryClient'
 import { router } from '@/router/router'
 
@@ -23,7 +24,9 @@ function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <SettingsProvider>
-          <RootLayoutContent />
+          <TooltipProvider>
+            <RootLayoutContent />
+          </TooltipProvider>
         </SettingsProvider>
       </ThemeProvider>
     </QueryClientProvider>

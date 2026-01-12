@@ -25,7 +25,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { ApprovalStatusBadge } from '@/features/approvals/components/approval-status-badge'
@@ -277,16 +276,14 @@ export const createApprovalColumns = (
       return (
         <div className="flex justify-center">
           <div className="max-w-[200px]">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>{badge}</TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
-                  <div className="text-xs whitespace-pre-line">
-                    {tooltipContent}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>{badge}</TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                <div className="text-xs whitespace-pre-line">
+                  {tooltipContent}
+                </div>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       )
@@ -412,59 +409,53 @@ export const createApprovalColumns = (
         <div className="flex items-center gap-1">
           {canTakeAction && !isExpired && (
             <>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="approveNoShadow"
-                      size="sm"
-                      onClick={() => actions.onApprove(request)}
-                      className="h-8 px-2"
-                    >
-                      <CheckCircle className="h-3 w-3" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p className="text-xs">Approve request</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="rejectNoShadow"
-                      size="sm"
-                      onClick={() => actions.onReject(request)}
-                      className="h-8 px-2"
-                    >
-                      <XCircle className="h-3 w-3" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p className="text-xs">Reject request</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="approveNoShadow"
+                    size="sm"
+                    onClick={() => actions.onApprove(request)}
+                    className="h-8 px-2"
+                  >
+                    <CheckCircle className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Approve request</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="rejectNoShadow"
+                    size="sm"
+                    onClick={() => actions.onReject(request)}
+                    className="h-8 px-2"
+                  >
+                    <XCircle className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Reject request</p>
+                </TooltipContent>
+              </Tooltip>
             </>
           )}
 
           <DropdownMenu>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="noShadow" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p className="text-xs">More actions</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="noShadow" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs">More actions</p>
+              </TooltipContent>
+            </Tooltip>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => actions.onView(request)}>
                 <Eye className="mr-2 h-4 w-4" />

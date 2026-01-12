@@ -33,7 +33,6 @@ import { TimeSelector } from '@/components/ui/time-input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
@@ -320,20 +319,18 @@ export default function QuotaSettingsPage() {
                           <FormLabel className="text-foreground m-0 text-sm">
                             Weekly Rolling Period (Days)
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Number of days in the rolling window. The
-                                  quota maintenance schedule resets weekly
-                                  rolling quotas every this many days.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Number of days in the rolling window. The quota
+                                maintenance schedule resets weekly rolling
+                                quotas every this many days.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <Input
@@ -362,19 +359,17 @@ export default function QuotaSettingsPage() {
                           <FormLabel className="text-foreground m-0 text-sm">
                             Monthly Reset Day
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Day of the month when the quota maintenance
-                                  schedule resets monthly quotas (1-31).
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Day of the month when the quota maintenance
+                                schedule resets monthly quotas (1-31).
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <Input
@@ -403,36 +398,34 @@ export default function QuotaSettingsPage() {
                           <FormLabel className="text-foreground m-0 text-sm">
                             Month-End Handling
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="max-w-xs space-y-2">
-                                  <p>
-                                    How the quota maintenance schedule handles
-                                    reset days that don't exist in all months
-                                    (e.g., day 31):
-                                  </p>
-                                  <ul className="list-disc pl-4 text-sm">
-                                    <li>
-                                      <strong>Last Day:</strong> Reset on the
-                                      last day of the month
-                                    </li>
-                                    <li>
-                                      <strong>Skip Month:</strong> Skip months
-                                      without that day
-                                    </li>
-                                    <li>
-                                      <strong>Next Month:</strong> Reset on the
-                                      1st of the next month
-                                    </li>
-                                  </ul>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  How the quota maintenance schedule handles
+                                  reset days that don't exist in all months
+                                  (e.g., day 31):
+                                </p>
+                                <ul className="list-disc pl-4 text-sm">
+                                  <li>
+                                    <strong>Last Day:</strong> Reset on the last
+                                    day of the month
+                                  </li>
+                                  <li>
+                                    <strong>Skip Month:</strong> Skip months
+                                    without that day
+                                  </li>
+                                  <li>
+                                    <strong>Next Month:</strong> Reset on the
+                                    1st of the next month
+                                  </li>
+                                </ul>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <Select
@@ -480,20 +473,18 @@ export default function QuotaSettingsPage() {
                           <FormLabel className="text-foreground m-0">
                             Enable Usage History Cleanup
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  When enabled, the quota maintenance schedule
-                                  will delete old quota usage records after the
-                                  retention period.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                When enabled, the quota maintenance schedule
+                                will delete old quota usage records after the
+                                retention period.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -508,20 +499,18 @@ export default function QuotaSettingsPage() {
                           <FormLabel className="text-foreground m-0 text-sm">
                             Usage History Retention (Days)
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Number of days to keep quota usage records
-                                  before the quota maintenance schedule deletes
-                                  them.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Number of days to keep quota usage records
+                                before the quota maintenance schedule deletes
+                                them.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <Input

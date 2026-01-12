@@ -11,7 +11,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { api } from '@/lib/api'
@@ -87,16 +86,14 @@ export function TmdbRegionSelector({ onRegionChange }: TmdbRegionSelectorProps) 
 
   return (
     <div className="flex items-center gap-2">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Globe className="w-4 h-4 text-muted-foreground cursor-help" />
-          </TooltipTrigger>
-          <TooltipContent className="max-w-xs">
-            Global TMDB region setting. Affects streaming providers and availability data.
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Globe className="w-4 h-4 text-muted-foreground cursor-help" />
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          Global TMDB region setting. Affects streaming providers and availability data.
+        </TooltipContent>
+      </Tooltip>
       <Select
         value={config?.tmdbRegion || 'US'}
         onValueChange={handleRegionChange}

@@ -13,7 +13,6 @@ import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
@@ -113,47 +112,45 @@ export default function ConnectionSettings({
                     />
                   </FormControl>
                 </div>
-                <TooltipProvider>
-                  <Tooltip
-                    {...(hasConnectionTestError || needsConnectionTest
-                      ? { open: true }
-                      : {})}
-                  >
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="noShadow"
-                        onClick={() => {
-                          onTest().catch(() => {})
-                        }}
-                        disabled={isDisabled || !hasValidUrlAndKey}
-                        className="mt-0"
-                      >
-                        {testStatus === 'loading' ? (
-                          <Loader2 className="animate-spin" />
-                        ) : testStatus === 'success' ? (
-                          <Check className="text-black" />
-                        ) : (
-                          <Check />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      className={
-                        hasConnectionTestError || needsConnectionTest
-                          ? 'bg-error text-black'
-                          : ''
-                      }
+                <Tooltip
+                  {...(hasConnectionTestError || needsConnectionTest
+                    ? { open: true }
+                    : {})}
+                >
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="noShadow"
+                      onClick={() => {
+                        onTest().catch(() => {})
+                      }}
+                      disabled={isDisabled || !hasValidUrlAndKey}
+                      className="mt-0"
                     >
-                      <p>
-                        {hasConnectionTestError || needsConnectionTest
-                          ? 'Test connection required'
-                          : 'Test connection'}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                      {testStatus === 'loading' ? (
+                        <Loader2 className="animate-spin" />
+                      ) : testStatus === 'success' ? (
+                        <Check className="text-black" />
+                      ) : (
+                        <Check />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    className={
+                      hasConnectionTestError || needsConnectionTest
+                        ? 'bg-error text-black'
+                        : ''
+                    }
+                  >
+                    <p>
+                      {hasConnectionTestError || needsConnectionTest
+                        ? 'Test connection required'
+                        : 'Test connection'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <FormMessage />
             </FormItem>
