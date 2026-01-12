@@ -31,7 +31,7 @@ jobs:
           restore-keys: |
             vitest-${{ runner.os }}-
       - name: Setup Biome
-        uses: biomejs/setup-biome@454fa0d884737805f48d7dc236c1761a0ac3cc13 # v2
+        uses: biomejs/setup-biome@29711cbb52afee00eb13aeb30636592f9edc0088 # v2
       - name: Run Biome
         run: biome ci .
       - name: TypeScript Check - Server
