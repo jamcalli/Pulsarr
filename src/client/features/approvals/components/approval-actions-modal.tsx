@@ -21,7 +21,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { ApprovalActionForm } from '@/features/approvals/components/approval-action-form'
@@ -161,34 +160,32 @@ export default function ApprovalActionsModal({
             Proposed Routing
           </h3>
           {!editRoutingMode && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <Button
-                      onClick={() => setEditRoutingMode(true)}
-                      variant="neutral"
-                      size="sm"
-                      disabled={
-                        isAnyActionInProgress ||
-                        request.status === 'approved' ||
-                        request.status === 'expired' ||
-                        request.status === 'auto_approved'
-                      }
-                    >
-                      Edit Routing
-                    </Button>
-                  </div>
-                </TooltipTrigger>
-                {(request.status === 'approved' ||
-                  request.status === 'expired' ||
-                  request.status === 'auto_approved') && (
-                  <TooltipContent>
-                    <p>Cannot edit routing for {request.status} requests</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Button
+                    onClick={() => setEditRoutingMode(true)}
+                    variant="neutral"
+                    size="sm"
+                    disabled={
+                      isAnyActionInProgress ||
+                      request.status === 'approved' ||
+                      request.status === 'expired' ||
+                      request.status === 'auto_approved'
+                    }
+                  >
+                    Edit Routing
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              {(request.status === 'approved' ||
+                request.status === 'expired' ||
+                request.status === 'auto_approved') && (
+                <TooltipContent>
+                  <p>Cannot edit routing for {request.status} requests</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
           )}
         </div>
 

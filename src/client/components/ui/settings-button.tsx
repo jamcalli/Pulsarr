@@ -12,7 +12,6 @@ import { LogoutAlert } from '@/components/ui/logout-alert'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
@@ -34,52 +33,50 @@ export function SettingsButton({ isMobile = false }: SettingsButtonProps) {
 
   return (
     <>
-      <TooltipProvider>
-        <Tooltip>
-          <DropdownMenu>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                {isMobile ? (
-                  <div className="cursor-pointer">
-                    <Settings className="stroke-black h-6 w-6" />
-                    <span className="sr-only">Settings</span>
-                  </div>
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-main text-black cursor-pointer">
-                    <Settings className="stroke-current h-6 w-6" />
-                    <span className="sr-only">Settings</span>
-                  </div>
-                )}
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent side={isMobile ? "bottom" : "left"}>
-              <p>Settings</p>
-            </TooltipContent>
-            <DropdownMenuContent align="end" className={isMobile ? "w-40" : "w-44"}>
-              <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-                {theme === 'dark' ? (
-                  <Sun className="mr-2 h-4 w-4" />
-                ) : (
-                  <Moon className="mr-2 h-4 w-4" />
-                )}
-                <span>Switch theme</span>
-              </DropdownMenuItem>
-              {!isMobile && (
-                <DropdownMenuItem onClick={() => setAsteroidsEnabled(!asteroidsEnabled)}>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  <span>{asteroidsEnabled ? 'Disable' : 'Enable'} asteroids</span>
-                </DropdownMenuItem>
+      <Tooltip>
+        <DropdownMenu>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              {isMobile ? (
+                <div className="cursor-pointer">
+                  <Settings className="stroke-black h-6 w-6" />
+                  <span className="sr-only">Settings</span>
+                </div>
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-main text-black cursor-pointer">
+                  <Settings className="stroke-current h-6 w-6" />
+                  <span className="sr-only">Settings</span>
+                </div>
               )}
-              <DropdownMenuItem onSelect={() => setShowLogoutAlert(true)}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side={isMobile ? "bottom" : "left"}>
+            <p>Settings</p>
+          </TooltipContent>
+          <DropdownMenuContent align="end" className={isMobile ? "w-40" : "w-44"}>
+            <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              {theme === 'dark' ? (
+                <Sun className="mr-2 h-4 w-4" />
+              ) : (
+                <Moon className="mr-2 h-4 w-4" />
+              )}
+              <span>Switch theme</span>
+            </DropdownMenuItem>
+            {!isMobile && (
+              <DropdownMenuItem onClick={() => setAsteroidsEnabled(!asteroidsEnabled)}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                <span>{asteroidsEnabled ? 'Disable' : 'Enable'} asteroids</span>
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </Tooltip>
-      </TooltipProvider>
+            )}
+            <DropdownMenuItem onSelect={() => setShowLogoutAlert(true)}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </Tooltip>
 
-      <LogoutAlert 
+      <LogoutAlert
         open={showLogoutAlert}
         onOpenChange={setShowLogoutAlert}
       />

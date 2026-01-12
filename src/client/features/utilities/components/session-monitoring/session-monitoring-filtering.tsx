@@ -10,7 +10,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UserMultiSelect } from '@/components/ui/user-multi-select'
@@ -46,20 +45,18 @@ export function SessionMonitoringFiltering({
                 <FormLabel className="text-foreground">
                   Filter Users (Optional)
                 </FormLabel>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Only monitor sessions from specific users. Leave empty
-                        to monitor all users. This helps focus monitoring on
-                        users whose viewing patterns should trigger searches.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Only monitor sessions from specific users. Leave empty to
+                      monitor all users. This helps focus monitoring on users
+                      whose viewing patterns should trigger searches.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <FormControl>
                 <UserMultiSelect field={field} disabled={!isEnabled} />
