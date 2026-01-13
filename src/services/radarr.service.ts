@@ -711,11 +711,13 @@ export class RadarrService {
 
       const rootFolderPath = await this.resolveRootFolder(overrideRootFolder)
 
-      const qualityProfiles = await this.fetchQualityProfiles()
+      // Only fetch quality profiles if no override provided
       const qualityProfileId =
         overrideQualityProfileId !== undefined
           ? overrideQualityProfileId
-          : await this.resolveQualityProfileId(qualityProfiles)
+          : await this.resolveQualityProfileId(
+              await this.fetchQualityProfiles(),
+            )
 
       // Collection for valid tag IDs (using Set to avoid duplicates)
       const tagIdsSet = new Set<string>()
