@@ -29,7 +29,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { SonarrSyncModal } from '@/features/sonarr/components/instance/sonarr-sync-modal'
@@ -388,21 +387,19 @@ export function InstanceCard({
                           <FormLabel className="text-foreground">
                             Monitor New Items
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  When enabled, new series will automatically be
-                                  monitored when added to Sonarr. When disabled,
-                                  new series will be added but not monitored for
-                                  new episodes.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                When enabled, new series will automatically be
+                                monitored when added to Sonarr. When disabled,
+                                new series will be added but not monitored for
+                                new episodes.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
@@ -431,21 +428,19 @@ export function InstanceCard({
                           <FormLabel className="text-foreground">
                             Search on Add
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  When enabled, Sonarr will automatically search
-                                  for episodes when a series is added. This
-                                  setting can be overridden by content router
-                                  rules on a per-route basis.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                When enabled, Sonarr will automatically search
+                                for episodes when a series is added. This
+                                setting can be overridden by content router
+                                rules on a per-route basis.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
@@ -471,21 +466,19 @@ export function InstanceCard({
                           <FormLabel className="text-foreground">
                             Bypass Ignored
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  When enabled, this instance will bypass any
-                                  ignore exclusions. Use this when you want
-                                  certain instances to process all content
-                                  regardless of ignore settings.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                When enabled, this instance will bypass any
+                                ignore exclusions. Use this when you want
+                                certain instances to process all content
+                                regardless of ignore settings.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
@@ -511,21 +504,18 @@ export function InstanceCard({
                           <FormLabel className="text-foreground">
                             Create Season Folders
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  When enabled, Sonarr will create season
-                                  folders (e.g., Season 01, Season 02) to
-                                  organize episodes by season within each series
-                                  folder.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                When enabled, Sonarr will create season folders
+                                (e.g., Season 01, Season 02) to organize
+                                episodes by season within each series folder.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
@@ -551,42 +541,38 @@ export function InstanceCard({
                           <FormLabel className="text-foreground">
                             Instance Tags
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Tags that are automatically applied to all
-                                  series added to this Sonarr instance. Content
-                                  router rules can override these tags with
-                                  their own tag settings.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Tags that are automatically applied to all
+                                series added to this Sonarr instance. Content
+                                router rules can override these tags with their
+                                own tag settings.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <div className="flex gap-2 items-center w-full">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="noShadow"
-                                  size="icon"
-                                  className="shrink-0"
-                                  onClick={() => setShowTagCreationDialog(true)}
-                                  disabled={!isConnectionValid}
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Create a new tag</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="noShadow"
+                                size="icon"
+                                className="shrink-0"
+                                onClick={() => setShowTagCreationDialog(true)}
+                                disabled={!isConnectionValid}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Create a new tag</p>
+                            </TooltipContent>
+                          </Tooltip>
 
                           <FormControl>
                             <TagsMultiSelect
@@ -612,29 +598,25 @@ export function InstanceCard({
                           <FormLabel className="text-foreground">
                             Season Monitoring
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Default season monitoring strategy for all
-                                  series added to this Sonarr instance.
-                                  Determines which seasons are monitored for new
-                                  episodes.
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Default season monitoring strategy for all
+                                series added to this Sonarr instance. Determines
+                                which seasons are monitored for new episodes.
+                              </p>
+                              {!isSessionMonitoringEnabled && (
+                                <p className="max-w-xs mt-2 text-sm text-muted-foreground">
+                                  Note: Rolling monitoring options (Pilot
+                                  Rolling and First Season Rolling) require Plex
+                                  Session Monitoring to be enabled in Utilities.
                                 </p>
-                                {!isSessionMonitoringEnabled && (
-                                  <p className="max-w-xs mt-2 text-sm text-muted-foreground">
-                                    Note: Rolling monitoring options (Pilot
-                                    Rolling and First Season Rolling) require
-                                    Plex Session Monitoring to be enabled in
-                                    Utilities.
-                                  </p>
-                                )}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <Select
                           onValueChange={field.onChange}
@@ -685,20 +667,18 @@ export function InstanceCard({
                           <FormLabel className="text-foreground">
                             Series Type
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Default series type for all series added to
-                                  this Sonarr instance. Can be overridden by
-                                  content router rules.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Default series type for all series added to this
+                                Sonarr instance. Can be overridden by content
+                                router rules.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <Select
                           onValueChange={field.onChange}
@@ -731,21 +711,19 @@ export function InstanceCard({
                           <FormLabel className="text-foreground">
                             Sync With Instances
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Select instances to sync with this Sonarr
-                                  instance. Any content that reaches the default
-                                  instance will also be sent to the selected
-                                  synced instance(s).
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Select instances to sync with this Sonarr
+                                instance. Any content that reaches the default
+                                instance will also be sent to the selected
+                                synced instance(s).
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <div className="flex gap-2 items-center w-full">
                           <div className="flex-1 min-w-0">
@@ -759,27 +737,25 @@ export function InstanceCard({
                           {instance.isDefault &&
                             field.value &&
                             field.value.length > 0 && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="noShadow"
-                                      size="icon"
-                                      className="shrink-0"
-                                      onClick={() => {
-                                        setIsManualSync(true)
-                                        setShowSyncModal(true)
-                                      }}
-                                    >
-                                      <RefreshCw className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Manually sync instances</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="noShadow"
+                                    size="icon"
+                                    className="shrink-0"
+                                    onClick={() => {
+                                      setIsManualSync(true)
+                                      setShowSyncModal(true)
+                                    }}
+                                  >
+                                    <RefreshCw className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Manually sync instances</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                         </div>
                         <FormMessage />
@@ -795,20 +771,18 @@ export function InstanceCard({
                           <FormLabel className="text-foreground">
                             Default Instance
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  The default instance will receive all content
-                                  when no specific routing rules apply. Only one
-                                  instance can be set as default at a time.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                The default instance will receive all content
+                                when no specific routing rules apply. Only one
+                                instance can be set as default at a time.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>

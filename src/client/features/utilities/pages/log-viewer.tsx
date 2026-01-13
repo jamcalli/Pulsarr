@@ -26,7 +26,6 @@ import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
@@ -327,26 +326,24 @@ export function LogViewerPage() {
               <span className="ml-2">Clear</span>
             </Button>
 
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={exportLogs}
-                    disabled={logsText.length === 0 || isToggling}
-                    variant="noShadow"
-                    className="h-8"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span className="ml-2">Export</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Export currently displayed logs as text file</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={exportLogs}
+                  disabled={logsText.length === 0 || isToggling}
+                  variant="noShadow"
+                  className="h-8"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="ml-2">Export</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Export currently displayed logs as text file</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
@@ -416,46 +413,42 @@ export function LogViewerPage() {
                   className="flex-1"
                 />
                 {textFilter.trim() && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="noShadow"
-                          onClick={handleFilterApply}
-                          className="mt-0"
-                          aria-label="Apply filter"
-                        >
-                          <Search className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Apply filter</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="noShadow"
+                        onClick={handleFilterApply}
+                        className="mt-0"
+                        aria-label="Apply filter"
+                      >
+                        <Search className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Apply filter</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 {displayFilter && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="error"
-                          onClick={handleFilterClear}
-                          className="mt-0"
-                          aria-label="Clear filter"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Clear filter</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="error"
+                        onClick={handleFilterClear}
+                        className="mt-0"
+                        aria-label="Clear filter"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Clear filter</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             </div>

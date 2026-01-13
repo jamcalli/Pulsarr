@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { EVENT_TYPE_LABELS } from '@/features/notifications/constants/webhook-events'
@@ -55,31 +54,27 @@ export function WebhookEndpointCard({
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="noShadow" size="icon" onClick={onEdit}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Edit endpoint</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="error"
-                  size="icon"
-                  onClick={onDelete}
-                  disabled={isDeleting}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Delete endpoint</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="noShadow" size="icon" onClick={onEdit}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Edit endpoint</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="error"
+                size="icon"
+                onClick={onDelete}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Delete endpoint</TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -93,31 +88,29 @@ export function WebhookEndpointCard({
             readOnly
             className="font-mono text-sm cursor-default"
           />
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  onClick={onTest}
-                  disabled={isTesting}
-                  size="icon"
-                  variant="noShadow"
-                  className="shrink-0"
-                >
-                  {isTesting ? (
-                    <Loader2 className="animate-spin" />
-                  ) : connectionTested ? (
-                    <Check className="text-black" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Send test webhook</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                onClick={onTest}
+                disabled={isTesting}
+                size="icon"
+                variant="noShadow"
+                className="shrink-0"
+              >
+                {isTesting ? (
+                  <Loader2 className="animate-spin" />
+                ) : connectionTested ? (
+                  <Check className="text-black" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Send test webhook</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -138,26 +131,24 @@ export function WebhookEndpointCard({
               readOnly
               className="font-mono text-sm cursor-default"
             />
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="noShadow"
-                    size="icon"
-                    onClick={() => setShowAuthValue(!showAuthValue)}
-                  >
-                    {showAuthValue ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {showAuthValue ? 'Hide value' : 'Show value'}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="noShadow"
+                  size="icon"
+                  onClick={() => setShowAuthValue(!showAuthValue)}
+                >
+                  {showAuthValue ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {showAuthValue ? 'Hide value' : 'Show value'}
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       )}

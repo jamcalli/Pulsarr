@@ -20,7 +20,6 @@ import { MultiInput } from '@/components/ui/multi-input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
@@ -187,17 +186,15 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
           <div className="text-sm font-semibold text-foreground">
             Apprise Server URL
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                Set via environment variables or .env file. Cannot be changed
-                through the UI.
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              Set via environment variables or .env file. Cannot be changed
+              through the UI.
+            </TooltipContent>
+          </Tooltip>
         </div>
         <div className="mt-1">
           <Input
@@ -222,17 +219,15 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
                   <FormLabel className="text-foreground">
                     Email Sender (Optional)
                   </FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        Configure an Apprise email URL to allow users and system
-                        notifications to use plain email addresses.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Configure an Apprise email URL to allow users and system
+                      notifications to use plain email addresses.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <FormControl>
                   <Input
@@ -260,17 +255,15 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
                   <FormLabel className="text-foreground">
                     System Apprise URL
                   </FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        URLs for system-wide notifications. Use the + button to
-                        add multiple services.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      URLs for system-wide notifications. Use the + button to
+                      add multiple services.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <FormControl>
                   <MultiInput

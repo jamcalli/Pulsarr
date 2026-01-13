@@ -66,7 +66,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { RollingShowActionAlert } from '@/features/utilities/components/session-monitoring/rolling-show-action-alert'
@@ -180,24 +179,22 @@ export function RollingShowsSheet({
         const username = row.getValue('plex_username') as string | null
 
         return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="text-sm truncate max-w-[6rem]">
-                  {username || (
-                    <span className="text-muted-foreground italic font-medium">
-                      Master Record
-                    </span>
-                  )}
-                </div>
-              </TooltipTrigger>
-              {username && (
-                <TooltipContent>
-                  <p>{username}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-sm truncate max-w-[6rem]">
+                {username || (
+                  <span className="text-muted-foreground italic font-medium">
+                    Master Record
+                  </span>
+                )}
+              </div>
+            </TooltipTrigger>
+            {username && (
+              <TooltipContent>
+                <p>{username}</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
         )
       },
       meta: {
@@ -321,66 +318,64 @@ export function RollingShowsSheet({
 
         return (
           <div className="flex items-center gap-2 justify-center">
-            <TooltipProvider>
-              {onResetShow && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="noShadow"
-                      onClick={() => {
-                        setConfirmDialog({
-                          open: true,
-                          action: 'reset',
-                          show: row.original,
-                        })
-                      }}
-                      disabled={isAnyLoading}
-                      className="h-8 w-8"
-                    >
-                      {isActiveReset ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <RotateCcw className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Reset to original monitoring state</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              {onDeleteShow && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="error"
-                      size="icon"
-                      onClick={() => {
-                        setConfirmDialog({
-                          open: true,
-                          action: 'delete',
-                          show: row.original,
-                        })
-                      }}
-                      disabled={isAnyLoading}
-                      className="transition-opacity h-8 w-8"
-                      type="button"
-                    >
-                      {isActiveDelete ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Remove from rolling monitoring</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </TooltipProvider>
+            {onResetShow && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="noShadow"
+                    onClick={() => {
+                      setConfirmDialog({
+                        open: true,
+                        action: 'reset',
+                        show: row.original,
+                      })
+                    }}
+                    disabled={isAnyLoading}
+                    className="h-8 w-8"
+                  >
+                    {isActiveReset ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Reset to original monitoring state</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {onDeleteShow && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="error"
+                    size="icon"
+                    onClick={() => {
+                      setConfirmDialog({
+                        open: true,
+                        action: 'delete',
+                        show: row.original,
+                      })
+                    }}
+                    disabled={isAnyLoading}
+                    className="transition-opacity h-8 w-8"
+                    type="button"
+                  >
+                    {isActiveDelete ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Remove from rolling monitoring</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         )
       },

@@ -59,7 +59,6 @@ import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import ConditionGroupComponent from '@/features/content-router/components/condition-group'
@@ -1000,20 +999,18 @@ const AccordionRouteCard = ({
                             <FormLabel className="text-foreground">
                               Condition Rules
                             </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Build conditions that determine when this
-                                    route should be used. You can combine
-                                    multiple conditions with AND/OR logic.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Build conditions that determine when this
+                                  route should be used. You can combine multiple
+                                  conditions with AND/OR logic.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                           <FormControl>
                             <div className="border-2 rounded-md p-4 bg-card/50 border-foreground relative">
@@ -1105,21 +1102,18 @@ const AccordionRouteCard = ({
                       <h3 className="text-sm font-medium text-foreground">
                         Actions
                       </h3>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">
-                              Configure special behavior for content that
-                              matches this rule. By default, content is routed
-                              directly. User quotas are checked automatically if
-                              configured.
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">
+                            Configure special behavior for content that matches
+                            this rule. By default, content is routed directly.
+                            User quotas are checked automatically if configured.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
@@ -1132,28 +1126,26 @@ const AccordionRouteCard = ({
                               <FormLabel className="text-foreground">
                                 Always Require Approval
                               </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <div className="max-w-xs">
-                                      <p className="mb-2">
-                                        When enabled, all content matching this
-                                        rule will require approval before being
-                                        processed, regardless of user quotas or
-                                        other settings.
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Useful for high-priority content,
-                                        special genres, or content that needs
-                                        manual review.
-                                      </p>
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="max-w-xs">
+                                    <p className="mb-2">
+                                      When enabled, all content matching this
+                                      rule will require approval before being
+                                      processed, regardless of user quotas or
+                                      other settings.
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Useful for high-priority content, special
+                                      genres, or content that needs manual
+                                      review.
+                                    </p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                             <div className="flex h-10 items-center gap-2 px-3 py-2">
                               <FormControl>
@@ -1182,27 +1174,25 @@ const AccordionRouteCard = ({
                               <FormLabel className="text-foreground">
                                 Bypass User Quotas
                               </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <div className="max-w-xs">
-                                      <p className="mb-2">
-                                        When enabled, content matching this rule
-                                        will skip all user quota restrictions
-                                        and be processed immediately.
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Useful for VIP users, special content,
-                                        or time-sensitive requests that should
-                                        not be limited by quotas.
-                                      </p>
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="max-w-xs">
+                                    <p className="mb-2">
+                                      When enabled, content matching this rule
+                                      will skip all user quota restrictions and
+                                      be processed immediately.
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Useful for VIP users, special content, or
+                                      time-sensitive requests that should not be
+                                      limited by quotas.
+                                    </p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                             <div className="flex h-10 items-center gap-2 px-3 py-2">
                               <FormControl>
@@ -1294,25 +1284,22 @@ const AccordionRouteCard = ({
                               <FormLabel className="text-foreground">
                                 Priority Weight
                               </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      Priority weight only affects routing when
-                                      multiple rules would send content to the
-                                      same instance. In such cases, only the
-                                      rule with the highest priority will be
-                                      used for that instance. If rules route to
-                                      different instances, content will be sent
-                                      to all matching instances regardless of
-                                      priority.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Priority weight only affects routing when
+                                    multiple rules would send content to the
+                                    same instance. In such cases, only the rule
+                                    with the highest priority will be used for
+                                    that instance. If rules route to different
+                                    instances, content will be sent to all
+                                    matching instances regardless of priority.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                             <span className="text-sm text-foreground">
                               {field.value}
@@ -1448,29 +1435,27 @@ const AccordionRouteCard = ({
                               <FormLabel className="text-foreground">
                                 Season Monitoring
                               </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      Season monitoring strategy to use for this
-                                      route. Determines which seasons are
-                                      monitored for new episodes when series are
-                                      added.
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Season monitoring strategy to use for this
+                                    route. Determines which seasons are
+                                    monitored for new episodes when series are
+                                    added.
+                                  </p>
+                                  {!isSessionMonitoringEnabled && (
+                                    <p className="max-w-xs mt-2 text-sm text-muted-foreground">
+                                      Note: Rolling monitoring options (Pilot
+                                      Rolling and First Season Rolling) require
+                                      Plex Session Monitoring to be enabled in
+                                      Utilities.
                                     </p>
-                                    {!isSessionMonitoringEnabled && (
-                                      <p className="max-w-xs mt-2 text-sm text-muted-foreground">
-                                        Note: Rolling monitoring options (Pilot
-                                        Rolling and First Season Rolling)
-                                        require Plex Session Monitoring to be
-                                        enabled in Utilities.
-                                      </p>
-                                    )}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                             <Select
                               value={field.value || 'all'}
@@ -1521,20 +1506,18 @@ const AccordionRouteCard = ({
                               <FormLabel className="text-foreground">
                                 Series Type
                               </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      Series type to use when adding content to
-                                      Sonarr. Overrides the default series type
-                                      set on the instance.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Series type to use when adding content to
+                                    Sonarr. Overrides the default series type
+                                    set on the instance.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                             <Select
                               value={field.value || undefined}
@@ -1576,20 +1559,18 @@ const AccordionRouteCard = ({
                               <FormLabel className="text-foreground">
                                 Monitor
                               </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      Monitor setting to use when adding movies
-                                      to Radarr. Overrides the default monitor
-                                      setting on the instance.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Monitor setting to use when adding movies to
+                                    Radarr. Overrides the default monitor
+                                    setting on the instance.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                             <Select
                               value={field.value || 'movieOnly'}
@@ -1626,20 +1607,18 @@ const AccordionRouteCard = ({
                             <FormLabel className="text-foreground">
                               Search on Add
                             </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    When enabled, content will be automatically
-                                    searched for when added. Overrides the
-                                    default setting configured on the instance.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  When enabled, content will be automatically
+                                  searched for when added. Overrides the default
+                                  setting configured on the instance.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                           <div className="flex h-10 items-center gap-2 px-3 py-2">
                             <FormControl>
@@ -1669,20 +1648,18 @@ const AccordionRouteCard = ({
                               <FormLabel className="text-foreground">
                                 Tags
                               </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      Add tags to content that matches this
-                                      route. Tags will be applied when content
-                                      is added to the target instance.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Add tags to content that matches this route.
+                                    Tags will be applied when content is added
+                                    to the target instance.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                             <div className="flex gap-2 items-center w-full">
                               <TagsMultiSelect
@@ -1695,27 +1672,25 @@ const AccordionRouteCard = ({
                                 isConnectionValid={true}
                               />
 
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="noShadow"
-                                      size="icon"
-                                      className="shrink-0"
-                                      onClick={() =>
-                                        setShowTagCreationDialog(true)
-                                      }
-                                      disabled={!selectedInstance?.id}
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Create a new tag</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="noShadow"
+                                    size="icon"
+                                    className="shrink-0"
+                                    onClick={() =>
+                                      setShowTagCreationDialog(true)
+                                    }
+                                    disabled={!selectedInstance?.id}
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Create a new tag</p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                             <FormMessage />
                           </FormItem>
@@ -1736,20 +1711,18 @@ const AccordionRouteCard = ({
                               <FormLabel className="text-foreground">
                                 Tags
                               </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      Add tags to content that matches this
-                                      route. Tags will be applied when content
-                                      is added to the target instance.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Add tags to content that matches this route.
+                                    Tags will be applied when content is added
+                                    to the target instance.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                             <div className="flex gap-2 items-center w-full">
                               <TagsMultiSelect
@@ -1762,27 +1735,25 @@ const AccordionRouteCard = ({
                                 isConnectionValid={true}
                               />
 
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="noShadow"
-                                      size="icon"
-                                      className="shrink-0"
-                                      onClick={() =>
-                                        setShowTagCreationDialog(true)
-                                      }
-                                      disabled={!selectedInstance?.id}
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Create a new tag</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="noShadow"
+                                    size="icon"
+                                    className="shrink-0"
+                                    onClick={() =>
+                                      setShowTagCreationDialog(true)
+                                    }
+                                    disabled={!selectedInstance?.id}
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Create a new tag</p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                             <FormMessage />
                           </FormItem>

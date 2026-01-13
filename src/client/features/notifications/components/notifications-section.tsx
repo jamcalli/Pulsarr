@@ -107,7 +107,7 @@ export function NotificationsSection({
           </h2>
         </div>
         <div className="grid gap-4 mt-4">
-          <WebhookEndpointsSection isInitialized={isInitialized} />
+          <WebhookEndpointsSection />
         </div>
       </div>
 

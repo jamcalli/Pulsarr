@@ -31,7 +31,6 @@ import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
@@ -280,20 +279,18 @@ export default function ApprovalSettingsPage() {
                           <FormLabel className="text-foreground m-0">
                             Enable Approval Expiration
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  When enabled, approval requests will
-                                  automatically expire after the configured time
-                                  period.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                When enabled, approval requests will
+                                automatically expire after the configured time
+                                period.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -314,21 +311,19 @@ export default function ApprovalSettingsPage() {
                           <FormLabel className="text-foreground m-0">
                             Auto-Approve on Quota Reset
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Automatically approve pending quota-exceeded
-                                  requests when the user's quota resets or
-                                  becomes available. Requests are processed in
-                                  FIFO order (oldest first).
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Automatically approve pending quota-exceeded
+                                requests when the user's quota resets or becomes
+                                available. Requests are processed in FIFO order
+                                (oldest first).
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -343,19 +338,17 @@ export default function ApprovalSettingsPage() {
                           <FormLabel className="text-foreground m-0">
                             Expiration Period (Hours)
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Number of hours before approval requests
-                                  automatically expire.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Number of hours before approval requests
+                                automatically expire.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <Input
@@ -385,30 +378,28 @@ export default function ApprovalSettingsPage() {
                           <FormLabel className="text-foreground m-0">
                             Expiration Action
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="max-w-xs space-y-2">
-                                  <p>What happens when approvals expire:</p>
-                                  <ul className="list-disc pl-4 text-sm">
-                                    <li>
-                                      <strong>Mark as Expired:</strong> Requests
-                                      become inaccessible but stay in database
-                                      for history
-                                    </li>
-                                    <li>
-                                      <strong>Auto Approve:</strong>{' '}
-                                      Automatically approve and process expired
-                                      requests (adds content to Radarr/Sonarr)
-                                    </li>
-                                  </ul>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>What happens when approvals expire:</p>
+                                <ul className="list-disc pl-4 text-sm">
+                                  <li>
+                                    <strong>Mark as Expired:</strong> Requests
+                                    become inaccessible but stay in database for
+                                    history
+                                  </li>
+                                  <li>
+                                    <strong>Auto Approve:</strong> Automatically
+                                    approve and process expired requests (adds
+                                    content to Radarr/Sonarr)
+                                  </li>
+                                </ul>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <Select
@@ -444,41 +435,39 @@ export default function ApprovalSettingsPage() {
                             <FormLabel className="text-foreground m-0">
                               Notifications
                             </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <div className="max-w-xs">
-                                    <p>
-                                      Controls how approval request
-                                      notifications are sent:
-                                    </p>
-                                    <ul className="list-disc pl-4 text-sm mt-1">
-                                      <li>
-                                        All Channels: Send to all notification
-                                        methods
-                                      </li>
-                                      <li>Apprise Only: Only use Apprise</li>
-                                      <li>
-                                        Discord (Webhook + DM): Send to both
-                                        Discord webhook and DMs
-                                      </li>
-                                      <li>
-                                        Discord (DM Only): Send only to Discord
-                                        DMs
-                                      </li>
-                                      <li>
-                                        Discord (Webhook Only): Send only to
-                                        Discord webhook
-                                      </li>
-                                      <li>None: No notifications</li>
-                                    </ul>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs">
+                                  <p>
+                                    Controls how approval request notifications
+                                    are sent:
+                                  </p>
+                                  <ul className="list-disc pl-4 text-sm mt-1">
+                                    <li>
+                                      All Channels: Send to all notification
+                                      methods
+                                    </li>
+                                    <li>Apprise Only: Only use Apprise</li>
+                                    <li>
+                                      Discord (Webhook + DM): Send to both
+                                      Discord webhook and DMs
+                                    </li>
+                                    <li>
+                                      Discord (DM Only): Send only to Discord
+                                      DMs
+                                    </li>
+                                    <li>
+                                      Discord (Webhook Only): Send only to
+                                      Discord webhook
+                                    </li>
+                                    <li>None: No notifications</li>
+                                  </ul>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                           <Select
                             onValueChange={field.onChange}
@@ -529,19 +518,17 @@ export default function ApprovalSettingsPage() {
                           <FormLabel className="text-foreground m-0">
                             Cleanup Expired After (Days)
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Number of days to keep expired approval
-                                  records before they are automatically deleted.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Number of days to keep expired approval records
+                                before they are automatically deleted.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <Input

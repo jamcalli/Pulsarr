@@ -17,7 +17,6 @@ import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
@@ -134,26 +133,24 @@ export function ApiKeysForm({
                     />
                   </div>
 
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="noShadow"
-                          size="icon"
-                          onClick={() => onToggleVisibility(apiKey.id)}
-                        >
-                          {visibleKeys[apiKey.id] ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {visibleKeys[apiKey.id] ? 'Hide key' : 'Show key'}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="noShadow"
+                        size="icon"
+                        onClick={() => onToggleVisibility(apiKey.id)}
+                      >
+                        {visibleKeys[apiKey.id] ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {visibleKeys[apiKey.id] ? 'Hide key' : 'Show key'}
+                    </TooltipContent>
+                  </Tooltip>
 
                   <CopyButton
                     text={apiKey.key}

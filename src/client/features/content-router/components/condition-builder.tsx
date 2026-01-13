@@ -21,7 +21,6 @@ import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import ConditionInput from '@/features/content-router/components/condition-input'
@@ -275,29 +274,27 @@ const ConditionBuilder = ({
   return (
     <Card className="p-4 space-y-4">
       <div className="flex items-center space-x-2 mb-2">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center">
-                <Label className="flex items-center space-x-2 cursor-pointer">
-                  <Switch
-                    checked={value.negate || false}
-                    onCheckedChange={handleToggleNegate}
-                    variant="danger"
-                  />
-                  <span>NOT</span>
-                </Label>
-                <HelpCircle className="h-4 w-4 ml-1 text-muted-foreground cursor-help" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="max-w-xs">
-                Inverts just this specific condition. For example, "Genre equals
-                Action" becomes "Genre does not equal Action".
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center">
+              <Label className="flex items-center space-x-2 cursor-pointer">
+                <Switch
+                  checked={value.negate || false}
+                  onCheckedChange={handleToggleNegate}
+                  variant="danger"
+                />
+                <span>NOT</span>
+              </Label>
+              <HelpCircle className="h-4 w-4 ml-1 text-muted-foreground cursor-help" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="max-w-xs">
+              Inverts just this specific condition. For example, "Genre equals
+              Action" becomes "Genre does not equal Action".
+            </p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       <div
@@ -311,16 +308,14 @@ const ConditionBuilder = ({
                 Field
               </Label>
               {fieldDescription && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="h-3 w-3 cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">{fieldDescription}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">{fieldDescription}</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
             <Select value={value.field || ''} onValueChange={handleFieldChange}>
@@ -346,16 +341,14 @@ const ConditionBuilder = ({
                 Operator
               </Label>
               {operatorDescription && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="h-3 w-3 cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">{operatorDescription}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">{operatorDescription}</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
             <Select
@@ -390,20 +383,18 @@ const ConditionBuilder = ({
               </label>
               {value.field === 'certification' &&
                 (value.operator === 'in' || value.operator === 'notIn') && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-3 w-3 cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">
-                          Certifications are region-agnostic. Selecting a value
-                          (e.g., "PG") will match content with that rating
-                          across all regions.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-3 w-3 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Certifications are region-agnostic. Selecting a value
+                        (e.g., "PG") will match content with that rating across
+                        all regions.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
             </div>
             {value.operator && value.field && (

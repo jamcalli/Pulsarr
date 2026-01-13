@@ -34,7 +34,6 @@ import { TimeSelector } from '@/components/ui/time-input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
@@ -562,46 +561,44 @@ export function PlexLabelsPage() {
                           <FormLabel className="text-foreground">
                             Label Prefix
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="max-w-xs space-y-2">
-                                  <p>
-                                    Defines the prefix used for all user labels.
-                                    Username will be appended after a colon.
-                                  </p>
-                                  <code className="bg-slate-700 text-white px-1 py-0.5 rounded-xs block text-center">
-                                    {form.watch('labelPrefix') || 'pulsarr'}
-                                    :username
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  Defines the prefix used for all user labels.
+                                  Username will be appended after a colon.
+                                </p>
+                                <code className="bg-slate-700 text-white px-1 py-0.5 rounded-xs block text-center">
+                                  {form.watch('labelPrefix') || 'pulsarr'}
+                                  :username
+                                </code>
+
+                                <p className="text-xs">
+                                  <span className="font-semibold">
+                                    Examples:
+                                  </span>
+                                  <br />• With default prefix:{' '}
+                                  <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
+                                    pulsarr:john_doe
                                   </code>
+                                  <br />• With "user" prefix:{' '}
+                                  <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
+                                    user:john_doe
+                                  </code>
+                                </p>
 
-                                  <p className="text-xs">
-                                    <span className="font-semibold">
-                                      Examples:
-                                    </span>
-                                    <br />• With default prefix:{' '}
-                                    <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
-                                      pulsarr:john_doe
-                                    </code>
-                                    <br />• With "user" prefix:{' '}
-                                    <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
-                                      user:john_doe
-                                    </code>
-                                  </p>
-
-                                  <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
-                                    <strong>Note:</strong> Changing this
-                                    requires removing existing Pulsarr labels
-                                    first, as old labels won't be recognized
-                                    with the new prefix.
-                                  </p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                                <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                  <strong>Note:</strong> Changing this requires
+                                  removing existing Pulsarr labels first, as old
+                                  labels won't be recognized with the new
+                                  prefix.
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <Input
@@ -636,20 +633,18 @@ export function PlexLabelsPage() {
                           <FormLabel className="text-foreground">
                             Concurrency Limit
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Maximum number of concurrent operations when
-                                  processing labels. Lower values reduce server
-                                  load but take longer. Recommended: 5-10.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Maximum number of concurrent operations when
+                                processing labels. Lower values reduce server
+                                load but take longer. Recommended: 5-10.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <Input
@@ -701,21 +696,18 @@ export function PlexLabelsPage() {
                             <FormLabel className="text-foreground">
                               Clean Up Orphaned Labels
                             </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Removes labels that no longer correspond to
-                                    active users. Prevents accumulation of
-                                    unused labels when users are deleted or
-                                    renamed.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Removes labels that no longer correspond to
+                                  active users. Prevents accumulation of unused
+                                  labels when users are deleted or renamed.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </div>
                         <FormMessage />
@@ -739,33 +731,31 @@ export function PlexLabelsPage() {
                             <FormLabel className="text-foreground">
                               Auto-Reset Before Sync
                             </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <div className="max-w-xs space-y-2">
-                                    <p>
-                                      Automatically reset labels before ALL sync
-                                      operations to clean up dangling entries
-                                      based on current removal mode settings.
-                                    </p>
-                                    <p>
-                                      This helps maintain label consistency when
-                                      switching between removal modes or when
-                                      dangling entries accumulate from "keep"
-                                      mode.
-                                    </p>
-                                    <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
-                                      <strong>Note:</strong> Applies to both
-                                      manual and scheduled sync operations when
-                                      enabled.
-                                    </p>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs space-y-2">
+                                  <p>
+                                    Automatically reset labels before ALL sync
+                                    operations to clean up dangling entries
+                                    based on current removal mode settings.
+                                  </p>
+                                  <p>
+                                    This helps maintain label consistency when
+                                    switching between removal modes or when
+                                    dangling entries accumulate from "keep"
+                                    mode.
+                                  </p>
+                                  <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                    <strong>Note:</strong> Applies to both
+                                    manual and scheduled sync operations when
+                                    enabled.
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </div>
                         <FormMessage />
@@ -782,35 +772,33 @@ export function PlexLabelsPage() {
                           <FormLabel className="text-foreground">
                             Label Behavior on Removal
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="max-w-xs space-y-2">
-                                  <p>
-                                    Controls what happens to user labels when
-                                    content is removed from a user's watchlist:
-                                  </p>
-                                  <ul className="list-disc pl-4 space-y-1">
-                                    <li>
-                                      <strong>Remove</strong>: User label is
-                                      removed (default)
-                                    </li>
-                                    <li>
-                                      <strong>Keep</strong>: User label is kept
-                                      forever
-                                    </li>
-                                    <li>
-                                      <strong>Special Label</strong>: User label
-                                      is removed and a "removed" label is added
-                                    </li>
-                                  </ul>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  Controls what happens to user labels when
+                                  content is removed from a user's watchlist:
+                                </p>
+                                <ul className="list-disc pl-4 space-y-1">
+                                  <li>
+                                    <strong>Remove</strong>: User label is
+                                    removed (default)
+                                  </li>
+                                  <li>
+                                    <strong>Keep</strong>: User label is kept
+                                    forever
+                                  </li>
+                                  <li>
+                                    <strong>Special Label</strong>: User label
+                                    is removed and a "removed" label is added
+                                  </li>
+                                </ul>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <Select
@@ -843,28 +831,26 @@ export function PlexLabelsPage() {
                             <FormLabel className="text-foreground">
                               Removed Label Prefix
                             </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <div className="max-w-xs space-y-2">
-                                    <p>
-                                      Label prefix used to mark content that was
-                                      previously in a user's watchlist when
-                                      using "Special Label" mode.
-                                    </p>
-                                    <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
-                                      <strong>Note:</strong> Changing this
-                                      requires removing existing labels first,
-                                      as old removed labels won't be recognized
-                                      with the new value.
-                                    </p>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs space-y-2">
+                                  <p>
+                                    Label prefix used to mark content that was
+                                    previously in a user's watchlist when using
+                                    "Special Label" mode.
+                                  </p>
+                                  <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                    <strong>Note:</strong> Changing this
+                                    requires removing existing labels first, as
+                                    old removed labels won't be recognized with
+                                    the new value.
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                           <FormControl>
                             <Input
@@ -919,21 +905,19 @@ export function PlexLabelsPage() {
                             <FormLabel className="text-foreground">
                               Enable Tag Syncing
                             </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Enable syncing of tags from Radarr and
-                                    Sonarr instances as Plex labels. This allows
-                                    content to be labeled with metadata from
-                                    your *arr applications.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Enable syncing of tags from Radarr and Sonarr
+                                  instances as Plex labels. This allows content
+                                  to be labeled with metadata from your *arr
+                                  applications.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </div>
                         <FormMessage />
@@ -959,19 +943,17 @@ export function PlexLabelsPage() {
                                 <FormLabel className="text-foreground">
                                   Sync Radarr Tags
                                 </FormLabel>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p className="max-w-xs">
-                                        Synchronize tags from configured Radarr
-                                        instances as Plex labels on movies.
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      Synchronize tags from configured Radarr
+                                      instances as Plex labels on movies.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </div>
                             </div>
                             <FormMessage />
@@ -995,19 +977,17 @@ export function PlexLabelsPage() {
                                 <FormLabel className="text-foreground">
                                   Sync Sonarr Tags
                                 </FormLabel>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p className="max-w-xs">
-                                        Synchronize tags from configured Sonarr
-                                        instances as Plex labels on TV shows.
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      Synchronize tags from configured Sonarr
+                                      instances as Plex labels on TV shows.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </div>
                             </div>
                             <FormMessage />

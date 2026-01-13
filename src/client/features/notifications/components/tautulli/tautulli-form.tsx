@@ -30,7 +30,6 @@ import { TautulliStatusBadge } from '@/components/ui/tautulli-status-badge'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { api } from '@/lib/api'
@@ -443,17 +442,15 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
                     <FormLabel className="text-foreground">
                       Tautulli Notifications Enabled
                     </FormLabel>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          Enable Tautulli integration for native Plex
-                          notifications
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Enable Tautulli integration for native Plex
+                        notifications
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
                 <FormMessage />
@@ -472,17 +469,15 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
                       <FormLabel className="text-foreground">
                         Tautulli URL
                       </FormLabel>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            Full URL to your Tautulli instance (including
-                            http/https)
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          Full URL to your Tautulli instance (including
+                          http/https)
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <FormControl>
                       <Input
@@ -514,16 +509,14 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
                       <FormLabel className="text-foreground">
                         Tautulli API Key
                       </FormLabel>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            API key from Tautulli Settings → Web Interface
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          API key from Tautulli Settings → Web Interface
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <FormControl>
                       <div className="flex gap-2">
@@ -537,49 +530,47 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
                           }
                           className="w-full"
                         />
-                        <TooltipProvider>
-                          <Tooltip
-                            {...(hasConnectionTestError || needsConnectionTest
-                              ? { open: true }
-                              : {})}
-                          >
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="button"
-                                onClick={testConnection}
-                                disabled={
-                                  tautulliStatus === 'loading' ||
-                                  tautulliStatus === 'testing' ||
-                                  !hasCredentials
-                                }
-                                size="icon"
-                                variant="noShadow"
-                                className="shrink-0"
-                              >
-                                {tautulliStatus === 'testing' ? (
-                                  <Loader2 className="animate-spin" />
-                                ) : tautulliTestValid ? (
-                                  <Check className="text-black" />
-                                ) : (
-                                  <Check />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent
-                              className={
-                                hasConnectionTestError || needsConnectionTest
-                                  ? 'bg-error text-black'
-                                  : ''
+                        <Tooltip
+                          {...(hasConnectionTestError || needsConnectionTest
+                            ? { open: true }
+                            : {})}
+                        >
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              onClick={testConnection}
+                              disabled={
+                                tautulliStatus === 'loading' ||
+                                tautulliStatus === 'testing' ||
+                                !hasCredentials
                               }
+                              size="icon"
+                              variant="noShadow"
+                              className="shrink-0"
                             >
-                              <p>
-                                {hasConnectionTestError || needsConnectionTest
-                                  ? 'Test connection required'
-                                  : 'Test connection'}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                              {tautulliStatus === 'testing' ? (
+                                <Loader2 className="animate-spin" />
+                              ) : tautulliTestValid ? (
+                                <Check className="text-black" />
+                              ) : (
+                                <Check />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            className={
+                              hasConnectionTestError || needsConnectionTest
+                                ? 'bg-error text-black'
+                                : ''
+                            }
+                          >
+                            <p>
+                              {hasConnectionTestError || needsConnectionTest
+                                ? 'Test connection required'
+                                : 'Test connection'}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </FormControl>
                     <FormDescription className="text-xs mt-1">
