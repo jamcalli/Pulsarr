@@ -7,18 +7,19 @@ export const autoConfig = (fastify: FastifyInstance) => {
     timeWindow: '1 minute',
     allowList: (req: FastifyRequest) => {
       // Skip rate limiting for static assets (handles both root and prefixed paths)
-      const url = req.url
+      // Use pathname only to prevent query string manipulation bypasses
+      const pathname = req.url.split('?')[0]
       return (
-        url.includes('/assets/') ||
-        url.includes('/favicon') ||
-        url.endsWith('.js') ||
-        url.endsWith('.css') ||
-        url.endsWith('.woff2') ||
-        url.endsWith('.woff') ||
-        url.endsWith('.svg') ||
-        url.endsWith('.png') ||
-        url.endsWith('.jpg') ||
-        url.endsWith('.ico')
+        pathname.includes('/assets/') ||
+        pathname.includes('/favicon') ||
+        pathname.endsWith('.js') ||
+        pathname.endsWith('.css') ||
+        pathname.endsWith('.woff2') ||
+        pathname.endsWith('.woff') ||
+        pathname.endsWith('.svg') ||
+        pathname.endsWith('.png') ||
+        pathname.endsWith('.jpg') ||
+        pathname.endsWith('.ico')
       )
     },
   }

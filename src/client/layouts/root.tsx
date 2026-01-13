@@ -19,7 +19,7 @@ interface RootLayoutProps {
 /**
  * Renders the animated background layer with branding and visual effects when appropriate for the device type, fullscreen mode, and current route.
  *
- * The background is shown on desktop devices only if fullscreen mode is disabled, and on mobile devices only on the login route. It features a CRT overlay, parallax starfield, responsive planet image, pulsar graphic, optional asteroids animation, a centered title and subtitle, and a version display.
+ * The background is shown on desktop devices only if fullscreen mode is disabled, and on mobile devices only on the login route. It features a CRT overlay, parallax starfield, responsive planet image, pulsar graphic, optional asteroids animation, and a centered title and subtitle.
  *
  * @returns The background layer JSX if display conditions are met; otherwise, `null`.
  */

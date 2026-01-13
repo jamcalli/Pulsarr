@@ -47,7 +47,7 @@ export function useDeleteWebhookEndpoint() {
 
   return useAppMutation({
     mutationFn: (id: number) =>
-      apiClient.delete(`/v1/webhooks/endpoints/${id}`),
+      apiClient.delete<void>(`/v1/webhooks/endpoints/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: webhookEndpointKeys.all })
     },
