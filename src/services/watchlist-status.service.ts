@@ -14,6 +14,11 @@ import {
   createSonarrJunctionConfig,
   processJunctionUpdates,
 } from './watchlist-status/junction/index.js'
+import {
+  createRadarrStatusConfig,
+  createSonarrStatusConfig,
+  processStatusUpdates,
+} from './watchlist-status/status-sync/index.js'
 
 export class StatusService {
   private readonly log: FastifyBaseLogger
@@ -56,7 +61,11 @@ export class StatusService {
         prefetchedSeries ?? (await this.sonarrManager.fetchAllSeries(true))
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
-      const mainUpdates = await this.processShowStatusUpdates(
+
+      // Process status updates using unified processor
+      const mainUpdates = await processStatusUpdates(
+        { db: this.dbService, logger: this.log },
+        createSonarrStatusConfig(),
         existingSeries,
         dbWatchlistItems,
       )
@@ -75,13 +84,11 @@ export class StatusService {
       // Apply user tags if the service is available and enabled
       if (this.fastify.userTags && this.fastify.config.tagUsersInSonarr) {
         try {
-          // Apply tags using already fetched data (tag creation happens inside per-instance)
           const tagResults =
             await this.fastify.userTags.tagSonarrContentWithData(
               existingSeries,
               watchlistItems,
             )
-
           this.log.debug({ tagResults }, 'Applied user tags to Sonarr content')
         } catch (tagError) {
           this.log.error(
@@ -104,7 +111,11 @@ export class StatusService {
         prefetchedMovies ?? (await this.radarrManager.fetchAllMovies(true))
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
-      const mainUpdates = await this.processMovieStatusUpdates(
+
+      // Process status updates using unified processor
+      const mainUpdates = await processStatusUpdates(
+        { db: this.dbService, logger: this.log },
+        createRadarrStatusConfig(this.log),
         existingMovies,
         dbWatchlistItems,
       )
@@ -123,13 +134,11 @@ export class StatusService {
       // Apply user tags if the service is available and enabled
       if (this.fastify.userTags && this.fastify.config.tagUsersInRadarr) {
         try {
-          // Apply tags using already fetched data (tag creation happens inside per-instance)
           const tagResults =
             await this.fastify.userTags.tagRadarrContentWithData(
               existingMovies,
               watchlistItems,
             )
-
           this.log.debug({ tagResults }, 'Applied user tags to Radarr content')
         } catch (tagError) {
           this.log.error(
@@ -153,164 +162,6 @@ export class StatusService {
       ...item,
       id: typeof item.id === 'string' ? Number(item.id) : item.id,
     })) as (Omit<T, 'id'> & { id: number })[]
-  }
-
-  private async processShowStatusUpdates(
-    sonarrItems: SonarrItem[],
-    watchlistItems: DatabaseWatchlistItem[],
-  ) {
-    const updates: Array<{
-      userId: number
-      key: string
-      added?: string
-      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
-      series_status?: 'continuing' | 'ended'
-      sonarr_instance_id?: number
-    }> = []
-    for (const item of watchlistItems) {
-      const sonarrMatch = this.findMatch(sonarrItems, item.guids)
-      if (sonarrMatch) {
-        const instanceId = sonarrMatch.sonarr_instance_id || undefined
-        const update: {
-          userId: number
-          key: string
-          added?: string
-          status?: 'pending' | 'requested' | 'grabbed' | 'notified'
-          series_status?: 'continuing' | 'ended'
-          sonarr_instance_id?: number
-        } = {
-          userId: item.user_id,
-          key: item.key,
-        }
-        if (item.added !== sonarrMatch.added) {
-          update.added = sonarrMatch.added
-        }
-        if (item.status !== sonarrMatch.status) {
-          if (item.status !== 'notified') {
-            update.status = sonarrMatch.status
-          } else {
-            // If item is notified but Sonarr shows it should be grabbed,
-            // we need to backfill the missing grabbed status in history
-            if (sonarrMatch.status === 'grabbed') {
-              // Add the grabbed status to history with the correct timestamp
-              try {
-                if (item.id !== undefined && sonarrMatch.added) {
-                  const itemId =
-                    typeof item.id === 'string' ? Number(item.id) : item.id
-                  await this.dbService.addStatusHistoryEntry(
-                    itemId,
-                    'grabbed',
-                    sonarrMatch.added, // Use the timestamp from Sonarr
-                  )
-                }
-              } catch (error) {
-                this.log.error(
-                  { error },
-                  `Failed to backfill grabbed status for ${item.title}:`,
-                )
-              }
-            } else {
-              this.log.debug(
-                `Preventing status downgrade for show ${item.title} [${item.key}]: keeping 'notified' instead of changing to '${sonarrMatch.status}'`,
-              )
-            }
-          }
-        }
-        if (item.series_status !== sonarrMatch.series_status) {
-          update.series_status = sonarrMatch.series_status
-        }
-        if (item.sonarr_instance_id !== instanceId) {
-          update.sonarr_instance_id = instanceId
-        }
-        if (Object.keys(update).length > 2) {
-          updates.push(update)
-        }
-      }
-    }
-    return updates
-  }
-
-  private async processMovieStatusUpdates(
-    radarrItems: RadarrItem[],
-    watchlistItems: DatabaseWatchlistItem[],
-  ) {
-    const updates: Array<{
-      userId: number
-      key: string
-      added?: string
-      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
-      movie_status?: 'available' | 'unavailable'
-      radarr_instance_id?: number
-    }> = []
-    for (const item of watchlistItems) {
-      const radarrMatch = this.findMatch(radarrItems, item.guids)
-      if (radarrMatch) {
-        const instanceId = radarrMatch.radarr_instance_id || undefined
-        const update: {
-          userId: number
-          key: string
-          added?: string
-          status?: 'pending' | 'requested' | 'grabbed' | 'notified'
-          movie_status?: 'available' | 'unavailable'
-          radarr_instance_id?: number
-        } = {
-          userId: item.user_id,
-          key: item.key,
-        }
-        if (item.added !== radarrMatch.added) {
-          update.added = radarrMatch.added
-        }
-        if (item.status !== radarrMatch.status) {
-          if (item.status !== 'notified') {
-            update.status = radarrMatch.status
-          } else {
-            // If item is notified but Radarr shows it should be grabbed,
-            // we need to backfill the missing grabbed status in history
-            if (radarrMatch.status === 'grabbed') {
-              // Add the grabbed status to history with the correct timestamp
-              try {
-                if (item.id !== undefined && radarrMatch.added) {
-                  const itemId =
-                    typeof item.id === 'string' ? Number(item.id) : item.id
-                  await this.dbService.addStatusHistoryEntry(
-                    itemId,
-                    'grabbed',
-                    radarrMatch.added, // Use the timestamp from Radarr
-                  )
-                }
-              } catch (error) {
-                this.log.error(
-                  { error },
-                  `Failed to backfill grabbed status for ${item.title}:`,
-                )
-              }
-            } else {
-              this.log.debug(
-                `Preventing status downgrade for movie ${item.title} [${item.key}]: keeping 'notified' instead of changing to '${radarrMatch.status}'`,
-              )
-            }
-          }
-        }
-        if (item.movie_status !== radarrMatch.movie_status) {
-          const ms = radarrMatch.movie_status
-          if (ms === 'available' || ms === 'unavailable') {
-            update.movie_status = ms
-          } else {
-            this.log.warn(
-              { movie_status: ms, key: item.key },
-              'Invalid movie_status; skipping update',
-            )
-          }
-        }
-        if (item.radarr_instance_id !== instanceId) {
-          update.radarr_instance_id = instanceId
-        }
-        if (Object.keys(update).length > 2) {
-          updates.push(update)
-        }
-      }
-    }
-    return updates
   }
 
   // Junction table updates for Sonarr
