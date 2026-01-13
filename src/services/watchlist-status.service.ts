@@ -1,9 +1,12 @@
+import type { User } from '@root/types/config.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { BatchCopyItem } from './watchlist-status/instance-sync/index.js'
+import { processBatchCopy } from './watchlist-status/instance-sync/index.js'
 import {
   createRadarrJunctionConfig,
   createSonarrJunctionConfig,
@@ -583,69 +586,50 @@ export class StatusService {
           })
         }
 
-        const BATCH_SIZE = 5 // Number of items to process in parallel
-        let completedCount = 0
+        // Pre-fetch users to avoid N+1 queries
+        const userIds = new Set(itemsToCopy.map(({ item }) => item.user_id))
+        const allUsers = await this.dbService.getAllUsers()
+        const userMap = new Map<number, User>(
+          allUsers.filter((u) => userIds.has(u.id)).map((u) => [u.id, u]),
+        )
 
-        const queue = [...itemsToCopy]
-        let processingCount = 0
+        // Build batch items with proper types
+        const batchItems: BatchCopyItem[] = itemsToCopy.map(
+          ({ item, matchingMovie }) => ({
+            item: {
+              ...item,
+              id:
+                typeof item.id === 'string'
+                  ? Number.parseInt(item.id, 10)
+                  : (item.id as number),
+            },
+            matchingContent: matchingMovie,
+          }),
+        )
 
-        while (queue.length > 0 || processingCount > 0) {
-          while (queue.length > 0 && processingCount < BATCH_SIZE) {
-            const queueItem = queue.shift()
-            if (queueItem) {
-              processingCount++
-              const { item, matchingMovie } = queueItem
-
-              const dbItem: DatabaseWatchlistItem = {
-                ...item,
-                id:
-                  typeof item.id === 'string'
-                    ? Number.parseInt(item.id, 10)
-                    : (item.id as number),
+        // Use p-limit batch processor instead of setTimeout polling
+        itemsCopied = await processBatchCopy(
+          { contentRouter: this.fastify.contentRouter, logger: this.log },
+          batchItems,
+          instanceId,
+          'movie',
+          userMap,
+          emitProgress
+            ? (completed, total) => {
+                const progress = Math.min(
+                  5 + Math.floor((completed / total) * 90),
+                  95,
+                )
+                this.emitProgress({
+                  operationId,
+                  type: 'sync' as const,
+                  phase: 'copying',
+                  progress,
+                  message: `Copied ${completed} of ${total} movies to Radarr instance ${instanceId}`,
+                })
               }
-
-              this.processSingleRadarrItem(
-                dbItem as DatabaseWatchlistItem,
-                matchingMovie,
-                instanceId,
-              )
-                .then((success) => {
-                  if (success) {
-                    itemsCopied++
-                  }
-                })
-                .catch((error) => {
-                  this.log.error({ error }, 'Error in batch processing movie')
-                })
-                .finally(() => {
-                  processingCount--
-                  completedCount++
-
-                  if (emitProgress) {
-                    const progress = Math.min(
-                      5 +
-                        Math.floor((completedCount / itemsToCopy.length) * 90),
-                      95,
-                    )
-                    this.emitProgress({
-                      operationId,
-                      type: 'sync' as const,
-                      phase: 'copying',
-                      progress,
-                      message: `Copied ${completedCount} of ${itemsToCopy.length} movies to Radarr instance ${instanceId}`,
-                    })
-                  }
-                })
-            }
-          }
-
-          if (
-            processingCount >= BATCH_SIZE ||
-            (processingCount > 0 && queue.length === 0)
-          ) {
-            await new Promise((resolve) => setTimeout(resolve, 50))
-          }
-        }
+            : undefined,
+        )
 
         if (emitProgress) {
           this.emitProgress({
@@ -675,69 +659,6 @@ export class StatusService {
     } catch (error) {
       this.log.error({ error, instanceId }, 'Error syncing Radarr instance')
       throw error
-    }
-  }
-
-  private async processSingleRadarrItem(
-    item: DatabaseWatchlistItem,
-    matchingMovie: RadarrItem,
-    instanceId: number,
-  ): Promise<boolean> {
-    try {
-      // Get user information
-      const userId =
-        typeof item.user_id === 'number' ? item.user_id : Number(item.user_id)
-
-      // First check if the user exists and can sync
-      let userName: string | undefined
-      let canSync = true
-
-      if (!Number.isNaN(userId)) {
-        const user = await this.dbService.getUser(userId)
-        if (user) {
-          userName = user.name
-          canSync = user.can_sync !== false
-        }
-      }
-
-      // If user cannot sync, don't route the item
-      if (!canSync) {
-        this.log.debug(
-          `Skipping movie ${item.title} sync as user ${userId} has sync disabled`,
-        )
-        return false
-      }
-
-      // Use the content router with syncTargetInstanceId to respect routing rules during sync
-      const routingResult = await this.fastify.contentRouter.routeContent(
-        matchingMovie,
-        item.key,
-        {
-          userId,
-          userName,
-          syncing: true,
-          syncTargetInstanceId: instanceId, // Use sync target instead of forced instance
-        },
-      )
-
-      // Check if the item was routed to the target instance
-      if (routingResult.routedInstances.includes(instanceId)) {
-        this.log.debug(
-          `Copied movie ${item.title} to Radarr instance ${instanceId} via content router`,
-        )
-        return true
-      }
-
-      this.log.info(
-        `Movie ${item.title} was not routed to Radarr instance ${instanceId} due to routing rules`,
-      )
-      return false
-    } catch (error) {
-      this.log.error(
-        { error, instanceId, title: item.title },
-        'Error copying movie to instance',
-      )
-      return false
     }
   }
 
@@ -931,69 +852,50 @@ export class StatusService {
           })
         }
 
-        const BATCH_SIZE = 5 // Number of items to process in parallel
-        let completedCount = 0
+        // Pre-fetch users to avoid N+1 queries
+        const userIds = new Set(itemsToCopy.map(({ item }) => item.user_id))
+        const allUsers = await this.dbService.getAllUsers()
+        const userMap = new Map<number, User>(
+          allUsers.filter((u) => userIds.has(u.id)).map((u) => [u.id, u]),
+        )
 
-        const queue = [...itemsToCopy]
-        let processingCount = 0
+        // Build batch items with proper types
+        const batchItems: BatchCopyItem[] = itemsToCopy.map(
+          ({ item, matchingSeries }) => ({
+            item: {
+              ...item,
+              id:
+                typeof item.id === 'string'
+                  ? Number.parseInt(item.id, 10)
+                  : (item.id as number),
+            },
+            matchingContent: matchingSeries,
+          }),
+        )
 
-        while (queue.length > 0 || processingCount > 0) {
-          while (queue.length > 0 && processingCount < BATCH_SIZE) {
-            const queueItem = queue.shift()
-            if (queueItem) {
-              processingCount++
-              const { item, matchingSeries } = queueItem
-
-              const dbItem: DatabaseWatchlistItem = {
-                ...item,
-                id:
-                  typeof item.id === 'string'
-                    ? Number.parseInt(item.id, 10)
-                    : (item.id as number),
+        // Use p-limit batch processor instead of setTimeout polling
+        itemsCopied = await processBatchCopy(
+          { contentRouter: this.fastify.contentRouter, logger: this.log },
+          batchItems,
+          instanceId,
+          'show',
+          userMap,
+          emitProgress
+            ? (completed, total) => {
+                const progress = Math.min(
+                  5 + Math.floor((completed / total) * 90),
+                  95,
+                )
+                this.emitProgress({
+                  operationId,
+                  type: 'sync' as const,
+                  phase: 'copying',
+                  progress,
+                  message: `Copied ${completed} of ${total} shows to Sonarr instance ${instanceId}`,
+                })
               }
-
-              this.processSingleSonarrItem(
-                dbItem as DatabaseWatchlistItem,
-                matchingSeries,
-                instanceId,
-              )
-                .then((success) => {
-                  if (success) {
-                    itemsCopied++
-                  }
-                })
-                .catch((error) => {
-                  this.log.error({ error }, 'Error in batch processing show')
-                })
-                .finally(() => {
-                  processingCount--
-                  completedCount++
-
-                  if (emitProgress) {
-                    const progress = Math.min(
-                      5 +
-                        Math.floor((completedCount / itemsToCopy.length) * 90),
-                      95,
-                    )
-                    this.emitProgress({
-                      operationId,
-                      type: 'sync' as const,
-                      phase: 'copying',
-                      progress,
-                      message: `Copied ${completedCount} of ${itemsToCopy.length} shows to Sonarr instance ${instanceId}`,
-                    })
-                  }
-                })
-            }
-          }
-
-          if (
-            processingCount >= BATCH_SIZE ||
-            (processingCount > 0 && queue.length === 0)
-          ) {
-            await new Promise((resolve) => setTimeout(resolve, 50))
-          }
-        }
+            : undefined,
+        )
 
         if (emitProgress) {
           this.emitProgress({
@@ -1023,69 +925,6 @@ export class StatusService {
     } catch (error) {
       this.log.error({ error, instanceId }, 'Error syncing Sonarr instance')
       throw error
-    }
-  }
-
-  private async processSingleSonarrItem(
-    item: DatabaseWatchlistItem,
-    matchingSeries: SonarrItem,
-    instanceId: number,
-  ): Promise<boolean> {
-    try {
-      // Get user information if available
-      const userId =
-        typeof item.user_id === 'number' ? item.user_id : Number(item.user_id)
-
-      // First check if the user exists and can sync
-      let userName: string | undefined
-      let canSync = true
-
-      if (!Number.isNaN(userId)) {
-        const user = await this.dbService.getUser(userId)
-        if (user) {
-          userName = user.name
-          canSync = user.can_sync !== false
-        }
-      }
-
-      // If user cannot sync, don't route the item
-      if (!canSync) {
-        this.log.debug(
-          `Skipping show ${item.title} sync as user ${userId} has sync disabled`,
-        )
-        return false
-      }
-
-      // Use the content router with syncTargetInstanceId to respect routing rules during sync
-      const routingResult = await this.fastify.contentRouter.routeContent(
-        matchingSeries,
-        item.key,
-        {
-          userId,
-          userName,
-          syncing: true,
-          syncTargetInstanceId: instanceId, // Use sync target instead of forced instance
-        },
-      )
-
-      // Check if the item was routed to the target instance
-      if (routingResult.routedInstances.includes(instanceId)) {
-        this.log.debug(
-          `Copied show ${item.title} to Sonarr instance ${instanceId} via content router`,
-        )
-        return true
-      }
-
-      this.log.info(
-        `Show ${item.title} was not routed to Sonarr instance ${instanceId} due to routing rules`,
-      )
-      return false
-    } catch (error) {
-      this.log.error(
-        { error, instanceId, title: item.title },
-        'Error copying show to instance',
-      )
-      return false
     }
   }
 
