@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { BulkResetInactiveAlert } from '@/features/utilities/components/session-monitoring/bulk-reset-inactive-alert'
@@ -233,38 +232,36 @@ export function SessionMonitoringStatus({
             />
             <span className="text-xs text-foreground mr-1">d</span>
             {inactiveShows.length > 0 && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="error"
-                      onClick={() => setShowBulkResetConfirmation(true)}
-                      disabled={
-                        !isEnabled ||
-                        rollingLoading.resetting ||
-                        inactiveShows.length === 0
-                      }
-                      aria-disabled={
-                        !isEnabled ||
-                        rollingLoading.resetting ||
-                        inactiveShows.length === 0
-                      }
-                      className="h-7 px-2"
-                    >
-                      {rollingLoading.resetting ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <RotateCcw className="h-3 w-3" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Reset all inactive shows</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="error"
+                    onClick={() => setShowBulkResetConfirmation(true)}
+                    disabled={
+                      !isEnabled ||
+                      rollingLoading.resetting ||
+                      inactiveShows.length === 0
+                    }
+                    aria-disabled={
+                      !isEnabled ||
+                      rollingLoading.resetting ||
+                      inactiveShows.length === 0
+                    }
+                    className="h-7 px-2"
+                  >
+                    {rollingLoading.resetting ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3 w-3" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Reset all inactive shows</p>
+                </TooltipContent>
+              </Tooltip>
             )}
             <Button
               type="button"

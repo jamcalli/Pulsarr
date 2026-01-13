@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
@@ -44,20 +43,18 @@ export function SessionMonitoringConfig({
                 <FormLabel className="text-foreground m-0">
                   Polling Interval (minutes)
                 </FormLabel>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        How often to check for active Plex sessions (1-1440
-                        minutes). Lower values provide more responsive
-                        monitoring but increase server load.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      How often to check for active Plex sessions (1-1440
+                      minutes). Lower values provide more responsive monitoring
+                      but increase server load.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <FormControl>
                 <Input
@@ -89,20 +86,18 @@ export function SessionMonitoringConfig({
                 <FormLabel className="text-foreground m-0">
                   Remaining Episodes Threshold
                 </FormLabel>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Trigger searches when this many episodes remain in a
-                        season. For example, with threshold 2, searches trigger
-                        when watching episode 8 of a 10-episode season.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Trigger searches when this many episodes remain in a
+                      season. For example, with threshold 2, searches trigger
+                      when watching episode 8 of a 10-episode season.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <FormControl>
                 <Input

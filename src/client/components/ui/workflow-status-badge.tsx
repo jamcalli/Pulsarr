@@ -9,7 +9,6 @@ import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useWatchlistStatus } from '@/hooks/workflow/useWatchlistStatus'
@@ -198,32 +197,30 @@ export function WatchlistStatusBadge() {
       {/* Only show auto-start toggle when stopped - now positioned after the button */}
       {(status === 'stopped' ||
         (status === 'starting' && currentAction === 'start')) && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-1.5 h-7">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id={autoStartId}
-                    checked={autoStart}
-                    onCheckedChange={setAutoStart}
-                    disabled={isDisabled}
-                  />
-                  <Label
-                    htmlFor={autoStartId}
-                    className="text-xs text-foreground cursor-pointer flex items-center gap-1"
-                  >
-                    <BookmarkCheck className="h-3.5 w-3.5" />
-                    Auto-Start
-                  </Label>
-                </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-1.5 h-7">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id={autoStartId}
+                  checked={autoStart}
+                  onCheckedChange={setAutoStart}
+                  disabled={isDisabled}
+                />
+                <Label
+                  htmlFor={autoStartId}
+                  className="text-xs text-foreground cursor-pointer flex items-center gap-1"
+                >
+                  <BookmarkCheck className="h-3.5 w-3.5" />
+                  Auto-Start
+                </Label>
               </div>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p className="text-xs">Auto-Start on app launch</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p className="text-xs">Auto-Start on app launch</p>
+          </TooltipContent>
+        </Tooltip>
       )}
 
       <FirstStartDialog

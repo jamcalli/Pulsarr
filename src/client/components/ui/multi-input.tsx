@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -147,48 +146,44 @@ export function MultiInput({
           
           {/* Remove button - only show on fields beyond the first one */}
           {index > 0 && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="error"
-                    size="icon"
-                    onClick={() => removeField(index)}
-                    disabled={disabled}
-                    className={cn('shrink-0', buttonClassName)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Remove this field</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="error"
+                  size="icon"
+                  onClick={() => removeField(index)}
+                  disabled={disabled}
+                  className={cn('shrink-0', buttonClassName)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Remove this field</p>
+              </TooltipContent>
+            </Tooltip>
           )}
-          
+
           {/* Add button - only show on the last field if we can add more */}
           {index === fields.length - 1 && canAddField && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="noShadow"
-                    size="icon"
-                    onClick={addField}
-                    disabled={disabled}
-                    className={cn('shrink-0', buttonClassName)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Add another field</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="noShadow"
+                  size="icon"
+                  onClick={addField}
+                  disabled={disabled}
+                  className={cn('shrink-0', buttonClassName)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Add another field</p>
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       ))}

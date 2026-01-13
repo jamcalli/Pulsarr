@@ -12,7 +12,6 @@ import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
@@ -55,21 +54,19 @@ export function SessionMonitoringResetSettings({
                   <FormLabel className="text-foreground m-0">
                     Enable Automatic Reset
                   </FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">
-                          Automatically reset rolling monitored shows to their
-                          original monitoring state (pilot-only or
-                          first-season-only) when they haven't been watched for
-                          the specified period.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Automatically reset rolling monitored shows to their
+                        original monitoring state (pilot-only or
+                        first-season-only) when they haven't been watched for
+                        the specified period.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </FormItem>
             )}
@@ -91,22 +88,20 @@ export function SessionMonitoringResetSettings({
                   <FormLabel className="text-foreground m-0">
                     Enable Progressive Cleanup
                   </FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">
-                          Immediately clean up previous seasons when a user
-                          progresses to a new season, but only if no other users
-                          have watched those seasons within the inactivity
-                          period. Always preserves the original monitoring state
-                          (pilot-only or first-season-only).
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Immediately clean up previous seasons when a user
+                        progresses to a new season, but only if no other users
+                        have watched those seasons within the inactivity period.
+                        Always preserves the original monitoring state
+                        (pilot-only or first-season-only).
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </FormItem>
             )}
@@ -123,20 +118,18 @@ export function SessionMonitoringResetSettings({
                   <FormLabel className="text-foreground m-0">
                     Inactivity Reset Days
                   </FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">
-                          Number of days without watching activity before a
-                          rolling monitored show is reset to its original
-                          monitoring state and excess files are deleted.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Number of days without watching activity before a
+                        rolling monitored show is reset to its original
+                        monitoring state and excess files are deleted.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <FormControl>
                   <Input
@@ -172,21 +165,18 @@ export function SessionMonitoringResetSettings({
                   <FormLabel className="text-foreground m-0">
                     Auto Reset Check Interval (hours)
                   </FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs">
-                          How often to check for inactive rolling monitored
-                          shows and perform automatic resets. Lower values
-                          provide more responsive cleanup but increase server
-                          load.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        How often to check for inactive rolling monitored shows
+                        and perform automatic resets. Lower values provide more
+                        responsive cleanup but increase server load.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <FormControl>
                   <Input

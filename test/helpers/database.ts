@@ -1,25 +1,26 @@
-import os from 'node:os'
-import path from 'node:path'
 import type { Knex } from 'knex'
 import knex from 'knex'
 
-let anchorConnection: Knex | null = null
-
-const TEST_DB_PATH = path.join(os.tmpdir(), `pulsarr-test-${process.pid}.db`)
+// Use globalThis to ensure connection is shared across module instances
+// (vitest may load this module multiple times with different identities)
+declare global {
+  var __testDbConnection: Knex | null
+}
+globalThis.__testDbConnection ??= null
 
 /**
  * Initialize the test database connection and run migrations
- * Uses a temp file per process to avoid WAL issues and enable sharing
+ * Uses in-memory SQLite for fast test execution
  */
 export async function initializeTestDatabase(): Promise<Knex> {
-  if (anchorConnection) {
-    return anchorConnection
+  if (globalThis.__testDbConnection) {
+    return globalThis.__testDbConnection
   }
 
-  anchorConnection = knex({
+  globalThis.__testDbConnection = knex({
     client: 'better-sqlite3',
     connection: {
-      filename: TEST_DB_PATH,
+      filename: ':memory:',
     },
     useNullAsDefault: true,
     migrations: {
@@ -28,17 +29,20 @@ export async function initializeTestDatabase(): Promise<Knex> {
     pool: {
       min: 1,
       max: 1,
-      afterCreate: (conn: unknown, cb: () => void): void => {
+      afterCreate: (
+        conn: unknown,
+        done: (err: Error | null, conn: unknown) => void,
+      ): void => {
         const sqliteConn = conn as { exec: (sql: string) => void }
         sqliteConn.exec('PRAGMA foreign_keys = ON;')
-        cb()
+        done(null, conn)
       },
     },
   })
 
-  await anchorConnection.migrate.latest()
+  await globalThis.__testDbConnection.migrate.latest()
 
-  return anchorConnection
+  return globalThis.__testDbConnection
 }
 
 /**
@@ -48,10 +52,10 @@ export async function initializeTestDatabase(): Promise<Knex> {
  * @returns The database connection
  */
 export function getTestDatabase(): Knex {
-  if (!anchorConnection) {
+  if (!globalThis.__testDbConnection) {
     throw new Error('Database connection not initialized')
   }
-  return anchorConnection
+  return globalThis.__testDbConnection
 }
 
 /**
@@ -59,15 +63,19 @@ export function getTestDatabase(): Knex {
  * Call this in beforeEach hooks to ensure clean state between tests
  */
 export async function resetDatabase(): Promise<void> {
-  if (!anchorConnection) {
+  if (!globalThis.__testDbConnection) {
     throw new Error('Database connection not initialized')
   }
 
+  // Rollback any in-flight transaction from a failed test
+  await globalThis.__testDbConnection.raw('ROLLBACK').catch(() => {})
+
   // Temporarily disable foreign key constraints
-  await anchorConnection.raw('PRAGMA foreign_keys = OFF')
+  await globalThis.__testDbConnection.raw('PRAGMA foreign_keys = OFF')
 
   // Get user tables, excluding system and migration tables
-  const rows = await anchorConnection('sqlite_master')
+  const rows = await globalThis
+    .__testDbConnection('sqlite_master')
     .select<{ name: string }[]>('name')
     .where('type', 'table')
     .whereNot('name', 'like', 'knex_%')
@@ -75,36 +83,25 @@ export async function resetDatabase(): Promise<void> {
 
   // Truncate each table
   for (const { name } of rows) {
-    await anchorConnection(name).del()
+    await globalThis.__testDbConnection(name).del()
   }
 
-  // Reset autoincrement sequences (SQLite)
-  await anchorConnection.raw('DELETE FROM sqlite_sequence')
+  // Reset autoincrement sequences (SQLite) - may not exist if no autoincrement writes yet
+  await globalThis.__testDbConnection
+    .raw('DELETE FROM sqlite_sequence')
+    .catch(() => {})
 
   // Re-enable foreign key constraints
-  await anchorConnection.raw('PRAGMA foreign_keys = ON')
+  await globalThis.__testDbConnection.raw('PRAGMA foreign_keys = ON')
 }
 
 /**
- * Clean up the test database connection and temp files
+ * Clean up the test database connection
  * Should be called in global teardown
  */
 export async function cleanupTestDatabase(): Promise<void> {
-  if (anchorConnection) {
-    await anchorConnection.destroy()
-    anchorConnection = null
-  }
-
-  const fs = await import('node:fs')
-  const filesToClean = [
-    TEST_DB_PATH,
-    `${TEST_DB_PATH}-shm`,
-    `${TEST_DB_PATH}-wal`,
-    `${TEST_DB_PATH}-journal`,
-  ]
-  for (const file of filesToClean) {
-    if (fs.existsSync(file)) {
-      fs.unlinkSync(file)
-    }
+  if (globalThis.__testDbConnection) {
+    await globalThis.__testDbConnection.destroy()
+    globalThis.__testDbConnection = null
   }
 }
