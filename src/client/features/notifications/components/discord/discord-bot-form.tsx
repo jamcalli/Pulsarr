@@ -19,7 +19,6 @@ import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
@@ -207,16 +206,14 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
                   <FormLabel className="text-foreground">
                     Discord Bot Token
                   </FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        Bot token from Discord Developer Portal.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Bot token from Discord Developer Portal.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <FormControl>
                   <Input
@@ -245,17 +242,15 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
                   <FormLabel className="text-foreground">
                     Discord Client ID
                   </FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        Client ID from your Discord application's General
-                        Information page.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Client ID from your Discord application's General
+                      Information page.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <FormControl>
                   <Input

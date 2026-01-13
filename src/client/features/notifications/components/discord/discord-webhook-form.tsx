@@ -16,7 +16,6 @@ import { MultiInput } from '@/components/ui/multi-input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
@@ -407,17 +406,15 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
                   <FormLabel className="text-foreground">
                     System Discord Webhook URL(s)
                   </FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        Discord webhook URLs for sending system notifications.
-                        Use the + button to add multiple channels.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Discord webhook URLs for sending system notifications. Use
+                      the + button to add multiple channels.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <FormControl>
                   <div className="flex gap-2">
@@ -440,37 +437,35 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
                       maxFields={5}
                       className="flex-1"
                     />
-                    <TooltipProvider>
-                      <Tooltip open={showTestError || undefined}>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            onClick={testWebhook}
-                            disabled={
-                              webhookStatus === 'loading' ||
-                              webhookStatus === 'testing' ||
-                              !field.value
-                            }
-                            size="icon"
-                            variant="noShadow"
-                            className="shrink-0"
-                          >
-                            {webhookStatus === 'testing' ? (
-                              <Loader2 className="animate-spin" />
-                            ) : webhookTestValid ? (
-                              <Check className="text-black" />
-                            ) : (
-                              <Check />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent
-                          className={showTestError ? 'bg-error text-black' : ''}
+                    <Tooltip open={showTestError || undefined}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          onClick={testWebhook}
+                          disabled={
+                            webhookStatus === 'loading' ||
+                            webhookStatus === 'testing' ||
+                            !field.value
+                          }
+                          size="icon"
+                          variant="noShadow"
+                          className="shrink-0"
                         >
-                          <p>Test connection</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                          {webhookStatus === 'testing' ? (
+                            <Loader2 className="animate-spin" />
+                          ) : webhookTestValid ? (
+                            <Check className="text-black" />
+                          ) : (
+                            <Check />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        className={showTestError ? 'bg-error text-black' : ''}
+                      >
+                        <p>Test connection</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </FormControl>
                 {showTestError && (

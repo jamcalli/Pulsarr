@@ -34,7 +34,6 @@ import { TimeSelector } from '@/components/ui/time-input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
@@ -314,41 +313,37 @@ export default function DeleteSyncPage() {
                           <FormLabel className="text-foreground m-0">
                             Mode
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="max-w-xs space-y-2">
-                                  <p>
-                                    Choose how content deletion should work:
-                                  </p>
-                                  <ul className="list-disc pl-4 text-sm">
-                                    <li>
-                                      <strong>Watchlist-based:</strong> Delete
-                                      content that's no longer on any watchlist.
-                                    </li>
-                                    <li>
-                                      <strong>Tag-based:</strong> Only delete
-                                      content that has the "
-                                      {form.watch('removedTagPrefix') ||
-                                        'pulsarr-removed'}
-                                      " tag.
-                                    </li>
-                                  </ul>
-                                  <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
-                                    <strong>Note:</strong> Tag-based deletion
-                                    requires "Tag Behavior on Removal" to be set
-                                    to <strong>"Special Tag"</strong> in the
-                                    User Tags section. This ensures content is
-                                    properly tagged when removed from watchlists
-                                    for later deletion.
-                                  </p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>Choose how content deletion should work:</p>
+                                <ul className="list-disc pl-4 text-sm">
+                                  <li>
+                                    <strong>Watchlist-based:</strong> Delete
+                                    content that's no longer on any watchlist.
+                                  </li>
+                                  <li>
+                                    <strong>Tag-based:</strong> Only delete
+                                    content that has the "
+                                    {form.watch('removedTagPrefix') ||
+                                      'pulsarr-removed'}
+                                    " tag.
+                                  </li>
+                                </ul>
+                                <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                  <strong>Note:</strong> Tag-based deletion
+                                  requires "Tag Behavior on Removal" to be set
+                                  to <strong>"Special Tag"</strong> in the User
+                                  Tags section. This ensures content is properly
+                                  tagged when removed from watchlists for later
+                                  deletion.
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <FormControl>
                           <div className="flex flex-col space-y-1.5">
@@ -410,28 +405,26 @@ export default function DeleteSyncPage() {
                       <FormLabel className="text-foreground m-0">
                         Removal Tag Name
                       </FormLabel>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="max-w-xs space-y-2">
-                              <p>
-                                This tag is used to mark content for deletion in
-                                tag-based deletion mode. Any content with this
-                                exact tag will be deleted during the sync job.
-                              </p>
-                              <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
-                                <strong>Note:</strong> This value is configured
-                                in the User Tags section with the{' '}
-                                <strong>"Removed Tag Label"</strong> field when
-                                using <strong>"Special Tag"</strong> mode.
-                              </p>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="max-w-xs space-y-2">
+                            <p>
+                              This tag is used to mark content for deletion in
+                              tag-based deletion mode. Any content with this
+                              exact tag will be deleted during the sync job.
+                            </p>
+                            <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                              <strong>Note:</strong> This value is configured in
+                              the User Tags section with the{' '}
+                              <strong>"Removed Tag Label"</strong> field when
+                              using <strong>"Special Tag"</strong> mode.
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
 
                     <div className="flex items-center p-2 bg-slate-700 dark:bg-slate-700 rounded-md border border-slate-700 dark:border-slate-700">
@@ -452,31 +445,29 @@ export default function DeleteSyncPage() {
                                 <FormLabel className="text-foreground m-0">
                                   Additional Tag Regex Filter (Optional)
                                 </FormLabel>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <div className="max-w-xs space-y-2">
-                                        <p>
-                                          If specified, content must have BOTH
-                                          the removal tag AND a tag matching
-                                          this regex pattern to be deleted.
-                                        </p>
-                                        <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
-                                          <strong>Example use case:</strong> For
-                                          multi-instance coordination, match the
-                                          OTHER instance's removal tag (e.g.,{' '}
-                                          <code>pulsarr2-removed</code> on
-                                          instance 1) to ensure content is only
-                                          deleted when BOTH instances have
-                                          marked it for removal.
-                                        </p>
-                                      </div>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="max-w-xs space-y-2">
+                                      <p>
+                                        If specified, content must have BOTH the
+                                        removal tag AND a tag matching this
+                                        regex pattern to be deleted.
+                                      </p>
+                                      <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                        <strong>Example use case:</strong> For
+                                        multi-instance coordination, match the
+                                        OTHER instance's removal tag (e.g.,{' '}
+                                        <code>pulsarr2-removed</code> on
+                                        instance 1) to ensure content is only
+                                        deleted when BOTH instances have marked
+                                        it for removal.
+                                      </p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
                               </div>
                               <FormControl>
                                 <Input
@@ -524,19 +515,17 @@ export default function DeleteSyncPage() {
                           <FormLabel className="text-foreground m-0">
                             Delete Movies
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Remove movies from Radarr when no longer on
-                                  any watchlist.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Remove movies from Radarr when no longer on any
+                                watchlist.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -557,19 +546,17 @@ export default function DeleteSyncPage() {
                           <FormLabel className="text-foreground m-0">
                             Delete Ended Shows
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Remove TV shows with status "Ended" when no
-                                  longer on any watchlist.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Remove TV shows with status "Ended" when no
+                                longer on any watchlist.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -590,19 +577,17 @@ export default function DeleteSyncPage() {
                           <FormLabel className="text-foreground m-0">
                             Delete Continuing Shows
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Remove TV shows with status "Continuing" when
-                                  no longer on any watchlist.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Remove TV shows with status "Continuing" when no
+                                longer on any watchlist.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -623,19 +608,17 @@ export default function DeleteSyncPage() {
                           <FormLabel className="text-foreground m-0">
                             Delete Files
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Delete the actual media files when removing
-                                  content, not just the tracking entry.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Delete the actual media files when removing
+                                content, not just the tracking entry.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -656,21 +639,19 @@ export default function DeleteSyncPage() {
                           <FormLabel className="text-foreground m-0">
                             Clean Up Approval Records
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Automatically remove approval request records
-                                  when content is deleted. This helps keep the
-                                  approval history clean and prevents old
-                                  records from accumulating.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Automatically remove approval request records
+                                when content is deleted. This helps keep the
+                                approval history clean and prevents old records
+                                from accumulating.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -698,19 +679,17 @@ export default function DeleteSyncPage() {
                           <FormLabel className="text-foreground m-0">
                             Respect User Sync Settings
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Only delete content for users who have syncing
-                                  enabled in their profile settings.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Only delete content for users who have syncing
+                                enabled in their profile settings.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -731,21 +710,19 @@ export default function DeleteSyncPage() {
                           <FormLabel className="text-foreground m-0">
                             Enable Plex Playlist Protection
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Prevent deletion of any content found in a
-                                  designated Plex playlist. When enabled,
-                                  running a dry run will create these playlists
-                                  for all Plex users in the server.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Prevent deletion of any content found in a
+                                designated Plex playlist. When enabled, running
+                                a dry run will create these playlists for all
+                                Plex users in the server.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -761,19 +738,17 @@ export default function DeleteSyncPage() {
                             <FormLabel className="text-foreground m-0">
                               Protection Playlist Name
                             </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Name of the Plex playlist containing content
-                                    that should never be deleted.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Name of the Plex playlist containing content
+                                  that should never be deleted.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                           <FormControl>
                             <Input
@@ -808,41 +783,39 @@ export default function DeleteSyncPage() {
                             <FormLabel className="text-foreground m-0">
                               Notifications
                             </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <div className="max-w-xs">
-                                    <p>
-                                      Controls how deletion notifications are
-                                      sent:
-                                    </p>
-                                    <ul className="list-disc pl-4 text-sm mt-1">
-                                      <li>
-                                        All Channels: Send to all notification
-                                        methods
-                                      </li>
-                                      <li>Apprise Only: Only use Apprise</li>
-                                      <li>
-                                        Discord (Webhook + DM): Send to both
-                                        Discord webhook and DMs
-                                      </li>
-                                      <li>
-                                        Discord (DM Only): Send only to Discord
-                                        DMs
-                                      </li>
-                                      <li>
-                                        Discord (Webhook Only): Send only to
-                                        Discord webhook
-                                      </li>
-                                      <li>None: No notifications</li>
-                                    </ul>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs">
+                                  <p>
+                                    Controls how deletion notifications are
+                                    sent:
+                                  </p>
+                                  <ul className="list-disc pl-4 text-sm mt-1">
+                                    <li>
+                                      All Channels: Send to all notification
+                                      methods
+                                    </li>
+                                    <li>Apprise Only: Only use Apprise</li>
+                                    <li>
+                                      Discord (Webhook + DM): Send to both
+                                      Discord webhook and DMs
+                                    </li>
+                                    <li>
+                                      Discord (DM Only): Send only to Discord
+                                      DMs
+                                    </li>
+                                    <li>
+                                      Discord (Webhook Only): Send only to
+                                      Discord webhook
+                                    </li>
+                                    <li>None: No notifications</li>
+                                  </ul>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                           <Select
                             onValueChange={field.onChange}
@@ -900,21 +873,18 @@ export default function DeleteSyncPage() {
                           <FormLabel className="text-foreground m-0">
                             Only Notify When Items Deleted
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  When enabled, notifications will only be sent
-                                  when items are actually deleted. No
-                                  notification will be sent for "0 items
-                                  deleted" scenarios.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                When enabled, notifications will only be sent
+                                when items are actually deleted. No notification
+                                will be sent for "0 items deleted" scenarios.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}
@@ -930,20 +900,18 @@ export default function DeleteSyncPage() {
                             <FormLabel className="text-foreground m-0">
                               Max Deletion Prevention (%)
                             </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Safety threshold (%) to prevent mass
-                                    deletions. Operation will abort if
-                                    percentage exceeds this value.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Safety threshold (%) to prevent mass
+                                  deletions. Operation will abort if percentage
+                                  exceeds this value.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                           <FormControl>
                             <Input
@@ -989,21 +957,19 @@ export default function DeleteSyncPage() {
                           <FormLabel className="text-foreground m-0">
                             Delete Tracked Content Only
                           </FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Only delete content that was added through the
-                                  approval system. Content added manually or
-                                  outside of Pulsarr will be protected from
-                                  deletion.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Only delete content that was added through the
+                                approval system. Content added manually or
+                                outside of Pulsarr will be protected from
+                                deletion.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormItem>
                     )}

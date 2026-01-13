@@ -27,7 +27,6 @@ import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { EVENT_TYPE_OPTIONS } from '@/features/notifications/constants/webhook-events'
@@ -127,45 +126,39 @@ export function WebhookEndpointModal({
                             disabled={saveStatus !== 'idle' || isTesting}
                             {...field}
                           />
-                          <TooltipProvider>
-                            <Tooltip {...(needsTest ? { open: true } : {})}>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  onClick={() => {
-                                    void onTest()
-                                  }}
-                                  disabled={
-                                    isTesting ||
-                                    !hasUrl ||
-                                    saveStatus !== 'idle'
-                                  }
-                                  size="icon"
-                                  variant="noShadow"
-                                  className="shrink-0"
-                                >
-                                  {isTesting ? (
-                                    <Loader2 className="animate-spin" />
-                                  ) : connectionTested ? (
-                                    <Check className="text-black" />
-                                  ) : (
-                                    <Check />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent
-                                className={
-                                  needsTest ? 'bg-error text-black' : ''
+                          <Tooltip {...(needsTest ? { open: true } : {})}>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                onClick={() => {
+                                  void onTest()
+                                }}
+                                disabled={
+                                  isTesting || !hasUrl || saveStatus !== 'idle'
                                 }
+                                size="icon"
+                                variant="noShadow"
+                                className="shrink-0"
                               >
-                                <p>
-                                  {needsTest
-                                    ? 'Test connection required'
-                                    : 'Test connection'}
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                                {isTesting ? (
+                                  <Loader2 className="animate-spin" />
+                                ) : connectionTested ? (
+                                  <Check className="text-black" />
+                                ) : (
+                                  <Check />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              className={needsTest ? 'bg-error text-black' : ''}
+                            >
+                              <p>
+                                {needsTest
+                                  ? 'Test connection required'
+                                  : 'Test connection'}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </FormControl>
                       <FormMessage />

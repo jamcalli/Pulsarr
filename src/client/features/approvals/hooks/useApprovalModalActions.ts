@@ -156,27 +156,31 @@ export function useApprovalModalActions({
       },
     }
 
-    // Update only the routing without changing status
-    await updateApproval.mutateAsync({
-      id: request.id,
-      updates: {
-        proposedRouterDecision: {
-          ...updatedRequest.proposedRouterDecision,
-          approval: {
-            ...updatedRequest.proposedRouterDecision.approval,
-            data: updatedRequest.proposedRouterDecision.approval?.data || {},
-            reason:
-              updatedRequest.proposedRouterDecision.approval?.reason || '',
-            triggeredBy:
-              updatedRequest.proposedRouterDecision.approval?.triggeredBy ||
-              request.triggeredBy,
+    try {
+      // Update only the routing without changing status
+      await updateApproval.mutateAsync({
+        id: request.id,
+        updates: {
+          proposedRouterDecision: {
+            ...updatedRequest.proposedRouterDecision,
+            approval: {
+              ...updatedRequest.proposedRouterDecision.approval,
+              data: updatedRequest.proposedRouterDecision.approval?.data || {},
+              reason:
+                updatedRequest.proposedRouterDecision.approval?.reason || '',
+              triggeredBy:
+                updatedRequest.proposedRouterDecision.approval?.triggeredBy ||
+                request.triggeredBy,
+            },
           },
         },
-      },
-    })
+      })
 
-    // Don't exit edit mode here - let the routing card handle the timing
-    // The routing card will call onCancel after its success state completes
+      // Don't exit edit mode here - let the routing card handle the timing
+      // The routing card will call onCancel after its success state completes
+    } catch (_error) {
+      toast.error('Failed to update routing')
+    }
   }
 
   const handleActionSelection = (

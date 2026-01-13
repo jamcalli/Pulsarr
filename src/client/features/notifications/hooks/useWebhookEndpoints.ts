@@ -8,7 +8,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { useWebhookEndpointsStore } from '@/features/notifications/stores/webhookEndpointsStore'
+import {
+  useCreateWebhookEndpoint,
+  useDeleteWebhookEndpoint,
+  useTestExistingWebhookEndpoint,
+  useTestWebhookEndpoint,
+  useUpdateWebhookEndpoint,
+} from './useWebhookEndpointMutations'
+import { useWebhookEndpointsQuery } from './useWebhookEndpointsQuery'
 
 // Form schema with connection test validation (follows Tautulli pattern)
 const WebhookEndpointFormSchema = CreateWebhookEndpointSchema.extend({
@@ -57,7 +64,20 @@ export interface WebhookEndpointFormValues {
 }
 
 export function useWebhookEndpoints() {
-  const store = useWebhookEndpointsStore()
+  // React Query hooks
+  const {
+    data: endpoints = [],
+    isLoading: isFetchLoading,
+    error: fetchError,
+  } = useWebhookEndpointsQuery()
+
+  const createMutation = useCreateWebhookEndpoint()
+  const updateMutation = useUpdateWebhookEndpoint()
+  const deleteMutation = useDeleteWebhookEndpoint()
+  const testMutation = useTestWebhookEndpoint()
+  const testExistingMutation = useTestExistingWebhookEndpoint()
+
+  // UI state
   const [editingEndpoint, setEditingEndpoint] =
     useState<WebhookEndpoint | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -66,9 +86,6 @@ export function useWebhookEndpoints() {
     Record<number, boolean>
   >({})
   const [deleteEndpointId, setDeleteEndpointId] = useState<number | null>(null)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'success'>(
-    'idle',
-  )
 
   const form = useForm<WebhookEndpointFormValues>({
     resolver: zodResolver(WebhookEndpointFormSchema),
@@ -137,7 +154,11 @@ export function useWebhookEndpoints() {
     })
     setConnectionTested(false)
     setEditingEndpoint(null)
-  }, [form])
+    // Reset mutation states
+    testMutation.reset()
+    createMutation.reset()
+    updateMutation.reset()
+  }, [form, testMutation, createMutation, updateMutation])
 
   const openCreateModal = useCallback(() => {
     resetForm()
@@ -183,88 +204,78 @@ export function useWebhookEndpoints() {
       return null
     }
 
-    const result = await store.testEndpoint(
-      {
+    try {
+      const result = await testMutation.mutateAsync({
         url: values.url,
         authHeaderName: values.authHeaderName || undefined,
         authHeaderValue: values.authHeaderValue || undefined,
-      },
-      values.name || undefined,
-    )
+        name: values.name || undefined,
+      })
 
-    if (result.success) {
-      setConnectionTested(true)
-      form.setValue('_connectionTested', true, { shouldValidate: true })
-      form.clearErrors('url')
-      toast.success(`Connection successful (${result.responseTime}ms)`)
-    } else {
+      if (result.success) {
+        setConnectionTested(true)
+        form.setValue('_connectionTested', true, { shouldValidate: true })
+        form.clearErrors('url')
+        toast.success(`Connection successful (${result.responseTime}ms)`)
+      } else {
+        setConnectionTested(false)
+        form.setValue('_connectionTested', false, { shouldValidate: true })
+        toast.error(result.error || 'Connection test failed')
+      }
+
+      return result
+    } catch (error) {
       setConnectionTested(false)
       form.setValue('_connectionTested', false, { shouldValidate: true })
-      toast.error(result.error || 'Connection test failed')
+      console.error('Failed to test webhook endpoint:', error)
+      return null
     }
-
-    return result
-  }, [form, store])
+  }, [form, testMutation])
 
   const handleSubmit = useCallback(
     async (data: WebhookEndpointFormValues) => {
-      // Schema validation enforces connection test requirement
-      setSaveStatus('loading')
       try {
-        let success = false
         if (editingEndpoint) {
-          const updated = await store.updateEndpoint(editingEndpoint.id, {
-            name: data.name,
-            url: data.url,
-            authHeaderName: data.authHeaderName || null,
-            authHeaderValue: data.authHeaderValue || null,
-            eventTypes: data.eventTypes,
-            enabled: data.enabled,
+          await updateMutation.mutateAsync({
+            id: editingEndpoint.id,
+            data: {
+              name: data.name,
+              url: data.url,
+              authHeaderName: data.authHeaderName || null,
+              authHeaderValue: data.authHeaderValue || null,
+              eventTypes: data.eventTypes,
+              enabled: data.enabled,
+            },
           })
-          if (updated) {
-            success = true
-            toast.success('Webhook endpoint updated')
-          }
+          toast.success('Webhook endpoint updated')
         } else {
-          const created = await store.createEndpoint(data)
-          if (created) {
-            success = true
-            toast.success('Webhook endpoint created')
-          }
+          await createMutation.mutateAsync(data)
+          toast.success('Webhook endpoint created')
         }
 
-        if (success) {
-          setSaveStatus('success')
-          // Show success state briefly, then close
-          setTimeout(() => {
-            setSaveStatus('idle')
-            closeModal()
-          }, 1000)
-        } else {
-          setSaveStatus('idle')
-        }
+        // Close modal after success
+        setTimeout(() => {
+          closeModal()
+        }, 1000)
       } catch (error) {
-        // Error is already handled by store and shown in toast
+        // Error is already handled by apiClient and React Query
         console.error('Failed to save webhook endpoint:', error)
-        setSaveStatus('idle')
       }
     },
-    [editingEndpoint, store, closeModal],
+    [editingEndpoint, updateMutation, createMutation, closeModal],
   )
 
   const handleDelete = useCallback(
     async (id: number) => {
       try {
-        const success = await store.deleteEndpoint(id)
-        if (success) {
-          toast.success('Webhook endpoint deleted')
-          setDeleteEndpointId(null)
-        }
+        await deleteMutation.mutateAsync(id)
+        toast.success('Webhook endpoint deleted')
+        setDeleteEndpointId(null)
       } catch (error) {
         console.error('Failed to delete webhook endpoint:', error)
       }
     },
-    [store],
+    [deleteMutation],
   )
 
   const openDeleteModal = useCallback((id: number) => {
@@ -277,39 +288,46 @@ export function useWebhookEndpoints() {
 
   const handleTestExisting = useCallback(
     async (id: number) => {
-      const result = await store.testExistingEndpoint(id)
+      try {
+        const result = await testExistingMutation.mutateAsync(id)
 
-      if (result.success) {
-        toast.success(`Connection successful (${result.responseTime}ms)`)
-        setTestedEndpoints((prev) => ({ ...prev, [id]: true }))
-        // Reset after 3 seconds
-        setTimeout(() => {
-          setTestedEndpoints((prev) => ({ ...prev, [id]: false }))
-        }, 3000)
-      } else {
-        toast.error(result.error || 'Connection test failed')
+        if (result.success) {
+          toast.success(`Connection successful (${result.responseTime}ms)`)
+          setTestedEndpoints((prev) => ({ ...prev, [id]: true }))
+          // Reset after 3 seconds
+          setTimeout(() => {
+            setTestedEndpoints((prev) => ({ ...prev, [id]: false }))
+          }, 3000)
+        } else {
+          toast.error(result.error || 'Connection test failed')
+        }
+
+        return result
+      } catch (error) {
+        console.error('Failed to test webhook endpoint:', error)
+        return null
       }
-
-      return result
     },
-    [store],
+    [testExistingMutation],
   )
 
   return {
-    // Store state
-    endpoints: store.endpoints,
-    hasLoaded: store.hasLoaded,
-    loading: store.loading,
-    error: store.error,
+    // Data state (React Query)
+    endpoints,
+    isLoading: isFetchLoading,
+    error: fetchError,
 
-    // Store actions
-    fetchEndpoints: store.fetchEndpoints,
+    // Mutations (React Query)
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    testMutation,
+    testExistingMutation,
 
     // Form
     form,
     connectionTested,
     testedEndpoints,
-    saveStatus,
 
     // Modal state
     editingEndpoint,
