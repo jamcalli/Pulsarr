@@ -1,12 +1,14 @@
-import type { User } from '@root/types/config.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { BatchCopyItem } from './watchlist-status/instance-sync/index.js'
-import { processBatchCopy } from './watchlist-status/instance-sync/index.js'
+import {
+  createRadarrSyncConfig,
+  createSonarrSyncConfig,
+  syncInstance,
+} from './watchlist-status/instance-sync/index.js'
 import {
   createRadarrJunctionConfig,
   createSonarrJunctionConfig,
@@ -396,536 +398,43 @@ export class StatusService {
   }
 
   async syncRadarrInstance(instanceId: number): Promise<number> {
-    try {
-      const operationId = `radarr-instance-sync-${instanceId}-${Date.now()}`
-      const emitProgress = this.hasActiveProgressConnections()
+    const emitProgress = this.hasActiveProgressConnections()
+    const config = createRadarrSyncConfig(
+      this.dbService,
+      this.radarrManager,
+      (items, guids) => this.findMatch(items, guids ?? undefined) ?? null,
+    )
 
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'sync' as const,
-          phase: 'start',
-          progress: 0,
-          message: `Initializing Radarr sync for instance ${instanceId}...`,
-        })
-      }
-
-      this.log.info(`Starting sync for Radarr instance ${instanceId}`)
-      const instance = await this.dbService.getRadarrInstance(instanceId)
-      if (!instance) {
-        throw new Error(`Radarr instance ${instanceId} not found`)
-      }
-
-      const defaultInstance = await this.dbService.getDefaultRadarrInstance()
-
-      // Determine if this instance should receive content from the default instance
-      const shouldSyncFromDefault =
-        defaultInstance &&
-        defaultInstance.id !== instanceId &&
-        Array.isArray(defaultInstance.syncedInstances) &&
-        defaultInstance.syncedInstances.includes(instanceId)
-
-      this.log.debug(
-        `Should sync from default to this instance: ${shouldSyncFromDefault}`,
-      )
-
-      // Get all watchlist items
-      const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
-
-      // Deduplicate by GUID to get unique media items
-      const uniqueByGuid = new Map<string, (typeof watchlistItems)[0]>()
-      for (const item of watchlistItems) {
-        // Use parseGuids utility function
-        const guids = parseGuids(item.guids)
-        if (guids.length > 0 && !uniqueByGuid.has(guids[0])) {
-          uniqueByGuid.set(guids[0], item)
-        }
-      }
-      const uniqueWatchlistItems = Array.from(uniqueByGuid.values())
-      this.log.info(
-        `Deduplicated watchlist items from ${watchlistItems.length} to ${uniqueWatchlistItems.length} unique media items`,
-      )
-
-      // Get all existing movies across all instances to check for duplicates
-      const allExistingMovies = await this.radarrManager.fetchAllMovies()
-
-      // Get movies already in the target instance
-      const existingMoviesInInstance = allExistingMovies.filter(
-        (movie) => movie.radarr_instance_id === instanceId,
-      )
-
-      // Create a map of GUIDs for quick lookup
-      const existingGuidMap = new Map<string, boolean>()
-      for (const movie of existingMoviesInInstance) {
-        // Use parseGuids utility function
-        const guids = parseGuids(movie.guids)
-        for (const guid of guids) {
-          existingGuidMap.set(guid, true)
-        }
-      }
-
-      // Now that we have the content router, items should be routed based on
-      // router rules rather than explicit genre matching
-      const itemsToCopy: Array<{
-        item: (typeof watchlistItems)[0]
-        matchingMovie: RadarrItem
-      }> = []
-
-      for (const item of uniqueWatchlistItems) {
-        try {
-          if (item.id === undefined) continue
-
-          const numericId =
-            typeof item.id === 'string' ? Number(item.id) : item.id
-
-          // Check if this item is already in the target instance
-          const currentInstanceIds =
-            await this.dbService.getWatchlistRadarrInstanceIds(numericId)
-          if (currentInstanceIds.includes(instanceId)) continue
-
-          // Items should be copied if they're in the default instance and this instance is synced
-          let shouldBeInInstance = false
-
-          if (shouldSyncFromDefault) {
-            if (
-              defaultInstance &&
-              currentInstanceIds.includes(defaultInstance.id)
-            ) {
-              shouldBeInInstance = true
-              this.log.debug(
-                `Movie ${item.title} should be synced from default instance ${defaultInstance.id}`,
-              )
-            }
-          }
-
-          // Also check if this item is in any instance that syncs to this one
-          if (!shouldBeInInstance) {
-            const syncedInstances = Array.isArray(instance.syncedInstances)
-              ? instance.syncedInstances
-              : typeof instance.syncedInstances === 'string'
-                ? (() => {
-                    try {
-                      return JSON.parse(instance.syncedInstances || '[]')
-                    } catch {
-                      return []
-                    }
-                  })()
-                : []
-
-            for (const syncedId of syncedInstances) {
-              const isInSyncedInstance = currentInstanceIds.includes(syncedId)
-              if (isInSyncedInstance) {
-                shouldBeInInstance = true
-                this.log.debug(
-                  `Movie ${item.title} should be synced from instance ${syncedId}`,
-                )
-                break
-              }
-            }
-          }
-
-          if (shouldBeInInstance) {
-            // Check if the item actually exists in the target instance but isn't in the junction table
-            // Use parseGuids utility function
-            const itemGuids = parseGuids(item.guids)
-
-            const alreadyExists = itemGuids.some((guid: string) =>
-              existingGuidMap.has(guid),
-            )
-
-            if (alreadyExists) {
-              this.log.debug(
-                `Movie ${item.title} exists in Radarr instance ${instanceId} but not in junction table, updating database`,
-              )
-              await this.dbService.addWatchlistToRadarrInstance(
-                numericId,
-                instanceId,
-                'pending',
-                currentInstanceIds.length === 0,
-              )
-              continue
-            }
-
-            // Find a matching movie in other instances that we can copy
-            const matchingMovie = this.findMatch(allExistingMovies, item.guids)
-            if (matchingMovie) {
-              itemsToCopy.push({
-                item,
-                matchingMovie,
-              })
-            } else {
-              this.log.debug(
-                `No matching movie found for ${item.title} to copy to instance ${instanceId}`,
-              )
-            }
-          }
-        } catch (itemError) {
-          this.log.error(
-            {
-              error:
-                itemError instanceof Error
-                  ? itemError
-                  : new Error(String(itemError)),
-              title: item.title,
-            },
-            'Error processing movie during analysis',
-          )
-        }
-      }
-
-      let itemsCopied = 0
-
-      if (itemsToCopy.length > 0) {
-        if (emitProgress) {
-          this.emitProgress({
-            operationId,
-            type: 'sync' as const,
-            phase: 'copying',
-            progress: 5,
-            message: `Starting to process ${itemsToCopy.length} movies for Radarr instance ${instanceId}`,
-          })
-        }
-
-        // Pre-fetch users to avoid N+1 queries
-        const userIds = new Set(itemsToCopy.map(({ item }) => item.user_id))
-        const allUsers = await this.dbService.getAllUsers()
-        const userMap = new Map<number, User>(
-          allUsers.filter((u) => userIds.has(u.id)).map((u) => [u.id, u]),
-        )
-
-        // Build batch items with proper types
-        const batchItems: BatchCopyItem[] = itemsToCopy.map(
-          ({ item, matchingMovie }) => ({
-            item: {
-              ...item,
-              id:
-                typeof item.id === 'string'
-                  ? Number.parseInt(item.id, 10)
-                  : (item.id as number),
-            },
-            matchingContent: matchingMovie,
-          }),
-        )
-
-        // Use p-limit batch processor instead of setTimeout polling
-        itemsCopied = await processBatchCopy(
-          { contentRouter: this.fastify.contentRouter, logger: this.log },
-          batchItems,
-          instanceId,
-          'movie',
-          userMap,
-          emitProgress
-            ? (completed, total) => {
-                const progress = Math.min(
-                  5 + Math.floor((completed / total) * 90),
-                  95,
-                )
-                this.emitProgress({
-                  operationId,
-                  type: 'sync' as const,
-                  phase: 'copying',
-                  progress,
-                  message: `Copied ${completed} of ${total} movies to Radarr instance ${instanceId}`,
-                })
-              }
-            : undefined,
-        )
-
-        if (emitProgress) {
-          this.emitProgress({
-            operationId,
-            type: 'sync' as const,
-            phase: 'complete',
-            progress: 100,
-            message: `Completed sync for Radarr instance ${instanceId}, copied ${itemsCopied} items`,
-          })
-        }
-      } else {
-        if (emitProgress) {
-          this.emitProgress({
-            operationId,
-            type: 'sync' as const,
-            phase: 'complete',
-            progress: 100,
-            message: `No items needed to be copied to Radarr instance ${instanceId}`,
-          })
-        }
-      }
-
-      this.log.info(
-        `Completed sync for Radarr instance ${instanceId}, copied ${itemsCopied} items`,
-      )
-      return itemsCopied
-    } catch (error) {
-      this.log.error({ error, instanceId }, 'Error syncing Radarr instance')
-      throw error
-    }
+    return syncInstance(
+      {
+        db: this.dbService,
+        contentRouter: this.fastify.contentRouter,
+        logger: this.log,
+      },
+      config,
+      instanceId,
+      emitProgress ? (event) => this.emitProgress(event) : undefined,
+    )
   }
 
   async syncSonarrInstance(instanceId: number): Promise<number> {
-    try {
-      const operationId = `sonarr-instance-sync-${instanceId}-${Date.now()}`
-      const emitProgress = this.hasActiveProgressConnections()
+    const emitProgress = this.hasActiveProgressConnections()
+    const config = createSonarrSyncConfig(
+      this.dbService,
+      this.sonarrManager,
+      (items, guids) => this.findMatch(items, guids ?? undefined) ?? null,
+    )
 
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'sync' as const,
-          phase: 'start',
-          progress: 0,
-          message: `Initializing Sonarr sync for instance ${instanceId}...`,
-        })
-      }
-
-      this.log.info(`Starting sync for Sonarr instance ${instanceId}`)
-      const instance = await this.dbService.getSonarrInstance(instanceId)
-      if (!instance) {
-        throw new Error(`Sonarr instance ${instanceId} not found`)
-      }
-
-      const defaultInstance = await this.dbService.getDefaultSonarrInstance()
-
-      // Determine if this instance should receive content from the default instance
-      const shouldSyncFromDefault =
-        defaultInstance &&
-        defaultInstance.id !== instanceId &&
-        Array.isArray(defaultInstance.syncedInstances) &&
-        defaultInstance.syncedInstances.includes(instanceId)
-
-      this.log.debug(
-        `Should sync from default to this instance: ${shouldSyncFromDefault}`,
-      )
-
-      // Get all watchlist items
-      const watchlistItems = await this.dbService.getAllShowWatchlistItems()
-
-      // Deduplicate by GUID to get unique media items
-      const uniqueByGuid = new Map<string, (typeof watchlistItems)[0]>()
-      for (const item of watchlistItems) {
-        // Use GuidHandler to parse GUIDs
-        const guids = parseGuids(item.guids)
-        if (guids.length > 0 && !uniqueByGuid.has(guids[0])) {
-          uniqueByGuid.set(guids[0], item)
-        }
-      }
-      const uniqueWatchlistItems = Array.from(uniqueByGuid.values())
-      this.log.info(
-        `Deduplicated watchlist items from ${watchlistItems.length} to ${uniqueWatchlistItems.length} unique media items`,
-      )
-
-      // Get all existing series across all instances to check for duplicates
-      const allExistingSeries = await this.sonarrManager.fetchAllSeries()
-
-      // Get series already in the target instance
-      const existingSeriesInInstance = allExistingSeries.filter(
-        (series) => series.sonarr_instance_id === instanceId,
-      )
-
-      // Create a map of GUIDs for quick lookup
-      const existingGuidMap = new Map<string, boolean>()
-      for (const series of existingSeriesInInstance) {
-        // Use parseGuids utility function
-        const guids = parseGuids(series.guids)
-        for (const guid of guids) {
-          existingGuidMap.set(guid, true)
-        }
-      }
-
-      // Items should be routed based on router rules rather than explicit genre matching
-      const itemsToCopy: Array<{
-        item: (typeof watchlistItems)[0]
-        matchingSeries: SonarrItem
-      }> = []
-
-      for (const item of uniqueWatchlistItems) {
-        try {
-          if (item.id === undefined) continue
-
-          const numericId =
-            typeof item.id === 'string' ? Number(item.id) : item.id
-
-          // Check if this item is already in the target instance
-          const currentInstanceIds =
-            await this.dbService.getWatchlistSonarrInstanceIds(numericId)
-          if (currentInstanceIds.includes(instanceId)) continue
-
-          // Items should be copied if they're in the default instance and this instance is synced
-          let shouldBeInInstance = false
-
-          if (shouldSyncFromDefault) {
-            if (
-              defaultInstance &&
-              currentInstanceIds.includes(defaultInstance.id)
-            ) {
-              shouldBeInInstance = true
-              this.log.debug(
-                `Show ${item.title} should be synced from default instance ${defaultInstance.id}`,
-              )
-            }
-          }
-
-          // Also check if this item is in any instance that syncs to this one
-          if (!shouldBeInInstance) {
-            const syncedInstances = Array.isArray(instance.syncedInstances)
-              ? instance.syncedInstances
-              : typeof instance.syncedInstances === 'string'
-                ? (() => {
-                    try {
-                      return JSON.parse(instance.syncedInstances || '[]')
-                    } catch {
-                      return []
-                    }
-                  })()
-                : []
-
-            for (const syncedId of syncedInstances) {
-              const isInSyncedInstance = currentInstanceIds.includes(syncedId)
-              if (isInSyncedInstance) {
-                shouldBeInInstance = true
-                this.log.debug(
-                  `Show ${item.title} should be synced from instance ${syncedId}`,
-                )
-                break
-              }
-            }
-          }
-
-          if (shouldBeInInstance) {
-            // Check if the item actually exists in the target instance but isn't in the junction table
-            // Use parseGuids utility function
-            const itemGuids = parseGuids(item.guids)
-
-            const alreadyExists = itemGuids.some((guid: string) =>
-              existingGuidMap.has(guid),
-            )
-
-            if (alreadyExists) {
-              this.log.debug(
-                `Show ${item.title} exists in Sonarr instance ${instanceId} but not in junction table, updating database`,
-              )
-              await this.dbService.addWatchlistToSonarrInstance(
-                numericId,
-                instanceId,
-                'pending',
-                currentInstanceIds.length === 0,
-              )
-              continue
-            }
-
-            // Find a matching series in other instances that we can copy
-            const matchingSeries = this.findMatch(allExistingSeries, item.guids)
-            if (matchingSeries) {
-              itemsToCopy.push({
-                item,
-                matchingSeries,
-              })
-            } else {
-              this.log.debug(
-                `No matching series found for ${item.title} to copy to instance ${instanceId}`,
-              )
-            }
-          }
-        } catch (itemError) {
-          this.log.error(
-            {
-              error:
-                itemError instanceof Error
-                  ? itemError
-                  : new Error(String(itemError)),
-              title: item.title,
-            },
-            'Error processing show during analysis',
-          )
-        }
-      }
-
-      let itemsCopied = 0
-
-      if (itemsToCopy.length > 0) {
-        if (emitProgress) {
-          this.emitProgress({
-            operationId,
-            type: 'sync' as const,
-            phase: 'copying',
-            progress: 5,
-            message: `Starting to process ${itemsToCopy.length} shows for Sonarr instance ${instanceId}`,
-          })
-        }
-
-        // Pre-fetch users to avoid N+1 queries
-        const userIds = new Set(itemsToCopy.map(({ item }) => item.user_id))
-        const allUsers = await this.dbService.getAllUsers()
-        const userMap = new Map<number, User>(
-          allUsers.filter((u) => userIds.has(u.id)).map((u) => [u.id, u]),
-        )
-
-        // Build batch items with proper types
-        const batchItems: BatchCopyItem[] = itemsToCopy.map(
-          ({ item, matchingSeries }) => ({
-            item: {
-              ...item,
-              id:
-                typeof item.id === 'string'
-                  ? Number.parseInt(item.id, 10)
-                  : (item.id as number),
-            },
-            matchingContent: matchingSeries,
-          }),
-        )
-
-        // Use p-limit batch processor instead of setTimeout polling
-        itemsCopied = await processBatchCopy(
-          { contentRouter: this.fastify.contentRouter, logger: this.log },
-          batchItems,
-          instanceId,
-          'show',
-          userMap,
-          emitProgress
-            ? (completed, total) => {
-                const progress = Math.min(
-                  5 + Math.floor((completed / total) * 90),
-                  95,
-                )
-                this.emitProgress({
-                  operationId,
-                  type: 'sync' as const,
-                  phase: 'copying',
-                  progress,
-                  message: `Copied ${completed} of ${total} shows to Sonarr instance ${instanceId}`,
-                })
-              }
-            : undefined,
-        )
-
-        if (emitProgress) {
-          this.emitProgress({
-            operationId,
-            type: 'sync' as const,
-            phase: 'complete',
-            progress: 100,
-            message: `Completed sync for Sonarr instance ${instanceId}, copied ${itemsCopied} items`,
-          })
-        }
-      } else {
-        if (emitProgress) {
-          this.emitProgress({
-            operationId,
-            type: 'sync' as const,
-            phase: 'complete',
-            progress: 100,
-            message: `No items needed to be copied to Sonarr instance ${instanceId}`,
-          })
-        }
-      }
-
-      this.log.info(
-        `Completed sync for Sonarr instance ${instanceId}, copied ${itemsCopied} items`,
-      )
-      return itemsCopied
-    } catch (error) {
-      this.log.error({ error, instanceId }, 'Error syncing Sonarr instance')
-      throw error
-    }
+    return syncInstance(
+      {
+        db: this.dbService,
+        contentRouter: this.fastify.contentRouter,
+        logger: this.log,
+      },
+      config,
+      instanceId,
+      emitProgress ? (event) => this.emitProgress(event) : undefined,
+    )
   }
 
   async syncAllConfiguredInstances(): Promise<{
