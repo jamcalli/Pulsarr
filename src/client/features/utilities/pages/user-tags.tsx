@@ -743,8 +743,7 @@ export function UserTagsPage() {
                                   final tag format will be:
                                 </p>
                                 <code className="bg-slate-700 text-white px-1 py-0.5 rounded-xs block text-center">
-                                  {form.watch('tagPrefix') || 'pulsarr-user'}
-                                  -username
+                                  {`${form.watch('tagPrefix') || 'pulsarr-user'}-username`}
                                 </code>
 
                                 <p className="text-xs">
@@ -790,8 +789,7 @@ export function UserTagsPage() {
                         <p className="text-xs text-gray-500 mt-1">
                           Final format:{' '}
                           <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
-                            {form.watch('tagPrefix') || 'pulsarr-user'}
-                            -username
+                            {`${form.watch('tagPrefix') || 'pulsarr-user'}-username`}
                           </code>
                         </p>
                         <FormMessage />
