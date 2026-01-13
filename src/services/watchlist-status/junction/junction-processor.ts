@@ -277,13 +277,11 @@ export async function processJunctionUpdates<
                 currentJunction.last_notified_at || undefined
               needsUpdate = true
             } else if (
-              (!currentJunction.status && matchingItem.status) ||
-              (currentJunction.status &&
-                currentJunction.status !== matchingItem.status &&
-                !(
-                  currentJunction.status === 'notified' &&
-                  matchingItem.status !== 'notified'
-                ))
+              currentJunction.status !== matchingItem.status &&
+              !(
+                currentJunction.status === 'notified' &&
+                matchingItem.status !== 'notified'
+              )
             ) {
               updates.status = validateStatus(matchingItem.status)
               if (currentJunction.status === 'notified') {
