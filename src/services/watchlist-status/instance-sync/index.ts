@@ -10,5 +10,15 @@ export type {
   ProgressCallback,
 } from './batch-processor.js'
 export { processBatchCopy } from './batch-processor.js'
+export type {
+  InstanceSyncConfig,
+  InstanceSyncerDeps,
+  ProgressEmitter,
+} from './instance-syncer.js'
+export {
+  createRadarrSyncConfig,
+  createSonarrSyncConfig,
+  syncInstance,
+} from './instance-syncer.js'
 export type { CopyItemContext, ItemCopierDeps } from './item-copier.js'
 export { copySingleItem } from './item-copier.js'
