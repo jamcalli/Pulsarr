@@ -4,7 +4,6 @@ import { SettingsButton } from '@/components/ui/settings-button'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { DOCUMENTATION_URL } from '@/lib/constants'
@@ -196,25 +195,23 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
         {/* Settings and docs column spans both rows */}
         <div className="row-span-2 h-full flex flex-col">
           {/* Documentation link - top half */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <a
-                  href={DOCUMENTATION_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-[50px] w-full items-center justify-center bg-main text-black cursor-pointer border-b-4 border-b-border dark:border-b-darkBorder rounded-tr-base"
-                  aria-label="Documentation"
-                >
-                  <FileText className="stroke-current h-6 w-6" />
-                  <span className="sr-only">Documentation</span>
-                </a>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                <p>Documentation</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href={DOCUMENTATION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-[50px] w-full items-center justify-center bg-main text-black cursor-pointer border-b-4 border-b-border dark:border-b-darkBorder rounded-tr-base"
+                aria-label="Documentation"
+              >
+                <FileText className="stroke-current h-6 w-6" />
+                <span className="sr-only">Documentation</span>
+              </a>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Documentation</p>
+            </TooltipContent>
+          </Tooltip>
           {/* Settings button - bottom half */}
           <div className="h-[50px] border-b-4 border-b-border dark:border-b-darkBorder">
             <SettingsButton />

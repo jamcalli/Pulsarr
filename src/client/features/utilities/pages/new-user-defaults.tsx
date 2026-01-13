@@ -26,7 +26,6 @@ import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
@@ -283,20 +282,18 @@ export default function NewUserDefaultsPage() {
                         <FormLabel className="text-foreground m-0">
                           Enable sync by default
                         </FormLabel>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                When enabled, newly discovered Plex users will
-                                automatically have their watchlists synced to
-                                Sonarr/Radarr
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">
+                              When enabled, newly discovered Plex users will
+                              automatically have their watchlists synced to
+                              Sonarr/Radarr
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </FormItem>
                   )}
@@ -327,20 +324,18 @@ export default function NewUserDefaultsPage() {
                         <FormLabel className="text-foreground m-0">
                           Require manual approval by default
                         </FormLabel>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                When enabled, new users will need manual
-                                approval for ALL content requests, regardless of
-                                quota settings
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">
+                              When enabled, new users will need manual approval
+                              for ALL content requests, regardless of quota
+                              settings
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </FormItem>
                   )}
@@ -371,19 +366,17 @@ export default function NewUserDefaultsPage() {
                         <FormLabel className="text-foreground m-0">
                           Enable movie quotas by default
                         </FormLabel>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                When enabled, new users will have movie quota
-                                limits applied
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">
+                              When enabled, new users will have movie quota
+                              limits applied
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </FormItem>
                   )}
@@ -467,20 +460,17 @@ export default function NewUserDefaultsPage() {
                               <FormLabel className="text-foreground m-0">
                                 Auto-approve when quota exceeded
                               </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      When enabled, movie requests that exceed
-                                      quota limits will be automatically
-                                      approved
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    When enabled, movie requests that exceed
+                                    quota limits will be automatically approved
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                           </div>
                           <div className="mb-2" />
@@ -515,19 +505,17 @@ export default function NewUserDefaultsPage() {
                         <FormLabel className="text-foreground m-0">
                           Enable show quotas by default
                         </FormLabel>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                When enabled, new users will have show quota
-                                limits applied
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">
+                              When enabled, new users will have show quota
+                              limits applied
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </FormItem>
                   )}
@@ -611,20 +599,17 @@ export default function NewUserDefaultsPage() {
                               <FormLabel className="text-foreground m-0">
                                 Auto-approve when quota exceeded
                               </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      When enabled, show requests that exceed
-                                      quota limits will be automatically
-                                      approved
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    When enabled, show requests that exceed
+                                    quota limits will be automatically approved
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                           </div>
                           <div className="mb-2" />

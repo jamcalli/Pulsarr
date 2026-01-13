@@ -57,7 +57,8 @@ async function serviceApp(
       root: resolve(import.meta.dirname, '../'),
       dev: process.argv.includes('--dev'),
       spa: true,
-      distDir: 'dist/client',
+      distDir: 'dist',
+      prefix: opts.prefix,
     })
 
     await fastify.vite.ready()

@@ -19,7 +19,6 @@ import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useConfigStore } from '@/stores/configStore'
@@ -183,17 +182,15 @@ export function GeneralSettingsForm({
                   <FormLabel className="text-foreground">
                     Queue Wait Time (minutes)
                   </FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        Time to wait before processing queued notifications.
-                        Groups multiple episodes together.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Time to wait before processing queued notifications.
+                      Groups multiple episodes together.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <FormControl>
                   <Input
@@ -230,17 +227,15 @@ export function GeneralSettingsForm({
                   <FormLabel className="text-foreground">
                     New Episode Threshold (hours)
                   </FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        Threshold for immediate notifications. Recent episodes
-                        get instant alerts, older ones are batched.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Threshold for immediate notifications. Recent episodes get
+                      instant alerts, older ones are batched.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <FormControl>
                   <Input
@@ -277,17 +272,15 @@ export function GeneralSettingsForm({
                   <FormLabel className="text-foreground">
                     Upgrade Buffer Time (seconds)
                   </FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        Buffer time between quality upgrades to prevent
-                        duplicate notifications.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Buffer time between quality upgrades to prevent duplicate
+                      notifications.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <FormControl>
                   <Input

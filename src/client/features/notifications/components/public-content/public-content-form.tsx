@@ -14,7 +14,6 @@ import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { PublicContentClearAlert } from '@/features/notifications/components/public-content/public-content-clear-alert'
@@ -94,16 +93,14 @@ function WebhookField({
         <FormItem className="space-y-1">
           <div className="flex items-center">
             <FormLabel className="text-foreground m-0">{label}</FormLabel>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <InfoIcon className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs">{tooltip}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <InfoIcon className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">{tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
           <FormControl>
             <div className="flex gap-2">
@@ -116,38 +113,36 @@ function WebhookField({
                 className="flex-1"
               />
               {isTestable && (
-                <TooltipProvider>
-                  <Tooltip open={showTestError || undefined}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        onClick={testHandler}
-                        disabled={
-                          disabled ||
-                          !(Array.isArray(field.value)
-                            ? field.value.length > 0
-                            : Boolean(field.value))
-                        }
-                        size="icon"
-                        variant="noShadow"
-                        className="shrink-0"
-                      >
-                        {isTestLoading ? (
-                          <Loader2 className="animate-spin" />
-                        ) : testResult ? (
-                          <Check className="text-black" />
-                        ) : (
-                          <Check />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      className={showTestError ? 'bg-error text-black' : ''}
+                <Tooltip open={showTestError || undefined}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      onClick={testHandler}
+                      disabled={
+                        disabled ||
+                        !(Array.isArray(field.value)
+                          ? field.value.length > 0
+                          : Boolean(field.value))
+                      }
+                      size="icon"
+                      variant="noShadow"
+                      className="shrink-0"
                     >
-                      <p>Test connection</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                      {isTestLoading ? (
+                        <Loader2 className="animate-spin" />
+                      ) : testResult ? (
+                        <Check className="text-black" />
+                      ) : (
+                        <Check />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    className={showTestError ? 'bg-error text-black' : ''}
+                  >
+                    <p>Test connection</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
               {(Array.isArray(value) ? value.length > 0 : Boolean(value)) && (
                 <Button

@@ -13,6 +13,7 @@ export default fp(
   async (fastify: FastifyInstance) => {
     let testKnex: Knex | undefined
     if (process.env.NODE_ENV === 'test') {
+      // Import test database helper - uses globalThis for connection sharing
       const dbModule = await import(
         new URL('../../../test/helpers/database.js', import.meta.url).href
       )

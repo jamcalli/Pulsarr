@@ -324,12 +324,12 @@ export class DatabaseService {
             max: 1,
             afterCreate: (
               conn: { exec: (sql: string) => void },
-              cb: () => void,
+              done: (err: Error | null, conn: unknown) => void,
             ) => {
               // SQLite-specific optimizations
               conn.exec('PRAGMA journal_mode = WAL;')
               conn.exec('PRAGMA foreign_keys = ON;')
-              cb()
+              done(null, conn)
             },
           },
       log: {

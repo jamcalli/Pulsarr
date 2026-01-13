@@ -8,8 +8,9 @@ import fp from 'fastify-plugin'
  */
 async function basePathInjection(fastify: FastifyInstance) {
   fastify.addHook('onSend', async (_request, reply, payload) => {
-    // Only modify HTML responses for the SPA
     const contentType = reply.getHeader('content-type')
+
+    // Only modify HTML responses for the SPA
     if (
       typeof contentType === 'string' &&
       contentType.includes('text/html') &&
@@ -18,24 +19,19 @@ async function basePathInjection(fastify: FastifyInstance) {
       // Get normalized base path from config
       const normalizedBasePath = normalizeBasePath(fastify.config.basePath)
 
-      // Inject base path and asset helper as inline script before any other scripts
-      const injectedScript = `<script>
-        window.__BASE_PATH__ = ${JSON.stringify(normalizedBasePath)};
-        window.__assetBase = function(filename) {
-          return window.__BASE_PATH__ === '/' ? '/' + filename : window.__BASE_PATH__ + '/' + filename;
-        };
-      </script>`
+      // Inject base path and asset helper for runtime URL resolution
+      const injectedScript = `<script>window.__BASE_PATH__ = ${JSON.stringify(normalizedBasePath)};window.__assetBase = function(f) { return ${JSON.stringify(normalizedBasePath === '/' ? '' : normalizedBasePath)} + '/' + f; };</script>`
       let modifiedPayload = payload.replace('<head>', `<head>${injectedScript}`)
 
       // Rewrite asset paths in HTML to include basePath for reverse proxy compatibility
       if (normalizedBasePath !== '/') {
         modifiedPayload = modifiedPayload.replace(
-          /src="\/app\/assets\//g,
-          `src="${normalizedBasePath}/app/assets/`,
+          /src="\/assets\//g,
+          `src="${normalizedBasePath}/assets/`,
         )
         modifiedPayload = modifiedPayload.replace(
-          /href="\/app\/assets\//g,
-          `href="${normalizedBasePath}/app/assets/`,
+          /href="\/assets\//g,
+          `href="${normalizedBasePath}/assets/`,
         )
         modifiedPayload = modifiedPayload.replace(
           /href="\/favicon\./g,

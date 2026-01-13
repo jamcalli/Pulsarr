@@ -19,7 +19,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { usePosterUrl } from '@/features/dashboard/hooks/usePosterUrl'
@@ -130,123 +129,121 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
 
   return (
     <>
-      <TooltipProvider>
-        <Card className={cn('shadow-none', className)}>
-          <CardContent className="p-2.5">
-            <div className="relative w-full overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800">
-              <AspectRatio ratio={2 / 3}>
-                {posterUrl ? (
-                  <img
-                    src={posterUrl}
-                    alt={item.title}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    {isPosterLoading ? (
-                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-                    ) : (
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {item.contentType === 'movie' ? 'Movie' : 'Show'}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </AspectRatio>
-
-              {/* Status badge with optional instance popover */}
-              {showInstancePopover ? (
-                <Popover>
-                  <PopoverTrigger asChild>{StatusBadgeContent}</PopoverTrigger>
-                  <PopoverContent
-                    side="bottom"
-                    align="end"
-                    className="w-auto min-w-40 p-2 bg-secondary-background"
-                  >
-                    <p className="text-xs font-medium mb-1">Status:</p>
-                    <ul className="text-xs space-y-0.5">
-                      {item.allInstances.map((instance) => {
-                        const statusConfig =
-                          INSTANCE_STATUS_CONFIG[instance.status]
-                        return (
-                          <li
-                            key={`${instance.instanceType}-${instance.id}`}
-                            className="flex items-center gap-1"
-                          >
-                            <span>{statusConfig.icon}</span>
-                            <span>
-                              {instance.name} ({statusConfig.label})
-                            </span>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </PopoverContent>
-                </Popover>
+      <Card className={cn('shadow-none', className)}>
+        <CardContent className="p-2.5">
+          <div className="relative w-full overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800">
+            <AspectRatio ratio={2 / 3}>
+              {posterUrl ? (
+                <img
+                  src={posterUrl}
+                  alt={item.title}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
               ) : (
-                StatusBadgeContent
+                <div className="flex h-full w-full items-center justify-center">
+                  {isPosterLoading ? (
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                  ) : (
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {item.contentType === 'movie' ? 'Movie' : 'Show'}
+                    </span>
+                  )}
+                </div>
               )}
+            </AspectRatio>
 
-              {/* Content type indicator */}
+            {/* Status badge with optional instance popover */}
+            {showInstancePopover ? (
+              <Popover>
+                <PopoverTrigger asChild>{StatusBadgeContent}</PopoverTrigger>
+                <PopoverContent
+                  side="bottom"
+                  align="end"
+                  className="w-auto min-w-40 p-2 bg-secondary-background"
+                >
+                  <p className="text-xs font-medium mb-1">Status:</p>
+                  <ul className="text-xs space-y-0.5">
+                    {item.allInstances.map((instance) => {
+                      const statusConfig =
+                        INSTANCE_STATUS_CONFIG[instance.status]
+                      return (
+                        <li
+                          key={`${instance.instanceType}-${instance.id}`}
+                          className="flex items-center gap-1"
+                        >
+                          <span>{statusConfig.icon}</span>
+                          <span>
+                            {instance.name} ({statusConfig.label})
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              StatusBadgeContent
+            )}
+
+            {/* Content type indicator */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="neutralnoShadow"
+                  size="sm"
+                  className="absolute top-0 left-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none"
+                  aria-label={
+                    item.contentType === 'movie' ? 'Movie' : 'TV Show'
+                  }
+                >
+                  {item.contentType === 'movie' ? (
+                    <Monitor className="h-3 w-3" />
+                  ) : (
+                    <Tv className="h-3 w-3" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {item.contentType === 'movie' ? 'Movie' : 'TV Show'}
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Eye button for detail modal */}
+            {hasGuids && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="neutralnoShadow"
                     size="sm"
-                    className="absolute top-0 left-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none"
-                    aria-label={
-                      item.contentType === 'movie' ? 'Movie' : 'TV Show'
-                    }
+                    className="absolute bottom-0 right-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none cursor-pointer"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setModalOpen(true)
+                    }}
+                    aria-label="View detailed information"
                   >
-                    {item.contentType === 'movie' ? (
-                      <Monitor className="h-3 w-3" />
-                    ) : (
-                      <Tv className="h-3 w-3" />
-                    )}
+                    <Eye className="h-3 w-3" />
+                    <span className="sr-only">View detailed information</span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  {item.contentType === 'movie' ? 'Movie' : 'TV Show'}
-                </TooltipContent>
+                <TooltipContent>View details</TooltipContent>
               </Tooltip>
+            )}
+          </div>
 
-              {/* Eye button for detail modal */}
-              {hasGuids && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="neutralnoShadow"
-                      size="sm"
-                      className="absolute bottom-0 right-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none cursor-pointer"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        setModalOpen(true)
-                      }}
-                      aria-label="View detailed information"
-                    >
-                      <Eye className="h-3 w-3" />
-                      <span className="sr-only">View detailed information</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>View details</TooltipContent>
-                </Tooltip>
-              )}
-            </div>
+          {/* Title */}
+          <h3 className="mt-2 line-clamp-1 text-sm font-medium leading-tight">
+            {item.title}
+          </h3>
 
-            {/* Title */}
-            <h3 className="mt-2 line-clamp-1 text-sm font-medium leading-tight">
-              {item.title}
-            </h3>
-
-            {/* User and time */}
-            <p className="text-xs text-muted-foreground truncate">
-              @{item.userName} · {formatTimeAgo(item.createdAt)}
-            </p>
-          </CardContent>
-        </Card>
-      </TooltipProvider>
+          {/* User and time */}
+          <p className="text-xs text-muted-foreground truncate">
+            @{item.userName} · {formatTimeAgo(item.createdAt)}
+          </p>
+        </CardContent>
+      </Card>
 
       {hasGuids && (
         <ContentDetailModal
