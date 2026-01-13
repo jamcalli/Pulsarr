@@ -204,25 +204,32 @@ export function useWebhookEndpoints() {
       return null
     }
 
-    const result = await testMutation.mutateAsync({
-      url: values.url,
-      authHeaderName: values.authHeaderName || undefined,
-      authHeaderValue: values.authHeaderValue || undefined,
-      name: values.name || undefined,
-    })
+    try {
+      const result = await testMutation.mutateAsync({
+        url: values.url,
+        authHeaderName: values.authHeaderName || undefined,
+        authHeaderValue: values.authHeaderValue || undefined,
+        name: values.name || undefined,
+      })
 
-    if (result.success) {
-      setConnectionTested(true)
-      form.setValue('_connectionTested', true, { shouldValidate: true })
-      form.clearErrors('url')
-      toast.success(`Connection successful (${result.responseTime}ms)`)
-    } else {
+      if (result.success) {
+        setConnectionTested(true)
+        form.setValue('_connectionTested', true, { shouldValidate: true })
+        form.clearErrors('url')
+        toast.success(`Connection successful (${result.responseTime}ms)`)
+      } else {
+        setConnectionTested(false)
+        form.setValue('_connectionTested', false, { shouldValidate: true })
+        toast.error(result.error || 'Connection test failed')
+      }
+
+      return result
+    } catch (error) {
       setConnectionTested(false)
       form.setValue('_connectionTested', false, { shouldValidate: true })
-      toast.error(result.error || 'Connection test failed')
+      console.error('Failed to test webhook endpoint:', error)
+      return null
     }
-
-    return result
   }, [form, testMutation])
 
   const handleSubmit = useCallback(
@@ -281,20 +288,25 @@ export function useWebhookEndpoints() {
 
   const handleTestExisting = useCallback(
     async (id: number) => {
-      const result = await testExistingMutation.mutateAsync(id)
+      try {
+        const result = await testExistingMutation.mutateAsync(id)
 
-      if (result.success) {
-        toast.success(`Connection successful (${result.responseTime}ms)`)
-        setTestedEndpoints((prev) => ({ ...prev, [id]: true }))
-        // Reset after 3 seconds
-        setTimeout(() => {
-          setTestedEndpoints((prev) => ({ ...prev, [id]: false }))
-        }, 3000)
-      } else {
-        toast.error(result.error || 'Connection test failed')
+        if (result.success) {
+          toast.success(`Connection successful (${result.responseTime}ms)`)
+          setTestedEndpoints((prev) => ({ ...prev, [id]: true }))
+          // Reset after 3 seconds
+          setTimeout(() => {
+            setTestedEndpoints((prev) => ({ ...prev, [id]: false }))
+          }, 3000)
+        } else {
+          toast.error(result.error || 'Connection test failed')
+        }
+
+        return result
+      } catch (error) {
+        console.error('Failed to test webhook endpoint:', error)
+        return null
       }
-
-      return result
     },
     [testExistingMutation],
   )
