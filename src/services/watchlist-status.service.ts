@@ -248,6 +248,67 @@ export class StatusService {
     }
   }
 
+  /**
+   * Process instances in batches with progress reporting
+   */
+  private async processInstanceBatch<
+    T extends { id: number; name: string; isDefault: boolean },
+  >(opts: {
+    instances: T[]
+    instanceType: 'radarr' | 'sonarr'
+    syncFn: (id: number) => Promise<number>
+    operationId: string
+    totalInstances: number
+    instancesProcessed: number
+    emitProgress: boolean
+    batchSize: number
+  }): Promise<{
+    results: Array<{ id: number; name: string; itemsCopied: number }>
+    processedCount: number
+  }> {
+    const { instances, instanceType, syncFn, batchSize } = opts
+    const results: Array<{ id: number; name: string; itemsCopied: number }> = []
+    let processed = opts.instancesProcessed
+    const label = instanceType.charAt(0).toUpperCase() + instanceType.slice(1)
+
+    for (let i = 0; i < instances.length; i += batchSize) {
+      const batch = instances.slice(i, i + batchSize)
+
+      if (opts.emitProgress) {
+        this.emitProgress({
+          operationId: opts.operationId,
+          type: 'sync',
+          phase: 'processing',
+          progress: 5 + Math.floor((processed / opts.totalInstances) * 90),
+          message: `Processing ${label} instances ${i + 1} to ${Math.min(i + batch.length, instances.length)} of ${instances.length}`,
+        })
+      }
+
+      const batchResults = await Promise.all(
+        batch.map(async (instance) => {
+          try {
+            this.log.info(
+              `Syncing ${label} instance ${instance.id} (${instance.name})`,
+            )
+            const itemsCopied = await syncFn(instance.id)
+            return { id: instance.id, name: instance.name, itemsCopied }
+          } catch (error) {
+            this.log.error(
+              { error },
+              `Error syncing ${label} instance ${instance.id} (${instance.name}):`,
+            )
+            return { id: instance.id, name: instance.name, itemsCopied: 0 }
+          }
+        }),
+      )
+
+      results.push(...batchResults)
+      processed += batch.length
+    }
+
+    return { results, processedCount: processed }
+  }
+
   async syncRadarrInstance(instanceId: number): Promise<number> {
     const emitProgress = this.hasActiveProgressConnections()
     const config = createRadarrSyncConfig(
@@ -294,11 +355,12 @@ export class StatusService {
   }> {
     const operationId = `all-instances-sync-${Date.now()}`
     const emitProgress = this.hasActiveProgressConnections()
+    const BATCH_SIZE = 3
 
     if (emitProgress) {
       this.emitProgress({
         operationId,
-        type: 'sync' as const,
+        type: 'sync',
         phase: 'start',
         progress: 0,
         message: 'Initializing sync for all non-default instances...',
@@ -306,164 +368,80 @@ export class StatusService {
     }
 
     try {
-      this.log.info('Fetching all Radarr instances')
-      const radarrInstances = await this.dbService.getAllRadarrInstances()
-      const radarrToSync = radarrInstances.filter(
-        (instance) => !instance.isDefault,
-      )
+      // Fetch all instances in parallel
+      const [radarrInstances, sonarrInstances] = await Promise.all([
+        this.dbService.getAllRadarrInstances(),
+        this.dbService.getAllSonarrInstances(),
+      ])
 
-      this.log.info('Fetching all Sonarr instances')
-      const sonarrInstances = await this.dbService.getAllSonarrInstances()
-      const sonarrToSync = sonarrInstances.filter(
-        (instance) => !instance.isDefault,
-      )
-
+      const radarrToSync = radarrInstances.filter((i) => !i.isDefault)
+      const sonarrToSync = sonarrInstances.filter((i) => !i.isDefault)
       const totalInstances = radarrToSync.length + sonarrToSync.length
 
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'sync' as const,
+          type: 'sync',
           phase: 'processing',
           progress: 5,
           message: `Found ${totalInstances} instances to sync (${radarrToSync.length} Radarr, ${sonarrToSync.length} Sonarr)`,
         })
       }
 
-      let instancesProcessed = 0
-      const radarrResults: Array<{
-        id: number
-        name: string
-        itemsCopied: number
-      }> = []
-      const sonarrResults: Array<{
-        id: number
-        name: string
-        itemsCopied: number
-      }> = []
+      // Process Radarr instances
+      const radarrResult = await this.processInstanceBatch({
+        instances: radarrToSync,
+        instanceType: 'radarr',
+        syncFn: (id) => this.syncRadarrInstance(id),
+        operationId,
+        totalInstances,
+        instancesProcessed: 0,
+        emitProgress,
+        batchSize: BATCH_SIZE,
+      })
 
-      const BATCH_SIZE = 3 // Process 3 instances at a time
-
-      for (let i = 0; i < radarrToSync.length; i += BATCH_SIZE) {
-        const batch = radarrToSync.slice(i, i + BATCH_SIZE)
-
-        if (emitProgress) {
-          this.emitProgress({
-            operationId,
-            type: 'sync' as const,
-            phase: 'processing',
-            progress:
-              5 + Math.floor((instancesProcessed / totalInstances) * 90),
-            message: `Processing Radarr instances ${i + 1} to ${Math.min(i + batch.length, radarrToSync.length)} of ${radarrToSync.length}`,
-          })
-        }
-
-        const batchResults = await Promise.all(
-          batch.map(async (instance) => {
-            try {
-              this.log.info(
-                `Syncing Radarr instance ${instance.id} (${instance.name})`,
-              )
-              const itemsCopied = await this.syncRadarrInstance(instance.id)
-              return {
-                id: instance.id,
-                name: instance.name,
-                itemsCopied,
-              }
-            } catch (error) {
-              this.log.error(
-                { error },
-                `Error syncing Radarr instance ${instance.id} (${instance.name}):`,
-              )
-              return {
-                id: instance.id,
-                name: instance.name,
-                itemsCopied: 0,
-                error: String(error),
-              }
-            }
-          }),
-        )
-
-        radarrResults.push(...batchResults)
-        instancesProcessed += batch.length
-      }
-
-      for (let i = 0; i < sonarrToSync.length; i += BATCH_SIZE) {
-        const batch = sonarrToSync.slice(i, i + BATCH_SIZE)
-
-        if (emitProgress) {
-          this.emitProgress({
-            operationId,
-            type: 'sync' as const,
-            phase: 'processing',
-            progress:
-              5 + Math.floor((instancesProcessed / totalInstances) * 90),
-            message: `Processing Sonarr instances ${i + 1} to ${Math.min(i + batch.length, sonarrToSync.length)} of ${sonarrToSync.length}`,
-          })
-        }
-
-        const batchResults = await Promise.all(
-          batch.map(async (instance) => {
-            try {
-              this.log.info(
-                `Syncing Sonarr instance ${instance.id} (${instance.name})`,
-              )
-              const itemsCopied = await this.syncSonarrInstance(instance.id)
-              return {
-                id: instance.id,
-                name: instance.name,
-                itemsCopied,
-              }
-            } catch (error) {
-              this.log.error(
-                { error },
-                `Error syncing Sonarr instance ${instance.id} (${instance.name}):`,
-              )
-              return {
-                id: instance.id,
-                name: instance.name,
-                itemsCopied: 0,
-                error: String(error),
-              }
-            }
-          }),
-        )
-
-        sonarrResults.push(...batchResults)
-        instancesProcessed += batch.length
-      }
+      // Process Sonarr instances
+      const sonarrResult = await this.processInstanceBatch({
+        instances: sonarrToSync,
+        instanceType: 'sonarr',
+        syncFn: (id) => this.syncSonarrInstance(id),
+        operationId,
+        totalInstances,
+        instancesProcessed: radarrResult.processedCount,
+        emitProgress,
+        batchSize: BATCH_SIZE,
+      })
 
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'sync' as const,
+          type: 'sync',
           phase: 'complete',
           progress: 100,
           message: `Completed sync for all ${totalInstances} instances`,
         })
       }
 
-      const totalRadarrItems = radarrResults.reduce(
-        (sum, result) => sum + result.itemsCopied,
+      const totalRadarrItems = radarrResult.results.reduce(
+        (sum, r) => sum + r.itemsCopied,
         0,
       )
-      const totalSonarrItems = sonarrResults.reduce(
-        (sum, result) => sum + result.itemsCopied,
+      const totalSonarrItems = sonarrResult.results.reduce(
+        (sum, r) => sum + r.itemsCopied,
         0,
       )
 
       this.log.info(
         {
-          radarr: `${radarrResults.length} instances, ${totalRadarrItems} items copied`,
-          sonarr: `${sonarrResults.length} instances, ${totalSonarrItems} items copied`,
+          radarr: `${radarrResult.results.length} instances, ${totalRadarrItems} items copied`,
+          sonarr: `${sonarrResult.results.length} instances, ${totalSonarrItems} items copied`,
         },
         'Completed sync for all configured instances',
       )
 
       return {
-        radarr: radarrResults,
-        sonarr: sonarrResults,
+        radarr: radarrResult.results,
+        sonarr: sonarrResult.results,
       }
     } catch (error) {
       this.log.error({ error }, 'Error syncing all configured instances:')
@@ -471,7 +449,7 @@ export class StatusService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'sync' as const,
+          type: 'sync',
           phase: 'error',
           progress: 100,
           message: `Error syncing instances: ${error}`,
