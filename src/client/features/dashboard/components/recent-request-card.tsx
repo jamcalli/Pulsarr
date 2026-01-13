@@ -165,16 +165,16 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
                   <p className="text-xs font-medium mb-1">Status:</p>
                   <ul className="text-xs space-y-0.5">
                     {item.allInstances.map((instance) => {
-                      const statusConfig =
+                      const instanceStatusConfig =
                         INSTANCE_STATUS_CONFIG[instance.status]
                       return (
                         <li
                           key={`${instance.instanceType}-${instance.id}`}
                           className="flex items-center gap-1"
                         >
-                          <span>{statusConfig.icon}</span>
+                          <span>{instanceStatusConfig.icon}</span>
                           <span>
-                            {instance.name} ({statusConfig.label})
+                            {instance.name} ({instanceStatusConfig.label})
                           </span>
                         </li>
                       )
@@ -225,7 +225,6 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
                     aria-label="View detailed information"
                   >
                     <Eye className="h-3 w-3" />
-                    <span className="sr-only">View detailed information</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>View details</TooltipContent>
