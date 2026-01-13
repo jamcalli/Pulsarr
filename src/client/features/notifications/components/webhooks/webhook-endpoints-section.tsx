@@ -1,5 +1,4 @@
 import { ExternalLink, Webhook } from 'lucide-react'
-import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { WebhookEndpointCard } from '@/features/notifications/components/webhooks/webhook-endpoint-card'
 import { WebhookEndpointCardSkeleton } from '@/features/notifications/components/webhooks/webhook-endpoint-card-skeleton'
@@ -7,10 +6,6 @@ import { WebhookEndpointDeleteModal } from '@/features/notifications/components/
 import { WebhookEndpointModal } from '@/features/notifications/components/webhooks/webhook-endpoint-modal'
 import { useWebhookEndpoints } from '@/features/notifications/hooks/useWebhookEndpoints'
 import { api } from '@/lib/api'
-
-interface WebhookEndpointsSectionProps {
-  isInitialized: boolean
-}
 
 function WebhookEndpointsSkeleton() {
   return (
@@ -22,18 +17,18 @@ function WebhookEndpointsSkeleton() {
   )
 }
 
-export function WebhookEndpointsSection({
-  isInitialized,
-}: WebhookEndpointsSectionProps) {
+export function WebhookEndpointsSection() {
   const {
     endpoints,
-    hasLoaded,
-    loading,
-    fetchEndpoints,
+    isLoading,
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    testMutation,
+    testExistingMutation,
     form,
     connectionTested,
     testedEndpoints,
-    saveStatus,
     editingEndpoint,
     isModalOpen,
     deleteEndpointId,
@@ -48,14 +43,17 @@ export function WebhookEndpointsSection({
     closeDeleteModal,
   } = useWebhookEndpoints()
 
-  useEffect(() => {
-    if (isInitialized && !hasLoaded) {
-      void fetchEndpoints()
-    }
-  }, [isInitialized, hasLoaded, fetchEndpoints])
-
   const endpointToDelete = endpoints.find((ep) => ep.id === deleteEndpointId)
   const hasEndpoints = endpoints.length > 0
+
+  // Derive save status from mutations (follows approvals pattern)
+  const isSaving = createMutation.isPending || updateMutation.isPending
+  const saveSuccess = createMutation.isSuccess || updateMutation.isSuccess
+  const saveStatus: 'idle' | 'loading' | 'success' = isSaving
+    ? 'loading'
+    : saveSuccess
+      ? 'success'
+      : 'idle'
 
   return (
     <div className="space-y-4">
@@ -78,7 +76,7 @@ export function WebhookEndpointsSection({
       </div>
 
       {/* Content */}
-      {loading.fetch && !hasLoaded ? (
+      {isLoading ? (
         <WebhookEndpointsSkeleton />
       ) : hasEndpoints ? (
         <>
@@ -101,14 +99,19 @@ export function WebhookEndpointsSection({
                 onEdit={() => openEditModal(endpoint)}
                 onDelete={() => openDeleteModal(endpoint.id)}
                 onTest={() => handleTestExisting(endpoint.id)}
-                isDeleting={loading.delete[endpoint.id]}
-                isTesting={loading.testById[endpoint.id]}
+                isDeleting={
+                  deleteMutation.isPending && deleteEndpointId === endpoint.id
+                }
+                isTesting={
+                  testExistingMutation.isPending &&
+                  testExistingMutation.variables === endpoint.id
+                }
                 connectionTested={testedEndpoints[endpoint.id]}
               />
             ))}
           </div>
         </>
-      ) : hasLoaded ? (
+      ) : (
         /* Empty state - centered button */
         <div className="text-center py-8 text-foreground">
           <p>No webhook endpoints configured</p>
@@ -121,7 +124,7 @@ export function WebhookEndpointsSection({
             Add Webhook Endpoint
           </Button>
         </div>
-      ) : null}
+      )}
 
       {/* Create/Edit Modal */}
       <WebhookEndpointModal
@@ -134,7 +137,7 @@ export function WebhookEndpointsSection({
         connectionTested={connectionTested}
         onTest={handleTest}
         onSubmit={handleSubmit}
-        isTesting={loading.test}
+        isTesting={testMutation.isPending}
         saveStatus={saveStatus}
       />
 
@@ -150,9 +153,7 @@ export function WebhookEndpointsSection({
           }
         }}
         endpointName={endpointToDelete?.name ?? ''}
-        isDeleting={
-          deleteEndpointId !== null && loading.delete[deleteEndpointId]
-        }
+        isDeleting={deleteMutation.isPending}
       />
     </div>
   )
