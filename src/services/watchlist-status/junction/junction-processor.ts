@@ -190,6 +190,9 @@ export async function processJunctionUpdates<
       instance_id: number
     }> = []
 
+    // Track watchlist IDs with planned primaries for O(1) lookups
+    const plannedPrimarySet = new Set<number>()
+
     // 6. Process each watchlist item
     for (const item of watchlistItems) {
       if (item.id === undefined) continue
@@ -229,9 +232,12 @@ export async function processJunctionUpdates<
 
           // Add to junction if not exists
           if (!currentJunction) {
-            const hasPlannedPrimary = junctionsToAdd.some(
-              (j) => j.watchlist_id === numericId && j.is_primary,
-            )
+            const hasPlannedPrimary = plannedPrimarySet.has(numericId)
+            const isPrimary =
+              currentInstanceSet.size === 0 &&
+              existingInstanceSet.size === 1 &&
+              !hasPlannedPrimary
+
             junctionsToAdd.push({
               watchlist_id: numericId,
               instance_id: instanceId,
@@ -239,11 +245,12 @@ export async function processJunctionUpdates<
                 mainTableStatus === 'notified'
                   ? 'notified'
                   : validateStatus(matchingItem.status),
-              is_primary:
-                currentInstanceSet.size === 0 &&
-                existingInstanceSet.size === 1 &&
-                !hasPlannedPrimary,
+              is_primary: isPrimary,
             })
+
+            if (isPrimary) {
+              plannedPrimarySet.add(numericId)
+            }
             updateCount++
           } else {
             // Update junction if needed
@@ -313,9 +320,7 @@ export async function processJunctionUpdates<
           )
           .some((entry) => entry.is_primary)
 
-        const hasPlannedPrimary = junctionsToAdd.some(
-          (j) => j.watchlist_id === numericId && j.is_primary,
-        )
+        const hasPlannedPrimary = plannedPrimarySet.has(numericId)
 
         if (!hasPrimary && !hasPlannedPrimary) {
           const firstInstance = existingInstanceSet.values().next().value
