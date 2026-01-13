@@ -29,10 +29,13 @@ export async function initializeTestDatabase(): Promise<Knex> {
     pool: {
       min: 1,
       max: 1,
-      afterCreate: (conn: unknown, cb: () => void): void => {
+      afterCreate: (
+        conn: unknown,
+        done: (err: Error | null, conn: unknown) => void,
+      ): void => {
         const sqliteConn = conn as { exec: (sql: string) => void }
         sqliteConn.exec('PRAGMA foreign_keys = ON;')
-        cb()
+        done(null, conn)
       },
     },
   })
