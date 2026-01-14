@@ -6,6 +6,11 @@
   --font-sans: Shuttleblock, ui-sans-serif, system-ui, sans-serif;
   --font-heading: Shuttleblock, ui-sans-serif, system-ui, sans-serif;
 
+  --font-weight-base: 500;
+  --font-weight-heading: 700;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
   --color-main: var(--main);
   --color-overlay: var(--overlay);
   --color-background: var(--bg);

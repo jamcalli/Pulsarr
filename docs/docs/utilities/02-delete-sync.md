@@ -8,6 +8,15 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 Automatically removes content from Sonarr/Radarr instances when it's no longer on any user's watchlist, keeping your libraries clean and optimized.
 
+## Quick Setup
+
+1. Navigate to **Utilities → Delete Sync**
+2. Select deletion mode (watchlist-based or tag-based)
+3. Choose content types to manage (movies, ended shows, continuing shows)
+4. Configure safety threshold and file management options
+5. Run a **Dry Run** to preview deletions
+6. Enable automatic scheduling or run manually
+
 ## Deletion Modes
 
 **Watchlist-based** (default): Removes content when no longer on any synced user's watchlist.
@@ -27,19 +36,22 @@ Protect content from deletion by adding it to designated Plex playlists:
 
 ## Configuration
 
-Navigate to **Utilities → Delete Sync**:
+| Setting | Description |
+|---------|-------------|
+| **Mode** | Watchlist-based or tag-based deletion |
+| **Content Types** | Movies, ended shows, continuing shows |
+| **File Management** | Delete or retain media files from disk |
+| **Playlist Protection** | Configure protection playlist names |
+| **Safety Threshold** | Prevent mass deletion with configurable limits |
+| **Scheduling** | Set automatic cleanup timing |
+| **Notifications** | Discord, Apprise, or both (optional: notify only on deletion) |
 
-- **Mode**: Choose watchlist-based or tag-based deletion
-- **Content Types**: Select movies, ended shows, continuing shows
-- **File Management**: Delete or retain media files from disk
-- **Playlist Protection**: Configure protection playlist names
-- **Tag-Based Options** (when using tag-based mode):
-  - **Required Tag Regex**: Optional regex pattern - content must match this pattern to be deleted (in addition to having removal tag)
-  - **Tracked Content Only**: Only delete content tracked in Pulsarr's approval system
-- **Notifications**: Choose Discord, Apprise, or both
-  - **Notify Only on Deletion**: Reduce noise by only notifying when items are actually deleted
-- **Safety Threshold**: Prevent mass deletion with configurable limits
-- **Scheduling**: Set automatic cleanup timing
+### Tag-Based Options
+
+| Setting | Description |
+|---------|-------------|
+| **Required Tag Regex** | Optional pattern - content must match to be deleted |
+| **Tracked Content Only** | Only delete content tracked in approval system |
 
 ## Running Delete Sync
 
@@ -51,31 +63,11 @@ Navigate to **Utilities → Delete Sync**:
 Dry runs will create protection playlists if they don't exist - this is safe and doesn't delete content.
 :::
 
-## Safety Features
-
-- Mass deletion prevention with configurable thresholds
-- Dry run previews
-- Selective content targeting
-- Playlist-based protection
-- Detailed logging
-
 <img src={useBaseUrl('/img/Delete-Sync-Dry.png')} alt="Delete Sync Dry Run Notification" />
-
-## Integration with User Tagging
-
-Tag-based mode works with User Tagging:
-- Removal tags added automatically when content leaves watchlists
-- Tags can be kept for history, removed, or prefixed
-- Protected playlist content excluded regardless of tags
 
 ## Advanced Tag Filtering
 
-The **Required Tag Regex** option provides an additional layer of control for tag-based deletion. When configured:
-
-- Content must have **both** the removal tag AND a tag matching the regex pattern to be deleted
-- If no regex is configured, only the removal tag is required
-- Regex patterns are validated for safety to prevent catastrophic backtracking
-- Maximum pattern length: 1024 characters
+The **Required Tag Regex** requires content to have both the removal tag AND a matching tag pattern. Patterns are validated for safety (max 1024 characters, no catastrophic backtracking).
 
 ### Use Cases
 
@@ -105,12 +97,14 @@ Pattern: ^(?!.*protected).*$
 Result: Delete content with removal tag UNLESS it has a "protected" tag
 ```
 
-### Safety Features
+## Troubleshooting
 
-All regex patterns are validated for:
-- Valid JavaScript regex syntax
-- Unicode mode compatibility
-- Safe execution (no catastrophic backtracking patterns)
+| Problem | Solution |
+|---------|----------|
+| **Content not being deleted** | Check deletion mode settings; verify content is off all watchlists; run dry run to preview |
+| **Too much content flagged** | Adjust safety threshold; use playlist protection; enable "Tracked Content Only" |
+| **Regex not matching** | Test pattern with simple examples; check for valid JavaScript regex syntax |
+| **Protected content deleted** | Verify playlist names match exactly; ensure playlists exist for all users |
 
 ## Best Practices
 

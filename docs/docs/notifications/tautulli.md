@@ -6,10 +6,19 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Tautulli Notifications
 
-Tautulli integration enables native Plex notifications for users when their watchlist items become available, providing seamless notifications through the Plex mobile app.
+Tautulli integration enables native Plex mobile app notifications when watchlist items become available.
+
+## Quick Setup
+
+1. Ensure you have an active **Plex Pass** subscription
+2. Generate RSS feeds in Pulsarr: **Settings → Plex → Generate RSS Feeds**
+3. Navigate to **Settings → Notifications** in Pulsarr
+4. Enable **Tautulli Notifications** and enter your Tautulli URL + API key
+5. Click **Test Connection** and save
+6. Enable Tautulli notifications per-user in **Plex → Users**
 
 :::note Plex Pass Required
-This feature requires an active Plex Pass subscription to access RSS feeds and send notifications through Plex's notification system.
+This feature requires an active Plex Pass subscription for RSS feeds and Plex's notification system.
 :::
 
 :::warning Important Setup Information
@@ -90,25 +99,9 @@ Notifications include movie/show artwork and tap to open in Plex.
 
 ## Troubleshooting
 
-### No Notifications Received
-1. **Verify Plex Pass**: Ensure active subscription
-2. **Check RSS Feeds**: Generate in Plex settings if missing
-3. **Test Connection**: Re-test Tautulli connection
-4. **User Settings**: Confirm user has Tautulli notifications enabled
-5. **Mobile Setup**: Verify push notifications enabled and duplicate notifications disabled
-
-### Delayed Notifications
-- Pulsarr polls every 30 seconds after content added
-- Content must be processed by Plex before Tautulli detects it
-- Large files or remote storage cause delays
-- Maximum 10 minute wait before notification expires
-
-### Agent Creation Issues
-- Check user exists in Tautulli's user list
-- Verify Tautulli API has access to user data
-
-### Connection Issues
-- Verify Tautulli URL accessible from Pulsarr
-- Check API key correctness
-- Ensure no reverse proxy blocking API access
-
+| Problem | Solution |
+|---------|----------|
+| **No notifications** | Verify Plex Pass active; generate RSS feeds; test Tautulli connection; confirm user has Tautulli enabled; check mobile push settings |
+| **Delayed notifications** | Pulsarr polls every 30s; content must be processed by Plex first; large files/remote storage cause delays; 10 min max wait |
+| **Agent creation issues** | Check user exists in Tautulli's user list; verify API has user data access |
+| **Connection issues** | Verify Tautulli URL accessible from Pulsarr; check API key; ensure no reverse proxy blocking |

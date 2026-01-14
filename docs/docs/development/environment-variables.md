@@ -4,300 +4,280 @@ sidebar_position: 1
 
 # Environment Variables Reference
 
-This document provides a comprehensive reference of all environment variables available in Pulsarr. Most users only need the basic configuration shown in the [Configuration Guide](../installation/configuration), but this reference is useful for development and advanced deployments.
+Complete reference of all Pulsarr environment variables. Most users only need the [Configuration Guide](../installation/configuration) - this reference is for development and advanced deployments.
 
 :::note For Developers
-This reference includes internal variables used for development, testing, and advanced configurations. Many of these are not needed for typical production deployments.
+This includes internal variables for development and testing. Many are not needed for typical production use.
 :::
 
-## Complete Development Configuration
+## Core Application
 
-Below is an example showcasing all available environment variables:
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `baseUrl` | External address for webhook URLs | `http://localhost` |
+| `port` | External port for webhook URLs | `3003` |
+| `listenPort` | Internal port server binds to | `3003` |
+| `TZ` | Timezone (e.g., America/Los_Angeles) | `UTC` |
+| `basePath` | URL prefix for subfolder reverse proxy | `/` |
+
+## Logging
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `logLevel` | fatal, error, warn, info, debug, trace, silent | `info` |
+| `enableConsoleOutput` | Show logs in terminal | `true` |
+| `enableRequestLogging` | Log HTTP requests (sensitive params redacted) | `false` |
+
+## Database
+
+### SQLite (Default)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `dbPath` | SQLite database location | `./data/db/pulsarr.db` |
+
+### PostgreSQL
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `dbType` | Set to `postgres` to enable | `sqlite` |
+| `dbHost` | PostgreSQL hostname | `localhost` |
+| `dbPort` | PostgreSQL port | `5432` |
+| `dbName` | Database name | `pulsarr` |
+| `dbUser` | Username | `postgres` |
+| `dbPassword` | Password | None |
+| `dbConnectionString` | Full connection string (overrides above) | None |
+
+## Security & Sessions
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `cookieSecret` | Secret key for cookies | Auto-generated |
+| `cookieName` | Cookie name | `pulsarr` |
+| `cookieSecured` | Require HTTPS for cookies | `false` |
+| `allowIframes` | Allow embedding in Organizr, etc. | `false` |
+| `authenticationMethod` | `required`, `requiredExceptLocal`, `disabled` | `required` |
+| `rateLimitMax` | Max requests per time window | `500` |
+| `closeGraceDelay` | Shutdown grace period (ms) | `10000` |
+
+### Authentication Configuration Details {#authentication-configuration-details}
+
+When using `authenticationMethod=requiredExceptLocal`, these IP ranges bypass auth:
+
+- `127.0.0.0/8` - localhost
+- `10.0.0.0/8` - Class A private
+- `172.16.0.0/12` - Class B private
+- `192.168.0.0/16` - Class C private
+- `169.254.0.0/16` - Link-local
+- `::1/128`, `fc00::/7`, `fe80::/10` - IPv6 equivalents
+
+:::warning
+Ensure your network is secure when using `requiredExceptLocal`.
+:::
+
+## Plex
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `plexTokens` | JSON array of Plex tokens | None |
+| `plexServerUrl` | Plex server URL (optional, auto-detected) | None |
+| `skipFriendSync` | Skip syncing Plex friends | `false` |
+| `skipIfExistsOnPlex` | Skip if content exists on Plex | `false` |
+| `enablePlexPlaylistProtection` | Enable playlist protection | `false` |
+| `plexProtectionPlaylistName` | Protection playlist name | `Do Not Delete` |
+| `selfRss` | Self RSS feed URL | None |
+| `friendsRss` | Friends RSS feed URL | None |
+
+## Notifications
+
+### Discord
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `discordWebhookUrl` | Webhook URLs (comma-separated) | None |
+| `discordBotToken` | Bot token | None |
+| `discordClientId` | Client ID | None |
+
+### Apprise
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `appriseUrl` | Apprise server URL | None |
+| `enableApprise` | Auto-set based on server availability | `false` |
+| `systemAppriseUrl` | Apprise URL for system notifications only | None |
+
+### Tautulli
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `tautulliEnabled` | Enable Tautulli (requires Plex Pass) | `false` |
+| `tautulliUrl` | Tautulli server URL | None |
+| `tautulliApiKey` | Tautulli API key | None |
+
+### Notification Queue
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `queueWaitTime` | Queue wait time (ms) | `120000` |
+| `newEpisodeThreshold` | New episode threshold (ms) | `172800000` |
+| `upgradeBufferTime` | Buffer between upgrades (ms) | `2000` |
+| `pendingWebhookRetryInterval` | Retry interval (seconds) | `20` |
+| `pendingWebhookMaxAge` | Max age (minutes) | `10` |
+| `pendingWebhookCleanupInterval` | Cleanup interval (minutes) | `60` |
+
+## User Tagging
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `tagUsersInSonarr` | Enable user tagging in Sonarr | `false` |
+| `tagUsersInRadarr` | Enable user tagging in Radarr | `false` |
+| `tagPrefix` | Prefix for user tags | `pulsarr-user` |
+| `cleanupOrphanedTags` | Remove tags for deleted users | `true` |
+| `removedTagMode` | `remove`, `keep`, `special-tag` | `remove` |
+| `removedTagPrefix` | Prefix for removal tags | `pulsarr-removed` |
+
+## Delete Sync
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `deletionMode` | `watchlist` or `tag-based` | `watchlist` |
+| `deleteMovie` | Auto-delete movies | `false` |
+| `deleteEndedShow` | Auto-delete ended shows | `false` |
+| `deleteContinuingShow` | Auto-delete continuing shows | `false` |
+| `deleteFiles` | Delete files from disk | `true` |
+| `respectUserSyncSetting` | Only delete from sync-enabled users | `true` |
+| `deleteSyncNotify` | Notification type | `none` |
+| `deleteSyncNotifyOnlyOnDeletion` | Only notify on actual deletion | `false` |
+| `deleteSyncTrackedOnly` | Only delete approval-tracked content | `false` |
+| `deleteSyncCleanupApprovals` | Cleanup approvals after deletion | `false` |
+| `maxDeletionPrevention` | Max % of library to delete | `10` |
+
+## New User Defaults
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `newUserDefaultCanSync` | Default sync permission | `true` |
+| `newUserDefaultRequiresApproval` | Default approval requirement | `false` |
+| `newUserDefaultMovieQuotaEnabled` | Enable movie quotas | `false` |
+| `newUserDefaultMovieQuotaType` | `daily`, `weekly_rolling`, `monthly` | `monthly` |
+| `newUserDefaultMovieQuotaLimit` | Movie quota limit | `10` |
+| `newUserDefaultMovieBypassApproval` | Auto-approve when exceeded | `false` |
+| `newUserDefaultShowQuotaEnabled` | Enable show quotas | `false` |
+| `newUserDefaultShowQuotaType` | `daily`, `weekly_rolling`, `monthly` | `monthly` |
+| `newUserDefaultShowQuotaLimit` | Show quota limit | `10` |
+| `newUserDefaultShowBypassApproval` | Auto-approve when exceeded | `false` |
+
+## JSON Configuration Variables
+
+These variables accept JSON strings for complex configuration:
+
+### Plex Session Monitoring
 
 ```env
-# Application Runtime (Docker/System Level)
-TZ=America/Los_Angeles                 # Timezone for the application container
-
-# Logging Configuration
-logLevel=info                          # Log level (default: info)
-                                       # Accepts: fatal | error | warn | info | debug | trace | silent
-
-enableConsoleOutput=true               # Console logging (default: true)
-                                       # Any value other than "false" enables terminal output
-                                       # Logs are always written to ./data/logs/ regardless of this setting
-
-enableRequestLogging=false             # HTTP request logging (default: false)
-                                       # Logs HTTP method, URL, host, remote IP/port, response codes, response times
-                                       # Sensitive query parameters (token, apiKey, password) are automatically redacted
-
-# Server Configuration
-baseUrl=http://x.x.x.x                 # External address where Pulsarr can be reached (for webhook URLs)
-port=3003                              # External port for webhook URL generation (what Sonarr/Radarr use to call back)
-listenPort=3003                        # Internal port the server binds to (default: 3003, rarely needs changing)
-                                       # Docker users: use port mapping (e.g., 8080:3003) instead of changing listenPort
-dbPath=./data/db/pulsarr.db            # SQLite database location (only used when dbType is not set)
-
-# PostgreSQL Configuration (optional - uncomment to use PostgreSQL instead of SQLite)
-# dbType=postgres                      # Database type: 'sqlite', 'postgres' (default: sqlite)
-# dbHost=your-postgres-host            # PostgreSQL server hostname or IP (default: localhost)
-# dbPort=5432                          # PostgreSQL server port (default: 5432)
-# dbName=pulsarr                       # PostgreSQL database name (default: pulsarr)
-# dbUser=pulsarr                       # PostgreSQL username (default: postgres)
-# dbPassword=your-secure-password      # PostgreSQL password (default: pulsarrpostgrespw)
-# dbConnectionString=                  # Alternative: PostgreSQL connection string (takes priority over individual settings)
-cookieSecret=xxxxxxxxxxxxxxxxxxxxxxxx  # Secret key for cookies (randomly generated by default)
-cookieName=pulsarr                     # Name of the cookie
-cookieSecured=false                    # Set to true for HTTPS only
-allowIframes=false                     # Set to true to allow embedding in dashboard apps like Organizr
-authenticationMethod=required          # Authentication method: 'required', 'requiredExceptLocal', 'disabled' (default: required)
-closeGraceDelay=10000                  # Shutdown grace period in ms
-rateLimitMax=500                       # Max requests per time window
-queueProcessDelaySeconds=60            # Queue processing delay in seconds
-
-# Reverse Proxy Configuration (Optional)
-basePath=/                             # Base path for subfolder deployments (default: /)
-                                       # Examples: "/pulsarr", "/apps/pulsarr"
-                                       # Only needed when hosting behind a reverse proxy in a subfolder
-
-# Notification Queue Settings
-pendingWebhookRetryInterval=20         # Retry interval for pending notifications in seconds
-pendingWebhookMaxAge=10                # Max age for pending notifications in minutes
-pendingWebhookCleanupInterval=60       # Cleanup interval for old notifications in minutes
-
-# Discord Configuration
-discordWebhookUrl=https://discord.com/api/webhooks/xxxx/xxxx  # Webhook URL(s), separate multiple with commas
-discordBotToken=xxxx.xxxx.xxxx                                # Bot token
-discordClientId=xxxxxxxxxxxx                                  # Client ID
-
-# Apprise Configuration
-appriseUrl=http://x.x.x.x:8000         # URL for the Apprise server (e.g., http://apprise:8000 for Docker networking)
-enableApprise=true                     # This is auto set by Pulsarr based on the availability of the Apprise server
-systemAppriseUrl=                      # Apprise URL for system notifications only
-
-# General Notifications
-queueWaitTime=120000                   # Queue wait time in ms
-newEpisodeThreshold=172800000          # New episode threshold in ms (48h)
-upgradeBufferTime=2000                 # Buffer time between upgrades in ms
-
-# Tautulli Configuration
-tautulliEnabled=false                  # Enable Tautulli integration (requires Plex Pass)
-tautulliUrl=http://x.x.x.x:8181        # Tautulli server URL
-tautulliApiKey=xxxxxxxxxxxxxxxxxxxxxxxx # Tautulli API key
-
-# Sonarr Configuration (these will seed a single instance. Needs all the values. Only use in dev.)
-sonarrBaseUrl=http://x.x.x.x:8989      # Sonarr instance URL
-sonarrApiKey=xxxxxxxxxxxxxxxxxxxxxxxx  # Sonarr API key
-sonarrQualityProfile=                  # Quality profile name (empty = default. Also accepts name or number)
-sonarrRootFolder=                      # Root folder path (empty = default. Or accepts string of the path url)
-sonarrBypassIgnored=false              # Bypass ignored setting
-sonarrSeasonMonitoring=all             # Season monitoring strategy
-sonarrMonitorNewItems=all              # Monitor strategy for new items: 'all' or 'none' (default: all)
-sonarrTags=[]                          # Tags as JSON array
-sonarrCreateSeasonFolders=false        # Create season folders (true/false)
-
-# Radarr Configuration (these will seed a single instance. Needs all the values. Only use in dev.)
-radarrBaseUrl=http://x.x.x.x:7878      # Radarr instance URL
-radarrApiKey=xxxxxxxxxxxxxxxxxxxxxxxx  # Radarr API key
-radarrQualityProfile=                  # Quality profile name (empty = default. Also accepts name or number)
-radarrRootFolder=                      # Root folder path (empty = default. Or accepts string of the path url)
-radarrBypassIgnored=false              # Bypass ignored setting
-radarrTags=[]                          # Tags as JSON array
-
-# TMDB Configuration
-tmdbApiKey=xxxxxxxxxxxxxxxxxxxxxxxx    # TMDB API Read Access Token (Bearer token) for metadata lookups (env-only, not stored in DB)
-                                       # Required for TMDB metadata features. Get your token at: https://www.themoviedb.org/settings/api
-
-# Plex Configuration
-plexTokens=["xxxxxxxxxxxxxxxxxxxx"]    # Plex authentication token
-skipFriendSync=false                   # Skip syncing Plex friends
-enablePlexPlaylistProtection=false     # Enable playlist protection feature
-plexProtectionPlaylistName="Do Not Delete"  # Name of protection playlist
-plexServerUrl=http://localhost:32400   # Plex server URL (optional, can be auto-detected)
-skipIfExistsOnPlex=false               # Skip downloading if content exists on Plex servers
-                                       # Primary token user: checks ALL accessible servers (owned + shared)
-                                       # Friend/other users: checks ONLY the owned server
-selfRss=                               # Self RSS feed URL (optional)
-friendsRss=                            # Friends RSS feed URL (optional)
-
-# User Tagging Configuration
-tagUsersInSonarr=false                 # Enable automatic user tagging in Sonarr
-tagUsersInRadarr=false                 # Enable automatic user tagging in Radarr
-tagPrefix=pulsarr-user                 # Prefix for user tags - required alphanumeric, dash, underscore, colon, period only
-cleanupOrphanedTags=true               # When true, removes tags for deleted users during sync
-removedTagMode=remove                  # How to handle tags when content is removed: 'remove', 'keep', 'special-tag' (default: remove)
-removedTagPrefix=pulsarr-removed       # Prefix for removal tags when using 'special-tag' mode
-deletionMode=watchlist                 # Deletion workflow mode: 'watchlist', 'tag-based' (default: watchlist)
-
-# Delete Configuration
-deleteMovie=false                      # Auto-delete movies setting
-deleteEndedShow=false                  # Auto-delete ended shows setting
-deleteContinuingShow=false             # Auto-delete continuing shows setting
-deleteFiles=true                       # Delete files from disk setting
-respectUserSyncSetting=true            # Only delete content from users with sync enabled
-deleteSyncNotify=none                  # Notify of delete sync status: 'none', 'message', 'webhook', 'both', 'all', 'discord-only', 'apprise-only', 'webhook-only', 'dm-only', 'discord-webhook', 'discord-message', 'discord-both' (default: none)
-deleteSyncNotifyOnlyOnDeletion=false   # Only send notifications when items are actually deleted
-deleteSyncTrackedOnly=false            # Only delete content tracked in the approval system (default: false)
-deleteSyncCleanupApprovals=false       # Cleanup approval requests after content is deleted (default: false)
-approvalNotify=none                    # Notify of approval status: 'none', 'all', 'discord-only', 'apprise-only', 'webhook-only', 'dm-only', 'discord-webhook', 'discord-message', 'discord-both' (default: none)
-maxDeletionPrevention=10               # Safeguard to prevent mass deletion. % of total library to allow during delete sync
-
-# Plex Session Monitoring
-plexSessionMonitoring='{"enabled":false,"pollingIntervalMinutes":15,"remainingEpisodes":2,"filterUsers":[],"enableAutoReset":true,"inactivityResetDays":7,"autoResetIntervalHours":24,"enableProgressiveCleanup":false}'  # JSON config for session monitoring
-# Session monitoring configuration (JSON format):
-# - enabled: Enable/disable session monitoring (default: false)
-# - pollingIntervalMinutes: How often to check sessions in minutes (default: 15, range: 1-1440)
-# - remainingEpisodes: Episodes remaining before triggering search (default: 2, range: 1-10)
-# - filterUsers: Array of usernames to monitor, empty for all users (default: [])
-# - enableAutoReset: Enable automatic reset of inactive shows (default: true)
-# - inactivityResetDays: Days without activity before reset (default: 7, range: 1-365)
-# - autoResetIntervalHours: How often to check for inactive shows in hours (default: 24, range: 1-168)
-# - enableProgressiveCleanup: Enable progressive cleanup of previous seasons (default: false)
-
-# Public Content Notifications (JSON Configuration)
-publicContentNotifications='{"enabled":false,"discordWebhookUrls":"","discordWebhookUrlsMovies":"","discordWebhookUrlsShows":"","appriseUrls":"","appriseUrlsMovies":"","appriseUrlsShows":""}'  # JSON config for public content notifications
-
-# New User Defaults
-newUserDefaultCanSync=true                    # Default sync permission for new users
-newUserDefaultRequiresApproval=false          # Default approval requirement for new users
-newUserDefaultMovieQuotaEnabled=false         # Enable movie quotas by default for new users
-newUserDefaultMovieQuotaType=monthly          # Default movie quota type: 'daily', 'weekly_rolling', 'monthly'
-newUserDefaultMovieQuotaLimit=10              # Default movie quota limit (1-1000)
-newUserDefaultMovieBypassApproval=false       # Default movie quota auto-approve when exceeded
-newUserDefaultShowQuotaEnabled=false          # Enable show quotas by default for new users
-newUserDefaultShowQuotaType=monthly           # Default show quota type: 'daily', 'weekly_rolling', 'monthly'
-newUserDefaultShowQuotaLimit=10               # Default show quota limit (1-1000)
-newUserDefaultShowBypassApproval=false        # Default show quota auto-approve when exceeded
-
-# Quota System Configuration
-quotaSettings='{"cleanup":{"enabled":true,"retentionDays":90},"weeklyRolling":{"resetDays":7},"monthly":{"resetDay":1,"handleMonthEnd":"last-day"}}'  # JSON config for quota system
-# Quota configuration (JSON format):
-# - cleanup.enabled: Enable cleanup of old quota usage records (default: true)
-# - cleanup.retentionDays: Days to keep quota usage history (default: 90, range: 1-3650)
-# - weeklyRolling.resetDays: Days between weekly rolling quota resets (default: 7, range: 1-365)
-# - monthly.resetDay: Day of month for monthly quota resets (default: 1, range: 1-31)
-# - monthly.handleMonthEnd: How to handle months without resetDay: 'last-day', 'skip-month', 'next-month' (default: last-day)
-
-# Approval System Configuration
-approvalExpiration='{"enabled":false,"defaultExpirationHours":72,"expirationAction":"expire","autoApproveOnQuotaAvailable":false,"cleanupExpiredDays":30}'  # JSON config for approval expiration
-# Approval expiration configuration (JSON format):
-# - enabled: Enable automatic approval expiration (default: false)
-# - defaultExpirationHours: Default hours before approval expires (range: 1-8760)
-# - expirationAction: What happens when approval expires: 'expire', 'auto_approve' (default: expire)
-# - autoApproveOnQuotaAvailable: Auto-approve quota_exceeded requests when quota resets (default: false)
-# - quotaExceededExpirationHours: Override expiration for quota exceeded triggers (optional, range: 1-8760)
-# - routerRuleExpirationHours: Override expiration for router rule triggers (optional, range: 1-8760)
-# - manualFlagExpirationHours: Override expiration for manual flag triggers (optional, range: 1-8760)
-# - contentCriteriaExpirationHours: Override expiration for content criteria triggers (optional, range: 1-8760)
-# - cleanupExpiredDays: Days to keep expired approval records (default: 30, range: 1-365)
-
-# Plex Label Sync Configuration
-plexLabelSync='{"enabled":false,"labelPrefix":"pulsarr","concurrencyLimit":5,"cleanupOrphanedLabels":false,"removedLabelMode":"remove","removedLabelPrefix":"pulsarr:removed","autoResetOnScheduledSync":false,"scheduleTime":null,"dayOfWeek":"*","tagSync":{"enabled":false,"syncRadarrTags":true,"syncSonarrTags":true}}'  # JSON config for Plex label synchronization
-# Plex Label Sync configuration (JSON format):
-# - enabled: Enable/disable Plex label synchronization feature (default: false)
-# - labelPrefix: Prefix for user labels in Plex (default: "pulsarr", results in "pulsarr:username")
-# - concurrencyLimit: Maximum concurrent operations during sync (default: 5, range: 1-20)
-# - cleanupOrphanedLabels: Remove labels for deleted users during cleanup (default: false)
-# - removedLabelMode: Handle labels when users removed: 'remove', 'keep', 'special-label' (default: remove)
-# - removedLabelPrefix: Prefix for special removal labels when using 'special-label' mode (default: "pulsarr:removed")
-# - autoResetOnScheduledSync: Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode (default: false)
-# - scheduleTime: Optional scheduled sync time in ISO format (default: null)
-# - dayOfWeek: Day of week for scheduled sync, cron format (default: "*" - every day)
-# - tagSync.enabled: Enable syncing Radarr/Sonarr tags as Plex labels (default: false)
-# - tagSync.syncRadarrTags: Sync Radarr instance tags to Plex movie labels (default: true)
-# - tagSync.syncSonarrTags: Sync Sonarr instance tags to Plex show labels (default: true)
+plexSessionMonitoring='{"enabled":false,"pollingIntervalMinutes":15,"remainingEpisodes":2,"filterUsers":[],"enableAutoReset":true,"inactivityResetDays":7,"autoResetIntervalHours":24,"enableProgressiveCleanup":false}'
 ```
 
-## Authentication Configuration Details
+| Field | Description | Default |
+|-------|-------------|---------|
+| `enabled` | Enable session monitoring | `false` |
+| `pollingIntervalMinutes` | Check interval (1-1440) | `15` |
+| `remainingEpisodes` | Episodes before trigger (1-10) | `2` |
+| `filterUsers` | Usernames to monitor (empty = all) | `[]` |
+| `enableAutoReset` | Auto-reset inactive shows | `true` |
+| `inactivityResetDays` | Days before reset (1-365) | `7` |
+| `autoResetIntervalHours` | Reset check interval (1-168) | `24` |
+| `enableProgressiveCleanup` | Progressive season cleanup | `false` |
 
-When using `authenticationMethod=requiredExceptLocal`, connections from the following private IP ranges will bypass authentication:
+### Quota Settings
 
-- **127.0.0.0/8** - localhost (127.0.0.1)
-- **10.0.0.0/8** - Private network Class A (10.x.x.x)
-- **172.16.0.0/12** - Private network Class B (172.16.x.x - 172.31.x.x)
-- **192.168.0.0/16** - Private network Class C (192.168.x.x)
-- **169.254.0.0/16** - Link-local addresses (APIPA)
-- **::1/128** - IPv6 localhost
-- **fc00::/7** - IPv6 unique local addresses
-- **fe80::/10** - IPv6 link-local addresses
-- **::ffff:x.x.x.x** - IPv4-mapped IPv6 addresses
-
-:::warning Security Consideration
-The `requiredExceptLocal` setting bypasses authentication for all connections from private network ranges. Ensure your network topology is secure and that only trusted devices can access these IP ranges.
-:::
-
-## Environment Variable Categories
-
-### Core Application
-- `baseUrl`, `port`, `listenPort`, `TZ` - Essential server configuration
-  - `port` - External port for webhook URL generation (what Sonarr/Radarr use to reach Pulsarr)
-  - `listenPort` - Internal port the server binds to (default: 3003)
-- `logLevel`, `enableConsoleOutput`, `enableRequestLogging` - Comprehensive logging configuration
-- `authenticationMethod` - Security settings
-- `basePath` - Optional reverse proxy subfolder support
-
-### Database
-- `dbType` - Database type selection ('sqlite' or 'postgres')
-- `dbHost`, `dbPort`, `dbName`, `dbUser`, `dbPassword` - PostgreSQL connection parameters
-- `dbConnectionString` - Alternative PostgreSQL connection string format
-- `dbPath` - SQLite database file location
-
-### Security & Sessions
-- `cookieSecret`, `cookieName`, `cookieSecured` - Session management
-- `allowIframes` - iframe embedding support
-- `rateLimitMax` - Rate limiting
-
-### External Integrations
-- `discordWebhookUrl`, `discordBotToken`, `discordClientId` - Discord
-- `appriseUrl`, `enableApprise`, `systemAppriseUrl` - Apprise notifications
-- `tautulliEnabled`, `tautulliUrl`, `tautulliApiKey` - Tautulli integration
-- `tmdbApiKey` - TMDB API Read Access Token for movie/TV metadata features
-
-### Media Management
-- `sonarr*` variables - Sonarr instance seeding (development)
-- `radarr*` variables - Radarr instance seeding (development)
-- `plex*` variables - Plex server integration
-- `skipIfExistsOnPlex` - Skip downloading if content exists on Plex servers (behavior varies by user type)
-
-### Advanced Features
-- `tag*` variables - User tagging configuration
-- `delete*` variables - Automated deletion settings
-- `approvalNotify` - Approval system notification configuration
-- `plexSessionMonitoring` - JSON configuration for session monitoring
-- `plexLabelSync` - JSON configuration for Plex label synchronization
-- `pending*` variables - Notification queue settings
-
-### User Management & Defaults
-- `newUserDefault*` variables - Default settings applied to newly discovered Plex users
-  - Sync permissions, approval requirements, and quota configurations
-
-### Quota & Approval Systems
-- `quotaSettings` - JSON configuration for quota management and cleanup
-- `approvalExpiration` - JSON configuration for approval workflow expiration
-
-## TMDB API Configuration
-
-**Required for TMDB metadata features**: Users building Pulsarr from source must obtain their own TMDB API Read Access Token.
-
-1. **Create a TMDB account** at [themoviedb.org](https://www.themoviedb.org/)
-2. **Get your API Read Access Token** at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api)
-3. **Add to your `.env` file**:
-   ```env
-   tmdbApiKey=your_read_access_token_here
-   ```
-
-:::note Read Access Token vs API Key
-Use the **Read Access Token** (starts with `eyJ`), not the legacy API Key. The Read Access Token provides Bearer authentication required for modern TMDB API features.
-:::
-
-For Docker builds, you can also pass the token as a build argument:
-```bash
-docker build --build-arg tmdbApiKey=your_token_here -t pulsarr .
+```env
+quotaSettings='{"cleanup":{"enabled":true,"retentionDays":90},"weeklyRolling":{"resetDays":7},"monthly":{"resetDay":1,"handleMonthEnd":"last-day"}}'
 ```
 
-:::warning Development Only
-Variables marked with "dev only" or "development" comments should not be used in production environments. They are intended for testing and development setup only.
+| Field | Description | Default |
+|-------|-------------|---------|
+| `cleanup.enabled` | Enable old record cleanup | `true` |
+| `cleanup.retentionDays` | Days to keep history (1-3650) | `90` |
+| `weeklyRolling.resetDays` | Days between resets (1-365) | `7` |
+| `monthly.resetDay` | Day of month for reset (1-31) | `1` |
+| `monthly.handleMonthEnd` | `last-day`, `skip-month`, `next-month` | `last-day` |
+
+### Approval Expiration
+
+```env
+approvalExpiration='{"enabled":false,"defaultExpirationHours":72,"expirationAction":"expire","autoApproveOnQuotaAvailable":false,"cleanupExpiredDays":30}'
+```
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `enabled` | Enable auto-expiration | `false` |
+| `defaultExpirationHours` | Hours before expiration (1-8760) | `72` |
+| `expirationAction` | `expire` or `auto_approve` | `expire` |
+| `autoApproveOnQuotaAvailable` | Auto-approve when quota resets | `false` |
+| `cleanupExpiredDays` | Days to keep expired records (1-365) | `30` |
+
+### Plex Label Sync
+
+```env
+plexLabelSync='{"enabled":false,"labelPrefix":"pulsarr","concurrencyLimit":5,"cleanupOrphanedLabels":false,"removedLabelMode":"remove","removedLabelPrefix":"pulsarr:removed","autoResetOnScheduledSync":false,"tagSync":{"enabled":false,"syncRadarrTags":true,"syncSonarrTags":true}}'
+```
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `enabled` | Enable label sync | `false` |
+| `labelPrefix` | Prefix for user labels | `pulsarr` |
+| `concurrencyLimit` | Max concurrent operations (1-20) | `5` |
+| `cleanupOrphanedLabels` | Remove labels for deleted users | `false` |
+| `removedLabelMode` | `remove`, `keep`, `special-label` | `remove` |
+| `removedLabelPrefix` | Special removal label prefix | `pulsarr:removed` |
+| `tagSync.enabled` | Sync Sonarr/Radarr tags to Plex | `false` |
+| `tagSync.syncRadarrTags` | Sync Radarr tags | `true` |
+| `tagSync.syncSonarrTags` | Sync Sonarr tags | `true` |
+
+### Public Content Notifications
+
+```env
+publicContentNotifications='{"enabled":false,"discordWebhookUrls":"","discordWebhookUrlsMovies":"","discordWebhookUrlsShows":"","appriseUrls":"","appriseUrlsMovies":"","appriseUrlsShows":""}'
+```
+
+## TMDB API Configuration {#tmdb-api-configuration}
+
+Required for TMDB metadata features when building from source:
+
+1. Create account at [themoviedb.org](https://www.themoviedb.org/)
+2. Get Read Access Token at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api)
+3. Add to `.env`: `tmdbApiKey=your_read_access_token_here`
+
+:::note
+Use the **Read Access Token** (starts with `eyJ`), not the legacy API Key.
 :::
 
-## Variable Override Behavior
+## Development Only
 
-Environment variables in the `.env` file will override settings configured in the web UI **on application restart**. See the [Configuration Guide](../installation/configuration) for details.
+:::warning
+These variables are for development/testing only. Do not use in production.
+:::
+
+### Sonarr Instance Seeding
+
+| Variable | Description |
+|----------|-------------|
+| `sonarrBaseUrl` | Sonarr instance URL |
+| `sonarrApiKey` | API key |
+| `sonarrQualityProfile` | Quality profile |
+| `sonarrRootFolder` | Root folder path |
+| `sonarrBypassIgnored` | Bypass ignored |
+| `sonarrSeasonMonitoring` | Season monitoring |
+| `sonarrMonitorNewItems` | Monitor new items |
+| `sonarrTags` | Tags (JSON array) |
+
+### Radarr Instance Seeding
+
+| Variable | Description |
+|----------|-------------|
+| `radarrBaseUrl` | Radarr instance URL |
+| `radarrApiKey` | API key |
+| `radarrQualityProfile` | Quality profile |
+| `radarrRootFolder` | Root folder path |
+| `radarrBypassIgnored` | Bypass ignored |
+| `radarrTags` | Tags (JSON array) |

@@ -24,6 +24,9 @@
     Roboto, "Helvetica Neue", Arial, sans-serif;
   --ifm-font-family-monospace:
     SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  --ifm-font-weight-base: 500;
+  --ifm-font-weight-semibold: 600;
+  --ifm-font-weight-bold: 700;
 
   /* Match main app colors */
   --ifm-color-primary: #48a9a6;
@@ -88,7 +91,7 @@ body {
   position: static !important;
   width: auto !important;
   height: auto !important;
-  font-weight: 400 !important;
+  font-weight: 500 !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

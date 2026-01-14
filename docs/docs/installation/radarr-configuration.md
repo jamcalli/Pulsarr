@@ -10,59 +10,59 @@ Configure your Radarr instances to manage movie downloads and monitoring.
 
 <img src={useBaseUrl('/img/Radarr-Instance-Card.png')} alt="Radarr Instance Configuration" />
 
-## Instance Settings
+## Quick Setup
 
-### Connection Settings
+1. Navigate to **Radarr** in Pulsarr
+2. Click **Add Instance**
+3. Enter your Radarr URL and API key (Settings → General → Security)
+4. Select quality profile and root folder
+5. Set minimum availability preference
+6. Save and test connection
 
-**Name** (required)
-- Instance display name for identification
-- Must be unique across all instances
+## Connection Settings
 
-**Base URL** (required)
-- Radarr server URL without trailing slash
-- Example: `http://localhost:7878` or `https://radarr.yourdomain.com`
+| Setting | Required | Description |
+|---------|----------|-------------|
+| **Name** | Yes | Unique display name for this instance |
+| **Base URL** | Yes | Radarr URL without trailing slash (e.g., `http://localhost:7878`) |
+| **API Key** | Yes | From Radarr: Settings → General → Security |
 
-**API Key** (required)
-- Radarr API key from Settings > General > Security
+## Content Management
 
-### Content Management
+| Setting | Required | Description |
+|---------|----------|-------------|
+| **Quality Profile** | Yes | Default quality profile for new movies |
+| **Root Folder** | Yes | Default root folder for new movies |
+| **Tags** | No | Tags to apply to new content (can create new tags inline) |
 
-**Quality Profile** (required)
-- Select default quality profile for new content
-- Choose from available profiles in your Radarr instance
+## Monitoring Settings
 
-**Root Folder** (required)
-- Select default root folder for new movies
-- Choose from available folders in your Radarr instance
+| Setting | Description |
+|---------|-------------|
+| **Minimum Availability** | When movie is considered available for download |
+| **Monitor** | What to monitor when adding movies |
 
-**Tags**
-- Select tags to apply to new content
-- Choose from existing tags in your Radarr instance
-- Includes utility to create new tags for convenience
+### Minimum Availability Options
 
-### Availability Settings
+| Option | Description |
+|--------|-------------|
+| `Announced` | As soon as movie is announced |
+| `In Cinemas` | When movie is in theaters |
+| `Released` | When movie is released (default) |
 
-**Minimum Availability**
-- Announced
-- In Cinemas
-- Released (default)
+### Monitor Options
 
-### Search Settings
+| Option | Description |
+|--------|-------------|
+| `Movie Only` | Monitor only the movie (default) |
+| `Movie and Collection` | Monitor movie and its collection |
+| `None` | Don't monitor |
 
-**Search on Add**
-- Enable to automatically search when content is added (default)
-- Disable to skip automatic searching
+## Other Settings
 
-### Instance Management
-
-**Bypass Ignored**
-- Enable to bypass ignored items in Radarr
-- Disable to respect Radarr's ignored items (default)
-
-**Is Default**
-- Enable to use as default instance when no routing rules match
-- Disable for regular instance (default)
-
-**Synced Instances**
-- Select other instances to synchronize with
-- Used for multi-instance content distribution
+| Setting | Description |
+|---------|-------------|
+| **Search on Add** | Auto-search when added (default: enabled) |
+| **Bypass Ignored** | Bypass Radarr's ignored items (default: disabled) |
+| **Is Default** | Use as fallback when no routing rules match |
+| **Synced Instances** | Other instances to sync content with |
