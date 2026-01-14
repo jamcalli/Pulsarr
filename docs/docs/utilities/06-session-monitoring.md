@@ -37,42 +37,33 @@ Progressive downloading strategy that starts minimal and expands based on viewin
 
 ## Configuration
 
-Navigate to **Utilities > Plex Session Monitoring**:
-
 ### Basic Settings
-- **Enable Session Monitoring**: Toggle the feature on/off
-- **Polling Interval**: How often to check for active sessions (default: 15 minutes)
-- **Episode Threshold**: When to trigger searches (default: 2 episodes remaining)
-- **Filter Users**: Optionally monitor only specific users
+
+| Setting | Description |
+|---------|-------------|
+| **Enable Session Monitoring** | Toggle the feature on/off |
+| **Polling Interval** | How often to check sessions (default: 15 minutes) |
+| **Episode Threshold** | When to trigger searches (default: 2 episodes remaining) |
+| **Filter Users** | Optionally monitor only specific users |
 
 ### Cleanup Settings
-- **Automatic Reset**: Reset abandoned shows to original state after inactivity period
-- **Progressive Cleanup**: Remove previous seasons as users advance, but only if no other users have watched those seasons within the inactivity period
-- **Inactivity Reset Days**: Days to wait before considering content inactive for cleanup (default: 7 days)
 
-## Rolling Monitoring Status
+| Setting | Description |
+|---------|-------------|
+| **Automatic Reset** | Reset abandoned shows after inactivity period |
+| **Progressive Cleanup** | Remove previous seasons as users advance (respects other user activity) |
+| **Inactivity Reset Days** | Days before content considered inactive (default: 7) |
 
-The interface provides real-time management of tracked shows:
+## Status & Actions
 
-### Active Shows
-- **View button**: Displays all rolling monitored shows including master records and user tracking entries
-- **Master records**: Have action buttons for management (shows without specific user)
-- **User tracking entries**: Display "Tracking only" status
-
-### Action Buttons (Master Records Only)
-- **Reset**: Reverts show to original monitoring state and removes all user tracking entries
-- **Delete**: Removes show from monitoring entirely, leaving current content in place
-
-### Inactive Shows  
-- **Shows**: Haven't been watched within the configured inactivity period (default: 7 days)
-- **Based on**: `last_updated_at` field compared to inactivity threshold
-- **View button**: Opens read-only table (no action buttons) showing shows eligible for reset
-- **Reset button**: Only appears when inactive shows exist - bulk resets all inactive shows
-
-### Manual Actions
-- **Check Sessions**: Button in header - manually triggers session monitoring without waiting for polling interval
-- **Reset All Inactive**: Button only appears in the Inactive section when there are inactive shows (⟲ icon)
-- **View buttons**: Open detailed sheets showing all shows with management options
+| Action | Description |
+|--------|-------------|
+| **View Active** | Shows all rolling monitored content with master records and user tracking |
+| **View Inactive** | Shows content not watched within inactivity period |
+| **Reset** | Reverts show to original monitoring state (master records only) |
+| **Delete** | Removes from monitoring, keeps current content |
+| **Check Sessions** | Manually trigger monitoring without waiting for poll |
+| **Reset All Inactive** | Bulk reset all inactive shows |
 
 ## Setup in Sonarr
 
@@ -93,20 +84,11 @@ Rolling monitoring options only appear when Session Monitoring is enabled.
 
 ## Troubleshooting
 
-**Sessions not detected:**
-- Verify Plex connection is active
-- Check polling interval isn't too long
-- Ensure users are actually watching content
-
-**Searches not triggering:**
-- Verify series exists in Sonarr with matching metadata
-- Check episode threshold configuration
-- Review application logs for errors
-
-**Rolling monitoring issues:**
-- Ensure Session Monitoring is enabled
-- Confirm content was added with rolling options
-- Check that shows haven't been manually modified in Sonarr
+| Problem | Solution |
+|---------|----------|
+| **Sessions not detected** | Verify Plex connection; check polling interval; ensure users watching content |
+| **Searches not triggering** | Verify series exists in Sonarr with metadata; check threshold config; review logs |
+| **Rolling monitoring issues** | Ensure feature enabled; confirm content added with rolling options; check Sonarr modifications |
 
 ## API Reference
 

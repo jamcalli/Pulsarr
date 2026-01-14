@@ -5,7 +5,7 @@
 
   ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?style=flat-square)
   ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
-  ![Node](https://img.shields.io/badge/node-22%20LTS-green?style=flat-square)
+  ![Node](https://img.shields.io/badge/node-24%20LTS-green?style=flat-square)
   ![Status](https://img.shields.io/badge/status-early--release-orange?style=flat-square)
   ![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
   ![Docker Image Size](https://img.shields.io/docker/image-size/lakker/pulsarr?style=flat-square)
@@ -46,7 +46,7 @@ Want to contribute? Check out our [Contributing Guidelines](#contributing).
 
 - **Real-time & Interval-based Watchlist Monitoring**:
   - Real-time monitoring through RSS feeds for Plex Pass users
-  - 20-minute interval polling for non-Plex Pass users
+  - 5-minute staggered polling for non-Plex Pass users (cycles through users)
   - All other features remain identical regardless of Plex Pass status
 - **Advanced Content Routing**:
   - Intelligent routing system with support for complex conditions and multiple instances
@@ -86,7 +86,7 @@ Pulsarr uses an intelligent workflow to process and route content:
 
 1. **Content Detection**:
    - Plex Pass: Real-time monitoring via RSS feeds
-   - Non-Plex Pass: Regular polling every 20 minutes
+   - Non-Plex Pass: Staggered polling every 5 minutes (cycles through users)
 2. **User Permissions**: Verifies if the user has sync permissions enabled
 3. **Content Analysis**:
    - Evaluates content metadata (genres, language, etc.)
@@ -142,7 +142,7 @@ The routing system processes all matching rules that target different instances,
 
 ### Prerequisites
 - Docker (recommended for deployment)
-- Plex Pass subscription (non-Plex Pass users supported with 20-minute polling intervals)
+- Plex Pass subscription (non-Plex Pass users supported with 5-minute staggered polling)
 - Sonarr/Radarr installation(s)
 
 ### Installation Options
@@ -843,7 +843,7 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 
 - ~~Email notifications~~
 - ~~Apprise for notifications~~
-- ~~Non-Plex Pass (will update watchlists on 20 minute intervals. All other functionality remains)~~
+- ~~Non-Plex Pass (will update watchlists on 5 minute staggered intervals. All other functionality remains)~~
 - API keys
 - ~~Delete Syncing~~
 - Unit tests... 🤮

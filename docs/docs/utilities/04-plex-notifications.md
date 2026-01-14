@@ -38,15 +38,10 @@ Automatically configures webhooks in all your connected Sonarr and Radarr instan
 
 ## Troubleshooting
 
-**Server not discovered:**
-- Verify Plex token is valid
-- Ensure Plex server is running and accessible
-- Check network connectivity
-
-**Webhooks not working:**
-- Confirm server settings are correct
-- Verify Sonarr/Radarr instances are connected
-- Check Plex server logs for errors
+| Problem | Solution |
+|---------|----------|
+| **Server not discovered** | Verify Plex token; ensure server running and accessible; check network |
+| **Webhooks not working** | Confirm server settings; verify Sonarr/Radarr connected; check Plex logs |
 
 ## API Reference
 

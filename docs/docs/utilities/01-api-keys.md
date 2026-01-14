@@ -39,15 +39,10 @@ curl -H "X-API-Key: YOUR_API_KEY" \
 
 ## Troubleshooting
 
-**401 Unauthorized:**
-- Verify you're using the `X-API-Key` header
-- Check that the key hasn't been revoked
-- Ensure the key is correct
-
-**Key Not Working:**
-- Verify you copied the complete key without extra spaces
-- Check for trailing newlines or whitespace
-- Try regenerating the key
+| Problem | Solution |
+|---------|----------|
+| **401 Unauthorized** | Verify `X-API-Key` header; check key isn't revoked; ensure key is correct |
+| **Key not working** | Check for extra spaces/newlines; verify complete key copied; try regenerating |
 
 ## API Reference
 

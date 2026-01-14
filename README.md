@@ -109,8 +109,8 @@ See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/in
 
 ## ✨ Key Features
 
-- **Real-time Monitoring**: Instant watchlist updates for Plex Pass users (20-minute polling for non-Pass users)
-- **Smart Content Routing**: Route content based on genre, user, language, year, certification, and more
+- **Real-time Monitoring**: Instant watchlist updates for Plex Pass users (5-minute polling for non-Pass users)
+- **Smart Content Routing**: Build rules with AND/OR logic using genre, user, language, year, certification, season, IMDb/RT/TMDB ratings, or streaming service. Rules can require approval or bypass quotas
 - **Approval & Quota System**: Administrative approval workflows with configurable user quotas (daily/weekly/monthly limits)
 - **Plex Label Sync**: Automatically sync user watchlists and Radarr/Sonarr tags as Plex labels with real-time webhook updates
 - **Multi-Instance Support**: Distribute content across multiple Sonarr/Radarr instances 

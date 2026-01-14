@@ -6,184 +6,177 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Advanced Content Routing
 
-Intelligently direct content to the appropriate Sonarr/Radarr instances using powerful predicate-based routing rules.
-
-:::info Migration Note
-If you're upgrading from a version prior to 0.2.15, you may need to delete and recreate your content routes if you experience routing issues.
-:::
+Build custom routing rules using AND/OR logic to direct content to the appropriate Sonarr/Radarr instances with specific configurations.
 
 <img src={useBaseUrl('/img/Content-Route-1.png')} alt="Content Router Interface" />
-
-<img src={useBaseUrl('/img/Content-Route-2.png')} alt="Content Router Advanced Interface" />
 
 ## Quick Setup
 
 1. Navigate to **Content Router** in the Pulsarr interface
-2. Click **Add Rule** to create your first routing rule
-3. Configure conditions (e.g., "IF genre contains 'Anime'")
+2. Click **Add Rule** to create a new routing rule
+3. Configure conditions using AND/OR logic (e.g., "IF genre contains 'Anime' AND year > 2020")
 4. Select target instance and configure overrides (quality profile, root folder)
-5. Set priority (higher numbers = higher priority)
-6. Save and test by adding content that matches your rule
+5. Optionally set rule to require approval or bypass quotas
+6. Set priority (only matters when multiple rules target the same instance - highest wins)
+7. Save and test by adding content that matches your rule
 
-## Key Features
+## Routing Conditions
 
-**Conditional Logic**: Complex decision trees with AND/OR operators, nested condition groups, and priority-based processing.
+Build rules using any combination of these fields with AND/OR logic:
 
-**Routing Criteria**: Route content based on genre, user, language, year, certification, or season count.
+| Field | Description | Example |
+|-------|-------------|---------|
+| **Genre** | Content genre categories | `genre contains "Anime"` |
+| **User** | User ID or username | `user equals "KidsAccount"` |
+| **Year** | Release year | `year > 2000` |
+| **Certification** | Content rating | `certification in ["PG", "PG-13"]` |
+| **Original Language** | Source language | `language equals "Japanese"` |
+| **Season** | Season number (Sonarr only) | `season > 3` |
+| **IMDb Rating** | IMDb score with optional vote count | `imdbRating > 7.0` |
+| **RT Critic Rating** | Rotten Tomatoes critic score (0-100) | `rtCriticRating > 80` |
+| **RT Audience Rating** | Rotten Tomatoes audience score (0-100) | `rtAudienceRating > 70` |
+| **TMDB Rating** | TMDB score (0-10) | `tmdbRating > 6.5` |
+| **Streaming Service** | Available streaming platforms | `streamingService contains "Netflix"` |
 
-**Multi-Instance Support**: Send content to multiple instances simultaneously with different configurations.
+:::tip Automatic Anime Detection
+Pulsarr automatically detects anime by checking TVDB/TMDB/IMDb IDs against the [anime-lists database](https://github.com/Anime-Lists/anime-lists), updated weekly. This adds "anime" to content genres automatically, enabling rules like `genre contains "Anime"` without manual tagging.
+:::
 
-## Automatic Anime Detection
+## Rule Actions
 
-Pulsarr automatically detects anime content to enable targeted routing and processing. When content is processed through the Content Router, it checks external IDs (TVDB, TMDB, IMDb) against a comprehensive anime database.
+Each rule can configure special behaviors:
 
-**How it works:**
-- Downloads anime database from the [anime-lists repository](https://github.com/Anime-Lists/anime-lists) 
-- Updates automatically every **Sunday at 3 AM**
-- Matches content IDs against anime database entries
-- Automatically adds "anime" to content genres when matched
-- Enables anime-specific routing rules (e.g., `genre contains "Anime"`)
+| Action | Description |
+|--------|-------------|
+| **Require Approval** | Force content matching this rule to require admin approval |
+| **Bypass Quotas** | Allow content to skip user quota limits |
+| **Approval Reason** | Custom message shown when approval is required |
 
-**Database Sources:**
-- **Primary**: anime-list-full.xml from anime-lists GitHub repository
-- **Supported IDs**: TVDB, TMDB, IMDb external identifiers
-- **Update Schedule**: Weekly automatic updates (Sundays at 3 AM)
+## Instance Overrides
 
-This seamless detection allows you to create routing rules like `IF genre contains "Anime"` without manually tagging content, as the system automatically identifies and classifies anime for you.
+Override default instance settings when routing:
 
-## Creating Rules
+### Sonarr
 
-Each rule consists of:
-- **Conditions**: Genre contains "Anime", User equals "KidsAccount", etc.
-- **Target Instance**: Which Sonarr/Radarr instance receives the content
-- **Instance Settings**: Quality profile, root folder, monitoring options
-- **Priority**: Higher priority rules take precedence
+| Setting | Description |
+|---------|-------------|
+| **Quality Profile** | Override default quality profile |
+| **Root Folder** | Route to specific folder path |
+| **Tags** | Apply specific tags for organization |
+| **Search on Add** | Automatically search when added |
+| **Series Type** | Override series type (`standard`, `anime`, `daily`) |
+| **Season Monitoring** | Override monitoring strategy (see below) |
 
-## Instance Configuration Overrides
+**Season Monitoring Options:**
 
-When creating routing rules, you can override these instance settings:
+| Option | Description |
+|--------|-------------|
+| `all` | All Seasons |
+| `future` | Future Seasons |
+| `missing` | Missing Episodes |
+| `existing` | Existing Episodes |
+| `firstSeason` | First Season |
+| `lastSeason` | Last Season |
+| `latestSeason` | Latest Season |
+| `pilot` | Pilot Only |
+| `pilotRolling` | Pilot Rolling (auto-expand with session monitoring) |
+| `firstSeasonRolling` | First Season Rolling (auto-expand with session monitoring) |
+| `recent` | Recent Episodes |
+| `monitorSpecials` | Monitor Specials |
+| `unmonitorSpecials` | Unmonitor Specials |
+| `none` | None |
+| `skip` | Skip |
 
-### Sonarr Overrides
+### Radarr
 
-**Core Settings:**
-- **Quality Profile**: Override default quality profile
-- **Root Folder**: Route to specific folder path
-- **Tags**: Apply specific tags for organization
-- **Search on Add**: Automatically search when added
-
-**Series Settings:**
-- **Series Type**: Override series type (`standard`, `anime`, `daily`)
-- **Season Monitoring**: Override monitoring strategy:
-  - `all` - All Seasons
-  - `future` - Future Seasons
-  - `missing` - Missing Episodes
-  - `existing` - Existing Episodes
-  - `firstSeason` - First Season
-  - `lastSeason` - Last Season
-  - `latestSeason` - Latest Season
-  - `pilot` - Pilot Only
-  - `pilotRolling` - Pilot Rolling (Auto-expand, requires session monitoring)
-  - `firstSeasonRolling` - First Season Rolling (Auto-expand, requires session monitoring)
-  - `recent` - Recent Episodes
-  - `monitorSpecials` - Monitor Specials
-  - `unmonitorSpecials` - Unmonitor Specials
-  - `none` - None
-  - `skip` - Skip
-
-### Radarr Overrides
-
-**Core Settings:**
-- **Quality Profile**: Override default quality profile
-- **Root Folder**: Route to specific folder path
-- **Tags**: Apply specific tags for organization
-- **Search on Add**: Automatically search when added
-
-### Routing Conditions
-
-**Available Fields:**
-- **Genres**: Content genre categories
-- **User**: User ID or username
-- **Year**: Release year
-- **Certification**: Content rating (PG-13, R, TV-MA, etc.)
-- **Original Language**: Original language of content
-- **Season**: Season number (Sonarr only)
+| Setting | Description |
+|---------|-------------|
+| **Quality Profile** | Override default quality profile |
+| **Root Folder** | Route to specific folder path |
+| **Tags** | Apply specific tags for organization |
+| **Search on Add** | Automatically search when added |
+| **Monitor** | Monitor type (`movieOnly`, `movieAndCollection`, `none`) |
 
 ## Multi-Instance Routing
 
-**Multiple Instance Support**: Content router rules can send the same content to multiple instances simultaneously. For example:
-- Anime Rule 1 → Anime-Sonarr-HD (priority 100)  
-- Anime Rule 2 → Anime-Sonarr-4K (priority 90)
-- Both rules fire for anime content, sending it to both instances with their respective configurations
+Rules can send content to multiple instances simultaneously:
 
-**Priority Evaluation**: Priorities only matter when multiple rules target the *same* instance - highest priority rule wins and applies its settings (quality profile, root folder, etc.).
+```
+Anime Rule 1 → Anime-Sonarr-HD (priority 100)
+Anime Rule 2 → Anime-Sonarr-4K (priority 90)
+```
 
-For comprehensive multi-instance synchronization and distribution features, see [Multi-Instance Support](multi-instance-support).
+Both rules fire for anime content, sending to both instances with their respective configurations.
+
+:::tip Priority Behavior
+Priorities only matter when multiple rules target the *same* instance. The highest priority rule wins and applies its settings. Rules targeting *different* instances all execute independently.
+:::
+
+For multi-instance synchronization features, see [Multi-Instance Support](multi-instance-support).
 
 ## Rule Processing
 
 When content is added to a watchlist:
+
 1. All routing rules are evaluated in priority order
-2. Content is sent to all matching instances (multiple instances supported)
+2. Content is sent to all matching instances
 3. For multiple rules targeting the same instance, highest priority wins
 
 ## Example Rules
 
-**Anime Routing:**
+**Anime to dedicated instance:**
 ```
-IF genre contains "Anime" 
+IF genre contains "Anime"
 THEN route to "Anime-Sonarr" with "HD-1080p" profile
 ```
 
-**User-based Routing:**
+**Kids content with approval:**
 ```
 IF user equals "KidsAccount"
-THEN route to "Family-Sonarr" with "Family" profile in "/kids" folder
+THEN route to "Family-Sonarr" in "/kids" folder
+AND require approval
 ```
 
-**Year-based Routing:**
+**High-rated movies only:**
 ```
-IF year is less than 2000
-THEN route to "Classics-Radarr" with "Archive" profile
+IF imdbRating > 7.5 AND rtCriticRating > 75
+THEN route to "Premium-Radarr" with "4K" profile
+```
+
+**Long-running series require approval:**
+```
+IF season > 5
+THEN route to default instance
+AND require approval with reason "Long-running series"
 ```
 
 ## Best Practices
 
-- Use higher priorities (90-100) for specific rules
 - Start with simple rules before adding complexity
-- Review logs if content isn't routing as expected
-- Test rules with dry runs before applying to production
+- Test rules by adding matching content and checking logs
 - Document your routing strategy for team collaboration
 
 ## Troubleshooting
 
-**Rules not matching content:**
-- Verify the condition field matches available metadata (check TMDB/TVDB data)
-- Review genre spelling and casing (case-sensitive matching)
-- Check that content has the required metadata fields populated
-- Use logs to see which rules are evaluated and why they fail
+**Rules not matching:**
+- Verify condition fields match available metadata (check TMDB/TVDB)
+- Review genre spelling and casing
+- Check logs to see rule evaluation
 
 **Content routing to wrong instance:**
-- Review rule priorities - highest priority wins for same instance
-- Check for overlapping rules targeting different instances
+- Review rule priorities (highest wins for same instance)
+- Check for overlapping rules
 - Verify target instance is configured and online
-- Confirm quality profiles and root folders exist on target instance
 
-**Multiple instances receiving same content unexpectedly:**
-- This is expected behavior if multiple rules match and target different instances
-- Review all matching rules and their target instances
-- Use priority to control which settings apply when multiple rules target same instance
+**Anime not detected:**
+- Anime database updates weekly (Sundays at 3 AM)
+- Verify content has TVDB/TMDB/IMDb external IDs
+- Check logs for anime detection results
 
-**Anime not being detected:**
-- Verify anime database has been downloaded (first run may take time)
-- Check that content has external IDs (TVDB, TMDB, IMDb)
-- Review logs for anime detection results
-- Wait for weekly update if content is new (Sundays at 3 AM)
-
-**Router overrides not applying:**
-- Confirm the rule is actually matching (check logs)
-- Verify override values are valid for the target instance
-- Check that router rule has higher priority than conflicting rules
-- Ensure target instance supports the configured overrides
+**Overrides not applying:**
+- Confirm rule is matching (check logs)
+- Verify override values exist on target instance
+- Check rule priority vs conflicting rules
 
 ## API Reference
 
