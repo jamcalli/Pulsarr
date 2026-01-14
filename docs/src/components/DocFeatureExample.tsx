@@ -32,7 +32,7 @@ export default function DocFeatureExample() {
             </p>
 
             <p className="text-foreground text-xs opacity-70 mt-2">
-              * Non-Plex Pass users supported with 20-minute polling intervals;
+              * Non-Plex Pass users supported with 5-minute staggered polling;
               all other features remain identical.
             </p>
           </div>
