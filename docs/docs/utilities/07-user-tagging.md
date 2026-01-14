@@ -20,53 +20,34 @@ Automatically adds user tags to content in Sonarr and Radarr, making it easy to 
 
 ## Configuration
 
-Navigate to **Utilities → User Tagging**:
+| Setting | Description |
+|---------|-------------|
+| **Enable Tagging** | Toggle for Sonarr and Radarr instances |
+| **Tag Prefix** | Customize prefix for user tags (default: "pulsarr-user") |
+| **Tag Removal Mode** | Keep, Remove, or Prefix existing tags |
+| **Removal Prefix** | Custom prefix for removed content tags |
+| **Clean Up Orphaned Tags** | Auto-remove tags for deleted users |
 
-- **Enable Tagging**: Toggle for Sonarr and Radarr instances
-- **Tag Prefix**: Customize prefix for user tags (default: "pulsarr-user")
-- **Tag Removal Options**:
-  - **Keep**: Preserve tags for historical tracking
-  - **Remove**: Delete tags when content leaves watchlists
-  - **Prefix**: Add custom prefix (e.g., "removed:") to existing tags
-- **Removal Prefix**: Custom prefix for removed content tags
-- **Clean Up Orphaned Tags**: Auto-remove tags for deleted users
-- **Manual Actions**: Remove all user tags or sync immediately
+### Manual Actions
 
-## Features
+| Action | Description |
+|--------|-------------|
+| **Create Tags** | Create tag definitions in Sonarr/Radarr |
+| **Sync Tags** | Apply tags to all existing content |
+| **Clean Up** | Remove orphaned tags for deleted users |
+| **Remove Tags** | Remove all Pulsarr user tags (destructive) |
 
-- **Automatic User Tracking**: Tags content with usernames of requesting users
-- **Multi-Instance Support**: Works across all Sonarr and Radarr instances
-- **Customizable Prefix**: Configure tag prefix (default: "pulsarr-user")
-- **Flexible Tag Removal**: Keep, remove, or prefix tags when content leaves watchlists
-- **Tag-Based Deletion**: Integrate with Delete Sync for tag-based workflows
-- **Batch Processing**: Efficiently processes large libraries
+## Tag Removal Modes
 
-## Advanced Tag Management
+| Mode | Behavior | Best For |
+|------|----------|----------|
+| **Keep** | Preserves tags for historical tracking | Accountability, analytics |
+| **Remove** | Deletes tags when content leaves watchlists | Active library management |
+| **Prefix** | Adds prefix (e.g., "removed:") to existing tags | Deletion workflows with history |
 
-When content is removed from a user's watchlist, choose how to handle tags:
-
-**Keep Mode:**
-- Preserves tags for historical tracking
-- Maintains record of original requesters
-- Useful for accountability and analytics
-
-**Remove Mode:**
-- Automatically deletes tags when content leaves watchlists
-- Keeps tag lists clean and current
-- Best for active library management
-
-**Prefix Mode:**
-- Adds customizable prefix (e.g., "removed:") to existing tags
-- Preserves history while marking inactive content
-- Enables custom deletion workflows with Delete Sync
-
-## Integration with Delete Sync
-
-User Tagging works seamlessly with Delete Sync's tag-based deletion mode:
-- Configure tags to be added, modified, or removed based on watchlist changes
-- Use tag status to determine when content should be deleted
-- Protect content with specific tags from deletion
-- Create complex deletion workflows based on tag lifecycle
+:::tip Delete Sync Integration
+User Tagging integrates with Delete Sync's tag-based mode. Use removal tags to trigger automated deletion workflows while preserving tag history.
+:::
 
 ## Best Practices
 
@@ -77,15 +58,10 @@ User Tagging works seamlessly with Delete Sync's tag-based deletion mode:
 
 ## Troubleshooting
 
-**Tags not appearing:**
-- Verify tagging is enabled for the instance
-- Check that content was added via Pulsarr (not manually)
-- Run manual sync to apply tags immediately
-
-**Orphaned tags accumulating:**
-- Enable "Clean Up Orphaned Tags" option
-- Run manual cleanup to remove tags for deleted users
-- Review tag prefix configuration
+| Problem | Solution |
+|---------|----------|
+| **Tags not appearing** | Verify tagging enabled; check content added via Pulsarr; run manual sync |
+| **Orphaned tags accumulating** | Enable cleanup option; run manual cleanup; review tag prefix |
 
 ## API Reference
 
