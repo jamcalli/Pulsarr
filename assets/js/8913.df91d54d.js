@@ -1,1 +1,0 @@
-"use strict";(globalThis.webpackChunk_watchlist_v2_docs=globalThis.webpackChunk_watchlist_v2_docs||[]).push([[8913],{58913:(s,c,h)=>{h.r(c)}}]);
