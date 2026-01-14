@@ -6,16 +6,16 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Discord Notifications
 
-Pulsarr includes a powerful Discord integration that enables personalized notifications and user-friendly configuration options.
+Pulsarr includes Discord integration for personalized notifications via bot DMs and channel webhooks for administrative alerts.
 
-## Overview
+## Quick Setup
 
-The Discord integration consists of two main components:
-
-1. **Discord Bot**: Handles user interactions and delivers direct message notifications
-2. **Discord Webhooks**: Sends administrative notifications about content activity
-
-This dual approach provides flexibility in how notifications are delivered and configured.
+1. **Webhooks only**: Create a webhook in Discord channel settings → Integrations → Webhooks, add URL to Pulsarr
+2. **Bot setup**: Create app at [Discord Developer Portal](https://discord.com/developers/applications), add bot, enable Message Content Intent
+3. Configure OAuth2 with `bot` + `applications.commands` scopes and required permissions
+4. Invite bot to server using generated URL
+5. In Pulsarr, enter Bot Token and Client ID, click **Start**
+6. Users run `/notifications` to link their Plex account
 
 ## Setting Up Webhooks
 
@@ -59,13 +59,17 @@ For personalized user notifications, you'll need to set up a Discord bot.
 ### Configuring Bot Permissions
 
 1. Go to OAuth2 → URL Generator
-2. Under "Scopes", select "bot" and "applications.commands"
-3. Under "Bot Permissions", select at minimum:
-   - Send Messages
-   - Embed Links
-   - Use Slash Commands
-   - Send Messages in Threads
-   - Use External Emojis
+2. Under "Scopes", select `bot` and `applications.commands`
+3. Under "Bot Permissions", select:
+
+| Permission | Required For |
+|------------|--------------|
+| Send Messages | Notifications and responses |
+| Embed Links | Rich notification embeds |
+| Use Slash Commands | `/notifications` command |
+| Send Messages in Threads | Thread support |
+| Use External Emojis | Custom emoji display |
+
 4. Copy the generated URL
 
 ### Inviting the Bot to Your Server
@@ -118,23 +122,11 @@ When content is available, users will receive DMs like these:
 
 ## Troubleshooting
 
-### Bot Not Responding to Commands
-
-If your bot isn't responding to commands:
-
-1. Verify the bot token is correct
-2. Ensure the Message Content Intent is enabled
-3. Check that the bot has the necessary permissions in your server
-4. Look at the Pulsarr logs for any discord-related errors
-
-### Users Not Receiving Notifications
-
-If users aren't receiving notifications:
-
-1. Ensure they have associated their Plex username correctly
-2. Check if they have enabled notifications in their settings
-3. Verify their Plex account has sync permissions enabled in Pulsarr
-4. Check if their Discord privacy settings allow DMs from server members
+| Problem | Solution |
+|---------|----------|
+| **Bot not responding** | Verify bot token; enable Message Content Intent; check server permissions; review Pulsarr logs |
+| **Users not receiving DMs** | Verify Plex username linked correctly; check notification settings enabled; confirm sync permissions; check Discord privacy allows DMs from server members |
+| **Webhook not sending** | Verify webhook URL is correct; check channel permissions; test webhook in Discord settings |
 
 ## Advanced Features
 

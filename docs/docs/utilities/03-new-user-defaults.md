@@ -19,22 +19,19 @@ Configure default settings automatically applied to newly discovered Plex users,
 
 ## Configuration
 
-Navigate to **Utilities → New User Defaults**:
+| Setting | Description |
+|---------|-------------|
+| **Enable sync by default** | Allow new users to sync watchlists immediately |
+| **Require manual approval** | New users need approval for all requests |
 
-- **Sync Settings**:
-  - **Enable sync by default**: Allow new users to sync watchlists immediately
-- **Approval Settings**:
-  - **Require manual approval by default**: New users need approval for all requests
-- **Movie Quotas**:
-  - **Enable movie quotas**: Toggle quota system for movies
-  - **Quota Type**: `daily`, `weekly_rolling`, or `monthly`
-  - **Quota Limit**: Number of movies (1-1000) per period
-  - **Auto-approve when exceeded**: Auto-approve or require manual review
-- **Show Quotas**:
-  - **Enable show quotas**: Toggle quota system for TV shows
-  - **Quota Type**: `daily`, `weekly_rolling`, or `monthly`
-  - **Quota Limit**: Number of shows (1-1000) per period
-  - **Auto-approve when exceeded**: Auto-approve or require manual review
+### Quota Settings (Movies & Shows)
+
+| Setting | Description |
+|---------|-------------|
+| **Enable quotas** | Toggle quota system for content type |
+| **Quota Type** | `daily`, `weekly_rolling`, or `monthly` |
+| **Quota Limit** | Number allowed per period (1-1000) |
+| **Auto-approve when exceeded** | Auto-approve or require manual review |
 
 :::info Approval Hierarchy
 Router Rules > User Requires Approval > Quota Bypass Approval. User-level approval overrides quota settings.
@@ -77,20 +74,11 @@ Sync enabled, no approval, unlimited quotas
 
 ## Troubleshooting
 
-**Default settings not applying:**
-- Verify settings are saved in New User Defaults page
-- Confirm user is newly discovered (not re-synced)
-- Review logs for quota creation errors
-
-**Quotas not being created:**
-- Ensure quota defaults are enabled
-- Check quota limits are within range (1-1000)
-- Review database logs for errors
-
-**Environment variables not working:**
-- Variables only apply on application restart
-- Check for typos in variable names
-- Web UI is overridden by environment variables
+| Problem | Solution |
+|---------|----------|
+| **Defaults not applying** | Verify settings saved; confirm user is newly discovered (not re-synced); check logs |
+| **Quotas not created** | Ensure quota defaults enabled; check limits within range (1-1000) |
+| **Env variables not working** | Restart application; check for typos; note env vars override web UI |
 
 ## API Reference
 

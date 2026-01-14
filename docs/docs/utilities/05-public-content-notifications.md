@@ -62,16 +62,10 @@ Apprise URLs: slack://workspace/channel/token
 
 ## Troubleshooting
 
-**No notifications received:**
-1. Verify feature is enabled in Utilities
-2. Confirm at least one URL is configured
-3. Check Discord/Apprise services are enabled
-4. Review application logs for errors
-
-**Partial notifications:**
-- Verify URL formatting is correct
-- Check service-specific configuration
-- Review error logs for delivery issues
+| Problem | Solution |
+|---------|----------|
+| **No notifications** | Verify feature enabled; confirm URL configured; check services enabled; review logs |
+| **Partial notifications** | Verify URL formatting; check service config; review error logs |
 
 ## API Reference
 

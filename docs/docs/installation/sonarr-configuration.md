@@ -10,94 +10,74 @@ Configure your Sonarr instances to manage TV show downloads and monitoring.
 
 <img src={useBaseUrl('/img/Sonarr-Instance-Card.png')} alt="Sonarr Instance Configuration" />
 
-## Instance Settings
+## Quick Setup
 
-### Connection Settings
+1. Navigate to **Sonarr** in Pulsarr
+2. Click **Add Instance**
+3. Enter your Sonarr URL and API key (Settings → General → Security)
+4. Select quality profile and root folder
+5. Configure season monitoring strategy
+6. Save and test connection
 
-**Name** (required)
-- Instance display name for identification
-- Must be unique across all instances
+## Connection Settings
 
-**Base URL** (required)
-- Sonarr server URL without trailing slash
-- Example: `http://localhost:8989` or `https://sonarr.yourdomain.com`
+| Setting | Required | Description |
+|---------|----------|-------------|
+| **Name** | Yes | Unique display name for this instance |
+| **Base URL** | Yes | Sonarr URL without trailing slash (e.g., `http://localhost:8989`) |
+| **API Key** | Yes | From Sonarr: Settings → General → Security |
 
-**API Key** (required)
-- Sonarr API key from Settings > General > Security
+## Content Management
 
-### Content Management
+| Setting | Required | Description |
+|---------|----------|-------------|
+| **Quality Profile** | Yes | Default quality profile for new series |
+| **Root Folder** | Yes | Default root folder for new series |
+| **Tags** | No | Tags to apply to new content (can create new tags inline) |
 
-**Quality Profile** (required)
-- Select default quality profile for new content
-- Choose from available profiles in your Sonarr instance
+## Monitoring Settings
 
-**Root Folder** (required)
-- Select default root folder for new series
-- Choose from available folders in your Sonarr instance
+| Setting | Description |
+|---------|-------------|
+| **Season Monitoring** | Which seasons to monitor (see options below) |
+| **Monitor New Items** | Monitor all new items (default) or don't monitor |
 
-**Tags**
-- Select tags to apply to new content
-- Choose from existing tags in your Sonarr instance
-- Includes utility to create new tags for convenience
+### Season Monitoring Options
 
-### Monitoring Settings
+| Option | Description |
+|--------|-------------|
+| `All Seasons` | Monitor all seasons (default) |
+| `Future Seasons` | Only future seasons |
+| `Missing Episodes` | Only missing episodes |
+| `Existing Episodes` | Only existing episodes |
+| `First Season` | First season only |
+| `Last Season` | Last season only |
+| `Latest Season` | Latest season only |
+| `Pilot Only` | Pilot episode only |
+| `Pilot Rolling` | Pilot, auto-expands with session monitoring |
+| `First Season Rolling` | First season, auto-expands with session monitoring |
+| `Recent Episodes` | Recent episodes only |
+| `Monitor Specials` | Include specials |
+| `Unmonitor Specials` | Exclude specials |
+| `None` | Don't monitor |
+| `Skip` | Skip monitoring setup |
 
-**Season Monitoring**
-- All Seasons (default)
-- Future Seasons
-- Missing Episodes
-- Existing Episodes
-- First Season
-- Last Season
-- Latest Season
-- Pilot Only
-- Pilot Rolling (Auto-expand, requires session monitoring)
-- First Season Rolling (Auto-expand, requires session monitoring)
-- Recent Episodes
-- Monitor Specials
-- Unmonitor Specials
-- None
-- Skip
+:::tip Rolling Monitoring
+Pilot Rolling and First Season Rolling auto-expand monitoring based on viewing activity when session monitoring is enabled. They can also auto-cleanup when nobody is watching, reverting to original state.
+:::
 
-**Monitor New Items**
-- Monitor all new items (default)
-- Don't monitor new items
+## Series Settings
 
-### Series Settings
+| Setting | Description |
+|---------|-------------|
+| **Series Type** | `Standard` (default), `Anime`, or `Daily` (talk shows, news) |
+| **Create Season Folders** | Create season subfolders (default: disabled) |
+| **Search on Add** | Auto-search when added (default: enabled) |
 
-**Series Type**
-- Standard series (default)
-- Anime series
-- Daily shows (talk shows, news)
+## Instance Management
 
-**Create Season Folders**
-- Enable to create season folders
-- Disable to store episodes directly in series folder (default)
-
-### Search Settings
-
-**Search on Add**
-- Enable to automatically search when content is added (default)
-- Disable to skip automatic searching
-
-### Instance Management
-
-**Bypass Ignored**
-- Enable to bypass ignored items in Sonarr
-- Disable to respect Sonarr's ignored items (default)
-
-**Is Default**
-- Enable to use as default instance when no routing rules match
-- Disable for regular instance (default)
-
-**Synced Instances**
-- Select other instances to synchronize with
-- Used for multi-instance content distribution
-
-## Rolling Monitoring
-
-Rolling monitoring options (Pilot Rolling, First Season Rolling) require:
-- Session monitoring to be enabled
-- Rolling monitoring configuration in Utilities
-
-These options automatically expand monitoring based on viewing activity and provide utility to auto-cleanup when nobody is watching, reverting to their original states.
+| Setting | Description |
+|---------|-------------|
+| **Bypass Ignored** | Bypass Sonarr's ignored items (default: disabled) |
+| **Is Default** | Use as fallback when no routing rules match |
+| **Synced Instances** | Other instances to sync content with |

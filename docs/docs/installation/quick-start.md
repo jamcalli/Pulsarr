@@ -11,7 +11,7 @@ This guide will help you quickly set up Pulsarr to monitor your Plex watchlists 
 Before you begin, ensure you have:
 
 - Docker (recommended for deployment)
-- Plex Pass subscription (optional - non-Plex Pass users supported with 20-minute polling intervals)
+- Plex Pass subscription (optional - non-Plex Pass users supported with 5-minute staggered polling)
 - Sonarr/Radarr installation(s)
 - API keys for your Sonarr/Radarr instances
 
