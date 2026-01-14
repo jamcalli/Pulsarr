@@ -4,276 +4,150 @@ sidebar_position: 2
 
 # Configuration
 
-Pulsarr uses a hybrid configuration approach. Core application settings (like port, URL, logging) must be defined in a `.env` file, while application-specific settings are configured through the web UI after installation.
+Pulsarr uses a hybrid configuration approach. Core settings (port, URL, logging) are defined in a `.env` file, while application settings are configured through the web UI.
 
-The `.env` file is required for the initial setup and contains essential configuration values. Any values set in the `.env` file will override settings stored in the database, giving you flexibility to customize your deployment.
-
-:::warning Environment Variable Override Behavior
-Environment variables in `.env` override web UI settings **on app restart**. If you configure a setting in both the `.env` file and web UI:
-- Web UI changes work during the current session
-- On app restart, the `.env` values will override any database changes
-- Remove the environment variable from `.env` to persist web UI configuration changes permanently
-:::
-
-:::note About Apprise
-If you're using the Apprise integration, additional configuration values like `appriseUrl` should be included in your `.env` file. These values are only needed if you're running the Apprise container alongside Pulsarr.
+:::warning Environment Variables Override Web UI
+Environment variables override web UI settings **on app restart**. Remove a variable from `.env` to let web UI changes persist.
 :::
 
 ## Core Configuration
 
-:::warning Critical: baseUrl + port Configuration  
-The `baseUrl` and `port` create the webhook address for Sonarr/Radarr to reach Pulsarr. The correct value depends on your deployment:
+:::warning Critical: baseUrl + port Configuration
+The `baseUrl` and `port` create the webhook address for Sonarr/Radarr to reach Pulsarr:
 
-**Deployment Scenarios:**
 - **Docker Compose (same network)**: `http://pulsarr` (service name)
-- **Docker host networking**: `http://localhost` (shares host network stack)  
-- **Separate machines**: `http://server-ip` (actual network IP)
-- **HTTPS with domain**: `https://domain.com` (port omitted for 443)
-- **Different Docker networks**: External IP or bridge configuration
-- **Reverse proxy**: `https://subdomain.domain.com` (proxy handles routing)
+- **Docker host networking**: `http://localhost`
+- **Separate machines**: `http://server-ip`
+- **Reverse proxy**: `https://subdomain.domain.com`
 :::
 
 <div style={{overflowX: 'auto'}}>
 
 | Variable | Description | Required? | Default |
 |----------|-------------|-----------|---------|
-| `baseUrl` | **CRITICAL**: Webhook address for Sonarr/Radarr to reach Pulsarr. Value depends on deployment (service name, IP, or domain). | Yes | `http://localhost` |
-| `port` | External port for webhook URL generation (what Sonarr/Radarr use to call back). Combined with baseUrl. Omit if using HTTPS on 443. | Yes | `3003` |
-| `listenPort` | Internal port the server binds to. Docker users should use port mapping instead (e.g., `8080:3003`). | No | `3003` |
-| `TZ` | Your local timezone (e.g., America/New_York, Europe/London) | Yes | `UTC` |
-| `logLevel` | Logging level (silent, error, warn, info, debug, trace) | Recommended | `silent` |
-| `enableConsoleOutput` | Show logs in terminal (default: true) | No | `true` |
-| `enableRequestLogging` | Enable HTTP request logging (default: false) | No | `false` |
-| `cookieSecured` | Set to true ONLY if serving UI over HTTPS | No | `false` |
-| `appriseUrl` | URL for the Apprise server (only if using Apprise) | No* | None |
+| `baseUrl` | Webhook address for Sonarr/Radarr to reach Pulsarr | Yes | `http://localhost` |
+| `port` | External port for webhook URLs. Omit for HTTPS on 443 | Yes | `3003` |
+| `listenPort` | Internal port the server binds to | No | `3003` |
+| `TZ` | Timezone (e.g., America/New_York) | Yes | `UTC` |
+| `logLevel` | Log level: silent, error, warn, info, debug, trace | Recommended | `silent` |
+| `enableConsoleOutput` | Show logs in terminal | No | `true` |
+| `enableRequestLogging` | Log HTTP requests (sensitive params redacted) | No | `false` |
+| `cookieSecured` | Set true ONLY if serving UI over HTTPS | No | `false` |
+| `basePath` | URL path prefix for subfolder reverse proxy (e.g., `/pulsarr`) | No | None |
+| `appriseUrl` | Apprise server URL (if using Apprise) | No | None |
 
 </div>
 
-*Required only if you're using the Apprise integration.
+:::tip Non-Default Port
+When using a different port, ensure values align:
 
-:::tip Non-Default Port Configuration
-When using a port other than `3003`, ensure your configuration values align:
+**Docker**: Map ports in compose (`8080:3003`), set `port=8080`, keep `listenPort=3003`
 
-**Docker (port mapping)**
-```yaml
-# docker-compose.yml
-ports:
-  - "8080:3003"  # host:container
-```
+**Bare metal**: Set both `port` and `listenPort` to the same value
+:::
+
+:::tip Subfolder Reverse Proxy (basePath)
+To run Pulsarr at a subfolder like `https://domain.com/pulsarr/`:
+
 ```env
-baseUrl=http://your-server-ip
-port=8080        # External port (webhook URLs)
-listenPort=3003  # Internal bind port (container default)
+baseUrl=https://domain.com
+basePath=/pulsarr
 ```
 
-**Bare metal (direct binding)**
-```env
-baseUrl=http://your-server-ip
-port=8080        # External port (webhook URLs)
-listenPort=8080  # Server binds to this port directly
-```
-
-**Key point**: Webhook URLs are generated using `baseUrl:port`. Ensure `port` matches what Sonarr/Radarr can actually reach—whether that's a Docker-mapped port or the `listenPort` on bare metal.
+Pulsarr registers all routes under the basePath prefix. Your reverse proxy should forward requests to Pulsarr with the path intact (e.g., `/pulsarr/api/...`).
 :::
 
 ## Database Configuration
 
-Pulsarr supports both SQLite (default) and PostgreSQL databases:
-
-### SQLite (Default)
+Pulsarr supports SQLite (default) and PostgreSQL.
 
 <div style={{overflowX: 'auto'}}>
 
 | Variable | Description | Required? | Default |
 |----------|-------------|-----------|---------|
-| `dbPath` | Path to SQLite database file | No | `./data/db/pulsarr.db` |
+| `dbPath` | SQLite database path | No | `./data/db/pulsarr.db` |
+| `dbType` | Set to `postgres` for PostgreSQL | For PostgreSQL | `sqlite` |
+| `dbHost` | PostgreSQL hostname | For PostgreSQL | `localhost` |
+| `dbPort` | PostgreSQL port | No | `5432` |
+| `dbName` | PostgreSQL database name | For PostgreSQL | `pulsarr` |
+| `dbUser` | PostgreSQL username | For PostgreSQL | `postgres` |
+| `dbPassword` | PostgreSQL password | For PostgreSQL | None |
+| `dbConnectionString` | Full connection string (overrides above) | No | None |
 
 </div>
 
-### PostgreSQL
-
-:::note Migration Available
-PostgreSQL is supported for both new installations and migrations from existing SQLite databases. If you're already using Pulsarr with SQLite, see the [PostgreSQL Migration Guide](./postgres-migration) for step-by-step instructions on migrating your data.
+:::note PostgreSQL Setup
+Before using PostgreSQL, create a database and user with appropriate permissions. See the [PostgreSQL Migration Guide](./postgres-migration) for details.
 :::
-
-:::note Database Setup Required
-Before configuring Pulsarr with PostgreSQL, ensure you have:
-- A PostgreSQL server running
-- Created a database for Pulsarr (e.g., `CREATE DATABASE pulsarr;`)
-- Created a user with appropriate permissions (e.g., `CREATE USER pulsarr WITH PASSWORD 'your_password';`)
-- Granted database access (e.g., `GRANT ALL PRIVILEGES ON DATABASE pulsarr TO pulsarr;`)
-:::
-
-<div style={{overflowX: 'auto'}}>
-
-| Variable | Description | Required? | Default |
-|----------|-------------|-----------|---------|
-| `dbType` | Database type - set to `postgres` to enable PostgreSQL | Yes (for PostgreSQL) | `sqlite` |
-| `dbHost` | PostgreSQL server hostname or IP | Yes (for PostgreSQL) | `localhost` |
-| `dbPort` | PostgreSQL server port | No | `5432` |
-| `dbName` | PostgreSQL database name | Yes (for PostgreSQL) | `pulsarr` |
-| `dbUser` | PostgreSQL username | Yes (for PostgreSQL) | `postgres` |
-| `dbPassword` | PostgreSQL password | Yes (for PostgreSQL) | `pulsarrpostgrespw` |
-| `dbConnectionString` | Full PostgreSQL connection string (takes priority over individual settings) | No | `` |
-
-</div>
 
 ## Example .env File
 
-Here is how your .env should look:
-
-### SQLite Configuration (Default)
 ```env
-baseUrl=http://your-server-ip   # External address where Pulsarr can be reached (for webhook URLs)
-port=3003                       # External port for webhook URL generation
-# listenPort=3003               # Internal port (default: 3003, rarely needs changing)
-TZ=America/Los_Angeles          # Set to your local timezone
+# Required
+baseUrl=http://your-server-ip
+port=3003
+TZ=America/Los_Angeles
 
-# ⚠️  Webhook address for Sonarr/Radarr to reach Pulsarr (see warning above for deployment-specific values)
+# Logging
+logLevel=info
+enableConsoleOutput=true
+enableRequestLogging=false
 
-# Logging Configuration
-logLevel=info                   # Log level (default: info)
-                                # Accepts: fatal | error | warn | info | debug | trace | silent
+# Security
+cookieSecured=false
 
-enableConsoleOutput=true        # Console logging (default: true)
-                                # Any value other than "false" enables terminal output
-                                # Logs are always written to ./data/logs/ regardless of this setting
+# Database - SQLite (default, no config needed)
+# dbPath=./data/db/pulsarr.db
 
-enableRequestLogging=false      # HTTP request logging (default: false)
-                                # Logs HTTP method, URL, host, remote IP/port, response codes, response times
-                                # Sensitive query parameters (token, apiKey, password) are automatically redacted
+# Database - PostgreSQL (uncomment to use)
+# dbType=postgres
+# dbHost=your-postgres-host
+# dbPort=5432
+# dbName=pulsarr
+# dbUser=pulsarr
+# dbPassword=your-secure-password
 
-# Optional settings
-cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
-dbPath=./data/db/pulsarr.db     # SQLite database path (optional, this is default)
-
-# Only needed if using Apprise
-# appriseUrl=http://apprise:8000  # URL to your Apprise container
+# Apprise (if using)
+# appriseUrl=http://apprise:8000
 ```
 
-### PostgreSQL Configuration
-```env
-baseUrl=http://your-server-ip   # External address where Pulsarr can be reached (for webhook URLs)
-port=3003                       # External port for webhook URL generation
-# listenPort=3003               # Internal port (default: 3003, rarely needs changing)
-TZ=America/Los_Angeles          # Set to your local timezone
+## Authentication
 
-# ⚠️  Webhook address for Sonarr/Radarr to reach Pulsarr (see warning above for deployment-specific values)
+Set `authenticationMethod` in `.env`:
 
-# Logging Configuration
-logLevel=info                   # Log level (default: info)
-                                # Accepts: fatal | error | warn | info | debug | trace | silent
-
-enableConsoleOutput=true        # Console logging (default: true)
-                                # Any value other than "false" enables terminal output
-                                # Logs are always written to ./data/logs/ regardless of this setting
-
-enableRequestLogging=false      # HTTP request logging (default: false)
-                                # Logs HTTP method, URL, host, remote IP/port, response codes, response times
-                                # Sensitive query parameters (token, apiKey, password) are automatically redacted
-
-# PostgreSQL Database Configuration
-dbType=postgres                 # Enable PostgreSQL support
-dbHost=your-postgres-host       # PostgreSQL server hostname or IP
-dbPort=5432                     # PostgreSQL server port (optional, defaults to 5432)
-dbName=pulsarr                  # PostgreSQL database name
-dbUser=pulsarr                  # PostgreSQL username
-dbPassword=your-secure-password # PostgreSQL password
-# dbConnectionString=postgresql://user:pass@host:port/database  # Alternative: connection string (takes priority)
-
-# Optional settings
-cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
-
-# Only needed if using Apprise
-# appriseUrl=http://apprise:8000  # URL to your Apprise container
-```
-
-:::info Logging Configuration
-Pulsarr provides comprehensive logging configuration through environment variables:
-
-**Log Levels** (`logLevel`)
-- **Default**: `info`
-- **Options**: `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`
-- Controls the minimum log level displayed and recorded
-
-**Console Output** (`enableConsoleOutput`)
-- **Default**: `true`
-- **Behavior**: Any value other than `"false"` enables terminal output
-- When disabled, logs are only written to files
-
-**Request Logging** (`enableRequestLogging`)
-- **Default**: `false`
-- **Logs**: HTTP method, URL, host, remote IP/port, response codes, response times
-- **Security**: Sensitive query parameters (`token`, `apiKey`, `password`) are automatically redacted
-
-**File Logging**
-- **Always enabled** - Cannot be disabled
-- **Location**: `./data/logs/` directory
-- **Format**: `pulsarr-YYYY-MM-DD.log` (with `pulsarr-current.log` for active file)
-- Console and file logging operate independently
-:::
-
-## Authentication Configuration
-
-Pulsarr supports configurable authentication options. Set `authenticationMethod` in your `.env` file:
-
-- `required` - Authentication always required (default)
-- `requiredExceptLocal` - Skip authentication for local/private network connections
-- `disabled` - Authentication completely disabled
+| Value | Behavior |
+|-------|----------|
+| `required` | Always require authentication (default) |
+| `requiredExceptLocal` | Skip auth for local/private network |
+| `disabled` | No authentication |
 
 :::info Local Network Details
-For details on which IP ranges are considered "local" when using `requiredExceptLocal`, see the [Authentication Configuration Details](../development/environment-variables#authentication-configuration-details) in the development documentation.
+See [Authentication Configuration Details](../development/environment-variables#authentication-configuration-details) for which IP ranges are considered "local".
 :::
 
-:::warning Restart Required
-After changing this setting in your `.env` file, you need to restart the container for it to take effect.
-:::
+## Security
 
-## Security Configuration
+### Iframe Support
 
-### Iframe Support (Dashboard Integration)
-
-<div style={{overflowX: 'auto'}}>
-
-| Variable | Description | Required? | Default |
-|----------|-------------|-----------|---------|
-| `allowIframes` | Allow Pulsarr to be embedded in iframes (required for dashboard apps like Organizr) | No | `false` |
-
-</div>
-
-Pulsarr can be embedded in dashboard applications like Organizr, Heimdall, or other iframe-based frontends by setting:
+For dashboard apps like Organizr or Heimdall:
 
 ```env
 allowIframes=true
 ```
 
-:::note Security Consideration
-When `allowIframes=true`, Pulsarr will disable the X-Frame-Options security header, allowing the application to be embedded in iframes from any domain. This is necessary for dashboard applications but slightly reduces security. Only enable this if you need iframe embedding.
-:::
-
-:::warning Restart Required
-After changing this setting in your `.env` file, you need to restart the container for it to take effect.
+:::note
+This disables X-Frame-Options, allowing iframe embedding from any domain. Only enable if needed.
 :::
 
 ## Plex Configuration
 
 ### Skip Downloads for Existing Content
 
-Pulsarr can check Plex servers before downloading content, preventing duplicate downloads. This is configured in **Plex → Configuration** under "Content Availability Check".
+Configure in **Plex → Configuration** under "Content Availability Check" to prevent duplicate downloads by checking Plex before adding content.
 
-**Behavior by User Type:**
+- **Primary Token User**: Checks all accessible servers (owned + shared)
+- **Other Users**: Only checks your owned server
 
-- **Primary Token User**: Checks ALL accessible servers including your owned server and any shared servers you have access to
-- **Friend/Other Users**: Only checks your owned server (no access tokens available for shared servers)
-
-:::note Server Connection
-Your owned server uses the configured "Server Connection" URL (if set), while shared servers use auto-discovery. For best results, ensure the server URL uses HTTPS if your Plex server requires secure connections.
-:::
-
-:::info Performance
-Checks are optimized to only query Plex for content not already in Sonarr/Radarr. Multiple servers are checked in parallel for faster results.
-:::
-
-:::info Complete Variable Reference
-For a comprehensive list of all environment variables including development and advanced options, see the [Environment Variables Reference](../development/environment-variables).
+:::info Complete Reference
+For all environment variables including development options, see [Environment Variables Reference](../development/environment-variables).
 :::

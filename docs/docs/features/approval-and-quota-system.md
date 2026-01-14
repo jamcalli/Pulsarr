@@ -36,11 +36,11 @@ Manage user content requests with configurable quotas and administrative approva
 
 ## Quota Types
 
-**Daily Quotas**: Reset at midnight in your timezone
-
-**Weekly Rolling**: 7-day rolling window that automatically shifts each day
-
-**Monthly Quotas**: Calendar month-based with configurable reset day
+| Type | Description |
+|------|-------------|
+| **Daily** | Reset at midnight in your timezone |
+| **Weekly Rolling** | 7-day rolling window that shifts each day |
+| **Monthly** | Calendar month-based with configurable reset day |
 
 ## Configuration
 
@@ -52,27 +52,29 @@ Configure default quota and approval settings for newly discovered Plex users vi
 
 Navigate to **Plex → Users** to manage individual user quotas:
 
-### User Quota Settings
-- **Quota Type**: Daily, Weekly Rolling, or Monthly
-- **Quota Limit**: Number of allowed requests per period
-- **Separate Limits**: Different quotas for movies vs shows
-- **Bypass Approval**: Allow trusted users unlimited requests
+### User Settings
+
+| Setting | Description |
+|---------|-------------|
+| **Quota Type** | Daily, Weekly Rolling, or Monthly |
+| **Quota Limit** | Number of allowed requests per period |
+| **Separate Limits** | Different quotas for movies vs shows |
+| **Bypass Approval** | Allow trusted users unlimited requests |
+| **Requires Approval** | Force all requests from this user to require approval |
 
 <img alt="User Quota Configuration" src={useBaseUrl('/img/Quota-Settings.png')} />
-
-### User Approval Settings
-- **Requires Approval**: Toggle to force all requests from a user to require approval
-- **Override Quotas**: This setting applies even if user has unlimited quotas
 
 ### Approval Settings
 
 Configure approval behavior in **Approvals → Approval Settings**:
 
-- **Expiration Hours**: How long before requests auto-expire (default: 72 hours)
-- **Expiration Action**: Auto-expire or auto-approve expired requests
-- **Auto-Approve on Quota Reset**: Automatically approve pending quota-exceeded requests when user's quota becomes available (disabled by default)
-- **Cleanup Days**: How long to keep expired requests in database
-- **Notifications**: Configure Discord and Apprise notifications for new requests
+| Setting | Description |
+|---------|-------------|
+| **Expiration Hours** | How long before requests auto-expire (default: 72 hours) |
+| **Expiration Action** | Auto-expire or auto-approve expired requests |
+| **Auto-Approve on Quota Reset** | Approve pending requests when user's quota resets (disabled by default) |
+| **Cleanup Days** | How long to keep expired requests in database |
+| **Notifications** | Configure Discord and Apprise notifications for new requests |
 
 :::tip Auto-Approve on Quota Reset
 When enabled, pending requests triggered by quota limits are automatically re-evaluated during maintenance runs. If the user's quota has reset and they have quota available, requests are auto-approved in FIFO order (oldest first). This eliminates manual approval of quota-exceeded requests after quotas reset.
@@ -117,7 +119,7 @@ The approval interface provides:
 Configure approval requirements in routing rules:
 
 ```
-IF season count > 3
+IF season > 3
 THEN require approval with reason "Long-running series requires approval"
 ```
 
@@ -125,12 +127,12 @@ The router stores complete routing decisions (instance, quality profile, tags) a
 
 ## Trigger Points
 
-Approvals are created when:
-
-- **Quota Exceeded**: User reaches their daily/weekly/monthly limit
-- **Router Rules**: Content matches rules configured for approval
-- **Manual Flags**: User account set to require approval for all requests
-- **Content Criteria**: Specific attributes trigger approval
+| Trigger | Description |
+|---------|-------------|
+| **Quota Exceeded** | User reaches their daily/weekly/monthly limit |
+| **Router Rules** | Content matches rules configured for approval |
+| **Manual Flags** | User account set to require approval for all requests |
+| **Content Criteria** | Specific attributes trigger approval |
 
 ## Discord Bot Integration
 
@@ -155,15 +157,6 @@ Manage approvals directly from Discord:
 - **Batch Notifications**: Multiple requests grouped to reduce notification spam
 - **Mobile Friendly**: Complete approval workflow from Discord mobile app
 
-## Usage Tracking
-
-The system maintains detailed usage history:
-
-- Real-time quota calculations
-- Rolling window tracking
-- Automatic cleanup of old records
-- Statistics and reporting
-
 ## Best Practices
 
 - Start with generous quotas and adjust based on usage
@@ -174,11 +167,11 @@ The system maintains detailed usage history:
 
 ## Troubleshooting
 
-**Quotas not resetting**: Check timezone configuration and cleanup settings
-
-**Approvals not routing**: Verify target instances are still available
-
-**Missing notifications**: Confirm Discord/Apprise configuration
+| Problem | Solution |
+|---------|----------|
+| **Quotas not resetting** | Check timezone configuration and cleanup settings |
+| **Approvals not routing** | Verify target instances are still available |
+| **Missing notifications** | Confirm Discord/Apprise configuration |
 
 ## API Reference
 

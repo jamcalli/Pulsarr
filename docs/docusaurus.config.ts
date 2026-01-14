@@ -36,7 +36,12 @@ const config: Config = {
   projectName: 'Pulsarr', // Usually your repo name.
 
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
+
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
+  },
 
   customFields: {
     version: packageJson.version,
