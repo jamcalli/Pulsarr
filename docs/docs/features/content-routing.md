@@ -31,7 +31,7 @@ Build rules using any combination of these fields with AND/OR logic:
 | **Year** | Release year | `year > 2000` |
 | **Certification** | Content rating | `certification in ["PG", "PG-13"]` |
 | **Original Language** | Source language | `language equals "Japanese"` |
-| **Season Count** | Number of seasons (Sonarr only) | `season > 3` |
+| **Season** | Season number (Sonarr only) | `season > 3` |
 | **IMDb Rating** | IMDb score with optional vote count | `imdbRating > 7.0` |
 | **RT Critic Rating** | Rotten Tomatoes critic score (0-100) | `rtCriticRating > 80` |
 | **RT Audience Rating** | Rotten Tomatoes audience score (0-100) | `rtAudienceRating > 70` |

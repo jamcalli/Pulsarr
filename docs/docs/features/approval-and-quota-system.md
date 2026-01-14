@@ -119,7 +119,7 @@ The approval interface provides:
 Configure approval requirements in routing rules:
 
 ```
-IF season count > 3
+IF season > 3
 THEN require approval with reason "Long-running series requires approval"
 ```
 
