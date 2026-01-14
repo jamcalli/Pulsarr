@@ -4,136 +4,138 @@ sidebar_position: 6
 
 # Architecture
 
-Pulsarr uses a modern full-stack architecture built for reliability, performance, and scalability in self-hosted media environments.
+Pulsarr is a modern full-stack TypeScript application built for reliability and performance in self-hosted media environments.
 
-## Backend Stack
+## Backend
 
-### **Core Server**
-- **Node.js 24 LTS**: Modern JavaScript runtime with latest performance optimizations
-- **Fastify**: High-performance HTTP server with extensive plugin ecosystem
-- **TypeScript**: Full type safety across server and client for maintainability
-- **Plugin Architecture**: Modular services with dependency injection and lifecycle management
+| Technology | Purpose |
+|------------|---------|
+| **Node.js 24 LTS** | JavaScript runtime |
+| **Fastify** | High-performance HTTP server with plugin ecosystem |
+| **TypeScript** | Full type safety across server and client |
+| **Knex.js** | Query builder and migrations for SQLite/PostgreSQL |
+| **Toad Scheduler** | Background job processing |
 
-### **Database Layer**
-- **SQLite**: Default lightweight database with file-based storage
-- **PostgreSQL**: Enterprise database support for high-scale deployments
-- **Knex.js**: Query builder and migration system supporting both database types
-- **Migration System**: Automated schema updates with SQLite-to-PostgreSQL migration support
+### Core Services
 
-### **Key Services**
-- **Content Router**: Intelligent routing engine for Sonarr/Radarr instance selection
-- **Toad Scheduler**: Background job processing for sync operations and cleanup tasks  
-- **Webhook Processor**: Real-time content import detection and notification triggers
-- **Queue Manager**: Async processing for notifications and batch operations
-- **Session Monitor**: Plex playback tracking for intelligent auto-search functionality
+| Service | Purpose |
+|---------|---------|
+| **Content Router** | Predicate-based routing to Sonarr/Radarr instances |
+| **Webhook Processor** | Real-time import detection and notification triggers |
+| **Queue Manager** | Async processing for notifications and batch operations |
+| **Session Monitor** | Plex playback tracking for auto-search |
 
-## Frontend Stack
+## Frontend
 
-### **Client Application**
-- **React 19**: Modern single-page application served by Fastify
-- **TypeScript**: Shared type definitions between client and server
-- **Tailwind CSS**: Utility-first styling with responsive design system
-- **Zustand**: Lightweight state management for client-side data
-- **Radix UI**: Accessible component primitives
+| Technology | Purpose |
+|------------|---------|
+| **React 19** | Single-page application |
+| **TypeScript** | Shared types with server |
+| **TanStack Query** | Server state management and caching |
+| **Zustand** | Client-side state management |
+| **Tailwind CSS v4** | Utility-first styling |
+| **Radix UI** | Accessible component primitives |
+| **Vite** | Build tooling and dev server |
 
-### **Build & Development**
-- **Vite**: Fast development server and optimized production builds with Fastify integration
-- **Biome**: Code formatting and linting for consistent code quality
+## Database
 
-## Database Architecture
+| Feature | Description |
+|---------|-------------|
+| **SQLite** | Default lightweight file-based storage |
+| **PostgreSQL** | Enterprise support for high-scale deployments |
+| **Migrations** | Version-controlled schema with cross-database compatibility |
+| **Data Migration** | Built-in SQLite-to-PostgreSQL transfer utility |
 
-### **Data Models**
-- **Users**: Plex user management with permissions and quota tracking
-- **Watchlists**: Content tracking with status and metadata relationships
-- **Instances**: Sonarr/Radarr configuration and routing rules
-- **Approvals**: Request workflow with expiration and bulk operations
-- **Notifications**: Delivery tracking and user preferences
-- **Analytics**: Usage statistics and performance metrics
+### Data Models
 
-### **Migration Support**
-- **Knex Migrations**: Version-controlled schema evolution
-- **Cross-Database**: Compatible migrations for SQLite and PostgreSQL
-- **Data Migration**: Built-in SQLite-to-PostgreSQL data transfer utility
+| Model | Purpose |
+|-------|---------|
+| **Users** | Plex user management, permissions, quotas |
+| **Watchlists** | Content tracking with status and metadata |
+| **Instances** | Sonarr/Radarr configuration and sync relationships |
+| **Approvals** | Request workflow with expiration handling |
+| **Notifications** | Delivery tracking and user preferences |
 
-## External Integrations
+## Integrations
 
-### **Media Stack**
-- **Plex API**: Watchlist monitoring via RSS feeds, GraphQL, and REST endpoints
-- **Sonarr/Radarr APIs**: Content management across multiple instances
-- **TMDB API**: Enhanced metadata and poster artwork fetching
+### Media Stack
 
-### **Notification Services**
-- **Discord Bot**: Interactive commands, approval management, and user DMs
-- **Discord Webhooks**: Administrative notifications and public content announcements
-- **Tautulli**: Native Plex mobile app notifications via notification agents
-- **Apprise**: 80+ notification services (Telegram, Slack, email, SMS, etc.)
+| Integration | Purpose |
+|-------------|---------|
+| **Plex API** | Watchlist monitoring (RSS, GraphQL, REST) |
+| **Sonarr/Radarr APIs** | Content management across instances |
+| **TMDB API** | Metadata and artwork |
 
-### **Real-time Features**
-- **Plex Label Sync**: Webhook-driven automatic label management
-- **Webhook Processing**: Instant content import detection and user notifications
-- **Server-Sent Events**: Live UI updates for approval status and sync progress
+### Notifications
 
-## API Architecture
+| Channel | Purpose |
+|---------|---------|
+| **Native Webhooks** | Direct HTTP callbacks to external services |
+| **Discord Bot** | Interactive commands, approvals, user DMs |
+| **Discord Webhooks** | Channel notifications and announcements |
+| **Tautulli** | Native Plex mobile app notifications |
+| **Apprise** | 80+ services (Telegram, Slack, email, etc.) |
 
-### **RESTful API**
-- **OpenAPI Specification**: Auto-generated documentation with interactive testing
-- **Scalar API Docs**: Built-in documentation UI served at `/api/docs` via Fastify Swagger plugin
-- **Typed Routes**: End-to-end type safety from client to database
-- **Middleware Pipeline**: Authentication, validation, logging, and error handling
-- **Rate Limiting**: Configurable request throttling and abuse prevention
+## API
 
-### **Authentication**
-- **Session Management**: Secure cookie-based authentication with configurable options
-- **Flexible Auth Modes**: Required, local-only bypass, or completely disabled
-- **Permission System**: User-level access control and administrative privileges
+| Feature | Description |
+|---------|-------------|
+| **OpenAPI Spec** | Auto-generated documentation |
+| **Scalar Docs** | Interactive API explorer at `/api/docs` |
+| **Typed Routes** | End-to-end type safety |
+| **Rate Limiting** | Configurable request throttling |
+| **SSE** | Live UI updates for progress and status |
+
+### Authentication
+
+| Mode | Description |
+|------|-------------|
+| **Required** | Cookie-based session authentication |
+| **Local Bypass** | Skip auth for private network requests |
+| **Disabled** | No authentication required |
 
 ## Data Flow
 
-### **Content Processing Pipeline**
-1. **Watchlist Detection**: RSS monitoring (Plex Pass) or polling (non-Plex Pass)
-2. **Permission Validation**: User sync permissions and quota enforcement
-3. **Content Analysis**: Metadata evaluation and routing rule application
-4. **Instance Selection**: Intelligent routing based on content criteria
-5. **Approval Workflow**: Optional administrative review process
-6. **Content Acquisition**: API calls to selected Sonarr/Radarr instances
-7. **Import Detection**: Webhook monitoring for successful content acquisition
-8. **Notification Delivery**: Multi-channel user notifications
+### Content Processing
 
-### **Notification Flow**
-1. **Webhook Reception**: Real-time import events from Sonarr/Radarr
-2. **Content Matching**: GUID and metadata matching to identify requesting users  
-3. **Smart Batching**: Season episode grouping and spam prevention
-4. **User Targeting**: Preference-based notification filtering
-5. **Multi-Channel Delivery**: Parallel delivery across enabled notification methods
-6. **Delivery Tracking**: Success/failure monitoring and retry logic
+1. Watchlist detection (RSS or polling)
+2. User permission and quota validation
+3. Content router rule evaluation
+4. Instance selection and approval workflow
+5. Sonarr/Radarr API calls
+6. Webhook-based import detection
+7. User notification delivery
 
-## Deployment Architecture
+### Notification Flow
 
-### **Container Support**
-- **Docker**: Official multi-arch images (amd64, arm64)
-- **Docker Compose**: Sample configurations with service dependencies
-- **Volume Management**: Persistent data and configuration storage
+1. Webhook received from Sonarr/Radarr
+2. Content matched to requesting users
+3. Smart batching (episode grouping, spam prevention)
+4. Multi-channel parallel delivery
+5. Delivery tracking and retry logic
 
-### **Network Configuration**
-- **Service Discovery**: Docker network integration for container communication
-- **Webhook Endpoints**: External accessibility for Sonarr/Radarr callbacks
-- **Reverse Proxy**: Support for Nginx, Traefik, and other proxy solutions
+## Deployment
 
-### **Scaling Considerations**
-- **Database**: PostgreSQL for high-scale deployments with connection pooling
-- **Processing**: Configurable concurrency limits for API calls and processing
-- **Monitoring**: Comprehensive logging with structured output and log rotation
+| Feature | Description |
+|---------|-------------|
+| **Docker** | Official multi-arch images (amd64, arm64) |
+| **Docker Compose** | Sample configurations included |
+| **Reverse Proxy** | Nginx, Traefik, and other proxies |
+| **Webhook Endpoints** | External accessibility for Arr callbacks |
 
-## Performance Features
+### Scaling
 
-### **Optimization**
-- **Caching**: Intelligent metadata caching to reduce external API calls
-- **Connection Pooling**: Efficient database connection management
-- **Batch Operations**: Grouped API calls for multi-instance content synchronization
-- **Background Processing**: Async queues for non-blocking user operations
+| Consideration | Solution |
+|---------------|----------|
+| **High-scale** | PostgreSQL with connection pooling |
+| **Concurrency** | Configurable limits for API calls |
+| **Logging** | Structured JSON output with rotation |
 
-### **Monitoring**
-- **Structured Logging**: JSON output with configurable levels and filtering
-- **Health Checks**: API endpoints for container orchestration health monitoring
-- **Metrics**: Built-in analytics for content routing and user activity patterns
-- **Error Tracking**: Comprehensive error logging with context preservation
+## Performance
+
+| Feature | Description |
+|---------|-------------|
+| **Caching** | Metadata caching to reduce API calls |
+| **Batch Operations** | Grouped API calls for multi-instance sync |
+| **Background Processing** | Async queues for non-blocking operations |
+| **Health Checks** | Endpoints for container orchestration |

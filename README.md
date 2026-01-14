@@ -15,18 +15,6 @@
 
 ---
 
-<h2 align="center">Love Pulsarr? Give Us a Star! ⭐</h2>
-
-If Pulsarr has simplified your media management, please star this repository! It takes just a second, helps others find us, and motivates continued development. Thank you for being part of our community!
-
-<p align="center">
-  <a href="https://github.com/jamcalli/pulsarr/stargazers">
-    <img src="https://reporoster.com/stars/dark/jamcalli/pulsarr?max=6" alt="Stargazers repo roster for @jamcalli/pulsarr" style="border: 1px solid #30363d; border-radius: 6px;" />
-  </a>
-</p>
-
----
-
 Pulsarr bridges Plex watchlists with Sonarr and Radarr for real-time media monitoring and automated content acquisition—**all from within the Plex app, no extra logins required.**
 
 Features include multi-user watchlist sync, intelligent content routing, approval workflows with quotas, and notifications via Discord and Apprise.
@@ -109,8 +97,8 @@ See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/in
 
 ## ✨ Key Features
 
-- **Real-time Monitoring**: Instant watchlist updates for Plex Pass users (20-minute polling for non-Pass users)
-- **Smart Content Routing**: Route content based on genre, user, language, year, certification, and more
+- **Real-time Monitoring**: Instant watchlist updates for Plex Pass users (5-minute staggered polling for non-Pass users)
+- **Smart Content Routing**: Build rules with AND/OR logic using genre, user, language, year, certification, season, IMDb/RT/TMDB ratings, or streaming service. Rules can require approval or bypass quotas
 - **Approval & Quota System**: Administrative approval workflows with configurable user quotas (daily/weekly/monthly limits)
 - **Plex Label Sync**: Automatically sync user watchlists and Radarr/Sonarr tags as Plex labels with real-time webhook updates
 - **Multi-Instance Support**: Distribute content across multiple Sonarr/Radarr instances 
@@ -142,21 +130,33 @@ We welcome contributions! Please see our [Contributing Guidelines](https://jamca
 - [Discord](https://discord.gg/9csTEJn5cR) - Help, discussions, and updates
 - [GitHub Issues](https://github.com/jamcalli/pulsarr/issues) - Bug reports and feature requests
 
-## Thank You
+## Acknowledgements
 
-A big thank you to these amazing contributors who've helped build and maintain this project:
-
-<a href="https://github.com/jamcalli/pulsarr/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=jamcalli/pulsarr" alt="Contributors" />
-</a>
+- [Plex](https://www.plex.tv/) • [Sonarr](https://sonarr.tv/) • [Radarr](https://radarr.video/) • [Fastify](https://www.fastify.io/) • [Discord.js](https://discord.js.org/) • [Watchlistarr](https://github.com/nylonee/watchlistarr/)
 
 ## License
 
 Pulsarr is licensed under the GPL. See the [LICENSE](LICENSE) file for details.
 
-## Acknowledgements
+## Repository Activity
 
-- [Plex](https://www.plex.tv/) • [Sonarr](https://sonarr.tv/) • [Radarr](https://radarr.video/) • [Fastify](https://www.fastify.io/) • [Discord.js](https://discord.js.org/) • [Watchlistarr](https://github.com/nylonee/watchlistarr/)
+![Repobeats analytics](https://repobeats.axiom.co/api/embed/1f978002c5cd8d37e83f1effcd593f2c534354a3.svg "Repobeats analytics image")
+
+## Star History
+
+<a href="https://star-history.com/#jamcalli/pulsarr&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=jamcalli/pulsarr&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=jamcalli/pulsarr&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=jamcalli/pulsarr&type=Date" />
+ </picture>
+</a>
+
+## Contributors
+
+<a href="https://github.com/jamcalli/pulsarr/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=jamcalli/pulsarr" alt="Contributors" />
+</a>
 
 ---
 

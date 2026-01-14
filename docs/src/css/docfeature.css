@@ -30,14 +30,20 @@
 
 .feature-content h3 {
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 0.5rem;
   color: var(--text);
 }
 
-.feature-content p {
+.feature-content p,
+.feature-content li {
+  font-weight: 500;
   margin-bottom: 0.75rem;
   line-height: 1.6;
+}
+
+.feature-content strong {
+  font-weight: 700;
 }
 
 .feature-grid {
