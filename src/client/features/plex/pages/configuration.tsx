@@ -3,13 +3,15 @@ import {
   HelpCircle,
   Loader2,
   RefreshCw,
+  RotateCcw,
   Save,
   Search,
   ServerIcon,
   Trash2,
   X,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -18,6 +20,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Credenza,
+  CredenzaBody,
+  CredenzaClose,
+  CredenzaContent,
+  CredenzaDescription,
+  CredenzaFooter,
+  CredenzaHeader,
+  CredenzaTitle,
+} from '@/components/ui/credenza'
 import {
   Form,
   FormControl,
@@ -36,6 +48,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import PlexConnectionSkeleton from '@/features/plex/components/connection/connection-section-skeleton'
+import { PlexPinAuth } from '@/features/plex/components/setup/plex-pin-auth'
 import SetupModal from '@/features/plex/components/setup/setup-modal'
 import { usePlexConnection } from '@/features/plex/hooks/usePlexConnection'
 import { usePlexExistenceCheck } from '@/features/plex/hooks/usePlexExistenceCheck'
@@ -56,7 +69,9 @@ import { useConfigStore } from '@/stores/configStore'
 export default function PlexConfigurationPage() {
   const config = useConfigStore((state) => state.config)
   const initialize = useConfigStore((state) => state.initialize)
+  const updateConfig = useConfigStore((state) => state.updateConfig)
   const { showSetupModal, setShowSetupModal } = usePlexSetup()
+  const [showReauthDialog, setShowReauthDialog] = useState(false)
 
   // Initialize store on mount
   useEffect(() => {
@@ -147,6 +162,22 @@ export default function PlexConfigurationPage() {
     }
   }, [isInitialized, minLoadingComplete])
 
+  // Handle token swap from re-auth dialog
+  const handleReauthSuccess = useCallback(
+    async (token: string) => {
+      try {
+        await updateConfig({ plexTokens: [token] })
+        form.setValue('plexToken', token)
+        setShowReauthDialog(false)
+        toast.success('Plex token updated successfully')
+      } catch (error) {
+        console.error('Failed to update token:', error)
+        toast.error('Failed to update Plex token')
+      }
+    },
+    [updateConfig, form],
+  )
+
   // Show skeleton during loading
   if (isLoading) {
     return (
@@ -159,6 +190,28 @@ export default function PlexConfigurationPage() {
   return (
     <div>
       <SetupModal open={showSetupModal} onOpenChange={setShowSetupModal} />
+
+      {/* Re-authentication Credenza */}
+      <Credenza open={showReauthDialog} onOpenChange={setShowReauthDialog}>
+        <CredenzaContent>
+          <CredenzaHeader>
+            <CredenzaTitle className="text-foreground">
+              Re-authenticate with Plex
+            </CredenzaTitle>
+            <CredenzaDescription>
+              This will replace your current Plex token with a new one.
+            </CredenzaDescription>
+          </CredenzaHeader>
+          <CredenzaBody>
+            <PlexPinAuth onSuccess={handleReauthSuccess} />
+          </CredenzaBody>
+          <CredenzaFooter>
+            <CredenzaClose asChild>
+              <Button variant="neutral">Cancel</Button>
+            </CredenzaClose>
+          </CredenzaFooter>
+        </CredenzaContent>
+      </Credenza>
 
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-foreground">Plex Integration</h2>
@@ -199,17 +252,36 @@ export default function PlexConfigurationPage() {
                     )}
                   />
                   <div className="flex space-x-2 shrink-0">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="error"
-                      onClick={handleRemoveToken}
-                      disabled={
-                        status === 'loading' || !form.getValues('plexToken')
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="neutralnoShadow"
+                          onClick={() => setShowReauthDialog(true)}
+                          disabled={status === 'loading'}
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Re-authenticate with Plex</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="error"
+                          onClick={handleRemoveToken}
+                          disabled={
+                            status === 'loading' || !form.getValues('plexToken')
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Remove Plex token</TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               </div>

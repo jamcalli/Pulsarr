@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,6 +10,8 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { PlexPinAuth } from '@/features/plex/components/setup/plex-pin-auth'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { useWatchlistProgress } from '@/hooks/useProgress'
 import { api } from '@/lib/api'
@@ -35,6 +37,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
   const [plexToken, setPlexToken] = useState('')
   const [currentStep, setCurrentStep] = useState<'token' | 'syncing'>('token')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [authMethod, setAuthMethod] = useState<'pin' | 'manual'>('pin')
 
   const {
     selfWatchlistStatus,
@@ -81,96 +84,125 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
   useEffect(() => {
     if (open && !isSubmitting) {
       setCurrentStep('token')
+      setAuthMethod('pin')
+      setPlexToken('')
       setSelfWatchlistStatus('idle')
       setOthersWatchlistStatus('idle')
     }
   }, [open, isSubmitting, setSelfWatchlistStatus, setOthersWatchlistStatus])
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true)
-    try {
-      const tokenMinLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
-      )
-      await Promise.all([
-        updateConfig({
-          plexTokens: [plexToken],
-        }),
-        tokenMinLoadingTime,
-      ])
+  // Shared handler for processing a token (from PIN auth or manual entry)
+  const handleTokenReceived = useCallback(
+    async (token: string) => {
+      setIsSubmitting(true)
+      try {
+        const tokenMinLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500),
+        )
+        await Promise.all([
+          updateConfig({
+            plexTokens: [token],
+          }),
+          tokenMinLoadingTime,
+        ])
 
-      const verifyMinLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
-      )
-      const [plexPingResponse] = await Promise.all([
-        fetch(api('/v1/plex/ping'), {
-          method: 'GET',
-        }),
-        verifyMinLoadingTime,
-      ])
+        const verifyMinLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500),
+        )
+        const [plexPingResponse] = await Promise.all([
+          fetch(api('/v1/plex/ping'), {
+            method: 'GET',
+          }),
+          verifyMinLoadingTime,
+        ])
 
-      if (!plexPingResponse.ok) {
-        throw new Error('Failed to verify Plex token')
+        if (!plexPingResponse.ok) {
+          throw new Error('Failed to verify Plex token')
+        }
+
+        await plexPingResponse.json()
+
+        setCurrentStep('syncing')
+
+        setSelfWatchlistStatus('loading')
+        const selfMinLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500),
+        )
+        try {
+          const [watchlistResponse] = await Promise.all([
+            fetch(api('/v1/plex/self-watchlist-token'), {
+              method: 'GET',
+              headers: { Accept: 'application/json' },
+            }),
+            selfMinLoadingTime,
+          ])
+
+          if (!watchlistResponse.ok) {
+            throw new Error('Failed to sync watchlist')
+          }
+        } catch (syncError) {
+          // Network errors (premature close) may occur even when server-side sync completed
+          // Log and continue to others sync rather than aborting entirely
+          console.warn('Self watchlist sync request error:', syncError)
+        }
+
+        setSelfWatchlistStatus('success')
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        setOthersWatchlistStatus('loading')
+        const othersMinLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500),
+        )
+        try {
+          const [othersResponse] = await Promise.all([
+            fetch(api('/v1/plex/others-watchlist-token'), {
+              method: 'GET',
+              headers: { Accept: 'application/json' },
+            }),
+            othersMinLoadingTime,
+          ])
+
+          if (!othersResponse.ok) {
+            throw new Error('Failed to sync others watchlist')
+          }
+        } catch (syncError) {
+          // Network errors (premature close) may occur even when server-side sync completed
+          console.warn('Others watchlist sync request error:', syncError)
+        }
+
+        const rssMinLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500),
+        )
+        await Promise.all([refreshRssFeeds(), rssMinLoadingTime])
+
+        setOthersWatchlistStatus('success')
+
+        toast.success('Plex configuration has been successfully completed')
+      } catch (error) {
+        console.error('Setup error:', error)
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred',
+        )
+        setIsSubmitting(false)
+        setCurrentStep('token')
+        setSelfWatchlistStatus('idle')
+        setOthersWatchlistStatus('idle')
+        return
       }
+    },
+    [
+      updateConfig,
+      setSelfWatchlistStatus,
+      setOthersWatchlistStatus,
+      refreshRssFeeds,
+    ],
+  )
 
-      await plexPingResponse.json()
-
-      setCurrentStep('syncing')
-
-      setSelfWatchlistStatus('loading')
-      const selfMinLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
-      )
-      const [watchlistResponse] = await Promise.all([
-        fetch(api('/v1/plex/self-watchlist-token'), {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-        }),
-        selfMinLoadingTime,
-      ])
-
-      if (!watchlistResponse.ok) {
-        throw new Error('Failed to sync watchlist')
-      }
-
-      setSelfWatchlistStatus('success')
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      setOthersWatchlistStatus('loading')
-      const othersMinLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
-      )
-      const [othersResponse] = await Promise.all([
-        fetch(api('/v1/plex/others-watchlist-token'), {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-        }),
-        othersMinLoadingTime,
-      ])
-
-      if (!othersResponse.ok) {
-        throw new Error('Failed to sync others watchlist')
-      }
-
-      const rssMinLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
-      )
-      await Promise.all([refreshRssFeeds(), rssMinLoadingTime])
-
-      setOthersWatchlistStatus('success')
-
-      toast.success('Plex configuration has been successfully completed')
-    } catch (error) {
-      console.error('Setup error:', error)
-      toast.error(
-        error instanceof Error ? error.message : 'An unexpected error occurred',
-      )
-      setIsSubmitting(false)
-      setCurrentStep('token')
-      setSelfWatchlistStatus('idle')
-      setOthersWatchlistStatus('idle')
-      return
-    }
+  // Handler for manual token submission
+  const handleSubmit = () => {
+    handleTokenReceived(plexToken)
   }
 
   // Only allow closing if not submitting
@@ -198,40 +230,54 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         <DialogHeader>
           <DialogTitle className="text-foreground">
             {!isSubmitting
-              ? 'Enter Your Plex Token'
+              ? 'Connect to Plex'
               : currentStep === 'syncing'
                 ? 'Setting Up Plex Integration'
-                : 'Enter Your Plex Token'}
+                : 'Connect to Plex'}
           </DialogTitle>
           <DialogDescription>
             {!isSubmitting
-              ? 'To begin the sync, please enter your Plex token.'
+              ? 'Choose how you want to connect your Plex account.'
               : currentStep === 'syncing'
                 ? 'Please wait while we configure your Plex integration...'
-                : 'To begin the sync, please enter your Plex token.'}
+                : 'Choose how you want to connect your Plex account.'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
           {!isSubmitting ? (
-            <div className="space-y-4">
-              <Input
-                value={plexToken}
-                onChange={(e) => setPlexToken(e.target.value)}
-                placeholder="Enter your Plex token"
-                type="text"
-                disabled={isSubmitting}
-              />
-              <div className="flex justify-end">
-                <Button
-                  variant="default"
-                  onClick={handleSubmit}
-                  disabled={!plexToken || isSubmitting}
-                >
-                  Submit
-                </Button>
-              </div>
-            </div>
+            <Tabs
+              value={authMethod}
+              onValueChange={(v) => setAuthMethod(v as 'pin' | 'manual')}
+            >
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="pin">Login with Plex</TabsTrigger>
+                <TabsTrigger value="manual">Enter Token</TabsTrigger>
+              </TabsList>
+              <TabsContent value="pin">
+                <PlexPinAuth onSuccess={handleTokenReceived} />
+              </TabsContent>
+              <TabsContent value="manual">
+                <div className="space-y-4 py-4">
+                  <Input
+                    value={plexToken}
+                    onChange={(e) => setPlexToken(e.target.value)}
+                    placeholder="Enter your Plex token"
+                    type="text"
+                    disabled={isSubmitting}
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      variant="default"
+                      onClick={handleSubmit}
+                      disabled={!plexToken || isSubmitting}
+                    >
+                      Submit
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           ) : currentStep === 'syncing' ? (
             <div className="space-y-4">
               {/* Self watchlist progress */}
