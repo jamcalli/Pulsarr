@@ -62,6 +62,7 @@ export async function fetchPlexAvatar(
       headers: {
         'User-Agent': USER_AGENT,
         'X-Plex-Token': token,
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
         Accept: 'application/json',
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
