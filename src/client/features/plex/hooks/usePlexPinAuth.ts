@@ -69,9 +69,10 @@ export function usePlexPinAuth() {
     const poll = async () => {
       try {
         const params = new URLSearchParams({ clientId: pin.clientId })
-        const response = await fetch(api(`/v1/plex/pin/${pin.id}?${params}`), {
-          headers: { Accept: 'application/json' },
-        })
+        const response = await fetch(
+          api(`/v1/plex/pin/${pin.id}?${params.toString()}`),
+          { headers: { Accept: 'application/json' } },
+        )
 
         if (!response.ok) return
 
@@ -92,7 +93,7 @@ export function usePlexPinAuth() {
     }
 
     // Start polling
-    poll()
+    void poll()
     pollIntervalRef.current = setInterval(poll, POLL_INTERVAL_MS)
   }, [pin, stopPolling])
 
