@@ -145,9 +145,12 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
             throw new Error('Failed to sync watchlist')
           }
         } catch (syncError) {
-          // Network errors (premature close) may occur even when server-side sync completed
-          // Log and continue to others sync rather than aborting entirely
-          console.warn('Self watchlist sync request error:', syncError)
+          // Network errors (TypeError) may occur due to premature close on long-running requests
+          // Server-side sync continues regardless - but HTTP errors should propagate
+          if (!(syncError instanceof TypeError)) {
+            throw syncError
+          }
+          console.warn('Self watchlist sync network error:', syncError)
         }
 
         setSelfWatchlistStatus('success')
@@ -170,8 +173,12 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
             throw new Error('Failed to sync others watchlist')
           }
         } catch (syncError) {
-          // Network errors (premature close) may occur even when server-side sync completed
-          console.warn('Others watchlist sync request error:', syncError)
+          // Network errors (TypeError) may occur due to premature close on long-running requests
+          // Server-side sync continues regardless - but HTTP errors should propagate
+          if (!(syncError instanceof TypeError)) {
+            throw syncError
+          }
+          console.warn('Others watchlist sync network error:', syncError)
         }
 
         const rssMinLoadingTime = new Promise((resolve) =>
