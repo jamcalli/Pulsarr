@@ -6,6 +6,7 @@ export interface PlexPinResponse {
   code: string
   qr: string
   expiresAt: string
+  clientId: string
 }
 
 export interface PlexPinPollResponse {
@@ -76,7 +77,8 @@ export function usePlexPinAuth() {
     // Poll immediately once
     const poll = async () => {
       try {
-        const response = await fetch(api(`/v1/plex/pin/${pin.id}`), {
+        const params = new URLSearchParams({ clientId: pin.clientId })
+        const response = await fetch(api(`/v1/plex/pin/${pin.id}?${params}`), {
           headers: { Accept: 'application/json' },
         })
 
