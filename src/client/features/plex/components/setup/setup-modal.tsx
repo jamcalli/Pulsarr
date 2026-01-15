@@ -255,7 +255,9 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
                 <TabsTrigger value="manual">Enter Token</TabsTrigger>
               </TabsList>
               <TabsContent value="pin">
-                <PlexPinAuth onSuccess={handleTokenReceived} />
+                {authMethod === 'pin' && (
+                  <PlexPinAuth onSuccess={handleTokenReceived} />
+                )}
               </TabsContent>
               <TabsContent value="manual">
                 <div className="space-y-4 py-4">

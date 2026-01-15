@@ -95,6 +95,15 @@ export async function pollPlexPin(
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
+    // 404 means PIN expired or not found - return expired state
+    if (response.status === 404) {
+      log.debug({ pinId }, 'Plex PIN expired or not found')
+      return {
+        authToken: null,
+        expiresIn: -1,
+      }
+    }
+
     if (!response.ok) {
       log.error(
         `Failed to poll Plex PIN: ${response.status} ${response.statusText}`,

@@ -203,7 +203,9 @@ export default function PlexConfigurationPage() {
             </CredenzaDescription>
           </CredenzaHeader>
           <CredenzaBody>
-            <PlexPinAuth onSuccess={handleReauthSuccess} />
+            {showReauthDialog && (
+              <PlexPinAuth onSuccess={handleReauthSuccess} />
+            )}
           </CredenzaBody>
           <CredenzaFooter>
             <CredenzaClose asChild>
