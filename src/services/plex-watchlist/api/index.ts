@@ -2,10 +2,8 @@
 
 // Client functions (ping, avatar)
 export { fetchPlexAvatar, pingPlex } from './client.js'
-
 // GraphQL/REST API functions
 export { getWatchlist, getWatchlistForUser } from './graphql.js'
-
 // Helper functions and types
 export {
   hasValidPlexTokens,
@@ -13,6 +11,13 @@ export {
   PLEX_API_TIMEOUT_MS,
   type RateLimitError,
 } from './helpers.js'
+// PIN authentication functions
+export {
+  generatePlexPin,
+  type PlexPin,
+  type PlexPinPollResult,
+  pollPlexPin,
+} from './pin-auth.js'
 
 // Rate limiter
 export { PlexRateLimiter } from './rate-limiter.js'

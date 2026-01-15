@@ -14,6 +14,7 @@ import type {
   PlexShowMetadataResponse,
 } from '@root/types/plex-session.types.js'
 import { normalizeGuid } from '@utils/guid-handler.js'
+import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 const PLEX_API_TIMEOUT = 30000 // 30 seconds
@@ -57,7 +58,7 @@ export async function searchByGuid(
       headers: {
         Accept: 'application/json',
         'X-Plex-Token': token,
-        'X-Plex-Client-Identifier': 'Pulsarr',
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
     })
@@ -120,7 +121,7 @@ export async function getShowMetadata(
       headers: {
         Accept: 'application/json',
         'X-Plex-Token': token,
-        'X-Plex-Client-Identifier': 'Pulsarr',
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
     })

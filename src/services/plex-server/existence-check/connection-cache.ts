@@ -6,6 +6,7 @@
  * All functions are pure and receive cache state as parameters.
  */
 
+import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /** Cached connection entry with TTL tracking */
@@ -92,7 +93,7 @@ async function testConnections(
       const response = await fetch(`${conn.uri}/identity`, {
         headers: {
           'X-Plex-Token': accessToken,
-          'X-Plex-Client-Identifier': 'Pulsarr',
+          'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
         },
         signal: AbortSignal.timeout(2000), // 2s timeout for connection test
       })
