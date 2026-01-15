@@ -1,6 +1,7 @@
 import {
   PlexPinErrorSchema,
   PlexPinPollParamsSchema,
+  PlexPinPollQuerySchema,
   PlexPinPollResponseSchema,
   PlexPinResponseSchema,
 } from '@schemas/plex/pin.schema.js'
@@ -51,6 +52,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description:
           'Checks if the user has completed authorization at plex.tv/link. Returns authToken when authorized.',
         params: PlexPinPollParamsSchema,
+        querystring: PlexPinPollQuerySchema,
         response: {
           200: PlexPinPollResponseSchema,
           500: PlexPinErrorSchema,
@@ -61,7 +63,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const { pinId } = request.params
-        const result = await pollPlexPin(pinId, fastify.log)
+        const { clientId } = request.query
+        const result = await pollPlexPin(pinId, clientId, fastify.log)
         return result
       } catch (error) {
         logRouteError(fastify.log, request, error, {

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import {
   PLEX_CLIENT_IDENTIFIER,
   PLEX_PRODUCT_NAME,
@@ -11,11 +12,23 @@ export interface PlexPin {
   code: string
   qr: string
   expiresAt: string
+  clientId: string
 }
 
 export interface PlexPinPollResult {
   authToken: string | null
   expiresIn: number
+}
+
+/**
+ * Generates a unique client identifier for this PIN auth session.
+ *
+ * Each PIN generation gets a unique identifier to ensure Plex treats
+ * it as a new device, guaranteeing a fresh auth token. This is important
+ * for re-authentication scenarios (e.g., after Plex token revocation).
+ */
+function generateClientId(): string {
+  return `${PLEX_CLIENT_IDENTIFIER}-${randomUUID().slice(0, 8)}`
 }
 
 /**
@@ -26,11 +39,13 @@ export interface PlexPinPollResult {
  * by default.
  *
  * @param log - Fastify logger instance
- * @returns PIN details including id, code, QR URL, and expiration
+ * @returns PIN details including id, code, QR URL, expiration, and clientId
  */
 export async function generatePlexPin(
   log: FastifyBaseLogger,
 ): Promise<PlexPin> {
+  const clientId = generateClientId()
+
   try {
     const response = await fetch('https://plex.tv/api/v2/pins', {
       method: 'POST',
@@ -38,7 +53,7 @@ export async function generatePlexPin(
         'User-Agent': USER_AGENT,
         Accept: 'application/json',
         'X-Plex-Product': PLEX_PRODUCT_NAME,
-        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+        'X-Plex-Client-Identifier': clientId,
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
@@ -57,13 +72,17 @@ export async function generatePlexPin(
       expiresAt: string
     }
 
-    log.info({ pinId: data.id }, 'Generated Plex PIN for authentication')
+    log.info(
+      { pinId: data.id, clientId },
+      'Generated Plex PIN for authentication',
+    )
 
     return {
       id: data.id,
       code: data.code,
       qr: data.qr,
       expiresAt: data.expiresAt,
+      clientId,
     }
   } catch (error) {
     log.error({ error }, 'Failed to generate Plex PIN')
@@ -78,11 +97,13 @@ export async function generatePlexPin(
  * a PIN to check if the user has completed authorization at plex.tv/link.
  *
  * @param pinId - The PIN ID returned from generatePlexPin
+ * @param clientId - The client identifier used when generating the PIN
  * @param log - Fastify logger instance
  * @returns authToken if authorized, null otherwise, plus expiration info
  */
 export async function pollPlexPin(
   pinId: number,
+  clientId: string,
   log: FastifyBaseLogger,
 ): Promise<PlexPinPollResult> {
   try {
@@ -90,7 +111,7 @@ export async function pollPlexPin(
       headers: {
         'User-Agent': USER_AGENT,
         Accept: 'application/json',
-        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+        'X-Plex-Client-Identifier': clientId,
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
