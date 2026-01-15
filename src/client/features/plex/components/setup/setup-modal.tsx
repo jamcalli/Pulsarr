@@ -95,6 +95,8 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
   const handleTokenReceived = useCallback(
     async (token: string) => {
       setIsSubmitting(true)
+      // Capture existing tokens for rollback in case verification fails
+      const existingTokens = useConfigStore.getState().config?.plexTokens ?? []
       try {
         const tokenMinLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, 500),
@@ -117,6 +119,8 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         ])
 
         if (!plexPingResponse.ok) {
+          // Rollback: restore the previous tokens (preserves existing valid token)
+          await updateConfig({ plexTokens: existingTokens })
           throw new Error('Failed to verify Plex token')
         }
 
