@@ -10,6 +10,7 @@ import type {
   PlexPlaylistItemsResponse,
   PlexPlaylistResponse,
 } from '@root/types/plex-server.types.js'
+import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 const PLEX_API_TIMEOUT = 30000 // 30 seconds
@@ -40,7 +41,7 @@ export async function findUserPlaylistByTitle(
       headers: {
         Accept: 'application/json',
         'X-Plex-Token': token,
-        'X-Plex-Client-Identifier': 'Pulsarr',
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
     })
@@ -107,7 +108,7 @@ export async function createUserPlaylist(
       headers: {
         Accept: 'application/json',
         'X-Plex-Token': token,
-        'X-Plex-Client-Identifier': 'Pulsarr',
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
     })
@@ -167,7 +168,7 @@ export async function getUserPlaylistItems(
         headers: {
           Accept: 'application/json',
           'X-Plex-Token': token,
-          'X-Plex-Client-Identifier': 'Pulsarr',
+          'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
         },
         signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
