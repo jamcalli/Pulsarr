@@ -1,18 +1,9 @@
+import type {
+  PlexPinPollResponse,
+  PlexPinResponse,
+} from '@root/schemas/plex/pin.schema'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '@/lib/api'
-
-export interface PlexPinResponse {
-  id: number
-  code: string
-  qr: string
-  expiresAt: string
-  clientId: string
-}
-
-export interface PlexPinPollResponse {
-  authToken: string | null
-  expiresIn: number
-}
 
 export type PlexPinStatus =
   | 'idle'
