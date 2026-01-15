@@ -13,7 +13,7 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import { normalizePosterPath } from '@utils/poster-url.js'
-import { USER_AGENT } from '@utils/version.js'
+import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
 
@@ -87,7 +87,7 @@ export const getRssFromPlexToken = async (
   log: FastifyBaseLogger,
 ): Promise<string | null> => {
   const url = new URL('https://discover.provider.plex.tv/rss')
-  url.searchParams.append('X-Plex-Client-Identifier', 'pulsarr')
+  url.searchParams.append('X-Plex-Client-Identifier', PLEX_CLIENT_IDENTIFIER)
   url.searchParams.append('format', 'json')
 
   const body = JSON.stringify({ feedType: rssType })
@@ -214,7 +214,7 @@ export async function fetchRawRssFeed(
       headers: {
         'User-Agent': USER_AGENT,
         'X-Plex-Token': token,
-        'X-Plex-Client-Identifier': 'pulsarr',
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
         Accept: 'application/json',
         ...(previousEtag && { 'If-None-Match': previousEtag }),
       },

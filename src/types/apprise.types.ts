@@ -54,10 +54,9 @@ export interface AppriseNotification {
   format?: AppriseNotifyFormat
   // HTML formatted body - used alongside text body for services that support HTML
   body_html?: string
-  // Image URL for thumbnail/attachment
-  image?: string
-  // Attach the image to the notification (for email and services that support attachments)
-  attach?: string
+  // URL(s) to fetch and attach to the notification (e.g., poster images)
+  // Apprise API will fetch the URL and send as attachment for services that support it
+  attachment?: string | string[]
   // Application icon URL
   attach_url?: string
   // Additional attributes for specific notification systems

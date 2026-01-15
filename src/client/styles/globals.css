@@ -26,6 +26,7 @@
   --color-fun: var(--fun);
   --color-orange: var(--orange);
   --color-blue: var(--blue);
+  --color-plex: var(--plex);
 
   /* Status colors */
   --color-status-pending: var(--status-pending);
@@ -141,6 +142,7 @@
   --fun: #d4b483;
   --orange: #f6723a;
   --blue: #4a94b5;
+  --plex: #e5a00d;
   /* Static asteroid variables */
   --static-asteroid-fill: #948d89;
   --static-asteroid-border: #dedede;

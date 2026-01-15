@@ -332,7 +332,7 @@ export async function sendMediaNotification(
     }
 
     if (notification.posterUrl) {
-      appriseNotification.image = notification.posterUrl
+      appriseNotification.attachment = notification.posterUrl
     }
 
     const success = await sendAppriseNotification(
@@ -410,7 +410,7 @@ export async function sendSystemNotification(
     }
 
     if (notification.posterUrl) {
-      appriseNotification.image = notification.posterUrl
+      appriseNotification.attachment = notification.posterUrl
     }
 
     return await sendAppriseNotification(systemUrl, appriseNotification, deps)
@@ -554,7 +554,7 @@ export async function sendWatchlistAdditionNotification(
     }
 
     if (item.posterUrl) {
-      appriseNotification.image = item.posterUrl
+      appriseNotification.attachment = item.posterUrl
     }
 
     return await sendAppriseNotification(systemUrl, appriseNotification, deps)
