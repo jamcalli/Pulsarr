@@ -27,6 +27,8 @@ export function usePlexPinAuth() {
   const [status, setStatus] = useState<PlexPinStatus>('idle')
   const [error, setError] = useState<string | null>(null)
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Track active PIN to prevent stale poll responses from updating state
+  const activePinIdRef = useRef<number | null>(null)
 
   const stopPolling = useCallback(() => {
     if (pollIntervalRef.current) {
@@ -38,6 +40,7 @@ export function usePlexPinAuth() {
   const generatePin = useCallback(async () => {
     // Stop any existing polling before generating new PIN
     stopPolling()
+    activePinIdRef.current = null
     setStatus('generating')
     setError(null)
     setPin(null)
@@ -54,6 +57,7 @@ export function usePlexPinAuth() {
       }
 
       const data: PlexPinResponse = await response.json()
+      activePinIdRef.current = data.id
       setPin(data)
       setStatus('waiting')
     } catch (err) {
@@ -75,6 +79,9 @@ export function usePlexPinAuth() {
         )
 
         if (!response.ok) return
+
+        // Guard against stale responses from previous PIN
+        if (activePinIdRef.current !== pin.id) return
 
         const data: PlexPinPollResponse = await response.json()
 
@@ -99,6 +106,7 @@ export function usePlexPinAuth() {
 
   const reset = useCallback(() => {
     stopPolling()
+    activePinIdRef.current = null
     setPin(null)
     setToken(null)
     setError(null)
