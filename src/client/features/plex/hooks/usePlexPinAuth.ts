@@ -1,0 +1,134 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { api } from '@/lib/api'
+
+export interface PlexPinResponse {
+  id: number
+  code: string
+  qr: string
+  expiresAt: string
+}
+
+export interface PlexPinPollResponse {
+  authToken: string | null
+  expiresIn: number
+}
+
+export type PlexPinStatus =
+  | 'idle'
+  | 'generating'
+  | 'waiting'
+  | 'success'
+  | 'expired'
+  | 'error'
+
+const POLL_INTERVAL_MS = 5000
+
+/**
+ * React hook for Plex PIN-based authentication.
+ *
+ * Handles generating a PIN, displaying it to the user, and polling
+ * until the user authorizes at plex.tv/link.
+ */
+export function usePlexPinAuth() {
+  const [pin, setPin] = useState<PlexPinResponse | null>(null)
+  const [token, setToken] = useState<string | null>(null)
+  const [status, setStatus] = useState<PlexPinStatus>('idle')
+  const [error, setError] = useState<string | null>(null)
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const stopPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+      pollIntervalRef.current = null
+    }
+  }, [])
+
+  const generatePin = useCallback(async () => {
+    setStatus('generating')
+    setError(null)
+    setPin(null)
+    setToken(null)
+
+    try {
+      const response = await fetch(api('/v1/plex/pin'), {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PIN')
+      }
+
+      const data: PlexPinResponse = await response.json()
+      setPin(data)
+      setStatus('waiting')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+      setStatus('error')
+    }
+  }, [])
+
+  const startPolling = useCallback(() => {
+    if (!pin) return
+
+    // Poll immediately once
+    const poll = async () => {
+      try {
+        const response = await fetch(api(`/v1/plex/pin/${pin.id}`), {
+          headers: { Accept: 'application/json' },
+        })
+
+        if (!response.ok) return
+
+        const data: PlexPinPollResponse = await response.json()
+
+        if (data.authToken) {
+          setToken(data.authToken)
+          setStatus('success')
+          stopPolling()
+        } else if (data.expiresIn <= 0) {
+          setStatus('expired')
+          setError('PIN expired. Please generate a new one.')
+          stopPolling()
+        }
+      } catch {
+        // Silently retry on network errors
+      }
+    }
+
+    // Start polling
+    poll()
+    pollIntervalRef.current = setInterval(poll, POLL_INTERVAL_MS)
+  }, [pin, stopPolling])
+
+  const reset = useCallback(() => {
+    stopPolling()
+    setPin(null)
+    setToken(null)
+    setError(null)
+    setStatus('idle')
+  }, [stopPolling])
+
+  // Auto-start polling when PIN is generated
+  useEffect(() => {
+    if (pin && status === 'waiting') {
+      startPolling()
+    }
+  }, [pin, status, startPolling])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => stopPolling()
+  }, [stopPolling])
+
+  return {
+    pin,
+    token,
+    status,
+    error,
+    generatePin,
+    stopPolling,
+    reset,
+    isPolling: status === 'waiting',
+  }
+}
