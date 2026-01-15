@@ -1,9 +1,10 @@
-import { USER_AGENT } from '@utils/version.js'
+import {
+  PLEX_CLIENT_IDENTIFIER,
+  PLEX_PRODUCT_NAME,
+  USER_AGENT,
+} from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from './helpers.js'
-
-const PLEX_CLIENT_IDENTIFIER = 'pulsarr'
-const PLEX_PRODUCT_NAME = 'Pulsarr'
 
 export interface PlexPin {
   id: number

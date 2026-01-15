@@ -6,7 +6,7 @@
  */
 
 import type { PlexResource } from '@root/types/plex-server.types.js'
-import { USER_AGENT } from '@utils/version.js'
+import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 const PLEX_API_TIMEOUT = 10000 // 10 seconds
@@ -31,7 +31,7 @@ export async function getAllPlexResources(
         'User-Agent': USER_AGENT,
         Accept: 'application/json',
         'X-Plex-Token': token,
-        'X-Plex-Client-Identifier': 'Pulsarr',
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
     })

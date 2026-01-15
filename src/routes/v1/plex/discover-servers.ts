@@ -4,7 +4,11 @@ import {
   PlexTokenSchema,
 } from '@schemas/plex/discover-servers.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import { USER_AGENT } from '@utils/version.js'
+import {
+  PLEX_CLIENT_IDENTIFIER,
+  PLEX_PRODUCT_NAME,
+  USER_AGENT,
+} from '@utils/version.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 // Types for Plex API responses
@@ -76,8 +80,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             'User-Agent': USER_AGENT,
             Accept: 'application/json',
             'X-Plex-Token': plexToken,
-            'X-Plex-Client-Identifier': 'pulsarr',
-            'X-Plex-Product': 'Pulsarr',
+            'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+            'X-Plex-Product': PLEX_PRODUCT_NAME,
             'X-Plex-Platform': 'Web',
           },
         }).finally(() => clearTimeout(timeout))

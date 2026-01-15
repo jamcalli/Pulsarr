@@ -1,4 +1,4 @@
-import { USER_AGENT } from '@utils/version.js'
+import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from './helpers.js'
 
@@ -20,7 +20,7 @@ export const pingPlex = async (
       headers: {
         'User-Agent': USER_AGENT,
         'X-Plex-Token': token,
-        'X-Plex-Client-Identifier': 'pulsarr',
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
         Accept: 'application/json',
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
