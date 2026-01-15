@@ -44,6 +44,8 @@ export function usePlexPinAuth() {
   }, [])
 
   const generatePin = useCallback(async () => {
+    // Stop any existing polling before generating new PIN
+    stopPolling()
     setStatus('generating')
     setError(null)
     setPin(null)
@@ -66,7 +68,7 @@ export function usePlexPinAuth() {
       setError(err instanceof Error ? err.message : 'Unknown error')
       setStatus('error')
     }
-  }, [])
+  }, [stopPolling])
 
   const startPolling = useCallback(() => {
     if (!pin) return
