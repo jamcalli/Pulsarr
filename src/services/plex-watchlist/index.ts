@@ -70,7 +70,6 @@ export {
   getCacheThresholdSeconds,
   mapRssItemsToWatchlist,
   type RssCacheInfo,
-  RssEtagPoller,
 } from './rss/index.js'
 // Sync module
 export {
