@@ -8,7 +8,6 @@
 import type { DeferredRoutingQueue } from '@services/deferred-routing-queue.service.js'
 import type { RssFeedCacheManager } from '@services/plex-watchlist/cache/rss-feed-cache.js'
 import type { EtagPoller } from '@services/plex-watchlist/etag/etag-poller.js'
-import type { RssEtagPoller } from '@services/plex-watchlist/rss/rss-etag-poller.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /**
@@ -26,8 +25,6 @@ export interface WorkflowStopDeps {
 export interface WorkflowComponents {
   /** ETag poller instance */
   etagPoller: EtagPoller | null
-  /** RSS ETag poller instance */
-  rssEtagPoller: RssEtagPoller | null
   /** RSS feed cache manager instance */
   rssFeedCache: RssFeedCacheManager | null
   /** Deferred routing queue instance */
@@ -50,7 +47,7 @@ export interface WorkflowCleanupResult {
  * This function handles:
  * 1. Cleaning up periodic reconciliation jobs
  * 2. Stopping staggered polling and clearing ETag caches
- * 3. Clearing RSS ETag and feed caches
+ * 3. Clearing RSS feed cache
  * 4. Stopping the deferred routing queue
  *
  * Timer cleanup (rssCheckInterval, etagCheckInterval, statusSyncDebounceTimer)
@@ -78,11 +75,6 @@ export async function cleanupWorkflow(
   if (components.etagPoller) {
     components.etagPoller.stopStaggeredPolling()
     components.etagPoller.clearCache()
-  }
-
-  // Clear RSS ETag cache
-  if (components.rssEtagPoller) {
-    components.rssEtagPoller.clearCache()
   }
 
   // Clear RSS feed cache
