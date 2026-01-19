@@ -388,6 +388,18 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api/generate-plex-pin",
+          label: "Generate Plex PIN for authentication",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/poll-plex-pin",
+          label: "Poll Plex PIN for auth token",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
           id: "api/ping-plex",
           label: "Test Plex server connection",
           className: "api-method get",
