@@ -35,12 +35,12 @@ export function usePlexPinAuth() {
       clearInterval(pollIntervalRef.current)
       pollIntervalRef.current = null
     }
+    activePinIdRef.current = null
   }, [])
 
   const generatePin = useCallback(async () => {
     // Stop any existing polling before generating new PIN
     stopPolling()
-    activePinIdRef.current = null
     setStatus('generating')
     setError(null)
     setPin(null)
@@ -106,7 +106,6 @@ export function usePlexPinAuth() {
 
   const reset = useCallback(() => {
     stopPolling()
-    activePinIdRef.current = null
     setPin(null)
     setToken(null)
     setError(null)
