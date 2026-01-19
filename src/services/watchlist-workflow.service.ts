@@ -144,9 +144,9 @@ export class WatchlistWorkflowService {
   constructor(
     readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-    // RSS check interval: 10-30s with jitter for near-realtime detection
+    // RSS check interval: 10s with small jitter (S3 feeds update within seconds)
     private readonly rssCheckIntervalMs: number = 10_000 +
-      Math.ceil(Math.random() * 20_000),
+      Math.ceil(Math.random() * 2_000),
   ) {
     this.log = createServiceLogger(baseLog, 'WATCHLIST_WORKFLOW')
     this.log.info('Initializing Watchlist Workflow Service')
