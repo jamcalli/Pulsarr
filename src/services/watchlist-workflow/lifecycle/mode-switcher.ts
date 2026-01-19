@@ -11,7 +11,6 @@ import {
   detectRssCacheSettings,
   EtagPoller,
   type RssCacheInfo,
-  RssEtagPoller,
   RssFeedCacheManager,
 } from '@services/plex-watchlist/index.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -33,7 +32,6 @@ export interface ModeSwitcherState {
   rssCheckInterval: NodeJS.Timeout | null
   etagPoller: EtagPoller | null
   rssFeedCache: RssFeedCacheManager | null
-  rssEtagPoller: RssEtagPoller | null
 }
 
 /** Callbacks for starting/stopping polling modes */
@@ -220,12 +218,9 @@ async function switchToRssMode(
     state.etagPoller.stopStaggeredPolling()
   }
 
-  // Initialize RSS components if needed
+  // Initialize RSS feed cache if needed (for stable key diffing)
   if (!state.rssFeedCache) {
     state.rssFeedCache = new RssFeedCacheManager(log)
-  }
-  if (!state.rssEtagPoller) {
-    state.rssEtagPoller = new RssEtagPoller(log)
   }
 
   // Prime RSS caches (best-effort - don't block mode switch on failure)

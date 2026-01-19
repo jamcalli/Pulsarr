@@ -8,6 +8,7 @@
 
 import type { PlexSearchResponse } from '@root/types/plex-server.types.js'
 import { extractPlexKey } from '@utils/guid-handler.js'
+import { PLEX_CLIENT_IDENTIFIER } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import type { CachedConnection } from './connection-cache.js'
 import { invalidateServerConnection } from './connection-cache.js'
@@ -151,7 +152,7 @@ export async function checkContentOnServer(
       headers: {
         Accept: 'application/json',
         'X-Plex-Token': accessToken,
-        'X-Plex-Client-Identifier': 'Pulsarr',
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
       },
       signal: abortSignal
         ? AbortSignal.any([AbortSignal.timeout(5000), abortSignal])

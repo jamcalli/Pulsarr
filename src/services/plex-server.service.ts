@@ -22,7 +22,7 @@ import type {
 import { toItemsSingle } from '@services/plex-watchlist/index.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { USER_AGENT } from '@utils/version.js'
+import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
@@ -219,7 +219,7 @@ export class PlexServerService {
           'User-Agent': USER_AGENT,
           Accept: 'application/json',
           'X-Plex-Token': adminToken,
-          'X-Plex-Client-Identifier': 'Pulsarr',
+          'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
         },
         signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
@@ -478,7 +478,7 @@ export class PlexServerService {
         headers: {
           // This endpoint returns XML format
           'X-Plex-Token': adminToken,
-          'X-Plex-Client-Identifier': 'Pulsarr',
+          'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
         },
         signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
@@ -632,7 +632,7 @@ export class PlexServerService {
       const response = await fetch(sharedServersUrl.toString(), {
         headers: {
           'X-Plex-Token': adminToken,
-          'X-Plex-Client-Identifier': 'Pulsarr',
+          'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
           // This endpoint returns XML format
         },
         signal: AbortSignal.timeout(PLEX_API_TIMEOUT),

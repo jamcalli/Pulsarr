@@ -10,7 +10,7 @@
 
 import type { ItemRatings, PlexRating } from '@root/types/plex.types.js'
 import { normalizePosterPath } from '@utils/poster-url.js'
-import { USER_AGENT } from '@utils/version.js'
+import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS, PlexRateLimiter } from '../api/index.js'
 import { parseRatings } from './rating-parser.js'
@@ -107,7 +107,7 @@ export async function lookupByGuid(
       headers: {
         'User-Agent': USER_AGENT,
         'X-Plex-Token': config.token,
-        'X-Plex-Client-Identifier': 'pulsarr',
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
         Accept: 'application/json',
       },
       signal: AbortSignal.timeout(config.timeout ?? PLEX_API_TIMEOUT_MS),

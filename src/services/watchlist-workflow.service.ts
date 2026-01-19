@@ -37,7 +37,6 @@ import {
   type ItemCategorizerDeps,
   type ItemProcessorDeps,
   type RemovalHandlerDeps,
-  type RssEtagPoller,
   type RssFeedCacheManager,
   type WatchlistSyncDeps,
 } from '@services/plex-watchlist/index.js'
@@ -107,9 +106,6 @@ export class WatchlistWorkflowService {
   /** Poller for hybrid change detection */
   private etagPoller: EtagPoller | null = null
 
-  /** RSS ETag poller for efficient HEAD-based change detection */
-  private rssEtagPoller: RssEtagPoller | null = null
-
   /** RSS feed cache manager for item diffing and author tracking */
   private rssFeedCache: RssFeedCacheManager | null = null
 
@@ -148,9 +144,9 @@ export class WatchlistWorkflowService {
   constructor(
     readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-    // RSS check interval: 10-30s with jitter for near-realtime detection
+    // RSS check interval: 10s with small jitter (S3 feeds update within seconds)
     private readonly rssCheckIntervalMs: number = 10_000 +
-      Math.ceil(Math.random() * 20_000),
+      Math.ceil(Math.random() * 2_000),
   ) {
     this.log = createServiceLogger(baseLog, 'WATCHLIST_WORKFLOW')
     this.log.info('Initializing Watchlist Workflow Service')
@@ -328,7 +324,6 @@ export class WatchlistWorkflowService {
       // Apply initialization results to service state
       this.rssMode = result.rssMode
       this.isEtagFallbackActive = result.isEtagFallbackActive
-      this.rssEtagPoller = result.rssEtagPoller
       this.rssFeedCache = result.rssFeedCache
       this.deferredRoutingQueue = result.deferredRoutingQueue
 
@@ -463,7 +458,6 @@ export class WatchlistWorkflowService {
     const result = await cleanupWorkflow(
       {
         etagPoller: this.etagPoller,
-        rssEtagPoller: this.rssEtagPoller,
         rssFeedCache: this.rssFeedCache,
         deferredRoutingQueue: this.deferredRoutingQueue,
       },
@@ -1090,7 +1084,6 @@ export class WatchlistWorkflowService {
       rssCheckInterval: this.rssCheckInterval,
       etagPoller: this.etagPoller,
       rssFeedCache: this.rssFeedCache,
-      rssEtagPoller: this.rssEtagPoller,
     }
   }
 

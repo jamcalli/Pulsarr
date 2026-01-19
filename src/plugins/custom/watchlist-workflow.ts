@@ -10,8 +10,8 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    // 10-30s with jitter to spread load across Plex servers
-    const rssCheckIntervalMs = 10_000 + Math.ceil(Math.random() * 20_000)
+    // 10s with small jitter (S3 feeds update within seconds of watchlist changes)
+    const rssCheckIntervalMs = 10_000 + Math.ceil(Math.random() * 2_000)
 
     const watchlistWorkflow = new WatchlistWorkflowService(
       fastify.log,

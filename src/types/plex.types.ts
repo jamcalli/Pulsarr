@@ -230,9 +230,6 @@ export interface PlexWatchlistUrls {
 export interface RawRssFetchResult {
   success: boolean
   items: RssWatchlistItem[]
-  etag: string | null
-  /** Explicit flag for HTTP 304 Not Modified response */
-  notModified?: boolean
   authError?: boolean
   notFound?: boolean
   error?: string
