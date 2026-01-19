@@ -55,11 +55,14 @@ export async function enrichRssItems(
         continue
       }
 
+      // Convert normalized GUID (tmdb:123) back to Plex format (tmdb://123) for API lookup
+      const plexGuid = primaryGuid.replace(/^(tmdb|imdb|tvdb):/, '$1://')
+
       // Look up full Plex metadata including rating key
       const metadata = await lookupByGuid(
         { token },
         deps.logger,
-        primaryGuid,
+        plexGuid,
         item.type,
       )
 

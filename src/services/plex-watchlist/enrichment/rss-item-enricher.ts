@@ -9,6 +9,7 @@
  */
 
 import type { ItemRatings, PlexRating } from '@root/types/plex.types.js'
+import { extractTypedGuid } from '@utils/guid-handler.js'
 import { normalizePosterPath } from '@utils/poster-url.js'
 import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -44,7 +45,7 @@ export interface GuidLookupConfig {
  * - Movies: TMDB (Radarr uses this) > IMDB > TVDB
  * - Shows: TVDB (Sonarr uses this) > IMDB > TMDB
  *
- * @param guids - Array of GUID strings (e.g., ['tmdb://123', 'imdb://tt456'])
+ * @param guids - Array of GUID strings in normalized format (e.g., ['tmdb:123', 'imdb:tt456'])
  * @param category - Content type ('movie' or 'show')
  * @returns The selected GUID or null if none found
  */
@@ -52,24 +53,21 @@ export function selectPrimaryGuid(
   guids: string[],
   category: 'movie' | 'show',
 ): string | null {
-  const guidMap = new Map<string, string>()
-
-  for (const guid of guids) {
-    const match = guid.match(/^(imdb|tmdb|tvdb):\/\/(.+)$/)
-    if (match) {
-      guidMap.set(match[1], guid)
-    }
-  }
-
   if (category === 'movie') {
     // Priority: TMDB (Radarr uses this) > IMDB > TVDB
     return (
-      guidMap.get('tmdb') ?? guidMap.get('imdb') ?? guidMap.get('tvdb') ?? null
+      extractTypedGuid(guids, 'tmdb:') ??
+      extractTypedGuid(guids, 'imdb:') ??
+      extractTypedGuid(guids, 'tvdb:') ??
+      null
     )
   }
   // Priority: TVDB (Sonarr uses this) > IMDB > TMDB
   return (
-    guidMap.get('tvdb') ?? guidMap.get('imdb') ?? guidMap.get('tmdb') ?? null
+    extractTypedGuid(guids, 'tvdb:') ??
+    extractTypedGuid(guids, 'imdb:') ??
+    extractTypedGuid(guids, 'tmdb:') ??
+    null
   )
 }
 
@@ -215,7 +213,9 @@ export async function batchLookupByGuid(
       continue
     }
 
-    const metadata = await lookupByGuid(config, log, primaryGuid, item.category)
+    // Convert normalized GUID (tmdb:123) back to Plex format (tmdb://123) for API lookup
+    const plexGuid = primaryGuid.replace(/^(tmdb|imdb|tvdb):/, '$1://')
+    const metadata = await lookupByGuid(config, log, plexGuid, item.category)
     if (metadata) {
       // Store by the primary GUID we looked up
       results.set(primaryGuid, metadata)
