@@ -13,7 +13,7 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import { normalizePosterPath } from '@utils/poster-url.js'
-import { USER_AGENT } from '@utils/version.js'
+import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
 
@@ -87,7 +87,7 @@ export const getRssFromPlexToken = async (
   log: FastifyBaseLogger,
 ): Promise<string | null> => {
   const url = new URL('https://discover.provider.plex.tv/rss')
-  url.searchParams.append('X-Plex-Client-Identifier', 'pulsarr')
+  url.searchParams.append('X-Plex-Client-Identifier', PLEX_CLIENT_IDENTIFIER)
   url.searchParams.append('format', 'json')
 
   const body = JSON.stringify({ feedType: rssType })
@@ -190,71 +190,57 @@ export const fetchWatchlistFromRss = async (
 }
 
 /**
- * Fetch raw RSS feed content with ETag support.
- * Used by the RSS feed cache for efficient polling.
+ * Fetch raw RSS feed content.
+ * Used by the RSS feed cache for polling and diffing.
+ *
+ * Note: HTTP ETag optimization removed due to Plex S3 migration (Jan 2026).
+ * S3 generates different ETags and 302 redirects break If-None-Match semantics.
+ * Change detection now relies on stable key (GUID) diffing in RssFeedCacheManager.
  *
  * @param url - The RSS feed URL
  * @param token - Plex authentication token
  * @param log - Logger instance
- * @param previousEtag - Previous ETag for conditional request (optional)
  * @returns Raw RSS items with metadata
  */
 export async function fetchRawRssFeed(
   url: string,
   token: string,
   log: FastifyBaseLogger,
-  previousEtag?: string,
 ): Promise<RawRssFetchResult> {
   try {
     const urlObj = new URL(url)
     urlObj.searchParams.set('format', 'json')
 
-    // Single GET request with conditional ETag - server returns 304 with no body if unchanged
+    // Simple GET request - follows 302 redirects to S3 automatically
     const response = await fetch(urlObj.toString(), {
       headers: {
         'User-Agent': USER_AGENT,
         'X-Plex-Token': token,
-        'X-Plex-Client-Identifier': 'pulsarr',
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
         Accept: 'application/json',
-        ...(previousEtag && { 'If-None-Match': previousEtag }),
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
-    // Not modified - content unchanged
-    if (response.status === 304) {
-      log.debug('RSS feed unchanged (304 Not Modified)')
-      return {
-        success: true,
-        items: [],
-        etag: previousEtag ?? null,
-        notModified: true,
-      }
-    }
-
     // Auth errors
     if (response.status === 401 || response.status === 403) {
       log.warn('RSS feed auth error - user may lack RSS access')
-      return { success: false, items: [], etag: null, authError: true }
+      return { success: false, items: [], authError: true }
     }
 
     // Not found
     if (response.status === 404) {
       log.warn('RSS feed not found')
-      return { success: false, items: [], etag: null, notFound: true }
+      return { success: false, items: [], notFound: true }
     }
 
     if (!response.ok) {
       return {
         success: false,
         items: [],
-        etag: null,
         error: `Request failed: HTTP ${response.status}`,
       }
     }
-
-    // Extract ETag from response
-    const newEtag = response.headers.get('ETag')
 
     const json = (await response.json()) as RssResponse
     const items: RssWatchlistItem[] = []
@@ -295,11 +281,11 @@ export async function fetchRawRssFeed(
       }
     }
 
-    log.debug({ itemCount: items.length, etag: newEtag }, 'RSS feed fetched')
-    return { success: true, items, etag: newEtag }
+    log.debug({ itemCount: items.length }, 'RSS feed fetched')
+    return { success: true, items }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     log.error({ error: errorMessage }, 'Failed to fetch RSS feed')
-    return { success: false, items: [], etag: null, error: errorMessage }
+    return { success: false, items: [], error: errorMessage }
   }
 }

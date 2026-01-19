@@ -1,14 +1,17 @@
 /**
  * RSS Feed Cache Manager
  *
- * Maintains separate caches for self and friends RSS feeds with ETag-based
- * change detection and efficient diffing to identify new items.
+ * Maintains separate caches for self and friends RSS feeds with stable key
+ * (GUID) diffing to identify new items.
  *
  * Design:
  * - Dual independent caches (self feed and friends feed)
- * - Each feed has its own ETag for change detection
+ * - Change detection via GUID comparison (not HTTP ETags)
  * - Diff logic identifies items new to each cache independently
  * - Max 50 items per cache (RSS feed limit)
+ *
+ * Note: HTTP ETag optimization removed due to Plex S3 migration (Jan 2026).
+ * S3 generates different ETags and 302 redirects break If-None-Match.
  */
 
 import type {
@@ -25,7 +28,6 @@ import { fetchRawRssFeed, generateStableKey } from '../fetching/rss-fetcher.js'
  * Individual feed cache state
  */
 interface FeedCache {
-  etag: string | null
   lastFetch: number
   items: Map<string, CachedRssItem>
 }
@@ -38,13 +40,11 @@ interface FeedCache {
  */
 export class RssFeedCacheManager {
   private selfCache: FeedCache = {
-    etag: null,
     lastFetch: 0,
     items: new Map(),
   }
 
   private friendsCache: FeedCache = {
-    etag: null,
     lastFetch: 0,
     items: new Map(),
   }
@@ -116,9 +116,9 @@ export class RssFeedCacheManager {
     token: string,
     cache: FeedCache,
   ): Promise<void> {
-    const result = await fetchRawRssFeed(url, token, this.log, undefined)
+    const result = await fetchRawRssFeed(url, token, this.log)
 
-    if (!result.success || result.notModified) {
+    if (!result.success) {
       this.log.warn(
         { feed: feedType, success: result.success },
         'Failed to prime RSS cache',
@@ -129,7 +129,6 @@ export class RssFeedCacheManager {
     // Build cache without reporting items as new
     const { newCache } = this.diffAndUpdateCache(feedType, result.items, cache)
 
-    cache.etag = result.etag
     cache.lastFetch = Date.now()
     cache.items = newCache
 
@@ -143,8 +142,8 @@ export class RssFeedCacheManager {
    * Clear both caches (used on workflow stop)
    */
   clearCaches(): void {
-    this.selfCache = { etag: null, lastFetch: 0, items: new Map() }
-    this.friendsCache = { etag: null, lastFetch: 0, items: new Map() }
+    this.selfCache = { lastFetch: 0, items: new Map() }
+    this.friendsCache = { lastFetch: 0, items: new Map() }
     this.log.debug('RSS feed caches cleared')
   }
 
@@ -152,18 +151,16 @@ export class RssFeedCacheManager {
    * Get cache statistics for debugging
    */
   getCacheStats(): {
-    self: { itemCount: number; etag: string | null; lastFetch: number }
-    friends: { itemCount: number; etag: string | null; lastFetch: number }
+    self: { itemCount: number; lastFetch: number }
+    friends: { itemCount: number; lastFetch: number }
   } {
     return {
       self: {
         itemCount: this.selfCache.items.size,
-        etag: this.selfCache.etag,
         lastFetch: this.selfCache.lastFetch,
       },
       friends: {
         itemCount: this.friendsCache.items.size,
-        etag: this.friendsCache.etag,
         lastFetch: this.friendsCache.lastFetch,
       },
     }
@@ -178,12 +175,7 @@ export class RssFeedCacheManager {
     token: string,
     cache: FeedCache,
   ): Promise<RssDiffResult> {
-    const result = await fetchRawRssFeed(
-      url,
-      token,
-      this.log,
-      cache.etag ?? undefined,
-    )
+    const result = await fetchRawRssFeed(url, token, this.log)
 
     // Handle errors
     if (!result.success) {
@@ -197,17 +189,7 @@ export class RssFeedCacheManager {
       }
     }
 
-    // No change (HTTP 304 Not Modified)
-    if (result.notModified) {
-      return {
-        feed: feedType,
-        changed: false,
-        newItems: [],
-        totalItems: cache.items.size,
-      }
-    }
-
-    // Process items and diff against cache
+    // Process items and diff against cache (stable key comparison)
     const { newItems, newCache } = this.diffAndUpdateCache(
       feedType,
       result.items,
@@ -215,23 +197,29 @@ export class RssFeedCacheManager {
     )
 
     // Update cache state
-    cache.etag = result.etag
     cache.lastFetch = Date.now()
     cache.items = newCache
 
-    this.log.info(
-      {
-        feed: feedType,
-        totalItems: newCache.size,
-        newItems: newItems.length,
-        etag: result.etag?.substring(0, 16),
-      },
-      'RSS feed processed',
-    )
+    // Only log if there are changes or on debug level
+    if (newItems.length > 0) {
+      this.log.info(
+        {
+          feed: feedType,
+          totalItems: newCache.size,
+          newItems: newItems.length,
+        },
+        'RSS feed processed - new items detected',
+      )
+    } else {
+      this.log.debug(
+        { feed: feedType, totalItems: newCache.size },
+        'RSS feed processed - no new items',
+      )
+    }
 
     return {
       feed: feedType,
-      changed: true,
+      changed: newItems.length > 0,
       newItems,
       totalItems: newCache.size,
     }

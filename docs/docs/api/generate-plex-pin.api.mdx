@@ -1,0 +1,63 @@
+---
+id: generate-plex-pin
+title: "Generate Plex PIN for authentication"
+description: "Generates a PIN that users can enter at plex.tv/link to authorize Pulsarr access to their Plex account"
+sidebar_label: "Generate Plex PIN for authentication"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vk2P4zYM/SsCTy3grGe66MW3YBcogi5aY7MtCgxy0MhMrB1Z8khUZlLD/72gFOdrXGx72VMSUXokHx/JDOB69JK0s6sGKtih5Z9YG3yttYUCSO4CVA/AJ7ApoMGgvO75BVTwy/F+EFLUq98EtZJEDOiDUNIKtIReSBK9wdd3tC+Ntk+CnJCRWuf13yjqaIL0XkilMAS2UYvaC/bHhy5aggI8ht7ZgAGqAX66u+OP61A+4lZGQ+Lz8SYUoJwltMR3Zd8brVKi5dfADwYIqsVO8jc69AgVuMevqNhb75kW0tmdbi7u2Ng9ooeR0Ru8MATy2u7Y8Oxnj/G11x7Dkmatymi0tGpmjCOn/xy1x4YroRs4Ok+uLoEvYDYFyKbRnLA09UU+W2kCjiOj/vx9eQwkKYYP17T9Bz7RezdPaYchyN3MqwI6bT+h3VEL1f0tgxeBnJjMTs6Q3+Yv+afWcd/0LqR8JfuDcn9fsuLLPrVQQL9Hz100QPQGKhh678gpZ8aqLIfWBRqroXeeRrjtsA8xkOvEOmFAAXvptXw0mdEJhr+jjR0n1xL1UKSPkBs21ROqyXKN/6VFMcFw5zbcgsp1XbRcZxQvmlruSZHTYNo54CycCdo4JU2bSXiLzwYrOxTOi1UtZNN47nW3TbjTBDjjMxPX+O/v7t7Ph+48CWfFS6tVe4LSQfhobe6esZhoT5xUZXlw0S/6fHehbSBpFb5Trnvjova6k/4w0f8/oKrZkD9qj4qOcGKZZ94PiWLO5McbD1VZnpidB/w0mWfBNiw+Fb2mQ1Kf7PWveFhGVunDhn0FDEE7ezq6eLHmts46u3x3arV8CAVoDqRF2SSBcqGhgr8Wy3q1yBeuQ17WK/GEh7QD0NJxmogYtN2J0zNxBByL6xj/xb1y7knj2f2xJG+crzPW4lGy1GdDyFAhzV1tty751GQYdhLYsl7N5tU4FTu0lPG2zp8kueANyTvtRZJqjQ4ktCXc+fPVtbNpE9pGfJZNjp4HR4b/8z63RqBOprF7zHRawRmdlzBjXWd2G+twHunfb4Uf60b4SmVvpLacT9L6cBycD7C/5ynKfzUK4OG5mYbNAwwD1+wPb8aRj58jehb15jwSs6YnJbLen/DAhVEKe0qz08QsnZslxrI/zfL69/UXGMd/AL4PKfo=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Generate Plex PIN for authentication"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/plex/pin"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Generates a PIN that users can enter at plex.tv/link to authorize Pulsarr access to their Plex account
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"number"},"code":{"type":"string"},"qr":{"type":"string"},"expiresAt":{"type":"string"},"clientId":{"type":"string"}},"required":["id","code","qr","expiresAt","clientId"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

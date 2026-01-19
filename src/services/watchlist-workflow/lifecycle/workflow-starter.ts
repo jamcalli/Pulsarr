@@ -8,7 +8,6 @@
 import type { EtagPollResult, Item } from '@root/types/plex.types.js'
 import { DeferredRoutingQueue } from '@services/deferred-routing-queue.service.js'
 import { RssFeedCacheManager } from '@services/plex-watchlist/cache/rss-feed-cache.js'
-import { RssEtagPoller } from '@services/plex-watchlist/rss/rss-etag-poller.js'
 import type { PlexWatchlistService } from '@services/plex-watchlist.service.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
@@ -42,8 +41,6 @@ export interface WorkflowInitResult {
   rssMode: boolean
   /** Whether using RSS fallback (manual sync mode) */
   isEtagFallbackActive: boolean
-  /** RSS ETag poller instance (null if RSS mode disabled) */
-  rssEtagPoller: RssEtagPoller | null
   /** RSS feed cache manager instance (null if RSS mode disabled) */
   rssFeedCache: RssFeedCacheManager | null
   /** Deferred routing queue instance */
@@ -72,7 +69,6 @@ export async function initializeWorkflow(
 ): Promise<WorkflowInitResult> {
   let rssMode = false
   let isEtagFallbackActive = false
-  let rssEtagPoller: RssEtagPoller | null = null
   let rssFeedCache: RssFeedCacheManager | null = null
 
   // Clean up any existing manual sync jobs from previous runs
@@ -109,9 +105,8 @@ export async function initializeWorkflow(
     deps.logger.debug(
       'RSS feeds generated successfully, initializing monitoring',
     )
-    // Initialize RSS ETag poller for efficient HEAD-based change detection
-    rssEtagPoller = new RssEtagPoller(deps.logger)
-    // Initialize RSS feed cache for item diffing and author tracking
+    // Initialize RSS feed cache for item diffing (stable key comparison)
+    // Note: HTTP ETag optimization removed due to Plex S3 migration
     rssFeedCache = new RssFeedCacheManager(deps.logger)
     isEtagFallbackActive = false
     rssMode = true
@@ -152,7 +147,6 @@ export async function initializeWorkflow(
   return {
     rssMode,
     isEtagFallbackActive,
-    rssEtagPoller,
     rssFeedCache,
     deferredRoutingQueue,
   }
