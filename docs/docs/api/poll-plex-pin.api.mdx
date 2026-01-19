@@ -1,0 +1,71 @@
+---
+id: poll-plex-pin
+title: "Poll Plex PIN for auth token"
+description: "Checks if the user has completed authorization at plex.tv/link. Returns authToken when authorized."
+sidebar_label: "Poll Plex PIN for auth token"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vk1v4zYQ/SvEnHYBOUq66EW3YLcojC4KIUmLAoEPjDS2uKZILTl04gr678WQkiPH2i0KFHtywo83bx5n3qgH26GTpKxZ11BAZ7UuNb6UykAGJHceikfgFdhkUKOvnOr4NBTwscFq74XaCmpQBI9ONNKLyradRsJayECNdervCC8kiU7jyxUdcq3M/krcIQVnfDz2YPdoxHOD5nQL6yvIoJNOtkjomEgPvmqwlVD0QMcOoQBPTpkdDBko5vQ1oDtCBka2vFtphYbWNWTg8GtQDmsoyAUcsgUsE9ondCesTlLzCtUps4Sz4RXfWePRM9RP19f8c67UJ9zKoEncjSchg8oaQkN8VnadVlUUKf/i+cICN/v0BStiQRy/GKkU7qQd/2OC1vJJY6KWXUqEL51y6NdmIelhntrjDHh+bZOBrGvFVKUuZ0y2UnscBkb5+ccq4ElS8B9tjYsvWZ1vzLRwzrrFnRa9l7uFWxm0ynxGs6MGipu3is2IjGGnIK+Q/65fjE+N5WbcYUyXy7CA/HCTc//knTJ5H6txgAw8usPUHMFpKKDvnCVbWT0Ued431tNQ9J11xMffdHDwZFtxHzEgg4N0igsoCjvB8N9oQss5NkQdZPHHJ0OIzwrFtHOO/9CgmGDYIGpBlv2hDYafG8Wzoia6R0qD1WfCqX4maG0rqePyEj5vcIsK68S6FLKuHXovbHKlMmgvnZvhsxLn+B+urz8sU7eOhGVbUlVzglJeuGBMLJaBfSTJHjUp8vxog1t16exKGU/SVHhV2fYiROlUK91xkv8/QBWLlD8phxWNcOK2qliHd1FizuT9mwhFnp+UXQb8PG0vgm24+KrgFB1j9clO/YbH28DV+riJBoveK2tOS7Mb99zdo4XN7p06Li3C6MQNyjoW6OjFf61uy/UqHTinfFuuxR6PcYigodFURPDK7MTpmhgBh+yc4zfCV9buFc5GQXqSi+D3CWv1JP04/S4oJCgf7VaZrY0xFbFnw1Rgt+V6Ma/aVqFFQwlva92pJFdCCp7R4llS1WjlSShDuHOvR++t4ZPS1OJO1ok9G0eC//MmtYanVqZRkjItrdYJuVz/HnE4K0HjYDjj2L86+o/5NBjfivCF8k5LZTiHWN/9aJqPcLhhB+XPl4wnOGRQpEG+mZzmEfqeH+wPp4eBl9MnBFd0rTy7YT3a83fyfXc3DoL34lvE9ng8/yA5SB34WOykyXn//7hTRZvjPObEJ4kxbNh4U08wgbTHTd/R7NbFmGbmp2n16y8PMAz/AP4fk/0=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Poll Plex PIN for auth token"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/plex/pin/{pinId}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Checks if the user has completed authorization at plex.tv/link. Returns authToken when authorized.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"query","name":"clientId","required":true},{"schema":{"type":"number"},"in":"path","name":"pinId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"authToken":{"nullable":true,"type":"string"},"expiresIn":{"type":"number"}},"required":["authToken","expiresIn"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
