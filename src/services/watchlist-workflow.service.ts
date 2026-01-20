@@ -30,7 +30,6 @@ import type {
   TokenWatchlistItem,
   UserMapEntry,
 } from '@root/types/plex.types.js'
-import type { RssCacheInfo } from '@services/plex-watchlist/index.js'
 import {
   EtagPoller,
   handleLinkedItemsForLabelSync,
@@ -45,8 +44,6 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { DeferredRoutingQueue } from './deferred-routing-queue.service.js'
 import {
   // Lifecycle
-  checkAndSwitchModeIfNeeded,
-  checkInitialRssCacheMode,
   cleanupExistingManualSync,
   cleanupWorkflow,
   // Fetching
@@ -56,7 +53,6 @@ import {
   initializeWorkflow,
   // Cache
   lookupUserByUuid,
-  type ModeSwitcherState,
   // RSS
   processRssFriendsItems as processRssFriendsItemsModule,
   processRssSelfItems as processRssSelfItemsModule,
@@ -127,12 +123,6 @@ export class WatchlistWorkflowService {
    * Retries automatically when instances recover.
    */
   private deferredRoutingQueue: DeferredRoutingQueue | null = null
-
-  /** Tracks if RSS mode is disabled due to aggressive CDN caching */
-  private rssCacheDisabled = false
-
-  /** Last detected RSS cache info for logging/debugging */
-  private lastRssCacheInfo: RssCacheInfo | null = null
 
   /**
    * Creates a new WatchlistWorkflowService instance
@@ -326,20 +316,6 @@ export class WatchlistWorkflowService {
       this.isEtagFallbackActive = result.isEtagFallbackActive
       this.rssFeedCache = result.rssFeedCache
       this.deferredRoutingQueue = result.deferredRoutingQueue
-
-      // Check RSS cache - if too aggressive, switch to ETag mode
-      if (this.rssMode) {
-        const { cacheInfo, shouldDisableRss } = await checkInitialRssCacheMode(
-          this.config.selfRss,
-          this.log,
-        )
-        this.lastRssCacheInfo = cacheInfo
-        if (shouldDisableRss) {
-          this.rssCacheDisabled = true
-          this.rssMode = false
-          this.isEtagFallbackActive = true
-        }
-      }
 
       // Establish baselines BEFORE reconciliation to detect changes during sync
       // Any items added while reconciliation runs will be caught on first poll
@@ -959,21 +935,6 @@ export class WatchlistWorkflowService {
             await this.unschedulePendingReconciliation()
 
             try {
-              // Check RSS cache and hot-swap modes if needed
-              const modeResult = await checkAndSwitchModeIfNeeded(
-                this.modeSwitcherDeps,
-                this.modeSwitcherState,
-                this.modeSwitcherCallbacks,
-              )
-              this.lastRssCacheInfo = modeResult.cacheInfo
-              if (modeResult.switched && modeResult.stateUpdate) {
-                this.rssMode = modeResult.stateUpdate.rssMode
-                this.isEtagFallbackActive =
-                  modeResult.stateUpdate.isEtagFallbackActive
-                this.rssCacheDisabled = modeResult.stateUpdate.rssCacheDisabled
-                this.log.info({ newMode: modeResult.newMode }, 'Mode switched')
-              }
-
               // Perform full reconciliation (this also re-establishes baselines)
               // Note: Change detection (RSS or ETag) continues during reconciliation
               // to catch new items - deduplication handles any overlap
@@ -1061,37 +1022,6 @@ export class WatchlistWorkflowService {
       logger: this.log,
       fastify: this.fastify,
       jobName: this.MANUAL_SYNC_JOB_NAME,
-    }
-  }
-
-  /** Mode switcher deps */
-  private get modeSwitcherDeps() {
-    return {
-      log: this.log,
-      config: this.config,
-      getPrimaryUser: () => this.dbService.getPrimaryUser(),
-      getEtagFriendsList: () => this.getEtagFriendsList(),
-    }
-  }
-
-  /** Mode switcher state - mutable references to service state */
-  private get modeSwitcherState(): ModeSwitcherState {
-    return {
-      rssMode: this.rssMode,
-      isEtagFallbackActive: this.isEtagFallbackActive,
-      rssCacheDisabled: this.rssCacheDisabled,
-      lastRssCacheInfo: this.lastRssCacheInfo,
-      rssCheckInterval: this.rssCheckInterval,
-      etagPoller: this.etagPoller,
-      rssFeedCache: this.rssFeedCache,
-    }
-  }
-
-  /** Mode switcher callbacks */
-  private get modeSwitcherCallbacks() {
-    return {
-      startRssCheck: () => this.startRssCheck(),
-      startEtagCheckInterval: () => this.startEtagCheckInterval(),
     }
   }
 
