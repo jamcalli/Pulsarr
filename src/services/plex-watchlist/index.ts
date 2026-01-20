@@ -65,12 +65,7 @@ export {
   type WatchlistSyncDeps,
 } from './orchestration/watchlist-sync.js'
 // RSS module
-export {
-  detectRssCacheSettings,
-  getCacheThresholdSeconds,
-  mapRssItemsToWatchlist,
-  type RssCacheInfo,
-} from './rss/index.js'
+export { mapRssItemsToWatchlist } from './rss/index.js'
 // Sync module
 export {
   categorizeItems,
