@@ -35,15 +35,19 @@ export interface AppriseUrlFormatInfo {
   url: string
   schema: string
   format: AppriseNotifyFormat
+  /** Whether this service displays attachments inline (false for email services) */
+  supportsInlineAttachment: boolean
 }
 
 /**
- * Batch of URLs grouped by format for sending.
+ * Batch of URLs grouped by format and attachment support for sending.
  */
 export interface AppriseNotificationBatch {
   urls: string[]
   body: string
   format: 'text' | 'html'
+  /** Whether to include attachment field for this batch */
+  includeAttachment: boolean
 }
 
 export interface AppriseNotification {
