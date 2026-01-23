@@ -92,6 +92,27 @@ const SCHEMA_FORMAT_OVERRIDES: Record<string, 'text' | 'html' | 'markdown'> = {
 }
 
 /**
+ * Schemas that deliver notifications via email.
+ *
+ * Email services already render images via <img> tags in the HTML body.
+ * Sending attachments to these services results in redundant file attachments
+ * rather than inline images. We exclude the attachment field for these schemas.
+ */
+const EMAIL_SCHEMAS = new Set([
+  // SMTP direct
+  'mailto',
+  'mailtos',
+  // Email API services
+  'brevo',
+  'mailgun',
+  'sendgrid',
+  'sendpulse',
+  'ses',
+  'smtp2go',
+  'sparkpost',
+])
+
+/**
  * Extracts schema from Apprise URL using same logic as Apprise's parse_url().
  * Regex matches: one or more characters that are NOT colon or whitespace, before ://
  *
@@ -103,7 +124,7 @@ export function extractSchema(url: string): string | null {
 }
 
 /**
- * Analyzes Apprise URLs and determines their native format.
+ * Analyzes Apprise URLs and determines their native format and attachment support.
  * Handles comma-separated URLs.
  */
 export function analyzeAppriseUrls(
@@ -118,45 +139,81 @@ export function analyzeAppriseUrls(
       const schema = extractSchema(url)
       // Check for schema overrides first (e.g., tgram → text)
       const override = schema ? SCHEMA_FORMAT_OVERRIDES[schema] : undefined
+      // Email services render images via <img> tags, attachments are redundant
+      const supportsInlineAttachment = !schema || !EMAIL_SCHEMAS.has(schema)
       return {
         url,
         schema: schema ?? 'unknown',
         format:
           override ?? (schema ? (formatCache.get(schema) ?? 'text') : 'text'),
+        supportsInlineAttachment,
       }
     })
 }
 
 /**
- * Groups URLs by format and creates batches for sending.
- * Returns at most two batches: one for text-native targets, one for HTML-native targets.
+ * Groups URLs by format and attachment support, creating batches for sending.
+ * Returns up to 4 batches based on format (text/html) and attachment support.
  */
 export function createNotificationBatches(
   urls: AppriseUrlFormatInfo[],
   htmlBody: string,
   textBody: string,
 ): AppriseNotificationBatch[] {
-  // Group URLs by format - markdown targets get text (Apprise handles conversion)
-  const textUrls = urls.filter(
-    (u) => u.format === 'text' || u.format === 'markdown',
+  // Group URLs by format and attachment support
+  // Markdown targets get text (Apprise handles conversion)
+  const textWithAttachment = urls.filter(
+    (u) =>
+      (u.format === 'text' || u.format === 'markdown') &&
+      u.supportsInlineAttachment,
   )
-  const htmlUrls = urls.filter((u) => u.format === 'html')
+  const textNoAttachment = urls.filter(
+    (u) =>
+      (u.format === 'text' || u.format === 'markdown') &&
+      !u.supportsInlineAttachment,
+  )
+  const htmlWithAttachment = urls.filter(
+    (u) => u.format === 'html' && u.supportsInlineAttachment,
+  )
+  const htmlNoAttachment = urls.filter(
+    (u) => u.format === 'html' && !u.supportsInlineAttachment,
+  )
 
   const batches: AppriseNotificationBatch[] = []
 
-  if (textUrls.length > 0) {
+  if (textWithAttachment.length > 0) {
     batches.push({
-      urls: textUrls.map((u) => u.url),
+      urls: textWithAttachment.map((u) => u.url),
       body: textBody,
       format: 'text',
+      includeAttachment: true,
     })
   }
 
-  if (htmlUrls.length > 0) {
+  if (textNoAttachment.length > 0) {
     batches.push({
-      urls: htmlUrls.map((u) => u.url),
+      urls: textNoAttachment.map((u) => u.url),
+      body: textBody,
+      format: 'text',
+      includeAttachment: false,
+    })
+  }
+
+  if (htmlWithAttachment.length > 0) {
+    batches.push({
+      urls: htmlWithAttachment.map((u) => u.url),
       body: htmlBody,
       format: 'html',
+      includeAttachment: true,
+    })
+  }
+
+  if (htmlNoAttachment.length > 0) {
+    batches.push({
+      urls: htmlNoAttachment.map((u) => u.url),
+      body: htmlBody,
+      format: 'html',
+      includeAttachment: false,
     })
   }
 
