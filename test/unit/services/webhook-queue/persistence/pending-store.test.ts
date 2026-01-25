@@ -1,27 +1,26 @@
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
-import { queuePendingWebhook } from '@utils/webhook/pending-webhook.js'
-import type { FastifyInstance } from 'fastify'
+import {
+  type PendingStoreDeps,
+  type PendingWebhookParams,
+  queuePendingWebhook,
+} from '@services/webhook-queue/persistence/pending-store.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createMockLogger } from '../../../mocks/logger.js'
+import { createMockLogger } from '../../../../mocks/logger.js'
 
-describe('pending-webhook', () => {
-  let mockFastify: FastifyInstance
+describe('pending-store', () => {
   let mockCreatePendingWebhook: ReturnType<typeof vi.fn>
+  let deps: PendingStoreDeps
 
   beforeEach(() => {
     mockCreatePendingWebhook = vi.fn().mockResolvedValue(undefined)
 
-    mockFastify = {
-      pendingWebhooks: {
-        config: {
-          maxAge: 10,
-        },
-      },
+    deps = {
       db: {
         createPendingWebhook: mockCreatePendingWebhook,
-      },
-      log: createMockLogger(),
-    } as unknown as FastifyInstance
+      } as unknown as PendingStoreDeps['db'],
+      logger: createMockLogger(),
+      maxAgeMinutes: 10,
+    }
   })
 
   describe('queuePendingWebhook', () => {
@@ -35,14 +34,16 @@ describe('pending-webhook', () => {
         },
       }
 
-      await queuePendingWebhook(mockFastify, {
+      const params: PendingWebhookParams = {
         instanceType: 'radarr',
         instanceId: 1,
         guid: 'tmdb:12345',
         title: 'Test Movie',
         mediaType: 'movie',
         payload,
-      })
+      }
+
+      await queuePendingWebhook(params, deps)
 
       expect(mockCreatePendingWebhook).toHaveBeenCalledWith({
         instance_type: 'radarr',
@@ -58,7 +59,6 @@ describe('pending-webhook', () => {
       const expiresAt = call.expires_at as Date
       const expectedExpiry = now + 10 * 60_000
 
-      // Allow 1 second tolerance for test execution time
       expect(expiresAt.getTime()).toBeGreaterThanOrEqual(expectedExpiry - 1000)
       expect(expiresAt.getTime()).toBeLessThanOrEqual(expectedExpiry + 1000)
     })
@@ -88,14 +88,16 @@ describe('pending-webhook', () => {
         },
       }
 
-      await queuePendingWebhook(mockFastify, {
+      const params: PendingWebhookParams = {
         instanceType: 'sonarr',
         instanceId: 2,
         guid: 'tvdb:67890',
         title: 'Test Show',
         mediaType: 'show',
         payload,
-      })
+      }
+
+      await queuePendingWebhook(params, deps)
 
       expect(mockCreatePendingWebhook).toHaveBeenCalledWith({
         instance_type: 'sonarr',
@@ -117,14 +119,16 @@ describe('pending-webhook', () => {
         },
       }
 
-      await queuePendingWebhook(mockFastify, {
+      const params: PendingWebhookParams = {
         instanceType: 'radarr',
         instanceId: null,
         guid: 'tmdb:12345',
         title: 'Test Movie',
         mediaType: 'movie',
         payload,
-      })
+      }
+
+      await queuePendingWebhook(params, deps)
 
       expect(mockCreatePendingWebhook).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -133,18 +137,11 @@ describe('pending-webhook', () => {
       )
     })
 
-    it('should use custom maxAge from config', async () => {
-      const customFastify = {
-        pendingWebhooks: {
-          config: {
-            maxAge: 30, // 30 minutes
-          },
-        },
-        db: {
-          createPendingWebhook: mockCreatePendingWebhook,
-        },
-        log: createMockLogger(),
-      } as unknown as FastifyInstance
+    it('should use custom maxAge from deps', async () => {
+      const customDeps: PendingStoreDeps = {
+        ...deps,
+        maxAgeMinutes: 30,
+      }
 
       const now = Date.now()
       const payload: WebhookPayload = {
@@ -155,14 +152,16 @@ describe('pending-webhook', () => {
         },
       }
 
-      await queuePendingWebhook(customFastify, {
+      const params: PendingWebhookParams = {
         instanceType: 'radarr',
         instanceId: 1,
         guid: 'tmdb:12345',
         title: 'Test Movie',
         mediaType: 'movie',
         payload,
-      })
+      }
+
+      await queuePendingWebhook(params, customDeps)
 
       const call = mockCreatePendingWebhook.mock.calls[0][0]
       const expiresAt = call.expires_at as Date
@@ -173,17 +172,10 @@ describe('pending-webhook', () => {
     })
 
     it('should fall back to 10 minutes for invalid maxAge (zero)', async () => {
-      const invalidFastify = {
-        pendingWebhooks: {
-          config: {
-            maxAge: 0,
-          },
-        },
-        db: {
-          createPendingWebhook: mockCreatePendingWebhook,
-        },
-        log: createMockLogger(),
-      } as unknown as FastifyInstance
+      const invalidDeps: PendingStoreDeps = {
+        ...deps,
+        maxAgeMinutes: 0,
+      }
 
       const now = Date.now()
       const payload: WebhookPayload = {
@@ -194,14 +186,16 @@ describe('pending-webhook', () => {
         },
       }
 
-      await queuePendingWebhook(invalidFastify, {
+      const params: PendingWebhookParams = {
         instanceType: 'radarr',
         instanceId: 1,
         guid: 'tmdb:12345',
         title: 'Test Movie',
         mediaType: 'movie',
         payload,
-      })
+      }
+
+      await queuePendingWebhook(params, invalidDeps)
 
       const call = mockCreatePendingWebhook.mock.calls[0][0]
       const expiresAt = call.expires_at as Date
@@ -212,17 +206,10 @@ describe('pending-webhook', () => {
     })
 
     it('should fall back to 10 minutes for invalid maxAge (negative)', async () => {
-      const invalidFastify = {
-        pendingWebhooks: {
-          config: {
-            maxAge: -5,
-          },
-        },
-        db: {
-          createPendingWebhook: mockCreatePendingWebhook,
-        },
-        log: createMockLogger(),
-      } as unknown as FastifyInstance
+      const invalidDeps: PendingStoreDeps = {
+        ...deps,
+        maxAgeMinutes: -5,
+      }
 
       const now = Date.now()
       const payload: WebhookPayload = {
@@ -233,14 +220,16 @@ describe('pending-webhook', () => {
         },
       }
 
-      await queuePendingWebhook(invalidFastify, {
+      const params: PendingWebhookParams = {
         instanceType: 'radarr',
         instanceId: 1,
         guid: 'tmdb:12345',
         title: 'Test Movie',
         mediaType: 'movie',
         payload,
-      })
+      }
+
+      await queuePendingWebhook(params, invalidDeps)
 
       const call = mockCreatePendingWebhook.mock.calls[0][0]
       const expiresAt = call.expires_at as Date
@@ -251,17 +240,10 @@ describe('pending-webhook', () => {
     })
 
     it('should fall back to 10 minutes for invalid maxAge (NaN)', async () => {
-      const invalidFastify = {
-        pendingWebhooks: {
-          config: {
-            maxAge: 'invalid' as unknown as number,
-          },
-        },
-        db: {
-          createPendingWebhook: mockCreatePendingWebhook,
-        },
-        log: createMockLogger(),
-      } as unknown as FastifyInstance
+      const invalidDeps: PendingStoreDeps = {
+        ...deps,
+        maxAgeMinutes: 'invalid' as unknown as number,
+      }
 
       const now = Date.now()
       const payload: WebhookPayload = {
@@ -272,48 +254,16 @@ describe('pending-webhook', () => {
         },
       }
 
-      await queuePendingWebhook(invalidFastify, {
+      const params: PendingWebhookParams = {
         instanceType: 'radarr',
         instanceId: 1,
         guid: 'tmdb:12345',
         title: 'Test Movie',
         mediaType: 'movie',
         payload,
-      })
-
-      const call = mockCreatePendingWebhook.mock.calls[0][0]
-      const expiresAt = call.expires_at as Date
-      const expectedExpiry = now + 10 * 60_000
-
-      expect(expiresAt.getTime()).toBeGreaterThanOrEqual(expectedExpiry - 1000)
-      expect(expiresAt.getTime()).toBeLessThanOrEqual(expectedExpiry + 1000)
-    })
-
-    it('should fall back to 10 minutes when pendingWebhooks is undefined', async () => {
-      const noConfigFastify = {
-        db: {
-          createPendingWebhook: mockCreatePendingWebhook,
-        },
-        log: createMockLogger(),
-      } as unknown as FastifyInstance
-
-      const now = Date.now()
-      const payload: WebhookPayload = {
-        instanceName: 'Radarr',
-        movie: {
-          title: 'Test Movie',
-          tmdbId: 12345,
-        },
       }
 
-      await queuePendingWebhook(noConfigFastify, {
-        instanceType: 'radarr',
-        instanceId: 1,
-        guid: 'tmdb:12345',
-        title: 'Test Movie',
-        mediaType: 'movie',
-        payload,
-      })
+      await queuePendingWebhook(params, invalidDeps)
 
       const call = mockCreatePendingWebhook.mock.calls[0][0]
       const expiresAt = call.expires_at as Date
@@ -332,16 +282,18 @@ describe('pending-webhook', () => {
         },
       }
 
-      await queuePendingWebhook(mockFastify, {
+      const params: PendingWebhookParams = {
         instanceType: 'radarr',
         instanceId: 1,
         guid: 'tmdb:12345',
         title: 'Test Movie',
         mediaType: 'movie',
         payload,
-      })
+      }
 
-      expect(mockFastify.log.debug).toHaveBeenCalledWith(
+      await queuePendingWebhook(params, deps)
+
+      expect(deps.logger.debug).toHaveBeenCalledWith(
         {
           guid: 'tmdb:12345',
           instanceType: 'radarr',
@@ -366,19 +318,18 @@ describe('pending-webhook', () => {
         },
       }
 
-      // Should not throw
-      await expect(
-        queuePendingWebhook(mockFastify, {
-          instanceType: 'radarr',
-          instanceId: 1,
-          guid: 'tmdb:12345',
-          title: 'Test Movie',
-          mediaType: 'movie',
-          payload,
-        }),
-      ).resolves.toBeUndefined()
+      const params: PendingWebhookParams = {
+        instanceType: 'radarr',
+        instanceId: 1,
+        guid: 'tmdb:12345',
+        title: 'Test Movie',
+        mediaType: 'movie',
+        payload,
+      }
 
-      expect(mockFastify.log.error).toHaveBeenCalledWith(
+      await expect(queuePendingWebhook(params, deps)).resolves.toBeUndefined()
+
+      expect(deps.logger.error).toHaveBeenCalledWith(
         {
           error: dbError,
           guid: 'tmdb:12345',
@@ -416,18 +367,18 @@ describe('pending-webhook', () => {
         },
       }
 
-      await expect(
-        queuePendingWebhook(mockFastify, {
-          instanceType: 'sonarr',
-          instanceId: 2,
-          guid: 'tvdb:67890',
-          title: 'Test Show',
-          mediaType: 'show',
-          payload,
-        }),
-      ).resolves.toBeUndefined()
+      const params: PendingWebhookParams = {
+        instanceType: 'sonarr',
+        instanceId: 2,
+        guid: 'tvdb:67890',
+        title: 'Test Show',
+        mediaType: 'show',
+        payload,
+      }
 
-      expect(mockFastify.log.error).toHaveBeenCalledWith(
+      await expect(queuePendingWebhook(params, deps)).resolves.toBeUndefined()
+
+      expect(deps.logger.error).toHaveBeenCalledWith(
         expect.objectContaining({
           error: dbError,
         }),
@@ -479,14 +430,16 @@ describe('pending-webhook', () => {
         fileCount: 2,
       }
 
-      await queuePendingWebhook(mockFastify, {
+      const params: PendingWebhookParams = {
         instanceType: 'sonarr',
         instanceId: 2,
         guid: 'tvdb:67890',
         title: 'Test Show',
         mediaType: 'show',
         payload,
-      })
+      }
+
+      await queuePendingWebhook(params, deps)
 
       expect(mockCreatePendingWebhook).toHaveBeenCalledWith(
         expect.objectContaining({
