@@ -9,3 +9,9 @@ export {
   type PendingWebhookParams,
   queuePendingWebhook,
 } from './pending-store.js'
+
+export {
+  cleanupExpiredWebhooks,
+  processPendingWebhooks,
+  type RetryProcessorDeps,
+} from './retry-processor.js'
