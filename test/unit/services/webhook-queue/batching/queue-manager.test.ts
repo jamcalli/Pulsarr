@@ -1,35 +1,51 @@
+import type { WebhookQueue } from '@root/types/webhook.types.js'
 import {
+  clearAllTimeouts,
   isEpisodeAlreadyQueued,
-  webhookQueue,
-} from '@utils/webhook/queue-state.js'
-import { afterEach, describe, expect, it } from 'vitest'
+  type QueueManagerDeps,
+} from '@services/webhook-queue/batching/queue-manager.js'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMockLogger } from '../../../../mocks/logger.js'
 
-describe('queue-state', () => {
+describe('queue-manager', () => {
+  let queue: WebhookQueue
+  let deps: QueueManagerDeps
+
+  beforeEach(() => {
+    queue = {}
+    deps = { logger: createMockLogger() }
+  })
+
   afterEach(() => {
-    // Clean up the queue after each test
-    for (const key in webhookQueue) {
-      delete webhookQueue[key]
+    for (const key in queue) {
+      const show = queue[key]
+      for (const season of Object.values(show.seasons)) {
+        if (season.timeoutId) {
+          clearTimeout(season.timeoutId)
+        }
+      }
+      delete queue[key]
     }
   })
 
   describe('isEpisodeAlreadyQueued', () => {
     it('should return false when tvdbId is not in queue', () => {
-      const result = isEpisodeAlreadyQueued('12345', 1, 1)
+      const result = isEpisodeAlreadyQueued('12345', 1, 1, queue)
       expect(result).toBe(false)
     })
 
     it('should return false when season is not in queue', () => {
-      webhookQueue['12345'] = {
+      queue['12345'] = {
         title: 'Test Show',
         seasons: {},
       }
 
-      const result = isEpisodeAlreadyQueued('12345', 1, 1)
+      const result = isEpisodeAlreadyQueued('12345', 1, 1, queue)
       expect(result).toBe(false)
     })
 
     it('should return false when season has no episodes', () => {
-      webhookQueue['12345'] = {
+      queue['12345'] = {
         title: 'Test Show',
         seasons: {
           1: {
@@ -44,12 +60,12 @@ describe('queue-state', () => {
         },
       }
 
-      const result = isEpisodeAlreadyQueued('12345', 1, 1)
+      const result = isEpisodeAlreadyQueued('12345', 1, 1, queue)
       expect(result).toBe(false)
     })
 
     it('should return true when episode is already queued', () => {
-      webhookQueue['12345'] = {
+      queue['12345'] = {
         title: 'Test Show',
         seasons: {
           1: {
@@ -71,12 +87,12 @@ describe('queue-state', () => {
         },
       }
 
-      const result = isEpisodeAlreadyQueued('12345', 1, 1)
+      const result = isEpisodeAlreadyQueued('12345', 1, 1, queue)
       expect(result).toBe(true)
     })
 
     it('should return false when different episode is queued in same season', () => {
-      webhookQueue['12345'] = {
+      queue['12345'] = {
         title: 'Test Show',
         seasons: {
           1: {
@@ -98,12 +114,12 @@ describe('queue-state', () => {
         },
       }
 
-      const result = isEpisodeAlreadyQueued('12345', 1, 1)
+      const result = isEpisodeAlreadyQueued('12345', 1, 1, queue)
       expect(result).toBe(false)
     })
 
     it('should return true when episode is among multiple queued episodes', () => {
-      webhookQueue['12345'] = {
+      queue['12345'] = {
         title: 'Test Show',
         seasons: {
           1: {
@@ -137,12 +153,12 @@ describe('queue-state', () => {
         },
       }
 
-      const result = isEpisodeAlreadyQueued('12345', 1, 2)
+      const result = isEpisodeAlreadyQueued('12345', 1, 2, queue)
       expect(result).toBe(true)
     })
 
     it('should check both season and episode numbers', () => {
-      webhookQueue['12345'] = {
+      queue['12345'] = {
         title: 'Test Show',
         seasons: {
           1: {
@@ -164,19 +180,13 @@ describe('queue-state', () => {
         },
       }
 
-      // Episode data has seasonNumber: 1, episodeNumber: 1
-      // Should match when querying for S1E1
-      expect(isEpisodeAlreadyQueued('12345', 1, 1)).toBe(true)
-
-      // Should not match when querying for S2E1 (different season)
-      expect(isEpisodeAlreadyQueued('12345', 2, 1)).toBe(false)
-
-      // Should not match when querying for S1E2 (different episode)
-      expect(isEpisodeAlreadyQueued('12345', 1, 2)).toBe(false)
+      expect(isEpisodeAlreadyQueued('12345', 1, 1, queue)).toBe(true)
+      expect(isEpisodeAlreadyQueued('12345', 2, 1, queue)).toBe(false)
+      expect(isEpisodeAlreadyQueued('12345', 1, 2, queue)).toBe(false)
     })
 
     it('should handle multiple shows in queue', () => {
-      webhookQueue['12345'] = {
+      queue['12345'] = {
         title: 'Show 1',
         seasons: {
           1: {
@@ -198,7 +208,7 @@ describe('queue-state', () => {
         },
       }
 
-      webhookQueue['67890'] = {
+      queue['67890'] = {
         title: 'Show 2',
         seasons: {
           1: {
@@ -220,13 +230,13 @@ describe('queue-state', () => {
         },
       }
 
-      expect(isEpisodeAlreadyQueued('12345', 1, 1)).toBe(true)
-      expect(isEpisodeAlreadyQueued('67890', 1, 1)).toBe(true)
-      expect(isEpisodeAlreadyQueued('99999', 1, 1)).toBe(false)
+      expect(isEpisodeAlreadyQueued('12345', 1, 1, queue)).toBe(true)
+      expect(isEpisodeAlreadyQueued('67890', 1, 1, queue)).toBe(true)
+      expect(isEpisodeAlreadyQueued('99999', 1, 1, queue)).toBe(false)
     })
 
     it('should handle multiple seasons in same show', () => {
-      webhookQueue['12345'] = {
+      queue['12345'] = {
         title: 'Test Show',
         seasons: {
           1: {
@@ -264,10 +274,80 @@ describe('queue-state', () => {
         },
       }
 
-      expect(isEpisodeAlreadyQueued('12345', 1, 1)).toBe(true)
-      expect(isEpisodeAlreadyQueued('12345', 2, 1)).toBe(true)
-      expect(isEpisodeAlreadyQueued('12345', 1, 2)).toBe(false)
-      expect(isEpisodeAlreadyQueued('12345', 3, 1)).toBe(false)
+      expect(isEpisodeAlreadyQueued('12345', 1, 1, queue)).toBe(true)
+      expect(isEpisodeAlreadyQueued('12345', 2, 1, queue)).toBe(true)
+      expect(isEpisodeAlreadyQueued('12345', 1, 2, queue)).toBe(false)
+      expect(isEpisodeAlreadyQueued('12345', 3, 1, queue)).toBe(false)
+    })
+  })
+
+  describe('clearAllTimeouts', () => {
+    it('should clear all timeouts in the queue', () => {
+      const timeout1 = setTimeout(() => {}, 10000)
+      const timeout2 = setTimeout(() => {}, 10000)
+      vi.spyOn(global, 'clearTimeout')
+
+      queue['12345'] = {
+        title: 'Show 1',
+        seasons: {
+          1: {
+            episodes: [],
+            firstReceived: new Date(),
+            lastUpdated: new Date(),
+            notifiedSeasons: new Set(),
+            timeoutId: timeout1,
+            upgradeTracker: new Map(),
+            instanceId: null,
+          },
+        },
+      }
+
+      queue['67890'] = {
+        title: 'Show 2',
+        seasons: {
+          1: {
+            episodes: [],
+            firstReceived: new Date(),
+            lastUpdated: new Date(),
+            notifiedSeasons: new Set(),
+            timeoutId: timeout2,
+            upgradeTracker: new Map(),
+            instanceId: null,
+          },
+        },
+      }
+
+      clearAllTimeouts(queue, deps)
+
+      expect(clearTimeout).toHaveBeenCalledWith(timeout1)
+      expect(clearTimeout).toHaveBeenCalledWith(timeout2)
+      expect(deps.logger.debug).toHaveBeenCalledTimes(2)
+    })
+
+    it('should handle empty queue', () => {
+      clearAllTimeouts(queue, deps)
+
+      expect(deps.logger.debug).not.toHaveBeenCalled()
+    })
+
+    it('should handle seasons without timeouts', () => {
+      queue['12345'] = {
+        title: 'Show 1',
+        seasons: {
+          1: {
+            episodes: [],
+            firstReceived: new Date(),
+            lastUpdated: new Date(),
+            notifiedSeasons: new Set(),
+            upgradeTracker: new Map(),
+            instanceId: null,
+          },
+        },
+      }
+
+      clearAllTimeouts(queue, deps)
+
+      expect(deps.logger.debug).not.toHaveBeenCalled()
     })
   })
 })
