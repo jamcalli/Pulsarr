@@ -20,24 +20,45 @@ import {
   type UpgradeTrackerDeps,
 } from './detection/index.js'
 import {
+  cleanupExpiredWebhooks,
   type PendingStoreDeps,
   type PendingWebhookParams,
+  processPendingWebhooks,
   queuePendingWebhook,
+  type RetryProcessorDeps,
 } from './persistence/index.js'
 import {
   processQueuedWebhooks,
   type QueueProcessorDeps,
 } from './processing/index.js'
 
+export interface WebhookQueueConfig {
+  retryInterval: number
+  maxAge: number
+  cleanupInterval: number
+}
+
 export class WebhookQueueService {
   private readonly log: FastifyBaseLogger
   private readonly _queue: WebhookQueue = {}
+  private readonly _config: WebhookQueueConfig
+  private _isRunning = false
+  private _processingState = {
+    processingWebhooks: false,
+    cleaningUp: false,
+  }
 
   constructor(
     baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
+    config?: Partial<WebhookQueueConfig>,
   ) {
     this.log = createServiceLogger(baseLog, 'WEBHOOK_QUEUE')
+    this._config = {
+      retryInterval: config?.retryInterval ?? 20,
+      maxAge: config?.maxAge ?? 10,
+      cleanupInterval: config?.cleanupInterval ?? 60,
+    }
   }
 
   /**
@@ -45,6 +66,13 @@ export class WebhookQueueService {
    */
   get queue(): WebhookQueue {
     return this._queue
+  }
+
+  /**
+   * Get the configuration
+   */
+  get config(): WebhookQueueConfig {
+    return this._config
   }
 
   /**
@@ -82,7 +110,7 @@ export class WebhookQueueService {
     return {
       db: this.fastify.db,
       logger: this.log,
-      maxAgeMinutes: this.fastify.config.pendingWebhookMaxAge ?? 10,
+      maxAgeMinutes: this._config.maxAge,
     }
   }
 
@@ -96,6 +124,23 @@ export class WebhookQueueService {
       notifications: this.fastify.notifications,
       episodeCheckerDeps: this.episodeCheckerDeps,
       pendingStoreDeps: this.pendingStoreDeps,
+    }
+  }
+
+  /**
+   * Build deps for retry processor operations
+   */
+  private get retryProcessorDeps(): RetryProcessorDeps {
+    const plexLabelSyncService = this.fastify.plexLabelSyncService
+    return {
+      db: this.fastify.db,
+      logger: this.log,
+      notifications: this.fastify.notifications,
+      plexLabelSyncEnabled: this.fastify.config.plexLabelSync?.enabled ?? false,
+      syncLabelsOnWebhook: plexLabelSyncService
+        ? (payload) =>
+            plexLabelSyncService.syncLabelsOnWebhook(payload).then(() => {})
+        : null,
     }
   }
 
@@ -160,9 +205,77 @@ export class WebhookQueueService {
   }
 
   /**
+   * Initialize the retry processing scheduled jobs
+   */
+  async initialize(): Promise<void> {
+    await this.fastify.scheduler.scheduleJob(
+      'pending-webhooks-processor',
+      async () => {
+        const deleted = await this.processRetryWebhooks()
+        if (deleted > 0) {
+          this.log.debug(`Deleted ${deleted} pending webhooks`)
+        }
+      },
+    )
+
+    await this.fastify.db.updateSchedule('pending-webhooks-processor', {
+      type: 'interval',
+      config: { seconds: this._config.retryInterval },
+      enabled: true,
+    })
+
+    await this.fastify.scheduler.scheduleJob(
+      'pending-webhooks-cleanup',
+      async () => {
+        const cleaned = await this.cleanupExpiredWebhooks()
+        if (cleaned > 0) {
+          this.log.info(`Cleaned up ${cleaned} expired webhooks`)
+        }
+      },
+    )
+
+    await this.fastify.db.updateSchedule('pending-webhooks-cleanup', {
+      type: 'interval',
+      config: { seconds: this._config.cleanupInterval },
+      enabled: true,
+    })
+
+    this._isRunning = true
+
+    await this.processRetryWebhooks()
+  }
+
+  /**
+   * Process pending webhooks that need retry
+   */
+  private async processRetryWebhooks(): Promise<number> {
+    if (!this._isRunning) {
+      return 0
+    }
+    return processPendingWebhooks(
+      this._processingState,
+      this.retryProcessorDeps,
+    )
+  }
+
+  /**
+   * Clean up expired pending webhooks
+   */
+  private async cleanupExpiredWebhooks(): Promise<number> {
+    if (!this._isRunning) {
+      return 0
+    }
+    return cleanupExpiredWebhooks(
+      this._processingState,
+      this.retryProcessorDeps,
+    )
+  }
+
+  /**
    * Clear all pending timeouts on shutdown
    */
   shutdown(): void {
+    this._isRunning = false
     clearAllTimeouts(this._queue, this.queueManagerDeps)
     for (const key of Object.keys(this._queue)) {
       delete this._queue[key]
