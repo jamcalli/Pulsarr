@@ -34,6 +34,7 @@ export interface SeasonQueue {
   timeoutId?: NodeJS.Timeout
   upgradeTracker: Map<string, RecentWebhook[]>
   instanceId?: number | null
+  expectedEpisodeCount?: number
 }
 
 export interface WebhookQueue {

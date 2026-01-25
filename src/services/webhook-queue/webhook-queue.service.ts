@@ -16,7 +16,10 @@ import {
 import {
   checkForUpgrade,
   type EpisodeCheckerDeps,
+  fetchExpectedEpisodeCount,
   isRecentEpisode,
+  isSeasonComplete,
+  type SeasonCompletionDeps,
   type UpgradeTrackerDeps,
 } from './detection/index.js'
 import {
@@ -100,6 +103,18 @@ export class WebhookQueueService {
       logger: this.log,
       queue: this._queue,
       upgradeBufferTime: this.fastify.config.upgradeBufferTime,
+    }
+  }
+
+  /**
+   * Build deps for season completion detection
+   */
+  private get seasonCompletionDeps(): SeasonCompletionDeps {
+    return {
+      logger: this.log,
+      queue: this._queue,
+      getSeriesByTvdbId: (tvdbId) =>
+        this.fastify.sonarrManager.getSeriesByTvdbIdFromAny(tvdbId),
     }
   }
 
@@ -202,6 +217,28 @@ export class WebhookQueueService {
       instanceId,
       this.upgradeTrackerDeps,
     )
+  }
+
+  /**
+   * Fetch and cache the expected episode count for a season
+   * Returns the expected count or null if unable to determine
+   */
+  async fetchExpectedEpisodeCount(
+    tvdbId: string,
+    seasonNumber: number,
+  ): Promise<number | null> {
+    return fetchExpectedEpisodeCount(
+      tvdbId,
+      seasonNumber,
+      this.seasonCompletionDeps,
+    )
+  }
+
+  /**
+   * Check if all expected episodes for a season have been received
+   */
+  isSeasonComplete(tvdbId: string, seasonNumber: number): boolean {
+    return isSeasonComplete(tvdbId, seasonNumber, this.seasonCompletionDeps)
   }
 
   /**
