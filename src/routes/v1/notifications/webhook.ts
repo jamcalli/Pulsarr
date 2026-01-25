@@ -371,7 +371,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                   }
 
                   // Fetch expected episode count for season completion detection
-                  void fastify.webhookQueue
+                  await fastify.webhookQueue
                     .fetchExpectedEpisodeCount(tvdbId, seasonNumber)
                     .catch((error) => {
                       fastify.log.debug(
@@ -649,7 +649,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 }
 
                 // Fetch expected episode count for season completion detection
-                void fastify.webhookQueue
+                await fastify.webhookQueue
                   .fetchExpectedEpisodeCount(tvdbId, seasonNumber)
                   .catch((error) => {
                     fastify.log.debug(
