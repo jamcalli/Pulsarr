@@ -723,6 +723,28 @@ export class SonarrService {
     }
   }
 
+  /**
+   * Get full series data by TVDB ID
+   * @param tvdbId - The TVDB ID to look up
+   * @returns Promise resolving to SonarrSeries or null if not found
+   */
+  async getSeriesByTvdbId(tvdbId: number): Promise<SonarrSeries | null> {
+    try {
+      const series = await this.getFromSonarr<SonarrSeries[]>(
+        `series/lookup?term=tvdb:${tvdbId}`,
+      )
+
+      if (series.length > 0 && series[0].id > 0) {
+        return series[0]
+      }
+
+      return null
+    } catch (err) {
+      this.log.error({ error: err, tvdbId }, 'Error fetching series by TVDB ID')
+      return null
+    }
+  }
+
   async fetchExclusions(pageSize = 1000): Promise<Set<Item>> {
     const config = this.sonarrConfig
     try {
