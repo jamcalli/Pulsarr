@@ -5,21 +5,33 @@
  * Consolidates queue state management, episode detection, and pending webhook handling.
  */
 
-import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
 import type { WebhookQueue } from '@root/types/webhook.types.js'
 import { createServiceLogger } from '@utils/logger.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import {
+  clearAllTimeouts,
+  isEpisodeAlreadyQueued,
+  type QueueManagerDeps,
+} from './batching/index.js'
 import {
   checkForUpgrade,
-  isEpisodeAlreadyQueued,
+  type EpisodeCheckerDeps,
   isRecentEpisode,
-  processQueuedWebhooks,
+  type UpgradeTrackerDeps,
+} from './detection/index.js'
+import {
+  type PendingStoreDeps,
+  type PendingWebhookParams,
   queuePendingWebhook,
-  webhookQueue,
-} from '@utils/webhook/index.js'
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+} from './persistence/index.js'
+import {
+  processQueuedWebhooks,
+  type QueueProcessorDeps,
+} from './processing/index.js'
 
 export class WebhookQueueService {
   private readonly log: FastifyBaseLogger
+  private readonly _queue: WebhookQueue = {}
 
   constructor(
     baseLog: FastifyBaseLogger,
@@ -29,10 +41,62 @@ export class WebhookQueueService {
   }
 
   /**
-   * Get the webhook queue (delegates to global for now)
+   * Get the webhook queue
    */
   get queue(): WebhookQueue {
-    return webhookQueue
+    return this._queue
+  }
+
+  /**
+   * Build deps for queue manager operations
+   */
+  private get queueManagerDeps(): QueueManagerDeps {
+    return { logger: this.log }
+  }
+
+  /**
+   * Build deps for episode checker operations
+   */
+  private get episodeCheckerDeps(): EpisodeCheckerDeps {
+    return {
+      logger: this.log,
+      newEpisodeThreshold: this.fastify.config.newEpisodeThreshold,
+    }
+  }
+
+  /**
+   * Build deps for upgrade tracker operations
+   */
+  private get upgradeTrackerDeps(): UpgradeTrackerDeps {
+    return {
+      logger: this.log,
+      queue: this._queue,
+      upgradeBufferTime: this.fastify.config.upgradeBufferTime,
+    }
+  }
+
+  /**
+   * Build deps for pending store operations
+   */
+  private get pendingStoreDeps(): PendingStoreDeps {
+    return {
+      db: this.fastify.db,
+      logger: this.log,
+      maxAgeMinutes: this.fastify.config.pendingWebhookMaxAge ?? 10,
+    }
+  }
+
+  /**
+   * Build deps for queue processor operations
+   */
+  private get queueProcessorDeps(): QueueProcessorDeps {
+    return {
+      logger: this.log,
+      queue: this._queue,
+      notifications: this.fastify.notifications,
+      episodeCheckerDeps: this.episodeCheckerDeps,
+      pendingStoreDeps: this.pendingStoreDeps,
+    }
   }
 
   /**
@@ -43,14 +107,19 @@ export class WebhookQueueService {
     seasonNumber: number,
     episodeNumber: number,
   ): boolean {
-    return isEpisodeAlreadyQueued(tvdbId, seasonNumber, episodeNumber)
+    return isEpisodeAlreadyQueued(
+      tvdbId,
+      seasonNumber,
+      episodeNumber,
+      this._queue,
+    )
   }
 
   /**
    * Check if an episode aired recently (within configured threshold)
    */
   isRecentEpisode(airDateUtc: string): boolean {
-    return isRecentEpisode(airDateUtc, this.fastify)
+    return isRecentEpisode(airDateUtc, this.episodeCheckerDeps)
   }
 
   /**
@@ -60,21 +129,14 @@ export class WebhookQueueService {
     tvdbId: string,
     seasonNumber: number,
   ): Promise<void> {
-    return processQueuedWebhooks(tvdbId, seasonNumber, this.fastify)
+    return processQueuedWebhooks(tvdbId, seasonNumber, this.queueProcessorDeps)
   }
 
   /**
    * Queue a pending webhook for later processing
    */
-  async queuePendingWebhook(params: {
-    instanceType: 'sonarr' | 'radarr'
-    instanceId: number | null
-    guid: string
-    title: string
-    mediaType: 'movie' | 'show'
-    payload: WebhookPayload
-  }): Promise<void> {
-    return queuePendingWebhook(this.fastify, params)
+  async queuePendingWebhook(params: PendingWebhookParams): Promise<void> {
+    return queuePendingWebhook(params, this.pendingStoreDeps)
   }
 
   /**
@@ -93,7 +155,7 @@ export class WebhookQueueService {
       episodeNumber,
       isUpgrade,
       instanceId,
-      this.fastify,
+      this.upgradeTrackerDeps,
     )
   }
 
@@ -101,17 +163,9 @@ export class WebhookQueueService {
    * Clear all pending timeouts on shutdown
    */
   shutdown(): void {
-    for (const [tvdbId, show] of Object.entries(webhookQueue)) {
-      for (const [seasonNumber, season] of Object.entries(show.seasons)) {
-        if (season.timeoutId) {
-          clearTimeout(season.timeoutId)
-          this.log.debug({ tvdbId, seasonNumber }, 'Cleared queue timeout')
-        }
-      }
-    }
-    // Clear the queue
-    for (const key of Object.keys(webhookQueue)) {
-      delete webhookQueue[key]
+    clearAllTimeouts(this._queue, this.queueManagerDeps)
+    for (const key of Object.keys(this._queue)) {
+      delete this._queue[key]
     }
     this.log.debug('Webhook queue shutdown complete')
   }
