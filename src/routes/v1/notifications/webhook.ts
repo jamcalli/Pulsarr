@@ -5,14 +5,6 @@ import {
   WebhookResponseSchema,
 } from '@root/schemas/notifications/webhook.schema.js'
 import { isWebhookProcessable } from '@root/utils/notifications/index.js'
-import {
-  checkForUpgrade,
-  isEpisodeAlreadyQueued,
-  isRecentEpisode,
-  processQueuedWebhooks,
-  queuePendingWebhook,
-  webhookQueue,
-} from '@root/utils/webhook/index.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -165,7 +157,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               },
               'Movie not in watchlist yet, queuing webhook for later processing',
             )
-            await queuePendingWebhook(fastify, {
+            await fastify.webhookQueue.queuePendingWebhook({
               instanceType: 'radarr',
               instanceId: instance?.id ?? null,
               guid: tmdbGuid,
@@ -301,16 +293,15 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 'Processing individual episode completion',
               )
 
-              if (!webhookQueue[tvdbId]) {
-                webhookQueue[tvdbId] = {
+              if (!fastify.webhookQueue.queue[tvdbId]) {
+                fastify.webhookQueue.queue[tvdbId] = {
                   seasons: {},
                   title: body.series.title,
                 }
               }
 
-              const isRecentEp = isRecentEpisode(
+              const isRecentEp = fastify.webhookQueue.isRecentEpisode(
                 body.episodes[0].airDateUtc,
-                fastify,
               )
 
               if (isRecentEp) {
@@ -320,7 +311,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
                 // If no matching items, queue webhook for later processing
                 if (matchingItems.length === 0) {
-                  await queuePendingWebhook(fastify, {
+                  await fastify.webhookQueue.queuePendingWebhook({
                     instanceType: 'sonarr',
                     instanceId: instance?.id ?? null,
                     guid: tvdbGuid,
@@ -356,8 +347,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                   instanceType: 'sonarr',
                 })
               } else {
-                if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
-                  webhookQueue[tvdbId].seasons[seasonNumber] = {
+                if (!fastify.webhookQueue.queue[tvdbId].seasons[seasonNumber]) {
+                  fastify.webhookQueue.queue[tvdbId].seasons[seasonNumber] = {
                     episodes: [],
                     firstReceived: new Date(),
                     lastUpdated: new Date(),
@@ -365,80 +356,87 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                     upgradeTracker: new Map(),
                     instanceId: instance?.id ?? null,
                     timeoutId: setTimeout(() => {
-                      void processQueuedWebhooks(
-                        tvdbId,
-                        seasonNumber,
-                        fastify,
-                      ).catch((error) => {
-                        fastify.log.error(
-                          { error, tvdbId, seasonNumber },
-                          'Queue timeout processing failed',
-                        )
-                      })
+                      void fastify.webhookQueue
+                        .processQueuedWebhooks(tvdbId, seasonNumber)
+                        .catch((error) => {
+                          fastify.log.error(
+                            { error, tvdbId, seasonNumber },
+                            'Queue timeout processing failed',
+                          )
+                        })
                     }, fastify.config.queueWaitTime),
                   }
                 }
 
                 // Check for duplicate episode before adding
                 if (
-                  !isEpisodeAlreadyQueued(tvdbId, seasonNumber, episodeNumber)
-                ) {
-                  webhookQueue[tvdbId].seasons[seasonNumber].episodes.push(
-                    body.episodes[0],
+                  !fastify.webhookQueue.isEpisodeAlreadyQueued(
+                    tvdbId,
+                    seasonNumber,
+                    episodeNumber,
                   )
+                ) {
+                  fastify.webhookQueue.queue[tvdbId].seasons[
+                    seasonNumber
+                  ].episodes.push(body.episodes[0])
 
                   // Keep queue metadata fresh and extend the window
-                  webhookQueue[tvdbId].seasons[seasonNumber].lastUpdated =
-                    new Date()
-                  if (webhookQueue[tvdbId].seasons[seasonNumber].timeoutId) {
+                  fastify.webhookQueue.queue[tvdbId].seasons[
+                    seasonNumber
+                  ].lastUpdated = new Date()
+                  if (
+                    fastify.webhookQueue.queue[tvdbId].seasons[seasonNumber]
+                      .timeoutId
+                  ) {
                     clearTimeout(
-                      webhookQueue[tvdbId].seasons[seasonNumber].timeoutId,
+                      fastify.webhookQueue.queue[tvdbId].seasons[seasonNumber]
+                        .timeoutId,
                     )
                   }
-                  webhookQueue[tvdbId].seasons[seasonNumber].timeoutId =
-                    setTimeout(() => {
-                      const queuedCount =
-                        webhookQueue[tvdbId]?.seasons?.[seasonNumber]?.episodes
-                          ?.length ?? 0
-                      fastify.log.info(
-                        {
-                          tvdbId,
-                          seasonNumber,
-                          waitMs: fastify.config.queueWaitTime,
-                          queuedCount,
-                          series: webhookQueue[tvdbId]?.title,
-                        },
-                        'Queue timeout reached, processing webhooks',
-                      )
-                      fastify.log.debug(
-                        {
-                          tvdbId,
-                          seasonNumber,
-                          waitMs: fastify.config.queueWaitTime,
-                          queuedCount,
-                          series: webhookQueue[tvdbId]?.title,
-                        },
-                        'Queue timeout details',
-                      )
-                      void processQueuedWebhooks(
+                  fastify.webhookQueue.queue[tvdbId].seasons[
+                    seasonNumber
+                  ].timeoutId = setTimeout(() => {
+                    const queuedCount =
+                      fastify.webhookQueue.queue[tvdbId]?.seasons?.[
+                        seasonNumber
+                      ]?.episodes?.length ?? 0
+                    fastify.log.info(
+                      {
                         tvdbId,
                         seasonNumber,
-                        fastify,
-                      ).catch((error) => {
+                        waitMs: fastify.config.queueWaitTime,
+                        queuedCount,
+                        series: fastify.webhookQueue.queue[tvdbId]?.title,
+                      },
+                      'Queue timeout reached, processing webhooks',
+                    )
+                    fastify.log.debug(
+                      {
+                        tvdbId,
+                        seasonNumber,
+                        waitMs: fastify.config.queueWaitTime,
+                        queuedCount,
+                        series: fastify.webhookQueue.queue[tvdbId]?.title,
+                      },
+                      'Queue timeout details',
+                    )
+                    void fastify.webhookQueue
+                      .processQueuedWebhooks(tvdbId, seasonNumber)
+                      .catch((error) => {
                         fastify.log.error(
                           { error, tvdbId, seasonNumber },
                           'Queue timeout processing failed',
                         )
                       })
-                    }, fastify.config.queueWaitTime)
+                  }, fastify.config.queueWaitTime)
 
                   fastify.log.debug(
                     {
                       tvdbId,
                       seasonNumber,
                       episodeCount:
-                        webhookQueue[tvdbId].seasons[seasonNumber].episodes
-                          .length,
+                        fastify.webhookQueue.queue[tvdbId].seasons[seasonNumber]
+                          .episodes.length,
                       instanceName: instance?.name ?? body.instanceName,
                       reqId: request.id,
                     },
@@ -459,27 +457,26 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               return { success: true }
             }
 
-            await checkForUpgrade(
+            await fastify.webhookQueue.checkForUpgrade(
               tvdbId,
               seasonNumber,
               episodeNumber,
               body.isUpgrade === true,
               instance?.id ?? null,
-              fastify,
             )
             fastify.log.debug('Skipping initial download webhook')
             return { success: true }
           }
 
           if ('episodeFiles' in body) {
-            const isUpgradeInProgress = await checkForUpgrade(
-              tvdbId,
-              seasonNumber,
-              episodeNumber,
-              false,
-              instance?.id ?? null,
-              fastify,
-            )
+            const isUpgradeInProgress =
+              await fastify.webhookQueue.checkForUpgrade(
+                tvdbId,
+                seasonNumber,
+                episodeNumber,
+                false,
+                instance?.id ?? null,
+              )
 
             if (isUpgradeInProgress) {
               fastify.log.debug(
@@ -493,16 +490,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               return { success: true }
             }
 
-            if (!webhookQueue[tvdbId]) {
+            if (!fastify.webhookQueue.queue[tvdbId]) {
               fastify.log.debug(`Initializing webhook queue for show ${tvdbId}`)
-              webhookQueue[tvdbId] = {
+              fastify.webhookQueue.queue[tvdbId] = {
                 seasons: {},
                 title: body.series.title,
               }
             }
 
             const recentEpisodes = body.episodes.filter((ep) =>
-              isRecentEpisode(ep.airDateUtc, fastify),
+              fastify.webhookQueue.isRecentEpisode(ep.airDateUtc),
             )
 
             if (recentEpisodes.length > 0) {
@@ -523,7 +520,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
               // If no matching items, queue webhook for later processing
               if (matchingItems.length === 0) {
-                await queuePendingWebhook(fastify, {
+                await fastify.webhookQueue.queuePendingWebhook({
                   instanceType: 'sonarr',
                   instanceId: instance?.id ?? null,
                   guid: tvdbGuid,
@@ -550,7 +547,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             }
 
             const nonRecentEpisodes = body.episodes.filter(
-              (ep) => !isRecentEpisode(ep.airDateUtc, fastify),
+              (ep) => !fastify.webhookQueue.isRecentEpisode(ep.airDateUtc),
             )
 
             if (nonRecentEpisodes.length > 0) {
@@ -566,12 +563,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 'Adding non-recent episodes to queue',
               )
 
-              if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
+              if (!fastify.webhookQueue.queue[tvdbId].seasons[seasonNumber]) {
                 fastify.log.debug(
                   `Initializing season ${seasonNumber} in queue for ${tvdbId}`,
                 )
 
-                webhookQueue[tvdbId].seasons[seasonNumber] = {
+                fastify.webhookQueue.queue[tvdbId].seasons[seasonNumber] = {
                   episodes: [],
                   firstReceived: new Date(),
                   lastUpdated: new Date(),
@@ -580,15 +577,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                   instanceId: instance?.id ?? null,
                   timeoutId: setTimeout(() => {
                     const queuedCount =
-                      webhookQueue[tvdbId]?.seasons?.[seasonNumber]?.episodes
-                        ?.length ?? 0
+                      fastify.webhookQueue.queue[tvdbId]?.seasons?.[
+                        seasonNumber
+                      ]?.episodes?.length ?? 0
                     fastify.log.info(
                       {
                         tvdbId,
                         seasonNumber,
                         waitMs: fastify.config.queueWaitTime,
                         queuedCount,
-                        series: webhookQueue[tvdbId]?.title,
+                        series: fastify.webhookQueue.queue[tvdbId]?.title,
                       },
                       'Queue timeout reached, processing webhooks',
                     )
@@ -598,20 +596,18 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                         seasonNumber,
                         waitMs: fastify.config.queueWaitTime,
                         queuedCount,
-                        series: webhookQueue[tvdbId]?.title,
+                        series: fastify.webhookQueue.queue[tvdbId]?.title,
                       },
                       'Queue timeout details',
                     )
-                    void processQueuedWebhooks(
-                      tvdbId,
-                      seasonNumber,
-                      fastify,
-                    ).catch((error) => {
-                      fastify.log.error(
-                        { error, tvdbId, seasonNumber },
-                        'Queue timeout processing failed',
-                      )
-                    })
+                    void fastify.webhookQueue
+                      .processQueuedWebhooks(tvdbId, seasonNumber)
+                      .catch((error) => {
+                        fastify.log.error(
+                          { error, tvdbId, seasonNumber },
+                          'Queue timeout processing failed',
+                        )
+                      })
                   }, fastify.config.queueWaitTime),
                 }
               } else {
@@ -620,53 +616,56 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                   'Clearing existing timeout and setting a new one',
                 )
 
-                if (webhookQueue[tvdbId].seasons[seasonNumber].timeoutId) {
+                if (
+                  fastify.webhookQueue.queue[tvdbId].seasons[seasonNumber]
+                    .timeoutId
+                ) {
                   clearTimeout(
-                    webhookQueue[tvdbId].seasons[seasonNumber].timeoutId,
+                    fastify.webhookQueue.queue[tvdbId].seasons[seasonNumber]
+                      .timeoutId,
                   )
                 }
-                webhookQueue[tvdbId].seasons[seasonNumber].timeoutId =
-                  setTimeout(() => {
-                    const queuedCount =
-                      webhookQueue[tvdbId]?.seasons?.[seasonNumber]?.episodes
-                        ?.length ?? 0
-                    fastify.log.info(
-                      {
-                        tvdbId,
-                        seasonNumber,
-                        waitMs: fastify.config.queueWaitTime,
-                        queuedCount,
-                        series: webhookQueue[tvdbId]?.title,
-                      },
-                      'Queue timeout reached, processing webhooks',
-                    )
-                    fastify.log.debug(
-                      {
-                        tvdbId,
-                        seasonNumber,
-                        waitMs: fastify.config.queueWaitTime,
-                        queuedCount,
-                        series: webhookQueue[tvdbId]?.title,
-                      },
-                      'Queue timeout details',
-                    )
-                    void processQueuedWebhooks(
+                fastify.webhookQueue.queue[tvdbId].seasons[
+                  seasonNumber
+                ].timeoutId = setTimeout(() => {
+                  const queuedCount =
+                    fastify.webhookQueue.queue[tvdbId]?.seasons?.[seasonNumber]
+                      ?.episodes?.length ?? 0
+                  fastify.log.info(
+                    {
                       tvdbId,
                       seasonNumber,
-                      fastify,
-                    ).catch((error) => {
+                      waitMs: fastify.config.queueWaitTime,
+                      queuedCount,
+                      series: fastify.webhookQueue.queue[tvdbId]?.title,
+                    },
+                    'Queue timeout reached, processing webhooks',
+                  )
+                  fastify.log.debug(
+                    {
+                      tvdbId,
+                      seasonNumber,
+                      waitMs: fastify.config.queueWaitTime,
+                      queuedCount,
+                      series: fastify.webhookQueue.queue[tvdbId]?.title,
+                    },
+                    'Queue timeout details',
+                  )
+                  void fastify.webhookQueue
+                    .processQueuedWebhooks(tvdbId, seasonNumber)
+                    .catch((error) => {
                       fastify.log.error(
                         { error, tvdbId, seasonNumber },
                         'Queue timeout processing failed',
                       )
                     })
-                  }, fastify.config.queueWaitTime)
+                }, fastify.config.queueWaitTime)
               }
 
               // Filter out episodes that are already queued to prevent duplicates
               const newEpisodes = nonRecentEpisodes.filter(
                 (episode) =>
-                  !isEpisodeAlreadyQueued(
+                  !fastify.webhookQueue.isEpisodeAlreadyQueued(
                     tvdbId,
                     episode.seasonNumber,
                     episode.episodeNumber,
@@ -674,21 +673,23 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               )
 
               if (newEpisodes.length > 0) {
-                webhookQueue[tvdbId].seasons[seasonNumber].episodes.push(
-                  ...newEpisodes,
-                )
+                fastify.webhookQueue.queue[tvdbId].seasons[
+                  seasonNumber
+                ].episodes.push(...newEpisodes)
 
                 fastify.log.debug(
                   {
                     tvdbId,
                     seasonNumber,
                     totalEpisodes:
-                      webhookQueue[tvdbId].seasons[seasonNumber].episodes
-                        .length,
+                      fastify.webhookQueue.queue[tvdbId].seasons[seasonNumber]
+                        .episodes.length,
                     justAdded: newEpisodes.length,
                     duplicatesSkipped:
                       nonRecentEpisodes.length - newEpisodes.length,
-                    series: webhookQueue[tvdbId]?.title ?? body.series.title,
+                    series:
+                      fastify.webhookQueue.queue[tvdbId]?.title ??
+                      body.series.title,
                     reqId: request.id,
                   },
                   'Added episodes to queue',
@@ -704,8 +705,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 )
               }
 
-              webhookQueue[tvdbId].seasons[seasonNumber].lastUpdated =
-                new Date()
+              fastify.webhookQueue.queue[tvdbId].seasons[
+                seasonNumber
+              ].lastUpdated = new Date()
             } else {
               fastify.log.debug(
                 { tvdbId, seasonNumber },
