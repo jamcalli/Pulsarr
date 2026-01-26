@@ -225,7 +225,7 @@ export async function addEpisodesToQueue(
     (episode) =>
       !isEpisodeAlreadyQueued(
         tvdbId,
-        episode.seasonNumber,
+        seasonNumber,
         episode.episodeNumber,
         queue,
       ),
