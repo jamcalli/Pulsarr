@@ -39,12 +39,6 @@ const generalFormSchema = z.object({
       error: 'New episode threshold cannot exceed 720 hours (1 month)',
     })
     .optional(),
-  upgradeBufferTime: z.coerce
-    .number()
-    .int()
-    .min(0, { error: 'Upgrade buffer time must be at least 0 seconds' })
-    .max(10, { error: 'Upgrade buffer time cannot exceed 10 seconds' })
-    .optional(),
 })
 
 interface GeneralSettingsFormProps {
@@ -54,7 +48,6 @@ interface GeneralSettingsFormProps {
 // Default values in milliseconds
 const DEFAULT_QUEUE_WAIT_TIME = 120000 // 2 minutes
 const DEFAULT_NEW_EPISODE_THRESHOLD = 172800000 // 48 hours (2 days)
-const DEFAULT_UPGRADE_BUFFER_TIME = 2000 // 2 seconds
 
 /**
  * Render a form for editing general notification settings.
@@ -95,9 +88,6 @@ export function GeneralSettingsForm({
         (configData.newEpisodeThreshold ?? DEFAULT_NEW_EPISODE_THRESHOLD) /
           (60 * 60 * 1000),
       ),
-      upgradeBufferTime: Math.round(
-        (configData.upgradeBufferTime ?? DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
-      ),
     }
   }, [])
 
@@ -136,10 +126,6 @@ export function GeneralSettingsForm({
           transformedData.newEpisodeThreshold !== undefined
             ? transformedData.newEpisodeThreshold * 60 * 60 * 1000
             : DEFAULT_NEW_EPISODE_THRESHOLD,
-        upgradeBufferTime:
-          transformedData.upgradeBufferTime !== undefined
-            ? transformedData.upgradeBufferTime * 1000
-            : DEFAULT_UPGRADE_BUFFER_TIME,
       }
 
       await Promise.all([updateConfig(updatedConfig), minimumLoadingTime])
@@ -253,51 +239,6 @@ export function GeneralSettingsForm({
                     type="number"
                     min="0"
                     max="720"
-                    step={1}
-                    disabled={generalStatus === 'loading'}
-                    className="w-full"
-                  />
-                </FormControl>
-                <FormMessage className="text-xs mt-1" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={generalForm.control}
-            name="upgradeBufferTime"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex items-center gap-1">
-                  <FormLabel className="text-foreground">
-                    Upgrade Buffer Time (seconds)
-                  </FormLabel>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      Buffer time between quality upgrades to prevent duplicate
-                      notifications.
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <FormControl>
-                  <Input
-                    {...field}
-                    value={field.value?.toString() ?? ''}
-                    onChange={(e) => {
-                      const v = e.currentTarget.valueAsNumber
-                      field.onChange(
-                        e.currentTarget.value === '' || Number.isNaN(v)
-                          ? undefined
-                          : v,
-                      )
-                    }}
-                    placeholder="Enter upgrade buffer time"
-                    type="number"
-                    min="0"
-                    max="10"
                     step={1}
                     disabled={generalStatus === 'loading'}
                     className="w-full"

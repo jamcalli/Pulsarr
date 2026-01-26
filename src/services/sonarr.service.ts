@@ -165,19 +165,7 @@ export class SonarrService {
       )
 
       if (existingPulsarrWebhook) {
-        const currentWebhookUrl = existingPulsarrWebhook.fields.find(
-          (field) => field.name === 'url',
-        )?.value
-
-        if (currentWebhookUrl === expectedWebhookUrl) {
-          this.log.debug('Pulsarr Sonarr webhook exists with correct URL')
-          this.webhookInitialized = true
-          return
-        }
-
-        this.log.debug(
-          'Pulsarr webhook URL mismatch, recreating webhook for Sonarr',
-        )
+        this.log.debug('Recreating Pulsarr webhook to ensure config is current')
         await this.deleteNotification(existingPulsarrWebhook.id)
       }
 
@@ -226,6 +214,19 @@ export class SonarrService {
             value: 1,
             type: 'select',
             advanced: false,
+          },
+          {
+            order: 2,
+            name: 'headers',
+            label: 'Headers',
+            value: [
+              {
+                key: 'X-Pulsarr-Secret',
+                value: this.fastify.config.webhookSecret,
+              },
+            ],
+            type: 'keyValueList',
+            advanced: true,
           },
         ],
         implementationName: 'Webhook',
@@ -724,17 +725,20 @@ export class SonarrService {
   }
 
   /**
-   * Get full series data by TVDB ID
+   * Get full series data by TVDB ID from library
+   * Uses /series endpoint (not lookup) to get full statistics including episode counts
    * @param tvdbId - The TVDB ID to look up
    * @returns Promise resolving to SonarrSeries or null if not found
    */
   async getSeriesByTvdbId(tvdbId: number): Promise<SonarrSeries | null> {
     try {
+      // Use /series endpoint with tvdbId filter to get full data with statistics
+      // The lookup endpoint doesn't return season statistics needed for completion detection
       const series = await this.getFromSonarr<SonarrSeries[]>(
-        `series/lookup?term=tvdb:${tvdbId}`,
+        `series?tvdbId=${tvdbId}`,
       )
 
-      if (series.length > 0 && series[0].id > 0) {
+      if (series.length > 0) {
         return series[0]
       }
 

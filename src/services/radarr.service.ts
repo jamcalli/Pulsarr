@@ -165,17 +165,7 @@ export class RadarrService {
       )
 
       if (existingPulsarrWebhook) {
-        const currentWebhookUrl = existingPulsarrWebhook.fields.find(
-          (field) => field.name === 'url',
-        )?.value
-        if (currentWebhookUrl === expectedWebhookUrl) {
-          this.log.debug('Pulsarr Radarr webhook exists with correct URL')
-          this.webhookInitialized = true
-          return
-        }
-        this.log.debug(
-          'Pulsarr Radarr webhook URL mismatch, recreating webhook',
-        )
+        this.log.debug('Recreating Pulsarr webhook to ensure config is current')
         await this.deleteNotification(existingPulsarrWebhook.id)
       }
 
@@ -264,7 +254,12 @@ export class RadarrService {
             order: 4,
             name: 'headers',
             label: 'Headers',
-            value: [],
+            value: [
+              {
+                key: 'X-Pulsarr-Secret',
+                value: this.fastify.config.webhookSecret,
+              },
+            ],
             type: 'keyValueList',
             advanced: true,
             privacy: 'normal',

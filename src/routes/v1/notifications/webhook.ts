@@ -13,11 +13,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     '/webhook',
     {
       schema: {
-        security: [],
+        security: [{ webhookSecretAuth: [] }],
         summary: 'Process media webhook',
         operationId: 'processMediaWebhook',
         description:
-          'Process webhooks from Radarr (movies) or Sonarr (TV series) for media notifications',
+          'Process webhooks from Radarr (movies) or Sonarr (TV series) for media notifications. Requires X-Pulsarr-Secret header for authentication.',
         body: WebhookPayloadSchema,
         querystring: WebhookQuerySchema,
         response: {
@@ -61,6 +61,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       }
 
       try {
+        // Validate webhook secret
+        const providedSecret = request.headers['x-pulsarr-secret']
+        if (providedSecret !== fastify.config.webhookSecret) {
+          fastify.log.warn(
+            { hasSecret: !!providedSecret },
+            'Webhook rejected - invalid or missing secret',
+          )
+          return reply.unauthorized('Invalid webhook secret')
+        }
+
         if ('eventType' in body && body.eventType === 'Test') {
           fastify.log.debug('Received test webhook')
           return { success: true }
