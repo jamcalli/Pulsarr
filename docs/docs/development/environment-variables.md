@@ -52,10 +52,10 @@ This includes internal variables for development and testing. Many are not neede
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `cookieSecret` | Secret key for cookies | Auto-generated |
+| `cookieSecret` | Secret key for cookies (min 16 chars) | Auto-generated |
 | `cookieName` | Cookie name | `pulsarr` |
 | `cookieSecured` | Require HTTPS for cookies | `false` |
-| `webhookSecret` | Secret for Sonarr/Radarr webhook auth | Auto-generated |
+| `webhookSecret` | Secret for Sonarr/Radarr webhook auth (min 16 chars) | Auto-generated |
 | `allowIframes` | Allow embedding in Organizr, etc. | `false` |
 | `authenticationMethod` | `required`, `requiredExceptLocal`, `disabled` | `required` |
 | `rateLimitMax` | Max requests per time window | `500` |
