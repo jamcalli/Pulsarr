@@ -131,6 +131,10 @@ const schema = {
       type: 'boolean',
       default: false,
     },
+    webhookSecret: {
+      type: 'string',
+      default: generateSecret(),
+    },
     logLevel: {
       type: 'string',
       enum: ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'],
@@ -205,10 +209,6 @@ const schema = {
     tautulliEnabled: {
       type: 'boolean',
       default: false,
-    },
-    upgradeBufferTime: {
-      type: 'number',
-      default: 2000,
     },
     pendingWebhookRetryInterval: {
       type: 'number',
