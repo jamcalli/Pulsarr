@@ -41,7 +41,7 @@ export default fp(
     })
 
     // Clear workflow caches on close
-    fastify.addHook('onClose', async () => {
+    fastify.addHook('onClose', () => {
       service.clearWorkflowCaches()
     })
   },
