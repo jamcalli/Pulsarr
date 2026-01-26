@@ -374,13 +374,10 @@ export class WebhookQueueService {
     const episodeNumber = episode.episodeNumber
 
     const isCompleteDownload =
-      body.eventType === 'Download' &&
-      'episodeFile' in body &&
-      body.episodeFile &&
-      body.isUpgrade !== true
+      body.eventType === 'Download' && 'episodeFile' in body && body.episodeFile
 
     if (!isCompleteDownload) {
-      this.log.debug('Skipping initial download webhook')
+      this.log.debug('Skipping non-download webhook')
       return
     }
 
