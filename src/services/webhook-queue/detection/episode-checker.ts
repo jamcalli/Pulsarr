@@ -31,6 +31,11 @@ export function isRecentEpisode(
     }
 
     const airDate = new Date(airDateUtc).getTime()
+    if (Number.isNaN(airDate)) {
+      logger.warn({ airDateUtc }, 'Invalid airDateUtc in isRecentEpisode check')
+      return false
+    }
+
     const now = Date.now()
     const age = now - airDate
     const isRecent = age <= newEpisodeThreshold

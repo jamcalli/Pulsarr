@@ -160,13 +160,18 @@ export class SonarrService {
 
       const existingWebhooks =
         await this.getFromSonarr<WebhookNotification[]>('notification')
-      const existingPulsarrWebhook = existingWebhooks.find(
+      const existingPulsarrWebhooks = existingWebhooks.filter(
         (hook) => hook.name === 'Pulsarr',
       )
 
-      if (existingPulsarrWebhook) {
-        this.log.debug('Recreating Pulsarr webhook to ensure config is current')
-        await this.deleteNotification(existingPulsarrWebhook.id)
+      if (existingPulsarrWebhooks.length > 0) {
+        this.log.debug(
+          { count: existingPulsarrWebhooks.length },
+          'Recreating Pulsarr webhook(s) to ensure config is current',
+        )
+        for (const hook of existingPulsarrWebhooks) {
+          await this.deleteNotification(hook.id)
+        }
       }
 
       const webhookConfig = {
