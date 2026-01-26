@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import type {
   RadarrPayload,
   SonarrPayload,
@@ -11,6 +12,28 @@ import {
 import { isWebhookProcessable } from '@root/utils/notifications/index.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
+
+/**
+ * Timing-safe string comparison to prevent timing attacks.
+ * Pads shorter string to match length before comparison.
+ */
+function safeSecretCompare(
+  provided: string | string[] | undefined,
+  expected: string,
+): boolean {
+  if (!provided || Array.isArray(provided)) return false
+  const providedBuf = Buffer.from(provided)
+  const expectedBuf = Buffer.from(expected)
+  // Pad to same length to prevent length-based timing leaks
+  const maxLen = Math.max(providedBuf.length, expectedBuf.length)
+  const paddedProvided = Buffer.alloc(maxLen)
+  const paddedExpected = Buffer.alloc(maxLen)
+  providedBuf.copy(paddedProvided)
+  expectedBuf.copy(paddedExpected)
+  // Always compare, then check length match
+  const match = timingSafeEqual(paddedProvided, paddedExpected)
+  return match && providedBuf.length === expectedBuf.length
+}
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.post(
@@ -36,9 +59,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       const { body } = request
       const instanceId = request.query.instanceId
 
-      // Validate webhook secret
+      // Validate webhook secret (timing-safe comparison)
       const providedSecret = request.headers['x-pulsarr-secret']
-      if (providedSecret !== fastify.config.webhookSecret) {
+      if (!safeSecretCompare(providedSecret, fastify.config.webhookSecret)) {
         fastify.log.warn(
           { hasSecret: !!providedSecret },
           'Webhook rejected - invalid or missing secret',
