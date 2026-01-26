@@ -80,5 +80,10 @@ export type WebhookPayload = z.infer<typeof WebhookPayloadSchema>
 export type WebhookResponse = z.infer<typeof WebhookResponseSchema>
 export type WebhookError = z.infer<typeof ErrorSchema>
 
+// Discriminated payload types for type narrowing in service methods
+export type RadarrPayload = z.infer<typeof RadarrWebhookPayloadSchema>
+export type SonarrPayload = z.infer<typeof SonarrWebhookPayloadSchema>
+export type SonarrEpisode = z.infer<typeof SonarrEpisodeSchema>
+
 // Re-export shared schemas
 export { ErrorSchema }

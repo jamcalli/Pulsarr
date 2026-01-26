@@ -31,7 +31,7 @@ export default fp(
     })
 
     // Cleanup on close
-    fastify.addHook('onClose', async () => {
+    fastify.addHook('onClose', () => {
       scheduler.stop()
     })
   },
