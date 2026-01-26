@@ -95,6 +95,13 @@ export async function ensureSeasonQueue(
   deps: EpisodeQueueDeps,
 ): Promise<boolean> {
   const { logger, queue, fetchExpectedEpisodeCount } = deps
+
+  if (!queue[tvdbId]) {
+    throw new Error(
+      `Show ${tvdbId} not initialized in queue. Call ensureShowQueue first.`,
+    )
+  }
+
   const isNewSeason = !queue[tvdbId].seasons[seasonNumber]
 
   if (isNewSeason) {
