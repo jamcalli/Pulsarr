@@ -18,6 +18,12 @@
         "in": "cookie",
         "name": "pulsarr",
         "description": "Session-based authentication using cookies"
+      },
+      "webhookSecretAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Pulsarr-Secret",
+        "description": "Webhook authentication using auto-generated secret. Sonarr/Radarr webhooks are configured with this header automatically."
       }
     },
     "schemas": {
@@ -4631,9 +4637,6 @@
                         "newEpisodeThreshold": {
                           "type": "number"
                         },
-                        "upgradeBufferTime": {
-                          "type": "number"
-                        },
                         "pendingWebhookRetryInterval": {
                           "type": "number"
                         },
@@ -5100,7 +5103,6 @@
                         "deletionMode",
                         "queueWaitTime",
                         "newEpisodeThreshold",
-                        "upgradeBufferTime",
                         "pendingWebhookRetryInterval",
                         "pendingWebhookMaxAge",
                         "pendingWebhookCleanupInterval",
@@ -5373,11 +5375,6 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 2592000000
-                  },
-                  "upgradeBufferTime": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 10000
                   },
                   "pendingWebhookRetryInterval": {
                     "type": "number"
@@ -6006,9 +6003,6 @@
                         "newEpisodeThreshold": {
                           "type": "number"
                         },
-                        "upgradeBufferTime": {
-                          "type": "number"
-                        },
                         "pendingWebhookRetryInterval": {
                           "type": "number"
                         },
@@ -6475,7 +6469,6 @@
                         "deletionMode",
                         "queueWaitTime",
                         "newEpisodeThreshold",
-                        "upgradeBufferTime",
                         "pendingWebhookRetryInterval",
                         "pendingWebhookMaxAge",
                         "pendingWebhookCleanupInterval",
@@ -13756,7 +13749,7 @@
         "tags": [
           "Notifications"
         ],
-        "description": "Process webhooks from Radarr (movies) or Sonarr (TV series) for media notifications",
+        "description": "Process webhooks from Radarr (movies) or Sonarr (TV series) for media notifications. Requires X-Pulsarr-Secret header for authentication.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -14053,7 +14046,11 @@
             "name": "instanceId"
           }
         ],
-        "security": [],
+        "security": [
+          {
+            "webhookSecretAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -14075,6 +14072,38 @@
             }
           },
           "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Default Response",
             "content": {
               "application/json": {

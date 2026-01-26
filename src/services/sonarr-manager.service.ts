@@ -7,6 +7,7 @@ import type {
   ConnectionTestResult,
   SonarrInstance,
   SonarrItem,
+  SonarrSeries,
 } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import { createServiceLogger } from '@utils/logger.js'
@@ -409,6 +410,55 @@ export class SonarrManagerService {
     const result = await sonarrService.seriesExistsByTvdbId(tvdbId)
     // Add instance ID to the result
     return { ...result, instanceId }
+  }
+
+  /**
+   * Get full series data by TVDB ID from a specific instance
+   * @param instanceId - The Sonarr instance ID
+   * @param tvdbId - The TVDB ID to look up
+   * @returns Promise resolving to SonarrSeries or null if not found
+   */
+  async getSeriesByTvdbId(
+    instanceId: number,
+    tvdbId: number,
+  ): Promise<SonarrSeries | null> {
+    const sonarrService = this.sonarrServices.get(instanceId)
+    if (!sonarrService) {
+      this.log.warn(
+        { instanceId, tvdbId },
+        'Sonarr instance not found for series lookup',
+      )
+      return null
+    }
+
+    return sonarrService.getSeriesByTvdbId(tvdbId)
+  }
+
+  /**
+   * Get full series data by TVDB ID from any available instance
+   * Tries each instance until one returns data
+   * @param tvdbId - The TVDB ID to look up
+   * @returns Promise resolving to SonarrSeries or null if not found
+   */
+  async getSeriesByTvdbIdFromAny(tvdbId: number): Promise<SonarrSeries | null> {
+    for (const [instanceId, service] of this.sonarrServices.entries()) {
+      try {
+        const series = await service.getSeriesByTvdbId(tvdbId)
+        if (series) {
+          this.log.debug(
+            { instanceId, tvdbId },
+            'Found series data from Sonarr instance',
+          )
+          return series
+        }
+      } catch (err) {
+        this.log.debug(
+          { instanceId, tvdbId, error: err },
+          'Failed to get series from instance',
+        )
+      }
+    }
+    return null
   }
 
   /**

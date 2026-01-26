@@ -19,6 +19,9 @@ describe('Webhook Routes', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/v1/notifications/webhook',
+        headers: {
+          'x-pulsarr-secret': app.config.webhookSecret,
+        },
         payload: {
           eventType: 'Test',
           instanceName: 'test-instance',
@@ -31,10 +34,42 @@ describe('Webhook Routes', () => {
       expect(payload.success).toBe(true)
     })
 
+    it('should return 401 for missing webhook secret', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/notifications/webhook',
+        payload: {
+          eventType: 'Test',
+          instanceName: 'test-instance',
+        },
+      })
+
+      expect(res.statusCode).toBe(401)
+    })
+
+    it('should return 401 for invalid webhook secret', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/notifications/webhook',
+        headers: {
+          'x-pulsarr-secret': 'invalid-secret',
+        },
+        payload: {
+          eventType: 'Test',
+          instanceName: 'test-instance',
+        },
+      })
+
+      expect(res.statusCode).toBe(401)
+    })
+
     it('should return 400 for invalid payload', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/v1/notifications/webhook',
+        headers: {
+          'x-pulsarr-secret': app.config.webhookSecret,
+        },
         payload: {
           invalidField: 'invalid',
         },

@@ -12,7 +12,6 @@ import { z } from 'zod'
 // Max constants for validation
 const QUEUE_WAIT_TIME_MAX_MS = 30 * 60 * 1000
 const NEW_EPISODE_THRESHOLD_MAX_MS = 720 * 60 * 60 * 1000
-const UPGRADE_BUFFER_TIME_MAX_MS = 10 * 1000
 
 /**
  * Validates Discord webhook URL format (comma-separated).
@@ -171,7 +170,6 @@ export const ConfigFullSchema = z.object({
   // General Notifications (stored in milliseconds)
   queueWaitTime: z.number(),
   newEpisodeThreshold: z.number(),
-  upgradeBufferTime: z.number(),
   // Pending Webhooks Config
   pendingWebhookRetryInterval: z.number(),
   pendingWebhookMaxAge: z.number(),
@@ -350,14 +348,6 @@ export const ConfigUpdateSchema = z
         error: `New episode threshold cannot exceed ${NEW_EPISODE_THRESHOLD_MAX_MS} milliseconds (720 hours)`,
       })
       .optional(), // 0-720 hours in ms
-    upgradeBufferTime: z.coerce
-      .number()
-      .int()
-      .min(0, { error: 'Upgrade buffer time must be at least 0 milliseconds' })
-      .max(UPGRADE_BUFFER_TIME_MAX_MS, {
-        error: `Upgrade buffer time cannot exceed ${UPGRADE_BUFFER_TIME_MAX_MS} milliseconds (10 seconds)`,
-      })
-      .optional(), // 0-10 seconds in ms
     // Pending Webhooks Config
     // How often to retry processing pending webhooks (in seconds)
     pendingWebhookRetryInterval: z.number().optional(),

@@ -160,23 +160,25 @@ export class RadarrService {
 
       const existingWebhooks =
         await this.getFromRadarr<WebhookNotification[]>('notification')
-      const existingPulsarrWebhook = existingWebhooks.find(
-        (hook) => hook.name === 'Pulsarr',
+
+      // Only delete webhooks for THIS instance (matching URL) to avoid
+      // removing webhooks from other Pulsarr instances pointing to same Radarr
+      const webhooksForThisInstance = existingWebhooks.filter(
+        (hook) =>
+          hook.name === 'Pulsarr' &&
+          hook.fields?.some(
+            (f) => f.name === 'url' && f.value === expectedWebhookUrl,
+          ),
       )
 
-      if (existingPulsarrWebhook) {
-        const currentWebhookUrl = existingPulsarrWebhook.fields.find(
-          (field) => field.name === 'url',
-        )?.value
-        if (currentWebhookUrl === expectedWebhookUrl) {
-          this.log.debug('Pulsarr Radarr webhook exists with correct URL')
-          this.webhookInitialized = true
-          return
-        }
+      if (webhooksForThisInstance.length > 0) {
         this.log.debug(
-          'Pulsarr Radarr webhook URL mismatch, recreating webhook',
+          { count: webhooksForThisInstance.length },
+          'Recreating Pulsarr webhook(s) to ensure config is current',
         )
-        await this.deleteNotification(existingPulsarrWebhook.id)
+        for (const hook of webhooksForThisInstance) {
+          await this.deleteNotification(hook.id)
+        }
       }
 
       const webhookConfig = {
@@ -264,7 +266,12 @@ export class RadarrService {
             order: 4,
             name: 'headers',
             label: 'Headers',
-            value: [],
+            value: [
+              {
+                key: 'X-Pulsarr-Secret',
+                value: this.fastify.config.webhookSecret,
+              },
+            ],
             type: 'keyValueList',
             advanced: true,
             privacy: 'normal',

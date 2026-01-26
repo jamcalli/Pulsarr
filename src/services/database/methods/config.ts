@@ -133,7 +133,6 @@ export async function getConfig(
     // Handle notification timing defaults
     queueWaitTime: config.queueWaitTime ?? 120000,
     newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
-    upgradeBufferTime: config.upgradeBufferTime ?? 2000,
     // Handle pending webhook configuration
     pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
     pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -273,7 +272,6 @@ export async function createConfig(
       // Notification timing fields
       queueWaitTime: config.queueWaitTime ?? 120000,
       newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
-      upgradeBufferTime: config.upgradeBufferTime ?? 2000,
       // Pending webhook configuration
       pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
       pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -454,7 +452,6 @@ const ALLOWED_COLUMNS = new Set([
   // Notification timing
   'queueWaitTime',
   'newEpisodeThreshold',
-  'upgradeBufferTime',
 
   // Pending webhooks
   'pendingWebhookRetryInterval',

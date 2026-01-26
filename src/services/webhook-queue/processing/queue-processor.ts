@@ -1,8 +1,30 @@
+/**
+ * Queue Processor
+ *
+ * Processes queued webhooks and dispatches notifications.
+ */
+
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
-import type { FastifyInstance } from 'fastify'
-import { isRecentEpisode } from './episode-checker.js'
-import { queuePendingWebhook } from './pending-webhook.js'
-import { webhookQueue } from './queue-state.js'
+import type { WebhookQueue } from '@root/types/webhook.types.js'
+import type { NotificationService } from '@services/notification.service.js'
+import type { FastifyBaseLogger } from 'fastify'
+import {
+  type EpisodeCheckerDeps,
+  isRecentEpisode,
+} from '../detection/episode-checker.js'
+import {
+  type PendingStoreDeps,
+  type PendingWebhookParams,
+  queuePendingWebhook,
+} from '../persistence/pending-store.js'
+
+export interface QueueProcessorDeps {
+  logger: FastifyBaseLogger
+  queue: WebhookQueue
+  notifications: NotificationService
+  episodeCheckerDeps: EpisodeCheckerDeps
+  pendingStoreDeps: PendingStoreDeps
+}
 
 /**
  * Remove the season queue and clean up the show queue if empty
@@ -10,16 +32,17 @@ import { webhookQueue } from './queue-state.js'
 function cleanupSeasonQueue(
   tvdbId: string,
   seasonNumber: number,
-  fastify: FastifyInstance,
+  queue: WebhookQueue,
+  logger: FastifyBaseLogger,
 ): void {
-  const queue = webhookQueue[tvdbId]
-  if (!queue) return
+  const showQueue = queue[tvdbId]
+  if (!showQueue) return
 
-  delete queue.seasons[seasonNumber]
+  delete showQueue.seasons[seasonNumber]
 
-  if (Object.keys(queue.seasons).length === 0) {
-    delete webhookQueue[tvdbId]
-    fastify.log.debug({ tvdbId }, 'Removed empty queue')
+  if (Object.keys(showQueue.seasons).length === 0) {
+    delete queue[tvdbId]
+    logger.debug({ tvdbId }, 'Removed empty queue')
   }
 }
 
@@ -29,31 +52,28 @@ function cleanupSeasonQueue(
 function validateQueue(
   tvdbId: string,
   seasonNumber: number,
-  fastify: FastifyInstance,
+  queue: WebhookQueue,
+  logger: FastifyBaseLogger,
 ): boolean {
-  const queue = webhookQueue[tvdbId]
+  const showQueue = queue[tvdbId]
 
-  if (!queue?.seasons[seasonNumber]) {
-    fastify.log.warn(
+  if (!showQueue?.seasons[seasonNumber]) {
+    logger.warn(
       { tvdbId, seasonNumber },
       'Attempted to process non-existent queue',
     )
     return false
   }
 
-  const seasonQueue = queue.seasons[seasonNumber]
+  const seasonQueue = showQueue.seasons[seasonNumber]
   const episodes = seasonQueue.episodes
 
   if (episodes.length === 0) {
-    fastify.log.warn(
-      { tvdbId, seasonNumber },
-      'Queue has no episodes to process',
-    )
-    cleanupSeasonQueue(tvdbId, seasonNumber, fastify)
+    logger.warn({ tvdbId, seasonNumber }, 'Queue has no episodes to process')
+    cleanupSeasonQueue(tvdbId, seasonNumber, queue, logger)
     return false
   }
 
-  // Clear any timeout for this season
   if (seasonQueue.timeoutId) {
     clearTimeout(seasonQueue.timeoutId)
   }
@@ -67,22 +87,24 @@ function validateQueue(
 function shouldProcessSeason(
   tvdbId: string,
   seasonNumber: number,
-  fastify: FastifyInstance,
+  queue: WebhookQueue,
+  episodeCheckerDeps: EpisodeCheckerDeps,
+  logger: FastifyBaseLogger,
 ): boolean {
-  const queue = webhookQueue[tvdbId]
-  const seasonQueue = queue.seasons[seasonNumber]
+  const showQueue = queue[tvdbId]
+  const seasonQueue = showQueue.seasons[seasonNumber]
   const episodes = seasonQueue.episodes
 
   const hasRecentEpisodes = episodes.some((ep) =>
-    isRecentEpisode(ep.airDateUtc, fastify),
+    isRecentEpisode(ep.airDateUtc, episodeCheckerDeps),
   )
 
   if (seasonQueue.notifiedSeasons.has(seasonNumber) && !hasRecentEpisodes) {
-    fastify.log.info(
+    logger.info(
       { tvdbId, seasonNumber },
       'Season already notified and no recent episodes, clearing queue',
     )
-    cleanupSeasonQueue(tvdbId, seasonNumber, fastify)
+    cleanupSeasonQueue(tvdbId, seasonNumber, queue, logger)
     return false
   }
 
@@ -129,44 +151,49 @@ function createSonarrPayload(
 /**
  * Process and dispatch all queued webhooks for a given TV show season.
  *
- * Determines whether queued episodes for the given TVDB show/season should trigger notifications
- * (based on recency and prior notification state), invokes the centralized notification processor,
- * and if no watchlist matches are found, enqueues a pending webhook for later processing. Cleans up
- * the in-memory queue for the season (and removes the show entry when empty).
- *
- * @param tvdbId - TVDB identifier for the show.
- * @param seasonNumber - Season number to process.
+ * Determines whether queued episodes should trigger notifications based on
+ * recency and prior notification state. If no watchlist matches are found,
+ * enqueues a pending webhook for later processing.
  */
 export async function processQueuedWebhooks(
   tvdbId: string,
   seasonNumber: number,
-  fastify: FastifyInstance,
+  deps: QueueProcessorDeps,
 ): Promise<void> {
-  // Validate queue exists and has episodes
-  if (!validateQueue(tvdbId, seasonNumber, fastify)) {
+  const { logger, queue, notifications, episodeCheckerDeps, pendingStoreDeps } =
+    deps
+
+  if (!validateQueue(tvdbId, seasonNumber, queue, logger)) {
     return
   }
 
-  // Check if season should be processed
-  if (!shouldProcessSeason(tvdbId, seasonNumber, fastify)) {
+  if (
+    !shouldProcessSeason(
+      tvdbId,
+      seasonNumber,
+      queue,
+      episodeCheckerDeps,
+      logger,
+    )
+  ) {
     return
   }
 
-  const queue = webhookQueue[tvdbId]
-  const seasonQueue = queue.seasons[seasonNumber]
+  const showQueue = queue[tvdbId]
+  const seasonQueue = showQueue.seasons[seasonNumber]
   const episodes = seasonQueue.episodes
   const isBulkRelease = episodes.length > 1
 
-  fastify.log.info(
-    `Processing queued webhooks: ${queue.title} S${seasonNumber} (${episodes.length} episodes)`,
+  logger.info(
+    `Processing queued webhooks: ${showQueue.title} S${seasonNumber} (${episodes.length} episodes)`,
   )
-  fastify.log.debug(
+  logger.debug(
     {
       tvdbId,
       seasonNumber,
       episodeCount: episodes.length,
       isBulkRelease,
-      title: queue.title,
+      title: showQueue.title,
     },
     'Queued webhooks processing details',
   )
@@ -174,51 +201,50 @@ export async function processQueuedWebhooks(
   const mediaInfo = {
     type: 'show' as const,
     guid: `tvdb:${tvdbId}`,
-    title: queue.title,
+    title: showQueue.title,
     episodes: episodes,
   }
 
   try {
-    // Process notifications using unified notification service
-    const { matchedCount } = await fastify.notifications.sendMediaAvailable(
-      mediaInfo,
-      {
-        isBulkRelease,
-        instanceId: seasonQueue.instanceId ?? undefined,
-        instanceType: 'sonarr',
-      },
-    )
+    const { matchedCount } = await notifications.sendMediaAvailable(mediaInfo, {
+      isBulkRelease,
+      instanceId: seasonQueue.instanceId ?? undefined,
+      instanceType: 'sonarr',
+    })
 
-    // Queue as pending if no watchlist matches
     if (matchedCount === 0) {
-      const sonarrPayload = createSonarrPayload(tvdbId, queue.title, episodes)
-
-      await queuePendingWebhook(fastify, {
+      const sonarrPayload = createSonarrPayload(
+        tvdbId,
+        showQueue.title,
+        episodes,
+      )
+      const pendingParams: PendingWebhookParams = {
         instanceType: 'sonarr',
         instanceId: seasonQueue.instanceId ?? null,
         guid: `tvdb:${tvdbId}`,
-        title: queue.title,
+        title: showQueue.title,
         mediaType: 'show',
         payload: sonarrPayload,
-      })
+      }
 
-      fastify.log.info(
+      await queuePendingWebhook(pendingParams, pendingStoreDeps)
+
+      logger.info(
         { tvdbId, seasonNumber, episodeCount: episodes.length, matchedCount },
         'No watchlist matches found, queued to pending webhooks',
       )
     } else {
-      fastify.log.debug(
+      logger.debug(
         { tvdbId, seasonNumber, episodeCount: episodes.length, matchedCount },
         'Watchlist matches found, notifications processed',
       )
     }
   } catch (error) {
-    fastify.log.error(
+    logger.error(
       { error, tvdbId, seasonNumber },
       'Error processing notifications from queue',
     )
   }
 
-  // Clean up queue
-  cleanupSeasonQueue(tvdbId, seasonNumber, fastify)
+  cleanupSeasonQueue(tvdbId, seasonNumber, queue, logger)
 }

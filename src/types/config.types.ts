@@ -98,6 +98,7 @@ export interface Config {
   cookieSecret: string
   cookieName: string
   cookieSecured: boolean
+  webhookSecret: string
   logLevel: LogLevel
   closeGraceDelay: number
   authenticationMethod: 'required' | 'requiredExceptLocal' | 'disabled'
@@ -135,7 +136,6 @@ export interface Config {
   // General Notifications
   queueWaitTime: number
   newEpisodeThreshold: number
-  upgradeBufferTime: number
   // Pending Webhooks Config
   pendingWebhookRetryInterval: number
   pendingWebhookMaxAge: number

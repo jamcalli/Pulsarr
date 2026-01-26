@@ -12,7 +12,6 @@ import type {
   TautulliApiResponse,
   TautulliConfig,
   TautulliMetadata,
-  TautulliNotificationRequest,
   TautulliNotifier,
 } from '@root/types/tautulli.types.js'
 import type { DatabaseService } from '@services/database.service.js'
@@ -21,7 +20,6 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   createItemMatcher,
   getMetadata,
-  getPosterUrl,
   getRecentlyAdded,
   type MetadataFetcherDeps,
   searchByGuid,
@@ -33,7 +31,6 @@ import {
   type NotifierManagerDeps,
   removeUserNotifier,
   syncUserNotifiers,
-  type TautulliEnabledUser,
 } from './notifiers/index.js'
 import {
   createPollingState,
@@ -449,150 +446,6 @@ export class TautulliService {
     )
 
     return true
-  }
-
-  async notifyUsersNewContent(
-    users: TautulliEnabledUser[],
-    mediaItem: {
-      ratingKey?: string
-      guid?: string
-      title?: string
-      type?: 'movie' | 'show' | 'episode'
-    },
-    _watchlistItemId: number,
-  ): Promise<{ success: number; failed: number }> {
-    if (!this.isActive) {
-      return { success: 0, failed: users.length }
-    }
-
-    const startTime = Date.now()
-    let success = 0
-    let failed = 0
-
-    const existingNotifiers = await this.getNotifiersInternal()
-
-    const eligibleUsers: Array<
-      TautulliEnabledUser & { tautulli_notifier_id: number }
-    > = []
-
-    for (const user of users) {
-      if (!user.tautulli_notifier_id) {
-        this.log.info(
-          { user: user.username },
-          'User has no Tautulli notifier, creating one now',
-        )
-
-        try {
-          const notifierId = await ensureUserNotifier(
-            user,
-            existingNotifiers,
-            this.notifierDeps,
-          )
-          if (notifierId) {
-            eligibleUsers.push({
-              ...user,
-              tautulli_notifier_id: notifierId,
-            })
-          } else {
-            failed++
-            this.log.warn(
-              { user: user.username },
-              'Failed to create Tautulli notifier for user',
-            )
-          }
-        } catch (error) {
-          failed++
-          this.log.error(
-            { error, user: user.username },
-            'Error creating Tautulli notifier for user',
-          )
-        }
-      } else {
-        eligibleUsers.push({
-          ...user,
-          tautulli_notifier_id: user.tautulli_notifier_id,
-        })
-      }
-    }
-
-    if (eligibleUsers.length === 0) {
-      return { success: 0, failed: users.length }
-    }
-
-    let metadata: TautulliMetadata | null = null
-
-    if (mediaItem.ratingKey) {
-      metadata = await this.getMetadata(mediaItem.ratingKey)
-    } else if (mediaItem.guid) {
-      metadata = await this.searchByGuid(mediaItem.guid)
-    }
-
-    if (!metadata) {
-      this.log.warn(
-        { mediaItem },
-        'Could not find media in Tautulli for bulk notification',
-      )
-      return { success: 0, failed: users.length }
-    }
-
-    let subject = `${metadata.title} is now available!`
-    let body = `Your watchlist item "${metadata.title}" has been added to the library.`
-
-    if (metadata.media_type === 'episode' && metadata.grandparent_title) {
-      subject = `New episode of ${metadata.grandparent_title} available!`
-      body = `${metadata.grandparent_title} - ${metadata.parent_title} - ${metadata.title} has been added to the library.`
-    }
-
-    if (metadata.summary) {
-      body += `\n\n${metadata.summary}`
-    }
-
-    const posterUrl = metadata.thumb
-      ? getPosterUrl(metadata.thumb, metadata.rating_key, this.config)
-      : undefined
-
-    const ratingKey = metadata.rating_key
-
-    const notificationPromises = eligibleUsers.map(async (user) => {
-      try {
-        const notificationReq: TautulliNotificationRequest = {
-          notifier_id: user.tautulli_notifier_id,
-          subject,
-          body,
-          poster_url: posterUrl,
-          rating_key: ratingKey,
-        }
-
-        const response = await this.apiCall('notify', { ...notificationReq })
-        const isSuccess = response?.response?.result === 'success'
-
-        if (isSuccess) {
-          success++
-        } else {
-          failed++
-          this.log.warn(
-            { user: user.username, error: response?.response?.message },
-            'Failed to send Tautulli notification in bulk',
-          )
-        }
-      } catch (error) {
-        failed++
-        this.log.error(
-          { error, user: user.username },
-          'Error sending Tautulli notification in bulk',
-        )
-      }
-    })
-
-    await Promise.all(notificationPromises)
-
-    const duration = Date.now() - startTime
-    this.log.info(
-      { success, failed, title: metadata.title, duration },
-      'Completed bulk Tautulli notifications',
-    )
-
-    return { success, failed }
   }
 
   // ============================================
