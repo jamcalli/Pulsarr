@@ -21,7 +21,6 @@ import type { Knex } from 'knex'
  * - discordClientId: string
  * - queueWaitTime: integer (default: 120000)
  * - newEpisodeThreshold: integer (default: 172800000)
- * - upgradeBufferTime: integer (default: 2000)
  * - enableApprise: boolean (default: false)
  * - appriseUrl: string (default: '')
  * - systemAppriseUrl: string
@@ -95,7 +94,6 @@ export const SEED_CONFIGS = [
     discordClientId: null,
     queueWaitTime: 120000,
     newEpisodeThreshold: 172800000,
-    upgradeBufferTime: 2000,
     enableApprise: false,
     appriseUrl: '',
     systemAppriseUrl: null,
