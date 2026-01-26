@@ -121,6 +121,7 @@ const schema = {
     },
     cookieSecret: {
       type: 'string',
+      minLength: 16,
       default: generateSecret(),
     },
     cookieName: {
@@ -133,6 +134,7 @@ const schema = {
     },
     webhookSecret: {
       type: 'string',
+      minLength: 16,
       default: generateSecret(),
     },
     logLevel: {
