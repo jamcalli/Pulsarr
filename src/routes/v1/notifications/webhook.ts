@@ -356,7 +356,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                     firstReceived: new Date(),
                     lastUpdated: new Date(),
                     notifiedSeasons: new Set(),
-                    upgradeTracker: new Map(),
                     instanceId: instance?.id ?? null,
                     timeoutId: setTimeout(() => {
                       void fastify.webhookQueue
@@ -501,39 +500,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               return { success: true }
             }
 
-            await fastify.webhookQueue.checkForUpgrade(
-              tvdbId,
-              seasonNumber,
-              episodeNumber,
-              body.isUpgrade === true,
-              instance?.id ?? null,
-            )
             fastify.log.debug('Skipping initial download webhook')
             return { success: true }
           }
 
           if ('episodeFiles' in body) {
-            const isUpgradeInProgress =
-              await fastify.webhookQueue.checkForUpgrade(
-                tvdbId,
-                seasonNumber,
-                episodeNumber,
-                false,
-                instance?.id ?? null,
-              )
-
-            if (isUpgradeInProgress) {
-              fastify.log.debug(
-                {
-                  series: body.series.title,
-                  episode: `S${seasonNumber}E${episodeNumber}`,
-                  tvdbId,
-                },
-                'Skipping notification due to upgrade in progress',
-              )
-              return { success: true }
-            }
-
             if (!fastify.webhookQueue.queue[tvdbId]) {
               fastify.log.debug(`Initializing webhook queue for show ${tvdbId}`)
               fastify.webhookQueue.queue[tvdbId] = {
@@ -620,7 +591,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                   firstReceived: new Date(),
                   lastUpdated: new Date(),
                   notifiedSeasons: new Set(),
-                  upgradeTracker: new Map(),
                   instanceId: instance?.id ?? null,
                   timeoutId: setTimeout(() => {
                     const queuedCount =

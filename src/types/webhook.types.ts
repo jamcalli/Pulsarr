@@ -15,11 +15,6 @@ export interface QueuedWebhook {
   lastUpdated: Date
 }
 
-export interface RecentWebhook {
-  timestamp: number
-  isUpgrade: boolean
-}
-
 export interface SeasonQueue {
   episodes: Array<{
     episodeNumber: number
@@ -32,7 +27,6 @@ export interface SeasonQueue {
   lastUpdated: Date
   notifiedSeasons: Set<number>
   timeoutId?: NodeJS.Timeout
-  upgradeTracker: Map<string, RecentWebhook[]>
   instanceId?: number | null
   expectedEpisodeCount?: number
 }

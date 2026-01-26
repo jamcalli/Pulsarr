@@ -1,7 +1,7 @@
 /**
  * Detection Module
  *
- * Episode/season detection and upgrade tracking.
+ * Episode/season detection.
  */
 
 export { type EpisodeCheckerDeps, isRecentEpisode } from './episode-checker.js'
@@ -10,7 +10,3 @@ export {
   isSeasonComplete,
   type SeasonCompletionDeps,
 } from './season-completion.js'
-export {
-  checkForUpgrade,
-  type UpgradeTrackerDeps,
-} from './upgrade-tracker.js'
