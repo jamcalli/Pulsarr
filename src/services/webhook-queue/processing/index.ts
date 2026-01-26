@@ -5,6 +5,12 @@
  */
 
 export {
+  type NotificationHandlerDeps,
+  notifyOrQueueShow,
+  type SyncSuppressionDeps,
+  shouldSuppressRadarrNotification,
+} from './notification-handler.js'
+export {
   processQueuedWebhooks,
   type QueueProcessorDeps,
 } from './queue-processor.js'

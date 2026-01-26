@@ -1,4 +1,4 @@
-import { WebhookQueueService } from '@services/webhook-queue/index.js'
+import { WebhookQueueService } from '@services/webhook-queue.service.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 
@@ -39,6 +39,7 @@ export default fp(
       'scheduler',
       'notification-service',
       'sonarr-manager',
+      'plex-label-sync',
     ],
   },
 )

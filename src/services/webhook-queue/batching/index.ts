@@ -6,7 +6,19 @@
  */
 
 export {
+  addEpisodesToQueue,
+  addEpisodeToQueue,
   clearAllTimeouts,
+  type EpisodeQueueDeps,
+  ensureSeasonQueue,
+  ensureShowQueue,
   isEpisodeAlreadyQueued,
   type QueueManagerDeps,
 } from './queue-manager.js'
+
+export {
+  clearSeasonTimeout,
+  createQueueTimeout,
+  resetSeasonTimeout,
+  type TimeoutManagerDeps,
+} from './timeout-manager.js'
