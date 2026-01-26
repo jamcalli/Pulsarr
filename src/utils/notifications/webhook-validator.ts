@@ -79,12 +79,6 @@ function validateSonarrWebhook(
     return false
   }
 
-  // Skip upgrade events
-  if ('isUpgrade' in payload && payload.isUpgrade === true) {
-    logger?.debug('Skipping webhook - is an upgrade event')
-    return false
-  }
-
   // Check for file information
   const hasFileInfo =
     ('episodeFile' in payload && payload.episodeFile) ||

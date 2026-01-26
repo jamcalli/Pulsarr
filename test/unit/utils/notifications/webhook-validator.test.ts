@@ -60,36 +60,6 @@ describe('webhook-validator', () => {
         expect(result).toBe(true)
       })
 
-      it('should return false for Sonarr upgrade event', () => {
-        const payload = {
-          eventType: 'Download',
-          instanceName: 'Sonarr',
-          isUpgrade: true,
-          series: {
-            title: 'Test Show',
-            tvdbId: 12345,
-          },
-          episodes: [
-            {
-              seasonNumber: 1,
-              episodeNumber: 1,
-              title: 'Pilot',
-            },
-          ],
-          episodeFile: {
-            id: 1,
-            path: '/media/shows/Test Show/Season 1/S01E01.mkv',
-          },
-        } as unknown as WebhookPayload
-
-        const result = isWebhookProcessable(payload, mockLogger)
-
-        expect(result).toBe(false)
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          'Skipping webhook - is an upgrade event',
-        )
-      })
-
       it('should return false for non-Download event type', () => {
         const payload = {
           eventType: 'Grab',
@@ -389,33 +359,6 @@ describe('webhook-validator', () => {
         const result = isWebhookProcessable(payload)
 
         expect(result).toBe(true)
-      })
-
-      it('should skip upgrade without logger', () => {
-        const payload = {
-          eventType: 'Download',
-          instanceName: 'Sonarr',
-          isUpgrade: true,
-          series: {
-            title: 'Test Show',
-            tvdbId: 12345,
-          },
-          episodes: [
-            {
-              seasonNumber: 1,
-              episodeNumber: 1,
-              title: 'Pilot',
-            },
-          ],
-          episodeFile: {
-            id: 1,
-            path: '/media/shows/Test Show/Season 1/S01E01.mkv',
-          },
-        } as unknown as WebhookPayload
-
-        const result = isWebhookProcessable(payload)
-
-        expect(result).toBe(false)
       })
     })
   })

@@ -14,13 +14,11 @@ import {
   type QueueManagerDeps,
 } from './batching/index.js'
 import {
-  checkForUpgrade,
   type EpisodeCheckerDeps,
   fetchExpectedEpisodeCount,
   isRecentEpisode,
   isSeasonComplete,
   type SeasonCompletionDeps,
-  type UpgradeTrackerDeps,
 } from './detection/index.js'
 import {
   cleanupExpiredWebhooks,
@@ -92,17 +90,6 @@ export class WebhookQueueService {
     return {
       logger: this.log,
       newEpisodeThreshold: this.fastify.config.newEpisodeThreshold,
-    }
-  }
-
-  /**
-   * Build deps for upgrade tracker operations
-   */
-  private get upgradeTrackerDeps(): UpgradeTrackerDeps {
-    return {
-      logger: this.log,
-      queue: this._queue,
-      upgradeBufferTime: this.fastify.config.upgradeBufferTime,
     }
   }
 
@@ -197,26 +184,6 @@ export class WebhookQueueService {
    */
   async queuePendingWebhook(params: PendingWebhookParams): Promise<void> {
     return queuePendingWebhook(params, this.pendingStoreDeps)
-  }
-
-  /**
-   * Check for upgrade in progress
-   */
-  async checkForUpgrade(
-    tvdbId: string,
-    seasonNumber: number,
-    episodeNumber: number,
-    isUpgrade: boolean,
-    instanceId: number | null,
-  ): Promise<boolean> {
-    return checkForUpgrade(
-      tvdbId,
-      seasonNumber,
-      episodeNumber,
-      isUpgrade,
-      instanceId,
-      this.upgradeTrackerDeps,
-    )
   }
 
   /**
