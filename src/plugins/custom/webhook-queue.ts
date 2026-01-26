@@ -28,7 +28,7 @@ export default fp(
       }
     })
 
-    fastify.addHook('onClose', async () => {
+    fastify.addHook('onClose', () => {
       service.shutdown()
     })
   },
