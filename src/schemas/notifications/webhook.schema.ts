@@ -48,7 +48,6 @@ const BaseSonarrWebhookSchema = z.object({
   instanceName: z.string(),
   series: SonarrSeriesSchema,
   episodes: z.array(SonarrEpisodeSchema),
-  isUpgrade: z.boolean().optional(),
 })
 
 export const SonarrWebhookPayloadSchema = z.union([
