@@ -50,6 +50,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         response: {
           200: WebhookResponseSchema,
           400: ErrorSchema,
+          401: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Notifications'],
