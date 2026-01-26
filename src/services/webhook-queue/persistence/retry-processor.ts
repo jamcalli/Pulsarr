@@ -159,8 +159,6 @@ async function processShowWebhook(
   const payload = body as WebhookPayload
 
   if (
-    !('instanceName' in payload) ||
-    payload.instanceName?.toLowerCase() !== 'sonarr' ||
     !('episodes' in payload) ||
     !Array.isArray(payload.episodes) ||
     payload.episodes.length === 0
