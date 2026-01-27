@@ -234,19 +234,16 @@ export class PlexSessionMonitorService {
     const threshold = this.config.plexSessionMonitoring?.remainingEpisodes || 2
 
     if (remainingEpisodes <= threshold && remainingEpisodes >= 0) {
-      // User is near the end of the current monitored season
+      // User is near the end of the current season
       const hasMoreSeasons = currentSeasonData.series.seasons?.some(
         (s) => s.seasonNumber > currentSeason,
       )
 
-      if (
-        hasMoreSeasons &&
-        currentSeason >= rollingShow.current_monitored_season
-      ) {
-        // Expand to next season
+      if (hasMoreSeasons) {
+        // Expand to next season based on what user is watching
         await this.expandMonitoringToNextSeason(rollingShow, session, result)
-      } else if (!hasMoreSeasons) {
-        // No more seasons in Plex, switch to monitoring all
+      } else {
+        // No more seasons, switch to monitoring all
         await this.switchToMonitorAll(rollingShow, session, result)
       }
     }
@@ -539,7 +536,7 @@ export class PlexSessionMonitorService {
     session: PlexSession,
     result: SessionMonitoringResult,
   ): Promise<void> {
-    const nextSeason = rollingShow.current_monitored_season + 1
+    const nextSeason = session.parentIndex + 1
 
     try {
       const sonarr = this.sonarrManager.getSonarrService(
@@ -557,8 +554,14 @@ export class PlexSessionMonitorService {
       // Search for the newly monitored season
       await sonarr.searchSeason(rollingShow.sonarr_series_id, nextSeason)
 
-      // Update database
-      await this.db.updateRollingShowMonitoredSeason(rollingShow.id, nextSeason)
+      // Update database only if this is a new high-water mark
+      // This prevents regressing when user watches earlier seasons after skipping ahead
+      if (nextSeason > rollingShow.current_monitored_season) {
+        await this.db.updateRollingShowMonitoredSeason(
+          rollingShow.id,
+          nextSeason,
+        )
+      }
 
       result.rollingUpdates.push({
         showTitle: session.grandparentTitle,
@@ -569,7 +572,7 @@ export class PlexSessionMonitorService {
       result.triggeredSearches++
 
       this.log.info(
-        `Expanded monitoring for ${session.grandparentTitle} to include season ${nextSeason}`,
+        `Expanded monitoring for ${session.grandparentTitle} from season ${session.parentIndex} to season ${nextSeason}`,
       )
     } catch (error) {
       this.log.error(
