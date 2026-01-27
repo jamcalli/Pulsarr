@@ -160,31 +160,31 @@ export class SonarrService {
 
       const existingWebhooks =
         await this.getFromSonarr<WebhookNotification[]>('notification')
-      const existingPulsarrWebhook = existingWebhooks.find(
-        (hook) => hook.name === 'Pulsarr',
+
+      // Only delete webhooks for THIS instance (matching URL) to avoid
+      // removing webhooks from other Pulsarr instances pointing to same Sonarr
+      const webhooksForThisInstance = existingWebhooks.filter(
+        (hook) =>
+          hook.name === 'Pulsarr' &&
+          hook.fields?.some(
+            (f) => f.name === 'url' && f.value === expectedWebhookUrl,
+          ),
       )
 
-      if (existingPulsarrWebhook) {
-        const currentWebhookUrl = existingPulsarrWebhook.fields.find(
-          (field) => field.name === 'url',
-        )?.value
-
-        if (currentWebhookUrl === expectedWebhookUrl) {
-          this.log.debug('Pulsarr Sonarr webhook exists with correct URL')
-          this.webhookInitialized = true
-          return
-        }
-
+      if (webhooksForThisInstance.length > 0) {
         this.log.debug(
-          'Pulsarr webhook URL mismatch, recreating webhook for Sonarr',
+          { count: webhooksForThisInstance.length },
+          'Recreating Pulsarr webhook(s) to ensure config is current',
         )
-        await this.deleteNotification(existingPulsarrWebhook.id)
+        for (const hook of webhooksForThisInstance) {
+          await this.deleteNotification(hook.id)
+        }
       }
 
       const webhookConfig = {
         onGrab: false,
         onDownload: true,
-        onUpgrade: true,
+        onUpgrade: false,
         onImportComplete: true,
         onRename: false,
         onSeriesAdd: false,
@@ -226,6 +226,19 @@ export class SonarrService {
             value: 1,
             type: 'select',
             advanced: false,
+          },
+          {
+            order: 2,
+            name: 'headers',
+            label: 'Headers',
+            value: [
+              {
+                key: 'X-Pulsarr-Secret',
+                value: this.fastify.config.webhookSecret,
+              },
+            ],
+            type: 'keyValueList',
+            advanced: true,
           },
         ],
         implementationName: 'Webhook',
@@ -720,6 +733,31 @@ export class SonarrService {
         serviceName: 'Sonarr',
         error: err instanceof Error ? err.message : String(err),
       }
+    }
+  }
+
+  /**
+   * Get full series data by TVDB ID from library
+   * Uses /series endpoint (not lookup) to get full statistics including episode counts
+   * @param tvdbId - The TVDB ID to look up
+   * @returns Promise resolving to SonarrSeries or null if not found
+   */
+  async getSeriesByTvdbId(tvdbId: number): Promise<SonarrSeries | null> {
+    try {
+      // Use /series endpoint with tvdbId filter to get full data with statistics
+      // The lookup endpoint doesn't return season statistics needed for completion detection
+      const series = await this.getFromSonarr<SonarrSeries[]>(
+        `series?tvdbId=${tvdbId}`,
+      )
+
+      if (series.length > 0) {
+        return series[0]
+      }
+
+      return null
+    } catch (err) {
+      this.log.error({ error: err, tvdbId }, 'Error fetching series by TVDB ID')
+      return null
     }
   }
 

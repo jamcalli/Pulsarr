@@ -61,7 +61,7 @@ export function isAppriseEnabled(deps: AppriseDeps): boolean {
 
 /**
  * Low-level function to send a single notification batch to Apprise.
- * Takes explicit body content and format - no format detection.
+ * Takes explicit body content, format, and attachment inclusion flag.
  */
 async function sendAppriseNotificationBatch(
   targetUrls: string,
@@ -69,6 +69,7 @@ async function sendAppriseNotificationBatch(
   format: 'text' | 'html',
   notification: Omit<AppriseNotification, 'body' | 'body_html' | 'format'>,
   deps: AppriseDeps,
+  includeAttachment: boolean,
 ): Promise<boolean> {
   const { log, config } = deps
 
@@ -79,9 +80,15 @@ async function sendAppriseNotificationBatch(
       return false
     }
 
+    // Conditionally exclude attachment for email services (they render via <img> tags)
+    const { attachment, ...notificationWithoutAttachment } = notification
+    const notificationFields = includeAttachment
+      ? notification
+      : notificationWithoutAttachment
+
     const payload = {
       urls: targetUrls,
-      ...notification,
+      ...notificationFields,
       body,
       format,
       input: format,
@@ -161,7 +168,7 @@ export async function sendAppriseNotification(
       ...commonFields
     } = notification
 
-    // If no format cache, fall back to legacy behavior (send HTML if available)
+    // If no format cache, fall back to legacy behavior (send HTML if available, include attachments)
     if (!schemaFormatCache || schemaFormatCache.size === 0) {
       log.debug(
         'No schema format cache available, using legacy HTML-preferred behavior',
@@ -174,6 +181,7 @@ export async function sendAppriseNotification(
         format,
         commonFields,
         deps,
+        true, // Include attachments in legacy mode
       )
     }
 
@@ -195,6 +203,7 @@ export async function sendAppriseNotification(
           batch.format,
           commonFields,
           deps,
+          batch.includeAttachment,
         ),
       ),
     )

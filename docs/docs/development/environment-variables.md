@@ -52,9 +52,10 @@ This includes internal variables for development and testing. Many are not neede
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `cookieSecret` | Secret key for cookies | Auto-generated |
+| `cookieSecret` | Secret key for cookies (min 16 chars) | Auto-generated |
 | `cookieName` | Cookie name | `pulsarr` |
 | `cookieSecured` | Require HTTPS for cookies | `false` |
+| `webhookSecret` | Secret for Sonarr/Radarr webhook auth (min 16 chars) | Auto-generated |
 | `allowIframes` | Allow embedding in Organizr, etc. | `false` |
 | `authenticationMethod` | `required`, `requiredExceptLocal`, `disabled` | `required` |
 | `rateLimitMax` | Max requests per time window | `500` |
@@ -120,7 +121,6 @@ Ensure your network is secure when using `requiredExceptLocal`.
 |----------|-------------|---------|
 | `queueWaitTime` | Queue wait time (ms) | `120000` |
 | `newEpisodeThreshold` | New episode threshold (ms) | `172800000` |
-| `upgradeBufferTime` | Buffer between upgrades (ms) | `2000` |
 | `pendingWebhookRetryInterval` | Retry interval (seconds) | `20` |
 | `pendingWebhookMaxAge` | Max age (minutes) | `10` |
 | `pendingWebhookCleanupInterval` | Cleanup interval (minutes) | `60` |

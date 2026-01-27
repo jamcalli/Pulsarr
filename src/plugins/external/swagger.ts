@@ -227,6 +227,13 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
             name: fastify.config.cookieName,
             description: 'Session-based authentication using cookies',
           },
+          webhookSecretAuth: {
+            type: 'apiKey' as const,
+            in: 'header' as const,
+            name: 'X-Pulsarr-Secret',
+            description:
+              'Webhook authentication using auto-generated secret. Sonarr/Radarr webhooks are configured with this header automatically.',
+          },
         },
       },
       security: [
