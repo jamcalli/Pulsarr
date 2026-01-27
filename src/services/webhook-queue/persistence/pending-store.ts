@@ -63,7 +63,13 @@ export async function queuePendingWebhook(
     )
   } catch (error) {
     logger.error(
-      { error, guid: params.guid, title: params.title },
+      {
+        error,
+        guid: params.guid,
+        title: params.title,
+        instanceType: params.instanceType,
+        instanceId: params.instanceId,
+      },
       `Failed to create pending webhook for ${params.mediaType}, but returning success to prevent resends`,
     )
   }
