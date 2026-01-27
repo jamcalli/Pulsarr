@@ -242,7 +242,7 @@ describe('pending-store', () => {
     it('should fall back to 10 minutes for invalid maxAge (NaN)', async () => {
       const invalidDeps: PendingStoreDeps = {
         ...deps,
-        maxAgeMinutes: 'invalid' as unknown as number,
+        maxAgeMinutes: Number.NaN,
       }
 
       const now = Date.now()
