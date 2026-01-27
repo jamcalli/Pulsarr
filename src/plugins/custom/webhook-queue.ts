@@ -25,6 +25,7 @@ export default fp(
         fastify.log.debug('WebhookQueueService initialized successfully')
       } catch (error) {
         fastify.log.error({ error }, 'Failed to initialize WebhookQueueService')
+        throw error // Re-throw to prevent server start with broken state
       }
     })
 
