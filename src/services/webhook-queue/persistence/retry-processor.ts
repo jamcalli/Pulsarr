@@ -108,20 +108,20 @@ async function processMovieWebhook(
 
   const watchlistItems = await db.getWatchlistItemsByGuid(webhook.guid)
 
+  if (watchlistItems.length === 0) {
+    logger.debug(`No items found for ${webhook.guid}, webhook remains pending`)
+    return 0
+  }
+
   await notifications.sendMediaAvailable(mediaInfo, {
     isBulkRelease: false,
   })
 
-  if (watchlistItems.length > 0) {
-    await triggerLabelSync(webhook.id, moviePayload, 'movie', deps)
-    logger.debug(
-      `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
-    )
-    return await deleteWebhookAndCount(webhook.id, db)
-  }
-
-  logger.debug(`No items found for ${webhook.guid}, webhook remains pending`)
-  return 0
+  await triggerLabelSync(webhook.id, moviePayload, 'movie', deps)
+  logger.debug(
+    `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
+  )
+  return await deleteWebhookAndCount(webhook.id, db)
 }
 
 /**
@@ -175,20 +175,20 @@ async function processShowWebhook(
 
   const watchlistItems = await db.getWatchlistItemsByGuid(webhook.guid)
 
+  if (watchlistItems.length === 0) {
+    logger.debug(`No items found for ${webhook.guid}, webhook remains pending`)
+    return 0
+  }
+
   await notifications.sendMediaAvailable(mediaInfo, {
     isBulkRelease: payload.episodes.length > 1,
   })
 
-  if (watchlistItems.length > 0) {
-    await triggerLabelSync(webhook.id, payload, 'show', deps)
-    logger.debug(
-      `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
-    )
-    return await deleteWebhookAndCount(webhook.id, db)
-  }
-
-  logger.debug(`No items found for ${webhook.guid}, webhook remains pending`)
-  return 0
+  await triggerLabelSync(webhook.id, payload, 'show', deps)
+  logger.debug(
+    `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
+  )
+  return await deleteWebhookAndCount(webhook.id, db)
 }
 
 /**
