@@ -163,7 +163,8 @@ async function processShowWebhook(
     !Array.isArray(payload.episodes) ||
     payload.episodes.length === 0
   ) {
-    return 0
+    logger.warn(`Webhook ${webhook.id} has no episodes; discarding`)
+    return await deleteWebhookAndCount(webhook.id, db)
   }
 
   const mediaInfo = {
