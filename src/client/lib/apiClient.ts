@@ -119,4 +119,15 @@ export const apiClient = {
     fetch(api(path), { method: 'DELETE' }).then((r) =>
       handleResponse<T>(r, schema),
     ),
+
+  deleteWithBody: <T>(
+    path: string,
+    body: unknown,
+    schema?: z.ZodType<T>,
+  ): Promise<T> =>
+    fetch(api(path), {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then((r) => handleResponse<T>(r, schema)),
 }
