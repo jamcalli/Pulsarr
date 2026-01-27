@@ -334,6 +334,8 @@ describe('pending-store', () => {
           error: dbError,
           guid: 'tmdb:12345',
           title: 'Test Movie',
+          instanceType: 'radarr',
+          instanceId: 1,
         },
         'Failed to create pending webhook for movie, but returning success to prevent resends',
       )
