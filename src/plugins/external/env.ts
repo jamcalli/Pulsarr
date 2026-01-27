@@ -121,6 +121,7 @@ const schema = {
     },
     cookieSecret: {
       type: 'string',
+      minLength: 16,
       default: generateSecret(),
     },
     cookieName: {
@@ -130,6 +131,11 @@ const schema = {
     cookieSecured: {
       type: 'boolean',
       default: false,
+    },
+    webhookSecret: {
+      type: 'string',
+      minLength: 16,
+      default: generateSecret(),
     },
     logLevel: {
       type: 'string',
@@ -205,10 +211,6 @@ const schema = {
     tautulliEnabled: {
       type: 'boolean',
       default: false,
-    },
-    upgradeBufferTime: {
-      type: 'number',
-      default: 2000,
     },
     pendingWebhookRetryInterval: {
       type: 'number',

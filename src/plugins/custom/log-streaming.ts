@@ -14,7 +14,7 @@ export default fp(
     fastify.decorate('logStreaming', service)
     fastify.log.debug('Log streaming service initialized')
 
-    fastify.addHook('onClose', async () => {
+    fastify.addHook('onClose', () => {
       // Clean up polling intervals on server shutdown
       if ('shutdown' in service && typeof service.shutdown === 'function') {
         service.shutdown()
