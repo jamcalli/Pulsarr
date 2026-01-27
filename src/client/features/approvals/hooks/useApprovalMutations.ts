@@ -192,7 +192,7 @@ export function useBulkReject() {
 export function useBulkDelete() {
   return useAppMutation<BulkOperationResponse, Error, BulkDeleteRequest>({
     mutationFn: async (params) => {
-      return apiClient.post(
+      return apiClient.deleteWithBody(
         '/v1/approval/requests/bulk/delete',
         params,
         BulkOperationResponseSchema,
