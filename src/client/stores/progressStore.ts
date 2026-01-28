@@ -99,13 +99,13 @@ export const useProgressStore = create<ProgressState>()(
         set({
           eventSource: null,
           isConnected: false,
-          isConnecting: false,
+          // Keep isConnecting true to block new subscribers from calling initialize
           reconnectTimeout: null,
         })
 
         // Handle error with auth check and retry logic
-        handleSseError(currentState.reconnectAttempts).then(
-          ({ shouldRetry, newAttempts }) => {
+        handleSseError(currentState.reconnectAttempts)
+          .then(({ shouldRetry, newAttempts }) => {
             set({ reconnectAttempts: newAttempts })
 
             if (shouldRetry) {
@@ -129,10 +129,38 @@ export const useProgressStore = create<ProgressState>()(
 
               set({ reconnectTimeout: timeout })
             } else {
-              set({ hasGivenUp: true })
+              set({ isConnecting: false, hasGivenUp: true })
             }
-          },
-        )
+          })
+          .catch((err) => {
+            console.warn('SSE auth check failed; falling back to retry', err)
+            const newAttempts = currentState.reconnectAttempts + 1
+            set({ reconnectAttempts: newAttempts })
+
+            if (newAttempts <= MAX_SSE_RECONNECT_ATTEMPTS) {
+              const delay = calculateRetryDelay(newAttempts)
+
+              console.log(
+                `Progress SSE reconnecting in ${Math.ceil(delay / 1000)}s (attempt ${newAttempts}/${MAX_SSE_RECONNECT_ATTEMPTS})`,
+              )
+
+              const timeout = setTimeout(() => {
+                const latestState = get()
+                if (
+                  !latestState.eventSource &&
+                  !latestState.isConnecting &&
+                  !latestState.hasGivenUp
+                ) {
+                  latestState.initialize()
+                }
+                set({ reconnectTimeout: null })
+              }, delay)
+
+              set({ reconnectTimeout: timeout })
+            } else {
+              set({ isConnecting: false, hasGivenUp: true })
+            }
+          })
       }
 
       set({ eventSource })
