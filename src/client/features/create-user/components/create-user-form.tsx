@@ -8,7 +8,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { CreateUserErrorMessage } from '@/features/create-user/components/create-user-error'
+import { LoginErrorMessage } from '@/features/auth/components/login-error'
 import { useCreateUserForm } from '@/features/create-user/hooks/useCreateUserForm'
 
 /**
@@ -99,11 +99,12 @@ export function CreateUserForm() {
             </FormItem>
           )}
         />
-        {backendError && <CreateUserErrorMessage message={backendError} />}
+        {backendError && <LoginErrorMessage message={backendError} />}
         <Button
           type="submit"
           className="w-full h-12 font-heading"
           disabled={!form.formState.isValid || status !== 'idle'}
+          variant="fun"
         >
           {status === 'loading' ? (
             <>

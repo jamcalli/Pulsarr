@@ -1,3 +1,11 @@
+// Mock native-webhook to avoid transitive import of webhook-payloads.schema.ts
+// which triggers a known Bun + Vite SSR transform bug with Zod
+// See: https://github.com/oven-sh/bun/issues/21614
+vi.mock('@services/notifications/channels/native-webhook.js', () => ({
+  dispatchWebhooks: vi.fn(),
+  hasWebhooksForEvent: vi.fn().mockReturnValue(false),
+}))
+
 import type {
   NotificationResult,
   SonarrEpisodeSchema,
@@ -7,7 +15,7 @@ import {
   extractUserDiscordIds,
   getPublicContentNotificationFlags,
 } from '@services/notifications/orchestration/media-available.js'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 function createTestNotification(
   userId: number,
