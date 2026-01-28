@@ -20,16 +20,23 @@ export function calculateRetryDelay(attempt: number): number {
  * Returns true if authenticated, false only if 401.
  */
 export async function checkAuthStatus(): Promise<boolean> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 5000)
+
   try {
-    const response = await fetch(api('/v1/users/check'))
+    const response = await fetch(api('/v1/users/check'), {
+      signal: controller.signal,
+    })
     if (response.status === 401) {
       return false
     }
     // Treat 200 and any other status (e.g., 5xx) as "not an auth issue"
     return true
   } catch {
-    // Network error - assume auth is fine, let SSE retry handle it
+    // Network error or timeout - assume auth is fine, let SSE retry handle it
     return true
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
