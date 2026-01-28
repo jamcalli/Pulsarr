@@ -2,6 +2,11 @@ import type { LogEntry } from '@root/schemas/logs/logs.schema.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
+import {
+  calculateRetryDelay,
+  handleSseError,
+  MAX_SSE_RECONNECT_ATTEMPTS,
+} from '@/lib/sse-retry'
 
 interface LogStreamOptions {
   tail: number
@@ -67,7 +72,6 @@ export function useLogStream(
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectAttempts = useRef(0)
   const connectionCountRef = useRef(0)
-  const maxReconnectAttempts = 5
 
   // Keep latest options to avoid stale closures during delayed reconnects
   const optionsRef = useRef<LogStreamOptions>({
@@ -167,33 +171,38 @@ export function useLogStream(
         setIsConnected(false)
         setIsConnecting(false)
 
-        // Only attempt reconnection if follow is enabled and we haven't exceeded max attempts
-        if (
-          optionsRef.current.follow &&
-          reconnectAttempts.current < maxReconnectAttempts
-        ) {
-          reconnectAttempts.current += 1
-          const baseDelay = Math.min(
-            1000 * 2 ** reconnectAttempts.current,
-            30000,
-          )
-          const jitter = Math.floor(Math.random() * 1000) // Add jitter up to 1s
-          const delay = baseDelay + jitter
-
-          setError(
-            `Connection lost. Reconnecting in ${Math.ceil(delay / 1000)}s... (attempt ${reconnectAttempts.current}/${maxReconnectAttempts})`,
-          )
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect()
-          }, delay)
-        } else {
+        // Only attempt reconnection if follow is enabled
+        if (!optionsRef.current.follow) {
           setHasGivenUp(true)
-          setError(
-            'Connection lost. Will auto-reconnect if enabled, or pause/resume to retry.',
-          )
+          setError('Connection lost. Enable follow mode to auto-reconnect.')
           toast.error('Log stream connection lost')
+          return
         }
+
+        // Handle error with auth check and retry logic
+        handleSseError(reconnectAttempts.current).then(
+          ({ shouldRetry, newAttempts }) => {
+            reconnectAttempts.current = newAttempts
+
+            if (shouldRetry) {
+              const delay = calculateRetryDelay(newAttempts)
+
+              setError(
+                `Connection lost. Reconnecting in ${Math.ceil(delay / 1000)}s... (attempt ${newAttempts}/${MAX_SSE_RECONNECT_ATTEMPTS})`,
+              )
+
+              reconnectTimeoutRef.current = setTimeout(() => {
+                connect()
+              }, delay)
+            } else {
+              setHasGivenUp(true)
+              setError(
+                'Connection lost. Will auto-reconnect if enabled, or pause/resume to retry.',
+              )
+              toast.error('Log stream connection lost')
+            }
+          },
+        )
       }
     } catch (err) {
       setIsConnecting(false)
