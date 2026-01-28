@@ -17,12 +17,16 @@ export function calculateRetryDelay(attempt: number): number {
 
 /**
  * Check if the current session is authenticated by making a lightweight request.
- * Returns true if authenticated, false if 401.
+ * Returns true if authenticated, false only if 401.
  */
 export async function checkAuthStatus(): Promise<boolean> {
   try {
     const response = await fetch(api('/v1/users/check'))
-    return response.ok
+    if (response.status === 401) {
+      return false
+    }
+    // Treat 200 and any other status (e.g., 5xx) as "not an auth issue"
+    return true
   } catch {
     // Network error - assume auth is fine, let SSE retry handle it
     return true
