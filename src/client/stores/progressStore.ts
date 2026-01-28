@@ -115,6 +115,9 @@ export const useProgressStore = create<ProgressState>()(
                 `Progress SSE reconnecting in ${Math.ceil(delay / 1000)}s (attempt ${newAttempts}/${MAX_SSE_RECONNECT_ATTEMPTS})`,
               )
 
+              // Reset isConnecting so the retry timeout can call initialize()
+              set({ isConnecting: false })
+
               const timeout = setTimeout(() => {
                 const latestState = get()
                 if (
@@ -143,6 +146,9 @@ export const useProgressStore = create<ProgressState>()(
               console.log(
                 `Progress SSE reconnecting in ${Math.ceil(delay / 1000)}s (attempt ${newAttempts}/${MAX_SSE_RECONNECT_ATTEMPTS})`,
               )
+
+              // Reset isConnecting so the retry timeout can call initialize()
+              set({ isConnecting: false })
 
               const timeout = setTimeout(() => {
                 const latestState = get()
