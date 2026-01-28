@@ -191,7 +191,7 @@ export const useProgressStore = create<ProgressState>()(
         isConnecting: false,
         reconnectTimeout: null,
         reconnectAttempts: 0,
-        hasGivenUp: false,
+        hasGivenUp: true,
       })
     },
 
