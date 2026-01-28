@@ -2,12 +2,19 @@ import type { ProgressEvent } from '@root/types/progress.types.js'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { api } from '@/lib/api'
+import {
+  calculateRetryDelay,
+  handleSseError,
+  MAX_SSE_RECONNECT_ATTEMPTS,
+} from '@/lib/sse-retry'
 
 interface ProgressState {
   eventSource: EventSource | null
   isConnected: boolean
   isConnecting: boolean
   reconnectTimeout: ReturnType<typeof setTimeout> | null
+  reconnectAttempts: number
+  hasGivenUp: boolean
   operationSubscribers: Map<string, Set<(event: ProgressEvent) => void>>
   typeSubscribers: Map<string, Set<(event: ProgressEvent) => void>>
 
@@ -30,13 +37,15 @@ export const useProgressStore = create<ProgressState>()(
     isConnected: false,
     isConnecting: false,
     reconnectTimeout: null,
+    reconnectAttempts: 0,
+    hasGivenUp: false,
     operationSubscribers: new Map(),
     typeSubscribers: new Map(),
 
     initialize: () => {
       const state = get()
 
-      if (state.eventSource || state.isConnecting) return
+      if (state.eventSource || state.isConnecting || state.hasGivenUp) return
 
       set({ isConnecting: true })
       console.log('Initializing persistent EventSource connection')
@@ -45,7 +54,12 @@ export const useProgressStore = create<ProgressState>()(
 
       eventSource.onopen = () => {
         console.log('EventSource connection established')
-        set({ isConnected: true, isConnecting: false })
+        set({
+          isConnected: true,
+          isConnecting: false,
+          reconnectAttempts: 0,
+          hasGivenUp: false,
+        })
       }
 
       eventSource.onmessage = (event) => {
@@ -75,34 +89,84 @@ export const useProgressStore = create<ProgressState>()(
         // Immediately close to prevent browser auto-reconnect interference
         eventSource.close()
 
+        const currentState = get()
+
+        // Clear any existing reconnect timeout
+        if (currentState.reconnectTimeout) {
+          clearTimeout(currentState.reconnectTimeout)
+        }
+
         set({
           eventSource: null,
           isConnected: false,
-          isConnecting: false,
+          // Keep isConnecting true to block new subscribers from calling initialize
+          reconnectTimeout: null,
         })
 
-        // Clear any existing reconnect timeout
-        const currentState = get()
-        if (currentState.reconnectTimeout) {
-          clearTimeout(currentState.reconnectTimeout)
-          set({ reconnectTimeout: null })
-        }
+        // Handle error with auth check and retry logic
+        handleSseError(currentState.reconnectAttempts)
+          .then(({ shouldRetry, newAttempts }) => {
+            set({ reconnectAttempts: newAttempts })
 
-        // Schedule reconnect with jitter
-        const baseDelay = 2000
-        const jitter = Math.floor(Math.random() * 1000)
-        const delay = baseDelay + jitter
+            if (shouldRetry) {
+              const delay = calculateRetryDelay(newAttempts)
 
-        const timeout = setTimeout(() => {
-          const latestState = get()
-          if (!latestState.eventSource && !latestState.isConnecting) {
-            console.log('Reconnecting EventSource after error')
-            latestState.initialize()
-          }
-          set({ reconnectTimeout: null })
-        }, delay)
+              console.log(
+                `Progress SSE reconnecting in ${Math.ceil(delay / 1000)}s (attempt ${newAttempts}/${MAX_SSE_RECONNECT_ATTEMPTS})`,
+              )
 
-        set({ reconnectTimeout: timeout })
+              // Reset isConnecting so the retry timeout can call initialize()
+              set({ isConnecting: false })
+
+              const timeout = setTimeout(() => {
+                const latestState = get()
+                if (
+                  !latestState.eventSource &&
+                  !latestState.isConnecting &&
+                  !latestState.hasGivenUp
+                ) {
+                  latestState.initialize()
+                }
+                set({ reconnectTimeout: null })
+              }, delay)
+
+              set({ reconnectTimeout: timeout })
+            } else {
+              set({ isConnecting: false, hasGivenUp: true })
+            }
+          })
+          .catch((err) => {
+            console.warn('SSE auth check failed; falling back to retry', err)
+            const newAttempts = currentState.reconnectAttempts + 1
+            set({ reconnectAttempts: newAttempts })
+
+            if (newAttempts <= MAX_SSE_RECONNECT_ATTEMPTS) {
+              const delay = calculateRetryDelay(newAttempts)
+
+              console.log(
+                `Progress SSE reconnecting in ${Math.ceil(delay / 1000)}s (attempt ${newAttempts}/${MAX_SSE_RECONNECT_ATTEMPTS})`,
+              )
+
+              // Reset isConnecting so the retry timeout can call initialize()
+              set({ isConnecting: false })
+
+              const timeout = setTimeout(() => {
+                const latestState = get()
+                if (
+                  !latestState.eventSource &&
+                  !latestState.isConnecting &&
+                  !latestState.hasGivenUp
+                ) {
+                  latestState.initialize()
+                }
+                set({ reconnectTimeout: null })
+              }, delay)
+
+              set({ reconnectTimeout: timeout })
+            } else {
+              set({ isConnecting: false, hasGivenUp: true })
+            }
+          })
       }
 
       set({ eventSource })
@@ -110,10 +174,11 @@ export const useProgressStore = create<ProgressState>()(
 
     cleanup: () => {
       const state = get()
-      if (!state.eventSource) return
 
       console.log('Cleaning up EventSource connection')
-      state.eventSource.close()
+      if (state.eventSource) {
+        state.eventSource.close()
+      }
 
       // Clear any pending reconnect timeout
       if (state.reconnectTimeout) {
@@ -125,6 +190,8 @@ export const useProgressStore = create<ProgressState>()(
         isConnected: false,
         isConnecting: false,
         reconnectTimeout: null,
+        reconnectAttempts: 0,
+        hasGivenUp: true,
       })
     },
 
@@ -147,7 +214,11 @@ export const useProgressStore = create<ProgressState>()(
 
       const currentState = get()
       if (!currentState.eventSource && !currentState.isConnecting) {
-        currentState.initialize()
+        // Reset if we had given up, since a new subscriber wants data
+        if (currentState.hasGivenUp) {
+          set({ hasGivenUp: false, reconnectAttempts: 0 })
+        }
+        get().initialize()
       }
 
       return () => {
@@ -190,7 +261,11 @@ export const useProgressStore = create<ProgressState>()(
 
       const currentState = get()
       if (!currentState.eventSource && !currentState.isConnecting) {
-        currentState.initialize()
+        // Reset if we had given up, since a new subscriber wants data
+        if (currentState.hasGivenUp) {
+          set({ hasGivenUp: false, reconnectAttempts: 0 })
+        }
+        get().initialize()
       }
 
       return () => {

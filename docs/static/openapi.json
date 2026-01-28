@@ -13837,9 +13837,6 @@
                               ]
                             }
                           },
-                          "isUpgrade": {
-                            "type": "boolean"
-                          },
                           "episodeFile": {
                             "type": "object",
                             "properties": {
@@ -13937,9 +13934,6 @@
                                 "airDateUtc"
                               ]
                             }
-                          },
-                          "isUpgrade": {
-                            "type": "boolean"
                           },
                           "episodeFiles": {
                             "type": "array",
@@ -30925,6 +30919,72 @@
             }
           },
           "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/check": {
+      "get": {
+        "operationId": "checkAuth",
+        "summary": "Check authentication status",
+        "tags": [
+          "Authentication"
+        ],
+        "description": "Lightweight endpoint to verify the current session is authenticated",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authenticated": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "authenticated"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Default Response",
             "content": {
               "application/json": {
