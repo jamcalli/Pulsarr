@@ -171,18 +171,19 @@ export function useLogStream(
         setIsConnected(false)
         setIsConnecting(false)
 
-        // Only attempt reconnection if follow is enabled
-        if (!optionsRef.current.follow) {
-          setHasGivenUp(true)
-          setError('Connection lost. Enable follow mode to auto-reconnect.')
-          toast.error('Log stream connection lost')
-          return
-        }
-
         // Handle error with auth check and retry logic
+        // Auth check runs regardless of follow mode to detect 401s and redirect
         handleSseError(reconnectAttempts.current).then(
           ({ shouldRetry, newAttempts }) => {
             reconnectAttempts.current = newAttempts
+
+            // If follow is disabled, don't retry (but auth failures already redirected)
+            if (!optionsRef.current.follow) {
+              setHasGivenUp(true)
+              setError('Connection lost. Enable follow mode to auto-reconnect.')
+              toast.error('Log stream connection lost')
+              return
+            }
 
             if (shouldRetry) {
               const delay = calculateRetryDelay(newAttempts)
