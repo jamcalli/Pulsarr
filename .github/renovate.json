@@ -7,6 +7,16 @@
   "baseBranchPatterns": [
     "develop"
   ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track Bun version in package.json engines field",
+      "fileMatch": ["^package\\.json$"],
+      "matchStrings": ["\"bun\":\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""],
+      "depNameTemplate": "oven/bun",
+      "datasourceTemplate": "docker"
+    }
+  ],
   "timezone": "UTC",
   "schedule": [
     "before 6am on monday",
@@ -136,18 +146,18 @@
       "prPriority": 10
     },
     {
-      "description": "Group all Node.js version updates across all sources",
-      "groupName": "Node.js",
-      "matchDatasources": ["docker", "node-version"],
-      "matchPackageNames": ["node", "@types/node"],
+      "description": "Group Bun runtime updates (Docker image + types)",
+      "groupName": "Bun runtime",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["oven/bun"],
       "rangeStrategy": "pin",
       "automerge": false,
       "prPriority": 15,
       "reviewers": ["jamcalli"],
-      "labels": ["dependencies", "node-version"]
+      "labels": ["dependencies", "runtime"]
     },
     {
-      "description": "Weekly digest for dev dependencies",
+      "description": "Weekly digest for dev dependencies not covered by named groups",
       "matchDepTypes": [
         "devDependencies"
       ],
@@ -163,7 +173,16 @@
         "!autoprefixer",
         "!tailwind-merge",
         "!class-variance-authority",
-        "!/^@types//"
+        "!tw-animate-css",
+        "!/^@types//",
+        "!/^@radix-ui//",
+        "!/^@tanstack//",
+        "!react",
+        "!react-dom",
+        "!react-hook-form",
+        "!react-router-dom",
+        "!@hookform/resolvers",
+        "!recharts"
       ]
     },
     {

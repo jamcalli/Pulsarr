@@ -1,4 +1,4 @@
-FROM node:24.13.0-alpine@sha256:931d7d57f8c1fd0e2179dbff7cc7da4c9dd100998bc2b32afc85142d8efbc213 AS builder
+FROM oven/bun:1.3.7-alpine AS builder
 
 WORKDIR /app
 
@@ -12,13 +12,12 @@ ENV CACHE_DIR=/app/build-cache
 ENV tmdbApiKey=${TMDBAPIKEY}
 
 # Copy package files first (changes less often)
-COPY package*.json ./
-COPY .npmrc ./
+COPY package.json bun.lock ./
+COPY packages ./packages
 
 # Install dependencies with cache mount
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/app/.npm \
-    HUSKY=0 npm ci --prefer-offline --no-audit
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile
 
 # Copy build configuration files
 COPY vite.config.js tsconfig.json postcss.config.mjs ./
@@ -28,20 +27,24 @@ COPY src ./src
 
 # Build with cache mounts
 RUN --mount=type=cache,target=/app/node_modules/.vite \
-    npm run build
+    bun run build
 
-# Prune dev dependencies to produce production node_modules for runtime image
-RUN npm prune --omit=dev && mkdir -p ${CACHE_DIR}
+# Install production-only dependencies over full install
+RUN bun install --production --frozen-lockfile && mkdir -p ${CACHE_DIR}
 
-FROM node:24.13.0-alpine@sha256:931d7d57f8c1fd0e2179dbff7cc7da4c9dd100998bc2b32afc85142d8efbc213
+FROM oven/bun:1.3.7-alpine
 
 WORKDIR /app
+
+# wget for healthcheck
+RUN apk add --no-cache wget
 
 # cache dir in final
 ENV CACHE_DIR=/app/build-cache
 
-# Copy package files (runtime typically does not need .npmrc)
-COPY package*.json ./
+# Copy package files
+COPY package.json bun.lock ./
+COPY packages ./packages
 # Reuse production dependencies from the builder image
 COPY --from=builder /app/node_modules ./node_modules
 
