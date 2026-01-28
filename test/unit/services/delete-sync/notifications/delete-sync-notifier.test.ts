@@ -6,6 +6,14 @@
  * notification preferences, dry run mode, and error recovery.
  */
 
+// Mock native-webhook to avoid transitive import of webhook-payloads.schema.ts
+// which triggers a known Bun + Vite SSR transform bug with Zod
+// See: https://github.com/oven-sh/bun/issues/21614
+vi.mock('@services/notifications/channels/native-webhook.js', () => ({
+  dispatchWebhooks: vi.fn(),
+  hasWebhooksForEvent: vi.fn().mockReturnValue(false),
+}))
+
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
