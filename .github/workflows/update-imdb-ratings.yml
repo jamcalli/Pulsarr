@@ -19,17 +19,16 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Use Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
+          bun-version-file: "package.json"
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Generate filtered ratings dataset
-        run: npx tsx scripts/generate-filtered-ratings.ts
+        run: bun run --bun scripts/generate-filtered-ratings.ts
       - name: Commit and push if changed
         env:
           GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}

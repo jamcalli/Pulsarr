@@ -38,7 +38,7 @@ services:
       - .env
     profiles:
       - migration
-    command: npm run migrate
+    command: bun run migrate
 
   pulsarr-migrate-postgres-setup:
     image: lakker/pulsarr:latest
@@ -50,7 +50,7 @@ services:
       - .env
     profiles:
       - migration
-    command: npm run migrate:postgres-setup
+    command: bun run migrate:postgres-setup
 
   pulsarr-migrate-data:
     image: lakker/pulsarr:latest
@@ -64,7 +64,7 @@ services:
       - migration
     stdin_open: true
     tty: true
-    command: npm run migrate:sqlite-to-postgres
+    command: bun run migrate:sqlite-to-postgres
 ```
 
 ### 2. Update SQLite Schema
@@ -126,7 +126,7 @@ docker compose logs pulsarr  # Verify startup
 | `--help` | Show all options |
 
 ```bash
-echo "y" | docker compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npx tsx migrations/scripts/sqlite-to-postgresql.ts --verbose
+echo "y" | docker compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data bun run --bun migrations/scripts/sqlite-to-postgresql.ts --verbose
 ```
 
 ## Troubleshooting

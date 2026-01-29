@@ -26,9 +26,9 @@ We welcome contributions to Pulsarr.
 ## Code Quality
 
 ```bash
-npm run fix          # Safe lint fixes
-npm run fix:unsafe   # Import organization (if CI fails)
-npm run typecheck    # TypeScript checks
+bun run fix          # Safe lint fixes
+bun run fix:unsafe   # Import organization (if CI fails)
+bun run typecheck    # TypeScript checks
 ```
 
 ## Commit Messages
