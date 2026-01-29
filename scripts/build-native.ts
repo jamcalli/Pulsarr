@@ -17,6 +17,7 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -513,13 +514,13 @@ for (const platform of PLATFORMS) {
     if (!existsSync(checksumFile)) {
       run(`curl -fsSL "${checksumUrl}" -o "${checksumFile}"`)
     }
-    const checksums = Bun.file(checksumFile).textSync()
+    const checksums = readFileSync(checksumFile, 'utf8')
     const expectedLine = checksums
       .split('\n')
       .find((line) => line.includes(`${platform.bunArchive}.zip`))
     if (expectedLine) {
       const expectedHash = expectedLine.split(/\s+/)[0]
-      const fileBuffer = Bun.file(bunTmp).bytesSync()
+      const fileBuffer = readFileSync(bunTmp)
       const hasher = new Bun.CryptoHasher('sha256')
       hasher.update(fileBuffer)
       const actualHash = hasher.digest('hex')
