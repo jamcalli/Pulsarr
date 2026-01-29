@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env bun
 import { spawn } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -45,7 +45,7 @@ await app.close()
 
 // Format the generated file
 console.log('🎨 Running formatter on generated OpenAPI spec...')
-const formatProcess = spawn('npm', ['run', 'fix'], {
+const formatProcess = spawn('bun', ['run', 'fix'], {
   stdio: 'inherit',
 })
 

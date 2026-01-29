@@ -1,0 +1,17 @@
+{
+  "name": "better-sqlite3-bun",
+  "version": "1.0.0",
+  "description": "bun:sqlite compatibility shim for the better-sqlite3 API, enabling Knex and other ORMs to use Bun's native SQLite driver",
+  "main": "index.js",
+  "module": "index.ts",
+  "type": "module",
+  "license": "AGPL-3.0",
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "scripts": {
+    "install": "true",
+    "build-release": "true",
+    "build-debug": "true"
+  }
+}

@@ -87,6 +87,17 @@ jobs:
           cache-to: |
             type=gha,mode=max,scope=buildkit
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2
+        with:
+          bun-version-file: "package.json"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build native packages
+        run: bun run build:native -- --all
+
       - name: Generate Release Notes
         uses: release-drafter/release-drafter@6db134d15f3909ccc9eefd369f02bd1e9cffdf97 # v6
         id: release-drafter
@@ -102,5 +113,6 @@ jobs:
           body: ${{ steps.release-drafter.outputs.body }}
           draft: true
           prerelease: ${{ steps.check-prerelease.outputs.is_prerelease == 'true' }}
+          files: native-build/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

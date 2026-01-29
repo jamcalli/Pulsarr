@@ -23,10 +23,10 @@ If applicable, add screenshots to help explain your problem.
 
 ## Environment
 - Pulsarr Version: [e.g. v0.2.1-beta]
-- Deployment: [e.g. Docker, Node.js]
+- Deployment: [e.g. Docker, Native Install]
 - OS: [e.g. Ubuntu 22.04]
 - Browser: [e.g. Chrome 121]
-- Node Version: [e.g. 23.6.0]
+- Bun Version: [e.g. 1.3.7]
 
 ## Logs
 <details>

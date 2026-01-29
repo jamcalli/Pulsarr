@@ -10,7 +10,7 @@ services:
       - .env
     profiles:
       - migration
-    command: npm run migrate
+    command: bun run migrate
 
   # Step 2: Setup PostgreSQL schema
   pulsarr-migrate-postgres-setup:
@@ -23,7 +23,7 @@ services:
       - .env
     profiles:
       - migration
-    command: npm run migrate:postgres-setup
+    command: bun run migrate:postgres-setup
 
   # Step 3: Migrate data from SQLite to PostgreSQL
   pulsarr-migrate-data:
@@ -38,4 +38,4 @@ services:
       - migration
     stdin_open: true
     tty: true
-    command: npm run migrate:sqlite-to-postgres
+    command: bun run migrate:sqlite-to-postgres

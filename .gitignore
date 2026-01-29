@@ -16,6 +16,7 @@ node_modules/
 
 # builds
 dist
+native-build/
 
 # builds
 backend/tests/

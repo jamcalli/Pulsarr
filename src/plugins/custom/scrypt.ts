@@ -30,7 +30,7 @@ export async function scryptHash(value: string): Promise<string> {
       },
       (error, key) => {
         /* c8 ignore start - Requires extreme or impractical configuration values */
-        if (error !== null) {
+        if (error) {
           reject(error)
         } /* c8 ignore end */ else {
           resolve(`${salt.toString('hex')}.${key.toString('hex')}`)
@@ -58,7 +58,7 @@ async function compare(value: string, hash: string): Promise<boolean> {
       },
       (error, key) => {
         /* c8 ignore start - Requires extreme or impractical configuration values */
-        if (error !== null) {
+        if (error) {
           timingSafeEqual(hashedBuffer, hashedBuffer)
           resolve(false)
         } /* c8 ignore end */ else {

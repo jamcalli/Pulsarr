@@ -18,7 +18,7 @@ const renderBuiltUrl = (filename, { hostType }) => {
 export default {
   base: '/',
   root: resolve(import.meta.dirname, 'src/client'),
-  plugins: [viteReact(), viteFastify({ spa: true })],
+  plugins: [viteReact(), viteFastify({ spa: true, useRelativePaths: true })],
   build: {
     outDir: resolve(import.meta.dirname, 'dist'),
     emptyOutDir: false,
