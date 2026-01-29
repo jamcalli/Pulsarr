@@ -89,6 +89,11 @@ class Database {
       create: true,
     })
     this.verbose = options.verbose
+
+    // Apply busy timeout via PRAGMA (Bun's constructor doesn't support timeout directly)
+    if (options.timeout !== undefined) {
+      this.db.exec(`PRAGMA busy_timeout = ${options.timeout}`)
+    }
   }
 
   prepare(sql: string): Statement {
