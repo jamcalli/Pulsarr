@@ -29,5 +29,6 @@ export default fp(
   },
   {
     name: 'session',
+    dependencies: ['config'],
   },
 )
