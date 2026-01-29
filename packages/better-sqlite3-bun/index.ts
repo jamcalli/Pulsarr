@@ -111,6 +111,9 @@ class Database {
 
     // Apply busy timeout via PRAGMA (Bun's constructor doesn't support timeout directly)
     if (options.timeout !== undefined) {
+      if (!Number.isFinite(options.timeout) || options.timeout < 0) {
+        throw new TypeError('timeout must be a non-negative finite number')
+      }
       this.db.exec(`PRAGMA busy_timeout = ${options.timeout}`)
     }
   }
