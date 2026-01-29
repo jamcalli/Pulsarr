@@ -16,15 +16,14 @@ describe('streaming-updater', () => {
     vi.useRealTimers()
   })
 
-  // Skipped: Bun's Readable.fromWeb() doesn't emit data from MSW mock ReadableStreams
-  // under the --bun runtime flag. The streamLines implementation works correctly at runtime;
-  // this is a Bun + MSW interop issue in the test environment only.
-  // Re-enable when Bun fixes Readable.fromWeb() interop with mock streams.
-  describe.skip('streamLines', () => {
+  describe('streamLines', () => {
     it('should stream lines from plain text response', async () => {
       server.use(
         http.get('https://example.com/data.txt', () => {
-          return new HttpResponse('line1\nline2\nline3\n', {
+          // Use Readable.from() instead of string body - Bun's Readable.fromWeb()
+          // doesn't emit data from MSW's internal string-to-ReadableStream conversion
+          const stream = Readable.from(['line1\n', 'line2\n', 'line3\n'])
+          return new HttpResponse(stream as unknown as ReadableStream, {
             headers: { 'Content-Type': 'text/plain' },
           })
         }),
@@ -43,7 +42,15 @@ describe('streaming-updater', () => {
     it('should skip empty lines', async () => {
       server.use(
         http.get('https://example.com/data.txt', () => {
-          return new HttpResponse('line1\n\nline2\n\n\nline3\n', {
+          const stream = Readable.from([
+            'line1\n',
+            '\n',
+            'line2\n',
+            '\n',
+            '\n',
+            'line3\n',
+          ])
+          return new HttpResponse(stream as unknown as ReadableStream, {
             headers: { 'Content-Type': 'text/plain' },
           })
         }),
@@ -62,7 +69,8 @@ describe('streaming-updater', () => {
     it('should handle CRLF line endings', async () => {
       server.use(
         http.get('https://example.com/data.txt', () => {
-          return new HttpResponse('line1\r\nline2\r\nline3\r\n', {
+          const stream = Readable.from(['line1\r\n', 'line2\r\n', 'line3\r\n'])
+          return new HttpResponse(stream as unknown as ReadableStream, {
             headers: { 'Content-Type': 'text/plain' },
           })
         }),
@@ -230,7 +238,8 @@ describe('streaming-updater', () => {
           if (attempts < 3) {
             return new HttpResponse(null, { status: 500 })
           }
-          return new HttpResponse('success\n', {
+          const stream = Readable.from(['success\n'])
+          return new HttpResponse(stream as unknown as ReadableStream, {
             headers: { 'Content-Type': 'text/plain' },
           })
         }),
@@ -264,7 +273,8 @@ describe('streaming-updater', () => {
           if (attempts < 2) {
             return new HttpResponse(null, { status: 429 })
           }
-          return new HttpResponse('success\n', {
+          const stream = Readable.from(['success\n'])
+          return new HttpResponse(stream as unknown as ReadableStream, {
             headers: { 'Content-Type': 'text/plain' },
           })
         }),
@@ -298,7 +308,8 @@ describe('streaming-updater', () => {
           if (attempts < 2) {
             return new HttpResponse(null, { status: 408 })
           }
-          return new HttpResponse('success\n', {
+          const stream = Readable.from(['success\n'])
+          return new HttpResponse(stream as unknown as ReadableStream, {
             headers: { 'Content-Type': 'text/plain' },
           })
         }),
@@ -382,7 +393,8 @@ describe('streaming-updater', () => {
               headers: { 'Retry-After': '1' }, // 1 second
             })
           }
-          return new HttpResponse('success\n', {
+          const stream = Readable.from(['success\n'])
+          return new HttpResponse(stream as unknown as ReadableStream, {
             headers: { 'Content-Type': 'text/plain' },
           })
         }),
