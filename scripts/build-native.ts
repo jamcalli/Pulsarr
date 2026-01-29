@@ -28,7 +28,10 @@ const PROJECT_ROOT = resolve(import.meta.dirname, '..')
 const BUILD_DIR = resolve(PROJECT_ROOT, 'native-build')
 const COMMON_DIR = resolve(BUILD_DIR, '_common')
 
-const BUN_VERSION = packageJson.engines.bun
+const BUN_VERSION = packageJson.engines?.bun
+if (!BUN_VERSION) {
+  throw new Error('Missing "engines.bun" in package.json')
+}
 const WINSW_VERSION = '2.12.0'
 const WINSW_URL = `https://github.com/winsw/winsw/releases/download/v${WINSW_VERSION}/WinSW-x64.exe`
 const VERSION = packageJson.version
@@ -204,7 +207,11 @@ cpSync(resolve(PROJECT_ROOT, 'bun.lock'), resolve(COMMON_DIR, 'bun.lock'))
 console.log('    Installing production dependencies...')
 try {
   run('bun install --production --frozen-lockfile', COMMON_DIR)
-} catch {
+} catch (e) {
+  console.log(
+    '    Frozen lockfile failed, retrying without:',
+    e instanceof Error ? e.message : e,
+  )
   run('bun install --production', COMMON_DIR)
 }
 
@@ -496,16 +503,47 @@ for (const platform of PLATFORMS) {
   // Download Bun binary for this platform
   const bunUrl = `https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/${platform.bunArchive}.zip`
   const bunTmp = resolve(BUILD_DIR, `_bun_${platform.detectName}.zip`)
+  const checksumUrl = `https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/SHASUMS256.txt`
+  const checksumFile = resolve(BUILD_DIR, '_bun_checksums.txt')
 
   if (!existsSync(bunTmp)) {
     run(`curl -fsSL "${bunUrl}" -o "${bunTmp}"`)
+
+    // Verify checksum
+    if (!existsSync(checksumFile)) {
+      run(`curl -fsSL "${checksumUrl}" -o "${checksumFile}"`)
+    }
+    const checksums = Bun.file(checksumFile).textSync()
+    const expectedLine = checksums
+      .split('\n')
+      .find((line) => line.includes(`${platform.bunArchive}.zip`))
+    if (expectedLine) {
+      const expectedHash = expectedLine.split(/\s+/)[0]
+      const fileBuffer = Bun.file(bunTmp).bytesSync()
+      const hasher = new Bun.CryptoHasher('sha256')
+      hasher.update(fileBuffer)
+      const actualHash = hasher.digest('hex')
+      if (actualHash !== expectedHash) {
+        rmSync(bunTmp, { force: true })
+        throw new Error(
+          `Checksum mismatch for ${platform.bunArchive}.zip: expected ${expectedHash}, got ${actualHash}`,
+        )
+      }
+      console.log(`      Checksum verified for ${platform.bunArchive}.zip`)
+    }
   }
 
   // Extract just the binary
   try {
     run(`unzip -qjo "${bunTmp}" "*/${platform.bunBinary}" -d "${platformDir}/"`)
-  } catch {
-    run(`unzip -qjo "${bunTmp}" "${platform.bunBinary}" -d "${platformDir}/"`)
+  } catch (_e1) {
+    try {
+      run(`unzip -qjo "${bunTmp}" "${platform.bunBinary}" -d "${platformDir}/"`)
+    } catch (_e2) {
+      throw new Error(
+        `Failed to extract Bun binary from ${bunTmp}: tried nested and flat patterns`,
+      )
+    }
   }
 
   try {
@@ -555,16 +593,23 @@ for (const platform of PLATFORMS) {
 
 // Cleanup — keep unzipped dirs when --run needs them
 rmSync(COMMON_DIR, { recursive: true, force: true })
+const currentPlatformConfig = PLATFORMS.find(
+  (p) => p.detectName === currentPlatform,
+)
+const currentZipName = currentPlatformConfig
+  ? `pulsarr-v${VERSION}-${currentPlatformConfig.zipSuffix}`
+  : null
+
 for (const f of readdirSync(BUILD_DIR)) {
   const fullPath = resolve(BUILD_DIR, f)
-  if (f.startsWith('_bun_') || f === '_winsw.exe') {
+  if (
+    f.startsWith('_bun_') ||
+    f === '_winsw.exe' ||
+    f === '_bun_checksums.txt'
+  ) {
     rmSync(fullPath, { force: true })
   } else if (!f.endsWith('.zip') && statSync(fullPath).isDirectory()) {
-    if (
-      runAfter &&
-      f ===
-        `pulsarr-v${VERSION}-${PLATFORMS.find((p) => p.detectName === currentPlatform)?.zipSuffix}`
-    ) {
+    if (runAfter && f === currentZipName) {
       continue
     }
     rmSync(fullPath, { recursive: true, force: true })
