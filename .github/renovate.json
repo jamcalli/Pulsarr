@@ -13,8 +13,9 @@
       "description": "Track Bun version in package.json engines field",
       "fileMatch": ["^package\\.json$"],
       "matchStrings": ["\"bun\":\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""],
-      "depNameTemplate": "oven/bun",
-      "datasourceTemplate": "docker"
+      "depNameTemplate": "oven-sh/bun",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^bun-v(?<version>.*)$"
     }
   ],
   "timezone": "UTC",
@@ -146,10 +147,10 @@
       "prPriority": 10
     },
     {
-      "description": "Group Bun runtime updates (Docker image + types)",
+      "description": "Group Bun runtime updates",
       "groupName": "Bun runtime",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["oven/bun"],
+      "matchDatasources": ["github-releases"],
+      "matchPackageNames": ["oven-sh/bun"],
       "rangeStrategy": "pin",
       "automerge": false,
       "prPriority": 15,
