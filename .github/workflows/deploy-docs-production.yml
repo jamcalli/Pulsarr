@@ -36,6 +36,7 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
 
       - name: Install root dependencies
         run: bun install --frozen-lockfile
