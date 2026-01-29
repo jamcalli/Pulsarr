@@ -45,7 +45,7 @@ await app.close()
 
 // Format the generated file
 console.log('🎨 Running formatter on generated OpenAPI spec...')
-const formatProcess = spawn('npm', ['run', 'fix'], {
+const formatProcess = spawn('bun', ['run', 'fix'], {
   stdio: 'inherit',
 })
 
