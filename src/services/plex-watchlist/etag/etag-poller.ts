@@ -86,10 +86,6 @@ export class EtagPoller {
     private readonly log: FastifyBaseLogger,
   ) {}
 
-  // ============================================================================
-  // Public API
-  // ============================================================================
-
   /**
    * Establish ETag baseline for a single user.
    * Called after a new friend is added and synced.
@@ -284,10 +280,6 @@ export class EtagPoller {
     return new Map(this.cache)
   }
 
-  // ============================================================================
-  // Public: Staggered Polling (Non-RSS Mode)
-  // ============================================================================
-
   /**
    * Start staggered polling for non-RSS mode.
    * Polls users sequentially with even distribution across 5-minute cycles.
@@ -399,10 +391,6 @@ export class EtagPoller {
     return this.checkFriend(token, friend, user.userId)
   }
 
-  // ============================================================================
-  // Private: Staggered Polling Internals
-  // ============================================================================
-
   /**
    * Start a new polling cycle.
    * Refreshes friend list, rebalances timing, then begins sequential polling.
@@ -508,10 +496,6 @@ export class EtagPoller {
       this.scheduleNextUserCheck()
     }
   }
-
-  // ============================================================================
-  // Private: Baseline Establishment (Two-Phase)
-  // ============================================================================
 
   /**
    * Establish baseline for primary user.
@@ -678,10 +662,6 @@ export class EtagPoller {
       )
     }
   }
-
-  // ============================================================================
-  // Private: Change Detection with Item Diffing
-  // ============================================================================
 
   /**
    * Check primary user for changes.
@@ -945,10 +925,6 @@ export class EtagPoller {
       }
     }
   }
-
-  // ============================================================================
-  // Private: Utility Methods
-  // ============================================================================
 
   /**
    * Parse items from Discover API response

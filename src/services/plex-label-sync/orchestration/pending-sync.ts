@@ -165,7 +165,6 @@ export async function processPendingLabelSyncs(
               number,
               { user_id: number; username: string; watchlist_id: number }
             >()
-            // Note: userMap is now fetched once outside the loop for performance
 
             // Add users from existing tracking records
             for (const tracking of trackedLabels) {

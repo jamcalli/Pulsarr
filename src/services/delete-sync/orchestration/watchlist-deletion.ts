@@ -58,9 +58,6 @@ export async function executeWatchlistDeletion(
     `Beginning deletion ${dryRun ? '(DRY RUN)' : 'process'} based on configuration`,
   )
 
-  // Note: Protection playlists are now loaded before the safety check
-  // deps.protectedGuids should already be populated if protection is enabled
-
   // Initialize deletion counters
   const counters = new DeletionCounters()
 

@@ -241,7 +241,6 @@ export class ContentRouterService {
       `Routing ${contentType} "${item.title}"${options.syncing ? ' during sync operation' : ''}`,
     )
 
-    // OPTIMIZATION: Check if any router rules exist at all and cache them
     let allRouterRules: Awaited<ReturnType<typeof this.getAllRouterRules>> = []
     try {
       // Fetch all router rules (uses cache if available)
@@ -586,8 +585,6 @@ export class ContentRouterService {
       syncTargetInstanceId: options.syncTargetInstanceId,
     }
 
-    // IMPORTANT: Enrich item with metadata before evaluation
-    // Only do this if we have rules that might use the enriched data
     let enrichedItem = item
     if (hasAnyRules) {
       try {
@@ -714,8 +711,7 @@ export class ContentRouterService {
         }
 
         try {
-          // FIRST: Check if there's already an approval request for this user/content
-          // This prevents previously rejected items from being re-routed
+          // Check if there's already an approval request for this user/content
           const contentKey = fallbackContext.itemKey || item.guids[0] || ''
 
           const existingResult = await this.checkExistingApprovalRequest(
@@ -729,7 +725,7 @@ export class ContentRouterService {
             return existingResult
           }
 
-          // SECOND: Check if new approval is required based on router rules
+          // Check if new approval is required based on router rules
           // Get all default routing decisions that would be made
           const defaultRoutingDecisions =
             await this.getDefaultRoutingDecisions(contentType)
@@ -784,8 +780,7 @@ export class ContentRouterService {
               return { routedInstances: [], routingDetails: [] }
             }
 
-            // THIRD: Atomic quota enforcement for fallback default routing
-            // Only for non-sync operations
+            // Atomic quota enforcement for fallback default routing
             if (!options.syncing && fallbackContext.userId > 0) {
               const quotasBypassedByRule =
                 approvalResult.data?.quotasBypassedByRule ?? false
@@ -938,8 +933,7 @@ export class ContentRouterService {
         // Skip approval checks entirely for sync operations
         // Sync is internal data movement and should not interact with approval system
         if (!options.syncing) {
-          // FIRST: Check if there's already an approval request for this user/content
-          // This prevents previously rejected items from being re-routed
+          // Check if there's already an approval request for this user/content
           const contentKey = context.itemKey || enrichedItem.guids[0] || ''
 
           const existingResult = await this.checkExistingApprovalRequest(
@@ -954,7 +948,7 @@ export class ContentRouterService {
           }
         }
 
-        // SECOND: Sort decisions by priority for approval checking
+        // Sort decisions by priority for approval checking
         allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
 
         // Check if approval is required for these routing decisions
@@ -2641,9 +2635,6 @@ export class ContentRouterService {
         (rule) => rule.enabled && rule.type === 'conditional',
       )
 
-      // IMPORTANT: Enrich item with metadata before evaluation (mirrors routeContent behavior)
-      // This ensures rules that depend on enriched metadata (anime detection, IMDb ratings, etc.)
-      // will match correctly during the dry-run existence check
       let itemForEvaluation = item
       if (hasConditionalRules) {
         try {

@@ -258,12 +258,6 @@ export async function processAndSaveNewItems(
 
       logger.debug(`Processed ${itemsToInsert.length} new items`)
 
-      // REMOVED: Old notification behavior that sent "Added by X" notifications
-      //          regardless of whether content was actually routed.
-      // New behavior: Notifications only sent after successful routing:
-      //   - RSS immediate: Checked via pendingItem.routed flag in processRssPendingItems()
-      //   - Reconciliation: Sent directly from processShowWithRouting()/processMovieWithRouting()
-
       if (emitProgress) {
         fastify.progress.emit({
           operationId,

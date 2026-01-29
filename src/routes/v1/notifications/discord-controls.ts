@@ -1,5 +1,3 @@
-// File: src/routes/v1/notifications/discord-control.ts
-
 import {
   DiscordBotResponseSchema,
   ErrorSchema,

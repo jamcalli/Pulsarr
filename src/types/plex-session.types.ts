@@ -37,7 +37,7 @@ export interface PlexSeriesMetadata {
   MediaContainer: {
     Metadata: Array<{
       Guid?: Array<{
-        id: string // Format: "tvdb://12345", "imdb://tt1234567", etc.
+        id: string
       }>
     }>
   }
