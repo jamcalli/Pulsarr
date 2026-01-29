@@ -228,7 +228,7 @@ echo Starting Pulsarr...
 
 echo.
 echo Pulsarr has exited (code: %ERRORLEVEL%)
-pause
+if not defined PULSARR_SERVICE pause
 `
 
 const WINSW_XML = `<service>
@@ -240,6 +240,7 @@ const WINSW_XML = `<service>
   <logpath>%BASE%\\data\\logs</logpath>
   <log mode="none"/>
   <stopparentprocessfirst>true</stopparentprocessfirst>
+  <env name="PULSARR_SERVICE" value="1"/>
   <onfailure action="restart" delay="10 sec"/>
   <onfailure action="restart" delay="30 sec"/>
   <resetfailure>1 hour</resetfailure>
