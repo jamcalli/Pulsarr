@@ -9,7 +9,7 @@ on:
       - 'src/**'  # OpenAPI generation depends on source files
       - 'scripts/**'  # Build scripts
       - 'package.json'
-      - 'package-lock.json'
+      - 'bun.lock'
       - '.github/workflows/deploy-docs-production.yml'
 
 permissions:
@@ -26,6 +26,11 @@ jobs:
         with:
           fetch-depth: 0 # Needed for proper git history
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: "package.json"
+
       - name: Setup Node.js
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
         with:
@@ -33,7 +38,7 @@ jobs:
           cache: 'npm'
 
       - name: Install root dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Install docs dependencies
         run: |
@@ -41,7 +46,7 @@ jobs:
           npm ci
 
       - name: Generate OpenAPI spec and build documentation
-        run: npm run docs:build
+        run: bun run docs:build
         env:
           ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
           ALGOLIA_SEARCH_API_KEY: ${{ secrets.ALGOLIA_SEARCH_API_KEY }}

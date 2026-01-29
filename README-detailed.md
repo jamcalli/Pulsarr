@@ -5,7 +5,7 @@
 
   ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?style=flat-square)
   ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
-  ![Node](https://img.shields.io/badge/node-24%20LTS-green?style=flat-square)
+  ![Bun](https://img.shields.io/badge/bun-%3E%3D1.3-green?style=flat-square)
   ![Status](https://img.shields.io/badge/status-early--release-orange?style=flat-square)
   ![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
   ![Docker Image Size](https://img.shields.io/docker/image-size/lakker/pulsarr?style=flat-square)
@@ -188,7 +188,7 @@ Alternatively, you can use the Docker Installation method described above.
 #### Manual Installation
 
 **Prerequisites**
-- Node.js 22 LTS or higher (for local build)
+- Bun 1.3 or higher (for local build) — install from [bun.sh](https://bun.sh)
 
 ```bash
 # Clone the repository
@@ -197,16 +197,16 @@ git clone https://github.com/jamcalli/Pulsarr.git
 cd Pulsarr
 
 # Install dependencies
-npm install
+bun install
 
 # Build the server
-npm run build
+bun run build
 
 # Run Migrations
-npm run migrate
+bun run migrate
 
 # Start the server
-npm run start:prod
+bun run start:prod
 ```
 
 **Important**: When building from source, you **must** provide your own TMDB API Read Access Token for metadata features. 
@@ -216,6 +216,22 @@ npm run start:prod
 3. Add to your `.env` file: `tmdbApiKey=your_read_access_token_here`
 
 For more details, see the environment variables documentation.
+
+#### Native Installation
+
+Standalone builds are available for Linux, macOS, and Windows — no Docker or runtime install required.
+
+1. Download the zip for your platform from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest).
+2. Extract, copy `.env.example` to `.env`, and edit your settings.
+3. Run `./start.sh` (Linux/macOS) or `start.bat` (Windows).
+4. Access the web UI at `http://localhost:3003` to complete setup.
+
+Each zip includes a bundled Bun runtime and platform-specific service install scripts:
+- **Linux**: systemd unit file example in the included README
+- **macOS**: launchd plist example in the included README
+- **Windows**: `install-service.bat` / `uninstall-service.bat` for Windows Service management
+
+To update, stop the service, extract the new release over the same directory (`.env` and `data/` are preserved), and restart. Migrations run automatically on startup.
 
 ### Initial Setup
 
@@ -872,7 +888,7 @@ We welcome contributions to Pulsarr! This section outlines the process for contr
 3. **Write Tests**: If applicable, write tests for your changes.
 
 4. **Ensure Code Quality**:
-   - Run linting tools (npm run fix to run biome)
+   - Run linting tools (bun run fix to run biome)
    - Ensure tests pass (these are coming!)
    - Follow the existing code style
 

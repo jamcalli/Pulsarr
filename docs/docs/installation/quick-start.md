@@ -95,11 +95,11 @@ Alternatively, you can use the Docker installation method described above.
 If you prefer to build and run Pulsarr manually:
 
 :::warning Upgrading from Previous Versions
-If you previously installed Pulsarr with Node.js 22 or earlier, you must upgrade to Node.js 24 LTS before updating to the latest version. Using nvm: `nvm install 24 && nvm use 24`, or download from [nodejs.org](https://nodejs.org/).
+If you previously installed Pulsarr with Node.js, you must switch to [Bun](https://bun.sh) before updating to the latest version. Install Bun: `curl -fsSL https://bun.sh/install | bash`
 :::
 
 #### Prerequisites
-- Node.js 24 LTS or higher
+- Bun 1.3 or higher — install from [bun.sh](https://bun.sh)
 - Git
 
 #### Steps
@@ -111,16 +111,16 @@ git clone https://github.com/jamcalli/pulsarr.git
 cd pulsarr
 
 # Install dependencies
-npm install
+bun install
 
 # Build the application
-npm run build
+bun run build
 
 # Run database migrations
-npm run migrate
+bun run migrate
 
 # Start the server
-npm run start:prod
+bun run start:prod
 ```
 
 The server will start on port 3003 by default. Navigate to `http://localhost:3003` to complete setup.
@@ -132,6 +132,31 @@ When building from source, you **must** provide your own TMDB API Read Access To
 For more detailed configuration options, see:
 - [Configuration Guide](configuration)
 - [Environment Variables Reference](../development/environment-variables)
+
+### Native Installation
+
+Standalone builds for Linux, macOS, and Windows are available on each [GitHub release](https://github.com/jamcalli/pulsarr/releases/latest) — no Docker or runtime install required.
+
+1. Download the zip for your platform.
+2. Extract and copy `.env.example` to `.env`, then edit your settings.
+3. Run `./start.sh` (Linux/macOS) or `start.bat` (Windows).
+4. Navigate to `http://localhost:3003` to complete setup.
+
+Each zip includes a bundled Bun runtime, so nothing else needs to be installed.
+
+#### Running as a Service
+
+| Platform | How |
+|----------|-----|
+| **Linux** | Create a systemd unit — see the included `README.txt` for an example |
+| **macOS** | Create a launchd plist — see the included `README.txt` for an example |
+| **Windows** | Run `install-service.bat` as Administrator (uses WinSW) |
+
+#### Updating
+
+1. Stop Pulsarr (Ctrl+C, or stop the service).
+2. Download the new release zip and extract it over the existing directory. Your `.env` and `data/` folder are preserved.
+3. Restart Pulsarr. Migrations run automatically on startup.
 
 ## Initial Setup
 
