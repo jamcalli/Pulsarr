@@ -144,7 +144,13 @@ console.log('[3/4] Assembling common files...')
 mkdirSync(COMMON_DIR, { recursive: true })
 
 // dist/ — tsc server output + vite client output
-cpSync(resolve(PROJECT_ROOT, 'dist'), resolve(COMMON_DIR, 'dist'), {
+const distDir = resolve(PROJECT_ROOT, 'dist')
+if (!existsSync(distDir)) {
+  throw new Error(
+    'dist/ directory not found. Run build first or remove --skip-build flag.',
+  )
+}
+cpSync(distDir, resolve(COMMON_DIR, 'dist'), {
   recursive: true,
 })
 const nestedBuild = resolve(COMMON_DIR, 'dist', 'native-build')
