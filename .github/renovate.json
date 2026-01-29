@@ -158,6 +158,11 @@
       "labels": ["dependencies", "runtime"]
     },
     {
+      "description": "Pin @types/node to match Node version used by Docusaurus",
+      "matchPackageNames": ["@types/node"],
+      "allowedVersions": "^24"
+    },
+    {
       "description": "Weekly digest for dev dependencies not covered by named groups",
       "matchDepTypes": [
         "devDependencies"

@@ -1,7 +1,11 @@
 import path from 'node:path'
 import fastifyAutoload from '@fastify/autoload'
 import FastifyFormBody from '@fastify/formbody'
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
+import type {
+  FastifyError,
+  FastifyInstance,
+  FastifyPluginOptions,
+} from 'fastify'
 import fp from 'fastify-plugin'
 import { serializerCompiler, validatorCompiler } from 'fastify-zod-openapi'
 
@@ -109,12 +113,15 @@ export default async function openapiApp(
         fastify.decorate('userTags', {})
       } catch {} // May already exist
       try {
+        // @ts-expect-error Stub for OpenAPI generation
         fastify.decorate('updateConfig', () => {})
       } catch {} // May already exist
       try {
+        // @ts-expect-error Stub for OpenAPI generation
         fastify.decorate('compare', () => {})
       } catch {} // May already exist
       try {
+        // @ts-expect-error Stub for OpenAPI generation
         fastify.decorate('hash', () => {})
       } catch {} // May already exist
       try {
@@ -135,7 +142,7 @@ export default async function openapiApp(
   })
 
   // Simple error handler for OpenAPI generation
-  fastify.setErrorHandler((err, _request, reply) => {
+  fastify.setErrorHandler((err: FastifyError, _request, reply) => {
     const statusCode = err.statusCode ?? 500
     reply.code(statusCode)
 

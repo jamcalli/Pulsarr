@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+/// <reference types="bun-types" />
 import { spawn } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -6,8 +7,8 @@ import Fastify, { type FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 import openapiApp from './openapi-app.js'
 
-// Extend FastifyInstance to include swagger method
-interface FastifyInstanceWithSwagger extends FastifyInstance {
+// Type for FastifyInstance with swagger method
+type FastifyInstanceWithSwagger = FastifyInstance & {
   swagger?: () => Record<string, unknown>
 }
 
