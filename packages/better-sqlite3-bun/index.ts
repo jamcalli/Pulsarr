@@ -76,15 +76,16 @@ class Statement {
     }
     const finalParams = this.boundParams || params
     if (this.rawMode) {
+      // Bun has no streaming API for arrays - must buffer
       const results = this.stmt.values(...finalParams) as unknown[][]
       for (const row of results) {
         yield row
       }
     } else {
-      const results = this.stmt.all(...finalParams) as Record<string, unknown>[]
-      for (const row of results) {
-        yield row
-      }
+      // Use native streaming iterator
+      yield* this.stmt.iterate(...finalParams) as IterableIterator<
+        Record<string, unknown>
+      >
     }
   }
 
