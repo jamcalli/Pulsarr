@@ -70,7 +70,7 @@ jobs:
             echo "No changes to API docs"
           else
             git commit -m "chore(docs): regenerate OpenAPI docs [skip ci]"
-            git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
             git push
           fi
 
