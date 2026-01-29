@@ -103,5 +103,5 @@ jobs:
         run: |
           curl -X POST "https://crawler.algolia.com/api/1/crawlers/${ALGOLIA_CRAWLER_ID}/reindex" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Basic $(echo -n "${ALGOLIA_CRAWLER_USER_ID}:${ALGOLIA_CRAWLER_API_KEY}" | base64)"
+            -H "Authorization: Basic $(echo -n "${ALGOLIA_CRAWLER_USER_ID}:${ALGOLIA_CRAWLER_API_KEY}" | base64 -w 0)"
         continue-on-error: true
