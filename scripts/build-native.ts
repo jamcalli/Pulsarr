@@ -86,8 +86,14 @@ function detectPlatform(): string {
       ? 'darwin'
       : process.platform === 'win32'
         ? 'windows'
-        : 'linux'
-  const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
+        : process.platform === 'linux'
+          ? 'linux'
+          : null
+  const arch =
+    process.arch === 'arm64' ? 'arm64' : process.arch === 'x64' ? 'x64' : null
+  if (!os || !arch) {
+    throw new Error(`Unsupported platform: ${process.platform} ${process.arch}`)
+  }
   return `${os}-${arch}`
 }
 
