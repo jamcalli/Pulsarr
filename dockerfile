@@ -1,49 +1,46 @@
-FROM node:24.13.0-alpine@sha256:931d7d57f8c1fd0e2179dbff7cc7da4c9dd100998bc2b32afc85142d8efbc213 AS builder
-
+FROM oven/bun:1.3.7-alpine AS base
 WORKDIR /app
 
-# Accept TMDB API key as build argument (GitHub Actions converts to TMDBAPIKEY)
+# Install production dependencies in a temp directory (cached independently)
+FROM base AS install
+COPY package.json bun.lock ./
+COPY packages ./packages
+RUN mkdir -p /temp/prod && \
+    cp package.json bun.lock /temp/prod/ && \
+    cp -r packages /temp/prod/packages && \
+    cd /temp/prod && \
+    bun install --frozen-lockfile --production --ignore-scripts
+
+# Build stage: full install + compile
+FROM base AS builder
 ARG TMDBAPIKEY
-
-# Set cache dir
-ENV CACHE_DIR=/app/build-cache
-
-# Set TMDB API key as environment variable in camelCase format
 ENV tmdbApiKey=${TMDBAPIKEY}
 
-# Copy package files first (changes less often)
-COPY package*.json ./
-COPY .npmrc ./
+COPY package.json bun.lock ./
+COPY packages ./packages
 
-# Install dependencies with cache mount
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/app/.npm \
-    HUSKY=0 npm ci --prefer-offline --no-audit
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile
 
-# Copy build configuration files
 COPY vite.config.js tsconfig.json postcss.config.mjs ./
-
-# Copy source code (changes most often)
 COPY src ./src
 
-# Build with cache mounts
 RUN --mount=type=cache,target=/app/node_modules/.vite \
-    npm run build
+    bun run build
 
-# Prune dev dependencies to produce production node_modules for runtime image
-RUN npm prune --omit=dev && mkdir -p ${CACHE_DIR}
+# Final runtime image
+FROM base
 
-FROM node:24.13.0-alpine@sha256:931d7d57f8c1fd0e2179dbff7cc7da4c9dd100998bc2b32afc85142d8efbc213
+# wget for healthcheck
+RUN apk add --no-cache wget
 
-WORKDIR /app
-
-# cache dir in final
 ENV CACHE_DIR=/app/build-cache
 
-# Copy package files (runtime typically does not need .npmrc)
-COPY package*.json ./
-# Reuse production dependencies from the builder image
-COPY --from=builder /app/node_modules ./node_modules
+# Copy package files
+COPY package.json bun.lock ./
+COPY packages ./packages
+# Production-only dependencies from the install stage
+COPY --from=install /temp/prod/node_modules ./node_modules
 
 # Create necessary directories
 RUN mkdir -p /app/data/db && \

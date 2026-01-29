@@ -5,7 +5,7 @@
 
   ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?style=flat-square)
   ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
-  ![Node](https://img.shields.io/badge/node-24%20LTS-green?style=flat-square)
+  ![Bun](https://img.shields.io/badge/bun-%3E%3D1.3-green?style=flat-square)
   ![Status](https://img.shields.io/badge/status-early--release-orange?style=flat-square)
   [![Discord](https://img.shields.io/discord/1407082466958774313?label=Discord&logo=discord&style=flat-square)](https://discord.gg/9csTEJn5cR)
   ![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
@@ -82,6 +82,16 @@ docker compose pull && docker compose up -d
 
 4. Access the web UI at `http://your-server:3003` to complete setup.
 
+
+### Native Installation
+
+Standalone builds are available for Linux, macOS, and Windows — no Docker or runtime install required.
+
+1. Download the zip for your platform from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest).
+2. Extract, copy `.env.example` to `.env`, and edit your settings.
+3. Run `./start.sh` (Linux/macOS) or `start.bat` (Windows).
+
+Each zip includes a bundled Bun runtime, service install scripts, and a README with full setup details.
 
 For detailed installation options, including Unraid, manual installation, and PostgreSQL setup, see the [documentation](https://jamcalli.github.io/Pulsarr/docs/installation/quick-start).
 

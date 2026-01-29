@@ -1,7 +1,8 @@
 import fastifyRateLimit from '@fastify/rate-limit'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
+import fp from 'fastify-plugin'
 
-export const autoConfig = (fastify: FastifyInstance) => {
+const createRateLimitConfig = (fastify: FastifyInstance) => {
   return {
     max: fastify.config.rateLimitMax,
     timeWindow: '1 minute',
@@ -26,8 +27,18 @@ export const autoConfig = (fastify: FastifyInstance) => {
 }
 
 /**
- * This plugins is low overhead rate limiter for your routes.
+ * Low overhead rate limiter for routes.
+ * Wrapped in fastify-plugin to ensure config dependency loads first under Bun,
+ * which has non-deterministic file ordering in fastify-autoload.
  *
  * @see {@link https://github.com/fastify/fastify-rate-limit}
+ * @see {@link https://github.com/oven-sh/bun/discussions/10112}
  */
-export default fastifyRateLimit
+export default fp(
+  async (fastify: FastifyInstance) => {
+    await fastify.register(fastifyRateLimit, createRateLimitConfig(fastify))
+  },
+  {
+    dependencies: ['config'],
+  },
+)
