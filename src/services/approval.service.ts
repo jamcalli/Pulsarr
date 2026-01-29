@@ -637,7 +637,6 @@ export class ApprovalService {
       )
 
       // Track quota consumption within this maintenance run to prevent race conditions
-      // Key: `${userId}-${contentType}`, Value: number of items approved in this run
       const quotaConsumptionTracker = new Map<string, number>()
 
       for (const request of pendingRequests) {

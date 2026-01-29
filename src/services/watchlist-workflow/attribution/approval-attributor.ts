@@ -84,7 +84,6 @@ function findMatchingWatchlistItem(
       return { item: keyCandidates[0], ambiguous: false }
     }
     if (keyCandidates && keyCandidates.length > 1) {
-      // Disambiguate: attribute only if all candidates resolve to the same user
       const userIds = new Set<number>()
       for (const it of keyCandidates) {
         const uid = normalizeUserId(it.user_id)
@@ -119,7 +118,6 @@ function findMatchingWatchlistItem(
     return { item: candidates[0], ambiguous: false }
   }
   if (candidates.length > 1) {
-    // Disambiguate: attribute only if all candidates resolve to the same user
     const userIds = new Set<number>()
     for (const it of candidates) {
       const uid = normalizeUserId(it.user_id)

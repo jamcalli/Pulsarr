@@ -319,7 +319,7 @@ export interface SonarrEpisodeSchema {
   seasonNumber: number
   title: string
   overview?: string
-  airDateUtc: string // Format: "2025-02-06T08:00:00Z"
+  airDateUtc: string
 }
 
 export interface MediaNotification {

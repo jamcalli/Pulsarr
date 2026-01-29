@@ -134,7 +134,6 @@ export const useApprovalsStore = create<ApprovalsUIState>()(
         bulkActionType: null,
         setBulkActionType: (type) => set({ bulkActionType: type }),
 
-        // Convenience: open individual modal
         openActionsModal: (request) =>
           set({
             selectedRequest: request,
@@ -146,7 +145,6 @@ export const useApprovalsStore = create<ApprovalsUIState>()(
             selectedRequest: null,
           }),
 
-        // Convenience: open bulk modal
         openBulkModal: (requests, action) =>
           set({
             selectedRequests: requests,

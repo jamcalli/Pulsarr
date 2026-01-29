@@ -489,7 +489,6 @@ export const ConfigUpdateSchema = z
     tagUsersInRadarr: z.boolean().optional(),
     cleanupOrphanedTags: z.boolean().optional(),
     tagPrefix: TagPrefixSchema.optional(),
-    // Note: removedTagMode and removedTagPrefix already exist above for delete sync compatibility
     // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
     tagMigration: z
       .object({

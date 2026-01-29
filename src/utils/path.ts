@@ -20,7 +20,6 @@ export function normalizePath(path: string): string {
   const isWindows = process.platform === 'win32'
 
   if (isWindows) {
-    // Windows: use win32 normalize and lowercase for case-insensitive comparison
     const normalized = win32.normalize(forwardSlashPath)
     return normalized.replace(/\\/g, '/').toLowerCase()
   } else {

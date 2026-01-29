@@ -48,7 +48,6 @@ const validateDayOfWeek = (value: string | undefined): string => {
     console.warn('cron-parser validation failed, using fallback validation')
   }
   
-  // Fallback: basic validation for 0-6 and 7 (which we normalize to 0)
   if (/^[0-7]$/.test(value)) {
     return value === '7' ? '0' : value
   }

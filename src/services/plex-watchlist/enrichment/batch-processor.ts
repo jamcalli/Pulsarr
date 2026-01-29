@@ -149,9 +149,6 @@ export const toItemsBatch = async (
             }
           })
           .catch((error) => {
-            // Note: We don't need to handle rate limiting here specifically anymore
-            // as toItemsSingle will now handle it with the global rate limiter
-            // But we'll still check just in case
             // Check if this is a rate limit exhaustion error
             if (isRateLimitError(error)) {
               log.warn(
