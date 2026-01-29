@@ -38,7 +38,7 @@ jobs:
           if test -f title.ratings.filtered.tsv.gz; then
             git add title.ratings.filtered.tsv.gz
             git diff --staged --quiet || git commit -m "chore: update IMDB ratings dataset $(date +%Y-%m-%d)"
-            git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
             git push
           else
             echo "No dataset file generated, skipping commit"
