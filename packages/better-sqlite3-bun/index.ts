@@ -15,15 +15,18 @@ class Statement {
   private stmt: ReturnType<BunDatabase['prepare']>
   private verbose?: (sql: string) => void
   private boundParams?: unknown[]
+  private rawMode: boolean
 
   constructor(
     stmt: ReturnType<BunDatabase['prepare']>,
     verbose?: (sql: string) => void,
     boundParams?: unknown[],
+    rawMode = false,
   ) {
     this.stmt = stmt
     this.verbose = verbose
     this.boundParams = boundParams
+    this.rawMode = rawMode
   }
 
   get reader(): boolean {
@@ -42,39 +45,55 @@ class Statement {
     }
   }
 
-  get(...params: unknown[]): Record<string, unknown> | undefined {
+  get(...params: unknown[]): Record<string, unknown> | unknown[] | undefined {
     if (this.verbose) {
       this.verbose(this.stmt.toString())
     }
     const finalParams = this.boundParams || params
+    if (this.rawMode) {
+      const results = this.stmt.values(...finalParams) as unknown[][]
+      return results[0]
+    }
     return this.stmt.get(...finalParams) as Record<string, unknown> | undefined
   }
 
-  all(...params: unknown[]): Record<string, unknown>[] {
+  all(...params: unknown[]): Record<string, unknown>[] | unknown[][] {
     if (this.verbose) {
       this.verbose(this.stmt.toString())
     }
     const finalParams = this.boundParams || params
+    if (this.rawMode) {
+      return this.stmt.values(...finalParams) as unknown[][]
+    }
     return this.stmt.all(...finalParams) as Record<string, unknown>[]
   }
 
-  *iterate(...params: unknown[]): IterableIterator<Record<string, unknown>> {
+  *iterate(
+    ...params: unknown[]
+  ): IterableIterator<Record<string, unknown> | unknown[]> {
     if (this.verbose) {
       this.verbose(this.stmt.toString())
     }
     const finalParams = this.boundParams || params
-    const results = this.stmt.all(...finalParams) as Record<string, unknown>[]
-    for (const row of results) {
-      yield row
+    if (this.rawMode) {
+      const results = this.stmt.values(...finalParams) as unknown[][]
+      for (const row of results) {
+        yield row
+      }
+    } else {
+      const results = this.stmt.all(...finalParams) as Record<string, unknown>[]
+      for (const row of results) {
+        yield row
+      }
     }
   }
 
   bind(...params: unknown[]): Statement {
-    return new Statement(this.stmt, this.verbose, params)
+    return new Statement(this.stmt, this.verbose, params, this.rawMode)
   }
 
-  raw(): Statement {
-    return this
+  raw(enabled = true): Statement {
+    return new Statement(this.stmt, this.verbose, this.boundParams, enabled)
   }
 }
 
