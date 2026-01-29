@@ -582,6 +582,10 @@ if (runAfter) {
     const dir = resolve(BUILD_DIR, `pulsarr-v${VERSION}-${target.zipSuffix}`)
     console.log('')
     console.log('=== Starting Pulsarr from native build ===')
-    run('./bun run --bun dist/server.js', dir)
+    if (target.zipSuffix.includes('windows')) {
+      run('cmd /c start.bat', dir)
+    } else {
+      run('./start.sh', dir)
+    }
   }
 }
