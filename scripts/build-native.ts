@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+/// <reference types="bun-types" />
 /**
  * Build native distribution packages for Pulsarr
  * Produces per-platform zips with the Bun runtime included — no install needed
