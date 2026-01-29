@@ -8,7 +8,7 @@ interface DatabaseOptions {
 
 interface RunResult {
   changes: number
-  lastInsertRowid: number
+  lastInsertRowid: number | bigint
 }
 
 class Statement {
