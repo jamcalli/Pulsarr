@@ -291,6 +291,7 @@ export const ConfigFullSchema = z.object({
 // Schema for config updates (PUT) - all fields optional for partial updates
 export const ConfigUpdateSchema = z
   .object({
+    baseUrl: HttpUrlOptionalSchema,
     port: z.number().optional(),
     dbPath: z.string().optional(),
     cookieSecret: z.string().optional(),
