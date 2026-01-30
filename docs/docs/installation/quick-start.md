@@ -135,28 +135,15 @@ For more detailed configuration options, see:
 
 ### Native Installation
 
-Standalone builds for Linux, macOS, and Windows are available on each [GitHub release](https://github.com/jamcalli/pulsarr/releases/latest) — no Docker or runtime install required.
+Standalone builds with easy installers are available for Linux, macOS, and Windows — no Docker or runtime install required.
 
-1. Download the zip for your platform.
-2. Extract and copy `.env.example` to `.env`, then edit your settings.
-3. Run `./start.sh` (Linux/macOS) or `start.bat` (Windows).
-4. Navigate to `http://localhost:3003` to complete setup.
+| Platform | Recommended Method |
+|----------|-------------------|
+| **Linux** | One-line installer: `curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/main/scripts/installers/linux/install.sh \| sudo bash` |
+| **Windows** | Download and run `pulsarr-vX.X.X-windows-x64-setup.exe` |
+| **macOS** | Download `pulsarr-vX.X.X-macos-{arch}-app.zip`, extract, and move to Applications |
 
-Each zip includes a bundled Bun runtime, so nothing else needs to be installed.
-
-#### Running as a Service
-
-| Platform | How |
-|----------|-----|
-| **Linux** | Create a systemd unit — see the included `README.txt` for an example |
-| **macOS** | Create a launchd plist — see the included `README.txt` for an example |
-| **Windows** | Run `install-service.bat` as Administrator (uses WinSW) |
-
-#### Updating
-
-1. Stop Pulsarr (Ctrl+C, or stop the service).
-2. Download the new release zip and extract it over the existing directory. Your `.env` and `data/` folder are preserved.
-3. Restart Pulsarr. Migrations run automatically on startup.
+See the [Native Installation Guide](./native-installation) for detailed instructions, service management, and manual installation options.
 
 ## Initial Setup
 

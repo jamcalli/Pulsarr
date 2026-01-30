@@ -28,6 +28,7 @@ Features include multi-user watchlist sync, intelligent content routing, approva
 Full documentation is available at: **[https://jamcalli.github.io/Pulsarr/](https://jamcalli.github.io/Pulsarr/)**
 
 - [Quick Start Guide](https://jamcalli.github.io/Pulsarr/docs/installation/quick-start)
+- [Native Installation](https://jamcalli.github.io/Pulsarr/docs/installation/native-installation)
 - [Configuration](https://jamcalli.github.io/Pulsarr/docs/installation/configuration)
 - [Discord Setup & Commands](https://jamcalli.github.io/Pulsarr/docs/notifications/discord)
 - [Features & Guides](https://jamcalli.github.io/Pulsarr/docs/intro)
@@ -85,15 +86,15 @@ docker compose pull && docker compose up -d
 
 ### Native Installation
 
-Standalone builds are available for Linux, macOS, and Windows — no Docker or runtime install required.
+Standalone builds with easy installers are available for Linux, macOS, and Windows — no Docker or runtime install required.
 
-1. Download the zip for your platform from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest).
-2. Extract, copy `.env.example` to `.env`, and edit your settings.
-3. Run `./start.sh` (Linux/macOS) or `start.bat` (Windows).
+| Platform | Install Method |
+|----------|---------------|
+| **Linux** | `curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/main/scripts/installers/linux/install.sh \| sudo bash` |
+| **Windows** | Download and run `pulsarr-vX.X.X-windows-x64-setup.exe` from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest) |
+| **macOS** | Download `pulsarr-vX.X.X-macos-{arch}-app.zip` from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest) |
 
-Each zip includes a bundled Bun runtime, service install scripts, and a README with full setup details.
-
-For detailed installation options, including Unraid, manual installation, and PostgreSQL setup, see the [documentation](https://jamcalli.github.io/Pulsarr/docs/installation/quick-start).
+See the [Native Installation Guide](https://jamcalli.github.io/Pulsarr/docs/installation/native-installation) for detailed instructions, service management, and manual options.
 
 ### Database Options
 
