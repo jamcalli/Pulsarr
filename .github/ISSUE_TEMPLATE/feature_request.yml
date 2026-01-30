@@ -1,0 +1,70 @@
+name: Feature Request
+description: Suggest an idea for Pulsarr
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please fill out the form below.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature Area
+      description: What part of Pulsarr does this relate to?
+      options:
+        - Web UI / Dashboard
+        - Content Routing / Rules
+        - Notifications (Discord, Apprise, etc.)
+        - Watchlist Sync
+        - Sonarr / Radarr Integration
+        - Plex Integration
+        - API
+        - Installation / Deployment
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of the feature you'd like to see.
+      placeholder: I would like to see...
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Explain how this feature would be useful to you and other users.
+      placeholder: This would help me...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: If you have an idea of how this could be implemented, share it here.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you thought of any alternative solutions or workarounds?
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or examples about the feature request.
+    validations:
+      required: false
