@@ -367,8 +367,6 @@ export class WatchlistWorkflowService {
       }
 
       // Start the appropriate change detection based on mode
-      // RSS mode and ETag mode are mutually exclusive
-      // Note: Baselines were established before reconciliation above
       if (this.rssMode) {
         // RSS mode: use RSS feeds for instant detection
         this.startRssCheck()
@@ -812,9 +810,6 @@ export class WatchlistWorkflowService {
     if (this.rssCheckInterval) {
       clearInterval(this.rssCheckInterval)
     }
-
-    // Note: RSS caches are primed before reconciliation in startWorkflow()
-    // This ensures we detect items added during the sync process
 
     this.rssCheckInterval = setInterval(async () => {
       try {

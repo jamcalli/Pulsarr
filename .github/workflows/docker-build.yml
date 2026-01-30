@@ -3,11 +3,19 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build installers for (e.g., v0.10.0-beta.1)'
+        required: true
+        type: string
 permissions:
   contents: write
   packages: write
 jobs:
   release:
+    # Skip release job when manually triggered (just building installer for existing release)
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -90,7 +98,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2
         with:
-          bun-version-file: "package.json"
+          bun-version-file: ".bun-version"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -116,3 +124,114 @@ jobs:
           files: native-build/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows-installer:
+    needs: release
+    runs-on: windows-latest
+    # Run after release job succeeds, or run standalone when manually triggered
+    if: ${{ always() && (needs.release.result == 'success' || github.event_name == 'workflow_dispatch') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version_number=${VERSION#v}" >> $GITHUB_OUTPUT
+
+      - name: Download Windows zip from release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download ${{ steps.version.outputs.version }} \
+            --pattern "*windows-x64.zip" \
+            --dir scripts/installers/windows
+
+      - name: Extract zip
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem scripts/installers/windows/*.zip | Select-Object -First 1
+          Expand-Archive -Path $zip.FullName -DestinationPath scripts/installers/windows/extracted
+          # Move contents from nested folder to build/
+          $nested = Get-ChildItem scripts/installers/windows/extracted | Select-Object -First 1
+          New-Item -ItemType Directory -Force -Path scripts/installers/windows/build
+          Move-Item "$($nested.FullName)/*" scripts/installers/windows/build/
+          Remove-Item scripts/installers/windows/extracted -Recurse
+          Remove-Item $zip.FullName
+
+      - name: Build installer with Inno Setup
+        shell: pwsh
+        run: |
+          # Inno Setup is pre-installed on windows-latest
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            /DMyAppVersion=${{ steps.version.outputs.version_number }} `
+            scripts/installers/windows/pulsarr.iss
+
+      - name: Upload installer to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ steps.version.outputs.version }} \
+            scripts/installers/windows/Output/*.exe \
+            --clobber
+
+  build-macos-installer:
+    needs: release
+    runs-on: macos-latest
+    # Run after release job succeeds, or run standalone when manually triggered
+    if: ${{ always() && (needs.release.result == 'success' || github.event_name == 'workflow_dispatch') }}
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Download macOS zip from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download ${{ steps.version.outputs.version }} \
+            --pattern "*macos-${{ matrix.arch }}.zip" \
+            --dir .
+
+      - name: Extract and build .app bundle
+        run: |
+          # Extract the native build zip
+          unzip -q pulsarr-*-macos-${{ matrix.arch }}.zip
+
+          # Enter the extracted directory
+          cd pulsarr-*-macos-${{ matrix.arch }}
+
+          # Run the build script
+          ../scripts/installers/macos/build-app.sh ${{ steps.version.outputs.version }} ${{ matrix.arch }}
+
+          # Move output to workspace root
+          mv pulsarr-*-app.zip ../
+
+      - name: Upload installer to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ steps.version.outputs.version }} \
+            pulsarr-*-macos-${{ matrix.arch }}-app.zip \
+            --clobber

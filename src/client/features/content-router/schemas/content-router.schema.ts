@@ -86,8 +86,6 @@ const isValidGroup = (
   }
   visited.add(group)
 
-  // Note: Array length check moved to schema .min(1) validation
-
   return group.conditions.every((cond) => {
     // Safe nested group detection without any/unknown
     if (

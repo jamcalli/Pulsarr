@@ -151,7 +151,7 @@ export function useUserTags() {
         tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
         cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
         removedTagMode: config.removedTagMode || 'remove',
-        removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed', // Note: Despite the name, this is the complete tag label, not just a prefix (kept for API consistency)
+        removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
         tagPrefix: config.tagPrefix || 'pulsarr-user',
       })
     }

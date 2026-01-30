@@ -7,17 +7,6 @@
   "baseBranchPatterns": [
     "develop"
   ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "description": "Track Bun version in package.json engines field",
-      "fileMatch": ["^package\\.json$"],
-      "matchStrings": ["\"bun\":\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""],
-      "depNameTemplate": "oven-sh/bun",
-      "datasourceTemplate": "github-releases",
-      "extractVersionTemplate": "^bun-v(?<version>.*)$"
-    }
-  ],
   "timezone": "UTC",
   "schedule": [
     "before 6am on monday",
@@ -147,11 +136,10 @@
       "prPriority": 10
     },
     {
-      "description": "Group Bun runtime updates",
+      "description": "Group Bun runtime updates (.bun-version + dockerfile)",
       "groupName": "Bun runtime",
-      "matchDatasources": ["github-releases"],
-      "matchPackageNames": ["oven-sh/bun"],
-      "rangeStrategy": "pin",
+      "matchDatasources": ["docker", "npm"],
+      "matchPackageNames": ["oven/bun", "bun", "bun-types"],
       "automerge": false,
       "prPriority": 15,
       "reviewers": ["jamcalli"],

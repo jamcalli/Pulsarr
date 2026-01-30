@@ -105,7 +105,6 @@ export function useSessionMonitoring() {
       form.reset(formValues, { keepDirty: false })
       setInactivityDays(config.plexSessionMonitoring.inactivityResetDays || 7)
 
-      // WORKAROUND: Reset form to clear dirty state (matching established pattern)
       setTimeout(() => {
         form.reset(form.getValues(), { keepDirty: false })
       }, 0)

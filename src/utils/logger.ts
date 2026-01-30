@@ -41,7 +41,12 @@ const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..', '..')
 
 // Load .env file early for logger configuration
-config({ path: resolve(projectRoot, '.env'), quiet: true })
+// Support dataDir env var for split directory installations (Windows/macOS installers)
+const dataDir = process.env.dataDir
+const envPath = dataDir
+  ? resolve(dataDir, '.env')
+  : resolve(projectRoot, '.env')
+config({ path: envPath, quiet: true })
 
 /**
  * Creates a custom error serializer that handles both standard errors and custom HttpError objects.
@@ -194,7 +199,9 @@ function filename(time: number | Date | null, index?: number): string {
  * @returns A rotating file stream for logs, or {@link process.stdout} if setup fails.
  */
 function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
-  const logDirectory = resolve(projectRoot, 'data', 'logs')
+  const logDirectory = dataDir
+    ? resolve(dataDir, 'logs')
+    : resolve(projectRoot, 'data', 'logs')
   try {
     if (!fs.existsSync(logDirectory)) {
       fs.mkdirSync(logDirectory, { recursive: true })
