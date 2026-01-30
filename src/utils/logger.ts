@@ -43,7 +43,9 @@ const projectRoot = resolve(__dirname, '..', '..')
 // Load .env file early for logger configuration
 // Support dataDir env var for split directory installations (Windows/macOS installers)
 const dataDir = process.env.dataDir
-const envPath = dataDir ? resolve(dataDir, '.env') : resolve(projectRoot, '.env')
+const envPath = dataDir
+  ? resolve(dataDir, '.env')
+  : resolve(projectRoot, '.env')
 config({ path: envPath, quiet: true })
 
 /**
