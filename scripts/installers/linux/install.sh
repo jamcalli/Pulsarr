@@ -188,6 +188,11 @@ install_files() {
     mkdir -p "${INSTALL_DIR}/data/db"
     mkdir -p "${INSTALL_DIR}/data/logs"
 
+    # Create .env from template if it doesn't exist
+    if [[ ! -f "${INSTALL_DIR}/.env" ]]; then
+        cp "${INSTALL_DIR}/.env.example" "${INSTALL_DIR}/.env"
+    fi
+
     # Set ownership
     chown -R "${APP_USER}:${APP_GROUP}" "$INSTALL_DIR"
 
