@@ -183,3 +183,55 @@ jobs:
           gh release upload ${{ steps.version.outputs.version }} \
             scripts/installers/windows/Output/*.exe \
             --clobber
+
+  build-macos-installer:
+    needs: release
+    runs-on: macos-latest
+    # Run after release job succeeds, or run standalone when manually triggered
+    if: ${{ always() && (needs.release.result == 'success' || github.event_name == 'workflow_dispatch') }}
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Download macOS zip from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download ${{ steps.version.outputs.version }} \
+            --pattern "*macos-${{ matrix.arch }}.zip" \
+            --dir .
+
+      - name: Extract and build .app bundle
+        run: |
+          # Extract the native build zip
+          unzip -q pulsarr-*-macos-${{ matrix.arch }}.zip
+
+          # Enter the extracted directory
+          cd pulsarr-*-macos-${{ matrix.arch }}
+
+          # Run the build script
+          ../scripts/installers/macos/build-app.sh ${{ steps.version.outputs.version }} ${{ matrix.arch }}
+
+          # Move output to workspace root
+          mv pulsarr-*-app.zip ../
+
+      - name: Upload installer to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ steps.version.outputs.version }} \
+            pulsarr-*-macos-${{ matrix.arch }}-app.zip \
+            --clobber
