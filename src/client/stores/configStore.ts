@@ -211,8 +211,8 @@ export const useConfigStore = create<ConfigState>()(
 
             if (data.success && data.users) {
               const users = data.users
-              const selfUser = users.find((user) => Number(user.id) === 1)
-              const otherUsers = users.filter((user) => Number(user.id) !== 1)
+              const selfUser = users.find((user) => user.is_primary_token)
+              const otherUsers = users.filter((user) => !user.is_primary_token)
 
               set({
                 users,
@@ -496,13 +496,13 @@ export const useConfigStore = create<ConfigState>()(
 
         getSelfWatchlistInfo: () => {
           const state = get()
-          return state.users?.find((user) => Number(user.id) === 1) ?? null
+          return state.users?.find((user) => user.is_primary_token) ?? null
         },
 
         getOthersWatchlistInfo: () => {
           const state = get()
           const otherUsers =
-            state.users?.filter((user) => Number(user.id) !== 1) ?? []
+            state.users?.filter((user) => !user.is_primary_token) ?? []
 
           return otherUsers.length > 0
             ? {

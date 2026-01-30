@@ -30,9 +30,12 @@ const PROJECT_ROOT = resolve(import.meta.dirname, '..')
 const BUILD_DIR = resolve(PROJECT_ROOT, 'native-build')
 const COMMON_DIR = resolve(BUILD_DIR, '_common')
 
-const BUN_VERSION = packageJson.engines?.bun
+const BUN_VERSION = readFileSync(
+  resolve(PROJECT_ROOT, '.bun-version'),
+  'utf8',
+).trim()
 if (!BUN_VERSION) {
-  throw new Error('Missing "engines.bun" in package.json')
+  throw new Error('Missing or empty .bun-version file')
 }
 const WINSW_VERSION = '2.12.0'
 const WINSW_URL = `https://github.com/winsw/winsw/releases/download/v${WINSW_VERSION}/WinSW-x64.exe`

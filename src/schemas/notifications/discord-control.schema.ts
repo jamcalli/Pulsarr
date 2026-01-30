@@ -1,5 +1,3 @@
-// File: src/schemas/notifications/discord-control.schema.ts
-
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 

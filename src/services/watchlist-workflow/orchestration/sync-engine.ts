@@ -114,7 +114,6 @@ export async function syncWatchlistItems(
     // Fetch primary user once to avoid N+1 queries during item processing
     const primaryUser = (await deps.db.getPrimaryUser()) ?? null
 
-    // DEBUG: Log user sync settings
     for (const [userId, canSync] of userSyncStatus.entries()) {
       deps.logger.debug(`User ${userId} can_sync setting: ${canSync}`)
     }

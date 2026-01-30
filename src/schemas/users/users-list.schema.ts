@@ -14,6 +14,7 @@ const UserBaseSchema = z.object({
   tautulli_notifier_id: z.number().nullable(),
   can_sync: z.boolean(),
   requires_approval: z.boolean(),
+  is_primary_token: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
 })

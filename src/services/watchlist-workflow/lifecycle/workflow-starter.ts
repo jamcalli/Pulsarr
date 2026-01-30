@@ -106,7 +106,6 @@ export async function initializeWorkflow(
       'RSS feeds generated successfully, initializing monitoring',
     )
     // Initialize RSS feed cache for item diffing (stable key comparison)
-    // Note: HTTP ETag optimization removed due to Plex S3 migration
     rssFeedCache = new RssFeedCacheManager(deps.logger)
     isEtagFallbackActive = false
     rssMode = true

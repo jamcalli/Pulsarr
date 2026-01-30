@@ -248,7 +248,6 @@ export async function cleanupLabelsForWatchlistItems(
     }
 
     // Group labels by rating key and determine which labels to remove
-    // Strategy: Only remove user-specific labels, preserve tag labels if other users still have the content
     const labelsToRemoveByRatingKey = new Map<string, string[]>()
 
     for (const tracking of trackedLabels) {
