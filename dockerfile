@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.7-alpine AS base
+FROM oven/bun:1.3.6-alpine AS base
 WORKDIR /app
 
 # Install production dependencies in a temp directory (cached independently)

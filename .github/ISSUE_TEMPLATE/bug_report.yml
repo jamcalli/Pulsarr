@@ -1,0 +1,107 @@
+name: Bug Report
+description: Create a report to help improve Pulsarr
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the form below.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of the bug.
+      placeholder: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps To Reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation Method
+      description: How did you install Pulsarr?
+      options:
+        - Docker
+        - Linux (install script)
+        - Linux (manual)
+        - Windows (installer)
+        - Windows (manual)
+        - macOS (.app bundle)
+        - macOS (manual)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: Architecture
+      description: What CPU architecture?
+      options:
+        - x64 (Intel/AMD)
+        - arm64 (Apple Silicon, Raspberry Pi, etc.)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Pulsarr Version
+      description: Check Settings > About or the footer of the web UI
+      placeholder: "v0.10.0"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: "Ubuntu 24.04 / Windows 11 / macOS 14 Sonoma"
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser (if UI related)
+      placeholder: "Chrome 121, Safari 17, Firefox 122"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Paste any relevant log output (check Settings > Logs or `data/logs/`)
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or configuration details.
+    validations:
+      required: false
