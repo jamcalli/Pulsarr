@@ -1,6 +1,7 @@
 import { HelpCircle, Plus, RefreshCw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { NetworkConfigCredenza } from '@/components/network-config-credenza'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
@@ -91,6 +92,8 @@ export function InstanceCard({
     isConnectionValid,
     isNavigationTest,
     needsConfiguration,
+    webhookError,
+    setWebhookError,
     setTestStatus,
     setSaveStatus,
     setIsConnectionValid,
@@ -277,6 +280,14 @@ export function InstanceCard({
         instanceType="radarr"
         instanceName={instance.name}
         onSuccess={refreshTags}
+      />
+      <NetworkConfigCredenza
+        open={!!webhookError}
+        onOpenChange={(open) => {
+          if (!open) setWebhookError(null)
+        }}
+        errorMessage={webhookError || undefined}
+        onRetry={handleTest}
       />
       <div className="relative">
         {(form.formState.isDirty ||
