@@ -97,6 +97,16 @@ export function logRouteError(
 
 type ArrService = 'radarr' | 'sonarr'
 
+const API_ERROR_PREFIX: Record<ArrService, RegExp> = {
+  radarr: /Radarr API error: /,
+  sonarr: /Sonarr API error: /,
+}
+
+const INIT_FAILURE_PREFIX: Record<ArrService, RegExp> = {
+  radarr: /Failed to initialize Radarr instance/,
+  sonarr: /Failed to initialize Sonarr instance/,
+}
+
 interface ArrInstanceErrorOptions {
   /** The service type for message cleanup */
   service: ArrService
@@ -116,17 +126,12 @@ export function handleArrInstanceError(
   options: ArrInstanceErrorOptions,
 ): ReturnType<FastifyReply['send']> {
   const { service, defaultMessage } = options
-  const serviceLabel = service === 'radarr' ? 'Radarr' : 'Sonarr'
-  const apiErrorPrefix = new RegExp(`${serviceLabel} API error: `)
 
   if (error instanceof Error) {
     // Clean up error message for user display
     const userMessage = error.message
-      .replace(apiErrorPrefix, '')
-      .replace(
-        new RegExp(`Failed to initialize ${serviceLabel} instance`),
-        'Failed to save settings',
-      )
+      .replace(API_ERROR_PREFIX[service], '')
+      .replace(INIT_FAILURE_PREFIX[service], 'Failed to save settings')
 
     if (error.message.includes('Authentication')) {
       return reply.unauthorized(userMessage)

@@ -326,12 +326,19 @@ export class SonarrService {
   async removeWebhook(): Promise<void> {
     try {
       const webhookName = this.getWebhookName()
+      const expectedWebhookUrl = this.constructWebhookUrl()
       const existingWebhooks =
         await this.getFromSonarr<WebhookNotification[]>('notification')
 
-      // Find webhook with new format name OR legacy "Pulsarr" name
+      // Find webhook with new format name OR legacy "Pulsarr" name with matching URL
+      // URL matching for legacy webhooks prevents deleting other instances' webhooks
       const pulsarrWebhooks = existingWebhooks.filter(
-        (hook) => hook.name === webhookName || hook.name === 'Pulsarr',
+        (hook) =>
+          hook.name === webhookName ||
+          (hook.name === 'Pulsarr' &&
+            hook.fields?.some(
+              (f) => f.name === 'url' && f.value === expectedWebhookUrl,
+            )),
       )
 
       for (const webhook of pulsarrWebhooks) {

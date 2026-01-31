@@ -153,17 +153,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Failed to delete Sonarr instance',
           instanceId: id,
         })
-
-        if (error instanceof Error) {
-          if (error.message.includes('not found')) {
-            return reply.notFound(error.message)
-          }
-          return reply.internalServerError(error.message)
-        }
-
-        return reply.internalServerError(
-          'An unknown error occurred when deleting the Sonarr instance',
-        )
+        return handleArrInstanceError(error, reply, {
+          service: 'sonarr',
+          defaultMessage:
+            'An unexpected error occurred while deleting the instance',
+        })
       }
     },
   )
