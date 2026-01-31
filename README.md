@@ -47,15 +47,6 @@ Our REST API is fully documented and accessible in two ways:
 
 1. Create a `.env` file:
 ```env
-# ⚠️ CRITICAL: Pulsarr's address as seen from Sonarr/Radarr containers (for webhooks)
-# This MUST be reachable from your *arr containers or webhooks will fail!
-# Examples:
-#   http://pulsarr         - Docker Compose (same network, use service name)
-#   http://localhost       - Host networking
-#   http://192.168.1.x     - Separate machines (use Pulsarr host's IP)
-baseUrl=http://your-server-ip
-port=3003                       # External port for webhook URLs (default: 3003)
-
 # Your timezone
 TZ=America/Los_Angeles
 ```

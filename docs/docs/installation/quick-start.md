@@ -23,23 +23,10 @@ Pulsarr can be installed using Docker (recommended), Unraid, or manual installat
 
 1. Create a `.env` file with your configuration:
 
-:::warning Critical Configuration
-The `baseUrl` + `port` creates the webhook address for Sonarr/Radarr to reach Pulsarr. Choose based on your deployment:
-
-**Docker Compose (same network)**: `http://pulsarr` (service name)  
-**Docker host networking**: `http://localhost` (shares host network)  
-**Separate machines**: `http://server-ip` (actual IP)  
-**HTTPS**: `https://domain.com` (port omitted for 443)  
-**Different Docker networks**: Bridge with IP or external address
-:::
-
 ```plaintext
-# ⚠️  Webhook address for Sonarr/Radarr to reach Pulsarr (deployment-dependent)
-baseUrl=http://your-server-ip   # See warning above for correct value
-port=3003                       # External port for webhook URLs (omit for HTTPS on port 443)
 TZ=America/Los_Angeles          # Set to your local timezone
 
-# Logging Configuration
+# Logging Configuration (optional)
 logLevel=info                   # Log level (default: info)
                                 # Accepts: fatal | error | warn | info | debug | trace | silent
 
@@ -51,6 +38,10 @@ enableRequestLogging=false      # HTTP request logging (default: false)
                                 # Logs HTTP method, URL, host, remote IP/port, response codes, response times
                                 # Sensitive query parameters (token, apiKey, password) are automatically redacted
 ```
+
+:::tip Network Configuration
+The `baseUrl` and `port` settings (for Sonarr/Radarr webhook callbacks) are **automatically configured via the web UI**. When you test your Sonarr/Radarr connections, Pulsarr will detect any webhook callback errors and prompt you to configure the correct network settings for your deployment.
+:::
 
 2. Create a `docker-compose.yml` file and add the following:
 

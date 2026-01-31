@@ -12,9 +12,10 @@ Environment variables override web UI settings **on app restart**. Remove a vari
 
 ## Core Configuration
 
-:::warning Critical: baseUrl + port Configuration
-The `baseUrl` and `port` create the webhook address for Sonarr/Radarr to reach Pulsarr:
+:::tip Network Settings (baseUrl + port)
+The `baseUrl` and `port` create the webhook address for Sonarr/Radarr to reach Pulsarr. These settings are **automatically configured via the web UI** when you test your Sonarr/Radarr connections — if Pulsarr detects a webhook callback error, it will prompt you to configure the correct address.
 
+Common configurations:
 - **Docker Compose (same network)**: `http://pulsarr` (service name)
 - **Docker host networking**: `http://localhost`
 - **Separate machines**: `http://server-ip`
@@ -25,10 +26,10 @@ The `baseUrl` and `port` create the webhook address for Sonarr/Radarr to reach P
 
 | Variable | Description | Required? | Default |
 |----------|-------------|-----------|---------|
-| `baseUrl` | Webhook address for Sonarr/Radarr to reach Pulsarr | Yes | `http://localhost` |
-| `port` | External port for webhook URLs. Omit for HTTPS on 443 | Yes | `3003` |
+| `baseUrl` | Webhook address for Sonarr/Radarr to reach Pulsarr | No (UI configurable) | `http://localhost` |
+| `port` | External port for webhook URLs. Omit for HTTPS on 443 | No (UI configurable) | `3003` |
 | `listenPort` | Internal port the server binds to | No | `3003` |
-| `TZ` | Timezone (e.g., America/New_York) | Yes | `UTC` |
+| `TZ` | Timezone (e.g., America/New_York) | Recommended | `UTC` |
 | `logLevel` | Log level: silent, error, warn, info, debug, trace | Recommended | `silent` |
 | `enableConsoleOutput` | Show logs in terminal | No | `true` |
 | `enableRequestLogging` | Log HTTP requests (sensitive params redacted) | No | `false` |
@@ -83,9 +84,7 @@ Before using PostgreSQL, create a database and user with appropriate permissions
 ## Example .env File
 
 ```env
-# Required
-baseUrl=http://your-server-ip
-port=3003
+# Recommended
 TZ=America/Los_Angeles
 
 # Logging
@@ -95,6 +94,10 @@ enableRequestLogging=false
 
 # Security
 cookieSecured=false
+
+# Network (optional - configurable via UI when testing Sonarr/Radarr connections)
+# baseUrl=http://your-server-ip
+# port=3003
 
 # Database - SQLite (default, no config needed)
 # dbPath=./data/db/pulsarr.db
