@@ -149,8 +149,8 @@ export function handleArrInstanceError(
     ) {
       return reply.badRequest(userMessage)
     }
-    // Other validation errors
-    if (error.message.includes('default')) {
+    // Default instance validation errors from DB (e.g., "Cannot remove default status...")
+    if (error.message.includes('Cannot remove default')) {
       return reply.badRequest(userMessage)
     }
     return reply.internalServerError(userMessage)

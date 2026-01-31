@@ -120,7 +120,7 @@ export class SonarrService {
       return `Pulsarr (${identifier})`
     } catch {
       // Fallback if URL parsing fails
-      return `Pulsarr (${this.port})`
+      return `Pulsarr (unknown:${this.port})`
     }
   }
 
@@ -270,6 +270,14 @@ export class SonarrService {
             'Recreating existing Pulsarr webhook to ensure config is current',
           )
           await this.deleteNotification(newFormatWebhook.id)
+          // Clean up any orphaned legacy webhook with matching URL
+          if (legacyWebhook) {
+            this.log.debug(
+              { webhookId: legacyWebhook.id },
+              'Cleaning up orphaned legacy Pulsarr webhook',
+            )
+            await this.deleteNotification(legacyWebhook.id)
+          }
           await this.postToSonarr('notification', webhookConfig)
           this.log.info(
             `Successfully updated Pulsarr webhook "${webhookName}" for Sonarr`,
