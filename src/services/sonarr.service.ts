@@ -106,6 +106,24 @@ export class SonarrService {
     return this.config
   }
 
+  /**
+   * Generates a unique webhook name for this Pulsarr instance.
+   * Format: "Pulsarr (hostname:port)" for HTTP, "Pulsarr (hostname)" for HTTPS
+   * This allows multiple Pulsarr instances to create webhooks on the same Sonarr.
+   */
+  private getWebhookName(): string {
+    try {
+      const url = new URL(this.appBaseUrl)
+      const isHttps = url.protocol === 'https:'
+      // For HTTPS, just hostname (port 443 implied). For HTTP, include port.
+      const identifier = isHttps ? url.hostname : `${url.hostname}:${this.port}`
+      return `Pulsarr (${identifier})`
+    } catch {
+      // Fallback if URL parsing fails
+      return `Pulsarr (${this.port})`
+    }
+  }
+
   private constructWebhookUrl(): string {
     let url: URL
 
@@ -155,32 +173,27 @@ export class SonarrService {
 
     try {
       const expectedWebhookUrl = this.constructWebhookUrl()
+      const webhookName = this.getWebhookName()
       this.log.info(
-        `Credentials verified, attempting to setup webhook with URL for Sonarr: ${expectedWebhookUrl}`,
+        `Credentials verified, attempting to setup webhook "${webhookName}" with URL for Sonarr: ${expectedWebhookUrl}`,
       )
 
       const existingWebhooks =
         await this.getFromSonarr<WebhookNotification[]>('notification')
 
-      // Only delete webhooks for THIS instance (matching URL) to avoid
-      // removing webhooks from other Pulsarr instances pointing to same Sonarr
-      const webhooksForThisInstance = existingWebhooks.filter(
+      // Find webhook with NEW format name (already migrated or fresh install)
+      const newFormatWebhook = existingWebhooks.find(
+        (hook) => hook.name === webhookName,
+      )
+
+      // Find LEGACY "Pulsarr" webhook with matching URL (needs migration)
+      const legacyWebhook = existingWebhooks.find(
         (hook) =>
           hook.name === 'Pulsarr' &&
           hook.fields?.some(
             (f) => f.name === 'url' && f.value === expectedWebhookUrl,
           ),
       )
-
-      if (webhooksForThisInstance.length > 0) {
-        this.log.debug(
-          { count: webhooksForThisInstance.length },
-          'Recreating Pulsarr webhook(s) to ensure config is current',
-        )
-        for (const hook of webhooksForThisInstance) {
-          await this.deleteNotification(hook.id)
-        }
-      }
 
       const webhookConfig = {
         onGrab: false,
@@ -210,7 +223,7 @@ export class SonarrService {
         supportsOnHealthRestored: true,
         supportsOnApplicationUpdate: true,
         supportsOnManualInteractionRequired: true,
-        name: 'Pulsarr',
+        name: webhookName,
         fields: [
           {
             order: 0,
@@ -250,11 +263,39 @@ export class SonarrService {
       }
 
       try {
-        const response = await this.postToSonarr('notification', webhookConfig)
-        this.log.info(
-          `Successfully created Pulsarr webhook with URL for Sonarr: ${expectedWebhookUrl}`,
-        )
-        this.log.debug({ response }, 'Webhook creation response')
+        if (newFormatWebhook) {
+          // Already using new format - delete and recreate to ensure config is current
+          this.log.debug(
+            { webhookId: newFormatWebhook.id },
+            'Recreating existing Pulsarr webhook to ensure config is current',
+          )
+          await this.deleteNotification(newFormatWebhook.id)
+          await this.postToSonarr('notification', webhookConfig)
+          this.log.info(
+            `Successfully updated Pulsarr webhook "${webhookName}" for Sonarr`,
+          )
+        } else if (legacyWebhook) {
+          // Migrate from legacy "Pulsarr" to new format with unique name
+          this.log.info(
+            { webhookId: legacyWebhook.id },
+            'Migrating legacy "Pulsarr" webhook to new naming format',
+          )
+          await this.deleteNotification(legacyWebhook.id)
+          await this.postToSonarr('notification', webhookConfig)
+          this.log.info(
+            `Successfully migrated Pulsarr webhook to "${webhookName}" for Sonarr`,
+          )
+        } else {
+          // Fresh install - create new webhook
+          const response = await this.postToSonarr(
+            'notification',
+            webhookConfig,
+          )
+          this.log.info(
+            `Successfully created Pulsarr webhook "${webhookName}" for Sonarr: ${expectedWebhookUrl}`,
+          )
+          this.log.debug({ response }, 'Webhook creation response')
+        }
       } catch (createError) {
         let errorMessage = 'Failed to create webhook'
         if (createError instanceof HttpError) {
@@ -284,15 +325,20 @@ export class SonarrService {
 
   async removeWebhook(): Promise<void> {
     try {
+      const webhookName = this.getWebhookName()
       const existingWebhooks =
         await this.getFromSonarr<WebhookNotification[]>('notification')
-      const pulsarrWebhook = existingWebhooks.find(
-        (hook) => hook.name === 'Pulsarr',
+
+      // Find webhook with new format name OR legacy "Pulsarr" name
+      const pulsarrWebhooks = existingWebhooks.filter(
+        (hook) => hook.name === webhookName || hook.name === 'Pulsarr',
       )
 
-      if (pulsarrWebhook) {
-        await this.deleteNotification(pulsarrWebhook.id)
-        this.log.info('Successfully removed Pulsarr webhook for Sonarr')
+      for (const webhook of pulsarrWebhooks) {
+        await this.deleteNotification(webhook.id)
+        this.log.info(
+          `Successfully removed Pulsarr webhook "${webhook.name}" for Sonarr`,
+        )
       }
     } catch (error) {
       this.log.error({ error }, 'Failed to remove webhook for Sonarr')
