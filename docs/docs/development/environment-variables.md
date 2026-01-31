@@ -14,11 +14,15 @@ This includes internal variables for development and testing. Many are not neede
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `baseUrl` | External address for webhook URLs | `http://localhost` |
-| `port` | External port for webhook URLs | `3003` |
+| `baseUrl` | External address for webhook URLs (UI configurable) | `http://localhost` |
+| `port` | External port for webhook URLs (UI configurable) | `3003` |
 | `listenPort` | Internal port server binds to | `3003` |
 | `TZ` | Timezone (e.g., America/Los_Angeles) | `UTC` |
 | `basePath` | URL prefix for subfolder reverse proxy | `/` |
+
+:::tip
+The `baseUrl` and `port` settings are automatically configurable via the web UI when testing Sonarr/Radarr connections. You only need to set them in `.env` if you want to override UI settings or pre-configure before first run.
+:::
 
 ## Logging
 
