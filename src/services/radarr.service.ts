@@ -21,6 +21,7 @@ import {
   isRadarrStatus,
   isSystemStatus,
 } from '@root/types/system-status.types.js'
+import { parseArrErrorResponse } from '@utils/arr-error.js'
 import {
   extractRadarrId,
   extractTmdbId,
@@ -35,11 +36,12 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 const RADARR_API_TIMEOUT = 120000 // 120 seconds for API operations
 const RADARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
 
-// Custom error class to include HTTP status
+// Custom error class to include HTTP status and optional error code
 class HttpError extends Error {
   constructor(
     message: string,
     public status: number,
+    public code?: string,
   ) {
     super(message)
     this.name = 'HttpError'
@@ -320,7 +322,11 @@ export class RadarrService {
         }
 
         if (createError instanceof HttpError) {
-          throw new HttpError(errorMessage, createError.status)
+          throw new HttpError(
+            errorMessage,
+            createError.status,
+            createError.code,
+          )
         }
         throw new Error(errorMessage, { cause: createError })
       }
@@ -328,6 +334,11 @@ export class RadarrService {
       this.webhookInitialized = true
     } catch (error) {
       this.log.error({ error }, 'Failed to setup webhook for Radarr')
+
+      // Preserve HttpError instances to maintain status and code properties
+      if (error instanceof HttpError) {
+        throw error
+      }
 
       let errorMessage = 'Failed to setup webhook'
       if (error instanceof Error) {
@@ -368,7 +379,22 @@ export class RadarrService {
       signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
     if (!response.ok) {
-      throw new Error(`Radarr API error: ${response.statusText}`)
+      let errorDetail = response.statusText
+      try {
+        const errorData = await response.json()
+        const parsed = parseArrErrorResponse(errorData)
+        if (parsed.message) {
+          errorDetail = parsed.message
+        }
+      } catch {}
+
+      if (response.status === 401) {
+        throw new HttpError('Authentication failed. Check API key.', 401)
+      }
+      if (response.status === 404) {
+        throw new HttpError(`Notification not found: ${notificationId}`, 404)
+      }
+      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
     }
   }
 
@@ -892,10 +918,15 @@ export class RadarrService {
 
     if (!response.ok) {
       let errorDetail = response.statusText
+      let errorCode: string | undefined
       try {
-        const errorData = (await response.json()) as { message?: string }
-        if (errorData.message) {
-          errorDetail = errorData.message
+        const errorData = await response.json()
+        const parsed = parseArrErrorResponse(errorData)
+        if (parsed.message) {
+          errorDetail = parsed.message
+        }
+        if (parsed.isWebhookCallbackError) {
+          errorCode = 'WEBHOOK_CALLBACK_FAILED'
         }
       } catch {}
 
@@ -905,7 +936,11 @@ export class RadarrService {
       if (response.status === 404) {
         throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
       }
-      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
+      throw new HttpError(
+        `Radarr API error: ${errorDetail}`,
+        response.status,
+        errorCode,
+      )
     }
 
     return response.json() as Promise<T>
@@ -936,10 +971,15 @@ export class RadarrService {
 
       if (!response.ok) {
         let errorDetail = response.statusText
+        let errorCode: string | undefined
         try {
-          const errorData = (await response.json()) as { message?: string }
-          if (errorData.message) {
-            errorDetail = errorData.message
+          const errorData = await response.json()
+          const parsed = parseArrErrorResponse(errorData)
+          if (parsed.message) {
+            errorDetail = parsed.message
+          }
+          if (parsed.isWebhookCallbackError) {
+            errorCode = 'WEBHOOK_CALLBACK_FAILED'
           }
         } catch {}
 
@@ -949,7 +989,11 @@ export class RadarrService {
         if (response.status === 404) {
           throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
         }
-        throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
+        throw new HttpError(
+          `Radarr API error: ${errorDetail}`,
+          response.status,
+          errorCode,
+        )
       }
 
       // Some endpoints return 201 with empty body
@@ -987,7 +1031,22 @@ export class RadarrService {
     })
 
     if (!response.ok) {
-      throw new Error(`Radarr API error: ${response.statusText}`)
+      let errorDetail = response.statusText
+      try {
+        const errorData = await response.json()
+        const parsed = parseArrErrorResponse(errorData)
+        if (parsed.message) {
+          errorDetail = parsed.message
+        }
+      } catch {}
+
+      if (response.status === 401) {
+        throw new HttpError('Authentication failed. Check API key.', 401)
+      }
+      if (response.status === 404) {
+        throw new HttpError(`Resource not found: movie/${id}`, 404)
+      }
+      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
     }
   }
 
@@ -1427,10 +1486,8 @@ export class RadarrService {
 
       return result
     } catch (err) {
-      if (
-        err instanceof Error &&
-        /409/.test(err.message) // Radarr returns 409 Conflict if the tag exists
-      ) {
+      // Radarr returns 409 Conflict if the tag already exists
+      if (err instanceof HttpError && err.status === 409) {
         this.log.debug(
           `Tag "${label}" already exists in Radarr – skipping creation`,
         )
@@ -1565,13 +1622,29 @@ export class RadarrService {
 
     if (!response.ok) {
       let errorDetail = response.statusText
+      let errorCode: string | undefined
       try {
-        const errorData = await response.text()
-        if (errorData) {
-          errorDetail = `${response.statusText} - ${errorData}`
+        const errorData = await response.json()
+        const parsed = parseArrErrorResponse(errorData)
+        if (parsed.message) {
+          errorDetail = parsed.message
+        }
+        if (parsed.isWebhookCallbackError) {
+          errorCode = 'WEBHOOK_CALLBACK_FAILED'
         }
       } catch {}
-      throw new Error(`Radarr API error (${response.status}): ${errorDetail}`)
+
+      if (response.status === 401) {
+        throw new HttpError('Authentication failed. Check API key.', 401)
+      }
+      if (response.status === 404) {
+        throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
+      }
+      throw new HttpError(
+        `Radarr API error: ${errorDetail}`,
+        response.status,
+        errorCode,
+      )
     }
 
     // Some endpoints return 204 No Content
@@ -1601,7 +1674,22 @@ export class RadarrService {
     })
 
     if (!response.ok) {
-      throw new Error(`Radarr API error: ${response.statusText}`)
+      let errorDetail = response.statusText
+      try {
+        const errorData = await response.json()
+        const parsed = parseArrErrorResponse(errorData)
+        if (parsed.message) {
+          errorDetail = parsed.message
+        }
+      } catch {}
+
+      if (response.status === 401) {
+        throw new HttpError('Authentication failed. Check API key.', 401)
+      }
+      if (response.status === 404) {
+        throw new HttpError(`Tag not found: ${tagId}`, 404)
+      }
+      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
     }
 
     // Invalidate the tags cache since we've deleted a tag
