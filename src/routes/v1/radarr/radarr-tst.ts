@@ -109,7 +109,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Error updating instance',
           context: {
             service: 'radarr',
-            instanceId: request.params.id,
+            instanceId: id,
           },
         })
         return handleArrInstanceError(error, reply, {
