@@ -5,7 +5,7 @@ import {
   RadarrInstanceSchema,
   RadarrInstanceUpdateSchema,
 } from '@schemas/radarr/radarr-instance.schema.js'
-import { logRouteError } from '@utils/route-errors.js'
+import { handleArrInstanceError, logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
@@ -49,15 +49,30 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         body: RadarrInstanceSchema,
         response: {
           201: RadarrInstanceCreateResponseSchema,
+          400: ErrorSchema,
+          401: ErrorSchema,
+          500: ErrorSchema,
         },
         tags: ['Radarr'],
       },
     },
     async (request, reply) => {
-      const instanceData = request.body
-      const id = await fastify.radarrManager.addInstance(instanceData)
-      reply.status(201)
-      return { id }
+      try {
+        const instanceData = request.body
+        const id = await fastify.radarrManager.addInstance(instanceData)
+        reply.status(201)
+        return { id }
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Error creating Radarr instance',
+          context: { service: 'radarr' },
+        })
+        return handleArrInstanceError(error, reply, {
+          service: 'radarr',
+          defaultMessage:
+            'An unexpected error occurred while creating the instance',
+        })
+      }
     },
   )
 
@@ -94,34 +109,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Error updating instance',
           context: {
             service: 'radarr',
-            instanceId: request.params.id,
+            instanceId: id,
           },
         })
-
-        if (error instanceof Error) {
-          // Clean up error message for user display
-          const userMessage = error.message
-            .replace(/Radarr API error: /, '')
-            .replace(
-              /Failed to initialize Radarr instance/,
-              'Failed to save settings',
-            )
-
-          if (error.message.includes('Authentication')) {
-            return reply.unauthorized(userMessage)
-          }
-          if (error.message.includes('not found')) {
-            return reply.notFound(userMessage)
-          }
-          if (error.message.includes('default')) {
-            return reply.badRequest(userMessage)
-          }
-          return reply.internalServerError(userMessage)
-        }
-
-        return reply.internalServerError(
-          'An unexpected error occurred while updating the instance',
-        )
+        return handleArrInstanceError(error, reply, {
+          service: 'radarr',
+          defaultMessage:
+            'An unexpected error occurred while updating the instance',
+        })
       }
     },
   )
@@ -155,17 +150,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Failed to delete Radarr instance',
           instanceId: id,
         })
-
-        if (error instanceof Error) {
-          if (error.message.includes('not found')) {
-            return reply.notFound(error.message)
-          }
-          return reply.internalServerError(error.message)
-        }
-
-        return reply.internalServerError(
-          'An unknown error occurred when deleting the Radarr instance',
-        )
+        return handleArrInstanceError(error, reply, {
+          service: 'radarr',
+          defaultMessage:
+            'An unexpected error occurred while deleting the instance',
+        })
       }
     },
   )

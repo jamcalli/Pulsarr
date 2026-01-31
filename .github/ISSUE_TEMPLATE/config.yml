@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discord Community
+    url: https://discord.gg/9csTEJn5cR
+    about: Get help, ask questions, and discuss Pulsarr
+  - name: Documentation
+    url: https://jamcalli.github.io/Pulsarr/
+    about: Check the docs for guides and configuration help
