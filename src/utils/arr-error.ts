@@ -10,51 +10,28 @@ interface ArrValidationError {
   errorCode?: string
 }
 
-export interface ArrErrorResult {
-  message: string
-  isWebhookCallbackError: boolean
-}
-
 /**
  * Parse error response from Radarr/Sonarr APIs.
  * Handles both formats:
  * - Array: [{ propertyName, errorMessage, ... }] (validation errors)
  * - Object: { message: string } (general errors)
+ *
+ * Returns the error message string, or empty string if unparseable.
  */
-export function parseArrErrorResponse(errorData: unknown): ArrErrorResult {
+export function parseArrErrorMessage(errorData: unknown): string {
   // Handle array format (validation errors)
   if (Array.isArray(errorData)) {
-    const urlError = errorData.find(
-      (e: ArrValidationError) =>
-        e.propertyName === 'Url' &&
-        e.errorMessage?.includes('Unable to send test message'),
-    )
-    if (urlError) {
-      return {
-        message:
-          (urlError as ArrValidationError).errorMessage ||
-          'Webhook callback failed',
-        isWebhookCallbackError: true,
-      }
-    }
-    // Join all error messages for non-webhook validation errors
     const messages = errorData
       .map((e: ArrValidationError) => e.errorMessage)
       .filter(Boolean)
       .join('; ')
-    return {
-      message: messages || 'Validation error',
-      isWebhookCallbackError: false,
-    }
+    return messages || 'Validation error'
   }
 
   // Handle object format { message: string }
   if (errorData && typeof errorData === 'object' && 'message' in errorData) {
-    return {
-      message: String((errorData as { message: unknown }).message),
-      isWebhookCallbackError: false,
-    }
+    return String((errorData as { message: unknown }).message)
   }
 
-  return { message: '', isWebhookCallbackError: false }
+  return ''
 }

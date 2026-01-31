@@ -1,10 +1,10 @@
-import { parseArrErrorResponse } from '@utils/arr-error.js'
+import { parseArrErrorMessage } from '@utils/arr-error.js'
 import { describe, expect, it } from 'vitest'
 
 describe('arr-error', () => {
-  describe('parseArrErrorResponse', () => {
+  describe('parseArrErrorMessage', () => {
     describe('array format (validation errors)', () => {
-      it('should detect webhook callback error with Url property and test message', () => {
+      it('should extract error message from webhook callback error', () => {
         const errorData = [
           {
             propertyName: 'Url',
@@ -16,15 +16,14 @@ describe('arr-error', () => {
           },
         ]
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.isWebhookCallbackError).toBe(true)
-        expect(result.message).toBe(
+        expect(result).toBe(
           'Unable to send test message: Unable to post to webhook: Connection refused',
         )
       })
 
-      it('should detect webhook callback error with various network error messages', () => {
+      it('should extract error messages with various network error messages', () => {
         const testCases = [
           'Unable to send test message: Connection timeout',
           'Unable to send test message: No route to host',
@@ -39,14 +38,13 @@ describe('arr-error', () => {
             },
           ]
 
-          const result = parseArrErrorResponse(errorData)
+          const result = parseArrErrorMessage(errorData)
 
-          expect(result.isWebhookCallbackError).toBe(true)
-          expect(result.message).toBe(errorMessage)
+          expect(result).toBe(errorMessage)
         }
       })
 
-      it('should not flag as webhook error if propertyName is not Url', () => {
+      it('should extract message regardless of propertyName', () => {
         const errorData = [
           {
             propertyName: 'ApiKey',
@@ -54,26 +52,9 @@ describe('arr-error', () => {
           },
         ]
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.isWebhookCallbackError).toBe(false)
-        expect(result.message).toBe(
-          'Unable to send test message: Invalid API key',
-        )
-      })
-
-      it('should not flag as webhook error if message does not contain test message text', () => {
-        const errorData = [
-          {
-            propertyName: 'Url',
-            errorMessage: 'Invalid URL format',
-          },
-        ]
-
-        const result = parseArrErrorResponse(errorData)
-
-        expect(result.isWebhookCallbackError).toBe(false)
-        expect(result.message).toBe('Invalid URL format')
+        expect(result).toBe('Unable to send test message: Invalid API key')
       })
 
       it('should join multiple error messages with semicolons', () => {
@@ -88,10 +69,9 @@ describe('arr-error', () => {
           },
         ]
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.isWebhookCallbackError).toBe(false)
-        expect(result.message).toBe('Name is required; API key is invalid')
+        expect(result).toBe('Name is required; API key is invalid')
       })
 
       it('should filter out empty error messages when joining', () => {
@@ -110,18 +90,17 @@ describe('arr-error', () => {
           },
         ]
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.message).toBe('Name is required; API key is invalid')
+        expect(result).toBe('Name is required; API key is invalid')
       })
 
       it('should return default message for empty array', () => {
         const errorData: unknown[] = []
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.isWebhookCallbackError).toBe(false)
-        expect(result.message).toBe('Validation error')
+        expect(result).toBe('Validation error')
       })
 
       it('should return default message when all error messages are empty', () => {
@@ -130,12 +109,12 @@ describe('arr-error', () => {
           { propertyName: 'Field2', errorMessage: undefined },
         ]
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.message).toBe('Validation error')
+        expect(result).toBe('Validation error')
       })
 
-      it('should prioritize webhook callback error over other errors in array', () => {
+      it('should join all errors including webhook errors', () => {
         const errorData = [
           {
             propertyName: 'Name',
@@ -147,11 +126,10 @@ describe('arr-error', () => {
           },
         ]
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.isWebhookCallbackError).toBe(true)
-        expect(result.message).toBe(
-          'Unable to send test message: Connection refused',
+        expect(result).toBe(
+          'Name is required; Unable to send test message: Connection refused',
         )
       })
     })
@@ -162,10 +140,9 @@ describe('arr-error', () => {
           message: 'Internal server error',
         }
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.isWebhookCallbackError).toBe(false)
-        expect(result.message).toBe('Internal server error')
+        expect(result).toBe('Internal server error')
       })
 
       it('should convert non-string message to string', () => {
@@ -173,9 +150,9 @@ describe('arr-error', () => {
           message: 12345,
         }
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.message).toBe('12345')
+        expect(result).toBe('12345')
       })
 
       it('should handle object with additional properties', () => {
@@ -185,40 +162,35 @@ describe('arr-error', () => {
           details: { foo: 'bar' },
         }
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.message).toBe('Error occurred')
-        expect(result.isWebhookCallbackError).toBe(false)
+        expect(result).toBe('Error occurred')
       })
     })
 
     describe('edge cases', () => {
       it('should return empty message for null', () => {
-        const result = parseArrErrorResponse(null)
+        const result = parseArrErrorMessage(null)
 
-        expect(result.isWebhookCallbackError).toBe(false)
-        expect(result.message).toBe('')
+        expect(result).toBe('')
       })
 
       it('should return empty message for undefined', () => {
-        const result = parseArrErrorResponse(undefined)
+        const result = parseArrErrorMessage(undefined)
 
-        expect(result.isWebhookCallbackError).toBe(false)
-        expect(result.message).toBe('')
+        expect(result).toBe('')
       })
 
       it('should return empty message for string', () => {
-        const result = parseArrErrorResponse('plain string error')
+        const result = parseArrErrorMessage('plain string error')
 
-        expect(result.isWebhookCallbackError).toBe(false)
-        expect(result.message).toBe('')
+        expect(result).toBe('')
       })
 
       it('should return empty message for number', () => {
-        const result = parseArrErrorResponse(500)
+        const result = parseArrErrorMessage(500)
 
-        expect(result.isWebhookCallbackError).toBe(false)
-        expect(result.message).toBe('')
+        expect(result).toBe('')
       })
 
       it('should return empty message for object without message property', () => {
@@ -227,10 +199,9 @@ describe('arr-error', () => {
           code: 'ERR_UNKNOWN',
         }
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.isWebhookCallbackError).toBe(false)
-        expect(result.message).toBe('')
+        expect(result).toBe('')
       })
 
       it('should handle array with missing errorMessage properties', () => {
@@ -239,23 +210,9 @@ describe('arr-error', () => {
           { propertyName: 'Field2', errorMessage: 'Valid message' },
         ]
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.message).toBe('Valid message')
-      })
-
-      it('should use fallback message for webhook error with missing errorMessage', () => {
-        const errorData = [
-          {
-            propertyName: 'Url',
-            errorMessage: undefined,
-          },
-        ]
-
-        // This won't match because errorMessage doesn't include the test message text
-        const result = parseArrErrorResponse(errorData)
-
-        expect(result.isWebhookCallbackError).toBe(false)
+        expect(result).toBe('Valid message')
       })
     })
 
@@ -275,10 +232,9 @@ describe('arr-error', () => {
           },
         ]
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.isWebhookCallbackError).toBe(true)
-        expect(result.message).toContain('Unable to send test message')
+        expect(result).toContain('Unable to send test message')
       })
 
       it('should parse Radarr URL format validation error', () => {
@@ -291,11 +247,9 @@ describe('arr-error', () => {
           },
         ]
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        // Not a webhook callback error - just invalid URL format
-        expect(result.isWebhookCallbackError).toBe(false)
-        expect(result.message).toBe("Invalid Url: 'not a valid url'")
+        expect(result).toBe("Invalid Url: 'not a valid url'")
       })
 
       it('should parse Radarr conflict error (tag already exists)', () => {
@@ -303,10 +257,9 @@ describe('arr-error', () => {
           message: 'Tag with this label already exists',
         }
 
-        const result = parseArrErrorResponse(errorData)
+        const result = parseArrErrorMessage(errorData)
 
-        expect(result.isWebhookCallbackError).toBe(false)
-        expect(result.message).toBe('Tag with this label already exists')
+        expect(result).toBe('Tag with this label already exists')
       })
     })
   })
