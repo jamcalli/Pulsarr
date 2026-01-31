@@ -33,7 +33,14 @@ autolabeler:
       - '/^fix\//'
   - label: 'chore'
     branch:
+      - '/^chore\//'
       - '/^refactor\//'
+  - label: 'documentation'
+    branch:
+      - '/^docs\//'
+  - label: 'performance'
+    branch:
+      - '/^perf\//'
   - label: 'dependencies'
     branch:
       - '/^renovate\//'
