@@ -10,10 +10,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 export function NotFoundPage() {
   return (
     <div className="w-full max-w-md px-4">
-      <Alert variant="error" className="text-black">
-        <AlertCircle className="h-4 w-4 text-black" />
-        <AlertTitle className="text-black">Oooff!</AlertTitle>
-        <AlertDescription className="space-y-4 text-black">
+      <Alert variant="error">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Oooff!</AlertTitle>
+        <AlertDescription className="space-y-4">
           <p>
             Nothing to see here. The page you're looking for doesn't exist or
             has been moved.

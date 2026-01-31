@@ -135,11 +135,12 @@ export function handleArrInstanceError(
       return reply.notFound(userMessage)
     }
     // Webhook callback failures - detected by message patterns from *arr APIs
-    // Two patterns: HTTP-level ("Unable to send test message") and connection-level errors
+    // Patterns: HTTP-level ("Unable to send test message") and connection-level errors
     if (
       error.message.includes('Unable to send test message') ||
       error.message.includes('Unable to post to webhook') ||
-      error.message.includes('Connection refused')
+      error.message.includes('Connection refused') ||
+      error.message.includes('Name does not resolve')
     ) {
       return reply.badRequest(userMessage)
     }
