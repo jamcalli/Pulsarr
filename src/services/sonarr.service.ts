@@ -20,7 +20,7 @@ import {
   isSonarrStatus,
   isSystemStatus,
 } from '@root/types/system-status.types.js'
-import { parseArrErrorResponse } from '@utils/arr-error.js'
+import { parseArrErrorMessage } from '@utils/arr-error.js'
 import {
   extractSonarrId,
   extractTvdbId,
@@ -35,12 +35,11 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 const SONARR_API_TIMEOUT = 120000 // 120 seconds for API operations
 const SONARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
 
-// Custom error class to include HTTP status and optional error code
+// Custom error class to include HTTP status
 class HttpError extends Error {
   constructor(
     message: string,
     public status: number,
-    public code?: string,
   ) {
     super(message)
     this.name = 'HttpError'
@@ -83,13 +82,13 @@ export class SonarrService {
     const cause = error.cause as { code?: string } | undefined
     const code = cause?.code
     if (error.name === 'AbortError' || code === 'ABORT_ERR') {
-      return 'Connection timeout. Please check your base URL and network connection.'
+      return 'Connection timeout. Please check your Sonarr URL and network connection.'
     }
     if (code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
       return 'Connection refused. Please check if Sonarr is running and the URL is correct.'
     }
     if (code === 'ENOTFOUND' || error.message.includes('ENOTFOUND')) {
-      return 'Server not found. Please check your base URL.'
+      return 'Server not found. Please check your Sonarr URL.'
     }
     if (code === 'ETIMEDOUT' || error.message.includes('ETIMEDOUT')) {
       return 'Connection timeout. Please check your network and firewall settings.'
@@ -97,7 +96,7 @@ export class SonarrService {
     if (code === 'ECONNRESET' || error.message.includes('ECONNRESET')) {
       return 'Connection was reset. Please check your network stability.'
     }
-    return 'Network error. Please check your connection and base URL.'
+    return 'Network error. Please check your connection and Sonarr URL.'
   }
 
   private get sonarrConfig(): SonarrConfiguration {
@@ -257,44 +256,19 @@ export class SonarrService {
         )
         this.log.debug({ response }, 'Webhook creation response')
       } catch (createError) {
-        this.log.error(
-          { error: createError, endpoint: 'notification' },
-          'Error creating webhook for Sonarr (config omitted)',
-        )
-
         let errorMessage = 'Failed to create webhook'
         if (createError instanceof HttpError) {
-          // Use the status code from our custom error
-          if (createError.status === 401) {
-            errorMessage =
-              'Authentication failed while creating webhook. Check API key permissions.'
-          } else if (createError.status === 404) {
-            errorMessage =
-              'Notification API endpoint not found. Check Sonarr version.'
-          } else if (createError.status === 500) {
-            errorMessage =
-              'Sonarr internal error while creating webhook. Check Sonarr logs.'
-          } else {
-            errorMessage = `Failed to create webhook: ${createError.message}`
-          }
-        } else if (createError instanceof Error) {
           errorMessage = `Failed to create webhook: ${createError.message}`
+          throw new HttpError(errorMessage, createError.status)
         }
-
-        if (createError instanceof HttpError) {
-          throw new HttpError(
-            errorMessage,
-            createError.status,
-            createError.code,
-          )
+        if (createError instanceof Error) {
+          errorMessage = `Failed to create webhook: ${createError.message}`
         }
         throw new Error(errorMessage, { cause: createError })
       }
       this.webhookInitialized = true
     } catch (error) {
-      this.log.error({ error }, 'Failed to setup webhook for Sonarr')
-
-      // Preserve HttpError instances to maintain status and code properties
+      // Preserve HttpError instances to maintain status - don't log, let caller handle
       if (error instanceof HttpError) {
         throw error
       }
@@ -331,36 +305,20 @@ export class SonarrService {
   }
 
   async initialize(instance: SonarrInstance): Promise<void> {
-    try {
-      if (!instance.baseUrl || !instance.apiKey) {
-        throw new Error(
-          'Invalid Sonarr configuration: baseUrl and apiKey are required',
-        )
-      }
+    if (!instance.baseUrl || !instance.apiKey) {
+      throw new Error(
+        'Invalid Sonarr configuration: baseUrl and apiKey are required',
+      )
+    }
 
-      // Store the instance ID for caching purposes
-      this.instanceId = instance.id
+    // Store the instance ID for caching purposes
+    this.instanceId = instance.id
 
-      // Skip webhook setup for placeholder credentials
-      if (instance.apiKey === 'placeholder') {
-        this.log.info(
-          `Basic initialization only for ${instance.name} (placeholder credentials)`,
-        )
-        this.config = {
-          sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
-          sonarrApiKey: instance.apiKey,
-          sonarrQualityProfileId: instance.qualityProfile || null,
-          sonarrLanguageProfileId: 1,
-          sonarrRootFolder: instance.rootFolder || null,
-          sonarrTagIds: instance.tags,
-          sonarrSeasonMonitoring: instance.seasonMonitoring,
-          sonarrMonitorNewItems: instance.monitorNewItems || 'all',
-          sonarrSeriesType: instance.seriesType || 'standard',
-          createSeasonFolders: instance.createSeasonFolders,
-        }
-        return
-      }
-
+    // Skip webhook setup for placeholder credentials
+    if (instance.apiKey === 'placeholder') {
+      this.log.info(
+        `Basic initialization only for ${instance.name} (placeholder credentials)`,
+      )
       this.config = {
         sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
         sonarrApiKey: instance.apiKey,
@@ -370,36 +328,44 @@ export class SonarrService {
         sonarrTagIds: instance.tags,
         sonarrSeasonMonitoring: instance.seasonMonitoring,
         sonarrMonitorNewItems: instance.monitorNewItems || 'all',
-        searchOnAdd:
-          instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
         sonarrSeriesType: instance.seriesType || 'standard',
         createSeasonFolders: instance.createSeasonFolders,
       }
+      return
+    }
 
-      this.log.debug(
-        `Successfully initialized base Sonarr service for ${instance.name}`,
-      )
+    this.config = {
+      sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
+      sonarrApiKey: instance.apiKey,
+      sonarrQualityProfileId: instance.qualityProfile || null,
+      sonarrLanguageProfileId: 1,
+      sonarrRootFolder: instance.rootFolder || null,
+      sonarrTagIds: instance.tags,
+      sonarrSeasonMonitoring: instance.seasonMonitoring,
+      sonarrMonitorNewItems: instance.monitorNewItems || 'all',
+      searchOnAdd:
+        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+      sonarrSeriesType: instance.seriesType || 'standard',
+      createSeasonFolders: instance.createSeasonFolders,
+    }
 
-      if (this.fastify.server.listening) {
-        await this.setupWebhook()
-      } else {
-        this.fastify.server.prependOnceListener('listening', async () => {
-          try {
-            await this.setupWebhook()
-          } catch (error) {
-            this.log.error(
-              { error, instanceName: instance.name },
-              'Failed to setup webhook after server start for Sonarr',
-            )
-          }
-        })
-      }
-    } catch (error) {
-      this.log.error(
-        { error, instanceName: instance.name },
-        'Failed to initialize Sonarr service',
-      )
-      throw error
+    this.log.debug(
+      `Successfully initialized base Sonarr service for ${instance.name}`,
+    )
+
+    if (this.fastify.server.listening) {
+      await this.setupWebhook()
+    } else {
+      this.fastify.server.prependOnceListener('listening', async () => {
+        try {
+          await this.setupWebhook()
+        } catch (error) {
+          this.log.error(
+            { error, instanceName: instance.name },
+            'Failed to setup webhook after server start for Sonarr',
+          )
+        }
+      })
     }
   }
 
@@ -451,7 +417,7 @@ export class SonarrService {
       } catch (_urlError) {
         return {
           success: false,
-          message: 'Invalid URL format. Please check your base URL.',
+          message: 'Invalid URL format. Please check your Sonarr URL.',
         }
       }
 
@@ -477,7 +443,8 @@ export class SonarrService {
         }
         return {
           success: false,
-          message: 'Network error. Please check your connection and base URL.',
+          message:
+            'Network error. Please check your connection and Sonarr URL.',
         }
       }
 
@@ -491,8 +458,7 @@ export class SonarrService {
         if (response.status === 404) {
           return {
             success: false,
-            message:
-              'API endpoint not found. Please check your base URL and ensure it points to Sonarr.',
+            message: 'API endpoint not found. Please check your Sonarr URL.',
           }
         }
         return {
@@ -580,7 +546,7 @@ export class SonarrService {
         if (error.message.includes('Invalid URL')) {
           return {
             success: false,
-            message: 'Invalid URL format. Please check your base URL.',
+            message: 'Invalid URL format. Please check your Sonarr URL.',
           }
         }
         // Use the shared error mapping
@@ -1114,15 +1080,11 @@ export class SonarrService {
 
     if (!response.ok) {
       let errorDetail = response.statusText
-      let errorCode: string | undefined
       try {
         const errorData = await response.json()
-        const parsed = parseArrErrorResponse(errorData)
-        if (parsed.message) {
-          errorDetail = parsed.message
-        }
-        if (parsed.isWebhookCallbackError) {
-          errorCode = 'WEBHOOK_CALLBACK_FAILED'
+        const parsed = parseArrErrorMessage(errorData)
+        if (parsed) {
+          errorDetail = parsed
         }
       } catch {}
 
@@ -1132,11 +1094,7 @@ export class SonarrService {
       if (response.status === 404) {
         throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
       }
-      throw new HttpError(
-        `Sonarr API error: ${errorDetail}`,
-        response.status,
-        errorCode,
-      )
+      throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
     }
 
     return response.json() as Promise<T>
@@ -1167,15 +1125,11 @@ export class SonarrService {
 
       if (!response.ok) {
         let errorDetail = response.statusText
-        let errorCode: string | undefined
         try {
           const errorData = await response.json()
-          const parsed = parseArrErrorResponse(errorData)
-          if (parsed.message) {
-            errorDetail = parsed.message
-          }
-          if (parsed.isWebhookCallbackError) {
-            errorCode = 'WEBHOOK_CALLBACK_FAILED'
+          const parsed = parseArrErrorMessage(errorData)
+          if (parsed) {
+            errorDetail = parsed
           }
         } catch {}
 
@@ -1185,11 +1139,7 @@ export class SonarrService {
         if (response.status === 404) {
           throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
         }
-        throw new HttpError(
-          `Sonarr API error: ${errorDetail}`,
-          response.status,
-          errorCode,
-        )
+        throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
       }
 
       // Some endpoints return 201 with empty body
@@ -1573,15 +1523,11 @@ export class SonarrService {
 
     if (!response.ok) {
       let errorDetail = response.statusText
-      let errorCode: string | undefined
       try {
         const errorData = await response.json()
-        const parsed = parseArrErrorResponse(errorData)
-        if (parsed.message) {
-          errorDetail = parsed.message
-        }
-        if (parsed.isWebhookCallbackError) {
-          errorCode = 'WEBHOOK_CALLBACK_FAILED'
+        const parsed = parseArrErrorMessage(errorData)
+        if (parsed) {
+          errorDetail = parsed
         }
       } catch {}
 
@@ -1591,11 +1537,7 @@ export class SonarrService {
       if (response.status === 404) {
         throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
       }
-      throw new HttpError(
-        `Sonarr API error: ${errorDetail}`,
-        response.status,
-        errorCode,
-      )
+      throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
     }
 
     // Some endpoints return 204 No Content
@@ -1625,15 +1567,11 @@ export class SonarrService {
 
     if (!response.ok) {
       let errorDetail = response.statusText
-      let errorCode: string | undefined
       try {
         const errorData = await response.json()
-        const parsed = parseArrErrorResponse(errorData)
-        if (parsed.message) {
-          errorDetail = parsed.message
-        }
-        if (parsed.isWebhookCallbackError) {
-          errorCode = 'WEBHOOK_CALLBACK_FAILED'
+        const parsed = parseArrErrorMessage(errorData)
+        if (parsed) {
+          errorDetail = parsed
         }
       } catch {}
 
@@ -1643,11 +1581,7 @@ export class SonarrService {
       if (response.status === 404) {
         throw new HttpError(`Resource not found: ${endpoint}`, 404)
       }
-      throw new HttpError(
-        `Sonarr API error: ${errorDetail}`,
-        response.status,
-        errorCode,
-      )
+      throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
     }
   }
 

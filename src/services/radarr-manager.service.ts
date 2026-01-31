@@ -460,61 +460,51 @@ export class RadarrManagerService {
           this.port,
           this.fastify,
         )
-
+        await radarrService.initialize(candidate)
+        // Only persist after successful init; cleanup on persist failure
         try {
-          await radarrService.initialize(candidate)
-          // Only persist after successful init; cleanup on persist failure
-          try {
-            await this.fastify.db.updateRadarrInstance(id, updates)
-          } catch (dbErr) {
-            this.log.error(
-              { error: dbErr, instanceId: id },
-              'Failed to persist Radarr instance update',
-            )
-            try {
-              await radarrService.removeWebhook()
-            } catch (_) {
-              // ignore cleanup failure
-            }
-            throw new Error('Failed to persist Radarr instance update', {
-              cause: dbErr as Error,
-            })
-          }
-
-          // Clean up old webhook only when server actually changed
-          // Skip cleanup when transitioning from placeholder credentials (no real webhook existed)
-          const toPlaceholder =
-            current.apiKey !== 'placeholder' &&
-            candidate.apiKey === 'placeholder'
-
-          if (serverChanged && oldService && current.apiKey !== 'placeholder') {
-            try {
-              await oldService.removeWebhook()
-            } catch (cleanupErr) {
-              this.log.warn(
-                { error: cleanupErr },
-                `Failed to cleanup old webhook for previous server of instance ${id}`,
-              )
-            }
-          } else if (oldService && toPlaceholder) {
-            // Remove webhook when transitioning to placeholder credentials
-            try {
-              await oldService.removeWebhook()
-            } catch (cleanupErr) {
-              this.log.warn(
-                { error: cleanupErr },
-                `Failed to cleanup webhook after transitioning ${id} to placeholder credentials`,
-              )
-            }
-          }
-          this.radarrServices.set(id, radarrService)
-        } catch (initError) {
+          await this.fastify.db.updateRadarrInstance(id, updates)
+        } catch (dbErr) {
           this.log.error(
-            { error: initError },
-            `Failed to initialize Radarr instance ${id}`,
+            { error: dbErr, instanceId: id },
+            'Failed to persist Radarr instance update',
           )
-          throw initError
+          try {
+            await radarrService.removeWebhook()
+          } catch (_) {
+            // ignore cleanup failure
+          }
+          throw new Error('Failed to persist Radarr instance update', {
+            cause: dbErr as Error,
+          })
         }
+
+        // Clean up old webhook only when server actually changed
+        // Skip cleanup when transitioning from placeholder credentials (no real webhook existed)
+        const toPlaceholder =
+          current.apiKey !== 'placeholder' && candidate.apiKey === 'placeholder'
+
+        if (serverChanged && oldService && current.apiKey !== 'placeholder') {
+          try {
+            await oldService.removeWebhook()
+          } catch (cleanupErr) {
+            this.log.warn(
+              { error: cleanupErr },
+              `Failed to cleanup old webhook for previous server of instance ${id}`,
+            )
+          }
+        } else if (oldService && toPlaceholder) {
+          // Remove webhook when transitioning to placeholder credentials
+          try {
+            await oldService.removeWebhook()
+          } catch (cleanupErr) {
+            this.log.warn(
+              { error: cleanupErr },
+              `Failed to cleanup webhook after transitioning ${id} to placeholder credentials`,
+            )
+          }
+        }
+        this.radarrServices.set(id, radarrService)
       } else {
         // Server unchanged - just update configuration, no webhook changes needed
         try {

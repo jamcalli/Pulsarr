@@ -1,4 +1,4 @@
-import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
+import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify'
 
 interface RouteErrorContext {
   /** The error that occurred */
@@ -93,4 +93,62 @@ export function logRouteError(
     default:
       logger.error(baseContext, message)
   }
+}
+
+type ArrService = 'radarr' | 'sonarr'
+
+interface ArrInstanceErrorOptions {
+  /** The service type for message cleanup */
+  service: ArrService
+  /** Default error message if none can be extracted */
+  defaultMessage: string
+}
+
+/**
+ * Handle errors from *arr instance operations (create/update)
+ * Maps error types to appropriate HTTP responses using Fastify Sensible
+ *
+ * @returns The appropriate Fastify reply with error response
+ */
+export function handleArrInstanceError(
+  error: unknown,
+  reply: FastifyReply,
+  options: ArrInstanceErrorOptions,
+): ReturnType<FastifyReply['send']> {
+  const { service, defaultMessage } = options
+  const serviceLabel = service === 'radarr' ? 'Radarr' : 'Sonarr'
+  const apiErrorPrefix = new RegExp(`${serviceLabel} API error: `)
+
+  if (error instanceof Error) {
+    // Clean up error message for user display
+    const userMessage = error.message
+      .replace(apiErrorPrefix, '')
+      .replace(
+        new RegExp(`Failed to initialize ${serviceLabel} instance`),
+        'Failed to save settings',
+      )
+
+    if (error.message.includes('Authentication')) {
+      return reply.unauthorized(userMessage)
+    }
+    if (error.message.includes('not found')) {
+      return reply.notFound(userMessage)
+    }
+    // Webhook callback failures - detected by message patterns from *arr APIs
+    // Two patterns: HTTP-level ("Unable to send test message") and connection-level errors
+    if (
+      error.message.includes('Unable to send test message') ||
+      error.message.includes('Unable to post to webhook') ||
+      error.message.includes('Connection refused')
+    ) {
+      return reply.badRequest(userMessage)
+    }
+    // Other validation errors
+    if (error.message.includes('default')) {
+      return reply.badRequest(userMessage)
+    }
+    return reply.internalServerError(userMessage)
+  }
+
+  return reply.internalServerError(defaultMessage)
 }
