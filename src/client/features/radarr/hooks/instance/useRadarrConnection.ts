@@ -9,6 +9,7 @@ import type {
   RadarrInstance,
 } from '@/features/radarr/types/types'
 import { api } from '@/lib/api'
+import { isWebhookCallbackError } from '@/lib/webhook-errors'
 
 /**
  * Checks if a Radarr instance is missing required configuration fields.
@@ -48,6 +49,7 @@ export function useRadarrConnection(
   >('idle')
   const [isConnectionValid, setIsConnectionValid] = useState(false)
   const [needsConfiguration, setNeedsConfiguration] = useState(false)
+  const [webhookError, setWebhookError] = useState<string | null>(null)
   const isNavigationTest = useRef(false)
   const hasInitialized = useRef(false)
 
@@ -168,6 +170,7 @@ export function useRadarrConnection(
       }
 
       setTestStatus('loading')
+      setWebhookError(null) // Clear any previous webhook error before testing
       try {
         const minimumLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, 500),
@@ -272,11 +275,16 @@ export function useRadarrConnection(
         setTestStatus('error')
         setIsConnectionValid(false)
         form.setValue('_connectionTested', false, { shouldValidate: true })
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : 'Failed to connect to Radarr',
-        )
+
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to connect to Radarr'
+
+        // Check if this is a webhook callback error (Radarr can't reach Pulsarr)
+        if (isWebhookCallbackError(errorMessage)) {
+          setWebhookError(errorMessage)
+        } else {
+          toast.error(errorMessage)
+        }
       }
     },
     [
@@ -308,6 +316,8 @@ export function useRadarrConnection(
     hasInitialized,
     needsConfiguration,
     setNeedsConfiguration,
+    webhookError,
+    setWebhookError,
     testConnection,
     testConnectionWithoutLoading,
     resetConnection,

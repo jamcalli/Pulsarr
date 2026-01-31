@@ -1,4 +1,4 @@
-import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
+import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify'
 
 interface RouteErrorContext {
   /** The error that occurred */
@@ -93,4 +93,68 @@ export function logRouteError(
     default:
       logger.error(baseContext, message)
   }
+}
+
+type ArrService = 'radarr' | 'sonarr'
+
+const API_ERROR_PREFIX: Record<ArrService, RegExp> = {
+  radarr: /Radarr API error: /,
+  sonarr: /Sonarr API error: /,
+}
+
+const INIT_FAILURE_PREFIX: Record<ArrService, RegExp> = {
+  radarr: /Failed to initialize Radarr instance/,
+  sonarr: /Failed to initialize Sonarr instance/,
+}
+
+interface ArrInstanceErrorOptions {
+  /** The service type for message cleanup */
+  service: ArrService
+  /** Default error message if none can be extracted */
+  defaultMessage: string
+}
+
+/**
+ * Handle errors from *arr instance operations (create/update)
+ * Maps error types to appropriate HTTP responses using Fastify Sensible
+ *
+ * @returns The appropriate Fastify reply with error response
+ */
+export function handleArrInstanceError(
+  error: unknown,
+  reply: FastifyReply,
+  options: ArrInstanceErrorOptions,
+): ReturnType<FastifyReply['send']> {
+  const { service, defaultMessage } = options
+
+  if (error instanceof Error) {
+    // Clean up error message for user display
+    const userMessage = error.message
+      .replace(API_ERROR_PREFIX[service], '')
+      .replace(INIT_FAILURE_PREFIX[service], 'Failed to save settings')
+
+    if (error.message.includes('Authentication')) {
+      return reply.unauthorized(userMessage)
+    }
+    if (error.message.includes('not found')) {
+      return reply.notFound(userMessage)
+    }
+    // Webhook callback failures - detected by message patterns from *arr APIs
+    // Patterns: HTTP-level ("Unable to send test message") and connection-level errors
+    if (
+      error.message.includes('Unable to send test message') ||
+      error.message.includes('Unable to post to webhook') ||
+      error.message.includes('Connection refused') ||
+      error.message.includes('Name does not resolve')
+    ) {
+      return reply.badRequest(userMessage)
+    }
+    // Default instance validation errors from DB (e.g., "Cannot remove default status...")
+    if (error.message.includes('Cannot remove default')) {
+      return reply.badRequest(userMessage)
+    }
+    return reply.internalServerError(userMessage)
+  }
+
+  return reply.internalServerError(defaultMessage)
 }

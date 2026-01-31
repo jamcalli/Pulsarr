@@ -201,6 +201,16 @@ cpSync(
   resolve(COMMON_DIR, '.env.example'),
 )
 
+// Inject TMDB API key if provided (for native builds to match Docker)
+const tmdbKey = process.env.TMDBAPIKEY
+if (tmdbKey) {
+  const envExample = resolve(COMMON_DIR, '.env.example')
+  let content = readFileSync(envExample, 'utf8')
+  content += `\n# --- TMDB (pre-configured) ---\ntmdbApiKey=${tmdbKey}\n`
+  writeFileSync(envExample, content)
+  console.log('    Injected TMDB API key into .env.example')
+}
+
 // package.json + lockfile — version reading + dependency install
 cpSync(
   resolve(PROJECT_ROOT, 'package.json'),

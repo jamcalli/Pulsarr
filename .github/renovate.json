@@ -136,10 +136,11 @@
       "prPriority": 10
     },
     {
-      "description": "Group Bun runtime updates (.bun-version + dockerfile)",
+      "description": "Group Bun runtime updates (.bun-version + dockerfile) - pinned due to ARM64 regression oven-sh/bun#26544",
       "groupName": "Bun runtime",
       "matchDatasources": ["docker", "npm"],
       "matchPackageNames": ["oven/bun", "bun", "bun-types"],
+      "allowedVersions": "< 1.3.7",
       "automerge": false,
       "prPriority": 15,
       "reviewers": ["jamcalli"],
