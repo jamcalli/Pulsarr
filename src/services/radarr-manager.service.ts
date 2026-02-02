@@ -133,11 +133,9 @@ export class RadarrManagerService {
     const tasks = instances.map(async (instance) => {
       const radarrService = this.radarrServices.get(instance.id)
       if (!radarrService) {
-        this.log.warn(
-          { instanceId: instance.id, instanceName: instance.name },
-          'Radarr service not initialized',
+        throw new Error(
+          `Radarr service for instance ${instance.name || instance.id} not initialized`,
         )
-        return []
       }
       // If bypassExclusions is explicitly provided, use it
       // Otherwise, respect per-instance bypassIgnored setting
@@ -163,11 +161,15 @@ export class RadarrManagerService {
     })
 
     const results = await Promise.allSettled(tasks)
+    const failedInstances: string[] = []
+
     for (let i = 0; i < results.length; i++) {
       const r = results[i]
       if (r.status === 'fulfilled') {
         allMovies.push(...r.value)
       } else {
+        const instanceName = instances[i]?.name || `ID ${instances[i]?.id}`
+        failedInstances.push(instanceName)
         this.log.error(
           {
             error: r.reason,
@@ -178,6 +180,15 @@ export class RadarrManagerService {
         )
       }
     }
+
+    // Abort if ANY instance failed - prevents incorrect routing decisions
+    // This matches the health check behavior which aborts if any instance is unavailable
+    if (failedInstances.length > 0) {
+      throw new Error(
+        `Failed to fetch movies from ${failedInstances.length} Radarr instance(s): ${failedInstances.join(', ')}. Aborting to prevent incorrect routing.`,
+      )
+    }
+
     return allMovies
   }
 
