@@ -3,9 +3,7 @@ import type {
   ContentItem,
   FieldInfo,
   OperatorInfo,
-  RouterRule,
   RoutingContext,
-  RoutingDecision,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
 import { evaluateRegexSafelyMultiple } from '@utils/regex-safety.js'
@@ -45,7 +43,7 @@ function isString(value: unknown): value is string {
  *
  * @returns `true` if the value is a string or an array of strings; otherwise, `false`.
  */
-function isValidGenreValue(value: unknown): value is string | string[] {
+function _isValidGenreValue(value: unknown): value is string | string[] {
   return isString(value) || isStringArray(value)
 }
 
@@ -124,117 +122,7 @@ export default function createGenreEvaluator(
         item.genres.length > 0
       )
     },
-    async evaluate(
-      item: ContentItem,
-      _context: RoutingContext,
-      rules: RouterRule[],
-    ): Promise<RoutingDecision[] | null> {
-      if (
-        !item.genres ||
-        !Array.isArray(item.genres) ||
-        item.genres.length === 0
-      ) {
-        return null
-      }
 
-      // Rules are already filtered by content-router (by type, target_type, and enabled status)
-      if (rules.length === 0) {
-        return null
-      }
-
-      // Create a set of normalized genres (converted to lowercase and trimmed)
-      const itemGenres = new Set(item.genres.map(normalizeString))
-
-      // Find matching genre routes - check both 'genres' field (new) and 'genre' field (legacy)
-      const matchingRules = rules.filter((rule) => {
-        if (!rule.criteria) {
-          return false
-        }
-
-        // Support both 'genres' (new) and 'genre' (legacy) properties in criteria
-        const genreValue =
-          rule.criteria.genres !== undefined
-            ? rule.criteria.genres
-            : rule.criteria.genre
-
-        if (!isValidGenreValue(genreValue)) {
-          return false
-        }
-
-        // Extract the operator from criteria or default to "contains"
-        const operator = rule.criteria.operator || 'contains'
-
-        // Apply the appropriate operation based on the operator, with case-insensitive comparison
-        if (operator === 'contains' || operator === 'in') {
-          if (isStringArray(genreValue)) {
-            return genreValue.some((genre) =>
-              itemGenres.has(normalizeString(genre)),
-            )
-          }
-          return itemGenres.has(normalizeString(genreValue))
-        }
-
-        if (operator === 'notContains' || operator === 'notIn') {
-          if (isStringArray(genreValue)) {
-            return !genreValue.some((genre) =>
-              itemGenres.has(normalizeString(genre)),
-            )
-          }
-          return !itemGenres.has(normalizeString(genreValue))
-        }
-
-        if (operator === 'equals') {
-          if (isStringArray(genreValue)) {
-            const normalizedRuleGenres = new Set(
-              genreValue.map(normalizeString),
-            )
-            return (
-              normalizedRuleGenres.size === itemGenres.size &&
-              Array.from(normalizedRuleGenres).every((genre) =>
-                itemGenres.has(genre),
-              )
-            )
-          }
-          return (
-            itemGenres.size === 1 && itemGenres.has(normalizeString(genreValue))
-          )
-        }
-
-        if (operator === 'regex') {
-          if (isString(genreValue)) {
-            return evaluateRegexSafelyMultiple(
-              genreValue,
-              Array.from(itemGenres),
-              fastify.log,
-              'genre rule',
-            )
-          }
-        }
-
-        return false
-      })
-
-      if (matchingRules.length === 0) {
-        return null
-      }
-
-      // Convert to routing decisions
-      return matchingRules.map((rule) => ({
-        instanceId: rule.target_instance_id,
-        qualityProfile: rule.quality_profile,
-        rootFolder: rule.root_folder,
-        tags: rule.tags || [],
-        priority: rule.order ?? 50, // Default to 50 if undefined or null
-        searchOnAdd: rule.search_on_add,
-        seasonMonitoring: rule.season_monitoring,
-        seriesType: rule.series_type,
-        monitor: rule.monitor,
-        ruleId: rule.id,
-        ruleName: rule.name,
-      }))
-    },
-
-    // For conditional evaluator support
     evaluateCondition(
       condition: Condition,
       item: ContentItem,

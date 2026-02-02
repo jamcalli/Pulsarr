@@ -3,9 +3,7 @@ import type {
   ContentItem,
   FieldInfo,
   OperatorInfo,
-  RouterRule,
   RoutingContext,
-  RoutingDecision,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
 import { extractTypedGuid } from '@utils/guid-handler.js'
@@ -170,7 +168,7 @@ function convertToInternalScale(
  * greaterThan, lessThan, in, notIn, between.
  */
 export default function createRatingsEvaluator(
-  fastify: FastifyInstance,
+  _fastify: FastifyInstance,
 ): RoutingEvaluator {
   const ratingOperators: OperatorInfo[] = [
     {
@@ -242,106 +240,6 @@ export default function createRatingsEvaluator(
       // Can evaluate if item has IMDB GUID (for legacy imdb rules)
       const imdbGuid = extractTypedGuid(item.guids, 'imdb:')
       return !!imdbGuid
-    },
-
-    async evaluate(
-      item: ContentItem,
-      _context: RoutingContext,
-      rules: RouterRule[],
-    ): Promise<RoutingDecision[] | null> {
-      // This handles legacy standalone 'imdb' type rules
-      // New rating rules should use conditional rules with evaluateCondition
-      if (!item.imdb) {
-        fastify.log.debug(
-          `Ratings evaluator - no IMDB data available for "${item.title}"`,
-        )
-        return null
-      }
-
-      const imdbData = {
-        rating: item.imdb.rating ?? null,
-        votes: item.imdb.votes ?? null,
-      }
-
-      if (rules.length === 0) {
-        return null
-      }
-
-      const matchingRules = rules.filter((rule) => {
-        if (!rule.criteria) return false
-
-        const ratingCriteria = rule.criteria.imdbRating
-        const operator =
-          typeof rule.criteria.operator === 'string'
-            ? rule.criteria.operator
-            : 'equals'
-
-        if (ratingCriteria === undefined) return false
-
-        const isCompoundValue =
-          typeof ratingCriteria === 'object' &&
-          ratingCriteria !== null &&
-          ('rating' in ratingCriteria || 'votes' in ratingCriteria)
-
-        if (isCompoundValue) {
-          const compound = ratingCriteria as {
-            rating?: number | number[] | RatingRange
-            votes?: number | number[] | RatingRange
-          }
-
-          if (compound.rating !== undefined) {
-            if (!isValidRatingValue(compound.rating)) return false
-            if (imdbData.rating === null) return false
-            if (
-              !evaluateRatingCondition(
-                imdbData.rating,
-                operator,
-                compound.rating,
-              )
-            ) {
-              return false
-            }
-          }
-
-          if (compound.votes !== undefined) {
-            if (!isValidRatingValue(compound.votes)) return false
-            if (imdbData.votes === null) return false
-            if (
-              !evaluateRatingCondition(imdbData.votes, operator, compound.votes)
-            ) {
-              return false
-            }
-          }
-        } else {
-          if (!isValidRatingValue(ratingCriteria)) return false
-          if (imdbData.rating === null) return false
-          if (
-            !evaluateRatingCondition(imdbData.rating, operator, ratingCriteria)
-          ) {
-            return false
-          }
-        }
-
-        return true
-      })
-
-      if (matchingRules.length === 0) {
-        return null
-      }
-
-      return matchingRules.map((rule) => ({
-        instanceId: rule.target_instance_id,
-        qualityProfile: rule.quality_profile,
-        rootFolder: rule.root_folder,
-        tags: rule.tags || [],
-        priority: rule.order ?? 50,
-        searchOnAdd: rule.search_on_add,
-        seasonMonitoring: rule.season_monitoring,
-        seriesType: rule.series_type,
-        monitor: rule.monitor,
-        ruleId: rule.id,
-        ruleName: rule.name,
-      }))
     },
 
     evaluateCondition(

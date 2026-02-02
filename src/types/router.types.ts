@@ -28,7 +28,9 @@ export interface RouterRule {
   id: number
   name: string
   type: string
-  criteria: Record<string, unknown>
+  criteria: {
+    condition: Condition | ConditionGroup
+  }
   target_type: 'sonarr' | 'radarr'
   target_instance_id: number
   root_folder?: string | null
@@ -169,7 +171,8 @@ export interface RoutingEvaluator {
   canEvaluate(item: ContentItem, context: RoutingContext): Promise<boolean>
 
   // Main evaluation method - rules are pre-filtered by content-router
-  evaluate(
+  // Optional: only conditional-evaluator implements this, others use evaluateCondition
+  evaluate?(
     item: ContentItem,
     context: RoutingContext,
     rules: RouterRule[], // Pre-filtered rules for this evaluator

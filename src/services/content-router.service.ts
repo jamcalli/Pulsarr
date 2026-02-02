@@ -627,6 +627,10 @@ export class ContentRouterService {
           )
 
           // Get decisions from this evaluator (pass pre-filtered rules)
+          // Only conditional evaluator implements evaluate(), others only have evaluateCondition()
+          if (!evaluator.evaluate) {
+            continue
+          }
           const decisions = await evaluator.evaluate(
             enrichedItem,
             context,
@@ -1857,15 +1861,18 @@ export class ContentRouterService {
 
       // PRIORITY 1: Router Rules (absolute content policy - always checked first)
       const allRouterRules = await this.getAllRouterRules()
+      const expectedTargetType =
+        context.contentType === 'movie' ? 'radarr' : 'sonarr'
       let quotasBypassedByRule = false
 
       for (const rule of allRouterRules) {
         if (!rule.enabled) continue
+        if (rule.target_type !== expectedTargetType) continue
 
         // Check if this rule matches the current context
         if (rule.criteria && typeof rule.criteria === 'object') {
           try {
-            const condition = rule.criteria.condition as ConditionGroup
+            const condition = rule.criteria.condition
             const matches = this.evaluateCondition(condition, item, context)
 
             if (matches) {
@@ -2674,7 +2681,7 @@ export class ContentRouterService {
         try {
           // Evaluate the rule's condition using enriched item
           if (rule.criteria && typeof rule.criteria === 'object') {
-            const condition = rule.criteria.condition as ConditionGroup
+            const condition = rule.criteria.condition
             const matches = this.evaluateCondition(
               condition,
               itemForEvaluation,
