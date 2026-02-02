@@ -226,6 +226,9 @@ jobs:
             --pattern "*macos-${ARCH}.zip" \
             --dir .
 
+      - name: Install create-dmg
+        run: brew install create-dmg
+
       - name: Extract and build .app bundle
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
@@ -241,7 +244,7 @@ jobs:
           ../scripts/installers/macos/build-app.sh "$RELEASE_VERSION" "$ARCH"
 
           # Move output to workspace root
-          mv pulsarr-*-app.zip ../
+          mv pulsarr-*.dmg ../
 
       - name: Upload installer to release
         env:
@@ -250,5 +253,5 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: |
           gh release upload "$RELEASE_VERSION" \
-            "pulsarr-"*"-macos-${ARCH}-app.zip" \
+            "pulsarr-"*"-macos-${ARCH}.dmg" \
             --clobber

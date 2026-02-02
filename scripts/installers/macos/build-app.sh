@@ -29,7 +29,7 @@ mkdir -p "$APP/Contents/MacOS"
 mkdir -p "$APP/Contents/Resources"
 
 # Copy all runtime files to MacOS directory
-cp -r bun start.sh dist migrations packages node_modules "$APP/Contents/MacOS/"
+cp -r bun start.sh dist migrations packages node_modules package.json "$APP/Contents/MacOS/"
 
 # Make bun and start.sh executable
 chmod +x "$APP/Contents/MacOS/bun"
@@ -94,9 +94,33 @@ cat > "$APP/Contents/Info.plist" << PLIST_EOF
 </plist>
 PLIST_EOF
 
-# Create the output zip
-OUTPUT_NAME="pulsarr-${VERSION}-macos-${ARCH}-app.zip"
-zip -qry "$OUTPUT_NAME" "$APP"
+# Create DMG with Applications symlink for drag-to-install UX
+OUTPUT_NAME="pulsarr-${VERSION}-macos-${ARCH}.dmg"
+
+# Check if create-dmg is available
+if command -v create-dmg &> /dev/null; then
+    create-dmg \
+        --volname "Pulsarr" \
+        --window-pos 200 120 \
+        --window-size 600 400 \
+        --icon-size 100 \
+        --icon "Pulsarr.app" 150 185 \
+        --app-drop-link 450 185 \
+        --hide-extension "Pulsarr.app" \
+        "$OUTPUT_NAME" \
+        "$APP"
+else
+    # Fallback: create DMG manually with hdiutil
+    echo "create-dmg not found, using hdiutil fallback..."
+
+    DMG_TEMP="dmg_temp"
+    mkdir -p "$DMG_TEMP"
+    cp -r "$APP" "$DMG_TEMP/"
+    ln -s /Applications "$DMG_TEMP/Applications"
+
+    hdiutil create -volname "Pulsarr" -srcfolder "$DMG_TEMP" -ov -format UDZO "$OUTPUT_NAME"
+    rm -rf "$DMG_TEMP"
+fi
 
 # Clean up .app directory
 rm -rf "$APP"
