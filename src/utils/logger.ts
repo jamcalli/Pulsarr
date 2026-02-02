@@ -231,7 +231,7 @@ function getTerminalOptions(): LoggerOptions {
     transport: {
       target: 'pino-pretty',
       options: {
-        translateTime: 'HH:MM:ss Z',
+        translateTime: 'SYS:yyyy-mm-dd HH:MM:ss Z',
         ignore: 'pid,hostname',
         colorize: true, // Force colors even in Docker
       },
@@ -256,7 +256,7 @@ function getFileOptions(): FileLoggerOptions {
 
   // Create a pretty stream for file output (no colors)
   const prettyFileStream = pretty({
-    translateTime: 'HH:MM:ss Z',
+    translateTime: 'SYS:yyyy-mm-dd HH:MM:ss Z',
     ignore: 'pid,hostname',
     colorize: false, // No colors for file output
     destination: fileStream,
@@ -332,14 +332,14 @@ export function createLoggerConfig(): PulsarrLoggerOptions {
 
     // Create a proper pretty stream for terminal output
     const prettyStream = pretty({
-      translateTime: 'HH:MM:ss Z',
+      translateTime: 'SYS:yyyy-mm-dd HH:MM:ss Z',
       ignore: 'pid,hostname',
       colorize: true, // Force colors even in Docker
     })
 
     // Create a pretty stream for file output (no colors)
     const prettyFileStream = pretty({
-      translateTime: 'HH:MM:ss Z',
+      translateTime: 'SYS:yyyy-mm-dd HH:MM:ss Z',
       ignore: 'pid,hostname',
       colorize: false, // No colors for file output
       destination: fileStream,
