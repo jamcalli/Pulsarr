@@ -707,8 +707,12 @@ export class DatabaseService {
       approval_reason: rule.approval_reason ?? null,
       criteria:
         typeof rule.criteria === 'string'
-          ? this.safeJsonParse(rule.criteria, {}, 'router_rule.criteria')
-          : rule.criteria,
+          ? this.safeJsonParse(
+              rule.criteria,
+              { condition: { operator: 'AND' as const, conditions: [] } },
+              'router_rule.criteria',
+            )
+          : (rule.criteria as { condition: Condition | ConditionGroup }),
       tags:
         typeof rule.tags === 'string'
           ? this.safeJsonParse(rule.tags, [], 'router_rule.tags')

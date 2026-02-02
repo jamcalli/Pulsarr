@@ -4,9 +4,7 @@ import type {
   ContentItem,
   FieldInfo,
   OperatorInfo,
-  RouterRule,
   RoutingContext,
-  RoutingDecision,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
 import type { FastifyInstance } from 'fastify'
@@ -155,104 +153,6 @@ export default function createYearEvaluator(
       return false
     },
 
-    async evaluate(
-      item: ContentItem,
-      _context: RoutingContext,
-      rules: RouterRule[],
-    ): Promise<RoutingDecision[] | null> {
-      if (!item.metadata) {
-        return null
-      }
-
-      const year = extractYear(item.metadata)
-      if (year === undefined) {
-        return null
-      }
-
-      // Rules are already filtered by content-router (by type, target_type, and enabled status)
-      if (rules.length === 0) {
-        return null
-      }
-
-      // Find matching year rules
-      const matchingRules = rules.filter((rule) => {
-        if (!rule.criteria || typeof rule.criteria.year === 'undefined') {
-          return false
-        }
-
-        const ruleYear = rule.criteria.year
-        const operator = rule.criteria.operator || 'equals'
-
-        if (!isValidYearValue(ruleYear)) {
-          return false
-        }
-
-        // Single number comparison
-        if (isNumber(ruleYear)) {
-          switch (operator) {
-            case 'equals':
-              return year === ruleYear
-            case 'notEquals':
-              return year !== ruleYear
-            case 'greaterThan':
-              return year > ruleYear
-            case 'lessThan':
-              return year < ruleYear
-            default:
-              return false
-          }
-        }
-
-        // Array of years
-        if (isNumberArray(ruleYear)) {
-          switch (operator) {
-            case 'in':
-              return ruleYear.includes(year)
-            case 'notIn':
-              return !ruleYear.includes(year)
-            default:
-              return false
-          }
-        }
-
-        // Range object
-        if (isYearRange(ruleYear) && operator === 'between') {
-          const minYear =
-            typeof ruleYear.min === 'number'
-              ? ruleYear.min
-              : Number.NEGATIVE_INFINITY
-          const maxYear =
-            typeof ruleYear.max === 'number'
-              ? ruleYear.max
-              : Number.POSITIVE_INFINITY
-
-          return year >= minYear && year <= maxYear
-        }
-
-        return false
-      })
-
-      if (matchingRules.length === 0) {
-        return null
-      }
-
-      // Convert to routing decisions
-      return matchingRules.map((rule) => ({
-        instanceId: rule.target_instance_id,
-        qualityProfile: rule.quality_profile,
-        rootFolder: rule.root_folder,
-        tags: rule.tags || [],
-        priority: rule.order ?? 50, // Default to 50 if undefined or null
-        searchOnAdd: rule.search_on_add,
-        seasonMonitoring: rule.season_monitoring,
-        seriesType: rule.series_type,
-        monitor: rule.monitor,
-        ruleId: rule.id,
-        ruleName: rule.name,
-      }))
-    },
-
-    // For conditional evaluator support
     evaluateCondition(
       condition: Condition,
       item: ContentItem,
