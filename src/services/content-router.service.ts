@@ -79,7 +79,8 @@ export class ContentRouterService {
       const files = await readdir(evaluatorsDir)
 
       for (const file of files) {
-        if (file.endsWith('.js')) {
+        // Support both .ts (dev mode with Bun) and .js (production build)
+        if (file.endsWith('.js') || file.endsWith('.ts')) {
           try {
             // Import each evaluator file dynamically
             const evaluatorPath = join(evaluatorsDir, file)
@@ -177,12 +178,13 @@ export class ContentRouterService {
       'description' in evaluator &&
       'priority' in evaluator &&
       'canEvaluate' in evaluator &&
-      'evaluate' in evaluator &&
       typeof (evaluator as RoutingEvaluator).name === 'string' &&
       typeof (evaluator as RoutingEvaluator).description === 'string' &&
       typeof (evaluator as RoutingEvaluator).priority === 'number' &&
       typeof (evaluator as RoutingEvaluator).canEvaluate === 'function' &&
-      typeof (evaluator as RoutingEvaluator).evaluate === 'function'
+      // Evaluators must have either evaluate() or evaluateCondition()
+      (typeof (evaluator as RoutingEvaluator).evaluate === 'function' ||
+        typeof (evaluator as RoutingEvaluator).evaluateCondition === 'function')
     )
   }
 
