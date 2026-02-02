@@ -4,9 +4,7 @@ import type {
   ContentItem,
   FieldInfo,
   OperatorInfo,
-  RouterRule,
   RoutingContext,
-  RoutingDecision,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
 import type { FastifyInstance } from 'fastify'
@@ -64,7 +62,7 @@ function isSeasonRange(value: unknown): value is SeasonRange {
  *
  * @returns `true` if the input is a number, an array of numbers, or a season range object; otherwise, `false`.
  */
-function isValidSeasonValue(
+function _isValidSeasonValue(
   value: unknown,
 ): value is number | number[] | SeasonRange {
   return isNumber(value) || isNumberArray(value) || isSeasonRange(value)
@@ -257,64 +255,6 @@ export default function createSeasonEvaluator(
       return context.contentType === 'show' && hasSeasonData(item)
     },
 
-    async evaluate(
-      item: ContentItem,
-      context: RoutingContext,
-      rules: RouterRule[],
-    ): Promise<RoutingDecision[] | null> {
-      // Skip if not a TV show or no season data
-      if (context.contentType !== 'show' || !hasSeasonData(item)) {
-        return null
-      }
-
-      const seasons = extractSeasons(item)
-      if (seasons.length === 0) {
-        return null
-      }
-
-      // Rules are already filtered by content-router (by type, target_type, and enabled status)
-      if (rules.length === 0) {
-        return null
-      }
-
-      // Find matching rules based on season criteria
-      const matchingRules = rules.filter((rule) => {
-        if (!rule.criteria || !('season' in rule.criteria)) {
-          return false
-        }
-
-        const seasonValue = rule.criteria.season
-        const operator = (rule.criteria.operator as string) || 'equals'
-
-        if (!isValidSeasonValue(seasonValue)) {
-          return false
-        }
-
-        // Use the shared helper function to match seasons
-        return matchesSeason(operator, seasonValue, seasons)
-      })
-
-      if (matchingRules.length === 0) {
-        return null
-      }
-
-      // Convert to routing decisions
-      return matchingRules.map((rule) => ({
-        instanceId: rule.target_instance_id,
-        qualityProfile: rule.quality_profile,
-        rootFolder: rule.root_folder,
-        tags: rule.tags || [],
-        priority: rule.order ?? 50, // Default to 50 if undefined or null
-        searchOnAdd: rule.search_on_add,
-        seasonMonitoring: rule.season_monitoring,
-        seriesType: rule.series_type,
-        monitor: rule.monitor,
-        ruleId: rule.id,
-        ruleName: rule.name,
-      }))
-    },
-
-    // For conditional evaluator support
     evaluateCondition(
       condition: Condition,
       item: ContentItem,

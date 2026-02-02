@@ -5,6 +5,7 @@ import {
   SEED_SONARR_INSTANCES,
   seedInstances,
 } from './instances.js'
+import { SEED_ROUTER_RULES, seedRouterRules } from './router-rules.js'
 import { SEED_ADMIN_USERS, SEED_USERS, seedUsers } from './users.js'
 import { SEED_WATCHLIST_ITEMS, seedWatchlist } from './watchlist.js'
 
@@ -18,12 +19,13 @@ export {
   SEED_RADARR_INSTANCES,
   SEED_CONFIGS,
   SEED_WATCHLIST_ITEMS,
+  SEED_ROUTER_RULES,
 }
 
 /**
  * Export individual seed functions
  */
-export { seedUsers, seedInstances, seedConfig, seedWatchlist }
+export { seedUsers, seedInstances, seedConfig, seedWatchlist, seedRouterRules }
 
 /**
  * Seeds all tables with baseline test data
@@ -36,4 +38,5 @@ export async function seedAll(knex: Knex): Promise<void> {
   await seedUsers(knex)
   await seedInstances(knex)
   await seedWatchlist(knex)
+  await seedRouterRules(knex)
 }

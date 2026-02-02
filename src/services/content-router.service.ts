@@ -79,7 +79,8 @@ export class ContentRouterService {
       const files = await readdir(evaluatorsDir)
 
       for (const file of files) {
-        if (file.endsWith('.js')) {
+        // Support both .ts (dev mode with Bun) and .js (production build)
+        if (file.endsWith('.js') || file.endsWith('.ts')) {
           try {
             // Import each evaluator file dynamically
             const evaluatorPath = join(evaluatorsDir, file)
@@ -177,12 +178,13 @@ export class ContentRouterService {
       'description' in evaluator &&
       'priority' in evaluator &&
       'canEvaluate' in evaluator &&
-      'evaluate' in evaluator &&
       typeof (evaluator as RoutingEvaluator).name === 'string' &&
       typeof (evaluator as RoutingEvaluator).description === 'string' &&
       typeof (evaluator as RoutingEvaluator).priority === 'number' &&
       typeof (evaluator as RoutingEvaluator).canEvaluate === 'function' &&
-      typeof (evaluator as RoutingEvaluator).evaluate === 'function'
+      // Evaluators must have either evaluate() or evaluateCondition()
+      (typeof (evaluator as RoutingEvaluator).evaluate === 'function' ||
+        typeof (evaluator as RoutingEvaluator).evaluateCondition === 'function')
     )
   }
 
@@ -627,6 +629,10 @@ export class ContentRouterService {
           )
 
           // Get decisions from this evaluator (pass pre-filtered rules)
+          // Only conditional evaluator implements evaluate(), others only have evaluateCondition()
+          if (!evaluator.evaluate) {
+            continue
+          }
           const decisions = await evaluator.evaluate(
             enrichedItem,
             context,
@@ -1857,15 +1863,24 @@ export class ContentRouterService {
 
       // PRIORITY 1: Router Rules (absolute content policy - always checked first)
       const allRouterRules = await this.getAllRouterRules()
+      const expectedTargetType =
+        context.contentType === 'movie' ? 'radarr' : 'sonarr'
       let quotasBypassedByRule = false
 
       for (const rule of allRouterRules) {
         if (!rule.enabled) continue
+        if (rule.target_type !== expectedTargetType) continue
 
         // Check if this rule matches the current context
         if (rule.criteria && typeof rule.criteria === 'object') {
+          if (!rule.criteria.condition) {
+            this.log.error(
+              `Router rule ${rule.id} ("${rule.name}") has no condition in criteria - skipping`,
+            )
+            continue
+          }
           try {
-            const condition = rule.criteria.condition as ConditionGroup
+            const condition = rule.criteria.condition
             const matches = this.evaluateCondition(condition, item, context)
 
             if (matches) {
@@ -2674,7 +2689,13 @@ export class ContentRouterService {
         try {
           // Evaluate the rule's condition using enriched item
           if (rule.criteria && typeof rule.criteria === 'object') {
-            const condition = rule.criteria.condition as ConditionGroup
+            if (!rule.criteria.condition) {
+              this.log.error(
+                `Router rule ${rule.id} ("${rule.name}") has no condition in criteria - skipping`,
+              )
+              continue
+            }
+            const condition = rule.criteria.condition
             const matches = this.evaluateCondition(
               condition,
               itemForEvaluation,
