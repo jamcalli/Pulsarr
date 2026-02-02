@@ -21,6 +21,18 @@ import {
 describe('ContentRouterService Integration', () => {
   let fastify: FastifyInstance
 
+  // Helper to access private checkApprovalRequirements method
+  const getCheckApproval = () =>
+    (
+      fastify.contentRouter as unknown as {
+        checkApprovalRequirements: (
+          item: ContentItem,
+          context: RoutingContext,
+          decisions: unknown[],
+        ) => Promise<{ required: boolean; reason?: string }>
+      }
+    ).checkApprovalRequirements.bind(fastify.contentRouter)
+
   beforeAll(async () => {
     fastify = await build()
     await fastify.ready()
@@ -80,16 +92,7 @@ describe('ContentRouterService Integration', () => {
         itemKey: 'test-movie-key',
       }
 
-      // Access private method for testing
-      const checkApproval = (
-        fastify.contentRouter as unknown as {
-          checkApprovalRequirements: (
-            item: ContentItem,
-            context: RoutingContext,
-            decisions: unknown[],
-          ) => Promise<{ required: boolean; reason?: string }>
-        }
-      ).checkApprovalRequirements.bind(fastify.contentRouter)
+      const checkApproval = getCheckApproval()
 
       // Drama show should trigger Sonarr approval rule
       const showResult = await checkApproval(dramaShow, showContext, [])
@@ -118,15 +121,7 @@ describe('ContentRouterService Integration', () => {
         itemKey: 'test-show-key',
       }
 
-      const checkApproval = (
-        fastify.contentRouter as unknown as {
-          checkApprovalRequirements: (
-            item: ContentItem,
-            context: RoutingContext,
-            decisions: unknown[],
-          ) => Promise<{ required: boolean; reason?: string }>
-        }
-      ).checkApprovalRequirements.bind(fastify.contentRouter)
+      const checkApproval = getCheckApproval()
 
       // Drama movie should trigger Radarr approval rule
       const movieResult = await checkApproval(dramaMovie, movieContext, [])
@@ -148,15 +143,7 @@ describe('ContentRouterService Integration', () => {
         itemKey: 'test-comedy-key',
       }
 
-      const checkApproval = (
-        fastify.contentRouter as unknown as {
-          checkApprovalRequirements: (
-            item: ContentItem,
-            context: RoutingContext,
-            decisions: unknown[],
-          ) => Promise<{ required: boolean; reason?: string }>
-        }
-      ).checkApprovalRequirements.bind(fastify.contentRouter)
+      const checkApproval = getCheckApproval()
 
       // Comedy movie should not trigger Drama approval rules
       const result = await checkApproval(comedyMovie, movieContext, [])
@@ -178,15 +165,7 @@ describe('ContentRouterService Integration', () => {
         itemKey: 'test-movie-key',
       }
 
-      const checkApproval = (
-        fastify.contentRouter as unknown as {
-          checkApprovalRequirements: (
-            item: ContentItem,
-            context: RoutingContext,
-            decisions: unknown[],
-          ) => Promise<{ required: boolean; reason?: string }>
-        }
-      ).checkApprovalRequirements.bind(fastify.contentRouter)
+      const checkApproval = getCheckApproval()
 
       // No enabled rules should match
       const result = await checkApproval(dramaMovie, movieContext, [])
@@ -195,7 +174,7 @@ describe('ContentRouterService Integration', () => {
   })
 
   describe('evaluator loading', () => {
-    it('should load evaluators with evaluateCondition method', async () => {
+    it('should load evaluators with correct methods', async () => {
       // The service should have loaded evaluators during initialization
       // Access the evaluators array to verify they loaded
       const evaluators = (
@@ -204,25 +183,29 @@ describe('ContentRouterService Integration', () => {
 
       expect(evaluators.length).toBeGreaterThan(0)
 
-      // Verify at least conditional evaluator is loaded (has evaluate method)
-      const hasConditionalEvaluator = evaluators.some(
+      // Verify conditional evaluator is loaded with evaluate() method
+      const conditionalEvaluator = evaluators.find(
         (e: unknown) =>
           typeof e === 'object' &&
           e !== null &&
           'name' in e &&
           (e as { name: string }).name === 'Conditional Router',
-      )
-      expect(hasConditionalEvaluator).toBe(true)
+      ) as { name: string; evaluate?: unknown } | undefined
 
-      // Verify field evaluators are loaded (have evaluateCondition but not evaluate)
-      const hasGenreEvaluator = evaluators.some(
+      expect(conditionalEvaluator).toBeDefined()
+      expect(typeof conditionalEvaluator?.evaluate).toBe('function')
+
+      // Verify field evaluators are loaded with evaluateCondition() method
+      const genreEvaluator = evaluators.find(
         (e: unknown) =>
           typeof e === 'object' &&
           e !== null &&
           'name' in e &&
           (e as { name: string }).name === 'Genre Router',
-      )
-      expect(hasGenreEvaluator).toBe(true)
+      ) as { name: string; evaluateCondition?: unknown } | undefined
+
+      expect(genreEvaluator).toBeDefined()
+      expect(typeof genreEvaluator?.evaluateCondition).toBe('function')
     })
   })
 })
