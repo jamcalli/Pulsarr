@@ -125,11 +125,11 @@ Use **Add or Remove Programs** in Windows Settings, or run the uninstaller from 
 
 ### App Bundle (Recommended)
 
-1. Download `pulsarr-vX.X.X-macos-{arch}-app.zip` from the [latest release](https://github.com/jamcalli/Pulsarr/releases/latest)
+1. Download `pulsarr-vX.X.X-macos-{arch}.dmg` from the [latest release](https://github.com/jamcalli/Pulsarr/releases/latest)
    - **Apple Silicon (M1/M2/M3):** `macos-arm64`
    - **Intel Macs:** `macos-x64`
 
-2. Extract the zip and drag `Pulsarr.app` to `/Applications`
+2. Open the DMG and drag `Pulsarr.app` to the Applications folder
 
 3. Open Terminal and run these commands to allow the app to run:
    ```bash
