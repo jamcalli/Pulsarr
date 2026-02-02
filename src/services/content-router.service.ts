@@ -1871,6 +1871,12 @@ export class ContentRouterService {
 
         // Check if this rule matches the current context
         if (rule.criteria && typeof rule.criteria === 'object') {
+          if (!rule.criteria.condition) {
+            this.log.error(
+              `Router rule ${rule.id} ("${rule.name}") has no condition in criteria - skipping`,
+            )
+            continue
+          }
           try {
             const condition = rule.criteria.condition
             const matches = this.evaluateCondition(condition, item, context)
@@ -2681,6 +2687,12 @@ export class ContentRouterService {
         try {
           // Evaluate the rule's condition using enriched item
           if (rule.criteria && typeof rule.criteria === 'object') {
+            if (!rule.criteria.condition) {
+              this.log.error(
+                `Router rule ${rule.id} ("${rule.name}") has no condition in criteria - skipping`,
+              )
+              continue
+            }
             const condition = rule.criteria.condition
             const matches = this.evaluateCondition(
               condition,
