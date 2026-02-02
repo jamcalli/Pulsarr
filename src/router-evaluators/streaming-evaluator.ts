@@ -3,9 +3,7 @@ import type {
   ContentItem,
   FieldInfo,
   OperatorInfo,
-  RouterRule,
   RoutingContext,
-  RoutingDecision,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
 import type { FastifyInstance } from 'fastify'
@@ -130,95 +128,6 @@ export default function createStreamingEvaluator(
       return !!item.watchProviders
     },
 
-    async evaluate(
-      item: ContentItem,
-      _context: RoutingContext,
-      rules: RouterRule[],
-    ): Promise<RoutingDecision[] | null> {
-      // Skip if no watch provider data available
-      if (!item.watchProviders) {
-        fastify.log.debug(
-          `No watch provider data for "${item.title}", skipping streaming evaluation`,
-        )
-        return null
-      }
-
-      // Rules are already filtered by content-router (by type, target_type, and enabled status)
-      if (rules.length === 0) {
-        return null
-      }
-
-      // Find matching streaming rules
-      const matchingRules = rules.filter((rule) => {
-        if (!rule.criteria || !rule.criteria.streamingServices) {
-          return false
-        }
-
-        const rawProviderIds = rule.criteria.streamingServices
-        const operator = rule.criteria.operator || 'in'
-
-        // Validate the value is a valid type (number or number array)
-        if (!isValidStreamingServicesValue(rawProviderIds)) {
-          fastify.log.warn(
-            `Invalid streamingServices value in rule "${rule.name}": expected number or number array`,
-          )
-          return false
-        }
-
-        // Normalize to array - handle both single number and number array
-        const providerIds = Array.isArray(rawProviderIds)
-          ? rawProviderIds
-          : [rawProviderIds]
-
-        // Check for empty array
-        if (providerIds.length === 0) {
-          fastify.log.warn(
-            `Invalid streamingServices value in rule "${rule.name}": array cannot be empty`,
-          )
-          return false
-        }
-
-        // Apply operator logic
-        switch (operator) {
-          case 'in': {
-            // Content IS available on at least one service
-            return isAvailableOnServices(item, providerIds)
-          }
-
-          case 'notIn': {
-            // Content is NOT available on any service
-            return !isAvailableOnServices(item, providerIds)
-          }
-
-          default:
-            fastify.log.warn(
-              `Unsupported operator "${operator}" for streamingServices in rule "${rule.name}"`,
-            )
-            return false
-        }
-      })
-
-      if (matchingRules.length === 0) {
-        return null
-      }
-
-      // Convert to routing decisions
-      return matchingRules.map((rule) => ({
-        instanceId: rule.target_instance_id,
-        qualityProfile: rule.quality_profile,
-        rootFolder: rule.root_folder,
-        tags: rule.tags || [],
-        priority: rule.order ?? 50, // Default to 50 if undefined or null
-        searchOnAdd: rule.search_on_add,
-        seasonMonitoring: rule.season_monitoring,
-        seriesType: rule.series_type,
-        monitor: rule.monitor,
-        ruleId: rule.id,
-        ruleName: rule.name,
-      }))
-    },
-
-    // For conditional evaluator support
     evaluateCondition(
       condition: Condition,
       item: ContentItem,

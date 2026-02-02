@@ -3,9 +3,7 @@ import type {
   ContentItem,
   FieldInfo,
   OperatorInfo,
-  RouterRule,
   RoutingContext,
-  RoutingDecision,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
 import type { FastifyInstance } from 'fastify'
@@ -170,88 +168,6 @@ export default function createUserEvaluator(
       return !!(context.userId || context.userName)
     },
 
-    async evaluate(
-      _item: ContentItem,
-      context: RoutingContext,
-      rules: RouterRule[],
-    ): Promise<RoutingDecision[] | null> {
-      // Skip if no user information available
-      if (!context.userId && !context.userName) {
-        return null
-      }
-
-      // Rules are already filtered by content-router (by type, target_type, and enabled status)
-      if (rules.length === 0) {
-        return null
-      }
-
-      // Find matching rules based on user criteria - only check 'user' field
-      const matchingRules = rules.filter((rule) => {
-        if (!rule.criteria || !rule.criteria.user) {
-          return false
-        }
-
-        const usersValue = rule.criteria.user
-        const operator = rule.criteria.operator || 'equals'
-
-        // Handle different operator types
-        switch (operator) {
-          case 'equals':
-            return userMatchesExact(
-              context.userId,
-              context.userName,
-              usersValue,
-            )
-
-          case 'notEquals':
-            return !userMatchesExact(
-              context.userId,
-              context.userName,
-              usersValue,
-            )
-
-          case 'in':
-          case 'notIn': {
-            const usersArray = Array.isArray(usersValue)
-              ? usersValue
-              : [usersValue]
-            const userMatched = userInList(
-              context.userId,
-              context.userName,
-              usersArray,
-            )
-            return operator === 'in' ? userMatched : !userMatched
-          }
-
-          case 'regex':
-            return userMatchesRegex(context.userName, usersValue as string)
-
-          default:
-            return false
-        }
-      })
-
-      if (matchingRules.length === 0) {
-        return null
-      }
-
-      // Convert matching rules to routing decisions
-      return matchingRules.map((rule) => ({
-        instanceId: rule.target_instance_id,
-        qualityProfile: rule.quality_profile,
-        rootFolder: rule.root_folder,
-        tags: rule.tags || [],
-        priority: rule.order ?? 50, // Default to 50 if undefined or null
-        searchOnAdd: rule.search_on_add,
-        seasonMonitoring: rule.season_monitoring,
-        seriesType: rule.series_type,
-        monitor: rule.monitor,
-        ruleId: rule.id,
-        ruleName: rule.name,
-      }))
-    },
-
-    // For conditional evaluator support
     evaluateCondition(
       condition: Condition,
       _item: ContentItem,

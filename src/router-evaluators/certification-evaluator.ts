@@ -7,9 +7,7 @@ import type {
   ContentItem,
   FieldInfo,
   OperatorInfo,
-  RouterRule,
   RoutingContext,
-  RoutingDecision,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
 import { evaluateRegexSafely } from '@utils/regex-safety.js'
@@ -130,117 +128,6 @@ export default function createCertificationEvaluator(
       return hasCertificationData(item)
     },
 
-    async evaluate(
-      item: ContentItem,
-      _context: RoutingContext,
-      rules: RouterRule[],
-    ): Promise<RoutingDecision[] | null> {
-      if (!hasCertificationData(item)) {
-        return null
-      }
-
-      const certification = extractCertification(item)
-      if (!certification) {
-        return null
-      }
-
-      // Rules are already filtered by content-router (by type, target_type, and enabled status)
-      if (rules.length === 0) {
-        return null
-      }
-
-      // Find matching certification rules - only check 'certification' field
-      const matchingRules = rules.filter((rule) => {
-        if (!rule.criteria || !rule.criteria.certification) {
-          return false
-        }
-
-        const ruleCertification = rule.criteria.certification
-        const operator = rule.criteria.operator || 'equals'
-
-        // Normalize certification for comparison
-        const normalizedCertification = certification.toUpperCase()
-
-        // Support array form for 'in' and 'notIn' operators only
-        if (Array.isArray(ruleCertification)) {
-          switch (operator) {
-            case 'in':
-              return ruleCertification.some(
-                (cert) =>
-                  typeof cert === 'string' &&
-                  normalizedCertification === cert.toUpperCase(),
-              )
-            case 'notIn':
-              return !ruleCertification.some(
-                (cert) =>
-                  typeof cert === 'string' &&
-                  normalizedCertification === cert.toUpperCase(),
-              )
-            default:
-              // Reject invalid operator + array combinations
-              fastify.log.warn(
-                `Invalid operator '${operator}' used with array in certification rule`,
-              )
-              return false
-          }
-        }
-
-        // Ensure the criterion value is a non-empty string for direct comparison
-        if (
-          typeof ruleCertification !== 'string' ||
-          ruleCertification.trim() === ''
-        ) {
-          return false
-        }
-
-        const normalizedRuleCertification = ruleCertification.toUpperCase()
-
-        // Handle string operators
-        switch (operator) {
-          case 'equals':
-            return normalizedCertification === normalizedRuleCertification
-          case 'notEquals':
-            return normalizedCertification !== normalizedRuleCertification
-          case 'contains':
-            return normalizedCertification.includes(normalizedRuleCertification)
-          case 'notContains':
-            return !normalizedCertification.includes(
-              normalizedRuleCertification,
-            )
-          case 'regex':
-            return evaluateRegexSafely(
-              ruleCertification,
-              certification,
-              fastify.log,
-              'certification rule',
-            )
-          default:
-            // Default to equals for backward compatibility
-            return normalizedCertification === normalizedRuleCertification
-        }
-      })
-
-      if (matchingRules.length === 0) {
-        return null
-      }
-
-      // Convert to routing decisions
-      return matchingRules.map((rule) => ({
-        instanceId: rule.target_instance_id,
-        qualityProfile: rule.quality_profile,
-        rootFolder: rule.root_folder,
-        tags: rule.tags || [],
-        priority: rule.order ?? 50, // Default to 50 if undefined or null
-        searchOnAdd: rule.search_on_add,
-        seasonMonitoring: rule.season_monitoring,
-        seriesType: rule.series_type,
-        monitor: rule.monitor,
-        ruleId: rule.id,
-        ruleName: rule.name,
-      }))
-    },
-
-    // For conditional evaluator support
     evaluateCondition(
       condition: Condition,
       item: ContentItem,
