@@ -165,7 +165,7 @@ export class LogStreamingService {
     }
   }
 
-  // Regex to match pino-pretty format: [HH:MM:ss TZ] LEVEL: message
+  // Regex to extract log level from pino-pretty format: [timestamp] LEVEL: message
   // Captures the level name after ] and before :
   private static readonly LOG_LEVEL_REGEX =
     /]\s*(TRACE|DEBUG|INFO|WARN|ERROR|FATAL):/i

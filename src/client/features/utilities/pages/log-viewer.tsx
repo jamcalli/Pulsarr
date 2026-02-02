@@ -56,11 +56,12 @@ const LOG_LEVEL_COLORS: Record<string, string> = {
   FATAL: 'text-white bg-red-500 px-0.5 rounded-sm', // bgRed
 }
 
-// Regex to match pino-pretty format: [HH:MM:ss TZ] LEVEL: [MODULE] message
+// Regex to match pino-pretty format: [yyyy-mm-dd HH:MM:ss TZ] LEVEL: [MODULE] message
 // Groups: 1=timestamp, 2=level, 3=colon, 4=rest (module + message)
 // Case-insensitive to match backend LOG_LEVEL_REGEX
+// Flexible timestamp matching to support various formats (with/without date, timezone)
 const LOG_LINE_REGEX =
-  /^(\[[\d:]+\s+\w+\])\s*(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)(:)\s*(.*)/i
+  /^(\[[^\]]+\])\s*(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)(:)\s*(.*)/i
 
 // Regex to extract module name like [PLEX_SESSION_MONITOR] from message
 // Includes digits to support names like [PLEX2]
