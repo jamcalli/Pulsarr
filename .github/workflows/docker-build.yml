@@ -103,6 +103,8 @@ jobs:
         with:
           images: |
             lakker/pulsarr
+          flavor: |
+            latest=false
           tags: |
             type=semver,pattern={{version}},suffix=-node
             type=semver,pattern={{major}}.{{minor}},suffix=-node
