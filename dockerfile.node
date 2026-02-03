@@ -26,7 +26,7 @@ RUN cat package.json.bak \
 
 # Install dependencies (npm will download better-sqlite3 prebuilts)
 RUN --mount=type=cache,target=/root/.npm \
-    npm install
+    HUSKY=0 npm install
 
 # Copy build configuration and source
 COPY vite.config.js tsconfig.json postcss.config.mjs ./

@@ -26,21 +26,21 @@ categories:
 
 autolabeler:
   - label: 'feature'
-    branch:
-      - '/^feature\//'
+    title:
+      - '/^feat(\(.+\))?:/'
   - label: 'fix'
-    branch:
-      - '/^fix\//'
+    title:
+      - '/^fix(\(.+\))?:/'
   - label: 'chore'
-    branch:
-      - '/^chore\//'
-      - '/^refactor\//'
+    title:
+      - '/^chore(\(.+\))?:/'
+      - '/^refactor(\(.+\))?:/'
   - label: 'documentation'
-    branch:
-      - '/^docs\//'
+    title:
+      - '/^docs(\(.+\))?:/'
   - label: 'performance'
-    branch:
-      - '/^perf\//'
+    title:
+      - '/^perf(\(.+\))?:/'
   - label: 'dependencies'
     branch:
       - '/^renovate\//'
