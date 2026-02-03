@@ -76,6 +76,11 @@ template: |
   docker pull lakker/pulsarr:$RESOLVED_VERSION
   ```
 
+  **Synology NAS / Legacy Systems** (Linux kernel < 4.11):
+  ```
+  docker pull lakker/pulsarr:$RESOLVED_VERSION-node
+  ```
+
   ## Contributors
   
   $CONTRIBUTORS
