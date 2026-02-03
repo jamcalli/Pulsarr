@@ -54,7 +54,11 @@ curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/ins
 #### Uninstalling
 
 ```bash
+# Uninstall but keep data
 curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh | sudo bash -s -- --uninstall
+
+# Uninstall and delete all data
+curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh | sudo bash -s -- --purge
 ```
 
 #### Data Locations
