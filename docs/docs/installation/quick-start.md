@@ -130,7 +130,7 @@ Standalone builds with easy installers are available for Linux, macOS, and Windo
 
 | Platform | Recommended Method |
 |----------|-------------------|
-| **Linux** | One-line installer: `curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/main/scripts/installers/linux/install.sh \| sudo bash` |
+| **Linux** | One-line installer: `curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh \| sudo bash` |
 | **Windows** | Download and run `pulsarr-vX.X.X-windows-x64-setup.exe` |
 | **macOS** | Download `pulsarr-vX.X.X-macos-{arch}.dmg` and drag Pulsarr to Applications |
 
