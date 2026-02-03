@@ -1,0 +1,90 @@
+# =============================================================================
+# Node.js Docker image for Synology/legacy kernel compatibility
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Stage 1: Build with Node.js
+# -----------------------------------------------------------------------------
+FROM node:24.13.0-alpine@sha256:931d7d57f8c1fd0e2179dbff7cc7da4c9dd100998bc2b32afc85142d8efbc213 AS builder
+WORKDIR /app
+
+ARG TMDBAPIKEY
+ENV CACHE_DIR=/app/build-cache
+ENV tmdbApiKey=${TMDBAPIKEY}
+
+# Transform package.json for Node.js:
+# - Replace bun:sqlite shim with real better-sqlite3
+# - Replace bun commands with npm/node equivalents
+COPY package.json ./package.json.bak
+RUN cat package.json.bak \
+    | sed 's|"file:packages/better-sqlite3-bun"|"12.6.2"|' \
+    | sed 's|bun run build:server|npm run build:server|g' \
+    | sed 's|bun run clean:client|npm run clean:client|g' \
+    | sed 's|bun run --bun vite build|vite build|g' \
+    | sed 's|bun run --bun|npx tsx|g' \
+    > package.json
+
+# Install dependencies (npm will download better-sqlite3 prebuilts)
+RUN --mount=type=cache,target=/root/.npm \
+    HUSKY=0 npm install
+
+# Copy build configuration and source
+COPY vite.config.js tsconfig.json postcss.config.mjs ./
+COPY src ./src
+
+# Build the application
+RUN --mount=type=cache,target=/app/node_modules/.vite \
+    npm run build
+
+# Prune to production deps only, but keep tsx for migrations
+RUN npm prune --omit=dev && \
+    npm install tsx@4.19.4 --save-prod && \
+    mkdir -p ${CACHE_DIR}
+
+# -----------------------------------------------------------------------------
+# Stage 2: Final runtime image - Node.js only
+# -----------------------------------------------------------------------------
+FROM node:24.13.0-alpine@sha256:931d7d57f8c1fd0e2179dbff7cc7da4c9dd100998bc2b32afc85142d8efbc213
+WORKDIR /app
+
+# wget for healthcheck
+RUN apk add --no-cache wget
+
+ENV CACHE_DIR=/app/build-cache
+
+# Copy package.json (original, for reference)
+COPY package.json ./
+
+# Production dependencies from builder (includes real better-sqlite3)
+COPY --from=builder /app/node_modules ./node_modules
+
+# Create necessary directories
+RUN mkdir -p /app/data/db && \
+    mkdir -p /app/data/log && \
+    mkdir -p ${CACHE_DIR}
+
+# Copy build artifacts
+COPY --from=builder /app/dist ./dist
+COPY migrations ./migrations
+COPY docker-entrypoint.node.sh ./docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh
+COPY docker-healthcheck.sh ./
+RUN chmod +x docker-healthcheck.sh
+
+# Copy license and documentation files for compliance
+COPY LICENSE* ./
+COPY README.md ./
+
+ARG TMDBAPIKEY
+
+ENV NODE_ENV=production
+ENV tmdbApiKey=${TMDBAPIKEY}
+
+VOLUME ["/app/build-cache"]
+VOLUME ["/app/data"]
+EXPOSE 3003
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD ./docker-healthcheck.sh
+
+CMD ["./docker-entrypoint.sh"]
