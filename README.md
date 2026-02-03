@@ -74,6 +74,8 @@ docker compose pull && docker compose up -d
 
 4. Access the web UI at `http://your-server:3003` to complete setup.
 
+> **Synology NAS / Legacy Systems:** If you're running on a Synology NAS or a system with Linux kernel < 4.11, use `lakker/pulsarr:node` instead. This alternative image uses Node.js runtime instead of Bun, avoiding kernel compatibility issues. Both images are functionally identical.
+
 
 ### Native Installation
 
