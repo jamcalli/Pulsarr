@@ -1448,7 +1448,8 @@ export class SonarrService {
         this.log.debug(
           `Tag "${label}" already exists in Sonarr – skipping creation`,
         )
-        // Fetch the existing tag so we can return its id
+        // Invalidate cache and fetch fresh to find the existing tag
+        this.invalidateTagsCache()
         const existing = (await this.getTags()).find((t) => t.label === label)
         if (existing) return existing
       }
