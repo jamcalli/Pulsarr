@@ -22,6 +22,7 @@ const sidebars: SidebarsConfig = {
       label: 'Installation',
       items: [
         'installation/quick-start',
+        'installation/native-installation',
         'installation/configuration',
         'installation/sonarr-configuration',
         'installation/radarr-configuration',
