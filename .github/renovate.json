@@ -4,18 +4,10 @@
     "config:recommended",
     "security:openssf-scorecard"
   ],
+  "dockerfile": {
+    "fileMatch": ["^dockerfile\\.node$"]
+  },
   "customManagers": [
-    {
-      "customType": "regex",
-      "description": "Update Node.js version in dockerfile.node",
-      "fileMatch": ["^dockerfile\\.node$"],
-      "matchStrings": [
-        "FROM node:(?<currentValue>[\\d.]+)-alpine"
-      ],
-      "depNameTemplate": "node",
-      "datasourceTemplate": "node-version",
-      "versioningTemplate": "node"
-    },
     {
       "customType": "regex",
       "description": "Update better-sqlite3 version in dockerfile.node",
