@@ -278,15 +278,24 @@ uninstall() {
         userdel "$APP_USER" 2>/dev/null || true
     fi
 
-    # Ask about data
+    # Handle data directory
     if [[ -d "$INSTALL_DIR" ]]; then
-        echo ""
-        read -r -p "Delete application data (${INSTALL_DIR})? [y/N] " response < /dev/tty
-        if [[ "$response" =~ ^[Yy]$ ]]; then
+        if [[ "${PURGE:-false}" == "true" ]]; then
             info "Removing ${INSTALL_DIR}..."
             rm -rf "$INSTALL_DIR"
+        elif [[ -t 0 ]] && [[ -e /dev/tty ]]; then
+            # Interactive mode - ask user
+            echo ""
+            read -r -p "Delete application data (${INSTALL_DIR})? [y/N] " response < /dev/tty
+            if [[ "$response" =~ ^[Yy]$ ]]; then
+                info "Removing ${INSTALL_DIR}..."
+                rm -rf "$INSTALL_DIR"
+            else
+                info "Keeping ${INSTALL_DIR} (you can remove it manually later)"
+            fi
         else
-            info "Keeping ${INSTALL_DIR} (you can remove it manually later)"
+            # Non-interactive mode - keep data by default
+            info "Keeping ${INSTALL_DIR} (use --purge to remove, or delete manually)"
         fi
     fi
 
@@ -380,11 +389,15 @@ main() {
         --uninstall|-u)
             uninstall
             ;;
+        --purge)
+            PURGE=true uninstall
+            ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --uninstall, -u    Uninstall ${APP_NAME}"
+            echo "  --uninstall, -u    Uninstall ${APP_NAME} (keeps data)"
+            echo "  --purge            Uninstall and delete all data"
             echo "  --help, -h         Show this help message"
             echo ""
             echo "Install:"
