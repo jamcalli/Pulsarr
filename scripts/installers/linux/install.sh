@@ -3,7 +3,7 @@
 ### Installs Pulsarr to /opt/pulsarr with systemd service
 ###
 ### Usage:
-###   curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/main/scripts/installers/linux/install.sh | sudo bash
+###   curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh | sudo bash
 ###   ./install.sh --uninstall
 ###
 ### Boilerplate Warning
@@ -388,7 +388,7 @@ main() {
             echo "  --help, -h         Show this help message"
             echo ""
             echo "Install:"
-            echo "  curl -fsSL https://raw.githubusercontent.com/${GITHUB_REPO}/main/scripts/installers/linux/install.sh | sudo bash"
+            echo "  curl -fsSL https://raw.githubusercontent.com/${GITHUB_REPO}/master/scripts/installers/linux/install.sh | sudo bash"
             ;;
         "")
             install

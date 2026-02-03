@@ -11,7 +11,7 @@ Pulsarr provides native builds for Linux, macOS, and Windows — no Docker or ru
 ### One-Line Installer (Recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/main/scripts/installers/linux/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh | sudo bash
 ```
 
 This script:
@@ -48,13 +48,13 @@ sudo systemctl restart pulsarr
 Re-run the install script — it preserves your `.env` and `data/` directory:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/main/scripts/installers/linux/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh | sudo bash
 ```
 
 #### Uninstalling
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/main/scripts/installers/linux/install.sh | sudo bash -s -- --uninstall
+curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh | sudo bash -s -- --uninstall
 ```
 
 #### Data Locations
