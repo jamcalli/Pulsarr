@@ -532,20 +532,24 @@ for (const platform of PLATFORMS) {
     const expectedLine = checksums
       .split('\n')
       .find((line) => line.includes(`${platform.bunArchive}.zip`))
-    if (expectedLine) {
-      const expectedHash = expectedLine.split(/\s+/)[0]
-      const fileBuffer = readFileSync(bunTmp)
-      const hasher = new Bun.CryptoHasher('sha256')
-      hasher.update(fileBuffer)
-      const actualHash = hasher.digest('hex')
-      if (actualHash !== expectedHash) {
-        rmSync(bunTmp, { force: true })
-        throw new Error(
-          `Checksum mismatch for ${platform.bunArchive}.zip: expected ${expectedHash}, got ${actualHash}`,
-        )
-      }
-      console.log(`      Checksum verified for ${platform.bunArchive}.zip`)
+    if (!expectedLine) {
+      rmSync(bunTmp, { force: true })
+      throw new Error(
+        `Checksum entry not found for ${platform.bunArchive}.zip in SHASUMS256.txt`,
+      )
     }
+    const expectedHash = expectedLine.split(/\s+/)[0]
+    const fileBuffer = readFileSync(bunTmp)
+    const hasher = new Bun.CryptoHasher('sha256')
+    hasher.update(fileBuffer)
+    const actualHash = hasher.digest('hex')
+    if (actualHash !== expectedHash) {
+      rmSync(bunTmp, { force: true })
+      throw new Error(
+        `Checksum mismatch for ${platform.bunArchive}.zip: expected ${expectedHash}, got ${actualHash}`,
+      )
+    }
+    console.log(`      Checksum verified for ${platform.bunArchive}.zip`)
   }
 
   // Extract just the binary
