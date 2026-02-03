@@ -120,20 +120,14 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/update-user-password",
-          label: "Update user password",
-          className: "api-method put",
-        },
-        {
-          type: "doc",
           id: "api/check-auth",
           label: "Check authentication status",
           className: "api-method get",
         },
         {
           type: "doc",
-          id: "api/create-admin-user",
-          label: "Create admin user",
+          id: "api/logout-user",
+          label: "User logout",
           className: "api-method post",
         },
         {
@@ -144,9 +138,15 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/logout-user",
-          label: "User logout",
+          id: "api/create-admin-user",
+          label: "Create admin user",
           className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/update-user-password",
+          label: "Update user password",
+          className: "api-method put",
         },
       ],
     },
@@ -358,9 +358,9 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/discover-plex-servers",
-          label: "Discover Plex servers",
-          className: "api-method post",
+          id: "api/get-self-watchlist-items",
+          label: "Get self watchlist items",
+          className: "api-method get",
         },
         {
           type: "doc",
@@ -370,9 +370,15 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-watchlist-genres",
-          label: "Get watchlist genres",
-          className: "api-method get",
+          id: "api/discover-plex-servers",
+          label: "Discover Plex servers",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/remove-plex-notifications",
+          label: "Remove Plex notifications",
+          className: "api-method delete",
         },
         {
           type: "doc",
@@ -382,14 +388,8 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-others-watchlist-tokens",
-          label: "Get others watchlist tokens",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/parse-rss-watchlists",
-          label: "Parse RSS watchlists",
+          id: "api/ping-plex",
+          label: "Test Plex server connection",
           className: "api-method get",
         },
         {
@@ -406,20 +406,20 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/ping-plex",
-          label: "Test Plex server connection",
+          id: "api/parse-rss-watchlists",
+          label: "Parse RSS watchlists",
           className: "api-method get",
         },
         {
           type: "doc",
-          id: "api/remove-plex-notifications",
-          label: "Remove Plex notifications",
-          className: "api-method delete",
+          id: "api/get-others-watchlist-tokens",
+          label: "Get others watchlist tokens",
+          className: "api-method get",
         },
         {
           type: "doc",
-          id: "api/get-self-watchlist-items",
-          label: "Get self watchlist items",
+          id: "api/get-watchlist-genres",
+          label: "Get watchlist genres",
           className: "api-method get",
         },
       ],
@@ -538,15 +538,9 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/create-radarr-tag",
-          label: "Create Radarr tag",
+          id: "api/test-radarr-connection",
+          label: "Test Radarr connection",
           className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/get-radarr-quality-profiles",
-          label: "Get Radarr quality profiles",
-          className: "api-method get",
         },
         {
           type: "doc",
@@ -574,9 +568,9 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-radarr-root-folders",
-          label: "Get Radarr root folders",
-          className: "api-method get",
+          id: "api/create-radarr-tag",
+          label: "Create Radarr tag",
+          className: "api-method post",
         },
         {
           type: "doc",
@@ -586,9 +580,15 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/test-radarr-connection",
-          label: "Test Radarr connection",
-          className: "api-method post",
+          id: "api/get-radarr-quality-profiles",
+          label: "Get Radarr quality profiles",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-radarr-root-folders",
+          label: "Get Radarr root folders",
+          className: "api-method get",
         },
       ],
     },
@@ -706,20 +706,26 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
+          id: "api/test-sonarr-connection",
+          label: "Test Sonarr connection",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
           id: "api/create-sonarr-tag",
           label: "Create Sonarr tag",
           className: "api-method post",
         },
         {
           type: "doc",
-          id: "api/get-sonarr-quality-profiles",
-          label: "Get Sonarr quality profiles",
+          id: "api/get-sonarr-tags",
+          label: "Get Sonarr tags",
           className: "api-method get",
         },
         {
           type: "doc",
-          id: "api/get-sonarr-root-folders",
-          label: "Get Sonarr root folders",
+          id: "api/get-sonarr-quality-profiles",
+          label: "Get Sonarr quality profiles",
           className: "api-method get",
         },
         {
@@ -748,15 +754,9 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-sonarr-tags",
-          label: "Get Sonarr tags",
+          id: "api/get-sonarr-root-folders",
+          label: "Get Sonarr root folders",
           className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/test-sonarr-connection",
-          label: "Test Sonarr connection",
-          className: "api-method post",
         },
       ],
     },
@@ -936,14 +936,14 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/sync-tautulli-notifiers",
-          label: "Sync user notifiers",
+          id: "api/test-tautulli-connection-with-credentials",
+          label: "Test Tautulli connection with provided credentials",
           className: "api-method post",
         },
         {
           type: "doc",
-          id: "api/test-tautulli-connection-with-credentials",
-          label: "Test Tautulli connection with provided credentials",
+          id: "api/sync-tautulli-notifiers",
+          label: "Sync user notifiers",
           className: "api-method post",
         },
         {
@@ -1010,8 +1010,8 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-current-user",
-          label: "Get current user information",
+          id: "api/get-user-watchlist",
+          label: "Get user watchlist items",
           className: "api-method get",
         },
         {
@@ -1024,6 +1024,12 @@ const sidebar: SidebarsConfig = {
           type: "doc",
           id: "api/get-users-with-counts",
           label: "Get users with watchlist counts",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-current-user",
+          label: "Get current user information",
           className: "api-method get",
         },
         {
@@ -1042,12 +1048,6 @@ const sidebar: SidebarsConfig = {
           type: "doc",
           id: "api/get-user-by-id",
           label: "Get user by ID",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-user-watchlist",
-          label: "Get user watchlist items",
           className: "api-method get",
         },
       ],
