@@ -4,6 +4,39 @@
     "config:recommended",
     "security:openssf-scorecard"
   ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update Node.js version in dockerfile.node",
+      "fileMatch": ["^dockerfile\\.node$"],
+      "matchStrings": [
+        "FROM node:(?<currentValue>[\\d.]+)-alpine"
+      ],
+      "depNameTemplate": "node",
+      "datasourceTemplate": "node-version",
+      "versioningTemplate": "node"
+    },
+    {
+      "customType": "regex",
+      "description": "Update better-sqlite3 version in dockerfile.node",
+      "fileMatch": ["^dockerfile\\.node$"],
+      "matchStrings": [
+        "better-sqlite3-bun\"\\|\"(?<currentValue>[\\d.]+)\"\\|"
+      ],
+      "depNameTemplate": "better-sqlite3",
+      "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "description": "Update tsx version in dockerfile.node",
+      "fileMatch": ["^dockerfile\\.node$"],
+      "matchStrings": [
+        "tsx@(?<currentValue>[^\\s]+)"
+      ],
+      "depNameTemplate": "tsx",
+      "datasourceTemplate": "npm"
+    }
+  ],
   "baseBranchPatterns": [
     "develop"
   ],
