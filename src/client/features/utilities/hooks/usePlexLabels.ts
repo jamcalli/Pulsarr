@@ -214,8 +214,6 @@ export function usePlexLabels() {
           loading: { ...state.loading, plexLabels: false },
         }))
 
-        // WORKAROUND: Reset form to clear dirty state caused by Date object recreation
-        // This matches the pattern used in Delete Sync form to prevent dirty state on load
         setTimeout(() => {
           form.reset(form.getValues(), { keepDirty: false })
         }, 0)

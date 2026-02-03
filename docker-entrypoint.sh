@@ -5,8 +5,8 @@ set -eu
 
 # Run migrations
 echo "Running database migrations..."
-npm run migrate
+bun run --bun migrations/migrate.ts
 
 # Start the application
 echo "Starting application..."
-exec node dist/server.js "$@"
+exec bun run --bun dist/server.js "$@"

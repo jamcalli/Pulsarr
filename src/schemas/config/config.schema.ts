@@ -132,7 +132,7 @@ export const ConfigFullSchema = z.object({
   updated_at: z.string(), // ISO timestamp from database
   // System Config (from database)
   baseUrl: z.string().optional(),
-  port: z.number().optional(),
+  port: z.number().int().min(1).max(65535).optional(),
   dbPath: z.string().optional(),
   cookieSecret: z.string().optional(),
   cookieName: z.string().optional(),
@@ -291,7 +291,8 @@ export const ConfigFullSchema = z.object({
 // Schema for config updates (PUT) - all fields optional for partial updates
 export const ConfigUpdateSchema = z
   .object({
-    port: z.number().optional(),
+    baseUrl: HttpUrlOptionalSchema,
+    port: z.number().int().min(1).max(65535).optional(),
     dbPath: z.string().optional(),
     cookieSecret: z.string().optional(),
     cookieName: z.string().optional(),
@@ -489,7 +490,6 @@ export const ConfigUpdateSchema = z
     tagUsersInRadarr: z.boolean().optional(),
     cleanupOrphanedTags: z.boolean().optional(),
     tagPrefix: TagPrefixSchema.optional(),
-    // Note: removedTagMode and removedTagPrefix already exist above for delete sync compatibility
     // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
     tagMigration: z
       .object({

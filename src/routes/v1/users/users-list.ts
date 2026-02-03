@@ -26,7 +26,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const dbUsers = await fastify.db.getAllUsers()
 
-        // Transform the users to match the schema exactly
         const users = dbUsers.map((user) => ({
           id: user.id,
           name: user.name,
@@ -40,6 +39,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           tautulli_notifier_id: user.tautulli_notifier_id,
           can_sync: user.can_sync,
           requires_approval: user.requires_approval ?? false,
+          is_primary_token: user.is_primary_token ?? false,
           created_at: user.created_at ?? new Date().toISOString(),
           updated_at: user.updated_at ?? new Date().toISOString(),
         }))
@@ -97,6 +97,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           tautulli_notifier_id: user.tautulli_notifier_id,
           can_sync: user.can_sync,
           requires_approval: user.requires_approval ?? false,
+          is_primary_token: user.is_primary_token ?? false,
           created_at: user.created_at ?? new Date().toISOString(),
           updated_at: user.updated_at ?? new Date().toISOString(),
           watchlist_count: user.watchlist_count,

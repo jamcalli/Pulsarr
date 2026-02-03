@@ -5,7 +5,7 @@
 
   ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?style=flat-square)
   ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
-  ![Node](https://img.shields.io/badge/node-24%20LTS-green?style=flat-square)
+  ![Bun](https://img.shields.io/badge/bun-%3E%3D1.3-green?style=flat-square)
   ![Status](https://img.shields.io/badge/status-early--release-orange?style=flat-square)
   [![Discord](https://img.shields.io/discord/1407082466958774313?label=Discord&logo=discord&style=flat-square)](https://discord.gg/9csTEJn5cR)
   ![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
@@ -28,6 +28,7 @@ Features include multi-user watchlist sync, intelligent content routing, approva
 Full documentation is available at: **[https://jamcalli.github.io/Pulsarr/](https://jamcalli.github.io/Pulsarr/)**
 
 - [Quick Start Guide](https://jamcalli.github.io/Pulsarr/docs/installation/quick-start)
+- [Native Installation](https://jamcalli.github.io/Pulsarr/docs/installation/native-installation)
 - [Configuration](https://jamcalli.github.io/Pulsarr/docs/installation/configuration)
 - [Discord Setup & Commands](https://jamcalli.github.io/Pulsarr/docs/notifications/discord)
 - [Features & Guides](https://jamcalli.github.io/Pulsarr/docs/intro)
@@ -46,15 +47,6 @@ Our REST API is fully documented and accessible in two ways:
 
 1. Create a `.env` file:
 ```env
-# ⚠️ CRITICAL: Pulsarr's address as seen from Sonarr/Radarr containers (for webhooks)
-# This MUST be reachable from your *arr containers or webhooks will fail!
-# Examples:
-#   http://pulsarr         - Docker Compose (same network, use service name)
-#   http://localhost       - Host networking
-#   http://192.168.1.x     - Separate machines (use Pulsarr host's IP)
-baseUrl=http://your-server-ip
-port=3003                       # External port for webhook URLs (default: 3003)
-
 # Your timezone
 TZ=America/Los_Angeles
 ```
@@ -83,7 +75,17 @@ docker compose pull && docker compose up -d
 4. Access the web UI at `http://your-server:3003` to complete setup.
 
 
-For detailed installation options, including Unraid, manual installation, and PostgreSQL setup, see the [documentation](https://jamcalli.github.io/Pulsarr/docs/installation/quick-start).
+### Native Installation
+
+Standalone builds with easy installers are available for Linux, macOS, and Windows — no Docker or runtime install required.
+
+| Platform | Install Method |
+|----------|---------------|
+| **Linux** | `curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/main/scripts/installers/linux/install.sh \| sudo bash` |
+| **Windows** | Download and run `pulsarr-vX.X.X-windows-x64-setup.exe` from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest) |
+| **macOS** | Download `pulsarr-vX.X.X-macos-{arch}.dmg` from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest) |
+
+See the [Native Installation Guide](https://jamcalli.github.io/Pulsarr/docs/installation/native-installation) for detailed instructions, service management, and manual options.
 
 ### Database Options
 

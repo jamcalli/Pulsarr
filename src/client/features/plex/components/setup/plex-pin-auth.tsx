@@ -81,10 +81,10 @@ export function PlexPinAuth({
   if (status === 'error' || status === 'expired') {
     return (
       <div className="flex flex-col items-center gap-4 py-6">
-        <Alert variant="error" className="text-black">
-          <AlertCircle className="h-4 w-4 text-black" />
-          <AlertTitle className="text-black">Error</AlertTitle>
-          <AlertDescription className="text-black">{error}</AlertDescription>
+        <Alert variant="error">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
         <Button variant="neutral" onClick={reset}>
           <RefreshCw className="mr-2 h-4 w-4" />

@@ -463,7 +463,7 @@ async function main() {
     console.log(`
 SQLite to PostgreSQL Migration Script
 
-Usage: tsx migrate-to-postgres.ts [OPTIONS]
+Usage: bun migrate-to-postgres.ts [OPTIONS]
 
 Options:
   --verbose, -v      Enable verbose output

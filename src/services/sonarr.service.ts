@@ -20,6 +20,7 @@ import {
   isSonarrStatus,
   isSystemStatus,
 } from '@root/types/system-status.types.js'
+import { parseArrErrorMessage } from '@utils/arr-error.js'
 import {
   extractSonarrId,
   extractTvdbId,
@@ -81,13 +82,13 @@ export class SonarrService {
     const cause = error.cause as { code?: string } | undefined
     const code = cause?.code
     if (error.name === 'AbortError' || code === 'ABORT_ERR') {
-      return 'Connection timeout. Please check your base URL and network connection.'
+      return 'Connection timeout. Please check your Sonarr URL and network connection.'
     }
     if (code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
       return 'Connection refused. Please check if Sonarr is running and the URL is correct.'
     }
     if (code === 'ENOTFOUND' || error.message.includes('ENOTFOUND')) {
-      return 'Server not found. Please check your base URL.'
+      return 'Server not found. Please check your Sonarr URL.'
     }
     if (code === 'ETIMEDOUT' || error.message.includes('ETIMEDOUT')) {
       return 'Connection timeout. Please check your network and firewall settings.'
@@ -95,7 +96,7 @@ export class SonarrService {
     if (code === 'ECONNRESET' || error.message.includes('ECONNRESET')) {
       return 'Connection was reset. Please check your network stability.'
     }
-    return 'Network error. Please check your connection and base URL.'
+    return 'Network error. Please check your connection and Sonarr URL.'
   }
 
   private get sonarrConfig(): SonarrConfiguration {
@@ -103,6 +104,24 @@ export class SonarrService {
       throw new Error('Sonarr service not initialized')
     }
     return this.config
+  }
+
+  /**
+   * Generates a unique webhook name for this Pulsarr instance.
+   * Format: "Pulsarr (hostname:port)" for HTTP, "Pulsarr (hostname)" for HTTPS
+   * This allows multiple Pulsarr instances to create webhooks on the same Sonarr.
+   */
+  private getWebhookName(): string {
+    try {
+      const url = new URL(this.appBaseUrl)
+      const isHttps = url.protocol === 'https:'
+      // For HTTPS, just hostname (port 443 implied). For HTTP, include port.
+      const identifier = isHttps ? url.hostname : `${url.hostname}:${this.port}`
+      return `Pulsarr (${identifier})`
+    } catch {
+      // Fallback if URL parsing fails
+      return `Pulsarr (unknown:${this.port})`
+    }
   }
 
   private constructWebhookUrl(): string {
@@ -154,32 +173,27 @@ export class SonarrService {
 
     try {
       const expectedWebhookUrl = this.constructWebhookUrl()
+      const webhookName = this.getWebhookName()
       this.log.info(
-        `Credentials verified, attempting to setup webhook with URL for Sonarr: ${expectedWebhookUrl}`,
+        `Credentials verified, attempting to setup webhook "${webhookName}" with URL for Sonarr: ${expectedWebhookUrl}`,
       )
 
       const existingWebhooks =
         await this.getFromSonarr<WebhookNotification[]>('notification')
 
-      // Only delete webhooks for THIS instance (matching URL) to avoid
-      // removing webhooks from other Pulsarr instances pointing to same Sonarr
-      const webhooksForThisInstance = existingWebhooks.filter(
+      // Find webhook with NEW format name (already migrated or fresh install)
+      const newFormatWebhook = existingWebhooks.find(
+        (hook) => hook.name === webhookName,
+      )
+
+      // Find LEGACY "Pulsarr" webhook with matching URL (needs migration)
+      const legacyWebhook = existingWebhooks.find(
         (hook) =>
           hook.name === 'Pulsarr' &&
           hook.fields?.some(
             (f) => f.name === 'url' && f.value === expectedWebhookUrl,
           ),
       )
-
-      if (webhooksForThisInstance.length > 0) {
-        this.log.debug(
-          { count: webhooksForThisInstance.length },
-          'Recreating Pulsarr webhook(s) to ensure config is current',
-        )
-        for (const hook of webhooksForThisInstance) {
-          await this.deleteNotification(hook.id)
-        }
-      }
 
       const webhookConfig = {
         onGrab: false,
@@ -209,7 +223,7 @@ export class SonarrService {
         supportsOnHealthRestored: true,
         supportsOnApplicationUpdate: true,
         supportsOnManualInteractionRequired: true,
-        name: 'Pulsarr',
+        name: webhookName,
         fields: [
           {
             order: 0,
@@ -249,44 +263,64 @@ export class SonarrService {
       }
 
       try {
-        const response = await this.postToSonarr('notification', webhookConfig)
-        this.log.info(
-          `Successfully created Pulsarr webhook with URL for Sonarr: ${expectedWebhookUrl}`,
-        )
-        this.log.debug({ response }, 'Webhook creation response')
+        if (newFormatWebhook) {
+          // Already using new format - delete and recreate to ensure config is current
+          this.log.debug(
+            { webhookId: newFormatWebhook.id },
+            'Recreating existing Pulsarr webhook to ensure config is current',
+          )
+          await this.deleteNotification(newFormatWebhook.id)
+          // Clean up any orphaned legacy webhook with matching URL
+          if (legacyWebhook) {
+            this.log.debug(
+              { webhookId: legacyWebhook.id },
+              'Cleaning up orphaned legacy Pulsarr webhook',
+            )
+            await this.deleteNotification(legacyWebhook.id)
+          }
+          await this.postToSonarr('notification', webhookConfig)
+          this.log.info(
+            `Successfully updated Pulsarr webhook "${webhookName}" for Sonarr`,
+          )
+        } else if (legacyWebhook) {
+          // Migrate from legacy "Pulsarr" to new format with unique name
+          this.log.info(
+            { webhookId: legacyWebhook.id },
+            'Migrating legacy "Pulsarr" webhook to new naming format',
+          )
+          await this.deleteNotification(legacyWebhook.id)
+          await this.postToSonarr('notification', webhookConfig)
+          this.log.info(
+            `Successfully migrated Pulsarr webhook to "${webhookName}" for Sonarr`,
+          )
+        } else {
+          // Fresh install - create new webhook
+          const response = await this.postToSonarr(
+            'notification',
+            webhookConfig,
+          )
+          this.log.info(
+            `Successfully created Pulsarr webhook "${webhookName}" for Sonarr: ${expectedWebhookUrl}`,
+          )
+          this.log.debug({ response }, 'Webhook creation response')
+        }
       } catch (createError) {
-        this.log.error(
-          { error: createError, endpoint: 'notification' },
-          'Error creating webhook for Sonarr (config omitted)',
-        )
-
         let errorMessage = 'Failed to create webhook'
         if (createError instanceof HttpError) {
-          // Use the status code from our custom error
-          if (createError.status === 401) {
-            errorMessage =
-              'Authentication failed while creating webhook. Check API key permissions.'
-          } else if (createError.status === 404) {
-            errorMessage =
-              'Notification API endpoint not found. Check Sonarr version.'
-          } else if (createError.status === 500) {
-            errorMessage =
-              'Sonarr internal error while creating webhook. Check Sonarr logs.'
-          } else {
-            errorMessage = `Failed to create webhook: ${createError.message}`
-          }
-        } else if (createError instanceof Error) {
           errorMessage = `Failed to create webhook: ${createError.message}`
-        }
-
-        if (createError instanceof HttpError) {
           throw new HttpError(errorMessage, createError.status)
+        }
+        if (createError instanceof Error) {
+          errorMessage = `Failed to create webhook: ${createError.message}`
         }
         throw new Error(errorMessage, { cause: createError })
       }
       this.webhookInitialized = true
     } catch (error) {
-      this.log.error({ error }, 'Failed to setup webhook for Sonarr')
+      // Preserve HttpError instances to maintain status - don't log, let caller handle
+      if (error instanceof HttpError) {
+        throw error
+      }
 
       let errorMessage = 'Failed to setup webhook'
       if (error instanceof Error) {
@@ -299,15 +333,27 @@ export class SonarrService {
 
   async removeWebhook(): Promise<void> {
     try {
+      const webhookName = this.getWebhookName()
+      const expectedWebhookUrl = this.constructWebhookUrl()
       const existingWebhooks =
         await this.getFromSonarr<WebhookNotification[]>('notification')
-      const pulsarrWebhook = existingWebhooks.find(
-        (hook) => hook.name === 'Pulsarr',
+
+      // Find webhook with new format name OR legacy "Pulsarr" name with matching URL
+      // URL matching for legacy webhooks prevents deleting other instances' webhooks
+      const pulsarrWebhooks = existingWebhooks.filter(
+        (hook) =>
+          hook.name === webhookName ||
+          (hook.name === 'Pulsarr' &&
+            hook.fields?.some(
+              (f) => f.name === 'url' && f.value === expectedWebhookUrl,
+            )),
       )
 
-      if (pulsarrWebhook) {
-        await this.deleteNotification(pulsarrWebhook.id)
-        this.log.info('Successfully removed Pulsarr webhook for Sonarr')
+      for (const webhook of pulsarrWebhooks) {
+        await this.deleteNotification(webhook.id)
+        this.log.info(
+          `Successfully removed Pulsarr webhook "${webhook.name}" for Sonarr`,
+        )
       }
     } catch (error) {
       this.log.error({ error }, 'Failed to remove webhook for Sonarr')
@@ -320,36 +366,20 @@ export class SonarrService {
   }
 
   async initialize(instance: SonarrInstance): Promise<void> {
-    try {
-      if (!instance.baseUrl || !instance.apiKey) {
-        throw new Error(
-          'Invalid Sonarr configuration: baseUrl and apiKey are required',
-        )
-      }
+    if (!instance.baseUrl || !instance.apiKey) {
+      throw new Error(
+        'Invalid Sonarr configuration: baseUrl and apiKey are required',
+      )
+    }
 
-      // Store the instance ID for caching purposes
-      this.instanceId = instance.id
+    // Store the instance ID for caching purposes
+    this.instanceId = instance.id
 
-      // Skip webhook setup for placeholder credentials
-      if (instance.apiKey === 'placeholder') {
-        this.log.info(
-          `Basic initialization only for ${instance.name} (placeholder credentials)`,
-        )
-        this.config = {
-          sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
-          sonarrApiKey: instance.apiKey,
-          sonarrQualityProfileId: instance.qualityProfile || null,
-          sonarrLanguageProfileId: 1,
-          sonarrRootFolder: instance.rootFolder || null,
-          sonarrTagIds: instance.tags,
-          sonarrSeasonMonitoring: instance.seasonMonitoring,
-          sonarrMonitorNewItems: instance.monitorNewItems || 'all',
-          sonarrSeriesType: instance.seriesType || 'standard',
-          createSeasonFolders: instance.createSeasonFolders,
-        }
-        return
-      }
-
+    // Skip webhook setup for placeholder credentials
+    if (instance.apiKey === 'placeholder') {
+      this.log.info(
+        `Basic initialization only for ${instance.name} (placeholder credentials)`,
+      )
       this.config = {
         sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
         sonarrApiKey: instance.apiKey,
@@ -359,36 +389,44 @@ export class SonarrService {
         sonarrTagIds: instance.tags,
         sonarrSeasonMonitoring: instance.seasonMonitoring,
         sonarrMonitorNewItems: instance.monitorNewItems || 'all',
-        searchOnAdd:
-          instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
         sonarrSeriesType: instance.seriesType || 'standard',
         createSeasonFolders: instance.createSeasonFolders,
       }
+      return
+    }
 
-      this.log.debug(
-        `Successfully initialized base Sonarr service for ${instance.name}`,
-      )
+    this.config = {
+      sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
+      sonarrApiKey: instance.apiKey,
+      sonarrQualityProfileId: instance.qualityProfile || null,
+      sonarrLanguageProfileId: 1,
+      sonarrRootFolder: instance.rootFolder || null,
+      sonarrTagIds: instance.tags,
+      sonarrSeasonMonitoring: instance.seasonMonitoring,
+      sonarrMonitorNewItems: instance.monitorNewItems || 'all',
+      searchOnAdd:
+        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+      sonarrSeriesType: instance.seriesType || 'standard',
+      createSeasonFolders: instance.createSeasonFolders,
+    }
 
-      if (this.fastify.server.listening) {
-        await this.setupWebhook()
-      } else {
-        this.fastify.server.prependOnceListener('listening', async () => {
-          try {
-            await this.setupWebhook()
-          } catch (error) {
-            this.log.error(
-              { error, instanceName: instance.name },
-              'Failed to setup webhook after server start for Sonarr',
-            )
-          }
-        })
-      }
-    } catch (error) {
-      this.log.error(
-        { error, instanceName: instance.name },
-        'Failed to initialize Sonarr service',
-      )
-      throw error
+    this.log.debug(
+      `Successfully initialized base Sonarr service for ${instance.name}`,
+    )
+
+    if (this.fastify.server.listening) {
+      await this.setupWebhook()
+    } else {
+      this.fastify.server.prependOnceListener('listening', async () => {
+        try {
+          await this.setupWebhook()
+        } catch (error) {
+          this.log.error(
+            { error, instanceName: instance.name },
+            'Failed to setup webhook after server start for Sonarr',
+          )
+        }
+      })
     }
   }
 
@@ -440,7 +478,7 @@ export class SonarrService {
       } catch (_urlError) {
         return {
           success: false,
-          message: 'Invalid URL format. Please check your base URL.',
+          message: 'Invalid URL format. Please check your Sonarr URL.',
         }
       }
 
@@ -466,7 +504,8 @@ export class SonarrService {
         }
         return {
           success: false,
-          message: 'Network error. Please check your connection and base URL.',
+          message:
+            'Network error. Please check your connection and Sonarr URL.',
         }
       }
 
@@ -480,8 +519,7 @@ export class SonarrService {
         if (response.status === 404) {
           return {
             success: false,
-            message:
-              'API endpoint not found. Please check your base URL and ensure it points to Sonarr.',
+            message: 'API endpoint not found. Please check your Sonarr URL.',
           }
         }
         return {
@@ -569,7 +607,7 @@ export class SonarrService {
         if (error.message.includes('Invalid URL')) {
           return {
             success: false,
-            message: 'Invalid URL format. Please check your base URL.',
+            message: 'Invalid URL format. Please check your Sonarr URL.',
           }
         }
         // Use the shared error mapping
@@ -1104,9 +1142,10 @@ export class SonarrService {
     if (!response.ok) {
       let errorDetail = response.statusText
       try {
-        const errorData = (await response.json()) as { message?: string }
-        if (errorData.message) {
-          errorDetail = errorData.message
+        const errorData = await response.json()
+        const parsed = parseArrErrorMessage(errorData)
+        if (parsed) {
+          errorDetail = parsed
         }
       } catch {}
 
@@ -1148,9 +1187,10 @@ export class SonarrService {
       if (!response.ok) {
         let errorDetail = response.statusText
         try {
-          const errorData = (await response.json()) as { message?: string }
-          if (errorData.message) {
-            errorDetail = errorData.message
+          const errorData = await response.json()
+          const parsed = parseArrErrorMessage(errorData)
+          if (parsed) {
+            errorDetail = parsed
           }
         } catch {}
 
@@ -1403,14 +1443,13 @@ export class SonarrService {
 
       return result
     } catch (err) {
-      if (
-        err instanceof Error &&
-        /409/.test(err.message) // Sonarr returns 409 Conflict if the tag exists
-      ) {
+      // Sonarr returns 409 Conflict if the tag already exists
+      if (err instanceof HttpError && err.status === 409) {
         this.log.debug(
           `Tag "${label}" already exists in Sonarr – skipping creation`,
         )
-        // Fetch the existing tag so we can return its id
+        // Invalidate cache and fetch fresh to find the existing tag
+        this.invalidateTagsCache()
         const existing = (await this.getTags()).find((t) => t.label === label)
         if (existing) return existing
       }
@@ -1547,12 +1586,20 @@ export class SonarrService {
     if (!response.ok) {
       let errorDetail = response.statusText
       try {
-        const errorData = await response.text()
-        if (errorData) {
-          errorDetail = `${response.statusText} - ${errorData}`
+        const errorData = await response.json()
+        const parsed = parseArrErrorMessage(errorData)
+        if (parsed) {
+          errorDetail = parsed
         }
       } catch {}
-      throw new Error(`Sonarr API error (${response.status}): ${errorDetail}`)
+
+      if (response.status === 401) {
+        throw new HttpError('Authentication failed. Check API key.', 401)
+      }
+      if (response.status === 404) {
+        throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
+      }
+      throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
     }
 
     // Some endpoints return 204 No Content
@@ -1583,9 +1630,10 @@ export class SonarrService {
     if (!response.ok) {
       let errorDetail = response.statusText
       try {
-        const errorData = (await response.json()) as { message?: string }
-        if (errorData.message) {
-          errorDetail = errorData.message
+        const errorData = await response.json()
+        const parsed = parseArrErrorMessage(errorData)
+        if (parsed) {
+          errorDetail = parsed
         }
       } catch {}
 

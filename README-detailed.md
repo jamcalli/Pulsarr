@@ -5,7 +5,7 @@
 
   ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?style=flat-square)
   ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
-  ![Node](https://img.shields.io/badge/node-24%20LTS-green?style=flat-square)
+  ![Bun](https://img.shields.io/badge/bun-%3E%3D1.3-green?style=flat-square)
   ![Status](https://img.shields.io/badge/status-early--release-orange?style=flat-square)
   ![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
   ![Docker Image Size](https://img.shields.io/docker/image-size/lakker/pulsarr?style=flat-square)
@@ -188,7 +188,7 @@ Alternatively, you can use the Docker Installation method described above.
 #### Manual Installation
 
 **Prerequisites**
-- Node.js 22 LTS or higher (for local build)
+- Bun 1.3 or higher (for local build) — install from [bun.sh](https://bun.sh)
 
 ```bash
 # Clone the repository
@@ -197,16 +197,16 @@ git clone https://github.com/jamcalli/Pulsarr.git
 cd Pulsarr
 
 # Install dependencies
-npm install
+bun install
 
 # Build the server
-npm run build
+bun run build
 
 # Run Migrations
-npm run migrate
+bun run migrate
 
 # Start the server
-npm run start:prod
+bun run start:prod
 ```
 
 **Important**: When building from source, you **must** provide your own TMDB API Read Access Token for metadata features. 
@@ -216,6 +216,22 @@ npm run start:prod
 3. Add to your `.env` file: `tmdbApiKey=your_read_access_token_here`
 
 For more details, see the environment variables documentation.
+
+#### Native Installation
+
+Standalone builds are available for Linux, macOS, and Windows — no Docker or runtime install required.
+
+1. Download the zip for your platform from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest).
+2. Extract, copy `.env.example` to `.env`, and edit your settings.
+3. Run `./start.sh` (Linux/macOS) or `start.bat` (Windows).
+4. Access the web UI at `http://localhost:3003` to complete setup.
+
+Each zip includes a bundled Bun runtime and platform-specific service install scripts:
+- **Linux**: systemd unit file example in the included README
+- **macOS**: launchd plist example in the included README
+- **Windows**: `install-service.bat` / `uninstall-service.bat` for Windows Service management
+
+To update, stop the service, extract the new release over the same directory (`.env` and `data/` are preserved), and restart. Migrations run automatically on startup.
 
 ### Initial Setup
 
@@ -461,11 +477,11 @@ The `.env` file is required for the initial setup and contains essential configu
 
 | Variable | Description | Required? | Default |
 |----------|-------------|-----------|---------|
-| `baseUrl` | Base URL where Pulsarr can be reached by Sonarr/Radarr (e.g., `http://pulsarr` for Docker network or `http://your-server-ip`) | Yes | `http://localhost` |
-| `port` | External port for webhook URL generation (what Sonarr/Radarr use to call back). Combined with baseUrl. | Yes | `3003` |
+| `baseUrl` | Base URL where Pulsarr can be reached by Sonarr/Radarr (e.g., `http://pulsarr` for Docker network or `http://your-server-ip`) | No (UI configurable) | `http://localhost` |
+| `port` | External port for webhook URL generation (what Sonarr/Radarr use to call back). Combined with baseUrl. | No (UI configurable) | `3003` |
 | `listenPort` | Internal port the server binds to. Docker users should use port mapping instead (e.g., `8080:3003`). | No | `3003` |
 
-> **Note**: For examples showing how `baseUrl`, `port`, and `listenPort` work together (Docker and bare metal), see the [Configuration documentation](https://jamcalli.github.io/Pulsarr/docs/installation/configuration).
+> **Note**: The `baseUrl` and `port` settings are automatically configurable via the web UI. When testing Sonarr/Radarr connections, if Pulsarr detects a webhook callback error, it will prompt you to configure the correct network settings. For advanced examples showing how these work together (Docker and bare metal), see the [Configuration documentation](https://jamcalli.github.io/Pulsarr/docs/installation/configuration).
 
 | `TZ` | Your local timezone (e.g., America/New_York, Europe/London) | Yes | `UTC` |
 | `logLevel` | Logging level (silent, fatal, error, warn, info, debug, trace) | Recommended | `info` |
@@ -479,19 +495,19 @@ The `.env` file is required for the initial setup and contains essential configu
 Here is how your .env should look:
 
 ```env
-# Required settings
-baseUrl=http://your-server-ip   # External address where Pulsarr can be reached (for webhook URLs)
-port=3003                       # External port for webhook URL generation
-# listenPort=3003               # Internal port (default: 3003, rarely needs changing)
-TZ=America/Los_Angeles          # Set to your local timezone
-
 # Recommended settings
+TZ=America/Los_Angeles          # Set to your local timezone
 logLevel=info                   # Default is 'info'
 enableConsoleOutput=true        # Show logs in terminal (default: true)
-enableRequestLogging=false       # Enable HTTP request logging (default: false)
+enableRequestLogging=false      # Enable HTTP request logging (default: false)
 
 # Optional settings
 cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
+
+# Network settings (optional - configurable via UI when testing Sonarr/Radarr connections)
+# baseUrl=http://your-server-ip # External address where Pulsarr can be reached (for webhook URLs)
+# port=3003                     # External port for webhook URL generation
+# listenPort=3003               # Internal port (default: 3003, rarely needs changing)
 
 # Only needed if using Apprise
 # appriseUrl=http://apprise:8000  # URL to your Apprise container
@@ -532,9 +548,9 @@ When using `requiredExceptLocal`, connections from the following private IP rang
 Below is an example of a complete development environment configuration:
 
 ```
-# Server Configuration
-baseUrl=http://x.x.x.x                 # External address where Pulsarr can be reached (for webhook URLs)
-port=3003                              # External port for webhook URL generation
+# Server Configuration (baseUrl and port are UI configurable, but can be set here for dev)
+# baseUrl=http://x.x.x.x               # External address where Pulsarr can be reached (for webhook URLs)
+# port=3003                            # External port for webhook URL generation
 # listenPort=3003                      # Internal port (default: 3003, rarely needs changing)
 dbPath=./data/db/pulsarr.db            # SQLite database location
 cookieSecret=xxxxxxxxxxxxxxxxxxxxxxxx  # Secret key for cookies (randomly generated by default)
@@ -872,7 +888,7 @@ We welcome contributions to Pulsarr! This section outlines the process for contr
 3. **Write Tests**: If applicable, write tests for your changes.
 
 4. **Ensure Code Quality**:
-   - Run linting tools (npm run fix to run biome)
+   - Run linting tools (bun run fix to run biome)
    - Ensure tests pass (these are coming!)
    - Follow the existing code style
 

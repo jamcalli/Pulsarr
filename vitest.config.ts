@@ -11,7 +11,6 @@ export default defineConfig({
       NODE_ENV: 'test',
     },
     // Vitest v4: poolOptions removed, options moved to top level
-    execArgv: ['--import', 'tsx'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

@@ -125,8 +125,8 @@ export default function PlexConfigurationPage() {
 
   // Get user data to compute watchlist counts
   const users = useConfigStore((state) => state.users)
-  const selfWatchlist = users?.find((user) => Number(user.id) === 1)
-  const otherUsers = users?.filter((user) => Number(user.id) !== 1) || []
+  const selfWatchlist = users?.find((user) => user.is_primary_token)
+  const otherUsers = users?.filter((user) => !user.is_primary_token) || []
   const othersTotal = otherUsers.reduce(
     (acc, user) => acc + (user.watchlist_count || 0),
     0,

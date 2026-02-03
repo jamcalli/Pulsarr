@@ -88,7 +88,6 @@ export async function createApiKey(
           'code' in error &&
           error.code === 'SQLITE_CONSTRAINT' &&
           error.message.includes('UNIQUE')) ||
-        // Fallback: Check message for UNIQUE constraint failures
         (error instanceof Error &&
           error.message.includes('UNIQUE constraint failed'))
 
