@@ -52,9 +52,17 @@ jobs:
 
       - name: Clean old API docs
         run: npm --prefix docs run docusaurus clean-api-docs pulsarr
+        env:
+          ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
+          ALGOLIA_SEARCH_API_KEY: ${{ secrets.ALGOLIA_SEARCH_API_KEY }}
+          ALGOLIA_INDEX_NAME: ${{ secrets.ALGOLIA_INDEX_NAME }}
 
       - name: Generate fresh API docs
         run: npm --prefix docs run docusaurus gen-api-docs pulsarr
+        env:
+          ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
+          ALGOLIA_SEARCH_API_KEY: ${{ secrets.ALGOLIA_SEARCH_API_KEY }}
+          ALGOLIA_INDEX_NAME: ${{ secrets.ALGOLIA_INDEX_NAME }}
 
       - name: Format generated files
         run: bun run fix
@@ -85,6 +93,8 @@ jobs:
 
       - name: Deploy to GitHub Pages
         run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
           cd docs
           npm run deploy
         env:
