@@ -10,7 +10,7 @@ Pulsarr is a modern full-stack TypeScript application built for reliability and 
 
 | Technology | Purpose |
 |------------|---------|
-| **Node.js 24 LTS** | JavaScript runtime |
+| **Bun** | JavaScript/TypeScript runtime |
 | **Fastify** | High-performance HTTP server with plugin ecosystem |
 | **TypeScript** | Full type safety across server and client |
 | **Knex.js** | Query builder and migrations for SQLite/PostgreSQL |

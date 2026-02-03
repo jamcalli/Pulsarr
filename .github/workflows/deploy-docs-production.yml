@@ -9,7 +9,7 @@ on:
       - 'src/**'  # OpenAPI generation depends on source files
       - 'scripts/**'  # Build scripts
       - 'package.json'
-      - 'package-lock.json'
+      - 'bun.lock'
       - '.github/workflows/deploy-docs-production.yml'
 
 permissions:
@@ -25,23 +25,59 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         with:
           fetch-depth: 0 # Needed for proper git history
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2
+        with:
+          bun-version-file: ".bun-version"
 
       - name: Setup Node.js
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
 
       - name: Install root dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Install docs dependencies
         run: |
           cd docs
           npm ci
 
-      - name: Generate OpenAPI spec and build documentation
-        run: npm run docs:build
+      - name: Generate OpenAPI spec
+        run: bun run openapi:generate
+
+      - name: Clean old API docs
+        run: npm --prefix docs run docusaurus clean-api-docs pulsarr
+
+      - name: Generate fresh API docs
+        run: npm --prefix docs run docusaurus gen-api-docs pulsarr
+
+      - name: Format generated files
+        run: bun run fix
+
+      - name: Commit generated API docs
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/
+          if git diff --staged --quiet; then
+            echo "No changes to API docs"
+          else
+            git commit -m "chore(docs): regenerate OpenAPI docs [skip ci]"
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+            git push
+          fi
+
+      - name: Build documentation
+        run: |
+          cd docs
+          npm run build
         env:
           ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
           ALGOLIA_SEARCH_API_KEY: ${{ secrets.ALGOLIA_SEARCH_API_KEY }}
@@ -49,8 +85,6 @@ jobs:
 
       - name: Deploy to GitHub Pages
         run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
           cd docs
           npm run deploy
         env:
@@ -60,3 +94,14 @@ jobs:
           ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
           ALGOLIA_SEARCH_API_KEY: ${{ secrets.ALGOLIA_SEARCH_API_KEY }}
           ALGOLIA_INDEX_NAME: ${{ secrets.ALGOLIA_INDEX_NAME }}
+
+      - name: Trigger Algolia reindex
+        env:
+          ALGOLIA_CRAWLER_ID: ${{ secrets.ALGOLIA_CRAWLER_ID }}
+          ALGOLIA_CRAWLER_USER_ID: ${{ secrets.ALGOLIA_CRAWLER_USER_ID }}
+          ALGOLIA_CRAWLER_API_KEY: ${{ secrets.ALGOLIA_CRAWLER_API_KEY }}
+        run: |
+          curl -X POST "https://crawler.algolia.com/api/1/crawlers/${ALGOLIA_CRAWLER_ID}/reindex" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Basic $(echo -n "${ALGOLIA_CRAWLER_USER_ID}:${ALGOLIA_CRAWLER_API_KEY}" | base64 -w 0)"
+        continue-on-error: true

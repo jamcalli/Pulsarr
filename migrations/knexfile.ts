@@ -8,18 +8,30 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..')
 
+// Support dataDir env var for split directory installations (Windows/macOS installers)
+// When set, .env and data files are loaded from this directory instead of project root
+const dataDir = process.env.dataDir
+
 // Load environment variables before anything else
-dotenv.config({ path: resolve(projectRoot, '.env'), quiet: true })
+// Use dataDir if set (Windows installer), otherwise use project root
+dotenv.config({
+  path: dataDir ? resolve(dataDir, '.env') : resolve(projectRoot, '.env'),
+  quiet: true,
+})
 
 /**
- * Ensures that the database directory exists at `data/db` within the project root, creating it if necessary.
+ * Ensures that the database directory exists, creating it if necessary.
+ * Uses dataDir/db if dataDir is set (Windows installer), otherwise uses projectRoot/data/db.
  *
  * @returns The absolute path to the database directory.
  *
  * @remark If the directory cannot be created, the process will terminate with an error.
  */
 function ensureDbDirectory() {
-  const dbDirectory = resolve(projectRoot, 'data', 'db')
+  // Use dataDir/db for installers, projectRoot/data/db for development/Docker
+  const dbDirectory = dataDir
+    ? resolve(dataDir, 'db')
+    : resolve(projectRoot, 'data', 'db')
   try {
     if (!fs.existsSync(dbDirectory)) {
       fs.mkdirSync(dbDirectory, { recursive: true })

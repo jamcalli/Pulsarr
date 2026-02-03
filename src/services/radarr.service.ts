@@ -21,6 +21,7 @@ import {
   isRadarrStatus,
   isSystemStatus,
 } from '@root/types/system-status.types.js'
+import { parseArrErrorMessage } from '@utils/arr-error.js'
 import {
   extractRadarrId,
   extractTmdbId,
@@ -81,13 +82,13 @@ export class RadarrService {
     const cause = error.cause as { code?: string } | undefined
     const code = cause?.code
     if (error.name === 'AbortError' || code === 'ABORT_ERR') {
-      return 'Connection timeout. Please check your base URL and network connection.'
+      return 'Connection timeout. Please check your Radarr URL and network connection.'
     }
     if (code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
       return 'Connection refused. Please check if Radarr is running and the URL is correct.'
     }
     if (code === 'ENOTFOUND' || error.message.includes('ENOTFOUND')) {
-      return 'Server not found. Please check your base URL.'
+      return 'Server not found. Please check your Radarr URL.'
     }
     if (code === 'ETIMEDOUT' || error.message.includes('ETIMEDOUT')) {
       return 'Connection timeout. Please check your network and firewall settings.'
@@ -95,7 +96,7 @@ export class RadarrService {
     if (code === 'ECONNRESET' || error.message.includes('ECONNRESET')) {
       return 'Connection was reset. Please check your network stability.'
     }
-    return 'Network error. Please check your connection and base URL.'
+    return 'Network error. Please check your connection and Radarr URL.'
   }
 
   private get radarrConfig(): RadarrConfiguration {
@@ -103,6 +104,24 @@ export class RadarrService {
       throw new Error('Radarr service not initialized')
     }
     return this.config
+  }
+
+  /**
+   * Generates a unique webhook name for this Pulsarr instance.
+   * Format: "Pulsarr (hostname:port)" for HTTP, "Pulsarr (hostname)" for HTTPS
+   * This allows multiple Pulsarr instances to create webhooks on the same Radarr.
+   */
+  private getWebhookName(): string {
+    try {
+      const url = new URL(this.appBaseUrl)
+      const isHttps = url.protocol === 'https:'
+      // For HTTPS, just hostname (port 443 implied). For HTTP, include port.
+      const identifier = isHttps ? url.hostname : `${url.hostname}:${this.port}`
+      return `Pulsarr (${identifier})`
+    } catch {
+      // Fallback if URL parsing fails
+      return `Pulsarr (unknown:${this.port})`
+    }
   }
 
   private constructWebhookUrl(): string {
@@ -154,32 +173,27 @@ export class RadarrService {
 
     try {
       const expectedWebhookUrl = this.constructWebhookUrl()
+      const webhookName = this.getWebhookName()
       this.log.info(
-        `Credentials verified, attempting to setup webhook with URL for Radarr: ${expectedWebhookUrl}`,
+        `Credentials verified, attempting to setup webhook "${webhookName}" with URL for Radarr: ${expectedWebhookUrl}`,
       )
 
       const existingWebhooks =
         await this.getFromRadarr<WebhookNotification[]>('notification')
 
-      // Only delete webhooks for THIS instance (matching URL) to avoid
-      // removing webhooks from other Pulsarr instances pointing to same Radarr
-      const webhooksForThisInstance = existingWebhooks.filter(
+      // Find webhook with NEW format name (already migrated or fresh install)
+      const newFormatWebhook = existingWebhooks.find(
+        (hook) => hook.name === webhookName,
+      )
+
+      // Find LEGACY "Pulsarr" webhook with matching URL (needs migration)
+      const legacyWebhook = existingWebhooks.find(
         (hook) =>
           hook.name === 'Pulsarr' &&
           hook.fields?.some(
             (f) => f.name === 'url' && f.value === expectedWebhookUrl,
           ),
       )
-
-      if (webhooksForThisInstance.length > 0) {
-        this.log.debug(
-          { count: webhooksForThisInstance.length },
-          'Recreating Pulsarr webhook(s) to ensure config is current',
-        )
-        for (const hook of webhooksForThisInstance) {
-          await this.deleteNotification(hook.id)
-        }
-      }
 
       const webhookConfig = {
         onGrab: false,
@@ -207,7 +221,7 @@ export class RadarrService {
         supportsOnHealthRestored: true,
         supportsOnApplicationUpdate: true,
         supportsOnManualInteractionRequired: true,
-        name: 'Pulsarr',
+        name: webhookName,
         fields: [
           {
             order: 0,
@@ -286,48 +300,68 @@ export class RadarrService {
       }
 
       try {
-        const response = await this.postToRadarr('notification', webhookConfig)
-        this.log.info(
-          `Successfully created Pulsarr webhook with URL for Radarr: ${expectedWebhookUrl}`,
-        )
-        this.log.debug(
-          { response: response },
-          'Webhook creation response for Radarr:',
-        )
+        if (newFormatWebhook) {
+          // Already using new format - delete and recreate to ensure config is current
+          this.log.debug(
+            { webhookId: newFormatWebhook.id },
+            'Recreating existing Pulsarr webhook to ensure config is current',
+          )
+          await this.deleteNotification(newFormatWebhook.id)
+          // Clean up any orphaned legacy webhook with matching URL
+          if (legacyWebhook) {
+            this.log.debug(
+              { webhookId: legacyWebhook.id },
+              'Cleaning up orphaned legacy Pulsarr webhook',
+            )
+            await this.deleteNotification(legacyWebhook.id)
+          }
+          await this.postToRadarr('notification', webhookConfig)
+          this.log.info(
+            `Successfully updated Pulsarr webhook "${webhookName}" for Radarr`,
+          )
+        } else if (legacyWebhook) {
+          // Migrate from legacy "Pulsarr" to new format with unique name
+          this.log.info(
+            { webhookId: legacyWebhook.id },
+            'Migrating legacy "Pulsarr" webhook to new naming format',
+          )
+          await this.deleteNotification(legacyWebhook.id)
+          await this.postToRadarr('notification', webhookConfig)
+          this.log.info(
+            `Successfully migrated Pulsarr webhook to "${webhookName}" for Radarr`,
+          )
+        } else {
+          // Fresh install - create new webhook
+          const response = await this.postToRadarr(
+            'notification',
+            webhookConfig,
+          )
+          this.log.info(
+            `Successfully created Pulsarr webhook "${webhookName}" for Radarr: ${expectedWebhookUrl}`,
+          )
+          this.log.debug(
+            { response: response },
+            'Webhook creation response for Radarr:',
+          )
+        }
       } catch (createError) {
-        this.log.error(
-          { error: createError, endpoint: 'notification' },
-          'Error creating webhook for Radarr (config omitted)',
-        )
-
         let errorMessage = 'Failed to create webhook'
         if (createError instanceof HttpError) {
-          // Use the status code from our custom error
-          if (createError.status === 401) {
-            errorMessage =
-              'Authentication failed while creating webhook. Check API key permissions.'
-          } else if (createError.status === 404) {
-            errorMessage =
-              'Notification API endpoint not found. Check Radarr version.'
-          } else if (createError.status === 500) {
-            errorMessage =
-              'Radarr internal error while creating webhook. Check Radarr logs.'
-          } else {
-            errorMessage = `Failed to create webhook: ${createError.message}`
-          }
-        } else if (createError instanceof Error) {
           errorMessage = `Failed to create webhook: ${createError.message}`
-        }
-
-        if (createError instanceof HttpError) {
           throw new HttpError(errorMessage, createError.status)
+        }
+        if (createError instanceof Error) {
+          errorMessage = `Failed to create webhook: ${createError.message}`
         }
         throw new Error(errorMessage, { cause: createError })
       }
 
       this.webhookInitialized = true
     } catch (error) {
-      this.log.error({ error }, 'Failed to setup webhook for Radarr')
+      // Preserve HttpError instances to maintain status - don't log, let caller handle
+      if (error instanceof HttpError) {
+        throw error
+      }
 
       let errorMessage = 'Failed to setup webhook'
       if (error instanceof Error) {
@@ -340,14 +374,27 @@ export class RadarrService {
 
   async removeWebhook(): Promise<void> {
     try {
+      const webhookName = this.getWebhookName()
+      const expectedWebhookUrl = this.constructWebhookUrl()
       const existingWebhooks =
         await this.getFromRadarr<WebhookNotification[]>('notification')
-      const pulsarrWebhook = existingWebhooks.find(
-        (hook) => hook.name === 'Pulsarr',
+
+      // Find webhook with new format name OR legacy "Pulsarr" name with matching URL
+      // URL matching for legacy webhooks prevents deleting other instances' webhooks
+      const pulsarrWebhooks = existingWebhooks.filter(
+        (hook) =>
+          hook.name === webhookName ||
+          (hook.name === 'Pulsarr' &&
+            hook.fields?.some(
+              (f) => f.name === 'url' && f.value === expectedWebhookUrl,
+            )),
       )
-      if (pulsarrWebhook) {
-        await this.deleteNotification(pulsarrWebhook.id)
-        this.log.info('Successfully removed Pulsarr webhook for Radarr')
+
+      for (const webhook of pulsarrWebhooks) {
+        await this.deleteNotification(webhook.id)
+        this.log.info(
+          `Successfully removed Pulsarr webhook "${webhook.name}" for Radarr`,
+        )
       }
     } catch (error) {
       this.log.error({ error }, 'Failed to remove webhook for Radarr')
@@ -368,72 +415,79 @@ export class RadarrService {
       signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
     if (!response.ok) {
-      throw new Error(`Radarr API error: ${response.statusText}`)
+      let errorDetail = response.statusText
+      try {
+        const errorData = await response.json()
+        const parsed = parseArrErrorMessage(errorData)
+        if (parsed) {
+          errorDetail = parsed
+        }
+      } catch {}
+
+      if (response.status === 401) {
+        throw new HttpError('Authentication failed. Check API key.', 401)
+      }
+      if (response.status === 404) {
+        throw new HttpError(`Notification not found: ${notificationId}`, 404)
+      }
+      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
     }
   }
 
   async initialize(instance: RadarrInstance): Promise<void> {
-    try {
-      if (!instance.baseUrl || !instance.apiKey) {
-        throw new Error(
-          'Invalid Radarr configuration: baseUrl and apiKey are required',
-        )
-      }
+    if (!instance.baseUrl || !instance.apiKey) {
+      throw new Error(
+        'Invalid Radarr configuration: baseUrl and apiKey are required',
+      )
+    }
 
-      // Store the instance ID for caching purposes
-      this.instanceId = instance.id
+    // Store the instance ID for caching purposes
+    this.instanceId = instance.id
 
-      // Skip webhook setup for placeholder credentials
-      if (instance.apiKey === 'placeholder') {
-        this.log.info(
-          `Basic initialization only for ${instance.name} (placeholder credentials)`,
-        )
-        this.config = {
-          radarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
-          radarrApiKey: instance.apiKey,
-          radarrQualityProfileId: instance.qualityProfile || null,
-          radarrRootFolder: instance.rootFolder || null,
-          radarrTagIds: instance.tags,
-        }
-        return
-      }
-
+    // Skip webhook setup for placeholder credentials
+    if (instance.apiKey === 'placeholder') {
+      this.log.info(
+        `Basic initialization only for ${instance.name} (placeholder credentials)`,
+      )
       this.config = {
         radarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
         radarrApiKey: instance.apiKey,
         radarrQualityProfileId: instance.qualityProfile || null,
         radarrRootFolder: instance.rootFolder || null,
         radarrTagIds: instance.tags,
-        searchOnAdd:
-          instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
-        minimumAvailability: instance.minimumAvailability || 'released',
-        monitor: instance.monitor || 'movieOnly',
       }
+      return
+    }
 
-      this.log.debug(
-        `Successfully initialized base Radarr service for ${instance.name}`,
-      )
+    this.config = {
+      radarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
+      radarrApiKey: instance.apiKey,
+      radarrQualityProfileId: instance.qualityProfile || null,
+      radarrRootFolder: instance.rootFolder || null,
+      radarrTagIds: instance.tags,
+      searchOnAdd:
+        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+      minimumAvailability: instance.minimumAvailability || 'released',
+      monitor: instance.monitor || 'movieOnly',
+    }
 
-      if (this.fastify.server.listening) {
-        await this.setupWebhook()
-      } else {
-        this.fastify.server.prependOnceListener('listening', async () => {
-          try {
-            await this.setupWebhook()
-          } catch (error) {
-            this.log.error(
-              { error, instanceName: instance.name },
-              'Failed to setup webhook after server start',
-            )
-          }
-        })
-      }
-    } catch (error) {
-      this.log.error(
-        { error, instanceName: instance.name },
-        'Failed to initialize Radarr service for instance',
-      )
-      throw error
+    this.log.debug(
+      `Successfully initialized base Radarr service for ${instance.name}`,
+    )
+
+    if (this.fastify.server.listening) {
+      await this.setupWebhook()
+    } else {
+      this.fastify.server.prependOnceListener('listening', async () => {
+        try {
+          await this.setupWebhook()
+        } catch (error) {
+          this.log.error(
+            { error, instanceName: instance.name },
+            'Failed to setup webhook after server start',
+          )
+        }
+      })
     }
   }
 
@@ -893,9 +947,10 @@ export class RadarrService {
     if (!response.ok) {
       let errorDetail = response.statusText
       try {
-        const errorData = (await response.json()) as { message?: string }
-        if (errorData.message) {
-          errorDetail = errorData.message
+        const errorData = await response.json()
+        const parsed = parseArrErrorMessage(errorData)
+        if (parsed) {
+          errorDetail = parsed
         }
       } catch {}
 
@@ -937,9 +992,10 @@ export class RadarrService {
       if (!response.ok) {
         let errorDetail = response.statusText
         try {
-          const errorData = (await response.json()) as { message?: string }
-          if (errorData.message) {
-            errorDetail = errorData.message
+          const errorData = await response.json()
+          const parsed = parseArrErrorMessage(errorData)
+          if (parsed) {
+            errorDetail = parsed
           }
         } catch {}
 
@@ -987,7 +1043,22 @@ export class RadarrService {
     })
 
     if (!response.ok) {
-      throw new Error(`Radarr API error: ${response.statusText}`)
+      let errorDetail = response.statusText
+      try {
+        const errorData = await response.json()
+        const parsed = parseArrErrorMessage(errorData)
+        if (parsed) {
+          errorDetail = parsed
+        }
+      } catch {}
+
+      if (response.status === 401) {
+        throw new HttpError('Authentication failed. Check API key.', 401)
+      }
+      if (response.status === 404) {
+        throw new HttpError(`Resource not found: movie/${id}`, 404)
+      }
+      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
     }
   }
 
@@ -1013,7 +1084,7 @@ export class RadarrService {
       } catch (_urlError) {
         return {
           success: false,
-          message: 'Invalid URL format. Please check your base URL.',
+          message: 'Invalid URL format. Please check your Radarr URL.',
         }
       }
 
@@ -1039,7 +1110,8 @@ export class RadarrService {
         }
         return {
           success: false,
-          message: 'Network error. Please check your connection and base URL.',
+          message:
+            'Network error. Please check your connection and Radarr URL.',
         }
       }
 
@@ -1053,8 +1125,7 @@ export class RadarrService {
         if (response.status === 404) {
           return {
             success: false,
-            message:
-              'API endpoint not found. Please check your base URL and ensure it points to Radarr.',
+            message: 'API endpoint not found. Please check your Radarr URL.',
           }
         }
         return {
@@ -1142,7 +1213,7 @@ export class RadarrService {
         if (error.message.includes('Invalid URL')) {
           return {
             success: false,
-            message: 'Invalid URL format. Please check your base URL.',
+            message: 'Invalid URL format. Please check your Radarr URL.',
           }
         }
         // Use the shared error mapping
@@ -1427,14 +1498,13 @@ export class RadarrService {
 
       return result
     } catch (err) {
-      if (
-        err instanceof Error &&
-        /409/.test(err.message) // Radarr returns 409 Conflict if the tag exists
-      ) {
+      // Radarr returns 409 Conflict if the tag already exists
+      if (err instanceof HttpError && err.status === 409) {
         this.log.debug(
           `Tag "${label}" already exists in Radarr – skipping creation`,
         )
-        // Fetch the existing tag so we can return its id
+        // Invalidate cache and fetch fresh to find the existing tag
+        this.invalidateTagsCache()
         const existing = (await this.getTags()).find((t) => t.label === label)
         if (existing) return existing
       }
@@ -1566,12 +1636,20 @@ export class RadarrService {
     if (!response.ok) {
       let errorDetail = response.statusText
       try {
-        const errorData = await response.text()
-        if (errorData) {
-          errorDetail = `${response.statusText} - ${errorData}`
+        const errorData = await response.json()
+        const parsed = parseArrErrorMessage(errorData)
+        if (parsed) {
+          errorDetail = parsed
         }
       } catch {}
-      throw new Error(`Radarr API error (${response.status}): ${errorDetail}`)
+
+      if (response.status === 401) {
+        throw new HttpError('Authentication failed. Check API key.', 401)
+      }
+      if (response.status === 404) {
+        throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
+      }
+      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
     }
 
     // Some endpoints return 204 No Content
@@ -1601,7 +1679,22 @@ export class RadarrService {
     })
 
     if (!response.ok) {
-      throw new Error(`Radarr API error: ${response.statusText}`)
+      let errorDetail = response.statusText
+      try {
+        const errorData = await response.json()
+        const parsed = parseArrErrorMessage(errorData)
+        if (parsed) {
+          errorDetail = parsed
+        }
+      } catch {}
+
+      if (response.status === 401) {
+        throw new HttpError('Authentication failed. Check API key.', 401)
+      }
+      if (response.status === 404) {
+        throw new HttpError(`Tag not found: ${tagId}`, 404)
+      }
+      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
     }
 
     // Invalidate the tags cache since we've deleted a tag

@@ -8,7 +8,7 @@
 
 <!-- If relevant, include details about your environment -->
 - Pulsarr Version: [e.g. v0.1.0-beta.2]
-- Deployment Method: [e.g. Docker, Node.js]
+- Deployment Method: [e.g. Docker, Native Install]
 - OS: [e.g. Ubuntu 22.04]
 - Browser: [e.g. Chrome]
 

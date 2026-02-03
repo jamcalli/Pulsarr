@@ -23,23 +23,10 @@ Pulsarr can be installed using Docker (recommended), Unraid, or manual installat
 
 1. Create a `.env` file with your configuration:
 
-:::warning Critical Configuration
-The `baseUrl` + `port` creates the webhook address for Sonarr/Radarr to reach Pulsarr. Choose based on your deployment:
-
-**Docker Compose (same network)**: `http://pulsarr` (service name)  
-**Docker host networking**: `http://localhost` (shares host network)  
-**Separate machines**: `http://server-ip` (actual IP)  
-**HTTPS**: `https://domain.com` (port omitted for 443)  
-**Different Docker networks**: Bridge with IP or external address
-:::
-
 ```plaintext
-# ⚠️  Webhook address for Sonarr/Radarr to reach Pulsarr (deployment-dependent)
-baseUrl=http://your-server-ip   # See warning above for correct value
-port=3003                       # External port for webhook URLs (omit for HTTPS on port 443)
 TZ=America/Los_Angeles          # Set to your local timezone
 
-# Logging Configuration
+# Logging Configuration (optional)
 logLevel=info                   # Log level (default: info)
                                 # Accepts: fatal | error | warn | info | debug | trace | silent
 
@@ -51,6 +38,10 @@ enableRequestLogging=false      # HTTP request logging (default: false)
                                 # Logs HTTP method, URL, host, remote IP/port, response codes, response times
                                 # Sensitive query parameters (token, apiKey, password) are automatically redacted
 ```
+
+:::tip Network Configuration
+The `baseUrl` and `port` settings (for Sonarr/Radarr webhook callbacks) are **automatically configured via the web UI**. When you test your Sonarr/Radarr connections, Pulsarr will detect any webhook callback errors and prompt you to configure the correct network settings for your deployment.
+:::
 
 2. Create a `docker-compose.yml` file and add the following:
 
@@ -95,11 +86,11 @@ Alternatively, you can use the Docker installation method described above.
 If you prefer to build and run Pulsarr manually:
 
 :::warning Upgrading from Previous Versions
-If you previously installed Pulsarr with Node.js 22 or earlier, you must upgrade to Node.js 24 LTS before updating to the latest version. Using nvm: `nvm install 24 && nvm use 24`, or download from [nodejs.org](https://nodejs.org/).
+If you previously installed Pulsarr with Node.js, you must switch to [Bun](https://bun.sh) before updating to the latest version. Install Bun: `curl -fsSL https://bun.sh/install | bash`
 :::
 
 #### Prerequisites
-- Node.js 24 LTS or higher
+- Bun 1.3 or higher — install from [bun.sh](https://bun.sh)
 - Git
 
 #### Steps
@@ -111,16 +102,16 @@ git clone https://github.com/jamcalli/pulsarr.git
 cd pulsarr
 
 # Install dependencies
-npm install
+bun install
 
 # Build the application
-npm run build
+bun run build
 
 # Run database migrations
-npm run migrate
+bun run migrate
 
 # Start the server
-npm run start:prod
+bun run start:prod
 ```
 
 The server will start on port 3003 by default. Navigate to `http://localhost:3003` to complete setup.
@@ -132,6 +123,18 @@ When building from source, you **must** provide your own TMDB API Read Access To
 For more detailed configuration options, see:
 - [Configuration Guide](configuration)
 - [Environment Variables Reference](../development/environment-variables)
+
+### Native Installation
+
+Standalone builds with easy installers are available for Linux, macOS, and Windows — no Docker or runtime install required.
+
+| Platform | Recommended Method |
+|----------|-------------------|
+| **Linux** | One-line installer: `curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/main/scripts/installers/linux/install.sh \| sudo bash` |
+| **Windows** | Download and run `pulsarr-vX.X.X-windows-x64-setup.exe` |
+| **macOS** | Download `pulsarr-vX.X.X-macos-{arch}.dmg` and drag Pulsarr to Applications |
+
+See the [Native Installation Guide](./native-installation) for detailed instructions, service management, and manual installation options.
 
 ## Initial Setup
 

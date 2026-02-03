@@ -126,6 +126,12 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api/check-auth",
+          label: "Check authentication status",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
           id: "api/create-admin-user",
           label: "Create admin user",
           className: "api-method post",

@@ -7,9 +7,7 @@ import type {
   ContentItem,
   FieldInfo,
   OperatorInfo,
-  RouterRule,
   RoutingContext,
-  RoutingDecision,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
 import { evaluateRegexSafely } from '@utils/regex-safety.js'
@@ -133,124 +131,6 @@ export default function createLanguageEvaluator(
       return hasLanguageData(item)
     },
 
-    async evaluate(
-      item: ContentItem,
-      _context: RoutingContext,
-      rules: RouterRule[],
-    ): Promise<RoutingDecision[] | null> {
-      if (!hasLanguageData(item)) {
-        return null
-      }
-
-      const language = extractLanguage(item)
-      if (!language) {
-        return null
-      }
-
-      // Rules are already filtered by content-router (by type, target_type, and enabled status)
-      if (rules.length === 0) {
-        return null
-      }
-
-      // Find matching language rules - check 'language' field with various operators
-      const matchingRules = rules.filter((rule) => {
-        if (!rule.criteria || !rule.criteria.language) {
-          return false
-        }
-
-        const ruleLanguage = rule.criteria.language
-        const operator = rule.criteria.operator || 'equals'
-
-        // If no language data, skip the rule
-        if (!language) {
-          return false
-        }
-
-        // Normalize for case-insensitive comparison
-        const normalizedLanguage = language.toLowerCase()
-
-        // Handle array operators (in/notIn)
-        if (Array.isArray(ruleLanguage)) {
-          switch (operator) {
-            case 'in':
-              return ruleLanguage.some(
-                (lang) =>
-                  typeof lang === 'string' &&
-                  normalizedLanguage === lang.toLowerCase(),
-              )
-            case 'notIn':
-              return !ruleLanguage.some(
-                (lang) =>
-                  typeof lang === 'string' &&
-                  normalizedLanguage === lang.toLowerCase(),
-              )
-            case 'notEquals':
-              return !ruleLanguage.some(
-                (lang) =>
-                  typeof lang === 'string' &&
-                  normalizedLanguage === lang.toLowerCase(),
-              )
-            default:
-              // Default to equality check for backward compatibility
-              return ruleLanguage.some(
-                (lang) =>
-                  typeof lang === 'string' &&
-                  normalizedLanguage === lang.toLowerCase(),
-              )
-          }
-        }
-
-        // Ensure the criterion value is a non-empty string for direct comparison
-        if (typeof ruleLanguage !== 'string' || ruleLanguage.trim() === '') {
-          return false
-        }
-
-        const normalizedRuleLanguage = ruleLanguage.toLowerCase()
-
-        // Handle string operators
-        switch (operator) {
-          case 'equals':
-            return normalizedLanguage === normalizedRuleLanguage
-          case 'notEquals':
-            return normalizedLanguage !== normalizedRuleLanguage
-          case 'contains':
-            return normalizedLanguage.includes(normalizedRuleLanguage)
-          case 'notContains':
-            return !normalizedLanguage.includes(normalizedRuleLanguage)
-          case 'regex':
-            return evaluateRegexSafely(
-              ruleLanguage,
-              language,
-              fastify.log,
-              'language rule',
-            )
-          default:
-            // Default to equals for backward compatibility
-            return normalizedLanguage === normalizedRuleLanguage
-        }
-      })
-
-      if (matchingRules.length === 0) {
-        return null
-      }
-
-      // Convert to routing decisions
-      return matchingRules.map((rule) => ({
-        instanceId: rule.target_instance_id,
-        qualityProfile: rule.quality_profile,
-        rootFolder: rule.root_folder,
-        tags: rule.tags || [],
-        priority: rule.order ?? 50, // Default to 50 if undefined or null
-        searchOnAdd: rule.search_on_add,
-        seasonMonitoring: rule.season_monitoring,
-        seriesType: rule.series_type,
-        monitor: rule.monitor,
-        ruleId: rule.id,
-        ruleName: rule.name,
-      }))
-    },
-
-    // For conditional evaluator support
     evaluateCondition(
       condition: Condition,
       item: ContentItem,

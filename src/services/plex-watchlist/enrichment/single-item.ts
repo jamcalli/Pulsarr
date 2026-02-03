@@ -279,7 +279,6 @@ export const toItemsSingle = async (
       throw error
     }
 
-    // Fallback: check for rate limit indicators in error message
     if (
       errorStr.includes('429') ||
       errorStr.toLowerCase().includes('rate limit')

@@ -6,6 +6,10 @@ import fp from 'fastify-plugin'
 
 const generateSecret = () => crypto.randomBytes(32).toString('hex')
 
+// Support dataDir env var for split directory installations (Windows/macOS installers)
+// When set, .env and data files are loaded from this directory instead of cwd
+const dataDir = process.env.dataDir
+
 const DEFAULT_PLEX_SESSION_MONITORING = {
   enabled: false,
   pollingIntervalMinutes: 15,
@@ -93,7 +97,7 @@ const schema = {
     },
     dbPath: {
       type: 'string',
-      default: './data/db/pulsarr.db',
+      default: dataDir ? `${dataDir}/db/pulsarr.db` : './data/db/pulsarr.db',
     },
     dbHost: {
       type: 'string',
@@ -516,7 +520,7 @@ export default fp(
       confKey: 'config',
       schema,
       dotenv: {
-        path: './.env',
+        path: dataDir ? `${dataDir}/.env` : './.env',
         debug: process.env.NODE_ENV === 'development',
         quiet: true,
       },

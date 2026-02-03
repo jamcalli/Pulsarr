@@ -316,7 +316,6 @@ export async function syncSingleFriend(
     deps.watchlistSyncDeps,
   )
 
-  // Categorize: brand new (need routing) vs existing (just link)
   const { brandNewItems, existingItemsToLink } = categorizeItems(
     userWatchlistMap,
     existingItems,

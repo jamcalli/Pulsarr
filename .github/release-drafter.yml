@@ -24,6 +24,27 @@ categories:
       - 'dependencies'
       - 'deps'
 
+autolabeler:
+  - label: 'feature'
+    branch:
+      - '/^feature\//'
+  - label: 'fix'
+    branch:
+      - '/^fix\//'
+  - label: 'chore'
+    branch:
+      - '/^chore\//'
+      - '/^refactor\//'
+  - label: 'documentation'
+    branch:
+      - '/^docs\//'
+  - label: 'performance'
+    branch:
+      - '/^perf\//'
+  - label: 'dependencies'
+    branch:
+      - '/^renovate\//'
+
 version-resolver:
   major:
     labels:
