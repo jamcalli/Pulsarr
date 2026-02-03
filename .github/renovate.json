@@ -5,13 +5,17 @@
     "security:openssf-scorecard"
   ],
   "dockerfile": {
-    "fileMatch": ["^dockerfile\\.node$"]
+    "managerFilePatterns": [
+      "/^dockerfile\\.node$/"
+    ]
   },
   "customManagers": [
     {
       "customType": "regex",
       "description": "Update better-sqlite3 version in dockerfile.node",
-      "fileMatch": ["^dockerfile\\.node$"],
+      "managerFilePatterns": [
+        "/^dockerfile\\.node$/"
+      ],
       "matchStrings": [
         "better-sqlite3-bun\"\\|\"(?<currentValue>[\\d.]+)\"\\|"
       ],
@@ -21,7 +25,9 @@
     {
       "customType": "regex",
       "description": "Update tsx version in dockerfile.node",
-      "fileMatch": ["^dockerfile\\.node$"],
+      "managerFilePatterns": [
+        "/^dockerfile\\.node$/"
+      ],
       "matchStrings": [
         "tsx@(?<currentValue>[^\\s]+)"
       ],
@@ -230,10 +236,10 @@
         "major"
       ],
       "automerge": false,
-     "minimumReleaseAge": "7 days"
-   },
-   {
-     "description": "Pin recharts to v2.x to prevent breaking changes with component library",
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Pin recharts to v2.x to prevent breaking changes with component library",
       "matchPackageNames": [
         "recharts"
       ],
@@ -435,17 +441,21 @@
         "!@tailwindcss/postcss",
         "!postcss",
         "!autoprefixer",
-       "!tailwind-merge",
-       "!class-variance-authority",
-       "!tw-animate-css",
-       "!/^@tanstack//",
-       "!node",
-       "!recharts"
-     ]
+        "!tailwind-merge",
+        "!class-variance-authority",
+        "!tw-animate-css",
+        "!/^@tanstack//",
+        "!node",
+        "!recharts"
+      ]
     },
     {
       "description": "Pin Bun to 1.3.6 - ARM64 regression in 1.3.7+ (oven-sh/bun#26544)",
-      "matchDepNames": ["oven/bun", "bun", "bun-types"],
+      "matchDepNames": [
+        "oven/bun",
+        "bun",
+        "bun-types"
+      ],
       "enabled": false
     }
   ],
