@@ -68,6 +68,16 @@ docker compose pull && docker compose up -d
 
 4. Navigate to the web UI (http://your-server:3003) to complete setup.
 
+:::tip Synology NAS / Legacy Systems
+If you're running on a Synology NAS or a system with Linux kernel < 4.11, use the Node.js-based image instead:
+
+```yaml
+image: lakker/pulsarr:node
+```
+
+This alternative image uses Node.js runtime instead of Bun, avoiding kernel compatibility issues with the `statx` syscall. Both images are functionally identical.
+:::
+
 ### Unraid Installation
 
 Pulsarr is available in the Unraid Community Applications (CA) store:
