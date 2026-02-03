@@ -80,7 +80,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
-      - name: Build and push
+      - name: Build and push (Bun)
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
         with:
           context: .
@@ -96,6 +96,33 @@ jobs:
             type=gha,scope=buildkit
           cache-to: |
             type=gha,mode=max,scope=buildkit
+
+      - name: Docker meta (Node.js)
+        id: meta-node
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: |
+            lakker/pulsarr
+          tags: |
+            type=semver,pattern={{version}},suffix=-node
+            type=semver,pattern={{major}}.{{minor}},suffix=-node
+            type=raw,value=node,enable={{is_default_branch}}
+
+      - name: Build and push (Node.js)
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
+        with:
+          context: .
+          file: dockerfile.node
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-node.outputs.tags }}
+          labels: ${{ steps.meta-node.outputs.labels }}
+          build-args: |
+            TMDBAPIKEY=${{ secrets.TMDBAPIKEY }}
+          cache-from: |
+            type=gha,scope=buildkit-node
+          cache-to: |
+            type=gha,mode=max,scope=buildkit-node
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2
