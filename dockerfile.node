@@ -14,10 +14,12 @@ ENV tmdbApiKey=${TMDBAPIKEY}
 
 # Transform package.json for Node.js:
 # - Replace bun:sqlite shim with real better-sqlite3
+# - Add tsx for running TypeScript migrations at runtime
 # - Replace bun commands with npm/node equivalents
 COPY package.json ./package.json.bak
 RUN cat package.json.bak \
     | sed 's|"file:packages/better-sqlite3-bun"|"12.6.2"|' \
+    | sed 's|"better-sqlite3": "12.6.2"|"better-sqlite3": "12.6.2",\n    "tsx": "^4.19.4"|' \
     | sed 's|bun run build:server|npm run build:server|g' \
     | sed 's|bun run clean:client|npm run clean:client|g' \
     | sed 's|bun run --bun vite build|vite build|g' \
@@ -36,9 +38,8 @@ COPY src ./src
 RUN --mount=type=cache,target=/app/node_modules/.vite \
     npm run build
 
-# Prune to production deps only, but keep tsx for migrations
+# Prune to production deps only (tsx included via package.json transform)
 RUN npm prune --omit=dev && \
-    npm install tsx@4.19.4 --save-prod && \
     mkdir -p ${CACHE_DIR}
 
 # -----------------------------------------------------------------------------
