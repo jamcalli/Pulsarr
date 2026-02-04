@@ -9,7 +9,7 @@
   ![Status](https://img.shields.io/badge/status-early--release-orange?style=flat-square)
   [![Discord](https://img.shields.io/discord/1407082466958774313?label=Discord&logo=discord&style=flat-square)](https://discord.gg/9csTEJn5cR)
   ![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
-  ![Docker Image Size](https://img.shields.io/docker/image-size/lakker/pulsarr?style=flat-square)
+  ![Docker Image Size](https://img.shields.io/docker/image-size/lakker/pulsarr/latest?style=flat-square)
   ![GitHub Stars](https://img.shields.io/github/stars/jamcalli/pulsarr?style=flat-square)
 </div>
 
