@@ -52,6 +52,13 @@ import { getActiveSessions } from './plex-server/sessions/session-operations.js'
 // HTTP timeout constants
 const PLEX_API_TIMEOUT = 30000 // 30 seconds for Plex API operations
 
+/** Convert XML boolean values ("0"/"1" strings or actual booleans) to boolean */
+const xmlBool = (val: string | boolean | undefined): boolean | undefined => {
+  if (val === undefined) return undefined
+  if (typeof val === 'boolean') return val
+  return val === '1'
+}
+
 /**
  * PlexServerService class for maintaining state and providing Plex operations
  */
@@ -557,11 +564,62 @@ export class PlexServerService {
             username?: string
             title?: string
             email?: string
+            thumb?: string
+            home?: string | boolean
+            restricted?: string | boolean
+            protected?: string | boolean
+            allowTuners?: string | number
+            allowSync?: string | boolean
+            allowCameraUpload?: string | boolean
+            allowChannels?: string | boolean
+            allowSubtitleAdmin?: string | boolean
+            filterAll?: string
+            filterMovies?: string
+            filterMusic?: string
+            filterPhotos?: string
+            filterTelevision?: string
+            Server?: Array<{
+              id?: string
+              serverId?: string
+              machineIdentifier?: string
+              name?: string
+              lastSeenAt?: string
+              numLibraries?: string | number
+              allLibraries?: string | boolean
+              owned?: string | boolean
+              pending?: string | boolean
+            }>
           }) => ({
             id: user.id || '',
             username: user.username || user.title || '',
             title: user.title || '',
             email: user.email || '',
+            thumb: user.thumb,
+            home: xmlBool(user.home),
+            restricted: xmlBool(user.restricted),
+            protected: xmlBool(user.protected),
+            allowTuners:
+              user.allowTuners != null ? Number(user.allowTuners) : undefined,
+            allowSync: xmlBool(user.allowSync),
+            allowCameraUpload: xmlBool(user.allowCameraUpload),
+            allowChannels: xmlBool(user.allowChannels),
+            allowSubtitleAdmin: xmlBool(user.allowSubtitleAdmin),
+            filterAll: user.filterAll || undefined,
+            filterMovies: user.filterMovies || undefined,
+            filterMusic: user.filterMusic || undefined,
+            filterPhotos: user.filterPhotos || undefined,
+            filterTelevision: user.filterTelevision || undefined,
+            Server: user.Server?.map((s) => ({
+              id: s.id || '',
+              serverId: s.serverId || '',
+              machineIdentifier: s.machineIdentifier || '',
+              name: s.name || '',
+              lastSeenAt: s.lastSeenAt || '',
+              numLibraries: s.numLibraries != null ? Number(s.numLibraries) : 0,
+              allLibraries: xmlBool(s.allLibraries) ?? false,
+              owned: xmlBool(s.owned) ?? false,
+              pending: xmlBool(s.pending) ?? false,
+            })),
           }),
         )
         .filter(
