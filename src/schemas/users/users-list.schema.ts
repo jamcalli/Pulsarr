@@ -15,6 +15,10 @@ const UserBaseSchema = z.object({
   can_sync: z.boolean(),
   requires_approval: z.boolean(),
   is_primary_token: z.boolean(),
+  plex_uuid: z.string().nullable().optional(),
+  avatar: z.string().nullable().optional(),
+  display_name: z.string().nullable().optional(),
+  friend_created_at: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 })
