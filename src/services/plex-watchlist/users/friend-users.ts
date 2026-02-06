@@ -5,7 +5,7 @@
  * checking for removed friends that should be cleaned up.
  */
 
-import type { Config } from '@root/types/config.types.js'
+import type { Config, User } from '@root/types/config.types.js'
 import type {
   EtagUserInfo,
   Friend,
@@ -41,6 +41,32 @@ export async function ensureFriendUsers(
       let user = await deps.db.getUser(friend.username)
       const isNewUser = !user
 
+      if (user) {
+        const updates: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>> =
+          {}
+        if (friend.watchlistId && user.plex_uuid !== friend.watchlistId) {
+          updates.plex_uuid = friend.watchlistId
+        }
+        if (friend.avatar !== undefined && user.avatar !== friend.avatar) {
+          updates.avatar = friend.avatar ?? null
+        }
+        if (
+          friend.displayName !== undefined &&
+          user.display_name !== friend.displayName
+        ) {
+          updates.display_name = friend.displayName ?? null
+        }
+        if (
+          friend.createdAt !== undefined &&
+          user.friend_created_at !== friend.createdAt
+        ) {
+          updates.friend_created_at = friend.createdAt ?? null
+        }
+        if (Object.keys(updates).length > 0) {
+          await deps.db.updateUser(user.id, updates)
+        }
+      }
+
       if (!user) {
         user = await deps.db.createUser({
           name: friend.username,
@@ -56,6 +82,10 @@ export async function ensureFriendUsers(
           requires_approval:
             deps.config.newUserDefaultRequiresApproval ?? false,
           is_primary_token: false,
+          plex_uuid: friend.watchlistId,
+          avatar: friend.avatar ?? null,
+          display_name: friend.displayName ?? null,
+          friend_created_at: friend.createdAt ?? null,
         })
 
         // Send native webhook notification for user creation (fire-and-forget)

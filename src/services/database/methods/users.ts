@@ -19,6 +19,10 @@ interface UserRow {
   can_sync: boolean | number
   requires_approval: boolean | number
   is_primary_token: boolean | number
+  plex_uuid: string | null
+  avatar: string | null
+  display_name: string | null
+  friend_created_at: string | null
   created_at: string
   updated_at: string
 }
@@ -46,6 +50,10 @@ export function mapRowToUser(row: UserRow): User {
     can_sync: Boolean(row.can_sync),
     requires_approval: Boolean(row.requires_approval),
     is_primary_token: Boolean(row.is_primary_token),
+    plex_uuid: row.plex_uuid,
+    avatar: row.avatar,
+    display_name: row.display_name,
+    friend_created_at: row.friend_created_at,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }
