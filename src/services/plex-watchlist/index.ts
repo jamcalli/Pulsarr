@@ -34,14 +34,17 @@ export { EtagPoller } from './etag/etag-poller.js'
 
 // Fetching layer
 export {
+  cancelFriendRequest,
   fetchRawRssFeed,
   fetchSelfWatchlist,
   fetchWatchlistFromRss,
   generateStableKey,
+  getFriendRequests,
   getFriends,
   getOthersWatchlist,
   getPlexWatchlistUrls,
   getRssFromPlexToken,
+  sendFriendRequest,
 } from './fetching/index.js'
 // Orchestration module
 export {
