@@ -22,6 +22,7 @@ import type {
 import { toItemsSingle } from '@services/plex-watchlist/index.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { isSameServerEndpoint } from '@utils/url.js'
 import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -231,19 +232,60 @@ export class PlexServerService {
       }
 
       const resourcesData = (await resourcesResponse.json()) as PlexResource[]
-      const server = resourcesData.find(
-        (r) => r.product === 'Plex Media Server',
+      const serverResources = resourcesData.filter(
+        (r) =>
+          r.product === 'Plex Media Server' &&
+          r.connections &&
+          r.connections.length > 0,
       )
 
-      if (!server || !server.connections || server.connections.length === 0) {
+      if (serverResources.length === 0) {
         this.log.warn('No Plex server connections found, using default')
         return this.getDefaultConnectionInfo()
+      }
+
+      // Resolve which server the admin selected by matching plexServerUrl
+      // against all server resources' connections
+      const configUrl = this.config.plexServerUrl
+      const defaultUrl = 'http://localhost:32400'
+
+      let server: PlexResource | undefined
+      let configMatchFound = false
+
+      if (configUrl && configUrl !== defaultUrl) {
+        // Find the server whose connections include the configured URL
+        for (const candidate of serverResources) {
+          const match = candidate.connections.some((conn) =>
+            isSameServerEndpoint(conn.uri, configUrl),
+          )
+          if (match) {
+            server = candidate
+            configMatchFound = true
+            this.log.debug(
+              `Matched configured URL to server "${candidate.name}" (${candidate.clientIdentifier})`,
+            )
+            break
+          }
+        }
+
+        if (!server) {
+          // URL doesn't match any discovered server — fall back to first
+          server = serverResources[0]
+          this.log.warn(
+            `Configured URL "${configUrl}" does not match any discovered server connection - falling back to "${server.name}"`,
+          )
+        }
+      } else {
+        // No manual URL configured — use first server
+        server = serverResources[0]
+        this.log.debug(
+          `Using auto-discovered server "${server.name}" (no manual override)`,
+        )
       }
 
       // Extract and categorize connections by priority
       const connections: PlexServerConnectionInfo[] = []
 
-      // Collect all available connections
       for (const conn of server.connections) {
         connections.push({
           url: conn.uri,
@@ -255,14 +297,10 @@ export class PlexServerService {
 
       // Sort connections by priority: local first, then non-relay, then relay
       connections.sort((a, b) => {
-        // Local connections first
         if (a.local && !b.local) return -1
         if (!a.local && b.local) return 1
-
-        // Non-relay connections second
         if (!a.relay && b.relay) return -1
         if (a.relay && !b.relay) return 1
-
         return 0
       })
 
@@ -271,23 +309,13 @@ export class PlexServerService {
         connections[0].isDefault = true
       }
 
-      // Check for manually configured URL that's not the default value
-      const configUrl = this.config.plexServerUrl
-      const defaultUrl = 'http://localhost:32400'
-
-      // Only use the URL if it's configured and not the default value
+      // If a manual URL is configured, promote it to default
       if (configUrl && configUrl !== defaultUrl) {
-        this.log.debug(`Found manually configured Plex URL: ${configUrl}`)
-
-        // Try to match with discovered connections
-        const normalize = (u: string) =>
-          u.replace(/^https?:\/\//, '').replace(/\/+$/, '')
-        const configMatch = connections.find(
-          (c) => normalize(c.url) === normalize(configUrl),
+        const configMatch = connections.find((c) =>
+          isSameServerEndpoint(c.url, configUrl),
         )
 
         if (configMatch) {
-          // Mark manually configured URL as default
           for (const c of connections) {
             c.isDefault = false
           }
@@ -295,16 +323,15 @@ export class PlexServerService {
           this.log.debug(
             'Manually configured URL matches a discovered connection - setting as default',
           )
-        } else {
-          // Add manually configured URL as override
+        } else if (!configMatchFound) {
+          // URL didn't match any server — add as manual override
           connections.push({
             url: configUrl,
-            local: false, // Can't determine if it's local without discovery
+            local: false,
             relay: false,
-            isDefault: true, // Override auto-discovery
+            isDefault: true,
           })
 
-          // Mark all auto-discovered connections as non-default
           for (let i = 0; i < connections.length - 1; i++) {
             connections[i].isDefault = false
           }
@@ -313,10 +340,6 @@ export class PlexServerService {
             'Manually configured URL does not match any discovered connection - adding as override',
           )
         }
-      } else {
-        this.log.debug(
-          'Using auto-discovered Plex connections (no manual override)',
-        )
       }
 
       // Cache the result
@@ -451,15 +474,20 @@ export class PlexServerService {
   }
 
   /**
-   * Retrieves all Plex users with access to the server
-   * Uses caching for performance optimization
+   * Retrieves Plex users with access to the configured server
+   * Filters by serverMachineId to only return users for this server
    *
+   * @param options.skipCache - Bypass the 30-minute cache for fresh data
    * @returns Promise resolving to array of Plex users
    */
-  async getPlexUsers(): Promise<PlexUser[]> {
+  async getPlexUsers(options?: { skipCache?: boolean }): Promise<PlexUser[]> {
     try {
       // Use cached user data if valid (less than 30 minutes old)
-      if (this.users && Date.now() - this.usersTimestamp < 30 * 60 * 1000) {
+      if (
+        !options?.skipCache &&
+        this.users &&
+        Date.now() - this.usersTimestamp < 30 * 60 * 1000
+      ) {
         this.log.debug('Using cached Plex users')
         return this.users
       }
@@ -476,7 +504,6 @@ export class PlexServerService {
       const usersUrl = new URL('/api/users', plexTvUrl)
       const usersResponse = await fetch(usersUrl.toString(), {
         headers: {
-          // This endpoint returns XML format
           'X-Plex-Token': adminToken,
           'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
         },
@@ -489,95 +516,65 @@ export class PlexServerService {
         )
       }
 
-      // Get response as text in XML format
       const responseText = await usersResponse.text()
 
-      // Use proper XML parser
       const xmlParser = new XMLParser({
         ignoreAttributes: false,
         attributeNamePrefix: '',
-        isArray: (name) => name === 'User',
+        isArray: (name) => name === 'User' || name === 'Server',
       })
 
-      try {
-        // Parse XML
-        const parsed = xmlParser.parse(responseText)
-        const users = parsed.MediaContainer?.User || []
+      const parsed = xmlParser.parse(responseText)
+      const allUsers = parsed.MediaContainer?.User || []
 
-        this.log.debug(`Parsed ${users.length} users from Plex API response`)
+      this.log.debug(
+        `Parsed ${allUsers.length} total users from Plex API response`,
+      )
 
-        // Format users into a consistent structure that matches the PlexUser interface
-        const formattedUsers = users
-          .map(
-            (user: {
-              id?: string
-              username?: string
-              title?: string
-              email?: string
-            }) => ({
-              id: user.id || '',
-              username: user.username || user.title || '', // username is required in PlexUser
-              title: user.title || '',
-              email: user.email || '', // Ensure email always has a value
-            }),
+      // Filter to only users with access to the configured server
+      const users = this.serverMachineId
+        ? allUsers.filter(
+            (user: { Server?: Array<{ machineIdentifier?: string }> }) => {
+              const servers = user.Server || []
+              return servers.some(
+                (s) => s.machineIdentifier === this.serverMachineId,
+              )
+            },
           )
-          .filter(
-            (user: { id: string; title: string; username?: string }) =>
-              !!user.id && (!!user.username || !!user.title),
-          ) as PlexUser[]
+        : allUsers
 
-        // Cache the result and return
-        this.users = formattedUsers
-        this.usersTimestamp = Date.now()
-
-        this.log.debug(`Found ${formattedUsers.length} Plex users`)
-        return formattedUsers
-      } catch (xmlError) {
-        this.log.error({ error: xmlError }, 'Error parsing Plex users XML:')
-
-        // Fallback to regex as a last resort
-        this.log.warn('Falling back to regex parsing for Plex users')
-        const userMatches = responseText.match(/<User [^>]*>/g) || []
+      if (this.serverMachineId && users.length !== allUsers.length) {
         this.log.debug(
-          `Found ${userMatches.length} User entries in XML response`,
+          `Filtered to ${users.length} users for server ${this.serverMachineId} (${allUsers.length - users.length} users on other servers excluded)`,
         )
-
-        const users: {
-          id: string
-          title: string
-          username?: string
-          email?: string
-        }[] = []
-
-        for (const userMatch of userMatches) {
-          const id = userMatch.match(/id="([^"]+)"/)?.[1] || ''
-          const title = userMatch.match(/title="([^"]+)"/)?.[1] || ''
-          const username = userMatch.match(/username="([^"]+)"/)?.[1] || title
-          const email = userMatch.match(/email="([^"]+)"/)?.[1] || ''
-
-          if (id && title) {
-            users.push({
-              id,
-              title,
-              username,
-              email,
-            })
-          }
-        }
-
-        // Ensure all users have required fields according to PlexUser interface
-        const formattedUsers = users.map((user) => ({
-          ...user,
-          username: user.username || user.title || '', // username is required
-        })) as PlexUser[]
-
-        // Cache the result and return
-        this.users = formattedUsers
-        this.usersTimestamp = Date.now()
-
-        this.log.debug(`Found ${formattedUsers.length} Plex users`)
-        return formattedUsers
       }
+
+      // Format users into a consistent structure that matches the PlexUser interface
+      const formattedUsers = users
+        .map(
+          (user: {
+            id?: string
+            username?: string
+            title?: string
+            email?: string
+          }) => ({
+            id: user.id || '',
+            username: user.username || user.title || '',
+            title: user.title || '',
+            email: user.email || '',
+          }),
+        )
+        .filter(
+          (user: { id: string; title: string; username?: string }) =>
+            !!user.id && (!!user.username || !!user.title),
+        ) as PlexUser[]
+
+      // Cache the result and return
+      this.users = formattedUsers
+      this.usersTimestamp = Date.now()
+
+      this.log.debug(`Found ${formattedUsers.length} Plex users`)
+      return formattedUsers
     } catch (error) {
       this.log.error({ error }, 'Error fetching Plex users:')
       return []
