@@ -2,20 +2,32 @@ import type {
   EtagUserInfo,
   Friend,
   FriendChangesResult,
+  FriendRequestNode,
+  FriendRequestsResult,
+  FriendsResult,
   RssWatchlistResults,
   TokenWatchlistItem,
   UserMapEntry,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
+import type { PlexUser } from '@root/types/plex-server.types.js'
 import type { RssFeedsSuccess } from '@schemas/plex/generate-rss-feeds.schema.js'
+import type {
+  PlexClassifiedUser,
+  PlexUntrackedUser,
+  UserStatusResponse,
+} from '@schemas/plex/user-status.schema.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 import {
+  cancelFriendRequest,
   fetchSelfWatchlist,
+  getFriendRequests,
   getFriends,
   getOthersWatchlist,
   pingPlex,
+  sendFriendRequest,
 } from './plex-watchlist/index.js'
 import {
   type ItemProcessorDeps,
@@ -49,6 +61,11 @@ import {
   ensureTokenUsers,
   type FriendUsersDeps,
 } from './plex-watchlist/users/index.js'
+
+function extractUuidFromThumb(thumb: string | undefined): string | null {
+  const match = thumb?.match(/plex\.tv\/users\/([a-f0-9]+)\/avatar/)
+  return match?.[1] ?? null
+}
 
 export class PlexWatchlistService {
   private readonly log: FastifyBaseLogger
@@ -417,6 +434,149 @@ export class PlexWatchlistService {
       this.categorizerDeps,
       forceRefresh,
     )
+  }
+
+  async getAllFriends(): Promise<FriendsResult> {
+    return getFriends(this.config, this.log)
+  }
+
+  async getAllFriendRequests(): Promise<FriendRequestsResult> {
+    return getFriendRequests(this.config, this.log)
+  }
+
+  async sendFriendRequest(uuid: string): Promise<{ success: boolean }> {
+    return sendFriendRequest(this.config, this.log, uuid)
+  }
+
+  async cancelFriendRequest(uuid: string): Promise<{ success: boolean }> {
+    return cancelFriendRequest(this.config, this.log, uuid)
+  }
+
+  async getClassifiedUsers(): Promise<UserStatusResponse> {
+    const [friendsResult, serverUsers, friendRequests, dbUsers] =
+      await Promise.all([
+        getFriends(this.config, this.log),
+        this.fastify.plexServerService.getPlexUsers({ skipCache: true }),
+        getFriendRequests(this.config, this.log),
+        this.dbService.getAllUsers(),
+      ])
+
+    // Build lookup maps
+    const friendsByUuid = new Map<string, Friend>()
+    for (const [friend] of friendsResult.friends) {
+      friendsByUuid.set(friend.watchlistId, friend)
+    }
+
+    const serverUsersByUuid = new Map<string, PlexUser>()
+    for (const user of serverUsers) {
+      const uuid = extractUuidFromThumb(user.thumb)
+      if (uuid) {
+        serverUsersByUuid.set(uuid, user)
+      }
+    }
+
+    const pendingSentByUuid = new Map<string, FriendRequestNode>()
+    for (const node of friendRequests.sent) {
+      pendingSentByUuid.set(node.user.id, node)
+    }
+
+    const pendingReceivedByUuid = new Map<string, FriendRequestNode>()
+    for (const node of friendRequests.received) {
+      pendingReceivedByUuid.set(node.user.id, node)
+    }
+
+    const dbUsersByUuid = new Map<string, (typeof dbUsers)[number]>()
+    for (const user of dbUsers) {
+      if (user.plex_uuid) {
+        dbUsersByUuid.set(user.plex_uuid, user)
+      }
+    }
+
+    // Collect all known UUIDs
+    const allUuids = new Set<string>([
+      ...friendsByUuid.keys(),
+      ...serverUsersByUuid.keys(),
+      ...pendingSentByUuid.keys(),
+      ...pendingReceivedByUuid.keys(),
+    ])
+
+    const users: Record<string, PlexClassifiedUser> = {}
+    const untracked: PlexUntrackedUser[] = []
+
+    for (const uuid of allUuids) {
+      const inFriends = friendsByUuid.has(uuid)
+      const inServer = serverUsersByUuid.has(uuid)
+      const inPendingSent = pendingSentByUuid.has(uuid)
+      const inPendingReceived = pendingReceivedByUuid.has(uuid)
+
+      let status: PlexClassifiedUser['status']
+      if (inFriends && inServer) {
+        status = 'friend'
+      } else if (inServer && inPendingSent) {
+        status = 'pending_sent'
+      } else if (inServer && !inFriends && !inPendingSent) {
+        status = 'server_only'
+      } else if (inFriends && !inServer) {
+        status = 'friend_only'
+      } else if (inPendingReceived) {
+        status = 'pending_received'
+      } else if (inPendingSent) {
+        status = 'pending_sent'
+      } else {
+        continue
+      }
+
+      const friend = friendsByUuid.get(uuid)
+      const serverUser = serverUsersByUuid.get(uuid)
+      const pendingSent = pendingSentByUuid.get(uuid)
+      const pendingReceived = pendingReceivedByUuid.get(uuid)
+
+      // Merge metadata from whichever source has it
+      const username =
+        friend?.username ??
+        serverUser?.username ??
+        pendingSent?.user.username ??
+        pendingReceived?.user.username ??
+        ''
+      const avatar =
+        friend?.avatar ??
+        serverUser?.thumb ??
+        pendingSent?.user.avatar ??
+        pendingReceived?.user.avatar ??
+        ''
+      const displayName =
+        friend?.displayName ??
+        pendingSent?.user.displayName ??
+        pendingReceived?.user.displayName ??
+        serverUser?.title ??
+        username
+      const pendingSince =
+        pendingSent?.createdAt ?? pendingReceived?.createdAt ?? null
+
+      const dbUser = dbUsersByUuid.get(uuid)
+
+      if (dbUser) {
+        users[uuid] = {
+          uuid,
+          username,
+          avatar,
+          displayName,
+          status,
+          friendCreatedAt: friend?.createdAt ?? null,
+          pendingSince,
+        }
+      } else {
+        untracked.push({
+          uuid,
+          username,
+          avatar,
+          status: status as PlexUntrackedUser['status'],
+          pendingSince,
+        })
+      }
+    }
+
+    return { success: true, users, untracked }
   }
 
   async processRssWatchlists(): Promise<RssWatchlistResults> {
