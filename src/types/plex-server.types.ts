@@ -59,13 +59,43 @@ export interface PlexServerConnectionInfo {
 }
 
 /**
- * Plex user information
+ * Plex user information from the /api/users XML endpoint
  */
 export interface PlexUser {
   id: string
   username: string
   title: string
   email?: string
+  thumb?: string
+  home?: boolean
+  restricted?: boolean
+  protected?: boolean
+  allowTuners?: number
+  allowSync?: boolean
+  allowCameraUpload?: boolean
+  allowChannels?: boolean
+  allowSubtitleAdmin?: boolean
+  filterAll?: string
+  filterMovies?: string
+  filterMusic?: string
+  filterPhotos?: string
+  filterTelevision?: string
+  Server?: PlexUserServer[]
+}
+
+/**
+ * Server access entry nested within a PlexUser XML response
+ */
+export interface PlexUserServer {
+  id: string
+  serverId: string
+  machineIdentifier: string
+  name: string
+  lastSeenAt: string
+  numLibraries: number
+  allLibraries: boolean
+  owned: boolean
+  pending: boolean
 }
 
 /**

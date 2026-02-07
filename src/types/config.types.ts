@@ -14,6 +14,10 @@ export interface User {
   can_sync: boolean
   requires_approval?: boolean
   is_primary_token?: boolean
+  plex_uuid?: string | null
+  avatar?: string | null
+  display_name?: string | null
+  friend_created_at?: string | null
   created_at?: string
   updated_at?: string
 }

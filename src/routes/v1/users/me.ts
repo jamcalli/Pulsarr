@@ -1,5 +1,4 @@
 import { MeErrorSchema, MeResponseSchema } from '@schemas/users/me.schema.js'
-import { fetchPlexAvatar } from '@services/plex-watchlist/index.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -22,36 +21,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        // Check if user is authenticated
-        if (!request.session?.user) {
-          return reply.unauthorized('Authentication required')
-        }
-
         const sessionUser = request.session.user
-        let avatar: string | null = null
-        let plexConnected = false
+        const config = fastify.config
+        const plexConnected =
+          !!config?.plexTokens && config.plexTokens.length > 0
 
-        // Try to get Plex token from config to fetch avatar
-        try {
-          const config = fastify.config
-
-          if (config?.plexTokens && config.plexTokens.length > 0) {
-            // Use the first available Plex token
-            const plexToken = config.plexTokens[0]
-            avatar = await fetchPlexAvatar(plexToken, fastify.log)
-            plexConnected = true
-          }
-        } catch (error) {
-          // Don't fail the entire request if Plex avatar fetch fails
-          plexConnected = false
-          fastify.log.warn(
-            {
-              error,
-              route: `${request.method} ${request.routeOptions?.url || request.url}`,
-            },
-            'Failed to fetch Plex token or avatar',
-          )
-        }
+        const primaryUser = await fastify.db.getPrimaryUser()
 
         return {
           success: true,
@@ -61,7 +36,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             username: sessionUser.username,
             email: sessionUser.email,
             role: sessionUser.role,
-            avatar,
+            avatar: primaryUser?.avatar ?? null,
             plexConnected,
           },
         }
