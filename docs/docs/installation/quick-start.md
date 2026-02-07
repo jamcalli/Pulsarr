@@ -25,23 +25,9 @@ Pulsarr can be installed using Docker (recommended), Unraid, or manual installat
 
 ```plaintext
 TZ=America/Los_Angeles          # Set to your local timezone
-
-# Logging Configuration (optional)
-logLevel=info                   # Log level (default: info)
-                                # Accepts: fatal | error | warn | info | debug | trace | silent
-
-enableConsoleOutput=true        # Console logging (default: true)
-                                # Any value other than "false" enables terminal output
-                                # Logs are always written to ./data/logs/ regardless of this setting
-
-enableRequestLogging=false      # HTTP request logging (default: false)
-                                # Logs HTTP method, URL, host, remote IP/port, response codes, response times
-                                # Sensitive query parameters (token, apiKey, password) are automatically redacted
 ```
 
-:::tip Network Configuration
-The `baseUrl` and `port` settings (for Sonarr/Radarr webhook callbacks) are **automatically configured via the web UI**. When you test your Sonarr/Radarr connections, Pulsarr will detect any webhook callback errors and prompt you to configure the correct network settings for your deployment.
-:::
+Most settings have sensible defaults and can be configured via the web UI. See the [Environment Variables Reference](../development/environment-variables) for all available options.
 
 2. Create a `docker-compose.yml` file and add the following:
 
@@ -155,7 +141,19 @@ See the [Native Installation Guide](./native-installation) for detailed instruct
    - Add instance details (URL, API key)
    - Configure default quality profiles and root folders
    - Set up content routing rules (optional)
-5. Set sync permissions for any friends' watchlists you'd like to include
+5. Review friend statuses and set sync permissions on the **Plex > Users** page
+   - Each user displays a badge indicating their relationship to your Plex account:
+
+   | Badge | Meaning |
+   |-------|---------|
+   | **Owner** | Your Plex account |
+   | **Friend** | On your friends list and shared to your server — click to remove |
+   | **No Friend** | On your server but not your friend — click to send a friend request |
+   | **Pending** | Friend request sent — click for cancel/resend options |
+   | **Incoming** | They sent you a request — accept it in Plex |
+   | **No Server** | On your friends list but not shared to your server |
+
+   - Watchlist syncing requires Plex friendship — users showing "No Friend" can be sent a friend request directly from the badge
    - Ensure users have their [Account Visibility](https://app.plex.tv/desktop/#!/settings/account) set to 'Friends Only' or 'Friends of Friends'
 6. Head to the `Dashboard` page and click on the Start button next to the Main Workflow heading
    - Toggle 'Auto Start' to true for automatic operation

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { z } from 'zod'
+import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import BulkEditModal from '@/features/plex/components/user/bulk-edit-modal'
 import {
   BulkQuotaEditModal,
@@ -28,6 +29,9 @@ import { type UserWithQuotaInfo, useConfigStore } from '@/stores/configStore'
 export default function PlexUsersPage() {
   const initialize = useConfigStore((state) => state.initialize)
   const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)
+  const refreshPlexUserStatus = useConfigStore(
+    (state) => state.refreshPlexUserStatus,
+  )
 
   // Initialize store on mount
   useEffect(() => {
@@ -169,9 +173,11 @@ export default function PlexUsersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-foreground">User Watchlists</h2>
-      </div>
+      <UtilitySectionHeader
+        title="User Watchlists"
+        description="Watchlist syncing requires Plex friendship. Click status badges to send, cancel, or resend friend requests. Users who aren't friends cannot be configured until a friendship is established."
+        showStatus={false}
+      />
       <div className="grid gap-4">
         {!hasUserData && !isLoading ? (
           <div className="text-center py-8 text-foreground">
@@ -186,6 +192,7 @@ export default function PlexUsersPage() {
               isLoading={isLoading}
               onBulkEdit={handleOpenBulkEditModal}
               onBulkEditQuotas={handleOpenBulkQuotaModal}
+              onRefreshStatus={refreshPlexUserStatus}
             />
             {/* Individual user edit modal */}
             <UserEditModal

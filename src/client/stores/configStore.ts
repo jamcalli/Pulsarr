@@ -6,6 +6,10 @@ import type {
   ConfigUpdateResponse,
 } from '@root/schemas/config/config.schema'
 import type {
+  PlexFriendStatus,
+  UserStatusResponse,
+} from '@root/schemas/plex/user-status.schema'
+import type {
   QuotaStatusResponse,
   UserQuotaResponse,
 } from '@root/schemas/quota/quota.schema'
@@ -35,6 +39,9 @@ export type UserQuotas = {
 
 export type UserWithQuotaInfo = UserWatchlistInfo & {
   userQuotas: UserQuotas | null
+  friendStatus?: PlexFriendStatus
+  pendingSince?: string | null
+  isTracked?: boolean
 }
 
 export type CurrentUser = MeResponse['user']
@@ -43,6 +50,7 @@ export type CurrentUser = MeResponse['user']
 let lastUserDataFetch = 0
 let lastQuotaDataFetch = 0
 let lastCurrentUserFetch = 0
+let lastPlexUserStatusFetch = 0
 const CACHE_DURATION = 5000 // 5 seconds
 
 interface UserListResponse {
@@ -69,6 +77,7 @@ interface ConfigState {
   currentUser: CurrentUser | null
   currentUserLoading: boolean
   currentUserError: string | null
+  plexUserStatus: UserStatusResponse | null
 
   initialize: (force?: boolean) => Promise<void>
   updateConfig: (updates: ConfigUpdate) => Promise<void>
@@ -89,6 +98,8 @@ interface ConfigState {
   ) => Promise<void>
   fetchCurrentUser: () => Promise<void>
   refreshCurrentUser: () => Promise<void>
+  fetchPlexUserStatus: () => Promise<void>
+  refreshPlexUserStatus: () => Promise<void>
 }
 
 export const useConfigStore = create<ConfigState>()(
@@ -107,6 +118,7 @@ export const useConfigStore = create<ConfigState>()(
         currentUser: null,
         currentUserLoading: false,
         currentUserError: null,
+        plexUserStatus: null,
 
         fetchConfig: async () => {
           try {
@@ -564,6 +576,104 @@ export const useConfigStore = create<ConfigState>()(
           await get().fetchCurrentUser()
         },
 
+        fetchPlexUserStatus: async () => {
+          const now = Date.now()
+          if (now - lastPlexUserStatusFetch < CACHE_DURATION) {
+            return
+          }
+
+          lastPlexUserStatusFetch = now
+          try {
+            const response = await fetch(api('/v1/plex/user-status'))
+
+            if (!response.ok) {
+              throw new Error('Failed to fetch plex user status')
+            }
+
+            const data: UserStatusResponse = await response.json()
+
+            if (data.success && data.users) {
+              set({ plexUserStatus: data })
+
+              const state = get()
+              if (!state.users) return
+
+              // Build a map of plex_uuid → classification for tracked users
+              const classifiedByUuid = new Map(
+                data.users.map((info) => [info.uuid, info]),
+              )
+
+              // Rebuild from base users + quotas to avoid accumulating synthetic entries
+              const enriched: UserWithQuotaInfo[] = state.users.map((user) => {
+                const uuid = user.plex_uuid
+                const userQuotas = state.userQuotasMap.get(user.id) ?? null
+                if (uuid && classifiedByUuid.has(uuid)) {
+                  const info = classifiedByUuid.get(uuid)
+                  return {
+                    ...user,
+                    userQuotas,
+                    friendStatus: info?.status ?? 'friend_only',
+                    pendingSince: info?.pendingSince ?? null,
+                    isTracked: true,
+                  }
+                }
+                // Tracked user not found in status response
+                return {
+                  ...user,
+                  userQuotas,
+                  friendStatus: user.is_primary_token
+                    ? ('self' as const)
+                    : ('friend' as const),
+                  pendingSince: null,
+                  isTracked: true,
+                }
+              })
+
+              // Add untracked users as synthetic entries
+              for (const untracked of data.untracked) {
+                enriched.push({
+                  id: 0,
+                  name: untracked.username,
+                  apprise: null,
+                  alias: null,
+                  discord_id: null,
+                  notify_apprise: false,
+                  notify_discord: false,
+                  notify_discord_mention: false,
+                  notify_tautulli: false,
+                  tautulli_notifier_id: null,
+                  can_sync: false,
+                  requires_approval: false,
+                  is_primary_token: false,
+                  plex_uuid: untracked.uuid,
+                  avatar: untracked.avatar,
+                  display_name: null,
+                  friend_created_at: null,
+                  created_at: '',
+                  updated_at: '',
+                  watchlist_count: 0,
+                  userQuotas: null,
+                  friendStatus: untracked.status,
+                  pendingSince: untracked.pendingSince,
+                  isTracked: false,
+                })
+              }
+
+              set({ usersWithQuota: enriched })
+            } else {
+              throw new Error('Failed to fetch plex user status')
+            }
+          } catch (err) {
+            console.error('Plex user status fetch error:', err)
+            // Don't set error state for status failures, just log
+          }
+        },
+
+        refreshPlexUserStatus: async () => {
+          lastPlexUserStatusFetch = 0
+          await get().fetchPlexUserStatus()
+        },
+
         initialize: async (force = false) => {
           const state = get()
           if (!state.isInitialized || force) {
@@ -576,6 +686,7 @@ export const useConfigStore = create<ConfigState>()(
                 currentState.config.plexTokens.length > 0
               ) {
                 await state.fetchUserData()
+                await state.fetchPlexUserStatus()
               }
             } catch (error) {
               set({ error: 'Failed to initialize config' })

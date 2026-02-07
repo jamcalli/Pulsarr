@@ -48,6 +48,9 @@ export interface Friend {
   watchlistId: string
   username: string
   userId: number
+  avatar?: string
+  displayName?: string
+  createdAt?: string
 }
 
 export interface FriendsResult {
@@ -153,7 +156,15 @@ export interface PlexApiResponse {
   }
   errors?: PlexGraphQLError[]
   data?: {
-    allFriendsV2?: Array<{ user: { id: string; username: string } }>
+    allFriendsV2?: Array<{
+      user: {
+        id: string
+        username: string
+        avatar: string
+        displayName: string
+      }
+      createdAt: string
+    }>
     userV2?: {
       watchlist?: {
         nodes: Array<TokenWatchlistItem>
@@ -165,6 +176,22 @@ export interface PlexApiResponse {
     }
   }
   RSSInfo?: Array<{ url: string }>
+}
+
+export interface FriendRequestNode {
+  user: {
+    id: string
+    username: string
+    avatar: string
+    displayName: string
+  }
+  createdAt: string
+}
+
+export interface FriendRequestsResult {
+  sent: FriendRequestNode[]
+  received: FriendRequestNode[]
+  success: boolean
 }
 
 export interface RssWatchlistItem {

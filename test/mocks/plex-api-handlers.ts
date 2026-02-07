@@ -102,24 +102,40 @@ export const plexCommunityHandler = http.post(
       data: {
         allFriendsV2: [
           {
-            userId: '1',
-            username: 'test-user-primary',
-            email: 'user1@example.com',
+            user: {
+              id: '1',
+              username: 'test-user-primary',
+              avatar: '',
+              displayName: 'Test User Primary',
+            },
+            createdAt: '2024-01-01T00:00:00Z',
           },
           {
-            userId: '2',
-            username: 'test-user-discord-apprise',
-            email: 'user2@example.com',
+            user: {
+              id: '2',
+              username: 'test-user-discord-apprise',
+              avatar: '',
+              displayName: 'Test User Discord',
+            },
+            createdAt: '2024-01-01T00:00:00Z',
           },
           {
-            userId: '3',
-            username: 'test-user-all-notifications',
-            email: 'user3@example.com',
+            user: {
+              id: '3',
+              username: 'test-user-all-notifications',
+              avatar: '',
+              displayName: 'Test User Notifications',
+            },
+            createdAt: '2024-01-01T00:00:00Z',
           },
           {
-            userId: '4',
-            username: 'test-user-no-sync',
-            email: 'user4@example.com',
+            user: {
+              id: '4',
+              username: 'test-user-no-sync',
+              avatar: '',
+              displayName: 'Test User No Sync',
+            },
+            createdAt: '2024-01-01T00:00:00Z',
           },
         ],
       },

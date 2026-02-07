@@ -13,7 +13,7 @@ interface ColumnConfig {
   width?: string
   className?: string
   hideOnMobile?: boolean
-  type?: 'text' | 'badge' | 'icon' | 'button' | 'checkbox' | 'twoLine' | 'contentWithIcon' | 'empty'
+  type?: 'text' | 'badge' | 'icon' | 'button' | 'checkbox' | 'twoLine' | 'contentWithIcon' | 'avatar' | 'empty'
   align?: 'left' | 'center' | 'right'
 }
 
@@ -100,7 +100,11 @@ export function TableSkeleton({
                   column.hideOnMobile ? 'hidden sm:table-cell' : ''
                 }`}
               >
-                <Skeleton className="h-4 w-20" />
+                {column.type === 'checkbox' ? (
+                  <Skeleton className="h-4 w-4 rounded-xs" />
+                ) : (
+                  <Skeleton className="h-4 w-20" />
+                )}
               </TableHead>
             ))}
           </TableRow>
@@ -116,12 +120,19 @@ export function TableSkeleton({
                   column.hideOnMobile ? 'hidden sm:table-cell' : ''
                 }`}
               >
-                <Skeleton
-                  className={`${getSkeletonHeight(column.type)} ${getSkeletonWidth(
-                    column.type,
-                    column.width,
-                  )} ${column.type === 'checkbox' ? 'rounded-xs' : ''}`}
-                />
+                {column.type === 'avatar' ? (
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-6 w-6 shrink-0 rounded-full" />
+                    <Skeleton className={`h-4 ${column.width || 'w-24'}`} />
+                  </div>
+                ) : (
+                  <Skeleton
+                    className={`${getSkeletonHeight(column.type)} ${getSkeletonWidth(
+                      column.type,
+                      column.width,
+                    )} ${column.type === 'checkbox' ? 'rounded-xs' : ''}`}
+                  />
+                )}
               </TableCell>
             ))}
           </TableRow>
@@ -205,6 +216,15 @@ export function TableRowsSkeleton({
       // Empty cell (for hidden columns that still render a cell)
       case 'empty':
         return null
+
+      // Round avatar + single line text (like Username with avatar)
+      case 'avatar':
+        return (
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-6 w-6 shrink-0 rounded-full" />
+            <Skeleton className={`h-4 ${column.width || 'w-24'}`} />
+          </div>
+        )
 
       // Icon + two lines (like Content column with icon, title, subtitle)
       case 'contentWithIcon':
