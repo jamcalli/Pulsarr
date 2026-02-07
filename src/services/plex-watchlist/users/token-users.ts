@@ -147,9 +147,6 @@ export async function ensureTokenUsers(
         if (user.name !== plexUsername) {
           updates.name = plexUsername
         }
-        if (user.is_primary_token !== isPrimary) {
-          updates.is_primary_token = isPrimary
-        }
         if (plexAvatar && user.avatar !== plexAvatar) {
           updates.avatar = plexAvatar
         }
