@@ -225,7 +225,7 @@ export default function UserTable({
       cell: ({ row }) => (
         <div className="flex justify-center">
           <FriendStatusBadge
-            status={row.original.friendStatus ?? 'friend'}
+            status={row.original.friendStatus ?? 'friend_only'}
             username={row.original.name}
             avatar={row.original.avatar}
             uuid={row.original.plex_uuid ?? ''}

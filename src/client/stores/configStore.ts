@@ -607,7 +607,7 @@ export const useConfigStore = create<ConfigState>()(
                   return {
                     ...user,
                     userQuotas,
-                    friendStatus: info?.status ?? 'friend',
+                    friendStatus: info?.status ?? 'friend_only',
                     pendingSince: info?.pendingSince ?? null,
                     isTracked: true,
                   }

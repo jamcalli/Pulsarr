@@ -461,6 +461,20 @@ export class PlexWatchlistService {
         this.dbService.getAllUsers(),
       ])
 
+    // Guard against API failures to prevent misclassification
+    if (!friendsResult.success) {
+      this.log.warn(
+        'Friend API failed - skipping classification to prevent misclassifying users',
+      )
+      return { success: false, users: [], untracked: [] }
+    }
+
+    if (!friendRequests.success) {
+      this.log.warn(
+        'Friend requests API failed - pending request statuses may be missing',
+      )
+    }
+
     // Build lookup maps
     const friendsByUuid = new Map<string, Friend>()
     for (const [friend] of friendsResult.friends) {
