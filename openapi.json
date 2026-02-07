@@ -3629,6 +3629,124 @@
         }
       }
     },
+    "/v1/plex/send-friend-request": {
+      "post": {
+        "operationId": "sendPlexFriendRequest",
+        "summary": "Send a Plex friend request",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Sends a friend request to a Plex user by UUID",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "uuid": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "uuid"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/plex/pin": {
       "post": {
         "operationId": "generatePlexPin",
@@ -3753,6 +3871,160 @@
                   "required": [
                     "authToken",
                     "expiresIn"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/user-status": {
+      "get": {
+        "operationId": "getPlexUserStatus",
+        "summary": "Get classified Plex user status",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Cross-references friends, server users, and pending requests to classify all known Plex users",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "uuid": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "type": "string"
+                          },
+                          "avatar": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "friend",
+                              "server_only",
+                              "pending_sent",
+                              "pending_received",
+                              "friend_only",
+                              "self"
+                            ]
+                          },
+                          "friendCreatedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "pendingSince": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "uuid",
+                          "username",
+                          "avatar",
+                          "displayName",
+                          "status",
+                          "friendCreatedAt",
+                          "pendingSince"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "untracked": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "uuid": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "type": "string"
+                          },
+                          "avatar": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "friend",
+                              "server_only",
+                              "pending_sent",
+                              "pending_received",
+                              "friend_only",
+                              "self"
+                            ]
+                          },
+                          "pendingSince": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "uuid",
+                          "username",
+                          "avatar",
+                          "status",
+                          "pendingSince"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "users",
+                    "untracked"
                   ],
                   "additionalProperties": false
                 }
@@ -4236,6 +4508,124 @@
                   "required": [
                     "success",
                     "genres"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/cancel-friend-request": {
+      "post": {
+        "operationId": "cancelPlexFriendRequest",
+        "summary": "Cancel a Plex friend request",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Removes a friend or cancels a pending sent friend request via the Plex removeFriend mutation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "uuid": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "uuid"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -33004,6 +33394,22 @@
                           "is_primary_token": {
                             "type": "boolean"
                           },
+                          "plex_uuid": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "avatar": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "display_name": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "friend_created_at": {
+                            "nullable": true,
+                            "type": "string"
+                          },
                           "created_at": {
                             "type": "string"
                           },
@@ -33146,6 +33552,22 @@
                           },
                           "is_primary_token": {
                             "type": "boolean"
+                          },
+                          "plex_uuid": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "avatar": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "display_name": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "friend_created_at": {
+                            "nullable": true,
+                            "type": "string"
                           },
                           "created_at": {
                             "type": "string"
@@ -33738,6 +34160,22 @@
                         "requires_approval": {
                           "type": "boolean"
                         },
+                        "plex_uuid": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "avatar": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "display_name": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "friend_created_at": {
+                          "nullable": true,
+                          "type": "string"
+                        },
                         "created_at": {
                           "type": "string"
                         },
@@ -33946,6 +34384,22 @@
                         "requires_approval": {
                           "type": "boolean"
                         },
+                        "plex_uuid": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "avatar": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "display_name": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "friend_created_at": {
+                          "nullable": true,
+                          "type": "string"
+                        },
                         "created_at": {
                           "type": "string"
                         },
@@ -34123,6 +34577,22 @@
                         },
                         "requires_approval": {
                           "type": "boolean"
+                        },
+                        "plex_uuid": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "avatar": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "display_name": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "friend_created_at": {
+                          "nullable": true,
+                          "type": "string"
                         },
                         "created_at": {
                           "type": "string"
