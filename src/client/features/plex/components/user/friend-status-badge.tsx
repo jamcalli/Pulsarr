@@ -65,6 +65,11 @@ const statusConfig: Record<
     variant: 'neutral',
     tooltip: 'On your friends list but not shared to your server.',
   },
+  self: {
+    text: 'Owner',
+    variant: 'default',
+    tooltip: 'This is your Plex account.',
+  },
 }
 
 export function FriendStatusBadge({
@@ -103,7 +108,9 @@ export function FriendStatusBadge({
           </Badge>,
         )}
 
-      {(status === 'pending_received' || status === 'friend_only') &&
+      {(status === 'pending_received' ||
+        status === 'friend_only' ||
+        status === 'self') &&
         badgeTooltip(<Badge variant={config.variant}>{config.text}</Badge>)}
 
       {status === 'pending_sent' && (

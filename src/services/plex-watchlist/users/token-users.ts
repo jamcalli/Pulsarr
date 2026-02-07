@@ -66,6 +66,8 @@ export async function ensureTokenUsers(
     deps.config.plexTokens.map(async (token, index) => {
       // Fetch the actual Plex username for this token
       let plexUsername = `token${index + 1}` // Fallback name
+      let plexAvatar: string | null = null
+      let plexUuid: string | null = null
       const isPrimary = index === 0 // First token is primary
 
       // Create AbortController for timeout
@@ -84,12 +86,22 @@ export async function ensureTokenUsers(
         })
 
         if (response.ok) {
-          const userData = (await response.json()) as { username: string }
+          const userData = (await response.json()) as {
+            username: string
+            thumb?: string
+            uuid?: string
+          }
           if (userData?.username) {
             plexUsername = userData.username
             deps.logger.debug(
               `Using actual Plex username: ${plexUsername} for token${index + 1}`,
             )
+          }
+          if (userData?.thumb) {
+            plexAvatar = userData.thumb
+          }
+          if (userData?.uuid) {
+            plexUuid = userData.uuid
           }
         }
       } catch (error) {
@@ -124,21 +136,29 @@ export async function ensureTokenUsers(
       }
 
       if (user) {
-        // Update existing user if needed
-        if (user.is_primary_token !== isPrimary || user.name !== plexUsername) {
-          // If this user should be primary, update primary status first
-          if (isPrimary && !user.is_primary_token) {
-            // Use the database service method to set primary user
-            await deps.db.setPrimaryUser(user.id)
-          }
+        // If this user should be primary, update primary status first
+        if (isPrimary && !user.is_primary_token) {
+          await deps.db.setPrimaryUser(user.id)
+        }
 
-          // Update other user details if needed
-          await deps.db.updateUser(user.id, {
-            name: plexUsername,
-            is_primary_token: isPrimary,
-          })
+        // Build updates for any changed fields
+        const updates: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>> =
+          {}
+        if (user.name !== plexUsername) {
+          updates.name = plexUsername
+        }
+        if (user.is_primary_token !== isPrimary) {
+          updates.is_primary_token = isPrimary
+        }
+        if (plexAvatar && user.avatar !== plexAvatar) {
+          updates.avatar = plexAvatar
+        }
+        if (plexUuid && user.plex_uuid !== plexUuid) {
+          updates.plex_uuid = plexUuid
+        }
 
-          // Reload the user to get updated data
+        if (Object.keys(updates).length > 0) {
+          await deps.db.updateUser(user.id, updates)
           user = await deps.db.getUser(plexUsername)
         }
       } else {
@@ -160,6 +180,8 @@ export async function ensureTokenUsers(
             requires_approval:
               deps.config.newUserDefaultRequiresApproval ?? false,
             is_primary_token: false, // Initially false, will set to true next
+            avatar: plexAvatar,
+            plex_uuid: plexUuid,
           })
 
           // Now set as primary using the database service method
@@ -193,6 +215,8 @@ export async function ensureTokenUsers(
             requires_approval:
               deps.config.newUserDefaultRequiresApproval ?? false,
             is_primary_token: false,
+            avatar: plexAvatar,
+            plex_uuid: plexUuid,
           })
 
           // Send native webhook notification for user creation (fire-and-forget)

@@ -500,7 +500,7 @@ export class PlexWatchlistService {
       ...pendingReceivedByUuid.keys(),
     ])
 
-    const users: Record<string, PlexClassifiedUser> = {}
+    const users: PlexClassifiedUser[] = []
     const untracked: PlexUntrackedUser[] = []
 
     for (const uuid of allUuids) {
@@ -556,7 +556,7 @@ export class PlexWatchlistService {
       const dbUser = dbUsersByUuid.get(uuid)
 
       if (dbUser) {
-        users[uuid] = {
+        users.push({
           uuid,
           username,
           avatar,
@@ -564,13 +564,13 @@ export class PlexWatchlistService {
           status,
           friendCreatedAt: friend?.createdAt ?? null,
           pendingSince,
-        }
+        })
       } else {
         untracked.push({
           uuid,
           username,
           avatar,
-          status: status as PlexUntrackedUser['status'],
+          status,
           pendingSince,
         })
       }

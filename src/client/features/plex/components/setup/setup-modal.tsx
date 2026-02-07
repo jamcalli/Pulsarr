@@ -33,6 +33,9 @@ interface SetupModalProps {
 export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
   const updateConfig = useConfigStore((state) => state.updateConfig)
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
+  const fetchPlexUserStatus = useConfigStore(
+    (state) => state.fetchPlexUserStatus,
+  )
   const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
   const [plexToken, setPlexToken] = useState('')
   const [currentStep, setCurrentStep] = useState<'token' | 'syncing'>('token')
@@ -57,6 +60,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
       const timer = setTimeout(async () => {
         try {
           await fetchUserData()
+          await fetchPlexUserStatus()
           onOpenChange(false)
 
           setTimeout(() => {
@@ -77,6 +81,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
     othersWatchlistStatus,
     onOpenChange,
     fetchUserData,
+    fetchPlexUserStatus,
     setSelfWatchlistStatus,
     setOthersWatchlistStatus,
   ])

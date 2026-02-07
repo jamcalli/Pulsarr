@@ -7,6 +7,7 @@ export const PlexFriendStatusSchema = z.enum([
   'pending_sent',
   'pending_received',
   'friend_only',
+  'self',
 ])
 
 const PlexClassifiedUserSchema = z.object({
@@ -23,13 +24,13 @@ const PlexUntrackedUserSchema = z.object({
   uuid: z.string(),
   username: z.string(),
   avatar: z.string(),
-  status: z.enum(['server_only', 'pending_sent']),
+  status: PlexFriendStatusSchema,
   pendingSince: z.string().nullable(),
 })
 
 const UserStatusResponseSchema = z.object({
   success: z.boolean(),
-  users: z.record(z.string(), PlexClassifiedUserSchema),
+  users: z.array(PlexClassifiedUserSchema),
   untracked: z.array(PlexUntrackedUserSchema),
 })
 

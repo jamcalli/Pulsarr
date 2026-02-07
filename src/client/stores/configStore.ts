@@ -595,7 +595,7 @@ export const useConfigStore = create<ConfigState>()(
 
               // Build a map of plex_uuid → classification for tracked users
               const classifiedByUuid = new Map(
-                Object.entries(data.users).map(([uuid, info]) => [uuid, info]),
+                data.users.map((info) => [info.uuid, info]),
               )
 
               // Rebuild from base users + quotas to avoid accumulating synthetic entries
@@ -612,11 +612,13 @@ export const useConfigStore = create<ConfigState>()(
                     isTracked: true,
                   }
                 }
-                // Tracked user not found in status response → default to friend
+                // Tracked user not found in status response
                 return {
                   ...user,
                   userQuotas,
-                  friendStatus: 'friend' as const,
+                  friendStatus: user.is_primary_token
+                    ? ('self' as const)
+                    : ('friend' as const),
                   pendingSince: null,
                   isTracked: true,
                 }
