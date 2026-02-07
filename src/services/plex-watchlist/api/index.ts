@@ -1,7 +1,7 @@
 // API layer exports for Plex watchlist service
 
-// Client functions (ping, avatar)
-export { fetchPlexAvatar, pingPlex } from './client.js'
+// Client functions (ping)
+export { pingPlex } from './client.js'
 // GraphQL/REST API functions
 export { getWatchlist, getWatchlistForUser } from './graphql.js'
 // Helper functions and types
