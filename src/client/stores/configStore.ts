@@ -585,6 +585,11 @@ export const useConfigStore = create<ConfigState>()(
           lastPlexUserStatusFetch = now
           try {
             const response = await fetch(api('/v1/plex/user-status'))
+
+            if (!response.ok) {
+              throw new Error('Failed to fetch plex user status')
+            }
+
             const data: UserStatusResponse = await response.json()
 
             if (data.success && data.users) {

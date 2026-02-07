@@ -63,7 +63,7 @@ import {
 } from './plex-watchlist/users/index.js'
 
 function extractUuidFromThumb(thumb: string | undefined): string | null {
-  const match = thumb?.match(/plex\.tv\/users\/([a-f0-9]+)\/avatar/)
+  const match = thumb?.match(/plex\.tv\/users\/([a-f0-9]+)\/avatar/i)
   return match?.[1] ?? null
 }
 
