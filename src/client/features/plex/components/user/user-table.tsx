@@ -83,7 +83,11 @@ interface UserTableProps {
 
 const isNonFriend = (row: Row<UserWithQuotaInfo>) => {
   const status = row.original.friendStatus
-  return status === 'server_only' || status === 'pending_sent'
+  return (
+    status === 'server_only' ||
+    status === 'pending_sent' ||
+    status === 'pending_received'
+  )
 }
 
 const NON_FRIEND_DASH = (
@@ -743,7 +747,7 @@ export default function UserTable({
             }}
             disabled={isLoading}
           >
-            <SelectTrigger className="h-8 w-[70px]">
+            <SelectTrigger className="h-8 w-17.5">
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
