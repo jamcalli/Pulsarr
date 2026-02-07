@@ -13,7 +13,8 @@ const CancelFriendRequestResponseSchema = z.object({
 export const cancelFriendRequestSchema = {
   summary: 'Cancel a Plex friend request',
   operationId: 'cancelPlexFriendRequest',
-  description: 'Cancels a pending sent friend request to a Plex user by UUID',
+  description:
+    'Removes a friend or cancels a pending sent friend request via the Plex removeFriend mutation',
   tags: ['Plex'],
   body: CancelFriendRequestBodySchema,
   response: {
