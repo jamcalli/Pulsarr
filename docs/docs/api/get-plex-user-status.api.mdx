@@ -1,0 +1,63 @@
+---
+id: get-plex-user-status
+title: "Get classified Plex user status"
+description: "Cross-references friends, server users, and pending requests to classify all known Plex users"
+sidebar_label: "Get classified Plex user status"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNV99vGzcM/lcEPm3AuU5W7OXegrQoghWDUbfbgMAoFB3tU6OTLqSUxDD8vw+U7vwjdtH1ocWebEviR4ofyU/eQOiRdLTB3zRQwwrjzOHzJ0aaRx0TQwVRrxjqW5ANWFTQIBuyvdhADdcUmCeESyT0BlktyaJvuFKM9IikEiNxpbRvVI++sX6lCB8ScmQVgzJOM9vlWmnn1L0PT16Jo2IGFRByHzwjQ72B3y4u5OM4gje41MlF9WE4CRWY4CP6KGd13ztr8g2nX1gMNsCmxU7Lt7juEWoId1/QRKigJ8lHtMUdJ2OQ+eDgXQgOtYdtBSXA/ZYm0muowEbs+NvYKdnm4BRHsn414nrd4dlN/aijprNbjeXe6fWfXzPlwufJVgXoUycEF+aggsLc5+CdXGhg7TNLRvc/CQ3aR5TzxXA8z+iWsNiOy9eEOmJzldnwyTl95xDqSAmr0ygH9Ln1Bv+DwVYK5CFZwkZukJN6kMJdwo7Ts0vGaYwvIlhUoJvGSvVoNzsgcKkdo7hPPpI299j8j0rh51P9w2jbEfVdtLzAH/t4bNpD1r4Jta3g9588dvKdr0NzSLxP3R2SsGuON/a0I1E4XxAdMuvVGasKOuvfo1/FFurLk7ztAxncjk72kN/OX/Yf2zDoi1xXizuYPl5Oe4fPU2FlsmO6lKRIzgYSOahh01OIwQS3rafTTRs4butNHyhu4USOEsfQqXnGgAoeNVkpxJzYEUa+j53QxthDlT+4qFumFepx5xj/Y4tqhBGNarKGha5LXuhG9WRjq2KLg/xJ9iXgUj8jtAtGu7x8Dl82pA9UIHUzU7ppCJlVWGbcWXKsiQ7wJRPH+K8vLl6fDz1QVMGrp9aadgdlWVHyvrTmthrTnnNST6frkGjSl7MT6zlqb/CVCd2JixnZTtN6TP93QNVnQ35jCU0c4NRV7mL1S06x3OTXFx7q6XSX2fOA78fts2ALKT6TyMZ1rj7d2z9wfZWkWm8X4ouR2Qa/WzqwmEt3lzo7tNuLQl4UVZBAWtRNLtAy3+GfydXsZlIOHId8NbtR97hWOsUWfRyGikosL6mdmRoAZfofxvgV9yaEe4t79wMlJ87nBWtyp6XUz4ZQoFg8P+FdG8L9HA1h/M7rD7U4KcYngfxdoM+HoFMMkxV6ecliozhDvFLz4DXR9INupMiH4FhpQmWCX9pVImzGhrU8pDCjdVpcOLd+lcXK+mXId7FRNA3Gxrma3ZzlqwkmdehjCXIZaNdqE6XL+/ZJR9M6y1FZH3FF+6Ml7PxgLqHLGEPiAv/XZWl5jp3OqjJk8B3G8S1tsdm/odVurh6FudmL1Q9/wg8VEPE5TnunbXk+Ux7DRQpu4fFSdEH+YRSRHuVgMY7PW9hspAo/kdtuZfkhIUmbLvZDvnTpWFzSwfe4FkqMwT5mNXCpFOMLdZZG3onUu7cfYbv9F85pmAs=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get classified Plex user status"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/plex/user-status"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Cross-references friends, server users, and pending requests to classify all known Plex users
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"users":{"type":"array","items":{"type":"object","properties":{"uuid":{"type":"string"},"username":{"type":"string"},"avatar":{"type":"string"},"displayName":{"type":"string"},"status":{"type":"string","enum":["friend","server_only","pending_sent","pending_received","friend_only","self"]},"friendCreatedAt":{"nullable":true,"type":"string"},"pendingSince":{"nullable":true,"type":"string"}},"required":["uuid","username","avatar","displayName","status","friendCreatedAt","pendingSince"],"additionalProperties":false}},"untracked":{"type":"array","items":{"type":"object","properties":{"uuid":{"type":"string"},"username":{"type":"string"},"avatar":{"type":"string"},"status":{"type":"string","enum":["friend","server_only","pending_sent","pending_received","friend_only","self"]},"pendingSince":{"nullable":true,"type":"string"}},"required":["uuid","username","avatar","status","pendingSince"],"additionalProperties":false}}},"required":["success","users","untracked"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
