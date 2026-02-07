@@ -1,7 +1,12 @@
 // Fetching layer exports for Plex watchlist service
 
 // Friends API
-export { getFriends } from './friends-api.js'
+export {
+  cancelFriendRequest,
+  getFriendRequests,
+  getFriends,
+  sendFriendRequest,
+} from './friends-api.js'
 
 // RSS fetching
 export {
