@@ -161,7 +161,7 @@ export default function UserTable({
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
           aria-label="Select row"
-          disabled={isLoading}
+          disabled={isLoading || !row.getCanSelect()}
         />
       ),
       enableSorting: false,
@@ -475,9 +475,10 @@ export default function UserTable({
       enableHiding: false,
       cell: ({ row }) => {
         if (
-          row.original.friendStatus !== 'friend' &&
-          row.original.friendStatus !== 'friend_only' &&
-          row.original.friendStatus !== 'self'
+          row.original.isTracked === false ||
+          (row.original.friendStatus !== 'friend' &&
+            row.original.friendStatus !== 'friend_only' &&
+            row.original.friendStatus !== 'self')
         ) {
           return <div className="w-8" />
         }
@@ -534,6 +535,7 @@ export default function UserTable({
   const table = useReactTable({
     data: users,
     columns,
+    enableRowSelection: (row) => row.original.isTracked !== false,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
