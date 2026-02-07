@@ -6,6 +6,7 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  type Row,
   type SortingState,
   useReactTable,
   type VisibilityState,
@@ -23,6 +24,7 @@ import {
 import * as React from 'react'
 import { useId } from 'react'
 import { toast } from 'sonner'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -54,6 +56,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { FriendStatusBadge } from '@/features/plex/components/user/friend-status-badge'
 import { QuotaStatusBadge } from '@/features/plex/components/user/quota-status-badge'
 import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
 import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
@@ -75,7 +78,19 @@ interface UserTableProps {
   isLoading?: boolean
   onBulkEdit?: (selectedRows: PlexUserTableRow[]) => void
   onBulkEditQuotas?: (selectedRows: PlexUserTableRow[]) => void
+  onRefreshStatus: () => void
 }
+
+const isNonFriend = (row: Row<UserWithQuotaInfo>) => {
+  const status = row.original.friendStatus
+  return status === 'server_only' || status === 'pending_sent'
+}
+
+const NON_FRIEND_DASH = (
+  <div className="flex justify-center">
+    <span className="text-sm text-muted-foreground">-</span>
+  </div>
+)
 
 /**
  * Renders an interactive user management table with sorting, filtering, pagination, column visibility, row selection, and editing capabilities.
@@ -98,6 +113,7 @@ export default function UserTable({
   isLoading = false,
   onBulkEdit,
   onBulkEditQuotas,
+  onRefreshStatus,
 }: UserTableProps) {
   const editIconTitleId = useId()
   // Table state
@@ -166,13 +182,52 @@ export default function UserTable({
         )
       },
       cell: ({ row }) => (
-        <div className="font-medium truncate max-w-xs">
-          {row.getValue('name')}
-          {row.original.alias && (
-            <span className="ml-2 text-sm text-muted-foreground">
-              ({row.original.alias})
-            </span>
-          )}
+        <div className="flex items-center gap-2 font-medium max-w-xs">
+          <Avatar
+            className="h-6 w-6 shrink-0"
+            style={{ backgroundColor: '#212121' }}
+          >
+            {row.original.avatar && (
+              <AvatarImage
+                src={row.original.avatar}
+                alt={row.getValue('name')}
+                className="object-cover"
+              />
+            )}
+            <AvatarFallback
+              style={{ backgroundColor: '#212121' }}
+              className="text-white text-xs"
+            >
+              {(row.getValue('name') as string).charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <span className="truncate">
+            {row.getValue('name')}
+            {row.original.alias && (
+              <span className="ml-2 text-sm text-muted-foreground">
+                ({row.original.alias})
+              </span>
+            )}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: 'friendStatus',
+      meta: {
+        displayName: 'Friend Status',
+      },
+      header: () => <div className="text-center">Status</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <FriendStatusBadge
+            status={row.original.friendStatus ?? 'friend'}
+            username={row.original.name}
+            avatar={row.original.avatar}
+            uuid={row.original.plex_uuid ?? ''}
+            pendingSince={row.original.pendingSince}
+            onStatusChange={onRefreshStatus}
+          />
         </div>
       ),
     },
@@ -182,15 +237,18 @@ export default function UserTable({
         displayName: 'Apprise Notifications',
       },
       header: () => <div className="text-center">Apprise</div>,
-      cell: ({ row }) => (
-        <div className="flex justify-center">
-          {row.getValue('notify_apprise') ? (
-            <Check className="h-4 w-4 text-main" />
-          ) : (
-            <X className="h-4 w-4 text-error" />
-          )}
-        </div>
-      ),
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        return (
+          <div className="flex justify-center">
+            {row.getValue('notify_apprise') ? (
+              <Check className="h-4 w-4 text-main" />
+            ) : (
+              <X className="h-4 w-4 text-error" />
+            )}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'notify_discord',
@@ -198,15 +256,18 @@ export default function UserTable({
         displayName: 'Discord Notifications',
       },
       header: () => <div className="text-center">Discord</div>,
-      cell: ({ row }) => (
-        <div className="flex justify-center">
-          {row.getValue('notify_discord') ? (
-            <Check className="h-4 w-4 text-main" />
-          ) : (
-            <X className="h-4 w-4 text-error" />
-          )}
-        </div>
-      ),
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        return (
+          <div className="flex justify-center">
+            {row.getValue('notify_discord') ? (
+              <Check className="h-4 w-4 text-main" />
+            ) : (
+              <X className="h-4 w-4 text-error" />
+            )}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'notify_discord_mention',
@@ -214,15 +275,18 @@ export default function UserTable({
         displayName: 'Public Mentions',
       },
       header: () => <div className="text-center">Mentions</div>,
-      cell: ({ row }) => (
-        <div className="flex justify-center">
-          {row.getValue('notify_discord_mention') ? (
-            <Check className="h-4 w-4 text-main" />
-          ) : (
-            <X className="h-4 w-4 text-error" />
-          )}
-        </div>
-      ),
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        return (
+          <div className="flex justify-center">
+            {row.getValue('notify_discord_mention') ? (
+              <Check className="h-4 w-4 text-main" />
+            ) : (
+              <X className="h-4 w-4 text-error" />
+            )}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'notify_tautulli',
@@ -230,15 +294,18 @@ export default function UserTable({
         displayName: 'Tautulli Notifications',
       },
       header: () => <div className="text-center">Tautulli</div>,
-      cell: ({ row }) => (
-        <div className="flex justify-center">
-          {row.getValue('notify_tautulli') ? (
-            <Check className="h-4 w-4 text-main" />
-          ) : (
-            <X className="h-4 w-4 text-error" />
-          )}
-        </div>
-      ),
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        return (
+          <div className="flex justify-center">
+            {row.getValue('notify_tautulli') ? (
+              <Check className="h-4 w-4 text-main" />
+            ) : (
+              <X className="h-4 w-4 text-error" />
+            )}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'can_sync',
@@ -246,15 +313,18 @@ export default function UserTable({
         displayName: 'Can Sync',
       },
       header: () => <div className="text-center">Can Sync</div>,
-      cell: ({ row }) => (
-        <div className="flex justify-center">
-          {row.getValue('can_sync') ? (
-            <Check className="h-4 w-4 text-main" />
-          ) : (
-            <X className="h-4 w-4 text-error" />
-          )}
-        </div>
-      ),
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        return (
+          <div className="flex justify-center">
+            {row.getValue('can_sync') ? (
+              <Check className="h-4 w-4 text-main" />
+            ) : (
+              <X className="h-4 w-4 text-error" />
+            )}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'requires_approval',
@@ -262,15 +332,18 @@ export default function UserTable({
         displayName: 'Requires Approval',
       },
       header: () => <div className="text-center">Approval</div>,
-      cell: ({ row }) => (
-        <div className="flex justify-center">
-          {row.getValue('requires_approval') ? (
-            <Check className="h-4 w-4 text-main" />
-          ) : (
-            <X className="h-4 w-4 text-error" />
-          )}
-        </div>
-      ),
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        return (
+          <div className="flex justify-center">
+            {row.getValue('requires_approval') ? (
+              <Check className="h-4 w-4 text-main" />
+            ) : (
+              <X className="h-4 w-4 text-error" />
+            )}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'userQuotas.movieQuota.quotaType',
@@ -279,6 +352,7 @@ export default function UserTable({
       },
       header: () => <div className="text-center">Quota Type</div>,
       cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
         const userQuotas = row.original.userQuotas
         if (!userQuotas || (!userQuotas.movieQuota && !userQuotas.showQuota)) {
           return (
@@ -308,6 +382,7 @@ export default function UserTable({
       },
       header: () => <div className="text-center">Quota Limit</div>,
       cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
         const userQuotas = row.original.userQuotas
         if (!userQuotas || (!userQuotas.movieQuota && !userQuotas.showQuota)) {
           return (
@@ -350,6 +425,7 @@ export default function UserTable({
       },
       header: () => <div className="text-center">Usage</div>,
       cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
         const userQuotas = row.original.userQuotas
         return (
           <div className="text-center">
@@ -381,6 +457,7 @@ export default function UserTable({
         )
       },
       cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
         const count = Number(row.getValue('watchlist_count'))
         return (
           <div className="text-center font-medium">
@@ -393,6 +470,13 @@ export default function UserTable({
       id: 'actions',
       enableHiding: false,
       cell: ({ row }) => {
+        if (
+          row.original.friendStatus !== 'friend' &&
+          row.original.friendStatus !== 'friend_only'
+        ) {
+          return <div className="w-8" />
+        }
+
         const user = row.original
 
         return (
@@ -570,7 +654,8 @@ export default function UserTable({
             rows={table.getState().pagination.pageSize}
             columns={[
               { type: 'checkbox' },
-              { type: 'text', width: 'w-32' },
+              { type: 'avatar', width: 'w-24' },
+              { type: 'badge', width: 'w-20' },
               { type: 'icon' },
               { type: 'icon' },
               { type: 'icon' },

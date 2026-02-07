@@ -1,18 +1,20 @@
 import { ErrorSchema as CommonErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
+export const PlexFriendStatusSchema = z.enum([
+  'friend',
+  'server_only',
+  'pending_sent',
+  'pending_received',
+  'friend_only',
+])
+
 const PlexClassifiedUserSchema = z.object({
   uuid: z.string(),
   username: z.string(),
   avatar: z.string(),
   displayName: z.string(),
-  status: z.enum([
-    'friend',
-    'server_only',
-    'pending_sent',
-    'pending_received',
-    'friend_only',
-  ]),
+  status: PlexFriendStatusSchema,
   friendCreatedAt: z.string().nullable(),
   pendingSince: z.string().nullable(),
 })
@@ -45,6 +47,7 @@ export const userStatusSchema = {
 
 export { PlexClassifiedUserSchema, PlexUntrackedUserSchema }
 
+export type PlexFriendStatus = z.infer<typeof PlexFriendStatusSchema>
 export type PlexClassifiedUser = z.infer<typeof PlexClassifiedUserSchema>
 export type PlexUntrackedUser = z.infer<typeof PlexUntrackedUserSchema>
 export type UserStatusResponse = z.infer<typeof UserStatusResponseSchema>
