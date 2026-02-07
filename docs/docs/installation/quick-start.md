@@ -25,23 +25,9 @@ Pulsarr can be installed using Docker (recommended), Unraid, or manual installat
 
 ```plaintext
 TZ=America/Los_Angeles          # Set to your local timezone
-
-# Logging Configuration (optional)
-logLevel=info                   # Log level (default: info)
-                                # Accepts: fatal | error | warn | info | debug | trace | silent
-
-enableConsoleOutput=true        # Console logging (default: true)
-                                # Any value other than "false" enables terminal output
-                                # Logs are always written to ./data/logs/ regardless of this setting
-
-enableRequestLogging=false      # HTTP request logging (default: false)
-                                # Logs HTTP method, URL, host, remote IP/port, response codes, response times
-                                # Sensitive query parameters (token, apiKey, password) are automatically redacted
 ```
 
-:::tip Network Configuration
-The `baseUrl` and `port` settings (for Sonarr/Radarr webhook callbacks) are **automatically configured via the web UI**. When you test your Sonarr/Radarr connections, Pulsarr will detect any webhook callback errors and prompt you to configure the correct network settings for your deployment.
-:::
+Most settings have sensible defaults and can be configured via the web UI. See the [Environment Variables Reference](../development/environment-variables) for all available options.
 
 2. Create a `docker-compose.yml` file and add the following:
 
