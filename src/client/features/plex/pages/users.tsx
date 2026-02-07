@@ -28,6 +28,9 @@ import { type UserWithQuotaInfo, useConfigStore } from '@/stores/configStore'
 export default function PlexUsersPage() {
   const initialize = useConfigStore((state) => state.initialize)
   const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)
+  const refreshPlexUserStatus = useConfigStore(
+    (state) => state.refreshPlexUserStatus,
+  )
 
   // Initialize store on mount
   useEffect(() => {
@@ -186,6 +189,7 @@ export default function PlexUsersPage() {
               isLoading={isLoading}
               onBulkEdit={handleOpenBulkEditModal}
               onBulkEditQuotas={handleOpenBulkQuotaModal}
+              onRefreshStatus={refreshPlexUserStatus}
             />
             {/* Individual user edit modal */}
             <UserEditModal
