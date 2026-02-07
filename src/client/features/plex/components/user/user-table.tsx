@@ -472,7 +472,8 @@ export default function UserTable({
       cell: ({ row }) => {
         if (
           row.original.friendStatus !== 'friend' &&
-          row.original.friendStatus !== 'friend_only'
+          row.original.friendStatus !== 'friend_only' &&
+          row.original.friendStatus !== 'self'
         ) {
           return <div className="w-8" />
         }

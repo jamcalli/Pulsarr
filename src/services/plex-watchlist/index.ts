@@ -3,7 +3,6 @@
 
 // API layer
 export {
-  fetchPlexAvatar,
   getWatchlist,
   getWatchlistForUser,
   hasValidPlexTokens,
