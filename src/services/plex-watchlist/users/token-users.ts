@@ -156,7 +156,7 @@ export async function ensureTokenUsers(
 
         if (Object.keys(updates).length > 0) {
           await deps.db.updateUser(user.id, updates)
-          user = await deps.db.getUser(plexUsername)
+          user = await deps.db.getUser(user.id)
         }
       } else {
         // If we're creating a primary user, ensure no other primaries exist

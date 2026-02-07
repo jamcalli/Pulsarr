@@ -486,6 +486,11 @@ export class PlexWatchlistService {
       const uuid = extractUuidFromThumb(user.thumb)
       if (uuid) {
         serverUsersByUuid.set(uuid, user)
+      } else if (user.thumb) {
+        this.log.warn(
+          { thumb: user.thumb, username: user.username },
+          'Could not extract UUID from server user thumb URL',
+        )
       }
     }
 
