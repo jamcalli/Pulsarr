@@ -431,12 +431,20 @@ function ResendFriendRequestCredenza({
     setIsSubmitting(true)
     try {
       await apiClient.post('/v1/plex/cancel-friend-request', { uuid })
-      await apiClient.post('/v1/plex/send-friend-request', { uuid })
-      toast.success(`Friend request resent to ${username}`)
-      onStatusChange()
-      onOpenChange(false)
+      try {
+        await apiClient.post('/v1/plex/send-friend-request', { uuid })
+        toast.success(`Friend request resent to ${username}`)
+        onStatusChange()
+        onOpenChange(false)
+      } catch {
+        toast.error(
+          `Old request canceled but failed to send new request to ${username}. Try sending again.`,
+        )
+        onStatusChange()
+        onOpenChange(false)
+      }
     } catch {
-      toast.error(`Failed to resend friend request to ${username}`)
+      toast.error(`Failed to cancel existing request for ${username}`)
     } finally {
       setIsSubmitting(false)
     }
