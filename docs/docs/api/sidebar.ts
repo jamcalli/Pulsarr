@@ -394,6 +394,12 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api/send-plex-friend-request",
+          label: "Send a Plex friend request",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
           id: "api/generate-plex-pin",
           label: "Generate Plex PIN for authentication",
           className: "api-method post",
@@ -402,6 +408,12 @@ const sidebar: SidebarsConfig = {
           type: "doc",
           id: "api/poll-plex-pin",
           label: "Poll Plex PIN for auth token",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-plex-user-status",
+          label: "Get classified Plex user status",
           className: "api-method get",
         },
         {
@@ -421,6 +433,12 @@ const sidebar: SidebarsConfig = {
           id: "api/get-watchlist-genres",
           label: "Get watchlist genres",
           className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/cancel-plex-friend-request",
+          label: "Cancel a Plex friend request",
+          className: "api-method post",
         },
       ],
     },

@@ -1,0 +1,71 @@
+---
+id: send-plex-friend-request
+title: "Send a Plex friend request"
+description: "Sends a friend request to a Plex user by UUID"
+sidebar_label: "Send a Plex friend request"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVktv4zYQ/ivEnFpAipJue9HN3bSA0QVqxElbIPCBpsYWNxSp5SOOIei/F0NKtvzYBYIWPdUXC+TMNw/OfDMdmBYt99LoeQUlONTVQuHbr1airh7wS0DnIQPPtw7KZ6A7WGVQoRNWtqQHJSxRV45xtolazCY15g3jjDRYcGjZes+enub3kMEg8LOp9lB2IIz2qD198rZVUkR/is+OwDtwosaG05fftwglmPVnFORVa8l7L9HRbQiymkg5b6XeQgaN1J9Qb30N5V3fJ+vSYkXxRJ1Vf3rsbcB44FqjXQL/4faW/k7jvscND8qzh0ESsn8rFheEQOcmgmtjFHINfQYNOse3eBnreXQjylFllQGvKkk+cbWYmNxw5bCPifjxPw7Vcx/cR1NNA9KhWaOlYMXpxRhpBmitsVdvvpqfb9fCxJHB7Gjkffn76f/8/YP8Rfu+NsRGrYnk03KyB8XrXdEqfCuIpPLENbk9UJRD+4qWWKqDYBWU0LXWeCOM6sui6GrjfF92rbG+h3MG+xicNw1bRgzI4JVbydcqZXiEoW/UoaFga+9byOKfS4QY3xfK8eYU/7FGNsIQG1ZEjsI0TdD07sh20tfM18hSGPQM5HAqpBFaGcFVnZJyiU8XmjfIjGXzBeNVZdE5ZjYRdxGU49ZO8CkTp/gfbm8/XHfdWM+MZrtaivoAJR2zQevEPH02pj3mpCyKvQk2b5NsLrXzXAu8Eaa5MLGwsuF2P6b/HVDlVZfvpUXhBzg2iyTIvosppki+P7NQFsUhs9cBP43XV8FWVHwiWOn3sfp4K3/D/SxQ1T6vyJZD56TRh6OJxpLaPNXZVO/QeukQMpDkSI28igVKDw0l/JXPFvM8CZy6PFvM2QvuGQ++Ru0HdmHBSb1lBzU2APbZqY9fMS+MeZF4ND88yYXxZcLK15xK/aoLCcqR5R2ua2Neligs+neGP9RinpQvHPkzQV93gQdv8i1qWoCwYi5C3LCl0dza4oFXVOSDc45xi0wYvZHbYLEaG1a6IYURreFkQqn9TZzFROUPx13nlzfetAqPu8qEc6XemBi29CQBY4/NFvOrT1sZERrUPsWzMfbQlfm4dO24F7WSzjOpPW7tUTRFyLiuWIqSGA+tS/B/3CV2cL7hcRINyaYtb8Q+3fTOPZysdO/eDYd39/jmi1ZxGTee2KvdMAie4fWOpgKtohlcGwarkTyfoeuoBp+s6ns6/hLQUpOujhSfenQsLerfF9zTSEgh5I/kEImrkArybFRTfycN4obWf1N2NZlui9+Xj5DBetiCmziowfIdbch8ByVABiamNNJDPOtAcb0NcTxDwqTf322wG3Q=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Send a Plex friend request"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/plex/send-friend-request"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Sends a friend request to a Plex user by UUID
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"uuid":{"type":"string","minLength":1}},"required":["uuid"]}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
