@@ -514,6 +514,8 @@ export class PlexWatchlistService {
         status = 'friend'
       } else if (inServer && inPendingSent) {
         status = 'pending_sent'
+      } else if (inServer && inPendingReceived) {
+        status = 'pending_received'
       } else if (inServer && !inFriends && !inPendingSent) {
         status = 'server_only'
       } else if (inFriends && !inServer) {
