@@ -33,6 +33,18 @@
       ],
       "depNameTemplate": "tsx",
       "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "description": "Update Biome schema version in biome.json to match CLI",
+      "managerFilePatterns": [
+        "/^biome\\.json$/"
+      ],
+      "matchStrings": [
+        "biomejs\\.dev/schemas/(?<currentValue>[\\d.]+)/schema\\.json"
+      ],
+      "depNameTemplate": "@biomejs/biome",
+      "datasourceTemplate": "npm"
     }
   ],
   "baseBranchPatterns": [
