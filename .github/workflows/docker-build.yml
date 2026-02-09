@@ -11,7 +11,6 @@ on:
         type: string
 permissions:
   contents: write
-  packages: write
 jobs:
   # ---------------------------------------------------------------------------
   # Prepare: prerelease detection and branch validation
@@ -255,6 +254,7 @@ jobs:
             type=semver,pattern={{version}},suffix=-node
             type=semver,pattern={{major}}.{{minor}},suffix=-node
             type=raw,value=node,enable=${{ needs.prepare.outputs.is_prerelease != 'true' }}
+            type=raw,value=beta-node,enable=${{ needs.prepare.outputs.is_prerelease == 'true' }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
