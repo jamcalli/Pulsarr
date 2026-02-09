@@ -159,6 +159,15 @@ jobs:
     runs-on: windows-latest
     # Run after release job succeeds, or run standalone when manually triggered
     if: ${{ always() && (needs.release.result == 'success' || github.event_name == 'workflow_dispatch') }}
+    strategy:
+      matrix:
+        include:
+          - variant: standard
+            zip_pattern: "*windows-x64.zip"
+            iss_file: pulsarr.iss
+          - variant: baseline
+            zip_pattern: "*windows-x64-baseline.zip"
+            iss_file: pulsarr-baseline.iss
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -178,14 +187,14 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "version_number=${VERSION#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Download Windows zip from release
+      - name: Download Windows ${{ matrix.variant }} zip from release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           gh release download "$RELEASE_VERSION" \
-            --pattern "*windows-x64.zip" \
+            --pattern "${{ matrix.zip_pattern }}" \
             --dir scripts/installers/windows
 
       - name: Extract zip
@@ -208,73 +217,7 @@ jobs:
           # Inno Setup is pre-installed on windows-latest
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
             /DMyAppVersion=$env:APP_VERSION `
-            scripts/installers/windows/pulsarr.iss
-
-      - name: Upload installer to release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          gh release upload "$RELEASE_VERSION" \
-            scripts/installers/windows/Output/*.exe \
-            --clobber
-
-  build-windows-baseline-installer:
-    needs: release
-    runs-on: windows-latest
-    # Run after release job succeeds, or run standalone when manually triggered
-    if: ${{ always() && (needs.release.result == 'success' || github.event_name == 'workflow_dispatch') }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Get version
-        id: version
-        shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          INPUT_TAG: ${{ github.event.inputs.tag }}
-        run: |
-          if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
-            VERSION="$INPUT_TAG"
-          else
-            VERSION="${GITHUB_REF#refs/tags/}"
-          fi
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "version_number=${VERSION#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Download Windows baseline zip from release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          gh release download "$RELEASE_VERSION" \
-            --pattern "*windows-x64-baseline.zip" \
-            --dir scripts/installers/windows
-
-      - name: Extract zip
-        shell: pwsh
-        run: |
-          $zip = Get-ChildItem scripts/installers/windows/*.zip | Select-Object -First 1
-          Expand-Archive -Path $zip.FullName -DestinationPath scripts/installers/windows/extracted
-          # Move contents from nested folder to build/
-          $nested = Get-ChildItem scripts/installers/windows/extracted | Select-Object -First 1
-          New-Item -ItemType Directory -Force -Path scripts/installers/windows/build
-          Move-Item "$($nested.FullName)/*" scripts/installers/windows/build/
-          Remove-Item scripts/installers/windows/extracted -Recurse
-          Remove-Item $zip.FullName
-
-      - name: Build installer with Inno Setup
-        shell: pwsh
-        env:
-          APP_VERSION: ${{ steps.version.outputs.version_number }}
-        run: |
-          # Inno Setup is pre-installed on windows-latest
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
-            /DMyAppVersion=$env:APP_VERSION `
-            scripts/installers/windows/pulsarr-baseline.iss
+            scripts/installers/windows/${{ matrix.iss_file }}
 
       - name: Upload installer to release
         shell: bash
