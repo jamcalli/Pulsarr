@@ -27,20 +27,20 @@ categories:
 autolabeler:
   - label: 'feature'
     title:
-      - '/^feat(\(.+\))?:/'
+      - '/^feat(ure)?(\(.+\))?:/i'
   - label: 'fix'
     title:
-      - '/^fix(\(.+\))?:/'
+      - '/^fix(\(.+\))?:/i'
   - label: 'chore'
     title:
-      - '/^chore(\(.+\))?:/'
-      - '/^refactor(\(.+\))?:/'
+      - '/^chore(\(.+\))?:/i'
+      - '/^refactor(\(.+\))?:/i'
   - label: 'documentation'
     title:
-      - '/^docs(\(.+\))?:/'
+      - '/^docs?(\(.+\))?:/i'
   - label: 'performance'
     title:
-      - '/^perf(\(.+\))?:/'
+      - '/^perf(ormance)?(\(.+\))?:/i'
   - label: 'dependencies'
     branch:
       - '/^renovate\//'
