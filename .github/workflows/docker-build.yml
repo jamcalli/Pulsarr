@@ -141,7 +141,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ needs.prepare.outputs.is_prerelease != 'true' }}
             type=raw,value=beta,enable=${{ needs.prepare.outputs.is_prerelease == 'true' }}
 
       - name: Set up Docker Buildx
