@@ -30,7 +30,7 @@ jobs:
         id: check-prerelease
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          if [[ "$VERSION" == *"-beta"* || "$VERSION" == *"-alpha"* ]]; then
+          if [[ "$VERSION" == *"-beta"* || "$VERSION" == *"-alpha"* || "$VERSION" == *"-rc"* ]]; then
             echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
