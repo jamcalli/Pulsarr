@@ -86,7 +86,8 @@ const isNonFriend = (row: Row<UserWithQuotaInfo>) => {
   return (
     status === 'server_only' ||
     status === 'pending_sent' ||
-    status === 'pending_received'
+    status === 'pending_received' ||
+    status === 'managed'
   )
 }
 

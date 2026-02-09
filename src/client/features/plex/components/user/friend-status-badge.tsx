@@ -70,6 +70,11 @@ const statusConfig: Record<
     variant: 'default',
     tooltip: 'This is your Plex account.',
   },
+  managed: {
+    text: 'Managed',
+    variant: 'neutral',
+    tooltip: 'Managed account — no Plex watchlist available.',
+  },
 }
 
 export function FriendStatusBadge({
@@ -110,7 +115,8 @@ export function FriendStatusBadge({
 
       {(status === 'pending_received' ||
         status === 'friend_only' ||
-        status === 'self') &&
+        status === 'self' ||
+        status === 'managed') &&
         badgeTooltip(<Badge variant={config.variant}>{config.text}</Badge>)}
 
       {status === 'pending_sent' && (

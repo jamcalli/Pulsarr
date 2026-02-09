@@ -444,13 +444,34 @@ export const useConfigStore = create<ConfigState>()(
               }
             }
 
-            // Create users with quota data (status is now merged into quota objects)
-            const usersWithQuota: UserWithQuotaInfo[] = state.users.map(
-              (user) => ({
-                ...user,
-                userQuotas: userQuotasMap.get(user.id) || null,
-              }),
+            // Preserve existing friend status and untracked entries
+            const existingByUuid = new Map(
+              (state.usersWithQuota ?? []).map((u) => [u.plex_uuid, u]),
             )
+            const usersWithQuota: UserWithQuotaInfo[] = state.users.map(
+              (user) => {
+                const existing = user.plex_uuid
+                  ? existingByUuid.get(user.plex_uuid)
+                  : undefined
+                return {
+                  ...user,
+                  userQuotas: userQuotasMap.get(user.id) || null,
+                  friendStatus: existing?.friendStatus,
+                  pendingSince: existing?.pendingSince,
+                  isTracked: existing?.isTracked,
+                }
+              },
+            )
+
+            // Carry forward untracked synthetic entries
+            const trackedUuids = new Set(
+              state.users.map((u) => u.plex_uuid).filter(Boolean),
+            )
+            for (const existing of state.usersWithQuota ?? []) {
+              if (existing.plex_uuid && !trackedUuids.has(existing.plex_uuid)) {
+                usersWithQuota.push(existing)
+              }
+            }
 
             set({
               userQuotasMap,
