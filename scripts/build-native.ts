@@ -80,6 +80,12 @@ const PLATFORMS: Platform[] = [
     bunBinary: 'bun.exe',
     zipSuffix: 'windows-x64',
   },
+  {
+    detectName: 'windows-x64-baseline',
+    bunArchive: 'bun-windows-x64-baseline',
+    bunBinary: 'bun.exe',
+    zipSuffix: 'windows-x64-baseline',
+  },
 ]
 
 // --- Helpers ---
