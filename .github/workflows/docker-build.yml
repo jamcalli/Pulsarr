@@ -159,6 +159,15 @@ jobs:
     runs-on: windows-latest
     # Run after release job succeeds, or run standalone when manually triggered
     if: ${{ always() && (needs.release.result == 'success' || github.event_name == 'workflow_dispatch') }}
+    strategy:
+      matrix:
+        include:
+          - variant: standard
+            zip_pattern: "*windows-x64.zip"
+            iss_file: pulsarr.iss
+          - variant: baseline
+            zip_pattern: "*windows-x64-baseline.zip"
+            iss_file: pulsarr-baseline.iss
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -178,14 +187,14 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "version_number=${VERSION#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Download Windows zip from release
+      - name: Download Windows ${{ matrix.variant }} zip from release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           gh release download "$RELEASE_VERSION" \
-            --pattern "*windows-x64.zip" \
+            --pattern "${{ matrix.zip_pattern }}" \
             --dir scripts/installers/windows
 
       - name: Extract zip
@@ -208,7 +217,7 @@ jobs:
           # Inno Setup is pre-installed on windows-latest
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
             /DMyAppVersion=$env:APP_VERSION `
-            scripts/installers/windows/pulsarr.iss
+            scripts/installers/windows/${{ matrix.iss_file }}
 
       - name: Upload installer to release
         shell: bash

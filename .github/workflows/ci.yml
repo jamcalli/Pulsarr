@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,6 +35,8 @@ jobs:
             vitest-${{ runner.os }}-
       - name: Setup Biome
         uses: biomejs/setup-biome@29711cbb52afee00eb13aeb30636592f9edc0088 # v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run Biome
         run: biome ci .
       - name: TypeScript Check - Server
