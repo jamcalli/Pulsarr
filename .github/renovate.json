@@ -29,7 +29,7 @@
         "/^dockerfile\\.node$/"
       ],
       "matchStrings": [
-        "tsx@(?<currentValue>[^\\s]+)"
+        "\"tsx\":\\s*\"\\^?(?<currentValue>[\\d.]+)\""
       ],
       "depNameTemplate": "tsx",
       "datasourceTemplate": "npm"
