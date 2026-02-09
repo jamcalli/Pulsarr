@@ -553,7 +553,6 @@
         ],
         "description": "Create a quota configuration for a user",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -586,7 +585,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
@@ -1043,7 +1043,6 @@
         ],
         "description": "Update quota configurations for a specific user",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1067,7 +1066,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -1309,7 +1309,6 @@
         ],
         "description": "Update movie and show quota configurations separately for a user",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1370,7 +1369,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -1667,7 +1667,6 @@
         ],
         "description": "Get current quota status for multiple users in a single request",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1692,7 +1691,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1852,7 +1852,6 @@
         ],
         "description": "Record quota usage for a user",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1876,7 +1875,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -2234,7 +2234,6 @@
         ],
         "description": "Perform bulk quota operations on multiple users (update or delete)",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -2316,7 +2315,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -2506,7 +2506,6 @@
         ],
         "description": "Configure Plex webhook notifications for Radarr and Sonarr instances",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -2537,7 +2536,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -2967,7 +2967,6 @@
         ],
         "description": "Discover available Plex servers using a user token",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -2983,7 +2982,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -3638,7 +3638,6 @@
         ],
         "description": "Sends a friend request to a Plex user by UUID",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -3654,7 +3653,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -3956,8 +3956,7 @@
                               "pending_sent",
                               "pending_received",
                               "friend_only",
-                              "self",
-                              "managed"
+                              "self"
                             ]
                           },
                           "friendCreatedAt": {
@@ -4003,8 +4002,7 @@
                               "pending_sent",
                               "pending_received",
                               "friend_only",
-                              "self",
-                              "managed"
+                              "self"
                             ]
                           },
                           "pendingSince": {
@@ -4560,7 +4558,6 @@
         ],
         "description": "Removes a friend or cancels a pending sent friend request via the Plex removeFriend mutation",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4576,7 +4573,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -4964,7 +4962,6 @@
         ],
         "description": "Create a new job schedule or update an existing one",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5061,7 +5058,8 @@
                 "type": "object"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -5456,7 +5454,6 @@
         ],
         "description": "Update an existing job schedule configuration",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5539,7 +5536,8 @@
                 "type": "object"
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -5867,7 +5865,6 @@
         ],
         "description": "Enable or disable a job schedule",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -5882,7 +5879,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -6222,7 +6220,6 @@
         ],
         "description": "Test connectivity to a Sonarr instance with provided credentials",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -6242,7 +6239,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -6312,7 +6310,6 @@
         ],
         "description": "Create a new tag in a Sonarr instance",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -6336,7 +6333,8 @@
                 "additionalProperties": false
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -6937,7 +6935,6 @@
         ],
         "description": "Create a new Sonarr instance configuration",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -7028,7 +7025,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
@@ -7160,7 +7158,6 @@
         ],
         "description": "Update an existing Sonarr instance configuration",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -7238,7 +7235,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -7866,7 +7864,6 @@
         ],
         "description": "Validate one or more Discord webhook URLs for proper functionality",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -7882,7 +7879,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -8013,7 +8011,6 @@
         ],
         "description": "Process webhooks from Radarr (movies) or Sonarr (TV series) for media notifications. Requires X-Pulsarr-Secret header for authentication.",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -8291,7 +8288,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -9073,7 +9071,6 @@
         ],
         "description": "Create a new content router rule with specified conditions and targets",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -9609,7 +9606,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
@@ -12278,7 +12276,6 @@
         ],
         "description": "Update an existing content router rule by its ID",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -12809,7 +12806,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -14284,7 +14282,6 @@
         ],
         "description": "Enable or disable a content router rule by its ID",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -14299,7 +14296,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -14655,7 +14653,6 @@
         ],
         "description": "Start the watchlist processing workflow",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -15507,7 +15504,6 @@
         ],
         "description": "Remove all user tags from media and optionally delete tag definitions",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -15520,7 +15516,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -15808,7 +15805,6 @@
         ],
         "description": "Create a new API key for authentication",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -15825,7 +15821,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
@@ -19348,7 +19345,6 @@
         ],
         "description": "Reset all rolling monitored shows that have been inactive for a specified number of days",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -19362,7 +19358,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -23599,7 +23596,6 @@
         ],
         "description": "Create a new approval request for content routing",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -23910,7 +23906,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
@@ -25496,7 +25493,6 @@
         ],
         "description": "Update an approval request (approve, reject, or modify)",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -25768,7 +25764,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -26521,7 +26518,6 @@
         ],
         "description": "Reject an approval request (marks as rejected)",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -26533,7 +26529,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -26810,7 +26807,6 @@
         ],
         "description": "Approve an approval request and execute the proposed routing",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -26822,7 +26818,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -27031,7 +27028,6 @@
         ],
         "description": "Approve multiple approval requests in batch",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -27053,7 +27049,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -27250,7 +27247,6 @@
         ],
         "description": "Reject multiple approval requests in batch",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -27272,7 +27268,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -27437,7 +27434,6 @@
         ],
         "description": "Delete multiple approval requests in batch",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -27456,7 +27452,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -28359,7 +28356,6 @@
         ],
         "description": "Update the application configuration settings",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -28969,7 +28965,8 @@
                 "additionalProperties": false
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -29871,7 +29868,6 @@
         ],
         "description": "Create a new webhook endpoint",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -29922,7 +29918,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
@@ -30249,7 +30246,6 @@
         ],
         "description": "Update an existing webhook endpoint",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -30296,7 +30292,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -30574,7 +30571,6 @@
         ],
         "description": "Test a webhook endpoint by sending a test payload (use before saving)",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -30597,7 +30593,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -30852,7 +30849,6 @@
         ],
         "description": "Test the connection to Tautulli using provided URL and API key. Requires Plex Pass.",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -30872,7 +30868,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -31208,7 +31205,6 @@
         ],
         "description": "Test connectivity to a Radarr instance with provided credentials",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -31228,7 +31224,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -31409,7 +31406,6 @@
         ],
         "description": "Create a new Radarr instance configuration",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -31493,7 +31489,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
@@ -31625,7 +31622,6 @@
         ],
         "description": "Update an existing Radarr instance configuration",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -31698,7 +31694,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -31941,7 +31938,6 @@
         ],
         "description": "Create a new tag in a Radarr instance",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -31965,7 +31961,8 @@
                 "additionalProperties": false
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -32679,7 +32676,6 @@
         ],
         "description": "End the current user session and destroy authentication",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -32688,7 +32684,8 @@
                 "additionalProperties": false
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -32790,7 +32787,6 @@
         ],
         "description": "Update multiple users with the same changes in bulk",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -32863,7 +32859,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -32975,7 +32972,6 @@
         ],
         "description": "Authenticate user by email and password",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -32998,7 +32994,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "security": [],
         "responses": {
@@ -33791,7 +33788,6 @@
         ],
         "description": "Create the first admin user account for the system",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -33819,7 +33815,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "security": [],
         "responses": {
@@ -33890,7 +33887,6 @@
         ],
         "description": "Change the current user password by providing current and new password",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -33911,7 +33907,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -34041,7 +34038,6 @@
         ],
         "description": "Create a new user with the provided information",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -34104,7 +34100,8 @@
                 ]
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
@@ -34259,7 +34256,6 @@
         ],
         "description": "Update an existing user by ID",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -34316,7 +34312,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
