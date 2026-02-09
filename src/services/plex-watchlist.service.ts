@@ -536,7 +536,12 @@ export class PlexWatchlistService {
       } else if (inServer && inPendingReceived) {
         status = 'pending_received'
       } else if (inServer && !inFriends && !inPendingSent) {
-        status = 'server_only'
+        const serverUser = serverUsersByUuid.get(uuid)
+        if (!serverUser?.email && serverUser?.restricted) {
+          status = 'managed'
+        } else {
+          status = 'server_only'
+        }
       } else if (inFriends && !inServer) {
         status = 'friend_only'
       } else if (inPendingReceived) {

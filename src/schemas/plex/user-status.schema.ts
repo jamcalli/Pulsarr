@@ -8,6 +8,7 @@ export const PlexFriendStatusSchema = z.enum([
   'pending_received',
   'friend_only',
   'self',
+  'managed',
 ])
 
 const PlexClassifiedUserSchema = z.object({
