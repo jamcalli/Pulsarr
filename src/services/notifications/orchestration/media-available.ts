@@ -400,13 +400,17 @@ async function buildUserNotifications(
 
     const notificationTitle = mediaInfo.title || item.title
 
-    const userId =
-      typeof item.user_id === 'object'
-        ? (item.user_id as { id: number }).id
-        : Number(item.user_id)
-
+    const userId = Number(item.user_id)
     const itemId =
       typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
+
+    if (Number.isNaN(userId) || Number.isNaN(itemId)) {
+      deps.logger.warn(
+        { rawUserId: item.user_id, rawItemId: item.id },
+        'Skipping notification – invalid userId or itemId',
+      )
+      continue
+    }
 
     const isDuplicate = await deps.db.hasActiveNotification({
       userId,
