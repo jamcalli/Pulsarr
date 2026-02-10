@@ -714,7 +714,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
 
       deleteShow: async (id: number) => {
         return apiRequest<{ success: boolean; message: string }>({
-          url: `/v1/session-monitoring/rolling-monitored/${id}`,
+          url: `/v1/session-monitoring/rolling-monitored/${id}?reset=false`,
           method: 'DELETE',
           loadingKey: 'deleteShow',
           errorKey: 'deleteShow',
