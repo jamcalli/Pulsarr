@@ -33,8 +33,7 @@ export async function groupWatchlistItemsByContent(
 
   // Get all unique user IDs to fetch usernames
   const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
-  const allUsers = await db.getAllUsers()
-  const users = allUsers.filter((user) => userIds.includes(user.id))
+  const users = await db.getUsersByIds(userIds)
 
   const userMap = new Map(
     users.map((user) => [user.id, user.name || `user_${user.id}`]),
