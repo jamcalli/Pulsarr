@@ -408,6 +408,22 @@ export class DatabaseService {
   }
 
   /**
+   * Runs a callback inside a database transaction.
+   *
+   * Provides a transaction object that can be passed to db methods accepting
+   * an optional `trx` parameter. If the callback throws, the transaction is
+   * rolled back automatically.
+   *
+   * @param fn - Callback receiving the Knex transaction
+   * @returns The value returned by the callback
+   */
+  public async transaction<T>(
+    fn: (trx: Knex.Transaction) => Promise<T>,
+  ): Promise<T> {
+    return this.knex.transaction(fn)
+  }
+
+  /**
    * Returns the current timestamp in ISO format
    */
   public get timestamp() {

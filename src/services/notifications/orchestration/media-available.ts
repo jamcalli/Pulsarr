@@ -7,7 +7,6 @@
 
 import type { Config } from '@root/types/config.types.js'
 import type { MediaNotification } from '@root/types/discord.types.js'
-import type { NotificationType } from '@root/types/notification.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 import type {
   NotificationResult,
@@ -15,7 +14,6 @@ import type {
 } from '@root/types/sonarr.types.js'
 import { getTmdbUrl } from '@root/utils/guid-handler.js'
 import { buildPosterUrl } from '@root/utils/poster-url.js'
-import { mapRowToUser } from '@services/database/methods/users.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
@@ -62,6 +60,17 @@ export interface MediaAvailableOptions {
   instanceType?: 'sonarr' | 'radarr'
   sequential?: boolean
 }
+
+interface EnrichmentData {
+  posterUrl: string | undefined
+  guids: string[]
+  tmdbUrl: string | undefined
+  episodeDetails: MediaNotification['episodeDetails']
+}
+
+type NotificationTypeInfo = NonNullable<
+  ReturnType<typeof determineNotificationType>
+>
 
 // ============================================================================
 // Helper Functions (exported for testing)
@@ -297,23 +306,16 @@ async function processIndividualNotification(
 // Database Operations
 // ============================================================================
 
-async function buildNotificationResults(
+async function buildEnrichmentData(
   deps: MediaAvailableDeps,
   mediaInfo: MediaInfo,
   options: MediaAvailableOptions,
 ): Promise<{
-  notifications: NotificationResult[]
   watchlistItems: TokenWatchlistItem[]
+  enrichment: EnrichmentData
+  notificationTypeInfo: NotificationTypeInfo | null
   hasNativeWebhooks: boolean
-  /** Shared enrichment data for all channels */
-  enrichment: {
-    posterUrl: string | undefined
-    guids: string[]
-    tmdbUrl: string | undefined
-    episodeDetails: MediaNotification['episodeDetails']
-  }
 }> {
-  // Check if native webhooks are configured for this event type
   const hasNativeWebhooks = await hasWebhooksForEvent('media.available', {
     db: deps.db,
     log: deps.logger,
@@ -321,7 +323,6 @@ async function buildNotificationResults(
 
   const watchlistItems = await deps.db.getWatchlistItemsByGuid(mediaInfo.guid)
 
-  // Extract shared enrichment data once
   const rawThumb = watchlistItems.find((item) => item.thumb)?.thumb
   const posterUrl = buildPosterUrl(rawThumb, 'notification') ?? undefined
   const guidsSet = new Set<string>()
@@ -339,7 +340,6 @@ async function buildNotificationResults(
   }
   const guids = Array.from(guidsSet)
 
-  // Pre-compute episode details for shows (needed for TMDB URL deep linking)
   let episodeDetails: MediaNotification['episodeDetails']
   const notificationTypeInfo = determineNotificationType(
     mediaInfo,
@@ -365,16 +365,31 @@ async function buildNotificationResults(
     }
   }
 
-  // Generate TMDB URL with deep linking for episodes/seasons
   const tmdbUrl = getTmdbUrl(guids, mediaInfo.type, episodeDetails)
 
-  const enrichment = { posterUrl, guids, tmdbUrl, episodeDetails }
+  return {
+    watchlistItems,
+    enrichment: { posterUrl, guids, tmdbUrl, episodeDetails },
+    notificationTypeInfo,
+    hasNativeWebhooks,
+  }
+}
+
+async function buildUserNotifications(
+  deps: MediaAvailableDeps,
+  mediaInfo: MediaInfo,
+  options: MediaAvailableOptions,
+  watchlistItems: TokenWatchlistItem[],
+  enrichment: EnrichmentData,
+  notificationTypeInfo: NotificationTypeInfo,
+  hasNativeWebhooks: boolean,
+): Promise<NotificationResult[]> {
   const notifications: NotificationResult[] = []
+  const { contentType, seasonNumber } = notificationTypeInfo
 
   const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
-  const userRows = await deps.db.knex('users').whereIn('id', userIds)
-
-  const userMap = new Map(userRows.map((row) => [row.id, mapRowToUser(row)]))
+  const users = await deps.db.getUsersByIds(userIds)
+  const userMap = new Map(users.map((u) => [u.id, u]))
 
   for (const item of watchlistItems) {
     const user = userMap.get(item.user_id)
@@ -383,19 +398,7 @@ async function buildNotificationResults(
     if (!user.notify_discord && !user.notify_apprise && !user.notify_tautulli)
       continue
 
-    if (!notificationTypeInfo) continue
-
-    const { contentType, seasonNumber } = notificationTypeInfo
-
     const notificationTitle = mediaInfo.title || item.title
-    const notification: MediaNotification = {
-      type: mediaInfo.type,
-      title: notificationTitle,
-      username: user.name,
-      posterUrl: enrichment.posterUrl,
-      tmdbUrl: enrichment.tmdbUrl,
-      episodeDetails: enrichment.episodeDetails,
-    }
 
     const userId =
       typeof item.user_id === 'object'
@@ -404,6 +407,19 @@ async function buildNotificationResults(
 
     const itemId =
       typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
+
+    const isDuplicate = await deps.db.hasActiveNotification({
+      userId,
+      watchlistItemId: itemId,
+      type: contentType,
+      seasonNumber,
+      ...(contentType === 'episode' &&
+        mediaInfo.episodes?.[0] && {
+          episodeNumber: mediaInfo.episodes[0].episodeNumber,
+        }),
+    })
+
+    if (isDuplicate) continue
 
     const updateData: {
       status: 'notified'
@@ -421,21 +437,33 @@ async function buildNotificationResults(
       updateData.sonarr_instance_id = options.instanceId
     }
 
+    const episode =
+      contentType === 'episode' ? mediaInfo.episodes?.[0] : undefined
+
     // Both operations must be atomic: if notification record creation fails,
     // we must not leave the watchlist item marked as 'notified'
     let notificationCreated = false
-    await deps.db.knex.transaction(async (trx) => {
-      await deps.db.updateWatchlistItem(item.user_id, item.key, updateData, trx)
+    try {
+      await deps.db.transaction(async (trx) => {
+        await deps.db.updateWatchlistItem(
+          item.user_id,
+          item.key,
+          updateData,
+          trx,
+        )
 
-      let notificationResult = null
-
-      if (contentType === 'movie') {
-        notificationResult = await deps.db.createNotificationRecord(
+        const notificationResult = await deps.db.createNotificationRecord(
           {
             watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
             user_id: !Number.isNaN(userId) ? userId : null,
-            type: 'movie' as NotificationType,
+            type: contentType,
             title: notificationTitle,
+            ...(contentType === 'season' && { season_number: seasonNumber }),
+            ...(episode && {
+              message: episode.overview,
+              season_number: episode.seasonNumber,
+              episode_number: episode.episodeNumber,
+            }),
             sent_to_discord: Boolean(user.notify_discord),
             sent_to_apprise: Boolean(user.notify_apprise),
             sent_to_tautulli: Boolean(user.notify_tautulli),
@@ -443,48 +471,16 @@ async function buildNotificationResults(
           },
           trx,
         )
-      } else if (contentType === 'season') {
-        notificationResult = await deps.db.createNotificationRecord(
-          {
-            watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-            user_id: !Number.isNaN(userId) ? userId : null,
-            type: 'season' as NotificationType,
-            title: notificationTitle,
-            season_number: seasonNumber,
-            sent_to_discord: Boolean(user.notify_discord),
-            sent_to_apprise: Boolean(user.notify_apprise),
-            sent_to_tautulli: Boolean(user.notify_tautulli),
-            sent_to_native_webhook: hasNativeWebhooks,
-          },
-          trx,
-        )
-      } else if (
-        contentType === 'episode' &&
-        mediaInfo.episodes &&
-        mediaInfo.episodes.length > 0
-      ) {
-        const episode = mediaInfo.episodes[0]
 
-        notificationResult = await deps.db.createNotificationRecord(
-          {
-            watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-            user_id: !Number.isNaN(userId) ? userId : null,
-            type: 'episode' as NotificationType,
-            title: notificationTitle,
-            message: episode.overview,
-            season_number: episode.seasonNumber,
-            episode_number: episode.episodeNumber,
-            sent_to_discord: Boolean(user.notify_discord),
-            sent_to_apprise: Boolean(user.notify_apprise),
-            sent_to_tautulli: Boolean(user.notify_tautulli),
-            sent_to_native_webhook: hasNativeWebhooks,
-          },
-          trx,
-        )
-      }
-
-      notificationCreated = notificationResult !== null
-    })
+        notificationCreated = notificationResult !== null
+      })
+    } catch (error) {
+      deps.logger.error(
+        { error, userId, itemId, title: mediaInfo.title },
+        'Failed to create notification record for user, skipping',
+      )
+      continue
+    }
 
     if (notificationCreated) {
       notifications.push({
@@ -501,128 +497,148 @@ async function buildNotificationResults(
           tautulli_notifier_id: user.tautulli_notifier_id,
           can_sync: user.can_sync,
         },
-        notification,
+        notification: {
+          type: mediaInfo.type,
+          title: notificationTitle,
+          username: user.name,
+          posterUrl: enrichment.posterUrl,
+          tmdbUrl: enrichment.tmdbUrl,
+          episodeDetails: enrichment.episodeDetails,
+        },
       })
     }
   }
 
-  // Handle public content notifications
-  if (
-    deps.config.publicContentNotifications?.enabled &&
-    watchlistItems.length > 0
-  ) {
-    // Reuse notificationTypeInfo computed earlier (line 338)
-    if (!notificationTypeInfo)
-      return { notifications, watchlistItems, hasNativeWebhooks, enrichment }
+  return notifications
+}
 
-    const { contentType, seasonNumber, episodeNumber } = notificationTypeInfo
+async function buildPublicNotification(
+  deps: MediaAvailableDeps,
+  mediaInfo: MediaInfo,
+  watchlistItems: TokenWatchlistItem[],
+  enrichment: EnrichmentData,
+  notificationTypeInfo: NotificationTypeInfo,
+  hasNativeWebhooks: boolean,
+): Promise<NotificationResult | null> {
+  if (!deps.config.publicContentNotifications?.enabled) return null
+  if (watchlistItems.length === 0) return null
 
-    const referenceItem = watchlistItems[0]
-    const notificationTitle =
-      mediaInfo.title || referenceItem?.title || 'Unknown Title'
+  const { contentType, seasonNumber, episodeNumber } = notificationTypeInfo
 
-    const notification: MediaNotification = {
+  const referenceItem = watchlistItems[0]
+  const notificationTitle =
+    mediaInfo.title || referenceItem?.title || 'Unknown Title'
+
+  const isDuplicate = await deps.db.hasActiveNotification({
+    userId: null,
+    watchlistItemId: null,
+    type: contentType,
+    title: notificationTitle,
+    seasonNumber,
+    episodeNumber,
+  })
+
+  if (isDuplicate) {
+    deps.logger.debug(
+      `Skipping public ${contentType} notification for ${mediaInfo.title}${
+        seasonNumber !== undefined ? ` S${seasonNumber}` : ''
+      }${episodeNumber !== undefined ? `E${episodeNumber}` : ''} - already sent`,
+    )
+    return null
+  }
+
+  const { hasDiscordUrls, hasAppriseUrls } = getPublicContentNotificationFlags(
+    deps.config.publicContentNotifications,
+  )
+
+  const episode =
+    contentType === 'episode' ? mediaInfo.episodes?.[0] : undefined
+
+  await deps.db.createNotificationRecord({
+    watchlist_item_id: null,
+    user_id: null,
+    type: contentType,
+    title: notificationTitle,
+    ...(contentType === 'season' && { season_number: seasonNumber }),
+    ...(episode && {
+      message: episode.overview,
+      season_number: episode.seasonNumber,
+      episode_number: episode.episodeNumber,
+    }),
+    sent_to_discord: hasDiscordUrls,
+    sent_to_apprise: hasAppriseUrls,
+    sent_to_tautulli: false,
+    sent_to_native_webhook: hasNativeWebhooks,
+  })
+
+  return {
+    user: {
+      id: -1,
+      name: 'Public Content',
+      apprise: null,
+      alias: null,
+      discord_id: null,
+      notify_apprise: hasAppriseUrls,
+      notify_discord: hasDiscordUrls,
+      notify_discord_mention: false,
+      notify_tautulli: false,
+      tautulli_notifier_id: null,
+      can_sync: false,
+    },
+    notification: {
       type: mediaInfo.type,
       title: notificationTitle,
       username: 'Public Content',
       posterUrl: enrichment.posterUrl,
       tmdbUrl: enrichment.tmdbUrl,
       episodeDetails: enrichment.episodeDetails,
-    }
-
-    const existingPublicNotification = await deps.db
-      .knex('notifications')
-      .where({
-        user_id: null,
-        type: contentType,
-        title: notificationTitle,
-        watchlist_item_id: null,
-        notification_status: 'active',
-      })
-      .modify((query) => {
-        if (seasonNumber !== undefined) {
-          query.where('season_number', seasonNumber)
-        }
-        if (episodeNumber !== undefined) {
-          query.where('episode_number', episodeNumber)
-        }
-      })
-      .first()
-
-    if (existingPublicNotification) {
-      deps.logger.debug(
-        `Skipping public ${contentType} notification for ${mediaInfo.title}${
-          seasonNumber !== undefined ? ` S${seasonNumber}` : ''
-        }${episodeNumber !== undefined ? `E${episodeNumber}` : ''} - already sent`,
-      )
-    } else {
-      const { hasDiscordUrls, hasAppriseUrls } =
-        getPublicContentNotificationFlags(
-          deps.config.publicContentNotifications,
-        )
-
-      if (contentType === 'movie') {
-        await deps.db.createNotificationRecord({
-          watchlist_item_id: null,
-          user_id: null,
-          type: 'movie' as NotificationType,
-          title: notificationTitle,
-          sent_to_discord: hasDiscordUrls,
-          sent_to_apprise: hasAppriseUrls,
-          sent_to_tautulli: false,
-          sent_to_native_webhook: hasNativeWebhooks,
-        })
-      } else if (contentType === 'season') {
-        await deps.db.createNotificationRecord({
-          watchlist_item_id: null,
-          user_id: null,
-          type: 'season' as NotificationType,
-          title: notificationTitle,
-          season_number: seasonNumber,
-          sent_to_discord: hasDiscordUrls,
-          sent_to_apprise: hasAppriseUrls,
-          sent_to_tautulli: false,
-          sent_to_native_webhook: hasNativeWebhooks,
-        })
-      } else if (
-        contentType === 'episode' &&
-        mediaInfo.episodes &&
-        mediaInfo.episodes.length > 0
-      ) {
-        const episode = mediaInfo.episodes[0]
-        await deps.db.createNotificationRecord({
-          watchlist_item_id: null,
-          user_id: null,
-          type: 'episode' as NotificationType,
-          title: notificationTitle,
-          message: episode.overview,
-          season_number: episode.seasonNumber,
-          episode_number: episode.episodeNumber,
-          sent_to_discord: hasDiscordUrls,
-          sent_to_apprise: hasAppriseUrls,
-          sent_to_tautulli: false,
-          sent_to_native_webhook: hasNativeWebhooks,
-        })
-      }
-
-      notifications.push({
-        user: {
-          id: -1,
-          name: 'Public Content',
-          apprise: null,
-          alias: null,
-          discord_id: null,
-          notify_apprise: hasAppriseUrls,
-          notify_discord: hasDiscordUrls,
-          notify_discord_mention: false,
-          notify_tautulli: false,
-          tautulli_notifier_id: null,
-          can_sync: false,
-        },
-        notification,
-      })
-    }
+    },
   }
+}
+
+async function buildNotificationResults(
+  deps: MediaAvailableDeps,
+  mediaInfo: MediaInfo,
+  options: MediaAvailableOptions,
+): Promise<{
+  notifications: NotificationResult[]
+  watchlistItems: TokenWatchlistItem[]
+  hasNativeWebhooks: boolean
+  enrichment: EnrichmentData
+}> {
+  const {
+    watchlistItems,
+    enrichment,
+    notificationTypeInfo,
+    hasNativeWebhooks,
+  } = await buildEnrichmentData(deps, mediaInfo, options)
+
+  if (!notificationTypeInfo || watchlistItems.length === 0) {
+    return { notifications: [], watchlistItems, hasNativeWebhooks, enrichment }
+  }
+
+  const userNotifications = await buildUserNotifications(
+    deps,
+    mediaInfo,
+    options,
+    watchlistItems,
+    enrichment,
+    notificationTypeInfo,
+    hasNativeWebhooks,
+  )
+
+  const publicNotification = await buildPublicNotification(
+    deps,
+    mediaInfo,
+    watchlistItems,
+    enrichment,
+    notificationTypeInfo,
+    hasNativeWebhooks,
+  )
+
+  const notifications = publicNotification
+    ? [...userNotifications, publicNotification]
+    : userNotifications
 
   return { notifications, watchlistItems, hasNativeWebhooks, enrichment }
 }
