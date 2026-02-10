@@ -262,6 +262,27 @@ export async function bulkUpdateUsers(
 }
 
 /**
+ * Retrieve multiple non-system users by their IDs.
+ *
+ * Fetches all users whose IDs are in the provided array, excluding system users (id <= 0).
+ *
+ * @param userIds - Array of user IDs to look up
+ * @returns An array of matched User objects
+ */
+export async function getUsersByIds(
+  this: DatabaseService,
+  userIds: number[],
+): Promise<User[]> {
+  if (userIds.length === 0) return []
+
+  const rows = await this.knex('users')
+    .whereIn('id', userIds)
+    .andWhere('id', '>', 0)
+
+  return rows.map((row) => mapRowToUser(row))
+}
+
+/**
  * Retrieve all non-system users, ordered by name (ascending).
  *
  * Returns every user row with id > 0 mapped to the public User shape.
