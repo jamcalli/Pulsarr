@@ -50,6 +50,13 @@ declare module '@services/database.service.js' {
     ): Promise<{ updatedCount: number; failedIds: number[] }>
 
     /**
+     * Retrieves multiple users by their IDs
+     * @param userIds - Array of user IDs to look up
+     * @returns Promise resolving to an array of matched users
+     */
+    getUsersByIds(userIds: number[]): Promise<User[]>
+
+    /**
      * Retrieves all users in the database
      * @returns Promise resolving to an array of all users
      */

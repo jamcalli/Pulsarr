@@ -107,7 +107,7 @@ export class AnimeService {
       this.log.info(`Parsed data in memory, now updating database...`)
 
       // Quick atomic replacement using short transaction
-      await this.db.knex.transaction(async (trx) => {
+      await this.db.transaction(async (trx) => {
         await trx('anime_ids').truncate()
         this.log.info('Cleared existing anime IDs')
 
