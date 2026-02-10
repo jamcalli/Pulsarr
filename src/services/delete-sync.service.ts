@@ -28,7 +28,10 @@ import {
   ensureTrackedCache,
   TagCache,
 } from '@services/delete-sync/cache/index.js'
-import { cleanupApprovalRequestsForDeletedContent } from '@services/delete-sync/cleanup/index.js'
+import {
+  cleanupApprovalRequestsForDeletedContent,
+  cleanupRollingMonitoredShowsForDeletedContent,
+} from '@services/delete-sync/cleanup/index.js'
 import {
   extractGuidsFromWatchlistItems,
   fetchWatchlistItems,
@@ -368,7 +371,17 @@ export class DeleteSyncService {
         dryRun,
       )
 
-      // Step 11: Send notifications about results if enabled
+      // Step 11: Clean up rolling monitored shows for deleted series
+      await cleanupRollingMonitoredShowsForDeletedContent(
+        {
+          db: this.dbService,
+          deletedShowGuids: this.deletedShowGuids,
+          logger: this.log,
+        },
+        dryRun,
+      )
+
+      // Step 12: Send notifications about results if enabled
       if (this.fastify.notifications) {
         await this.fastify.notifications.sendDeleteSyncNotification(
           result,
