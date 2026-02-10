@@ -28,6 +28,20 @@ declare module '@services/database.service.js' {
     ): Promise<number | null>
 
     /**
+     * Checks whether an active notification already exists for the given criteria
+     * @param options - Criteria to match against existing notifications
+     * @returns Promise resolving to true if a matching active notification exists
+     */
+    hasActiveNotification(options: {
+      userId?: number | null
+      watchlistItemId?: number | null
+      type: string
+      title?: string
+      seasonNumber?: number
+      episodeNumber?: number
+    }): Promise<boolean>
+
+    /**
      * Resets notification status for content items
      * @param options - Options for filtering which notifications to reset
      * @returns Promise resolving to the number of notifications reset

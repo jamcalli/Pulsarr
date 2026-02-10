@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { resolveEnvPath, resolveLogPath } from '@utils/data-dir.js'
 import { config } from 'dotenv'
 import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
 import type { LevelWithSilent, LoggerOptions, MultiStreamRes } from 'pino'
@@ -41,12 +42,9 @@ const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..', '..')
 
 // Load .env file early for logger configuration
-// Support dataDir env var for split directory installations (Windows/macOS installers)
-const dataDir = process.env.dataDir
-const envPath = dataDir
-  ? resolve(dataDir, '.env')
-  : resolve(projectRoot, '.env')
-config({ path: envPath, quiet: true })
+// Resolve data directory deterministically from platform (Windows/macOS)
+// or fall back to project-relative paths (Linux/Docker)
+config({ path: resolveEnvPath(projectRoot), quiet: true })
 
 /**
  * Creates a custom error serializer that handles both standard errors and custom HttpError objects.
@@ -199,9 +197,7 @@ function filename(time: number | Date | null, index?: number): string {
  * @returns A rotating file stream for logs, or {@link process.stdout} if setup fails.
  */
 function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
-  const logDirectory = dataDir
-    ? resolve(dataDir, 'logs')
-    : resolve(projectRoot, 'data', 'logs')
+  const logDirectory = resolveLogPath(projectRoot)
   try {
     if (!fs.existsSync(logDirectory)) {
       fs.mkdirSync(logDirectory, { recursive: true })

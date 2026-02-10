@@ -1,3 +1,4 @@
+import type { RollingMonitoredShow } from '@root/schemas/session-monitoring/session-monitoring.schema'
 import type { SessionMonitoringResult } from '@root/types/plex-session.types'
 import {
   Activity,
@@ -19,7 +20,6 @@ import {
 } from '@/components/ui/tooltip'
 import { BulkResetInactiveAlert } from '@/features/utilities/components/session-monitoring/bulk-reset-inactive-alert'
 import { RollingShowsSheet } from '@/features/utilities/components/session-monitoring/rolling-shows-sheet'
-import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useDebounce } from '@/hooks/useDebounce'
 

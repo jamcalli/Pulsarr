@@ -28,13 +28,13 @@ describe('content-grouper', () => {
   beforeEach(() => {
     mockLogger = createMockLogger()
     mockDb = {
-      getAllUsers: vi.fn(),
+      getUsersByIds: vi.fn(),
     } as unknown as DatabaseService
   })
 
   describe('groupWatchlistItemsByContent', () => {
     it('should group watchlist items by content GUIDs', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
         createMockUser(2, 'bob'),
       ])
@@ -81,7 +81,7 @@ describe('content-grouper', () => {
     })
 
     it('should create separate content items for different GUIDs', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
       ])
 
@@ -116,7 +116,7 @@ describe('content-grouper', () => {
     })
 
     it('should merge GUIDs when same content has multiple GUID formats', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
         createMockUser(2, 'bob'),
       ])
@@ -152,7 +152,7 @@ describe('content-grouper', () => {
     })
 
     it('should handle string GUID format', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
       ])
 
@@ -178,7 +178,7 @@ describe('content-grouper', () => {
     })
 
     it('should skip items without GUIDs', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
       ])
 
@@ -219,7 +219,7 @@ describe('content-grouper', () => {
     })
 
     it('should skip items with empty GUID arrays', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
       ])
 
@@ -251,7 +251,7 @@ describe('content-grouper', () => {
     })
 
     it('should use first non-null Plex key when merging content', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
         createMockUser(2, 'bob'),
       ])
@@ -286,7 +286,7 @@ describe('content-grouper', () => {
     })
 
     it('should use first Plex key when available', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
         createMockUser(2, 'bob'),
       ])
@@ -321,7 +321,9 @@ describe('content-grouper', () => {
     })
 
     it('should fallback to user_id when username is not available', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([createMockUser(1, null)])
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
+        createMockUser(1, null),
+      ])
 
       const watchlistItems = [
         {
@@ -345,7 +347,7 @@ describe('content-grouper', () => {
     })
 
     it('should handle user not found in database', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([])
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([])
 
       const watchlistItems = [
         {
@@ -369,7 +371,7 @@ describe('content-grouper', () => {
     })
 
     it('should separate movies and shows with same GUID', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
       ])
 
@@ -404,7 +406,7 @@ describe('content-grouper', () => {
     })
 
     it('should default type to movie when type is not movie or show', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
       ])
 
@@ -430,7 +432,7 @@ describe('content-grouper', () => {
     })
 
     it('should handle numeric watchlist IDs', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
       ])
 
@@ -457,7 +459,7 @@ describe('content-grouper', () => {
     })
 
     it('should handle string watchlist IDs and convert to numbers', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
       ])
 
@@ -484,7 +486,7 @@ describe('content-grouper', () => {
     })
 
     it('should log summary information', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
       ])
 
@@ -514,7 +516,7 @@ describe('content-grouper', () => {
     })
 
     it('should handle empty watchlist items array', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([])
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([])
 
       const result = await groupWatchlistItemsByContent([], mockDb, mockLogger)
 
@@ -531,7 +533,7 @@ describe('content-grouper', () => {
     })
 
     it('should sort GUIDs consistently for grouping key', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
         createMockUser(2, 'bob'),
       ])
@@ -567,7 +569,7 @@ describe('content-grouper', () => {
     })
 
     it('should handle multiple users for same content', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
         createMockUser(2, 'bob'),
         createMockUser(3, 'charlie'),
@@ -614,7 +616,7 @@ describe('content-grouper', () => {
     })
 
     it('should filter out users not in watchlist from database results', async () => {
-      vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
         createMockUser(1, 'alice'),
         createMockUser(2, 'bob'),
         createMockUser(3, 'charlie'),
