@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import Database from 'better-sqlite3'
 import dotenv from 'dotenv'
 import type { Knex } from 'knex'
 import {
@@ -71,15 +72,15 @@ function removeSqliteFiles(dir: string): void {
 /**
  * Opens a SQLite database read-only and queries basic richness indicators.
  * Returns null if the database can't be read or lacks expected tables.
+ *
+ * Callers must verify the file exists before calling — the Bun shim for
+ * better-sqlite3 does not support fileMustExist and will create an empty file.
  */
 function queryDbRichness(
   dbPath: string,
 ): { isReady: boolean; userCount: number } | null {
   try {
-    // Dynamic require to avoid top-level import of better-sqlite3
-    // (keeps this module loadable even when only pg is installed)
-    const Database = require('better-sqlite3')
-    const db = new Database(dbPath, { readonly: true, fileMustExist: true })
+    const db = new Database(dbPath, { readonly: true })
     try {
       const configRow = db
         .prepare('SELECT "_isReady" FROM configs WHERE id = 1')
