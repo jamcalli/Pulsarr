@@ -112,6 +112,19 @@ declare module '@services/database.service.js' {
     resetRollingMonitoredShowToOriginal(id: number): Promise<number>
 
     /**
+     * Deletes all rolling monitored show entries matching any of the provided
+     * TVDB IDs or Sonarr series IDs. Used by delete sync to clean up orphaned
+     * rolling monitor records.
+     * @param tvdbIds - Array of TVDB ID strings to match against
+     * @param sonarrSeriesIds - Array of Sonarr series ID numbers to match against
+     * @returns Promise resolving to the number of deleted entries
+     */
+    deleteRollingMonitoredShowsByIds(
+      tvdbIds: string[],
+      sonarrSeriesIds: number[],
+    ): Promise<number>
+
+    /**
      * Gets rolling monitored shows that haven't been updated recently
      * @param inactivityDays - Number of days since last update to consider inactive
      * @returns Promise resolving to array of inactive rolling monitored shows
