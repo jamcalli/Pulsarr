@@ -71,6 +71,60 @@ export async function createNotificationRecord(
 }
 
 /**
+ * Checks whether an active notification already exists for the given criteria.
+ *
+ * Used to prevent duplicate notifications before creating new records.
+ * Supports both per-user checks (with userId/watchlistItemId) and public
+ * notification checks (with title, where userId and watchlistItemId are null).
+ *
+ * @param options - Criteria to match against existing notifications
+ * @returns True if a matching active notification exists
+ */
+export async function hasActiveNotification(
+  this: DatabaseService,
+  options: {
+    userId?: number | null
+    watchlistItemId?: number | null
+    type: string
+    title?: string
+    seasonNumber?: number
+    episodeNumber?: number
+  },
+): Promise<boolean> {
+  const row = await this.knex('notifications')
+    .where('notification_status', 'active')
+    .where('type', options.type)
+    .modify((q) => {
+      if (options.userId !== undefined) {
+        if (options.userId === null) {
+          q.whereNull('user_id')
+        } else {
+          q.where('user_id', options.userId)
+        }
+      }
+      if (options.watchlistItemId !== undefined) {
+        if (options.watchlistItemId === null) {
+          q.whereNull('watchlist_item_id')
+        } else {
+          q.where('watchlist_item_id', options.watchlistItemId)
+        }
+      }
+      if (options.title !== undefined) {
+        q.where('title', options.title)
+      }
+      if (options.seasonNumber !== undefined) {
+        q.where('season_number', options.seasonNumber)
+      }
+      if (options.episodeNumber !== undefined) {
+        q.where('episode_number', options.episodeNumber)
+      }
+    })
+    .first()
+
+  return row !== undefined
+}
+
+/**
  * Resets the status of active notifications to "reset" based on specified filtering criteria.
  *
  * Updates notifications matching the provided options, such as creation date, watchlist item, user, content type, season, or episode.

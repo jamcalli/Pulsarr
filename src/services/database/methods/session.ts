@@ -442,6 +442,53 @@ export async function resetRollingMonitoredShowToOriginal(
 }
 
 /**
+ * Deletes all rolling monitored show entries matching any of the provided
+ * TVDB IDs or Sonarr series IDs.
+ *
+ * Removes both master and per-user entries for each matching show.
+ * Used by delete sync to clean up orphaned rolling monitor records
+ * when a series is deleted from Sonarr.
+ *
+ * Matches on both identifiers to handle entries created without a TVDB ID
+ * (stored as empty string when the show lacks a TVDB GUID).
+ *
+ * @param tvdbIds - Array of TVDB ID strings to match against
+ * @param sonarrSeriesIds - Array of Sonarr series ID numbers to match against
+ * @returns The total number of deleted entries
+ */
+export async function deleteRollingMonitoredShowsByIds(
+  this: DatabaseService,
+  tvdbIds: string[],
+  sonarrSeriesIds: number[],
+): Promise<number> {
+  if (tvdbIds.length === 0 && sonarrSeriesIds.length === 0) return 0
+
+  try {
+    const query = this.knex('rolling_monitored_shows').where((builder) => {
+      if (tvdbIds.length > 0) {
+        builder.whereIn('tvdb_id', tvdbIds)
+      }
+      if (sonarrSeriesIds.length > 0) {
+        builder.orWhereIn('sonarr_series_id', sonarrSeriesIds)
+      }
+    })
+
+    const deleted = await query.delete()
+
+    if (deleted > 0) {
+      this.log.info(
+        `Deleted ${deleted} rolling monitored show entries (${tvdbIds.length} TVDB IDs, ${sonarrSeriesIds.length} Sonarr series IDs)`,
+      )
+    }
+
+    return deleted
+  } catch (error) {
+    this.log.error({ error }, 'Error deleting rolling monitored shows by IDs:')
+    return 0
+  }
+}
+
+/**
  * Retrieves rolling monitored shows that have not been updated within the specified number of days.
  * Only returns shows where ALL records (master + all per-user records) are past the inactivity threshold.
  * This prevents cleanup of shows where some users are still actively watching.

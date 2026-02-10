@@ -20,18 +20,22 @@
 import { readFile, unlink } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { resolveDataDir } from '@utils/data-dir.js'
 
 // Path resolution following the same pattern as logger.ts and knexfile.ts
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '../..')
+const dataDir = resolveDataDir()
 
 /**
- * Get the path to the pre-migration prefix file
- * Follows the same pattern as ensureDbDirectory() in knexfile.ts
+ * Get the path to the pre-migration prefix file.
+ * Uses the resolved data directory on installer platforms,
+ * falls back to projectRoot/data on Linux/Docker.
  */
 function getMigrationFilePath(): string {
-  return resolve(projectRoot, 'data', '.pulsarr-tag-migration.json')
+  const baseDir = dataDir ?? resolve(projectRoot, 'data')
+  return resolve(baseDir, '.pulsarr-tag-migration.json')
 }
 
 import type { CleanupOrphanedRefsResponse } from '@root/schemas/tags/user-tags.schema.js'
