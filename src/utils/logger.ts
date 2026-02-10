@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { resolveEnvPath, resolveLogPath } from '@utils/data-dir.js'
 import { config } from 'dotenv'
 import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
 import type { LevelWithSilent, LoggerOptions, MultiStreamRes } from 'pino'
@@ -43,8 +44,6 @@ const projectRoot = resolve(__dirname, '..', '..')
 // Load .env file early for logger configuration
 // Resolve data directory deterministically from platform (Windows/macOS)
 // or fall back to project-relative paths (Linux/Docker)
-import { resolveEnvPath, resolveLogPath } from './data-dir.js'
-
 config({ path: resolveEnvPath(projectRoot), quiet: true })
 
 /**
