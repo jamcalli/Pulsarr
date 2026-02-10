@@ -4,15 +4,35 @@ import { fileURLToPath } from 'node:url'
 import Database from 'better-sqlite3'
 import dotenv from 'dotenv'
 import type { Knex } from 'knex'
-import {
-  resolveDataDir,
-  resolveDbPath,
-  resolveEnvPath,
-} from '../src/utils/data-dir.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..')
+
+// Inlined from src/utils/data-dir.ts — migrations must be self-contained
+// because Docker only copies migrations/, not src/
+function resolveDataDir(): string | null {
+  if (process.env.dataDir) return process.env.dataDir
+  if (process.platform === 'win32') {
+    const programData = process.env.PROGRAMDATA || process.env.ALLUSERSPROFILE
+    if (programData) return resolve(programData, 'Pulsarr')
+  }
+  if (process.platform === 'darwin') {
+    const home = process.env.HOME
+    if (home) return resolve(home, '.config', 'Pulsarr')
+  }
+  return null
+}
+
+function resolveDbPath(root: string): string {
+  const dir = resolveDataDir()
+  return dir ? resolve(dir, 'db') : resolve(root, 'data', 'db')
+}
+
+function resolveEnvPath(root: string): string {
+  const dir = resolveDataDir()
+  return dir ? resolve(dir, '.env') : resolve(root, '.env')
+}
 
 // Resolve data directory deterministically from platform (Windows/macOS)
 // or fall back to project-relative paths (Linux/Docker)
