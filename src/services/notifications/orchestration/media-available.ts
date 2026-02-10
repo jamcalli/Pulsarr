@@ -554,22 +554,30 @@ async function buildPublicNotification(
   const episode =
     contentType === 'episode' ? mediaInfo.episodes?.[0] : undefined
 
-  await deps.db.createNotificationRecord({
-    watchlist_item_id: null,
-    user_id: null,
-    type: contentType,
-    title: notificationTitle,
-    ...(contentType === 'season' && { season_number: seasonNumber }),
-    ...(episode && {
-      message: episode.overview,
-      season_number: episode.seasonNumber,
-      episode_number: episode.episodeNumber,
-    }),
-    sent_to_discord: hasDiscordUrls,
-    sent_to_apprise: hasAppriseUrls,
-    sent_to_tautulli: false,
-    sent_to_native_webhook: hasNativeWebhooks,
-  })
+  try {
+    await deps.db.createNotificationRecord({
+      watchlist_item_id: null,
+      user_id: null,
+      type: contentType,
+      title: notificationTitle,
+      ...(contentType === 'season' && { season_number: seasonNumber }),
+      ...(episode && {
+        message: episode.overview,
+        season_number: episode.seasonNumber,
+        episode_number: episode.episodeNumber,
+      }),
+      sent_to_discord: hasDiscordUrls,
+      sent_to_apprise: hasAppriseUrls,
+      sent_to_tautulli: false,
+      sent_to_native_webhook: hasNativeWebhooks,
+    })
+  } catch (error) {
+    deps.logger.error(
+      { error, title: notificationTitle, type: contentType },
+      'Failed to create public notification record',
+    )
+    return null
+  }
 
   return {
     user: {
