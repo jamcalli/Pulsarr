@@ -1,14 +1,16 @@
 import crypto from 'node:crypto'
+import { resolve } from 'node:path'
 import env from '@fastify/env'
 import type { Config, RawConfig } from '@root/types/config.types.js'
+import { resolveDataDir } from '@utils/data-dir.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 
 const generateSecret = () => crypto.randomBytes(32).toString('hex')
 
-// Support dataDir env var for split directory installations (Windows/macOS installers)
-// When set, .env and data files are loaded from this directory instead of cwd
-const dataDir = process.env.dataDir
+// Resolve data directory deterministically from platform (Windows/macOS)
+// or fall back to project-relative paths (Linux/Docker)
+const dataDir = resolveDataDir()
 
 const DEFAULT_PLEX_SESSION_MONITORING = {
   enabled: false,
@@ -97,7 +99,9 @@ const schema = {
     },
     dbPath: {
       type: 'string',
-      default: dataDir ? `${dataDir}/db/pulsarr.db` : './data/db/pulsarr.db',
+      default: dataDir
+        ? resolve(dataDir, 'db', 'pulsarr.db')
+        : './data/db/pulsarr.db',
     },
     dbHost: {
       type: 'string',
@@ -520,7 +524,7 @@ export default fp(
       confKey: 'config',
       schema,
       dotenv: {
-        path: dataDir ? `${dataDir}/.env` : './.env',
+        path: dataDir ? resolve(dataDir, '.env') : './.env',
         debug: process.env.NODE_ENV === 'development',
         quiet: true,
       },
