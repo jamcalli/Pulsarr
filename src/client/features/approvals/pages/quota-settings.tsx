@@ -20,6 +20,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PageError } from '@/components/ui/page-error'
 import {
   Select,
   SelectContent,
@@ -135,10 +136,7 @@ export default function QuotaSettingsPage() {
           description="Manages quota reset policies and maintenance scheduling"
           status="failed"
         />
-        <div className="flex justify-center items-center h-24 text-red-500">
-          <AlertTriangle className="h-6 w-6 mr-2" />
-          <span>Error loading schedule: {schedulerError}</span>
-        </div>
+        <PageError message={`Error loading schedule: ${schedulerError}`} />
       </div>
     )
   }

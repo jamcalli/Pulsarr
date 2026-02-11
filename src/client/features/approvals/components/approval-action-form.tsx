@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import type React from 'react'
 import { useId } from 'react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -120,22 +121,14 @@ export function ApprovalActionForm({
             <Separator />
             <div ref={submitSectionRef}>
               {action === 'delete' ? (
-                <div className="space-y-4">
-                  <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-red-800 dark:text-red-200 mb-1">
-                          Confirm Deletion
-                        </h4>
-                        <p className="text-sm text-red-700 dark:text-red-300">
-                          Are you sure you want to permanently delete this
-                          approval request? This action cannot be undone.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <Alert variant="error">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Confirm Deletion</AlertTitle>
+                  <AlertDescription>
+                    Are you sure you want to permanently delete this approval
+                    request? This action cannot be undone.
+                  </AlertDescription>
+                </Alert>
               ) : (
                 <div className="space-y-2">
                   <Label htmlFor={actionNotesId} className="text-foreground">
