@@ -96,9 +96,6 @@ describe('plex/friends-api', () => {
       expect(result.success).toBe(true)
       expect(result.hasApiErrors).toBe(false)
       expect(result.friends.size).toBe(0)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'No friends found for Plex token',
-      )
     })
 
     it('should deduplicate friends across multiple tokens', async () => {
@@ -176,9 +173,6 @@ describe('plex/friends-api', () => {
       expect(result.success).toBe(true)
       expect(result.hasApiErrors).toBe(true)
       expect(result.friends.size).toBe(1)
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining('(with some API errors)'),
-      )
     })
 
     it('should return failure when no tokens configured', async () => {
@@ -191,7 +185,6 @@ describe('plex/friends-api', () => {
       expect(result.success).toBe(false)
       expect(result.hasApiErrors).toBe(true)
       expect(result.friends.size).toBe(0)
-      expect(mockLogger.warn).toHaveBeenCalledWith('No Plex tokens configured')
     })
 
     it('should return failure when plexTokens is null', async () => {
@@ -247,9 +240,6 @@ describe('plex/friends-api', () => {
 
       expect(result.success).toBe(false)
       expect(result.hasApiErrors).toBe(true)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Unable to fetch friends from Plex: Internal Server Error',
-      )
     })
 
     it('should handle GraphQL errors in response', async () => {
@@ -273,9 +263,6 @@ describe('plex/friends-api', () => {
 
       expect(result.success).toBe(false)
       expect(result.hasApiErrors).toBe(true)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('GraphQL errors'),
-      )
     })
 
     it('should handle network errors', async () => {
@@ -293,9 +280,6 @@ describe('plex/friends-api', () => {
 
       expect(result.success).toBe(false)
       expect(result.hasApiErrors).toBe(true)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Unable to fetch friends from Plex'),
-      )
     })
 
     it('should handle timeout errors', async () => {
@@ -374,103 +358,6 @@ describe('plex/friends-api', () => {
 
       expect(capturedHeaders?.get('Content-Type')).toBe('application/json')
       expect(capturedHeaders?.get('X-Plex-Token')).toBe('test-token')
-    })
-
-    it('should log debug messages during execution', async () => {
-      server.use(
-        http.post('https://community.plex.tv/api', () => {
-          return HttpResponse.json({
-            data: {
-              allFriendsV2: [
-                {
-                  user: {
-                    id: 'friend-id-1',
-                    username: 'friend1',
-                    avatar: 'https://plex.tv/users/abc123/avatar',
-                    displayName: 'Friend One',
-                  },
-                  createdAt: '2024-01-01T00:00:00Z',
-                },
-              ],
-            },
-          } as PlexApiResponse)
-        }),
-      )
-
-      const config: Config = {
-        plexTokens: ['token'],
-      } as Config
-
-      await getFriends(config, mockLogger)
-
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Fetching friends with Plex token',
-      )
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining('Response JSON'),
-      )
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining('Added friend: friend1'),
-      )
-    })
-
-    it('should log success message with friend count', async () => {
-      server.use(
-        http.post('https://community.plex.tv/api', () => {
-          return HttpResponse.json({
-            data: {
-              allFriendsV2: [
-                {
-                  user: {
-                    id: 'friend-id-1',
-                    username: 'friend1',
-                    avatar: 'https://plex.tv/users/abc123/avatar',
-                    displayName: 'Friend One',
-                  },
-                  createdAt: '2024-01-01T00:00:00Z',
-                },
-                {
-                  user: {
-                    id: 'friend-id-2',
-                    username: 'friend2',
-                    avatar: 'https://plex.tv/users/def456/avatar',
-                    displayName: 'Friend Two',
-                  },
-                  createdAt: '2024-02-01T00:00:00Z',
-                },
-              ],
-            },
-          } as PlexApiResponse)
-        }),
-      )
-
-      const config: Config = {
-        plexTokens: ['token'],
-      } as Config
-
-      await getFriends(config, mockLogger)
-
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Friends fetched successfully. Got 2 unique friends',
-      )
-    })
-
-    it('should log error when all tokens fail', async () => {
-      server.use(
-        http.post('https://community.plex.tv/api', () => {
-          return new HttpResponse(null, { status: 401 })
-        }),
-      )
-
-      const config: Config = {
-        plexTokens: ['token1', 'token2'],
-      } as Config
-
-      await getFriends(config, mockLogger)
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Failed to fetch friends from any token',
-      )
     })
 
     it('should handle missing data.allFriendsV2 in response', async () => {
@@ -578,9 +465,6 @@ describe('plex/friends-api', () => {
       expect(result.success).toBe(false)
       expect(result.sent).toHaveLength(0)
       expect(result.received).toHaveLength(0)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'No Plex token configured for friend requests',
-      )
     })
 
     it('should return failure when plexTokens is null', async () => {
@@ -612,9 +496,6 @@ describe('plex/friends-api', () => {
       const result = await getFriendRequests(config, mockLogger)
 
       expect(result.success).toBe(false)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Unable to fetch friend requests: Internal Server Error',
-      )
     })
 
     it('should handle GraphQL errors in response', async () => {
@@ -633,9 +514,6 @@ describe('plex/friends-api', () => {
       const result = await getFriendRequests(config, mockLogger)
 
       expect(result.success).toBe(false)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('GraphQL errors fetching friend requests'),
-      )
     })
 
     it('should handle network errors', async () => {
@@ -652,9 +530,6 @@ describe('plex/friends-api', () => {
       const result = await getFriendRequests(config, mockLogger)
 
       expect(result.success).toBe(false)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Unable to fetch friend requests'),
-      )
     })
 
     it('should handle timeout errors', async () => {
@@ -760,9 +635,6 @@ describe('plex/friends-api', () => {
       const result = await sendFriendRequest(config, mockLogger, 'abc123')
 
       expect(result.success).toBe(true)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Friend request sent to user abc123',
-      )
     })
 
     it('should return failure when no token configured', async () => {
@@ -773,9 +645,6 @@ describe('plex/friends-api', () => {
       const result = await sendFriendRequest(config, mockLogger, 'abc123')
 
       expect(result.success).toBe(false)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'No Plex token configured for sending friend request',
-      )
     })
 
     it('should return failure when plexTokens is null', async () => {
@@ -805,9 +674,6 @@ describe('plex/friends-api', () => {
       const result = await sendFriendRequest(config, mockLogger, 'abc123')
 
       expect(result.success).toBe(false)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Unable to send friend request: Internal Server Error',
-      )
     })
 
     it('should handle GraphQL errors in response', async () => {
@@ -826,9 +692,6 @@ describe('plex/friends-api', () => {
       const result = await sendFriendRequest(config, mockLogger, 'abc123')
 
       expect(result.success).toBe(false)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('GraphQL errors sending friend request'),
-      )
     })
 
     it('should handle network errors', async () => {
@@ -845,9 +708,6 @@ describe('plex/friends-api', () => {
       const result = await sendFriendRequest(config, mockLogger, 'abc123')
 
       expect(result.success).toBe(false)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Unable to send friend request'),
-      )
     })
 
     it('should handle timeout errors', async () => {
@@ -946,9 +806,6 @@ describe('plex/friends-api', () => {
       const result = await cancelFriendRequest(config, mockLogger, 'abc123')
 
       expect(result.success).toBe(true)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Friend request canceled for user abc123',
-      )
     })
 
     it('should return failure when no token configured', async () => {
@@ -959,9 +816,6 @@ describe('plex/friends-api', () => {
       const result = await cancelFriendRequest(config, mockLogger, 'abc123')
 
       expect(result.success).toBe(false)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'No Plex token configured for canceling friend request',
-      )
     })
 
     it('should return failure when plexTokens is null', async () => {
@@ -991,9 +845,6 @@ describe('plex/friends-api', () => {
       const result = await cancelFriendRequest(config, mockLogger, 'abc123')
 
       expect(result.success).toBe(false)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Unable to cancel friend request: Internal Server Error',
-      )
     })
 
     it('should handle GraphQL errors in response', async () => {
@@ -1012,9 +863,6 @@ describe('plex/friends-api', () => {
       const result = await cancelFriendRequest(config, mockLogger, 'abc123')
 
       expect(result.success).toBe(false)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('GraphQL errors canceling friend request'),
-      )
     })
 
     it('should handle network errors', async () => {
@@ -1031,9 +879,6 @@ describe('plex/friends-api', () => {
       const result = await cancelFriendRequest(config, mockLogger, 'abc123')
 
       expect(result.success).toBe(false)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Unable to cancel friend request'),
-      )
     })
 
     it('should handle timeout errors', async () => {

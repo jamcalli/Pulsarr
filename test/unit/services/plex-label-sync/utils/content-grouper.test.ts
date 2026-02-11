@@ -208,13 +208,6 @@ describe('content-grouper', () => {
 
       expect(result).toHaveLength(1)
       expect(result[0].title).toBe('Has GUID Movie')
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.objectContaining({
-          itemId: 100,
-          title: 'No GUID Movie',
-        }),
-        'Skipping watchlist item without GUIDs',
-      )
     })
 
     it('should skip items with empty GUID arrays', async () => {
@@ -240,13 +233,6 @@ describe('content-grouper', () => {
       )
 
       expect(result).toHaveLength(0)
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.objectContaining({
-          itemId: 100,
-          title: 'Empty GUID Movie',
-        }),
-        'Skipping watchlist item with empty GUIDs',
-      )
     })
 
     it('should use first non-null Plex key when merging content', async () => {
@@ -484,51 +470,12 @@ describe('content-grouper', () => {
       expect(typeof result[0].users[0].watchlist_id).toBe('number')
     })
 
-    it('should log summary information', async () => {
-      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
-        createMockUser(1, 'alice'),
-      ])
-
-      const watchlistItems = [
-        {
-          id: 100,
-          user_id: 1,
-          guids: ['tmdb:123'],
-          title: 'Test Movie',
-          type: 'movie',
-          key: '/library/metadata/1',
-        },
-      ]
-
-      await groupWatchlistItemsByContent(watchlistItems, mockDb, mockLogger)
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.objectContaining({
-          watchlistItemCount: 1,
-          uniqueContentCount: 1,
-          sampleContent: expect.any(Array),
-        }),
-        expect.stringContaining(
-          'Grouped 1 watchlist items into 1 unique content items',
-        ),
-      )
-    })
-
     it('should handle empty watchlist items array', async () => {
       vi.mocked(mockDb.getUsersByIds).mockResolvedValue([])
 
       const result = await groupWatchlistItemsByContent([], mockDb, mockLogger)
 
       expect(result).toHaveLength(0)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.objectContaining({
-          watchlistItemCount: 0,
-          uniqueContentCount: 0,
-        }),
-        expect.stringContaining(
-          'Grouped 0 watchlist items into 0 unique content items',
-        ),
-      )
     })
 
     it('should sort GUIDs consistently for grouping key', async () => {

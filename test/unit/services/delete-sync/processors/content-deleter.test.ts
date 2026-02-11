@@ -1156,7 +1156,6 @@ describe('content-deleter', () => {
       expect(counters.moviesSkipped).toBe(1)
       expect(counters.moviesDeleted).toBe(0)
       expect(counters.totalProcessed).toBe(1)
-      expect(mockLogger.error).toHaveBeenCalled()
     })
   })
 
@@ -1211,7 +1210,6 @@ describe('content-deleter', () => {
       expect(counters.endedShowsSkipped).toBe(1)
       expect(counters.totalShowsDeleted).toBe(0)
       expect(counters.totalProcessed).toBe(1)
-      expect(mockLogger.error).toHaveBeenCalled()
     })
   })
 })

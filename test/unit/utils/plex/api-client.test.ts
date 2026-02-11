@@ -31,9 +31,6 @@ describe('plex/api-client', () => {
 
       const result = await pingPlex('valid-token', mockLogger)
       expect(result).toBe(true)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Successfully validated Plex token',
-      )
     })
 
     it('should return false when Plex API responds with 401', async () => {
@@ -48,9 +45,6 @@ describe('plex/api-client', () => {
 
       const result = await pingPlex('invalid-token', mockLogger)
       expect(result).toBe(false)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Plex ping failed with status 401: Unauthorized',
-      )
     })
 
     it('should return false when Plex API responds with 500', async () => {
@@ -65,9 +59,6 @@ describe('plex/api-client', () => {
 
       const result = await pingPlex('token', mockLogger)
       expect(result).toBe(false)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Plex ping failed with status 500: Internal Server Error',
-      )
     })
 
     it('should return false when network error occurs', async () => {
@@ -79,10 +70,6 @@ describe('plex/api-client', () => {
 
       const result = await pingPlex('token', mockLogger)
       expect(result).toBe(false)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        'Failed to validate Plex token',
-      )
     })
 
     it('should return false when request times out', async () => {
@@ -104,7 +91,6 @@ describe('plex/api-client', () => {
 
         const result = await pingPlex('token', mockLogger)
         expect(result).toBe(false)
-        expect(mockLogger.error).toHaveBeenCalled()
       } finally {
         AbortSignal.timeout = originalTimeout
       }

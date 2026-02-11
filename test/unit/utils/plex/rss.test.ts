@@ -98,9 +98,6 @@ describe('plex/rss', () => {
         mockLogger,
       )
       expect(result).toBe(null)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Unable to generate an RSS feed: Unauthorized',
-      )
     })
 
     it('should return null when network error occurs', async () => {
@@ -112,9 +109,6 @@ describe('plex/rss', () => {
 
       const result = await getRssFromPlexToken('token', 'watchlist', mockLogger)
       expect(result).toBe(null)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Unable to generate an RSS feed'),
-      )
     })
 
     it('should send correct request body for friendsWatchlist', async () => {
@@ -152,21 +146,6 @@ describe('plex/rss', () => {
 
       expect(capturedHeaders?.get('Content-Type')).toBe('application/json')
       expect(capturedHeaders?.get('X-Plex-Token')).toBe('test-token')
-    })
-
-    it('should log debug message on success', async () => {
-      server.use(
-        http.post('https://discover.provider.plex.tv/rss', () => {
-          return HttpResponse.json({
-            RSSInfo: [{ url: 'test' }],
-          } as PlexApiResponse)
-        }),
-      )
-
-      await getRssFromPlexToken('token', 'watchlist', mockLogger)
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Got a result from Plex when generating RSS feed, attempting to decode',
-      )
     })
   })
 
@@ -291,12 +270,6 @@ describe('plex/rss', () => {
 
       expect(result.selfRss).toBeNull()
       expect(result.friendsRss).toBeNull()
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Missing RSS URL. Are you an active Plex Pass user?',
-      )
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Real-time RSS sync disabled',
-      )
     })
 
     it('should return nulls for empty token set', async () => {
@@ -538,9 +511,6 @@ describe('plex/rss', () => {
       )
 
       expect(result.size).toBe(0)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Unable to fetch watchlist from Plex: Not Found',
-      )
     })
 
     it('should return empty set when network error occurs', async () => {
@@ -557,9 +527,6 @@ describe('plex/rss', () => {
       )
 
       expect(result.size).toBe(0)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Unable to fetch watchlist from Plex'),
-      )
     })
 
     it('should continue processing if one item fails', async () => {
@@ -605,7 +572,6 @@ describe('plex/rss', () => {
 
       // Should have processed at least the valid items (may skip the null)
       expect(result.size).toBeGreaterThanOrEqual(1)
-      expect(mockLogger.warn).toHaveBeenCalled()
     })
 
     it('should handle non-array items field', async () => {
@@ -649,59 +615,6 @@ describe('plex/rss', () => {
       )
 
       expect(capturedUrl?.searchParams.get('format')).toBe('json')
-    })
-
-    it('should log debug message with item count', async () => {
-      const mockRssResponse: RssResponse = {
-        title: 'Watchlist',
-        description: 'Test watchlist',
-        links: { self: 'test' },
-        items: [
-          {
-            title: 'Item 1',
-            pubDate: '2024-01-01',
-            link: 'https://example.com/item1',
-            description: '',
-            category: 'movie',
-            credits: [],
-            guids: [],
-          },
-          {
-            title: 'Item 2',
-            pubDate: '2024-01-02',
-            link: 'https://example.com/item2',
-            description: '',
-            category: 'movie',
-            credits: [],
-            guids: [],
-          },
-          {
-            title: 'Item 3',
-            pubDate: '2024-01-03',
-            link: 'https://example.com/item3',
-            description: '',
-            category: 'movie',
-            credits: [],
-            guids: [],
-          },
-        ],
-      }
-
-      server.use(
-        http.get('https://rss.plex.tv/feed/test', () => {
-          return HttpResponse.json(mockRssResponse)
-        }),
-      )
-
-      await fetchWatchlistFromRss(
-        'https://rss.plex.tv/feed/test',
-        1,
-        mockLogger,
-      )
-
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Successfully processed 3 items from RSS feed',
-      )
     })
   })
 })

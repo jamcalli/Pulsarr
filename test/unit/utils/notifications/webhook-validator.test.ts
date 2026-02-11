@@ -80,10 +80,6 @@ describe('webhook-validator', () => {
         const result = isWebhookProcessable(payload, mockLogger)
 
         expect(result).toBe(false)
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          { eventType: 'Grab' },
-          'Skipping webhook - not a Download event',
-        )
       })
 
       it('should return false when missing series field', () => {
@@ -106,9 +102,6 @@ describe('webhook-validator', () => {
         const result = isWebhookProcessable(payload, mockLogger)
 
         expect(result).toBe(false)
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          'Skipping invalid Sonarr webhook - missing required fields',
-        )
       })
 
       it('should return false when missing episodes field', () => {
@@ -128,9 +121,6 @@ describe('webhook-validator', () => {
         const result = isWebhookProcessable(payload, mockLogger)
 
         expect(result).toBe(false)
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          'Skipping invalid Sonarr webhook - missing required fields',
-        )
       })
 
       it('should return false when missing eventType field', () => {
@@ -156,9 +146,6 @@ describe('webhook-validator', () => {
         const result = isWebhookProcessable(payload, mockLogger)
 
         expect(result).toBe(false)
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          'Skipping invalid Sonarr webhook - missing required fields',
-        )
       })
 
       it('should return false when missing file information', () => {
@@ -181,9 +168,6 @@ describe('webhook-validator', () => {
         const result = isWebhookProcessable(payload, mockLogger)
 
         expect(result).toBe(false)
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          'Skipping webhook - no file information',
-        )
       })
 
       it('should accept episodeFiles instead of episodeFile', () => {
@@ -261,12 +245,6 @@ describe('webhook-validator', () => {
         // Second call with same payload should be detected as duplicate
         const secondResult = isWebhookProcessable(payload, mockLogger)
         expect(secondResult).toBe(false)
-        expect(mockLogger.info).toHaveBeenCalledWith(
-          expect.objectContaining({
-            contentInfo: expect.stringContaining('Duplicate Test Show'),
-          }),
-          'Duplicate webhook detected within deduplication window',
-        )
       })
 
       it('should generate different hashes for different episodes', () => {

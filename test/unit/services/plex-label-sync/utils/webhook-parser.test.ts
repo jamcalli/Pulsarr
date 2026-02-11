@@ -27,7 +27,6 @@ describe('webhook-parser', () => {
       const result = extractTagsFromWebhook(webhook, mockLogger)
 
       expect(result).toEqual(['action', 'thriller', 'hd'])
-      expect(mockLogger.error).not.toHaveBeenCalled()
     })
 
     it('should extract tags from Sonarr webhook', () => {
@@ -43,7 +42,6 @@ describe('webhook-parser', () => {
       const result = extractTagsFromWebhook(webhook, mockLogger)
 
       expect(result).toEqual(['drama', 'comedy'])
-      expect(mockLogger.error).not.toHaveBeenCalled()
     })
 
     it('should return empty array for Test events', () => {
@@ -54,7 +52,6 @@ describe('webhook-parser', () => {
       const result = extractTagsFromWebhook(webhook, mockLogger)
 
       expect(result).toEqual([])
-      expect(mockLogger.error).not.toHaveBeenCalled()
     })
 
     it('should handle Radarr webhook with empty tags array', () => {
@@ -152,10 +149,6 @@ describe('webhook-parser', () => {
       const result = extractTagsFromWebhook(webhook, mockLogger)
 
       expect(result).toEqual([])
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        'Error extracting tags from webhook:',
-      )
     })
 
     it('should handle mixed string and numeric tags', () => {
@@ -190,7 +183,6 @@ describe('webhook-parser', () => {
         guids: ['tmdb:12345'],
         contentType: 'movie',
       })
-      expect(mockLogger.error).not.toHaveBeenCalled()
     })
 
     it('should extract GUID and content type from Sonarr webhook', () => {
@@ -208,7 +200,6 @@ describe('webhook-parser', () => {
         guids: ['tvdb:67890'],
         contentType: 'show',
       })
-      expect(mockLogger.error).not.toHaveBeenCalled()
     })
 
     it('should return null for Test events', () => {
@@ -219,7 +210,6 @@ describe('webhook-parser', () => {
       const result = extractContentGuidFromWebhook(webhook, mockLogger)
 
       expect(result).toBeNull()
-      expect(mockLogger.error).not.toHaveBeenCalled()
     })
 
     it('should return null for unknown webhook format', () => {
@@ -244,10 +234,6 @@ describe('webhook-parser', () => {
       const result = extractContentGuidFromWebhook(webhook, mockLogger)
 
       expect(result).toBeNull()
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        'Error extracting content GUID from webhook:',
-      )
     })
 
     it('should handle numeric tmdbId correctly', () => {

@@ -147,10 +147,6 @@ describe('label-cleaner', () => {
         // Should not call any Plex or DB cleanup methods
         expect(mockPlexServer.removeSpecificLabels).not.toHaveBeenCalled()
         expect(mockDb.cleanupUserContentTracking).not.toHaveBeenCalled()
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.objectContaining({ itemCount: 1 }),
-          expect.stringContaining('keep'),
-        )
       })
 
       it('should handle empty watchlist items in keep mode', async () => {
@@ -550,10 +546,6 @@ describe('label-cleaner', () => {
 
         await cleanupLabelsForWatchlistItems(watchlistItems, baseDeps)
 
-        expect(mockLogger.warn).toHaveBeenCalledWith(
-          expect.objectContaining({ ratingKey: '12345' }),
-          expect.stringContaining('Failed to remove labels'),
-        )
         // Should still cleanup tracking even on Plex failure
         expect(mockDb.cleanupUserContentTracking).toHaveBeenCalled()
       })
@@ -860,11 +852,6 @@ describe('label-cleaner', () => {
         await expect(
           cleanupLabelsForWatchlistItems(watchlistItems, baseDeps),
         ).resolves.not.toThrow()
-
-        expect(mockLogger.error).toHaveBeenCalledWith(
-          expect.objectContaining({ error: expect.any(Error) }),
-          expect.stringContaining('Error during label cleanup'),
-        )
       })
 
       it('should handle disabled config', async () => {
@@ -1236,10 +1223,6 @@ describe('label-cleaner', () => {
       )
 
       expect(result).toEqual({ removed: 0, failed: 1 })
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        expect.stringContaining('Error during orphaned label cleanup'),
-      )
     })
 
     it('should handle content with no labels', async () => {

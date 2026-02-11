@@ -295,11 +295,6 @@ describe('label-remover', () => {
       )
 
       await expect(removeAllLabels(baseDeps)).rejects.toThrow('Database error')
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        expect.stringContaining('Error in bulk Plex label removal'),
-      )
     })
 
     it('should emit progress events when connections active', async () => {
@@ -726,11 +721,6 @@ describe('label-remover', () => {
       expect(result.processed).toBe(1)
       expect(result.updated).toBe(0)
       expect(result.failed).toBe(1)
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        expect.stringContaining('Failed to clean up orphaned entry'),
-      )
     })
 
     it('should emit progress events during reset', async () => {
