@@ -1,4 +1,4 @@
-import { HelpCircle, Plus, RefreshCw } from 'lucide-react'
+import { HelpCircle, RefreshCw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { NetworkConfigCredenza } from '@/components/network-config-credenza'
@@ -21,7 +21,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 import {
   TagsMultiSelect,
   type TagsMultiSelectRef,
@@ -71,7 +70,6 @@ export function InstanceCard({
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [isManualSync, setIsManualSync] = useState(false)
-  const [showTagCreationDialog, setShowTagCreationDialog] = useState(false)
   const tagsSelectRef = useRef<TagsMultiSelectRef>(null)
 
   const instances = useRadarrStore((state) => state.instances)
@@ -238,18 +236,6 @@ export function InstanceCard({
   }
 
   // Refresh tags for the specified instance
-  const refreshTags = async () => {
-    if (instance.id <= 0) return
-
-    try {
-      // Use the TagsMultiSelect ref to refresh tags
-      if (tagsSelectRef.current) {
-        await tagsSelectRef.current.refetchTags()
-      }
-    } catch (error) {
-      console.error('Error refreshing tags:', error)
-    }
-  }
 
   if (instancesLoading && instance.id !== -1 && isNavigationTest.current) {
     return <InstanceCardSkeleton />
@@ -272,14 +258,6 @@ export function InstanceCard({
         syncedInstances={form.watch('syncedInstances') || []}
         instanceId={instance.id}
         isManualSync={isManualSync}
-      />
-      <TagCreationDialog
-        open={showTagCreationDialog}
-        onOpenChange={setShowTagCreationDialog}
-        instanceId={instance.id}
-        instanceType="radarr"
-        instanceName={instance.name}
-        onSuccess={refreshTags}
       />
       <NetworkConfigCredenza
         open={!!webhookError}
@@ -476,36 +454,16 @@ export function InstanceCard({
                             </TooltipContent>
                           </Tooltip>
                         </div>
-                        <div className="flex gap-2 items-center w-full">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="noShadow"
-                                size="icon"
-                                className="shrink-0"
-                                onClick={() => setShowTagCreationDialog(true)}
-                                disabled={!isConnectionValid}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Create a new tag</p>
-                            </TooltipContent>
-                          </Tooltip>
-
-                          <FormControl>
-                            <TagsMultiSelect
-                              ref={tagsSelectRef}
-                              field={field}
-                              instanceId={instance.id}
-                              instanceType="radarr"
-                              isConnectionValid={isConnectionValid}
-                              // Tag IDs are stored as strings in the form data
-                            />
-                          </FormControl>
-                        </div>
+                        <FormControl>
+                          <TagsMultiSelect
+                            ref={tagsSelectRef}
+                            field={field}
+                            instanceId={instance.id}
+                            instanceType="radarr"
+                            instanceName={instance.name}
+                            isConnectionValid={isConnectionValid}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

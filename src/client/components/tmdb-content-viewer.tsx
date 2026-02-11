@@ -2,6 +2,7 @@ import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.sc
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { TmdbMetadataDisplay } from '@/components/tmdb-metadata-display'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useTmdbMetadata } from '@/hooks/useTmdbMetadata'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -42,22 +43,11 @@ export function TmdbContentViewer({ approvalRequest }: TmdbContentViewerProps) {
 
   if (tmdbMetadata.error) {
     return (
-      <div
-        role="alert"
-        className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4"
-      >
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-          <div>
-            <h4 className="font-medium text-red-800 dark:text-red-200 mb-1">
-              Unable to Load Details
-            </h4>
-            <p className="text-sm text-red-700 dark:text-red-300">
-              {tmdbMetadata.error}
-            </p>
-          </div>
-        </div>
-      </div>
+      <Alert variant="error">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Unable to Load Details</AlertTitle>
+        <AlertDescription>{tmdbMetadata.error}</AlertDescription>
+      </Alert>
     )
   }
 
