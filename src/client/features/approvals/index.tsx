@@ -1,7 +1,7 @@
+import { AlertTriangle } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/shallow'
-import { Button } from '@/components/ui/button'
 import ApprovalActionsModal from '@/features/approvals/components/approval-actions-modal'
 import ApprovalStatsHeader from '@/features/approvals/components/approval-stats-header'
 import {
@@ -38,7 +38,6 @@ export default function ApprovalsPage() {
     data: approvalsData,
     isLoading: approvalsLoading,
     error: approvalsError,
-    refetch: refetchApprovals,
   } = useApprovals()
   const { data: statsData, isLoading: statsLoading } = useApprovalStats()
 
@@ -182,11 +181,12 @@ export default function ApprovalsPage() {
         : 'Failed to load approvals'
     return (
       <div>
-        <div className="text-center py-8">
-          <p className="text-red-500 mb-4">{errorMessage}</p>
-          <Button onClick={() => refetchApprovals()} variant="default">
-            Retry
-          </Button>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-foreground">Approvals</h2>
+        </div>
+        <div className="flex justify-center items-center h-24 text-red-500">
+          <AlertTriangle className="h-6 w-6 mr-2" />
+          <span>{errorMessage}</span>
         </div>
       </div>
     )

@@ -16,7 +16,6 @@ import {
   Info,
   Loader2,
   Pen,
-  Plus,
   Power,
   Save,
   Trash2,
@@ -54,7 +53,6 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
-import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
 import {
   Tooltip,
@@ -222,7 +220,6 @@ const AccordionRouteCard = ({
   const [accordionValue, setAccordionValue] = useState<string | undefined>(
     undefined,
   )
-  const [showTagCreationDialog, setShowTagCreationDialog] = useState(false)
   const tagsMultiSelectRef =
     useRef<import('@/components/ui/tag-multi-select').TagsMultiSelectRef>(null)
 
@@ -764,20 +761,6 @@ const AccordionRouteCard = ({
           )}
         />
       )}
-      <TagCreationDialog
-        open={showTagCreationDialog}
-        onOpenChange={setShowTagCreationDialog}
-        instanceId={Number(form.watch('target_instance_id'))}
-        instanceType={contentType}
-        instanceName={selectedInstance?.name}
-        onSuccess={() => {
-          // Refresh tags after creating a new one
-          if (tagsMultiSelectRef.current) {
-            tagsMultiSelectRef.current.refetchTags()
-          }
-        }}
-      />
-
       <Accordion
         type="single"
         collapsible
@@ -890,7 +873,7 @@ const AccordionRouteCard = ({
               >
                 <div className="p-6 space-y-6">
                   {error && (
-                    <Alert variant="destructive">
+                    <Alert variant="error">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>{error}</AlertDescription>
                     </Alert>
@@ -1025,21 +1008,9 @@ const AccordionRouteCard = ({
                                 </div>
                               )}
                               {error && (
-                                <Alert variant="destructive" className="mb-4">
+                                <Alert variant="error" className="mb-4">
                                   <AlertCircle className="h-4 w-4" />
-                                  <AlertDescription className="flex justify-between items-center">
-                                    <span>{error}</span>
-                                    <Button
-                                      variant="noShadow"
-                                      size="sm"
-                                      onClick={() => {
-                                        setError(null)
-                                        fetchEvaluatorMetadata(true) // Force refetch
-                                      }}
-                                    >
-                                      Retry
-                                    </Button>
-                                  </AlertDescription>
+                                  <AlertDescription>{error}</AlertDescription>
                                 </Alert>
                               )}
                               {!evaluatorMetadata.length &&
@@ -1661,7 +1632,7 @@ const AccordionRouteCard = ({
                                 </TooltipContent>
                               </Tooltip>
                             </div>
-                            <div className="flex gap-2 items-center w-full">
+                            <FormControl>
                               <TagsMultiSelect
                                 ref={tagsMultiSelectRef}
                                 field={field}
@@ -1669,29 +1640,10 @@ const AccordionRouteCard = ({
                                   form.watch('target_instance_id'),
                                 )}
                                 instanceType={contentType}
+                                instanceName={selectedInstance?.name}
                                 isConnectionValid={true}
                               />
-
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    type="button"
-                                    variant="noShadow"
-                                    size="icon"
-                                    className="shrink-0"
-                                    onClick={() =>
-                                      setShowTagCreationDialog(true)
-                                    }
-                                    disabled={!selectedInstance?.id}
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Create a new tag</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1724,7 +1676,7 @@ const AccordionRouteCard = ({
                                 </TooltipContent>
                               </Tooltip>
                             </div>
-                            <div className="flex gap-2 items-center w-full">
+                            <FormControl>
                               <TagsMultiSelect
                                 ref={tagsMultiSelectRef}
                                 field={field}
@@ -1732,29 +1684,10 @@ const AccordionRouteCard = ({
                                   form.watch('target_instance_id'),
                                 )}
                                 instanceType={contentType}
+                                instanceName={selectedInstance?.name}
                                 isConnectionValid={true}
                               />
-
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    type="button"
-                                    variant="noShadow"
-                                    size="icon"
-                                    className="shrink-0"
-                                    onClick={() =>
-                                      setShowTagCreationDialog(true)
-                                    }
-                                    disabled={!selectedInstance?.id}
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Create a new tag</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
