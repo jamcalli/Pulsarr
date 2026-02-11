@@ -1,5 +1,5 @@
 import {
-  AlertTriangle,
+  AlertCircle,
   HelpCircle,
   Loader2,
   RefreshCw,
@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect } from 'react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -486,17 +487,11 @@ export function UserTagsPage() {
           )}
 
           {error && (
-            <div className="p-4 border border-red-500 bg-red-50 dark:bg-red-900/20 rounded-md flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-sm font-medium text-red-800 dark:text-red-300">
-                  Error
-                </h4>
-                <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-                  {error}
-                </p>
-              </div>
-            </div>
+            <Alert variant="error">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
           <Separator />

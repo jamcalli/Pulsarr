@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   AlertTriangle,
   Check,
   Clock,
@@ -11,6 +12,7 @@ import {
   X,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -21,6 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PageError } from '@/components/ui/page-error'
 import {
   Select,
   SelectContent,
@@ -107,10 +110,7 @@ export default function DeleteSyncPage() {
           description="Automatically removes content when it's no longer on any watchlists"
           status="unknown"
         />
-        <div className="flex justify-center items-center h-24 text-red-500">
-          <AlertTriangle className="h-6 w-6 mr-2" />
-          <span>Error loading schedule: {error}</span>
-        </div>
+        <PageError message={`Error loading schedule: ${error}`} />
       </div>
     )
   }
@@ -242,6 +242,13 @@ export default function DeleteSyncPage() {
             </div>
           </div>
         </div>
+
+        {dryRunError && (
+          <Alert variant="error">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{dryRunError}</AlertDescription>
+          </Alert>
+        )}
 
         <Separator />
 
@@ -1009,15 +1016,6 @@ export default function DeleteSyncPage() {
             </div>
           </form>
         </Form>
-
-        {dryRunError && (
-          <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-xs border border-red-300 dark:border-red-700">
-            <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 mr-2" />
-              <span>{dryRunError}</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
