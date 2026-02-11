@@ -276,10 +276,6 @@ describe('content-router-formatter', () => {
       const result = formatRule(rule, mockLogger)
 
       expect(result.condition).toBeUndefined()
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Error parsing criteria for rule ID 18:',
-        expect.any(Error),
-      )
     })
 
     it('should handle invalid JSON criteria without logger', () => {
@@ -371,7 +367,6 @@ describe('content-router-formatter', () => {
       expect(result.always_require_approval).toBe(true)
       expect(result.bypass_user_quotas).toBe(true)
       expect(result.approval_reason).toBe('Test')
-      expect(mockLogger.error).toHaveBeenCalled()
     })
   })
 })

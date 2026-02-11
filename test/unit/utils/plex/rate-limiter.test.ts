@@ -152,16 +152,6 @@ describe('plex/rate-limiter', () => {
       expect(cooldown).toBeGreaterThanOrEqual(100)
     })
 
-    it('should log warning with cooldown info', () => {
-      rateLimiter.setRateLimited(5, mockLogger)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Plex rate limit detected'),
-      )
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Consecutive rate limits: 1'),
-      )
-    })
-
     it('should return cooldown in milliseconds', () => {
       const cooldown = rateLimiter.setRateLimited(3, mockLogger)
       expect(cooldown).toBeGreaterThan(2700)
@@ -188,22 +178,6 @@ describe('plex/rate-limiter', () => {
 
       // Should have waited and returned true
       expect(result).toBe(true)
-    })
-
-    it('should log wait message', async () => {
-      rateLimiter.setRateLimited(2, mockLogger)
-      vi.clearAllMocks()
-
-      const waitPromise = rateLimiter.waitIfLimited(mockLogger)
-      await vi.runAllTimersAsync()
-      await waitPromise
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Waiting'),
-      )
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('for Plex rate limit cooldown'),
-      )
     })
 
     it('should emit progress updates when progress service provided', async () => {

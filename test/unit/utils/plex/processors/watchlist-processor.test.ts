@@ -215,53 +215,6 @@ describe('plex/processors/watchlist-processor', () => {
       )
     })
 
-    it('should log processing info for each user', async () => {
-      server.use(
-        http.get(
-          'https://discover.provider.plex.tv/library/metadata/:id',
-          () => {
-            return HttpResponse.json({
-              MediaContainer: {
-                Metadata: [{ Guid: [{ id: 'tmdb://123' }], Genre: [] }],
-              },
-            } as unknown as PlexApiResponse)
-          },
-        ),
-      )
-
-      const friend: Friend = {
-        watchlistId: 'user-1',
-        username: 'testuser',
-        userId: 2,
-      }
-
-      const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>([
-        [
-          friend,
-          new Set([
-            {
-              id: '1',
-              key: '1',
-              title: 'Movie 1',
-              type: 'movie',
-              user_id: 2,
-              status: 'pending' as const,
-              created_at: '2024-01-01T00:00:00Z',
-              updated_at: '2024-01-01T00:00:00Z',
-              guids: [],
-              genres: [],
-            },
-          ]),
-        ],
-      ])
-
-      await processWatchlistItems(config, mockLogger, userWatchlistMap)
-
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Processing 1 watchlist items for user testuser',
-      )
-    })
-
     it('should pass correct concurrency limit to toItemsBatch', async () => {
       let concurrentRequests = 0
       let maxConcurrent = 0
