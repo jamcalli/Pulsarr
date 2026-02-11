@@ -1,4 +1,5 @@
-import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react'
+import { AlertCircle, Loader2, RefreshCw } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
@@ -135,17 +136,13 @@ export function ApiKeysPage() {
 
           {error && (
             <>
-              <div className="p-4 border border-red-500 bg-red-50 dark:bg-red-900/20 rounded-md flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-medium text-red-800 dark:text-red-300">
-                    Error
-                  </h4>
-                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-                    {getUserFriendlyErrorMessage(error)}
-                  </p>
-                </div>
-              </div>
+              <Alert variant="error">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
+                  {getUserFriendlyErrorMessage(error)}
+                </AlertDescription>
+              </Alert>
               <Separator />
             </>
           )}

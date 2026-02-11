@@ -1,7 +1,7 @@
-import { AlertTriangle } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/shallow'
+import { PageError } from '@/components/ui/page-error'
 import ApprovalActionsModal from '@/features/approvals/components/approval-actions-modal'
 import ApprovalStatsHeader from '@/features/approvals/components/approval-stats-header'
 import {
@@ -184,10 +184,7 @@ export default function ApprovalsPage() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-foreground">Approvals</h2>
         </div>
-        <div className="flex justify-center items-center h-24 text-red-500">
-          <AlertTriangle className="h-6 w-6 mr-2" />
-          <span>{errorMessage}</span>
-        </div>
+        <PageError message={errorMessage} />
       </div>
     )
   }
