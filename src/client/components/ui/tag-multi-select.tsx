@@ -243,7 +243,7 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
     fetchTags()
   }, [fetchTags]);
 
-  const createButtonDisabled = !isConnectionValid || disabled || isLoading || !!loadError
+  const createButtonDisabled = !isConnectionValid || disabled || isLoading || !!loadError || instanceId <= 0
 
   return (
     <>
