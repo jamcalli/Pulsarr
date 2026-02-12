@@ -65,21 +65,28 @@ export default async function spaRoute(fastify: FastifyInstance) {
         // Use the in-memory config to check if Plex tokens are configured
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
-        // CASE 1: Auth is completely disabled - no user account needed
+        // CASE 1: Auth is completely disabled
         if (isAuthDisabled) {
-          // Only create a temporary session if one doesn't already exist
-          if (!request.session.user) {
-            createTemporaryAdminSession(request)
+          const hasUsers = await fastify.db.hasAdminUsers()
+
+          if (hasUsers) {
+            if (!request.session.user) {
+              createTemporaryAdminSession(request)
+            }
+
+            if (isLoginPage || isCreateUserPage) {
+              return reply.redirect(
+                buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),
+              )
+            }
+
+            return
           }
 
-          // If trying to access login or create-user, redirect appropriately
-          if (isLoginPage || isCreateUserPage) {
-            return reply.redirect(
-              buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),
-            )
+          if (!isCreateUserPage) {
+            return reply.redirect(buildPath('/create-user'))
           }
 
-          // Allow access to all other pages with the temp session
           return
         }
 
