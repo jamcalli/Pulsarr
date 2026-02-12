@@ -1,8 +1,10 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import type { ProposedRouting } from '@root/schemas/approval/approval.schema.js'
 import { Check, HelpCircle, Loader2 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { z } from 'zod'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -37,25 +39,20 @@ import {
 import SyncedInstancesSelect from '@/features/radarr/components/selects/radarr-synced-instance-select'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
-import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
-// Use a subset of RadarrInstanceSchema for form compatibility with routing schema
-type ApprovalRoutingFormData = Pick<
-  RadarrInstanceSchema,
-  | 'qualityProfile'
-  | 'rootFolder'
-  | 'searchOnAdd'
-  | 'minimumAvailability'
-  | 'monitor'
-  | 'tags'
-  | 'syncedInstances'
-  | 'name'
-  | 'baseUrl'
-  | 'apiKey'
-> & {
-  priority: number
-}
+const approvalRoutingSchema = z.object({
+  qualityProfile: z.string().min(1, { error: 'Quality profile is required' }),
+  rootFolder: z.string().min(1, { error: 'Root folder is required' }),
+  searchOnAdd: z.boolean(),
+  minimumAvailability: z.enum(['announced', 'inCinemas', 'released']),
+  monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']),
+  tags: z.array(z.string()),
+  syncedInstances: z.array(z.number()),
+  priority: z.number().min(0).max(100),
+})
+
+type ApprovalRoutingFormData = z.infer<typeof approvalRoutingSchema>
 
 interface ApprovalRadarrRoutingCardProps {
   routing: ProposedRouting
@@ -125,6 +122,7 @@ export function ApprovalRadarrRoutingCard({
     (routing.syncedInstances && routing.syncedInstances.length > 0)
 
   const form = useForm<ApprovalRoutingFormData>({
+    resolver: zodResolver(approvalRoutingSchema),
     defaultValues: {
       qualityProfile: routing.qualityProfile?.toString() || '',
       rootFolder: routing.rootFolder || '',
@@ -142,9 +140,6 @@ export function ApprovalRadarrRoutingCard({
         ? routing.syncedInstances
         : [],
       priority: typeof routing.priority === 'number' ? routing.priority : 50,
-      name: instanceName,
-      baseUrl: targetInstance?.baseUrl || '',
-      apiKey: targetInstance?.apiKey || '',
     },
   })
 

@@ -112,7 +112,7 @@ export default async function spaRoute(fastify: FastifyInstance) {
         // Check if users exist - needed for remaining cases
         const hasUsers = await fastify.db.hasAdminUsers()
 
-        // CASE 4: Normal auth flow - no bypassing
+        // CASE 3: Normal auth flow - no bypassing
         if (!hasUsers) {
           // No users exist yet, force create-user page
           if (!isCreateUserPage) {
@@ -123,7 +123,7 @@ export default async function spaRoute(fastify: FastifyInstance) {
           return
         }
 
-        // CASE 5: Users exist, normal auth flow
+        // CASE 4: Users exist, normal auth flow
         // Prevent create-user access when users already exist
         if (isCreateUserPage) {
           return reply.redirect(buildPath('/login'))
