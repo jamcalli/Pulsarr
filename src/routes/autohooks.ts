@@ -93,6 +93,10 @@ export default async function (fastify: FastifyInstance) {
         const hasUsers = await fastify.db.hasAdminUsers()
         if (hasUsers) {
           createTemporaryAdminSession(request)
+        } else {
+          return reply.unauthorized(
+            'No admin account exists. Please create an account first.',
+          )
         }
       }
       return
