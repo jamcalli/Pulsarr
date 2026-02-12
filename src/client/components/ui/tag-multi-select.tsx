@@ -87,6 +87,9 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
   // Fetch tags from the server
   const fetchTags = useCallback(async () => {
     if (!isConnectionValid || instanceId <= 0) {
+      abortRequest()
+      tagsLoadedRef.current = false
+      pendingValueRef.current = null
       setIsLoading(false)
       setLoadError(null)
       setTags([])
