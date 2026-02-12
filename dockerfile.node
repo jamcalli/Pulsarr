@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Build with Node.js
 # -----------------------------------------------------------------------------
-FROM node:24.13.0-alpine@sha256:cd6fb7efa6490f039f3471a189214d5f548c11df1ff9e5b181aa49e22c14383e AS builder
+FROM node:24.13.1-alpine@sha256:4f696fbf39f383c1e486030ba6b289a5d9af541642fc78ab197e584a113b9c03 AS builder
 WORKDIR /app
 
 ARG TMDBAPIKEY
@@ -19,7 +19,7 @@ ENV tmdbApiKey=${TMDBAPIKEY}
 COPY package.json ./package.json.bak
 RUN cat package.json.bak \
     | sed 's|"file:packages/better-sqlite3-bun"|"12.6.2"|' \
-    | sed 's|"better-sqlite3": "12.6.2"|"better-sqlite3": "12.6.2",\n    "tsx": "^4.19.4"|' \
+    | sed 's|"better-sqlite3": "12.6.2"|"better-sqlite3": "12.6.2",\n    "tsx": "^4.21.0"|' \
     | sed 's|bun run build:server|npm run build:server|g' \
     | sed 's|bun run clean:client|npm run clean:client|g' \
     | sed 's|bun run --bun vite build|vite build|g' \
@@ -45,7 +45,7 @@ RUN npm prune --omit=dev && \
 # -----------------------------------------------------------------------------
 # Stage 2: Final runtime image - Node.js only
 # -----------------------------------------------------------------------------
-FROM node:24.13.0-alpine@sha256:cd6fb7efa6490f039f3471a189214d5f548c11df1ff9e5b181aa49e22c14383e
+FROM node:24.13.1-alpine@sha256:4f696fbf39f383c1e486030ba6b289a5d9af541642fc78ab197e584a113b9c03
 WORKDIR /app
 
 # wget for healthcheck
