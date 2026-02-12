@@ -19,7 +19,7 @@ ENV tmdbApiKey=${TMDBAPIKEY}
 COPY package.json ./package.json.bak
 RUN cat package.json.bak \
     | sed 's|"file:packages/better-sqlite3-bun"|"12.6.2"|' \
-    | sed 's|"better-sqlite3": "12.6.2"|"better-sqlite3": "12.6.2",\n    "tsx": "^4.19.4"|' \
+    | sed 's|"better-sqlite3": "12.6.2"|"better-sqlite3": "12.6.2",\n    "tsx": "^4.21.0"|' \
     | sed 's|bun run build:server|npm run build:server|g' \
     | sed 's|bun run clean:client|npm run clean:client|g' \
     | sed 's|bun run --bun vite build|vite build|g' \
