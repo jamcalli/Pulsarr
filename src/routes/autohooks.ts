@@ -89,11 +89,11 @@ export default async function (fastify: FastifyInstance) {
           'Bypassing authentication for local address',
         )
       }
-      // Create temporary admin session for bypassed requests
-      // so handlers can safely access request.session.user
-      // Only set if no existing session to avoid overwriting authenticated users
       if (!request.session.user) {
-        createTemporaryAdminSession(request)
+        const hasUsers = await fastify.db.hasAdminUsers()
+        if (hasUsers) {
+          createTemporaryAdminSession(request)
+        }
       }
       return
     }
