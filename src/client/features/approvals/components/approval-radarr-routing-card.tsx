@@ -401,17 +401,15 @@ export function ApprovalRadarrRoutingCard({
                   </Tooltip>
                 </div>
                 <FormControl>
-                  {field && (
-                    <TagsMultiSelect
-                      ref={tagsSelectRef}
-                      field={field}
-                      instanceId={instanceId}
-                      instanceType="radarr"
-                      instanceName={instanceName}
-                      isConnectionValid={isConnectionValid}
-                      disabled={disabled || !isConnectionValid}
-                    />
-                  )}
+                  <TagsMultiSelect
+                    ref={tagsSelectRef}
+                    field={field}
+                    instanceId={instanceId}
+                    instanceType="radarr"
+                    instanceName={instanceName}
+                    isConnectionValid={isConnectionValid}
+                    disabled={disabled || !isConnectionValid}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

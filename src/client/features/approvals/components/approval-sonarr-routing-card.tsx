@@ -410,17 +410,15 @@ export function ApprovalSonarrRoutingCard({
                   </Tooltip>
                 </div>
                 <FormControl>
-                  {field && (
-                    <TagsMultiSelect
-                      ref={tagsSelectRef}
-                      field={field}
-                      instanceId={instanceId}
-                      instanceType="sonarr"
-                      instanceName={instanceName}
-                      isConnectionValid={isConnectionValid}
-                      disabled={disabled || !isConnectionValid}
-                    />
-                  )}
+                  <TagsMultiSelect
+                    ref={tagsSelectRef}
+                    field={field}
+                    instanceId={instanceId}
+                    instanceType="sonarr"
+                    instanceName={instanceName}
+                    isConnectionValid={isConnectionValid}
+                    disabled={disabled || !isConnectionValid}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
