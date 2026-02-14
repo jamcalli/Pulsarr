@@ -328,6 +328,15 @@ export class ApprovalService {
   }
 
   /**
+   * Checks if an error indicates the content already exists in Sonarr/Radarr.
+   * Sonarr/Radarr return 400 with "This series/movie has already been added".
+   */
+  private isAlreadyAddedError(error: unknown): boolean {
+    if (!(error instanceof Error)) return false
+    return error.message.toLowerCase().includes('already been added')
+  }
+
+  /**
    * Processes an approved request by executing the stored router decision.
    * This is an internal method - external callers should use approveAndRoute().
    */
@@ -395,6 +404,14 @@ export class ApprovalService {
               )
               routingResults.succeeded.push(targetInstanceId)
             } catch (error) {
+              if (this.isAlreadyAddedError(error)) {
+                this.log.info(
+                  { instanceId: targetInstanceId, title: request.contentTitle },
+                  'Movie already exists in Radarr instance, treating as successful routing',
+                )
+                routingResults.succeeded.push(targetInstanceId)
+                continue
+              }
               this.log.error(
                 { error, instanceId: targetInstanceId },
                 'Failed to route to Radarr instance',
@@ -435,6 +452,14 @@ export class ApprovalService {
               )
               routingResults.succeeded.push(targetInstanceId)
             } catch (error) {
+              if (this.isAlreadyAddedError(error)) {
+                this.log.info(
+                  { instanceId: targetInstanceId, title: request.contentTitle },
+                  'Series already exists in Sonarr instance, treating as successful routing',
+                )
+                routingResults.succeeded.push(targetInstanceId)
+                continue
+              }
               this.log.error(
                 { error, instanceId: targetInstanceId },
                 'Failed to route to Sonarr instance',
