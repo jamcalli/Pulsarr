@@ -23518,6 +23518,9 @@
                           "series": {
                             "type": "object",
                             "properties": {
+                              "id": {
+                                "type": "number"
+                              },
                               "title": {
                                 "type": "string"
                               },
@@ -23616,6 +23619,9 @@
                           "series": {
                             "type": "object",
                             "properties": {
+                              "id": {
+                                "type": "number"
+                              },
                               "title": {
                                 "type": "string"
                               },
