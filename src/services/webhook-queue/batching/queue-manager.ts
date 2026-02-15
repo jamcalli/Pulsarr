@@ -77,10 +77,19 @@ export function ensureShowQueue(
   title: string,
   queue: WebhookQueue,
   logger: FastifyBaseLogger,
+  sonarrSeriesId?: number,
 ): void {
   if (!queue[tvdbId]) {
-    logger.debug({ tvdbId }, 'Initializing webhook queue for show')
-    queue[tvdbId] = { seasons: {}, title }
+    logger.debug(
+      { tvdbId, sonarrSeriesId },
+      'Initializing webhook queue for show',
+    )
+    queue[tvdbId] = { seasons: {}, title, sonarrSeriesId }
+  } else if (
+    sonarrSeriesId !== undefined &&
+    queue[tvdbId].sonarrSeriesId === undefined
+  ) {
+    queue[tvdbId].sonarrSeriesId = sonarrSeriesId
   }
 }
 
