@@ -24,6 +24,7 @@ export const SonarrEpisodeSchema = z.object({
 })
 
 export const SonarrSeriesSchema = z.object({
+  id: z.number().optional(),
   title: z.string(),
   tvdbId: z.number(),
   tags: z.array(z.string()).optional(),
