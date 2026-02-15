@@ -108,8 +108,12 @@ export class WebhookQueueService {
     return {
       logger: this.log,
       queue: this._queue,
-      getSeriesByTvdbId: (tvdbId) =>
-        this.fastify.sonarrManager.getSeriesByTvdbIdFromAny(tvdbId),
+      getSeasonEpisodeCount: (instanceId, seriesId, seasonNumber) =>
+        this.fastify.sonarrManager.getSeasonEpisodeCount(
+          instanceId,
+          seriesId,
+          seasonNumber,
+        ),
     }
   }
 
@@ -386,7 +390,13 @@ export class WebhookQueueService {
       'Processing individual episode completion',
     )
 
-    ensureShowQueue(tvdbId, body.series.title, this._queue, this.log)
+    ensureShowQueue(
+      tvdbId,
+      body.series.title,
+      this._queue,
+      this.log,
+      body.series.id,
+    )
 
     // Recent episode - notify immediately
     if (this.isRecentEpisode(episode.airDateUtc)) {
@@ -416,7 +426,13 @@ export class WebhookQueueService {
     seasonNumber: number,
     instance: SonarrInstance | null,
   ): Promise<void> {
-    ensureShowQueue(tvdbId, body.series.title, this._queue, this.log)
+    ensureShowQueue(
+      tvdbId,
+      body.series.title,
+      this._queue,
+      this.log,
+      body.series.id,
+    )
 
     // Split recent vs non-recent
     const recentEpisodes = body.episodes.filter((ep) =>

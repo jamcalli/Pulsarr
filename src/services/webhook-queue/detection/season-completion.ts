@@ -5,37 +5,31 @@
  * allowing immediate processing instead of waiting for the timeout.
  */
 
-import type { SonarrSeries } from '@root/types/sonarr.types.js'
 import type { WebhookQueue } from '@root/types/webhook.types.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 export interface SeasonCompletionDeps {
   logger: FastifyBaseLogger
   queue: WebhookQueue
-  getSeriesByTvdbId: (tvdbId: number) => Promise<SonarrSeries | null>
+  getSeasonEpisodeCount: (
+    instanceId: number,
+    seriesId: number,
+    seasonNumber: number,
+  ) => Promise<number | null>
 }
 
 /**
- * Extract the expected episode count for a season from series data
- */
-function getSeasonEpisodeCount(
-  series: SonarrSeries,
-  seasonNumber: number,
-): number | null {
-  const season = series.seasons?.find((s) => s.seasonNumber === seasonNumber)
-  return season?.statistics?.totalEpisodeCount ?? null
-}
-
-/**
- * Fetch and cache the expected episode count for a season
- * Returns the expected count or null if unable to determine
+ * Fetch and cache the expected episode count for a season.
+ * Uses the /episode endpoint with the Sonarr series ID from the webhook payload,
+ * which is a direct indexed query (milliseconds) instead of the /series endpoint
+ * that computes statistics for all series (130+ seconds on large instances).
  */
 export async function fetchExpectedEpisodeCount(
   tvdbId: string,
   seasonNumber: number,
   deps: SeasonCompletionDeps,
 ): Promise<number | null> {
-  const { logger, queue, getSeriesByTvdbId } = deps
+  const { logger, queue, getSeasonEpisodeCount } = deps
 
   const showQueue = queue[tvdbId]
   if (!showQueue?.seasons[seasonNumber]) {
@@ -50,34 +44,35 @@ export async function fetchExpectedEpisodeCount(
     return seasonQueue.expectedEpisodeCount
   }
 
-  // Fetch from Sonarr
-  const series = await getSeriesByTvdbId(Number(tvdbId))
-  if (!series) {
-    logger.debug({ tvdbId }, 'Could not fetch series data from Sonarr')
-    return null
-  }
+  const { sonarrSeriesId } = showQueue
+  const { instanceId } = seasonQueue
 
-  const count = getSeasonEpisodeCount(series, seasonNumber)
-  if (count === null) {
+  if (sonarrSeriesId === undefined || instanceId == null) {
     logger.debug(
-      { tvdbId, seasonNumber, seriesTitle: series.title },
-      'Could not determine episode count for season',
+      { tvdbId, seasonNumber, sonarrSeriesId, instanceId },
+      'Missing Sonarr series ID or instance ID for episode count lookup',
     )
     return null
   }
 
-  // Cache the count
+  const count = await getSeasonEpisodeCount(
+    instanceId,
+    sonarrSeriesId,
+    seasonNumber,
+  )
+  if (count === null) {
+    logger.debug(
+      { tvdbId, seasonNumber, sonarrSeriesId, instanceId },
+      'Failed to fetch episode count from Sonarr',
+    )
+    return null
+  }
+
   seasonQueue.expectedEpisodeCount = count
   logger.debug(
-    {
-      tvdbId,
-      seasonNumber,
-      expectedEpisodeCount: count,
-      seriesTitle: series.title,
-    },
+    { tvdbId, seasonNumber, expectedEpisodeCount: count, sonarrSeriesId },
     'Cached expected episode count for season',
   )
-
   return count
 }
 
