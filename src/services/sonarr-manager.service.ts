@@ -446,6 +446,27 @@ export class SonarrManagerService {
   }
 
   /**
+   * Get the episode count for a specific season from a specific instance.
+   * Uses the fast /episode endpoint instead of the slow /series endpoint.
+   */
+  async getSeasonEpisodeCount(
+    instanceId: number,
+    seriesId: number,
+    seasonNumber: number,
+  ): Promise<number | null> {
+    const sonarrService = this.sonarrServices.get(instanceId)
+    if (!sonarrService) {
+      this.log.warn(
+        { instanceId, seriesId, seasonNumber },
+        'Sonarr instance not found for episode count lookup',
+      )
+      return null
+    }
+
+    return sonarrService.getSeasonEpisodeCount(seriesId, seasonNumber)
+  }
+
+  /**
    * Get full series data by TVDB ID from any available instance
    * Tries each instance until one returns data
    * @param tvdbId - The TVDB ID to look up

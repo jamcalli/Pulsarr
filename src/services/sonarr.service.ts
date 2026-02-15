@@ -1852,6 +1852,29 @@ export class SonarrService {
   }
 
   /**
+   * Get the episode count for a specific season using the fast episode endpoint.
+   * Uses /episode?seriesId=X&seasonNumber=Y which is a direct indexed query,
+   * avoiding the expensive statistics computation of the /series endpoint.
+   */
+  async getSeasonEpisodeCount(
+    seriesId: number,
+    seasonNumber: number,
+  ): Promise<number | null> {
+    try {
+      const episodes = await this.getFromSonarr<SonarrEpisode[]>(
+        `episode?seriesId=${seriesId}&seasonNumber=${seasonNumber}`,
+      )
+      return episodes.length
+    } catch (err) {
+      this.log.error(
+        { error: err, seriesId, seasonNumber },
+        'Error fetching season episode count',
+      )
+      return null
+    }
+  }
+
+  /**
    * Update monitoring for specific episodes
    * @param episodes Array of episode updates with id and monitored status
    */

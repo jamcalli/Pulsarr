@@ -37,5 +37,6 @@ export interface WebhookQueue {
       [seasonNumber: number]: SeasonQueue
     }
     title: string
+    sonarrSeriesId?: number
   }
 }
