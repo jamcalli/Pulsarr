@@ -77,10 +77,19 @@ export function ensureShowQueue(
   title: string,
   queue: WebhookQueue,
   logger: FastifyBaseLogger,
+  sonarrSeriesId?: number,
 ): void {
   if (!queue[tvdbId]) {
-    logger.debug({ tvdbId }, 'Initializing webhook queue for show')
-    queue[tvdbId] = { seasons: {}, title }
+    logger.debug(
+      { tvdbId, sonarrSeriesId },
+      'Initializing webhook queue for show',
+    )
+    queue[tvdbId] = { seasons: {}, title, sonarrSeriesId }
+  } else if (
+    sonarrSeriesId !== undefined &&
+    queue[tvdbId].sonarrSeriesId === undefined
+  ) {
+    queue[tvdbId].sonarrSeriesId = sonarrSeriesId
   }
 }
 
@@ -154,6 +163,15 @@ export async function addEpisodeToQueue(
     deps,
   )
 
+  // Guard: queue may have been cleaned up by timeout during async ensureSeasonQueue
+  if (!queue[tvdbId]?.seasons[seasonNumber]) {
+    logger.warn(
+      { tvdbId, seasonNumber },
+      'Season queue was cleaned up during initialization, skipping episode',
+    )
+    return
+  }
+
   // Check for duplicate
   if (
     isEpisodeAlreadyQueued(tvdbId, seasonNumber, episode.episodeNumber, queue)
@@ -226,6 +244,15 @@ export async function addEpisodesToQueue(
     instanceId,
     deps,
   )
+
+  // Guard: queue may have been cleaned up by timeout during async ensureSeasonQueue
+  if (!queue[tvdbId]?.seasons[seasonNumber]) {
+    logger.warn(
+      { tvdbId, seasonNumber },
+      'Season queue was cleaned up during initialization, skipping episodes',
+    )
+    return
+  }
 
   // Filter out duplicates
   const newEpisodes = episodes.filter(
