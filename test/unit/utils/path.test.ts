@@ -1,5 +1,5 @@
 import { getPathBasename, normalizePath } from '@utils/path.js'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 describe('normalizePath', () => {
   describe('basic path normalization', () => {
@@ -79,6 +79,12 @@ describe('normalizePath', () => {
   })
 
   describe('platform-specific behavior', () => {
+    const originalPlatform = process.platform
+
+    afterEach(() => {
+      Object.defineProperty(process, 'platform', { value: originalPlatform })
+    })
+
     it('should handle paths appropriately for current platform', () => {
       const path = 'folder/subfolder/../file.txt'
       const result = normalizePath(path)
@@ -89,6 +95,13 @@ describe('normalizePath', () => {
       const result = normalizePath('C:\\Windows\\System32\\file.dll')
       expect(result.includes('\\')).toBe(false)
       expect(result.includes('/')).toBe(true)
+    })
+
+    it('should lowercase and use win32 normalize on Windows platform', () => {
+      Object.defineProperty(process, 'platform', { value: 'win32' })
+      const result = normalizePath('C:\\Users\\Test\\File.TXT')
+      expect(result.includes('\\')).toBe(false)
+      expect(result).toBe(result.toLowerCase())
     })
   })
 
