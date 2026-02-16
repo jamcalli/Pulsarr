@@ -78,6 +78,22 @@ describe('guid-handler', () => {
       const result = parseGuids(['tmdb://12345', '', '  ', 'tvdb://67890'])
       expect(result).toEqual(['tmdb:12345', 'tvdb:67890'])
     })
+
+    it('should return empty array for non-string non-array types', () => {
+      // Force a number through the type boundary to hit the final return []
+      expect(parseGuids(42 as unknown as string)).toEqual([])
+      expect(parseGuids(true as unknown as string)).toEqual([])
+      expect(parseGuids({} as unknown as string)).toEqual([])
+    })
+
+    it('should handle arrays with non-string elements', () => {
+      const result = parseGuids([
+        'tmdb://12345',
+        42 as unknown as string,
+        null as unknown as string,
+      ])
+      expect(result).toEqual(['tmdb:12345'])
+    })
   })
 
   describe('hasMatchingGuids', () => {
@@ -100,6 +116,19 @@ describe('guid-handler', () => {
     it('should return false for empty inputs', () => {
       expect(hasMatchingGuids([], [])).toBe(false)
       expect(hasMatchingGuids(undefined, undefined)).toBe(false)
+    })
+
+    it('should use Set optimization when first array is longer', () => {
+      // parsed1 (3 items) > parsed2 (1 item) → triggers the optimized branch
+      const guids1 = ['tmdb://12345', 'tvdb://67890', 'imdb://tt1234']
+      const guids2 = ['tmdb://12345']
+      expect(hasMatchingGuids(guids1, guids2)).toBe(true)
+    })
+
+    it('should handle first array longer with no match', () => {
+      const guids1 = ['tmdb://11111', 'tvdb://22222', 'imdb://33333']
+      const guids2 = ['tmdb://99999']
+      expect(hasMatchingGuids(guids1, guids2)).toBe(false)
     })
   })
 

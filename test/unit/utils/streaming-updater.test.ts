@@ -444,6 +444,81 @@ describe('streaming-updater', () => {
       expect((error as Error).message).toMatch(/500/)
       expect(attempts).toBe(3) // Initial + 2 retries
     })
+
+    it('should respect retry-after header with date value', async () => {
+      let attempts = 0
+
+      server.use(
+        http.get('https://example.com/retry-after-date', () => {
+          attempts++
+          if (attempts < 2) {
+            // Set retry-after to a date 1 second from now
+            const retryDate = new Date(Date.now() + 1000).toUTCString()
+            return new HttpResponse(null, {
+              status: 429,
+              headers: { 'Retry-After': retryDate },
+            })
+          }
+          return new HttpResponse(toWebStream(['success\n']), {
+            headers: { 'Content-Type': 'text/plain' },
+          })
+        }),
+      )
+
+      vi.useFakeTimers()
+      const promise = (async () => {
+        const lines: string[] = []
+        for await (const line of streamLines({
+          url: 'https://example.com/retry-after-date',
+          retries: 2,
+        })) {
+          lines.push(line)
+        }
+        return lines
+      })()
+
+      await vi.runAllTimersAsync()
+      const lines = await promise
+      vi.useRealTimers()
+
+      expect(lines).toEqual(['success'])
+      expect(attempts).toBe(2)
+    })
+
+    it('should handle network errors with retry backoff', async () => {
+      let attempts = 0
+
+      server.use(
+        http.get('https://example.com/network-error', () => {
+          attempts++
+          if (attempts < 3) {
+            return HttpResponse.error()
+          }
+          return new HttpResponse(toWebStream(['recovered\n']), {
+            headers: { 'Content-Type': 'text/plain' },
+          })
+        }),
+      )
+
+      vi.useFakeTimers()
+      const promise = (async () => {
+        const lines: string[] = []
+        for await (const line of streamLines({
+          url: 'https://example.com/network-error',
+          retries: 3,
+        })) {
+          lines.push(line)
+        }
+        return lines
+      })()
+
+      await vi.runAllTimersAsync()
+      const lines = await promise
+      vi.useRealTimers()
+
+      expect(lines).toEqual(['recovered'])
+      expect(attempts).toBe(3)
+    })
   })
 
   describe('fetchContent', () => {
