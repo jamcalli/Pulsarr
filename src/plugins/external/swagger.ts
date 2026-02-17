@@ -188,8 +188,8 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           description: 'Tag management endpoints',
         },
         {
-          name: 'Tautulli',
-          description: 'Tautulli integration endpoints',
+          name: 'Plex Mobile',
+          description: 'Plex mobile notification endpoints',
         },
         {
           name: 'TMDB',

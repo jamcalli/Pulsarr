@@ -50,7 +50,7 @@ export function createNotificationsEmbed(user: User): EmbedBuilder {
           `**Discord**: ${user.notify_discord ? '✅ Enabled' : '❌ Disabled'}`,
           `**Public Mentions**: ${user.notify_discord_mention ? '✅ Enabled' : '❌ Disabled'}`,
           `**Apprise**: ${user.notify_apprise ? '✅ Enabled' : '❌ Disabled'}`,
-          `**Tautulli**: ${user.notify_tautulli ? '✅ Enabled' : '❌ Disabled'}`,
+          `**Plex Mobile**: ${user.notify_plex_mobile ? '✅ Enabled' : '❌ Disabled'}`,
         ].join('\n'),
         inline: false,
       },
@@ -77,11 +77,13 @@ export function createActionRows(
     .setStyle(user.notify_apprise ? ButtonStyle.Success : ButtonStyle.Secondary)
     .setDisabled(appriseButtonDisabled && !user.notify_apprise)
 
-  const tautulliButton = new ButtonBuilder()
-    .setCustomId('toggleTautulli')
-    .setLabel(user.notify_tautulli ? 'Disable Tautulli' : 'Enable Tautulli')
+  const plexMobileButton = new ButtonBuilder()
+    .setCustomId('togglePlexMobile')
+    .setLabel(
+      user.notify_plex_mobile ? 'Disable Plex Mobile' : 'Enable Plex Mobile',
+    )
     .setStyle(
-      user.notify_tautulli ? ButtonStyle.Success : ButtonStyle.Secondary,
+      user.notify_plex_mobile ? ButtonStyle.Success : ButtonStyle.Secondary,
     )
 
   const mentionsButton = new ButtonBuilder()
@@ -106,7 +108,7 @@ export function createActionRows(
       ),
     mentionsButton,
     appriseButton,
-    tautulliButton,
+    plexMobileButton,
   )
 
   const secondRow = new ActionRowBuilder<ButtonBuilder>().addComponents(

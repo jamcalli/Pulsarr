@@ -25,3 +25,12 @@ export {
   type NativeWebhookDeps,
   testWebhookEndpoint,
 } from './native-webhook.js'
+export {
+  type PlexMobileNotificationDeps,
+  type PlexMobilePayload,
+  sendPlexMobileNotification,
+} from './plex-mobile.js'
+export {
+  PlexMobileService,
+  type PlexMobileStatus,
+} from './plex-mobile.service.js'

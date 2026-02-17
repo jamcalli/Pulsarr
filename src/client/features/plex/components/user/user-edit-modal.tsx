@@ -225,12 +225,12 @@ const FormContent = React.memo(
 
             <FormField
               control={form.control}
-              name="notify_tautulli"
+              name="notify_plex_mobile"
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center justify-between">
                     <FormLabel className="text-foreground">
-                      Tautulli Notifications
+                      Plex Mobile Notifications
                     </FormLabel>
                     <FormControl>
                       <Switch
@@ -367,8 +367,7 @@ export default function UserEditModal({
       notify_apprise: false,
       notify_discord: false,
       notify_discord_mention: true,
-      notify_tautulli: false,
-      tautulli_notifier_id: null,
+      notify_plex_mobile: false,
       can_sync: false,
       requires_approval: false,
     },
@@ -384,8 +383,7 @@ export default function UserEditModal({
         notify_apprise: user.notify_apprise,
         notify_discord: user.notify_discord,
         notify_discord_mention: user.notify_discord_mention,
-        notify_tautulli: user.notify_tautulli,
-        tautulli_notifier_id: user.tautulli_notifier_id,
+        notify_plex_mobile: user.notify_plex_mobile,
         can_sync: user.can_sync,
         requires_approval: user.requires_approval,
       })

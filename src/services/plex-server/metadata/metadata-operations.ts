@@ -10,6 +10,7 @@ import type {
   PlexSearchResponse,
 } from '@root/types/plex-server.types.js'
 import type {
+  PlexChildrenResponse,
   PlexShowMetadata,
   PlexShowMetadataResponse,
 } from '@root/types/plex-session.types.js'
@@ -136,6 +137,49 @@ export async function getShowMetadata(
     return data
   } catch (error) {
     log.error({ error }, `Error fetching show metadata for key ${ratingKey}:`)
+    return null
+  }
+}
+
+/**
+ * Retrieves direct children of a Plex library item via /library/metadata/{id}/children
+ *
+ * For a show, returns seasons. For a season, returns episodes.
+ * This is the reliable way to get children — includeChildren=1 only works
+ * on the show-level metadata endpoint, not on seasons.
+ */
+export async function getMetadataChildren(
+  ratingKey: string,
+  serverUrl: string,
+  token: string,
+  log: FastifyBaseLogger,
+): Promise<PlexChildrenResponse | null> {
+  try {
+    if (!token) {
+      log.warn('No Plex token provided for children retrieval')
+      return null
+    }
+
+    const url = new URL(`/library/metadata/${ratingKey}/children`, serverUrl)
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        Accept: 'application/json',
+        'X-Plex-Token': token,
+        'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+      },
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
+    })
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch metadata children: ${response.status} ${response.statusText}`,
+      )
+    }
+
+    return (await response.json()) as PlexChildrenResponse
+  } catch (error) {
+    log.error({ error }, `Error fetching children for key ${ratingKey}:`)
     return null
   }
 }

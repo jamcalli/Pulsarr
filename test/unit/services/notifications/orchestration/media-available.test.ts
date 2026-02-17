@@ -32,8 +32,7 @@ function createTestNotification(
       notify_apprise: false,
       notify_discord: true,
       notify_discord_mention: notifyDiscordMention,
-      notify_tautulli: false,
-      tautulli_notifier_id: null,
+      notify_plex_mobile: false,
       can_sync: true,
     },
     notification: {
