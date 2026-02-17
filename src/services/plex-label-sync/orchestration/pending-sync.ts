@@ -114,11 +114,10 @@ export async function processPendingLabelSyncs(
 
             const _username = user.name || `user_${user.id}`
 
-            // The plex_key contains a GUID part, need to resolve to rating key
-            let fullGuid: string
+            // Resolve GUID part to Plex rating key
             const contentType = pendingSync.type || 'movie'
 
-            fullGuid = buildPlexGuid(
+            const fullGuid = buildPlexGuid(
               contentType === 'show' ? 'show' : 'movie',
               pendingSync.plex_key,
             )
