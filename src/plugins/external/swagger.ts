@@ -188,10 +188,6 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           description: 'Tag management endpoints',
         },
         {
-          name: 'Plex Mobile',
-          description: 'Plex mobile notification endpoints',
-        },
-        {
           name: 'TMDB',
           description: 'The Movie Database (TMDB) integration endpoints',
         },

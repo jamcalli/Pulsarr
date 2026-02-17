@@ -99,8 +99,12 @@ export async function sendPlexMobileNotification(
     })
 
     if (!response.ok) {
+      let body: string | undefined
+      try {
+        body = await response.text()
+      } catch {}
       deps.log.warn(
-        { status: response.status, statusText: response.statusText },
+        { status: response.status, statusText: response.statusText, body },
         'Plex mobile notification API returned non-OK status',
       )
       return false

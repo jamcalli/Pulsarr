@@ -56,7 +56,7 @@ export interface PlexShowMetadata {
       ratingKey: string
       key: string
       guid?: string
-      Guid?: string | Array<{ id: string }>
+      Guid?: Array<{ id: string }>
       type: string
       title: string
       summary?: string

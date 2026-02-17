@@ -1383,6 +1383,8 @@ export class PlexServerService {
     this.serverConnections = null
     this.serverMachineId = null
     this.serverName = null
+    this._hasPlexPass = null
+    this._adminPlexId = null
     this.connectionTimestamp = 0
     this.selectedConnectionUrl = null
     this.users = null
