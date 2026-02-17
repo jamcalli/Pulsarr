@@ -80,6 +80,12 @@ export class PlexMobileService {
 
   async initialize(): Promise<void> {
     const hasPlexPass = this.fastify.plexServerService.getHasPlexPass()
+    if (hasPlexPass === null) {
+      this.log.info(
+        'Plex Pass status not yet determined — Plex mobile notifications deferred',
+      )
+      return
+    }
     if (!hasPlexPass) {
       this.log.info(
         'Plex Pass not detected — Plex mobile notifications unavailable',
@@ -388,6 +394,10 @@ export class PlexMobileService {
           pending.user.id,
         )
         if (plexUserId === null) {
+          this.log.warn(
+            { key, username: pending.user.name },
+            'Could not resolve Plex user ID during retry — dropping notification',
+          )
           this.pendingQueue.delete(key)
           continue
         }
