@@ -14,8 +14,7 @@ interface UserRow {
   notify_apprise: boolean | number
   notify_discord: boolean | number
   notify_discord_mention: boolean | number
-  notify_tautulli: boolean | number
-  tautulli_notifier_id: number | null
+  notify_plex_mobile: boolean | number
   can_sync: boolean | number
   requires_approval: boolean | number
   is_primary_token: boolean | number
@@ -45,8 +44,7 @@ export function mapRowToUser(row: UserRow): User {
     notify_apprise: Boolean(row.notify_apprise),
     notify_discord: Boolean(row.notify_discord),
     notify_discord_mention: Boolean(row.notify_discord_mention),
-    notify_tautulli: Boolean(row.notify_tautulli),
-    tautulli_notifier_id: row.tautulli_notifier_id,
+    notify_plex_mobile: Boolean(row.notify_plex_mobile),
     can_sync: Boolean(row.can_sync),
     requires_approval: Boolean(row.requires_approval),
     is_primary_token: Boolean(row.is_primary_token),

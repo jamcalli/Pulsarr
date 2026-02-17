@@ -13,8 +13,7 @@ import type { Knex } from 'knex'
  * - notify_apprise: boolean (default: false)
  * - notify_discord: boolean (default: false)
  * - notify_discord_mention: boolean (default: true)
- * - notify_tautulli: boolean (default: false)
- * - tautulli_notifier_id: integer (nullable)
+ * - notify_plex_mobile: boolean (default: false)
  * - can_sync: boolean (default: true)
  * - is_primary_token: boolean (default: false, unique constraint when true)
  * - requires_approval: boolean (default: false)
@@ -32,8 +31,7 @@ export const SEED_USERS = [
     notify_apprise: false,
     notify_discord: true,
     notify_discord_mention: true,
-    notify_tautulli: false,
-    tautulli_notifier_id: null,
+    notify_plex_mobile: false,
     can_sync: true,
     is_primary_token: true, // Only one user can have this as true
     requires_approval: false,
@@ -47,8 +45,7 @@ export const SEED_USERS = [
     notify_apprise: true,
     notify_discord: true,
     notify_discord_mention: false, // Opted out of public mentions
-    notify_tautulli: false,
-    tautulli_notifier_id: null,
+    notify_plex_mobile: false,
     can_sync: true,
     is_primary_token: false,
     requires_approval: false,
@@ -62,8 +59,7 @@ export const SEED_USERS = [
     notify_apprise: true,
     notify_discord: false,
     notify_discord_mention: true,
-    notify_tautulli: true,
-    tautulli_notifier_id: 1,
+    notify_plex_mobile: true,
     can_sync: true,
     is_primary_token: false,
     requires_approval: false,
@@ -77,8 +73,7 @@ export const SEED_USERS = [
     notify_apprise: false,
     notify_discord: false,
     notify_discord_mention: true,
-    notify_tautulli: false,
-    tautulli_notifier_id: null,
+    notify_plex_mobile: false,
     can_sync: false,
     is_primary_token: false,
     requires_approval: true,

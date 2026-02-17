@@ -4,8 +4,8 @@ import { AppriseForm } from '@/features/notifications/components/apprise/apprise
 import { DiscordBotForm } from '@/features/notifications/components/discord/discord-bot-form'
 import { DiscordWebhookForm } from '@/features/notifications/components/discord/discord-webhook-form'
 import { GeneralSettingsForm } from '@/features/notifications/components/general/general-settings-form'
+import { PlexMobileForm } from '@/features/notifications/components/plex-mobile/plex-mobile-form'
 import { PublicContentForm } from '@/features/notifications/components/public-content/public-content-form'
-import { TautulliForm } from '@/features/notifications/components/tautulli/tautulli-form'
 import { WebhookEndpointsSection } from '@/features/notifications/components/webhooks/webhook-endpoints-section'
 
 interface NotificationsSectionProps {
@@ -15,7 +15,7 @@ interface NotificationsSectionProps {
 /**
  * Displays a sectioned interface for configuring notification settings.
  *
- * Sections are ordered alphabetically: Apprise, Discord, General, Native Webhooks, Public Content, Tautulli.
+ * Sections are ordered alphabetically: Apprise, Discord, General, Native Webhooks, Plex Mobile, Public Content.
  * Each section contains labeled forms for its respective notification integration, separated by visual dividers.
  *
  * @param isInitialized - Indicates whether the notification forms should be initialized.
@@ -30,9 +30,8 @@ export function NotificationsSection({
   const discordId = 'discord-notifications'
   const generalId = 'general-notifications'
   const nativeWebhooksId = 'native-webhooks'
+  const plexMobileId = 'plex-mobile-notifications'
   const publicContentId = 'public-content-notifications'
-  const tautulliId = 'tautulli-notifications'
-
   return (
     <div className="grid gap-6">
       {/* Feature-specific notification settings info */}
@@ -113,6 +112,20 @@ export function NotificationsSection({
 
       <Separator className="my-4" />
 
+      {/* Plex Mobile Notifications Section */}
+      <div id={plexMobileId}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-foreground">
+            Plex Mobile Notifications
+          </h2>
+        </div>
+        <div className="grid gap-4 mt-4">
+          <PlexMobileForm isInitialized={isInitialized} />
+        </div>
+      </div>
+
+      <Separator className="my-4" />
+
       {/* Public Content Notifications Section */}
       <div id={publicContentId}>
         <div className="flex items-center justify-between">
@@ -122,20 +135,6 @@ export function NotificationsSection({
         </div>
         <div className="grid gap-4 mt-4">
           <PublicContentForm isInitialized={isInitialized} />
-        </div>
-      </div>
-
-      <Separator className="my-4" />
-
-      {/* Tautulli Notifications Section */}
-      <div id={tautulliId}>
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-foreground">
-            Tautulli Notifications
-          </h2>
-        </div>
-        <div className="grid gap-4 mt-4">
-          <TautulliForm isInitialized={isInitialized} />
         </div>
       </div>
     </div>

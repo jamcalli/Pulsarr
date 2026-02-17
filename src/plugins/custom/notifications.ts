@@ -2,7 +2,7 @@
  * Notification Service Plugin
  *
  * Registers the unified notification service.
- * Replaces discord-notifications, apprise-notifications, and tautulli plugins.
+ * Replaces discord-notifications, apprise-notifications, and plex-mobile plugins.
  */
 
 import { NotificationService } from '@services/notification.service.js'
@@ -46,14 +46,14 @@ export default fp(
 
     fastify.decorate('notifications', notifications)
     emitDiscordStatus(fastify, notifications)
-    emitTautulliStatus(fastify, notifications)
+    emitPlexMobileStatus(fastify, notifications)
     emitAppriseStatus(fastify, notifications)
 
     // Status polling for UI updates
     const statusInterval = setInterval(() => {
       if (fastify.progress.hasActiveConnections()) {
         emitDiscordStatus(fastify, notifications)
-        emitTautulliStatus(fastify, notifications)
+        emitPlexMobileStatus(fastify, notifications)
         emitAppriseStatus(fastify, notifications)
       }
     }, 1000)
@@ -95,7 +95,7 @@ function emitDiscordStatus(
   })
 }
 
-function emitTautulliStatus(
+function emitPlexMobileStatus(
   fastify: FastifyInstance,
   notifications: NotificationService,
 ) {
@@ -103,15 +103,15 @@ function emitTautulliStatus(
     return
   }
 
-  const status = notifications.tautulli.getStatus()
-  const operationId = `tautulli-status-${Date.now()}`
+  const status = notifications.plexMobile.getStatus()
+  const operationId = `plex-mobile-status-${Date.now()}`
 
   fastify.progress.emit({
     operationId,
     type: 'system',
     phase: 'info',
     progress: 100,
-    message: `Tautulli status: ${status}`,
+    message: `Plex mobile status: ${status}`,
   })
 }
 

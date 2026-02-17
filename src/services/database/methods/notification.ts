@@ -23,7 +23,7 @@ export async function createNotificationRecord(
     episode_number?: number
     sent_to_discord: boolean
     sent_to_apprise: boolean
-    sent_to_tautulli?: boolean
+    sent_to_plex_mobile?: boolean
     sent_to_native_webhook?: boolean
     notification_status?: string
   },
@@ -228,7 +228,7 @@ export async function getNotificationStats(
   const channelQueries = [
     { channel: 'discord', column: 'sent_to_discord' },
     { channel: 'apprise', column: 'sent_to_apprise' },
-    { channel: 'tautulli', column: 'sent_to_tautulli' },
+    { channel: 'plex_mobile', column: 'sent_to_plex_mobile' },
     { channel: 'native_webhook', column: 'sent_to_native_webhook' },
   ]
 

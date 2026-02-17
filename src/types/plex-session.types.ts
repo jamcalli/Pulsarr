@@ -44,31 +44,30 @@ export interface PlexSeriesMetadata {
 }
 
 /**
- * Show metadata for determining episode counts
- * This is the simpler response when includeChildren=true
+ * Show metadata response from /library/metadata/{id}?includeChildren=1
+ *
+ * The Plex API nests show fields inside MediaContainer.Metadata[0],
+ * with Children (seasons) nested inside each Metadata item.
  */
 export interface PlexShowMetadata {
   MediaContainer: {
-    title1: string // Library name
-    title2: string // Show name
-    key: string
-    ratingKey: string
-    guid?: string // Main GUID (lowercase)
-    // Plex API inconsistency: Guid can be either format depending on API endpoint
-    // - String format: when querying certain metadata endpoints
-    // - Array format: when using detailed metadata endpoints (/library/metadata/{id})
-    // Always use Array.isArray(metadata.Guid) to check type before accessing
-    Guid?: string | Array<{ id: string }> // Can be string or array (uppercase)
-    type: string
-    title: string
-    summary?: string
-    childCount: number // Number of seasons
-    leafCount: number // Total episode count
-    viewedLeafCount?: number
-    Children?: {
-      size: number
-      Metadata?: PlexSeasonMetadata[]
-    }
+    size: number
+    Metadata: Array<{
+      ratingKey: string
+      key: string
+      guid?: string
+      Guid?: Array<{ id: string }>
+      type: string
+      title: string
+      summary?: string
+      childCount: number
+      leafCount: number
+      viewedLeafCount?: number
+      Children?: {
+        size: number
+        Metadata?: PlexSeasonMetadata[]
+      }
+    }>
   }
 }
 
@@ -177,6 +176,23 @@ export interface PlexSeasonMetadata {
   Children?: {
     size: number
     Metadata?: PlexEpisodeMetadata[]
+  }
+}
+
+/**
+ * Response from /library/metadata/{id}/children
+ * Returns direct children (seasons for a show, episodes for a season)
+ */
+export interface PlexChildrenResponse {
+  MediaContainer: {
+    size: number
+    Metadata?: Array<{
+      ratingKey: string
+      index: number
+      title: string
+      leafCount?: number
+      [key: string]: unknown
+    }>
   }
 }
 

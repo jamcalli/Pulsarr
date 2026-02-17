@@ -76,8 +76,7 @@ export async function ensureFriendUsers(
           notify_apprise: false,
           notify_discord: false,
           notify_discord_mention: true,
-          notify_tautulli: false,
-          tautulli_notifier_id: null,
+          notify_plex_mobile: false,
           can_sync: deps.config.newUserDefaultCanSync ?? true,
           requires_approval:
             deps.config.newUserDefaultRequiresApproval ?? false,
