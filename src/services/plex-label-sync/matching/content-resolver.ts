@@ -9,6 +9,7 @@ import type {
   PlexContentItems,
 } from '@root/types/plex-label-sync.types.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
+import { buildPlexGuid } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /**
@@ -46,10 +47,10 @@ export async function resolveContentToPlexItems(
     try {
       // Construct full GUID and search for the content in Plex
       const contentType = content.type || 'movie'
-      const fullGuid =
-        contentType === 'show'
-          ? `plex://show/${content.plexKey}`
-          : `plex://movie/${content.plexKey}`
+      const fullGuid = buildPlexGuid(
+        contentType === 'show' ? 'show' : 'movie',
+        content.plexKey,
+      )
 
       logger.debug(
         {

@@ -21,7 +21,7 @@ import type {
   PlexShowMetadataResponse,
 } from '@root/types/plex-session.types.js'
 import { toItemsSingle } from '@services/plex-watchlist/index.js'
-import { parseGuids } from '@utils/guid-handler.js'
+import { buildPlexGuid, parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { isSameServerEndpoint } from '@utils/url.js'
 import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
@@ -1565,8 +1565,7 @@ export class PlexServerService {
         return false
       }
 
-      // Construct the plex:// format GUID
-      const plexGuid = `plex://${contentType}/${plexKey}`
+      const plexGuid = buildPlexGuid(contentType, plexKey)
 
       this.log.debug(
         {
