@@ -109,12 +109,12 @@ const data = {
           url: '/notifications#native-webhooks',
         },
         {
-          title: 'Public Content Notifications',
-          url: '/notifications#public-content-notifications',
+          title: 'Plex Mobile Notifications',
+          url: '/notifications#plex-mobile-notifications',
         },
         {
-          title: 'Tautulli Notifications',
-          url: '/notifications#tautulli-notifications',
+          title: 'Public Content Notifications',
+          url: '/notifications#public-content-notifications',
         },
       ],
     },

@@ -359,6 +359,20 @@ export function getTmdbUrl(
 }
 
 /**
+ * Constructs a Plex catalog GUID from a content type and key.
+ *
+ * Examples:
+ * - ("movie", "5d776832a091de001f2e780f") → "plex://movie/5d776832a091de001f2e780f"
+ * - ("show", "65cf164a47b6b46bf1597c2d") → "plex://show/65cf164a47b6b46bf1597c2d"
+ */
+export function buildPlexGuid(
+  contentType: 'movie' | 'show',
+  key: string,
+): string {
+  return `plex://${contentType}/${key}`
+}
+
+/**
  * Extracts the Plex rating key from a Plex GUID or path.
  *
  * Examples:

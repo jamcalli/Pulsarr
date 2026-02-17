@@ -1,4 +1,5 @@
 import {
+  buildPlexGuid,
   createGuidSet,
   extractImdbId,
   extractPlexKey,
@@ -381,6 +382,26 @@ describe('guid-handler', () => {
     it('should return first valid Sonarr ID', () => {
       const guids = ['sonarr://111', 'sonarr://222']
       expect(extractSonarrId(guids)).toBe(111)
+    })
+  })
+
+  describe('buildPlexGuid', () => {
+    it('should construct movie GUID', () => {
+      expect(buildPlexGuid('movie', '5d776832a091de001f2e780f')).toBe(
+        'plex://movie/5d776832a091de001f2e780f',
+      )
+    })
+
+    it('should construct show GUID', () => {
+      expect(buildPlexGuid('show', '65cf164a47b6b46bf1597c2d')).toBe(
+        'plex://show/65cf164a47b6b46bf1597c2d',
+      )
+    })
+
+    it('should be the inverse of extractPlexKey', () => {
+      const key = '5d776832a091de001f2e780f'
+      const guid = buildPlexGuid('movie', key)
+      expect(extractPlexKey(guid)).toBe(key)
     })
   })
 

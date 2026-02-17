@@ -344,8 +344,7 @@ export interface NotificationResult {
     notify_apprise: boolean
     notify_discord: boolean
     notify_discord_mention: boolean
-    notify_tautulli: boolean
-    tautulli_notifier_id: number | null
+    notify_plex_mobile: boolean
     name: string
     id: number
     alias: string | null

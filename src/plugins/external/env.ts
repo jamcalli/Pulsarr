@@ -208,15 +208,7 @@ const schema = {
       type: 'number',
       default: 172800000,
     },
-    tautulliUrl: {
-      type: 'string',
-      default: '',
-    },
-    tautulliApiKey: {
-      type: 'string',
-      default: '',
-    },
-    tautulliEnabled: {
+    plexMobileEnabled: {
       type: 'boolean',
       default: false,
     },

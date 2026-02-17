@@ -188,10 +188,6 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           description: 'Tag management endpoints',
         },
         {
-          name: 'Tautulli',
-          description: 'Tautulli integration endpoints',
-        },
-        {
           name: 'TMDB',
           description: 'The Movie Database (TMDB) integration endpoints',
         },

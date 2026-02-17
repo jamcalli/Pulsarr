@@ -142,10 +142,8 @@ export async function getConfig(
     appriseUrl: config.appriseUrl || '',
     systemAppriseUrl: config.systemAppriseUrl || undefined,
     appriseEmailSender: config.appriseEmailSender || undefined,
-    // Handle Tautulli configuration
-    tautulliEnabled: Boolean(config.tautulliEnabled),
-    tautulliUrl: config.tautulliUrl || '',
-    tautulliApiKey: config.tautulliApiKey || '',
+    // Handle Plex Mobile configuration
+    plexMobileEnabled: Boolean(config.plexMobileEnabled),
     // Convert boolean fields
     cookieSecured: Boolean(config.cookieSecured),
     skipFriendSync: Boolean(config.skipFriendSync),
@@ -281,10 +279,8 @@ export async function createConfig(
       appriseUrl: config.appriseUrl || '',
       systemAppriseUrl: config.systemAppriseUrl || undefined,
       appriseEmailSender: config.appriseEmailSender || undefined,
-      // Tautulli fields
-      tautulliEnabled: config.tautulliEnabled || false,
-      tautulliUrl: config.tautulliUrl || '',
-      tautulliApiKey: config.tautulliApiKey || '',
+      // Plex Mobile fields
+      plexMobileEnabled: config.plexMobileEnabled || false,
       // Plex fields
       plexTokens: JSON.stringify(config.plexTokens || []),
       skipFriendSync: config.skipFriendSync,
@@ -444,10 +440,8 @@ const ALLOWED_COLUMNS = new Set([
   // Public content notifications (JSON column)
   'publicContentNotifications',
 
-  // Tautulli integration
-  'tautulliEnabled',
-  'tautulliUrl',
-  'tautulliApiKey',
+  // Plex Mobile integration
+  'plexMobileEnabled',
 
   // Notification timing
   'queueWaitTime',

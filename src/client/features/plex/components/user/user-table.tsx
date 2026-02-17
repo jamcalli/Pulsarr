@@ -294,16 +294,16 @@ export default function UserTable({
       },
     },
     {
-      accessorKey: 'notify_tautulli',
+      accessorKey: 'notify_plex_mobile',
       meta: {
-        displayName: 'Tautulli Notifications',
+        displayName: 'Plex Mobile Notifications',
       },
-      header: () => <div className="text-center">Tautulli</div>,
+      header: () => <div className="text-center">Plex Mobile</div>,
       cell: ({ row }) => {
         if (isNonFriend(row)) return NON_FRIEND_DASH
         return (
           <div className="flex justify-center">
-            {row.getValue('notify_tautulli') ? (
+            {row.getValue('notify_plex_mobile') ? (
               <Check className="h-4 w-4 text-main" />
             ) : (
               <X className="h-4 w-4 text-error" />

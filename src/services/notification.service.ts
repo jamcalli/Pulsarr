@@ -2,7 +2,7 @@
  * Notification Service
  *
  * Thin orchestrator that owns notification channels.
- * Owns Discord (bot + webhook), Tautulli, Apprise, and future channels.
+ * Owns Discord (bot + webhook), Plex Mobile, Apprise, and future channels.
  */
 
 import {
@@ -25,6 +25,7 @@ import {
   AppriseService,
   DiscordWebhookService,
   dispatchWebhooks,
+  PlexMobileService,
 } from './notifications/channels/index.js'
 import {
   type BotStatus,
@@ -38,7 +39,6 @@ import {
   sendWatchlistAdded,
   type WatchlistItemInfo,
 } from './notifications/orchestration/index.js'
-import { TautulliService } from './notifications/tautulli/index.js'
 
 /**
  * Notification Service
@@ -50,7 +50,7 @@ export class NotificationService {
   private readonly log: FastifyBaseLogger
   private readonly _discordBot: DiscordBotService
   private readonly _discordWebhook: DiscordWebhookService
-  private readonly _tautulli: TautulliService
+  private readonly _plexMobile: PlexMobileService
   private readonly _apprise: AppriseService
 
   constructor(
@@ -64,8 +64,8 @@ export class NotificationService {
     this._discordBot = new DiscordBotService(this.log, this.fastify)
     this._discordWebhook = new DiscordWebhookService(this.log, this.fastify)
 
-    // Create Tautulli service
-    this._tautulli = new TautulliService(this.log, this.fastify)
+    // Create Plex Mobile service
+    this._plexMobile = new PlexMobileService(this.log, this.fastify)
 
     // Create Apprise service
     this._apprise = new AppriseService(this.log, this.fastify)
@@ -86,10 +86,10 @@ export class NotificationService {
   }
 
   /**
-   * Tautulli service accessor for mobile push notifications.
+   * Plex Mobile service accessor for mobile push notifications.
    */
-  get tautulli(): TautulliService {
-    return this._tautulli
+  get plexMobile(): PlexMobileService {
+    return this._plexMobile
   }
 
   /**
@@ -137,11 +137,11 @@ export class NotificationService {
       )
     }
 
-    // Initialize Tautulli if configured
+    // Initialize Plex Mobile if configured
     try {
-      await this._tautulli.initialize()
+      await this._plexMobile.initialize()
     } catch (error) {
-      this.log.error({ error }, 'Failed to initialize Tautulli service')
+      this.log.error({ error }, 'Failed to initialize Plex Mobile service')
     }
 
     // Initialize Apprise (fire-and-forget to avoid blocking startup)
@@ -162,8 +162,8 @@ export class NotificationService {
       await this._discordBot.stopBot()
     }
 
-    // Shutdown Tautulli
-    await this._tautulli.shutdown()
+    // Shutdown Plex Mobile
+    this._plexMobile.shutdown()
   }
 
   /**
@@ -275,7 +275,7 @@ export class NotificationService {
    * 1. Looks up all users who watchlisted this content
    * 2. Checks each user's notification preferences
    * 3. Creates notification records in the database
-   * 4. Dispatches to all enabled channels (Discord, Apprise, Tautulli)
+   * 4. Dispatches to all enabled channels (Discord, Apprise, Plex Mobile)
    * 5. Handles public channel notifications if configured
    *
    * @param mediaInfo - Information about the available media
@@ -303,7 +303,7 @@ export class NotificationService {
         logger: this.log,
         discordBot: this._discordBot,
         discordWebhook: this._discordWebhook,
-        tautulli: this._tautulli,
+        plexMobile: this._plexMobile,
         apprise: this._apprise,
       },
       mediaInfo,
