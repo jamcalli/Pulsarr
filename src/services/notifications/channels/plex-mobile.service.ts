@@ -41,6 +41,7 @@ export class PlexMobileService {
   private readonly log: FastifyBaseLogger
   private readonly pendingQueue = new Map<string, PendingPlexNotification>()
   private retryTimer: ReturnType<typeof setInterval> | null = null
+  private isProcessingRetries = false
   private plexUsersCache: PlexUser[] | null = null
   private plexUsersCacheTimestamp = 0
   private readonly PLEX_USERS_CACHE_TTL = 30 * 60 * 1000
@@ -344,73 +345,81 @@ export class PlexMobileService {
   }
 
   private async processRetryQueue(): Promise<void> {
-    if (this.pendingQueue.size === 0) {
-      if (this.retryTimer) {
+    if (this.isProcessingRetries) return
+    this.isProcessingRetries = true
+
+    try {
+      if (this.pendingQueue.size === 0) {
+        if (this.retryTimer) {
+          clearInterval(this.retryTimer)
+          this.retryTimer = null
+        }
+        return
+      }
+
+      const now = Date.now()
+
+      for (const [key, pending] of this.pendingQueue) {
+        // Expired
+        if (now - pending.createdAt > MAX_RETRY_AGE_MS) {
+          this.log.warn(
+            { key, title: pending.notification.title },
+            'Plex mobile notification expired after max retry age',
+          )
+          this.pendingQueue.delete(key)
+          continue
+        }
+
+        const mediaType =
+          pending.notification.type === 'movie' ? 'movie' : 'show'
+        const plexGuid = `plex://${mediaType}/${pending.watchlistItemKey}`
+
+        const resolved = await this.resolveRatingKey(
+          plexGuid,
+          pending.notification.type,
+          pending.notification.episodeDetails,
+          pending.isBulkRelease,
+        )
+
+        if (!resolved) continue // Still not indexed, try next cycle
+
+        const plexUserId = await this.resolveUserPlexId(
+          pending.user.name,
+          pending.user.id,
+        )
+        if (plexUserId === null) {
+          this.pendingQueue.delete(key)
+          continue
+        }
+
+        const sent = await this.sendResolved(
+          pending.notification,
+          resolved,
+          [plexUserId],
+          pending.isBulkRelease,
+        )
+
+        if (sent) {
+          this.log.debug(
+            { key, title: pending.notification.title },
+            'Plex mobile notification sent on retry',
+          )
+          this.pendingQueue.delete(key)
+        } else {
+          this.log.warn(
+            { key, title: pending.notification.title },
+            'Plex mobile notification send failed on retry — will retry next cycle',
+          )
+        }
+      }
+
+      // Stop timer if queue is empty
+      if (this.pendingQueue.size === 0 && this.retryTimer) {
         clearInterval(this.retryTimer)
         this.retryTimer = null
       }
-      return
-    }
-
-    const now = Date.now()
-
-    for (const [key, pending] of this.pendingQueue) {
-      // Expired
-      if (now - pending.createdAt > MAX_RETRY_AGE_MS) {
-        this.log.warn(
-          { key, title: pending.notification.title },
-          'Plex mobile notification expired after max retry age',
-        )
-        this.pendingQueue.delete(key)
-        continue
-      }
-
-      const mediaType = pending.notification.type === 'movie' ? 'movie' : 'show'
-      const plexGuid = `plex://${mediaType}/${pending.watchlistItemKey}`
-
-      const resolved = await this.resolveRatingKey(
-        plexGuid,
-        pending.notification.type,
-        pending.notification.episodeDetails,
-        pending.isBulkRelease,
-      )
-
-      if (!resolved) continue // Still not indexed, try next cycle
-
-      const plexUserId = await this.resolveUserPlexId(
-        pending.user.name,
-        pending.user.id,
-      )
-      if (plexUserId === null) {
-        this.pendingQueue.delete(key)
-        continue
-      }
-
-      const sent = await this.sendResolved(
-        pending.notification,
-        resolved,
-        [plexUserId],
-        pending.isBulkRelease,
-      )
-
-      if (sent) {
-        this.log.debug(
-          { key, title: pending.notification.title },
-          'Plex mobile notification sent on retry',
-        )
-        this.pendingQueue.delete(key)
-      } else {
-        this.log.warn(
-          { key, title: pending.notification.title },
-          'Plex mobile notification send failed on retry — will retry next cycle',
-        )
-      }
-    }
-
-    // Stop timer if queue is empty
-    if (this.pendingQueue.size === 0 && this.retryTimer) {
-      clearInterval(this.retryTimer)
-      this.retryTimer = null
+    } finally {
+      this.isProcessingRetries = false
     }
   }
 }
