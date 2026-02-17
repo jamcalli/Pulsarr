@@ -161,6 +161,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 'Failed to initialize Plex Mobile after enabling',
               )
             }
+          } else {
+            fastify.notifications.plexMobile.shutdown()
           }
         }
 

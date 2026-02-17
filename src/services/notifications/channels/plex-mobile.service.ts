@@ -122,6 +122,16 @@ export class PlexMobileService {
     if (!this.isEnabled()) return false
     if (!user.notify_plex_mobile) return false
 
+    const plexToken = this.fastify.config.plexTokens?.[0]
+    const serverMachineId = this.fastify.plexServerService.getServerMachineId()
+    if (!plexToken || !serverMachineId) {
+      this.log.error(
+        { hasToken: !!plexToken, hasMachineId: !!serverMachineId },
+        'Missing critical deps for Plex mobile notification — skipping',
+      )
+      return false
+    }
+
     const plexUserId = await this.resolveUserPlexId(user.name, user.id)
     if (plexUserId === null) {
       this.log.warn(
@@ -388,9 +398,13 @@ export class PlexMobileService {
           { key, title: pending.notification.title },
           'Plex mobile notification sent on retry',
         )
+        this.pendingQueue.delete(key)
+      } else {
+        this.log.warn(
+          { key, title: pending.notification.title },
+          'Plex mobile notification send failed on retry — will retry next cycle',
+        )
       }
-
-      this.pendingQueue.delete(key)
     }
 
     // Stop timer if queue is empty

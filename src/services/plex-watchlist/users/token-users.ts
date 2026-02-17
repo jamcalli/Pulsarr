@@ -105,7 +105,7 @@ export async function ensureTokenUsers(
           if (userData?.uuid) {
             plexUuid = userData.uuid
           }
-          if (isPrimary && userData?.id) {
+          if (isPrimary && userData?.id !== undefined) {
             deps.fastify.plexServerService.setAdminPlexId(userData.id)
             const hasPlexPass = userData.subscription?.active ?? false
             deps.fastify.plexServerService.setHasPlexPass(hasPlexPass)
