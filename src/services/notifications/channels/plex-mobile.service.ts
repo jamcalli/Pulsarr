@@ -11,6 +11,7 @@
 import type { User } from '@root/types/config.types.js'
 import type { MediaNotification } from '@root/types/discord.types.js'
 import type { PlexUser } from '@root/types/plex-server.types.js'
+import { buildPlexGuid } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
@@ -148,8 +149,10 @@ export class PlexMobileService {
       return false
     }
 
-    const mediaType = notification.type === 'movie' ? 'movie' : 'show'
-    const plexGuid = `plex://${mediaType}/${watchlistItemKey}`
+    const plexGuid = buildPlexGuid(
+      notification.type === 'movie' ? 'movie' : 'show',
+      watchlistItemKey,
+    )
 
     const resolved = await this.resolveRatingKey(
       plexGuid,
@@ -376,9 +379,10 @@ export class PlexMobileService {
           continue
         }
 
-        const mediaType =
-          pending.notification.type === 'movie' ? 'movie' : 'show'
-        const plexGuid = `plex://${mediaType}/${pending.watchlistItemKey}`
+        const plexGuid = buildPlexGuid(
+          pending.notification.type === 'movie' ? 'movie' : 'show',
+          pending.watchlistItemKey,
+        )
 
         const resolved = await this.resolveRatingKey(
           plexGuid,

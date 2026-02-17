@@ -10,6 +10,7 @@ import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema
 import type { PendingLabelSyncWithPlexKeys } from '@services/database/methods/plex-label-sync.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
+import { buildPlexGuid } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -117,11 +118,10 @@ export async function processPendingLabelSyncs(
             let fullGuid: string
             const contentType = pendingSync.type || 'movie'
 
-            if (contentType === 'show') {
-              fullGuid = `plex://show/${pendingSync.plex_key}`
-            } else {
-              fullGuid = `plex://movie/${pendingSync.plex_key}`
-            }
+            fullGuid = buildPlexGuid(
+              contentType === 'show' ? 'show' : 'movie',
+              pendingSync.plex_key,
+            )
 
             deps.logger.debug(
               {
