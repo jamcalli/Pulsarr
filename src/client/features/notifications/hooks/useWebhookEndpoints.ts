@@ -17,7 +17,7 @@ import {
 } from './useWebhookEndpointMutations'
 import { useWebhookEndpointsQuery } from './useWebhookEndpointsQuery'
 
-// Form schema with connection test validation (follows Tautulli pattern)
+// Form schema with connection test validation
 const WebhookEndpointFormSchema = CreateWebhookEndpointSchema.extend({
   enabled: z.boolean(),
   // Internal fields for tracking connection test state

@@ -161,10 +161,8 @@ export const ConfigFullSchema = z.object({
     appriseUrlsMovies: z.string(),
     appriseUrlsShows: z.string(),
   }),
-  // Tautulli Config
-  tautulliEnabled: z.boolean(),
-  tautulliUrl: z.string(),
-  tautulliApiKey: z.string(),
+  // Plex Mobile Config
+  plexMobileEnabled: z.boolean(),
   // Delete Config
   deletionMode: DeletionModeEnum,
   // General Notifications (stored in milliseconds)
@@ -326,10 +324,8 @@ export const ConfigUpdateSchema = z
         appriseUrlsShows: AppriseUrlSchema,
       })
       .optional(),
-    // Tautulli Config
-    tautulliEnabled: z.boolean().optional(),
-    tautulliUrl: HttpUrlOptionalSchema,
-    tautulliApiKey: z.string().optional(),
+    // Plex Mobile Config
+    plexMobileEnabled: z.boolean().optional(),
     // General Notifications (stored in milliseconds)
     queueWaitTime: z.coerce
       .number()

@@ -9,8 +9,7 @@ export interface User {
   notify_apprise: boolean
   notify_discord: boolean
   notify_discord_mention: boolean
-  notify_tautulli: boolean
-  tautulli_notifier_id: number | null
+  notify_plex_mobile: boolean
   can_sync: boolean
   requires_approval?: boolean
   is_primary_token?: boolean
@@ -133,10 +132,8 @@ export interface Config {
     // Show-specific Apprise URLs (comma-separated)
     appriseUrlsShows?: string
   }
-  // Tautulli Config
-  tautulliEnabled: boolean
-  tautulliUrl: string
-  tautulliApiKey: string
+  // Plex Mobile Config
+  plexMobileEnabled: boolean
   // General Notifications
   queueWaitTime: number
   newEpisodeThreshold: number

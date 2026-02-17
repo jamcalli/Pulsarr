@@ -90,6 +90,8 @@ export async function ensureTokenUsers(
             username: string
             thumb?: string
             uuid?: string
+            id?: number
+            subscription?: { active: boolean }
           }
           if (userData?.username) {
             plexUsername = userData.username
@@ -102,6 +104,14 @@ export async function ensureTokenUsers(
           }
           if (userData?.uuid) {
             plexUuid = userData.uuid
+          }
+          if (isPrimary && userData?.id) {
+            deps.fastify.plexServerService.setAdminPlexId(userData.id)
+            const hasPlexPass = userData.subscription?.active ?? false
+            deps.fastify.plexServerService.setHasPlexPass(hasPlexPass)
+            deps.logger.info(
+              `Plex Pass status: ${hasPlexPass ? 'active' : 'not detected'}`,
+            )
           }
         }
       } catch (error) {
@@ -171,8 +181,7 @@ export async function ensureTokenUsers(
             notify_apprise: false,
             notify_discord: false,
             notify_discord_mention: true,
-            notify_tautulli: false,
-            tautulli_notifier_id: null,
+            notify_plex_mobile: false,
             can_sync: deps.config.newUserDefaultCanSync ?? true,
             requires_approval:
               deps.config.newUserDefaultRequiresApproval ?? false,
@@ -206,8 +215,7 @@ export async function ensureTokenUsers(
             notify_apprise: false,
             notify_discord: false,
             notify_discord_mention: true,
-            notify_tautulli: false,
-            tautulli_notifier_id: null,
+            notify_plex_mobile: false,
             can_sync: deps.config.newUserDefaultCanSync ?? true,
             requires_approval:
               deps.config.newUserDefaultRequiresApproval ?? false,
