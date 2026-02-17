@@ -44,7 +44,8 @@
         "biomejs\\.dev/schemas/(?<currentValue>[\\d.]+)/schema\\.json"
       ],
       "depNameTemplate": "@biomejs/biome",
-      "datasourceTemplate": "npm"
+      "datasourceTemplate": "npm",
+      "groupName": "Build tools"
     }
   ],
   "baseBranchPatterns": [
@@ -111,6 +112,13 @@
         "tsx",
         "@biomejs/biome"
       ]
+    },
+    {
+      "description": "Bump Biome range so package.json and biome.json stay in sync",
+      "matchPackageNames": [
+        "@biomejs/biome"
+      ],
+      "rangeStrategy": "bump"
     },
     {
       "description": "Use widen strategy for peer dependencies",
