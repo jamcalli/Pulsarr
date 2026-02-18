@@ -44,8 +44,7 @@
         "biomejs\\.dev/schemas/(?<currentValue>[\\d.]+)/schema\\.json"
       ],
       "depNameTemplate": "@biomejs/biome",
-      "datasourceTemplate": "npm",
-      "groupName": "Build tools"
+      "datasourceTemplate": "npm"
     }
   ],
   "baseBranchPatterns": [
@@ -112,6 +111,16 @@
         "tsx",
         "@biomejs/biome"
       ]
+    },
+    {
+      "description": "Force biome.json schema update into Build tools group",
+      "matchPackageNames": [
+        "@biomejs/biome"
+      ],
+      "matchFileNames": [
+        "biome.json"
+      ],
+      "groupName": "Build tools"
     },
     {
       "description": "Bump Biome range so package.json and biome.json stay in sync",
