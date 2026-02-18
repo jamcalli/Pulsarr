@@ -185,9 +185,23 @@ launchctl start com.pulsarr
 launchctl unload ~/Library/LaunchAgents/com.pulsarr.plist  # disable auto-start
 ```
 
+#### Stopping Pulsarr
+
+Since Pulsarr runs as a background process, use one of these methods to stop it:
+
+```bash
+# If using LaunchAgent:
+launchctl stop com.pulsarr
+
+# If launched manually:
+pkill -f Pulsarr.app
+```
+
+Alternatively, use Activity Monitor to find and quit the `pulsarr` process.
+
 #### Updating
 
-1. Quit Pulsarr (or stop the LaunchAgent)
+1. Stop Pulsarr (see above) or stop the LaunchAgent
 2. Download the new version and drag to Applications (replace existing)
 3. Re-run the quarantine removal command
 4. Reopen Pulsarr — your data is preserved
