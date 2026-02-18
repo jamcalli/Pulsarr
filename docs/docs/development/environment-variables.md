@@ -111,13 +111,11 @@ Ensure your network is secure when using `requiredExceptLocal`.
 | `enableApprise` | Auto-set based on server availability | `false` |
 | `systemAppriseUrl` | Apprise URL for system notifications only | None |
 
-### Tautulli
+### Plex Mobile
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `tautulliEnabled` | Enable Tautulli (requires Plex Pass) | `false` |
-| `tautulliUrl` | Tautulli server URL | None |
-| `tautulliApiKey` | Tautulli API key | None |
+| `plexMobileEnabled` | Enable Plex mobile push notifications (requires Plex Pass) | `false` |
 
 ### Notification Queue
 

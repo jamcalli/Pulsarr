@@ -109,7 +109,7 @@ See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/in
   with intelligent synchronization
 - **Multi-User Support**: Monitor watchlists for friends and family with granular permissions
 - **Discord Bot Integration**: Complete approval management directly from Discord with interactive commands
-- **Flexible Notifications**: Discord bot, Tautulli, webhooks, and 80+ services via Apprise
+- **Flexible Notifications**: Discord bot, Plex mobile push, webhooks, and 80+ services via Apprise
 - **Advanced Lifecycle Management**: Watchlist-based or tag-based deletion with playlist protection
 - **Plex Session Monitoring**: Auto-search for next seasons when users near season finales
 - **User Tagging**: Track who requested what content in Sonarr/Radarr
