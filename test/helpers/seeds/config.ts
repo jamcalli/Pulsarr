@@ -24,9 +24,7 @@ import type { Knex } from 'knex'
  * - enableApprise: boolean (default: false)
  * - appriseUrl: string (default: '')
  * - systemAppriseUrl: string
- * - tautulliEnabled: boolean (default: false)
- * - tautulliUrl: string
- * - tautulliApiKey: string
+ * - plexMobileEnabled: boolean (default: false)
  * - plexTokens: jsonb
  * - skipFriendSync: boolean
  * - plexServerUrl: string (default: 'http://localhost:32400')
@@ -97,9 +95,7 @@ export const SEED_CONFIGS = [
     enableApprise: false,
     appriseUrl: '',
     systemAppriseUrl: null,
-    tautulliEnabled: false,
-    tautulliUrl: null,
-    tautulliApiKey: null,
+    plexMobileEnabled: false,
     // For SQLite compatibility: JSON must be stringified
     plexTokens: JSON.stringify(['test_plex_token_1234567890']),
     skipFriendSync: false,

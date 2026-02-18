@@ -137,16 +137,15 @@ Use **Add or Remove Programs** in Windows Settings, or run the uninstaller from 
 
 2. Open the DMG and drag `Pulsarr.app` to the Applications folder
 
-3. Open Terminal and run these commands to allow the app to run:
+3. Open Terminal and run this command to allow the app to run:
    ```bash
-   codesign --force --deep -s - /Applications/Pulsarr.app
    xattr -rd com.apple.quarantine /Applications/Pulsarr.app
    ```
    :::note Why is this needed?
-   Pulsarr isn't code-signed with an Apple Developer certificate. These commands self-sign the app and remove the quarantine flag that macOS applies to downloaded files.
+   macOS applies a quarantine flag to downloaded files. This command removes it so the app can launch normally.
    :::
 
-4. Open Pulsarr from Applications (or Spotlight)
+4. Open Pulsarr from Applications (or Spotlight). Pulsarr runs as a background service — it won't appear in the Dock or App Switcher. Access it via your browser.
 
 5. Open http://localhost:3003 to complete setup
 
@@ -186,11 +185,25 @@ launchctl start com.pulsarr
 launchctl unload ~/Library/LaunchAgents/com.pulsarr.plist  # disable auto-start
 ```
 
+#### Stopping Pulsarr
+
+Since Pulsarr runs as a background process, use one of these methods to stop it:
+
+```bash
+# If using LaunchAgent:
+launchctl stop com.pulsarr
+
+# If launched manually:
+pkill -f Pulsarr.app
+```
+
+Alternatively, use Activity Monitor to find and quit the `pulsarr` process.
+
 #### Updating
 
-1. Quit Pulsarr (or stop the LaunchAgent)
+1. Stop Pulsarr (see above) or stop the LaunchAgent
 2. Download the new version and drag to Applications (replace existing)
-3. Re-run the codesign/quarantine commands
+3. Re-run the quarantine removal command
 4. Reopen Pulsarr — your data is preserved
 
 #### Data Locations

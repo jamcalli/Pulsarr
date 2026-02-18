@@ -282,8 +282,7 @@ export async function sendPublicNotification(
     notify_apprise: true,
     notify_discord: false,
     notify_discord_mention: false,
-    notify_tautulli: false,
-    tautulli_notifier_id: null,
+    notify_plex_mobile: false,
     can_sync: false,
   }
 

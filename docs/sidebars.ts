@@ -44,7 +44,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'notifications/discord',
         'notifications/apprise',
-        'notifications/tautulli',
+        'notifications/plex-mobile',
         'notifications/native-webhooks',
       ],
     },

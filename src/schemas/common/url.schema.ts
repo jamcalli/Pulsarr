@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 /**
  * Validates a URL restricted to http/https schemes.
- * Used for services that require HTTP connections (Sonarr, Radarr, Tautulli, webhooks, etc.).
+ * Used for services that require HTTP connections (Sonarr, Radarr, webhooks, etc.).
  * Restricts to http/https to mitigate SSRF risk from exotic URL schemes.
  */
 export const HttpUrlSchema = z.string().refine(

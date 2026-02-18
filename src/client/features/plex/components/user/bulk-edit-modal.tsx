@@ -346,11 +346,11 @@ const FormContent = ({
               )}
             </div>
 
-            {/* Tautulli Notifications */}
+            {/* Plex Mobile Notifications */}
             <div className="space-y-2">
               <FormField
                 control={form.control}
-                name="setTautulliNotify"
+                name="setPlexMobileNotify"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
@@ -362,16 +362,16 @@ const FormContent = ({
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel className="text-foreground">
-                        Set Tautulli notifications
+                        Set Plex Mobile notifications
                       </FormLabel>
                     </div>
                   </FormItem>
                 )}
               />
-              {form.watch('setTautulliNotify') && (
+              {form.watch('setPlexMobileNotify') && (
                 <FormField
                   control={form.control}
-                  name="tautulliNotifyValue"
+                  name="plexMobileNotifyValue"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 ml-7">
                       <FormControl>
@@ -383,7 +383,7 @@ const FormContent = ({
                       </FormControl>
                       <div className="leading-none">
                         <FormLabel className="text-foreground">
-                          Enable Tautulli notifications
+                          Enable Plex Mobile notifications
                         </FormLabel>
                       </div>
                     </FormItem>
@@ -504,7 +504,7 @@ const FormContent = ({
                 !form.watch('setAppriseNotify') &&
                 !form.watch('setDiscordNotify') &&
                 !form.watch('setDiscordMention') &&
-                !form.watch('setTautulliNotify') &&
+                !form.watch('setPlexMobileNotify') &&
                 !form.watch('setCanSync') &&
                 !form.watch('setRequiresApproval'))
             }
@@ -533,7 +533,7 @@ const FormContent = ({
 /**
  * Displays a responsive modal for bulk editing multiple Plex users, allowing administrators to clear user fields and modify notification, sync, and approval permissions.
  *
- * Presents a form for updating selected users, supporting the clearing of alias, Discord ID, and Apprise endpoints, as well as toggling Apprise, Discord, and Tautulli notifications, watchlist sync, and approval requirement settings. Disables controls and prevents modal closure during save operations, and provides feedback on update success or failure.
+ * Presents a form for updating selected users, supporting the clearing of alias, Discord ID, and Apprise endpoints, as well as toggling Apprise, Discord, and Plex Mobile notifications, watchlist sync, and approval requirement settings. Disables controls and prevents modal closure during save operations, and provides feedback on update success or failure.
  */
 export default function BulkEditModal({
   open,
@@ -556,8 +556,8 @@ export default function BulkEditModal({
       discordNotifyValue: false,
       setDiscordMention: false,
       discordMentionValue: true,
-      setTautulliNotify: false,
-      tautulliNotifyValue: false,
+      setPlexMobileNotify: false,
+      plexMobileNotifyValue: false,
       setCanSync: false,
       canSyncValue: true,
       setRequiresApproval: false,
@@ -626,8 +626,8 @@ export default function BulkEditModal({
       updates.notify_discord_mention = values.discordMentionValue
     }
 
-    if (values.setTautulliNotify) {
-      updates.notify_tautulli = values.tautulliNotifyValue
+    if (values.setPlexMobileNotify) {
+      updates.notify_plex_mobile = values.plexMobileNotifyValue
     }
 
     if (values.setCanSync) {

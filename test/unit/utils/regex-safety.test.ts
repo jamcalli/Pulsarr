@@ -129,6 +129,18 @@ describe('isRegexPatternSafe', () => {
     })
   })
 
+  describe('length limits', () => {
+    it('should reject patterns longer than 1024 characters', () => {
+      const longPattern = 'a'.repeat(1025)
+      expect(isRegexPatternSafe(longPattern)).toBe(false)
+    })
+
+    it('should accept patterns at exactly 1024 characters', () => {
+      const maxPattern = 'a'.repeat(1024)
+      expect(isRegexPatternSafe(maxPattern)).toBe(true)
+    })
+  })
+
   describe('edge cases', () => {
     it('should handle complex valid patterns', () => {
       expect(

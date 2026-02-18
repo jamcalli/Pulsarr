@@ -523,6 +523,39 @@ describe('logger', () => {
     })
   })
 
+  describe('createLoggerConfig', () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+      delete process.env.enableConsoleOutput
+    })
+
+    afterEach(() => {
+      delete process.env.enableConsoleOutput
+    })
+
+    it('should return file-only config when enableConsoleOutput is false', async () => {
+      process.env.enableConsoleOutput = 'false'
+      const module = await import('@utils/logger.js')
+      const config = module.createLoggerConfig()
+
+      // File-only config should have a stream (from getFileOptions)
+      expect(config).toHaveProperty('level', 'info')
+      expect(config).toHaveProperty('stream')
+      expect(config).toHaveProperty('serializers')
+    })
+
+    it('should return config with serializers when console output is enabled', async () => {
+      const module = await import('@utils/logger.js')
+      const config = module.createLoggerConfig()
+
+      expect(config).toHaveProperty('level', 'info')
+      expect(config).toHaveProperty('serializers')
+      const serializers = (config as LoggerConfigWithSerializers).serializers
+      expect(serializers?.error).toBeTypeOf('function')
+      expect(serializers?.req).toBeTypeOf('function')
+    })
+  })
+
   describe('request serializer', () => {
     it('should serialize basic request information', async () => {
       const module = await import('@utils/logger.js')

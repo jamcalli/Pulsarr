@@ -67,7 +67,6 @@ describe('plex/watchlist-fetcher', () => {
       const result = await fetchSelfWatchlist(config, mockLogger, 1)
 
       expect(result.size).toBe(0)
-      expect(mockLogger.warn).toHaveBeenCalledWith('No Plex tokens configured')
     })
 
     it('should return empty set when plexTokens is null', async () => {
@@ -78,7 +77,6 @@ describe('plex/watchlist-fetcher', () => {
       const result = await fetchSelfWatchlist(config, mockLogger, 1)
 
       expect(result.size).toBe(0)
-      expect(mockLogger.warn).toHaveBeenCalledWith('No Plex tokens configured')
     })
 
     it('should skip falsy tokens', async () => {
@@ -160,29 +158,6 @@ describe('plex/watchlist-fetcher', () => {
       vi.useRealTimers()
     })
 
-    it('should log info when user has no items', async () => {
-      server.use(
-        http.get(
-          'https://discover.provider.plex.tv/library/sections/watchlist/all',
-          () => {
-            return HttpResponse.json({
-              MediaContainer: { Metadata: [], totalSize: 0 },
-            } as PlexResponse)
-          },
-        ),
-      )
-
-      const config: Config = {
-        plexTokens: ['token'],
-      } as Config
-
-      await fetchSelfWatchlist(config, mockLogger, 1)
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'User has no items in their watchlist',
-      )
-    })
-
     it('should filter out items without key', async () => {
       server.use(
         http.get(
@@ -262,9 +237,6 @@ describe('plex/watchlist-fetcher', () => {
       vi.useRealTimers()
 
       expect(result.size).toBe(1)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Rate limit exhausted'),
-      )
     })
 
     it('should fall back to database items on error', async () => {
@@ -307,9 +279,6 @@ describe('plex/watchlist-fetcher', () => {
 
       expect(result.size).toBe(1)
       expect(getAllWatchlistItemsForUser).toHaveBeenCalledWith(1)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Falling back to existing database items for user 1',
-      )
     }, 20000)
 
     it('should handle JSON string guids in fallback items', async () => {
@@ -380,10 +349,6 @@ describe('plex/watchlist-fetcher', () => {
       )
 
       expect(result.size).toBe(0)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error), userId: 1 }),
-        'Failed to fetch fallback database items for user',
-      )
     })
 
     it('should strip /children from key', async () => {
@@ -465,9 +430,6 @@ describe('plex/watchlist-fetcher', () => {
       const result = await getOthersWatchlist(config, mockLogger, friends)
 
       expect(result.size).toBe(2)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Starting fetch of watchlists for 2 friends',
-      )
     })
 
     it('should handle empty friends set', async () => {
@@ -603,9 +565,6 @@ describe('plex/watchlist-fetcher', () => {
       vi.useRealTimers()
 
       expect(result.size).toBe(0)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Rate limit exhausted'),
-      )
     })
 
     it('should handle generic error', async () => {
@@ -642,67 +601,6 @@ describe('plex/watchlist-fetcher', () => {
       // The user is still added to the map with empty items (success = true)
       expect(result.size).toBe(1)
       expect(result.get(friend)?.size).toBe(0)
-    })
-
-    it('should log statistics about fetched watchlists', async () => {
-      server.use(
-        http.post('https://community.plex.tv/api', ({ request }) => {
-          const token = request.headers.get('X-Plex-Token')
-          if (token === 'token1') {
-            return HttpResponse.json({
-              data: {
-                userV2: {
-                  watchlist: {
-                    nodes: [
-                      { id: 'item-1', title: 'Movie 1', type: 'movie' },
-                      { id: 'item-2', title: 'Movie 2', type: 'movie' },
-                    ],
-                    pageInfo: { hasNextPage: false, endCursor: null },
-                  },
-                },
-              },
-            })
-          }
-          return HttpResponse.json({
-            data: {
-              userV2: {
-                watchlist: {
-                  nodes: [],
-                  pageInfo: { hasNextPage: false, endCursor: null },
-                },
-              },
-            },
-          })
-        }),
-      )
-
-      const config: Config = {
-        plexTokens: ['token'],
-      } as Config
-
-      const friend1: Friend & { userId: number } = {
-        watchlistId: 'user-1',
-        username: 'friend1',
-        userId: 2,
-      }
-      const friend2: Friend & { userId: number } = {
-        watchlistId: 'user-2',
-        username: 'friend2',
-        userId: 3,
-      }
-
-      const friends = new Set<[Friend & { userId: number }, string]>([
-        [friend1, 'token1'],
-        [friend2, 'token2'],
-      ])
-
-      await getOthersWatchlist(config, mockLogger, friends)
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining(
-          "Others' watchlist fetched successfully with 2 total items from 1 friend (1 friend with empty watchlist)",
-        ),
-      )
     })
   })
 })

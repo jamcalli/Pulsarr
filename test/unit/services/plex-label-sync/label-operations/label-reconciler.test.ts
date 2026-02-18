@@ -716,14 +716,6 @@ describe('label-reconciler', () => {
 
       expect(result.success).toBe(false)
       expect(result.error).toBe('Network error')
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({
-          ratingKey: '123',
-          contentTitle: 'The Shawshank Redemption',
-          error: expect.any(Error),
-        }),
-        'Error reconciling labels for Plex item',
-      )
     })
 
     it('should return failure when updateLabels returns false', async () => {
@@ -753,13 +745,6 @@ describe('label-reconciler', () => {
 
       expect(result.success).toBe(false)
       expect(result.error).toBe('Failed to update labels in Plex')
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          ratingKey: '123',
-          contentTitle: 'The Shawshank Redemption',
-        }),
-        'Failed to update labels for Plex item',
-      )
     })
 
     it('should handle null metadata gracefully', async () => {

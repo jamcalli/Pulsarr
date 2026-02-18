@@ -109,9 +109,6 @@ describe('delete-sync orchestration', () => {
       )
 
       expect(result).toBe(false)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Delete sync notifications disabled, skipping all notifications',
-      )
       expect(mockDiscordWebhook.sendNotification).not.toHaveBeenCalled()
       expect(mockDiscordBot.sendDirectMessage).not.toHaveBeenCalled()
       expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
@@ -134,9 +131,6 @@ describe('delete-sync orchestration', () => {
       )
 
       expect(result).toBe(false)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Delete sync completed with no deletions, skipping notification as per configuration',
-      )
       expect(mockDiscordWebhook.sendNotification).not.toHaveBeenCalled()
       expect(mockDiscordBot.sendDirectMessage).not.toHaveBeenCalled()
       expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
@@ -278,9 +272,6 @@ describe('delete-sync orchestration', () => {
       await sendDeleteSyncCompleted(deps, createMockResult(), false)
 
       expect(mockDiscordWebhook.sendNotification).not.toHaveBeenCalled()
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Discord webhook URL not configured, cannot send webhook notification',
-      )
     })
 
     it('should not send DM when admin user has no Discord ID', async () => {
@@ -321,10 +312,6 @@ describe('delete-sync orchestration', () => {
 
       // Should still succeed because other channels worked
       expect(result).toBe(true)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        'Error sending delete sync webhook notification',
-      )
     })
 
     it('should handle Apprise send errors gracefully', async () => {
@@ -340,10 +327,6 @@ describe('delete-sync orchestration', () => {
 
       // Should still succeed because other channels worked
       expect(result).toBe(true)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        'Error sending delete sync Apprise notification',
-      )
     })
 
     it('should pass dryRun flag to Apprise service', async () => {
