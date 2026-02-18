@@ -12,6 +12,7 @@ import type { PlexServerService } from '@services/plex-server.service.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import {
+  buildPlexGuid,
   extractTmdbId,
   extractTvdbId,
   parseGuids,
@@ -384,19 +385,13 @@ export async function syncLabelForWatchlistItem(
 
     const username = user.name || `user_${user.id}`
 
-    // The watchlist item key contains a GUID part, not a rating key
-    // We need to construct the full GUID and search for the rating key
-    let fullGuid: string
+    // Resolve GUID part to Plex rating key
+    const contentType = watchlistItem.type || 'movie'
 
-    // Determine content type from watchlist item to construct proper GUID
-    const contentType = watchlistItem.type || 'movie' // Default to movie if type not specified
-
-    if (contentType === 'show') {
-      fullGuid = `plex://show/${watchlistItem.key}`
-    } else {
-      // For movies and other content types
-      fullGuid = `plex://movie/${watchlistItem.key}`
-    }
+    const fullGuid = buildPlexGuid(
+      contentType === 'show' ? 'show' : 'movie',
+      watchlistItem.key,
+    )
 
     deps.logger.debug(
       {

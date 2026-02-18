@@ -20,7 +20,7 @@ declare module '@services/database.service.js' {
         episode_number?: number
         sent_to_discord: boolean
         sent_to_apprise: boolean
-        sent_to_tautulli?: boolean
+        sent_to_plex_mobile?: boolean
         sent_to_native_webhook?: boolean
         notification_status?: string
       },

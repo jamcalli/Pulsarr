@@ -54,7 +54,7 @@ async function updateUser(
 /**
  * Handles button interactions for the notifications settings UI.
  *
- * Responds to button presses for toggling Discord, Apprise, and Tautulli notifications,
+ * Responds to button presses for toggling Discord, Apprise, and Plex Mobile notifications,
  * editing the user profile, and closing the settings form.
  */
 export async function handleNotificationButtons(
@@ -148,19 +148,19 @@ export async function handleNotificationButtons(
       break
     }
 
-    case 'toggleTautulli': {
+    case 'togglePlexMobile': {
       await interaction.deferUpdate()
-      const newTautulliState = !user.notify_tautulli
+      const newPlexMobileState = !user.notify_plex_mobile
       logger.info(
-        { userId: user.id, enabled: newTautulliState },
-        'Updating Tautulli notification preference',
+        { userId: user.id, enabled: newPlexMobileState },
+        'Updating Plex Mobile notification preference',
       )
-      const tautulliUpdated = await updateUser(
+      const plexMobileUpdated = await updateUser(
         user.id,
-        { notify_tautulli: newTautulliState },
+        { notify_plex_mobile: newPlexMobileState },
         deps,
       )
-      if (tautulliUpdated) {
+      if (plexMobileUpdated) {
         const updatedUser = await getUser(interaction.user.id, deps)
         if (updatedUser) {
           await showSettingsForm(interaction, updatedUser, deps)

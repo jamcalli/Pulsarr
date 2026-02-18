@@ -34,7 +34,7 @@ Real-time RSS monitoring requires Plex Pass. Without it, Pulsarr polls every 5 m
 | **Content Routing** | Build custom rules with AND/OR logic using genre, user, language, year, certification, season, IMDb/RT/TMDB ratings, or streaming service. Rules can require approvals or bypass quotas |
 | **Approvals & Quotas** | Admin approval workflows with daily/weekly/monthly limits per user |
 | **Multi-Instance** | Sync content across multiple Sonarr/Radarr instances simultaneously |
-| **Notifications** | Discord, Apprise (80+ services), native webhooks, Tautulli (Plex mobile app), and public broadcasts |
+| **Notifications** | Discord, Apprise (80+ services), native webhooks, Plex mobile push, and public broadcasts |
 | **User Management** | Granular controls, tag-based tracking, automatic multi-user monitoring |
 | **Plex Label Sync** | Sync user labels to Plex content, import Radarr/Sonarr tags as Plex labels |
 | **Delete Sync** | Automatically remove content when users remove from watchlists |

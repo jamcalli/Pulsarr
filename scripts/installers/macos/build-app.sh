@@ -89,7 +89,7 @@ cat > "$APP/Contents/Info.plist" << PLIST_EOF
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>LSUIElement</key>
-    <false/>
+    <true/>
 </dict>
 </plist>
 PLIST_EOF

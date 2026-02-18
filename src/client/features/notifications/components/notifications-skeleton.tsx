@@ -8,7 +8,7 @@ import { api } from '@/lib/api'
 /**
  * Displays a skeleton loader for the notifications settings page, providing placeholder elements for all notification sections during data loading.
  *
- * Sections are ordered alphabetically: Apprise, Discord, General, Native Webhooks, Public Content, Tautulli.
+ * Sections are ordered alphabetically: Apprise, Discord, General, Native Webhooks, Plex Mobile, Public Content.
  */
 export function NotificationsSkeleton() {
   // Use fixed IDs to preserve deep-linking (alphabetically ordered)
@@ -16,9 +16,8 @@ export function NotificationsSkeleton() {
   const discordId = 'discord-notifications'
   const generalId = 'general-notifications'
   const nativeWebhooksId = 'native-webhooks'
+  const plexMobileId = 'plex-mobile-notifications'
   const publicContentId = 'public-content-notifications'
-  const tautulliId = 'tautulli-notifications'
-
   return (
     <div className="grid gap-6">
       {/* Feature-specific notification settings info */}
@@ -230,6 +229,35 @@ export function NotificationsSkeleton() {
 
       <Separator className="my-4" />
 
+      {/* Plex Mobile Notifications Section */}
+      <div id={plexMobileId}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-foreground">
+            Plex Mobile Notifications
+          </h2>
+        </div>
+        <div className="grid gap-4 mt-4">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-7 w-64" /> {/* Subheading */}
+              <Skeleton className="h-7 w-16" /> {/* Status badge */}
+            </div>
+            <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+              <p>
+                Enable this feature to send native push notifications to users
+                via the Plex mobile app when their requested content becomes
+                available.
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-8 w-20" /> {/* Enable/Disable button */}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Separator className="my-4" />
+
       {/* Public Content Notifications Section */}
       <div id={publicContentId}>
         <div className="flex items-center justify-between">
@@ -248,62 +276,6 @@ export function NotificationsSkeleton() {
             </div>
             <div className="flex items-center gap-4">
               <Skeleton className="h-8 w-20" /> {/* Enable/Disable button */}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <Separator className="my-4" />
-
-      {/* Tautulli Notifications Section */}
-      <div id={tautulliId}>
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-foreground">
-            Tautulli Notifications
-          </h2>
-        </div>
-        <div className="grid gap-4 mt-4">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-xl font-semibold text-foreground">
-                Tautulli Notification Service
-              </h3>
-              <Skeleton className="h-6 w-16" /> {/* Status badge */}
-            </div>
-            <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
-              <p>
-                Tautulli integration sends native Plex notifications using your
-                existing notification agents. This provides a seamless
-                notification experience within the Plex ecosystem.{' '}
-                <span className="text-blue-400">Click here</span> for setup
-                instructions.
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Skeleton className="h-5 w-10 rounded-full" /> {/* Toggle */}
-              <span className="text-sm font-medium text-foreground">
-                Tautulli Notifications Enabled
-              </span>
-            </div>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <span className="text-sm font-semibold text-foreground">
-                  Tautulli URL
-                </span>
-                <Skeleton className="h-10 w-full" />
-              </div>
-              <div className="space-y-2">
-                <span className="text-sm font-semibold text-foreground">
-                  Tautulli API Key
-                </span>
-                <div className="flex gap-2">
-                  <Skeleton className="h-10 flex-1" />
-                  <Skeleton className="h-10 w-10" /> {/* Test button */}
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Skeleton className="h-9 w-28" />
             </div>
           </div>
         </div>

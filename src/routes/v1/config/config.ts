@@ -82,14 +82,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         // Schema is .strict() so unknown fields (like enableApprise/appriseUrl) are rejected by Zod
         const safeConfigUpdate = request.body
 
-        // Create next config state for validation (current + incoming changes)
-        const nextConfig = { ...fastify.config, ...safeConfigUpdate }
-
-        // Validate Plex Pass requirement for Tautulli against final state
-        if (safeConfigUpdate.tautulliEnabled === true) {
-          if (!nextConfig.selfRss || !nextConfig.friendsRss) {
+        // Validate Plex Pass requirement for Plex Mobile notifications
+        if (safeConfigUpdate.plexMobileEnabled === true) {
+          const hasPlexPass = fastify.plexServerService.getHasPlexPass()
+          if (!hasPlexPass) {
             return reply.badRequest(
-              'Plex Pass is required for Tautulli integration. Please generate RSS feeds first to verify Plex Pass subscription.',
+              'Plex Pass is required for Plex mobile notifications. Please ensure your Plex account has an active Plex Pass subscription.',
             )
           }
         }
@@ -152,22 +150,19 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           fastify.log.level = savedConfig.logLevel
         }
 
-        // Handle Tautulli config changes
-        if (
-          'tautulliEnabled' in safeConfigUpdate ||
-          'tautulliUrl' in safeConfigUpdate ||
-          'tautulliApiKey' in safeConfigUpdate
-        ) {
-          // Initialize if just enabled
-          if (safeConfigUpdate.tautulliEnabled === true) {
+        // Handle Plex Mobile config changes
+        if ('plexMobileEnabled' in safeConfigUpdate) {
+          if (safeConfigUpdate.plexMobileEnabled === true) {
             try {
-              await fastify.notifications.tautulli.initialize()
+              await fastify.notifications.plexMobile.initialize()
             } catch (error) {
               fastify.log.error(
                 { error },
-                'Failed to initialize Tautulli after enabling',
+                'Failed to initialize Plex Mobile after enabling',
               )
             }
+          } else {
+            fastify.notifications.plexMobile.shutdown()
           }
         }
 

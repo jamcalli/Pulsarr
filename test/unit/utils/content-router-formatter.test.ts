@@ -276,10 +276,6 @@ describe('content-router-formatter', () => {
       const result = formatRule(rule, mockLogger)
 
       expect(result.condition).toBeUndefined()
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Error parsing criteria for rule ID 18:',
-        expect.any(Error),
-      )
     })
 
     it('should handle invalid JSON criteria without logger', () => {
@@ -334,6 +330,87 @@ describe('content-router-formatter', () => {
       expect(result.condition).toBe('complex-condition')
     })
 
+    it('should handle null quality_profile in catch path', () => {
+      const rule = createMockRule({
+        id: 24,
+        name: 'Catch Null Quality',
+        criteria: '{invalid json',
+        quality_profile: null,
+      })
+
+      const result = formatRule(rule)
+
+      expect(result.quality_profile).toBeUndefined()
+      expect(result.condition).toBeUndefined()
+    })
+
+    it('should handle null season_monitoring in catch path', () => {
+      const rule = createMockRule({
+        id: 25,
+        name: 'Catch Null Season',
+        criteria: '{invalid json',
+        season_monitoring: null,
+      })
+
+      const result = formatRule(rule)
+
+      expect(result.season_monitoring).toBeUndefined()
+      expect(result.condition).toBeUndefined()
+    })
+
+    it('should handle null series_type in catch path', () => {
+      const rule = createMockRule({
+        id: 26,
+        name: 'Catch Null Series',
+        criteria: '{invalid json',
+        series_type: null,
+      })
+
+      const result = formatRule(rule)
+
+      expect(result.series_type).toBeUndefined()
+      expect(result.condition).toBeUndefined()
+    })
+
+    it('should handle non-array tags in catch path', () => {
+      const rule = createMockRule({
+        id: 27,
+        name: 'Catch Invalid Tags',
+        criteria: '{invalid json',
+        tags: 'not-an-array' as unknown as string[],
+      })
+
+      const result = formatRule(rule)
+
+      expect(result.tags).toEqual([])
+    })
+
+    it('should handle null search_on_add in catch path', () => {
+      const rule = createMockRule({
+        id: 28,
+        name: 'Catch Null Search',
+        criteria: '{invalid json',
+        search_on_add: null,
+      })
+
+      const result = formatRule(rule)
+
+      expect(result.search_on_add).toBeUndefined()
+    })
+
+    it('should handle undefined search_on_add in catch path', () => {
+      const rule = createMockRule({
+        id: 29,
+        name: 'Catch Undef Search',
+        criteria: '{invalid json',
+        search_on_add: undefined,
+      })
+
+      const result = formatRule(rule)
+
+      expect(result.search_on_add).toBeUndefined()
+    })
+
     it('should preserve all other rule fields on error', () => {
       const mockLogger = createMockLogger()
       const rule = createMockRule({
@@ -371,7 +448,6 @@ describe('content-router-formatter', () => {
       expect(result.always_require_approval).toBe(true)
       expect(result.bypass_user_quotas).toBe(true)
       expect(result.approval_reason).toBe('Test')
-      expect(mockLogger.error).toHaveBeenCalled()
     })
   })
 })

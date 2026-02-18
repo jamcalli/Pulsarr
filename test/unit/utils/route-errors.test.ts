@@ -1,5 +1,5 @@
-import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyRequest } from 'fastify'
+import { handleArrInstanceError, logRouteError } from '@utils/route-errors.js'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import { describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../mocks/logger.js'
 
@@ -205,6 +205,170 @@ describe('route-errors', () => {
         }),
         expect.any(String),
       )
+    })
+  })
+
+  describe('handleArrInstanceError', () => {
+    function createMockReply() {
+      return {
+        unauthorized: (msg: string) => ({ status: 401, message: msg }),
+        notFound: (msg: string) => ({ status: 404, message: msg }),
+        badRequest: (msg: string) => ({ status: 400, message: msg }),
+        internalServerError: (msg: string) => ({ status: 500, message: msg }),
+      } as unknown as FastifyReply
+    }
+
+    it('should return unauthorized for Authentication errors', () => {
+      const reply = createMockReply()
+      const error = new Error('Authentication failed')
+      const result = handleArrInstanceError(error, reply, {
+        service: 'radarr',
+        defaultMessage: 'Failed',
+      })
+      expect(result).toEqual({ status: 401, message: 'Authentication failed' })
+    })
+
+    it('should return notFound for not found errors', () => {
+      const reply = createMockReply()
+      const error = new Error('Resource not found')
+      const result = handleArrInstanceError(error, reply, {
+        service: 'sonarr',
+        defaultMessage: 'Failed',
+      })
+      expect(result).toEqual({ status: 404, message: 'Resource not found' })
+    })
+
+    it('should return badRequest for Unable to send test message', () => {
+      const reply = createMockReply()
+      const error = new Error('Unable to send test message to webhook')
+      const result = handleArrInstanceError(error, reply, {
+        service: 'radarr',
+        defaultMessage: 'Failed',
+      })
+      expect(result).toEqual({
+        status: 400,
+        message: 'Unable to send test message to webhook',
+      })
+    })
+
+    it('should return badRequest for Unable to post to webhook', () => {
+      const reply = createMockReply()
+      const error = new Error('Unable to post to webhook')
+      const result = handleArrInstanceError(error, reply, {
+        service: 'radarr',
+        defaultMessage: 'Failed',
+      })
+      expect(result).toEqual({
+        status: 400,
+        message: 'Unable to post to webhook',
+      })
+    })
+
+    it('should return badRequest for Connection refused errors', () => {
+      const reply = createMockReply()
+      const error = new Error('Connection refused')
+      const result = handleArrInstanceError(error, reply, {
+        service: 'sonarr',
+        defaultMessage: 'Failed',
+      })
+      expect(result).toEqual({ status: 400, message: 'Connection refused' })
+    })
+
+    it('should return badRequest for Name does not resolve errors', () => {
+      const reply = createMockReply()
+      const error = new Error('Name does not resolve')
+      const result = handleArrInstanceError(error, reply, {
+        service: 'radarr',
+        defaultMessage: 'Failed',
+      })
+      expect(result).toEqual({ status: 400, message: 'Name does not resolve' })
+    })
+
+    it('should return badRequest for Cannot remove default errors', () => {
+      const reply = createMockReply()
+      const error = new Error(
+        'Cannot remove default status from active instance',
+      )
+      const result = handleArrInstanceError(error, reply, {
+        service: 'radarr',
+        defaultMessage: 'Failed',
+      })
+      expect(result).toEqual({
+        status: 400,
+        message: 'Cannot remove default status from active instance',
+      })
+    })
+
+    it('should strip Radarr API error prefix from message', () => {
+      const reply = createMockReply()
+      const error = new Error('Radarr API error: Authentication failed')
+      const result = handleArrInstanceError(error, reply, {
+        service: 'radarr',
+        defaultMessage: 'Failed',
+      })
+      expect(result).toEqual({
+        status: 401,
+        message: 'Authentication failed',
+      })
+    })
+
+    it('should strip Sonarr API error prefix from message', () => {
+      const reply = createMockReply()
+      const error = new Error('Sonarr API error: Resource not found')
+      const result = handleArrInstanceError(error, reply, {
+        service: 'sonarr',
+        defaultMessage: 'Failed',
+      })
+      expect(result).toEqual({ status: 404, message: 'Resource not found' })
+    })
+
+    it('should replace init failure prefix with user-friendly message', () => {
+      const reply = createMockReply()
+      const error = new Error(
+        'Failed to initialize Radarr instance: Connection refused',
+      )
+      const result = handleArrInstanceError(error, reply, {
+        service: 'radarr',
+        defaultMessage: 'Failed',
+      })
+      expect(result).toEqual({
+        status: 400,
+        message: 'Failed to save settings: Connection refused',
+      })
+    })
+
+    it('should return internalServerError for generic Error', () => {
+      const reply = createMockReply()
+      const error = new Error('Something unexpected happened')
+      const result = handleArrInstanceError(error, reply, {
+        service: 'radarr',
+        defaultMessage: 'Failed',
+      })
+      expect(result).toEqual({
+        status: 500,
+        message: 'Something unexpected happened',
+      })
+    })
+
+    it('should return internalServerError with defaultMessage for non-Error', () => {
+      const reply = createMockReply()
+      const result = handleArrInstanceError('string error', reply, {
+        service: 'radarr',
+        defaultMessage: 'Default failure message',
+      })
+      expect(result).toEqual({
+        status: 500,
+        message: 'Default failure message',
+      })
+    })
+
+    it('should return internalServerError with defaultMessage for null error', () => {
+      const reply = createMockReply()
+      const result = handleArrInstanceError(null, reply, {
+        service: 'sonarr',
+        defaultMessage: 'Operation failed',
+      })
+      expect(result).toEqual({ status: 500, message: 'Operation failed' })
     })
   })
 })

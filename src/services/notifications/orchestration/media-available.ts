@@ -21,8 +21,8 @@ import {
   dispatchWebhooks,
   hasWebhooksForEvent,
 } from '@services/notifications/channels/native-webhook.js'
+import type { PlexMobileService } from '@services/notifications/channels/plex-mobile.service.js'
 import type { DiscordBotService } from '@services/notifications/discord-bot/bot.service.js'
-import type { TautulliService } from '@services/notifications/tautulli/tautulli.service.js'
 import type { FastifyBaseLogger } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -36,7 +36,7 @@ export interface MediaAvailableDeps {
   logger: FastifyBaseLogger
   discordBot: DiscordBotService
   discordWebhook: DiscordWebhookService
-  tautulli: TautulliService
+  plexMobile: PlexMobileService
   apprise: AppriseService
 }
 
@@ -176,36 +176,24 @@ async function sendAppriseNotification(
   }
 }
 
-async function sendTautulliNotification(
+async function sendPlexMobileNotification(
   deps: MediaAvailableDeps,
   user: NotificationResult['user'],
   notification: MediaNotification,
   itemByUserId: Map<number, TokenWatchlistItem>,
   mediaInfo: MediaInfo,
+  isBulkRelease: boolean,
 ): Promise<void> {
   try {
     const userItem = itemByUserId.get(user.id)
     if (!userItem) return
 
-    const rawId =
-      typeof userItem.id === 'string'
-        ? Number.parseInt(userItem.id, 10)
-        : userItem.id
-
-    if (Number.isNaN(rawId)) {
-      deps.logger.warn(
-        { rawId, userId: user.id },
-        'Skipping Tautulli – invalid item id',
-      )
-      return
-    }
-
-    const sent = await deps.tautulli.sendMediaNotification(
+    const sent = await deps.plexMobile.sendMediaNotification(
       user,
       notification,
-      rawId,
-      mediaInfo.guid,
       userItem.key,
+      mediaInfo.guid,
+      isBulkRelease,
     )
 
     deps.logger.debug(
@@ -216,12 +204,12 @@ async function sendTautulliNotification(
         mediaType: mediaInfo.type,
         guid: mediaInfo.guid,
       },
-      'Sent Tautulli notification',
+      'Sent Plex mobile notification',
     )
   } catch (error) {
     deps.logger.error(
       { error, userId: user.id, guid: mediaInfo.guid },
-      'Failed to send Tautulli notification',
+      'Failed to send Plex mobile notification',
     )
   }
 }
@@ -263,6 +251,7 @@ async function sendUserNotifications(
   result: NotificationResult,
   itemByUserId: Map<number, TokenWatchlistItem>,
   mediaInfo: MediaInfo,
+  isBulkRelease: boolean,
 ): Promise<void> {
   if (result.user.notify_discord && result.user.discord_id) {
     await sendDiscordDm(
@@ -277,13 +266,14 @@ async function sendUserNotifications(
     await sendAppriseNotification(deps, result.user, result.notification)
   }
 
-  if (result.user.notify_tautulli && deps.tautulli.isEnabled()) {
-    await sendTautulliNotification(
+  if (result.user.notify_plex_mobile && deps.plexMobile.isEnabled()) {
+    await sendPlexMobileNotification(
       deps,
       result.user,
       result.notification,
       itemByUserId,
       mediaInfo,
+      isBulkRelease,
     )
   }
 }
@@ -294,11 +284,18 @@ async function processIndividualNotification(
   allResults: NotificationResult[],
   itemByUserId: Map<number, TokenWatchlistItem>,
   mediaInfo: MediaInfo,
+  isBulkRelease: boolean,
 ): Promise<void> {
   if (result.user.id === -1) {
     await sendPublicNotifications(deps, result, allResults)
   } else {
-    await sendUserNotifications(deps, result, itemByUserId, mediaInfo)
+    await sendUserNotifications(
+      deps,
+      result,
+      itemByUserId,
+      mediaInfo,
+      isBulkRelease,
+    )
   }
 }
 
@@ -395,7 +392,11 @@ async function buildUserNotifications(
     const user = userMap.get(item.user_id)
     if (!user) continue
 
-    if (!user.notify_discord && !user.notify_apprise && !user.notify_tautulli)
+    if (
+      !user.notify_discord &&
+      !user.notify_apprise &&
+      !user.notify_plex_mobile
+    )
       continue
 
     const notificationTitle = mediaInfo.title || item.title
@@ -470,7 +471,7 @@ async function buildUserNotifications(
             }),
             sent_to_discord: Boolean(user.notify_discord),
             sent_to_apprise: Boolean(user.notify_apprise),
-            sent_to_tautulli: Boolean(user.notify_tautulli),
+            sent_to_plex_mobile: Boolean(user.notify_plex_mobile),
             sent_to_native_webhook: hasNativeWebhooks,
           },
           trx,
@@ -497,8 +498,7 @@ async function buildUserNotifications(
           notify_apprise: user.notify_apprise,
           notify_discord: user.notify_discord,
           notify_discord_mention: user.notify_discord_mention,
-          notify_tautulli: user.notify_tautulli,
-          tautulli_notifier_id: user.tautulli_notifier_id,
+          notify_plex_mobile: user.notify_plex_mobile,
           can_sync: user.can_sync,
         },
         notification: {
@@ -572,7 +572,7 @@ async function buildPublicNotification(
       }),
       sent_to_discord: hasDiscordUrls,
       sent_to_apprise: hasAppriseUrls,
-      sent_to_tautulli: false,
+      sent_to_plex_mobile: false,
       sent_to_native_webhook: hasNativeWebhooks,
     })
   } catch (error) {
@@ -593,8 +593,7 @@ async function buildPublicNotification(
       notify_apprise: hasAppriseUrls,
       notify_discord: hasDiscordUrls,
       notify_discord_mention: false,
-      notify_tautulli: false,
-      tautulli_notifier_id: null,
+      notify_plex_mobile: false,
       can_sync: false,
     },
     notification: {
@@ -666,7 +665,7 @@ async function buildNotificationResults(
  * 1. Looks up all users who watchlisted this content
  * 2. Checks each user's notification preferences
  * 3. Creates notification records in the database
- * 4. Dispatches to all enabled channels (Discord, Apprise, Tautulli)
+ * 4. Dispatches to all enabled channels (Discord, Apprise, Plex Mobile)
  * 5. Handles public channel notifications if configured
  *
  * @param deps - Service dependencies (constructed by NotificationService)
@@ -703,6 +702,7 @@ export async function sendMediaAvailable(
         notificationResults,
         itemByUserId,
         mediaInfo,
+        options.isBulkRelease,
       )
     }
   } else {
@@ -716,6 +716,7 @@ export async function sendMediaAvailable(
             notificationResults,
             itemByUserId,
             mediaInfo,
+            options.isBulkRelease,
           ),
         ),
       ),

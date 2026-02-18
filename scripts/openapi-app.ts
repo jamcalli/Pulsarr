@@ -21,7 +21,7 @@ declare module 'fastify' {
     contentRouter: Record<string, unknown>
     plexWatchlist: Record<string, unknown>
     progress: Record<string, unknown>
-    tautulli: Record<string, unknown>
+    notifications: Record<string, unknown>
     deleteSync: Record<string, unknown>
     scheduler: Record<string, unknown>
     plexSessionMonitor: Record<string, unknown>
@@ -95,7 +95,7 @@ export default async function openapiApp(
         fastify.decorate('progress', {})
       } catch {} // May already exist
       try {
-        fastify.decorate('tautulli', {})
+        fastify.decorate('notifications', {})
       } catch {} // May already exist
       try {
         fastify.decorate('deleteSync', {})

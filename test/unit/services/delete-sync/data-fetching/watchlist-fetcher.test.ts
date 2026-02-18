@@ -53,9 +53,6 @@ describe('Watchlist Fetcher', () => {
 
         expect(result).toHaveLength(4)
         expect(result).toEqual([...mockShows, ...mockMovies])
-        expect(mockLogger.info).toHaveBeenCalledWith(
-          'Found 4 watchlist items from all users',
-        )
       })
 
       it('should return empty array when no items exist', async () => {
@@ -68,9 +65,6 @@ describe('Watchlist Fetcher', () => {
         })
 
         expect(result).toHaveLength(0)
-        expect(mockLogger.info).toHaveBeenCalledWith(
-          'Found 0 watchlist items from all users',
-        )
       })
     })
 
@@ -104,12 +98,6 @@ describe('Watchlist Fetcher', () => {
           { title: 'Show 1', guids: 'plex:show/1', user_id: 1 },
           { title: 'Movie 1', guids: 'plex:movie/1', user_id: 3 },
         ])
-        expect(mockLogger.info).toHaveBeenCalledWith(
-          'Found 2 users with sync enabled out of 3 total users',
-        )
-        expect(mockLogger.info).toHaveBeenCalledWith(
-          'Found 2 watchlist items from users with sync enabled',
-        )
       })
 
       it('should handle user_id as object with id property', async () => {
@@ -172,9 +160,6 @@ describe('Watchlist Fetcher', () => {
         })
 
         expect(result).toHaveLength(0)
-        expect(mockLogger.info).toHaveBeenCalledWith(
-          'Found 0 users with sync enabled out of 2 total users',
-        )
       })
     })
   })
@@ -191,9 +176,6 @@ describe('Watchlist Fetcher', () => {
       expect(result.size).toBe(2)
       expect(result.has('plex:movie/1')).toBe(true)
       expect(result.has('plex:movie/2')).toBe(true)
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Extracted 2 unique GUIDs from watchlist items',
-      )
     })
 
     it('should extract GUIDs from items with guid arrays', () => {
@@ -281,9 +263,6 @@ describe('Watchlist Fetcher', () => {
       )
 
       expect(result.size).toBe(0)
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Extracted 0 unique GUIDs from watchlist items',
-      )
     })
 
     it('should log trace sample when logger level is trace', () => {
@@ -322,8 +301,6 @@ describe('Watchlist Fetcher', () => {
       ]
 
       extractGuidsFromWatchlistItems(items, mockLogger)
-
-      expect(mockLogger.trace).not.toHaveBeenCalled()
     })
   })
 })

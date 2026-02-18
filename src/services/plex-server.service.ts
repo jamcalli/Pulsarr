@@ -15,12 +15,13 @@ import type {
   PlexUser,
 } from '@root/types/plex-server.types.js'
 import type {
+  PlexChildrenResponse,
   PlexSession,
   PlexShowMetadata,
   PlexShowMetadataResponse,
 } from '@root/types/plex-session.types.js'
 import { toItemsSingle } from '@services/plex-watchlist/index.js'
-import { parseGuids } from '@utils/guid-handler.js'
+import { buildPlexGuid, parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { isSameServerEndpoint } from '@utils/url.js'
 import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
@@ -40,7 +41,11 @@ import {
   removeSpecificLabels,
   updateLabels,
 } from './plex-server/labels/index.js'
-import { getShowMetadata, searchByGuid } from './plex-server/metadata/index.js'
+import {
+  getMetadataChildren,
+  getShowMetadata,
+  searchByGuid,
+} from './plex-server/metadata/index.js'
 import {
   createUserPlaylist,
   findUserPlaylistByTitle,
@@ -68,6 +73,11 @@ export class PlexServerService {
   // Connection and server information cache
   private serverConnections: PlexServerConnectionInfo[] | null = null
   private serverMachineId: string | null = null
+  private serverName: string | null = null
+
+  // Plex Pass and admin identity (runtime-only, set during token validation)
+  private _hasPlexPass: boolean | null = null
+  private _adminPlexId: number | null = null
   private connectionTimestamp = 0
   private selectedConnectionUrl: string | null = null // Track which URL we've selected
 
@@ -123,6 +133,30 @@ export class PlexServerService {
    */
   private get config() {
     return this.fastify.config
+  }
+
+  getServerMachineId(): string | null {
+    return this.serverMachineId
+  }
+
+  getServerName(): string | null {
+    return this.serverName
+  }
+
+  getHasPlexPass(): boolean | null {
+    return this._hasPlexPass
+  }
+
+  setHasPlexPass(value: boolean): void {
+    this._hasPlexPass = value
+  }
+
+  getAdminPlexId(): number | null {
+    return this._adminPlexId
+  }
+
+  setAdminPlexId(id: number): void {
+    this._adminPlexId = id
   }
 
   /**
@@ -353,6 +387,7 @@ export class PlexServerService {
       this.serverConnections = connections
       this.connectionTimestamp = Date.now()
       this.serverMachineId = server.clientIdentifier
+      this.serverName = server.name
 
       // Check if manual config is being used
       const manualConfigUsed =
@@ -1347,6 +1382,9 @@ export class PlexServerService {
     this.log.debug('Clearing all PlexServerService caches')
     this.serverConnections = null
     this.serverMachineId = null
+    this.serverName = null
+    this._hasPlexPass = null
+    this._adminPlexId = null
     this.connectionTimestamp = 0
     this.selectedConnectionUrl = null
     this.users = null
@@ -1447,6 +1485,19 @@ export class PlexServerService {
   }
 
   /**
+   * Retrieves direct children of a library item via /library/metadata/{id}/children
+   *
+   * For a show, returns seasons. For a season, returns episodes.
+   */
+  async getMetadataChildren(
+    ratingKey: string,
+  ): Promise<PlexChildrenResponse | null> {
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+    return getMetadataChildren(ratingKey, serverUrl, token, this.log)
+  }
+
+  /**
    * Clears the content cache at the start of each reconciliation.
    * Content cache is reconciliation-scoped, not TTL-based.
    * Called from watchlist-workflow.service.ts at the start of syncWatchlistItems().
@@ -1514,8 +1565,7 @@ export class PlexServerService {
         return false
       }
 
-      // Construct the plex:// format GUID
-      const plexGuid = `plex://${contentType}/${plexKey}`
+      const plexGuid = buildPlexGuid(contentType, plexKey)
 
       this.log.debug(
         {

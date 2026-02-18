@@ -12,7 +12,7 @@ export default defineConfig({
     },
     // Vitest v4: poolOptions removed, options moved to top level
     coverage: {
-      provider: 'v8',
+      provider: 'istanbul',
       reporter: ['text', 'json', 'html'],
       exclude: [
         '**/node_modules/**',

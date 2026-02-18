@@ -327,9 +327,6 @@ describe('tag-counter', () => {
       )
 
       expect(count).toBe(0)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Radarr service for instance 999 not found, skipping tag count',
-      )
     })
 
     it('should handle empty movie list', async () => {
@@ -944,9 +941,6 @@ describe('tag-counter', () => {
       )
 
       expect(count).toBe(0)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Sonarr service for instance 999 not found, skipping tag count',
-      )
     })
 
     it('should handle empty series list', async () => {

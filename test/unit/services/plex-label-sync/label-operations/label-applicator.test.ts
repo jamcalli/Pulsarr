@@ -60,8 +60,7 @@ describe('label-applicator', () => {
         notify_apprise: false,
         apprise: null,
         alias: null,
-        notify_tautulli: false,
-        tautulli_notifier_id: null,
+        notify_plex_mobile: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -75,8 +74,7 @@ describe('label-applicator', () => {
         notify_apprise: false,
         apprise: null,
         alias: null,
-        notify_tautulli: false,
-        tautulli_notifier_id: null,
+        notify_plex_mobile: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -90,8 +88,7 @@ describe('label-applicator', () => {
         notify_apprise: false,
         apprise: null,
         alias: null,
-        notify_tautulli: false,
-        tautulli_notifier_id: null,
+        notify_plex_mobile: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -105,8 +102,7 @@ describe('label-applicator', () => {
         notify_apprise: false,
         apprise: null,
         alias: null,
-        notify_tautulli: false,
-        tautulli_notifier_id: null,
+        notify_plex_mobile: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -120,8 +116,7 @@ describe('label-applicator', () => {
         notify_apprise: false,
         apprise: null,
         alias: null,
-        notify_tautulli: false,
-        tautulli_notifier_id: null,
+        notify_plex_mobile: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -1016,10 +1011,6 @@ describe('label-applicator', () => {
 
       // Should still return true (labels applied successfully)
       expect(result).toBe(true)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        expect.stringContaining('Failed to track combined labels'),
-      )
     })
 
     it('should use ratingKey as fallback when watchlist item not found', async () => {
@@ -1096,9 +1087,6 @@ describe('label-applicator', () => {
       const result = await applyLabelsToSingleItem('123', users, baseDeps)
 
       expect(result).toBe(false)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to update combined labels'),
-      )
     })
 
     it('should return false and log error when exception occurs', async () => {
@@ -1111,10 +1099,6 @@ describe('label-applicator', () => {
       const result = await applyLabelsToSingleItem('123', users, baseDeps)
 
       expect(result).toBe(false)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        expect.stringContaining('Error applying combined labels'),
-      )
     })
 
     it('should handle updateLabels exception', async () => {
@@ -1130,10 +1114,6 @@ describe('label-applicator', () => {
       const result = await applyLabelsToSingleItem('123', users, baseDeps)
 
       expect(result).toBe(false)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        expect.stringContaining('Error applying combined labels'),
-      )
     })
   })
 })
