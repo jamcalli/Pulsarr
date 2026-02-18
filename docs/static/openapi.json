@@ -5976,14 +5976,8 @@
                           ],
                           "additionalProperties": false
                         },
-                        "tautulliEnabled": {
+                        "plexMobileEnabled": {
                           "type": "boolean"
-                        },
-                        "tautulliUrl": {
-                          "type": "string"
-                        },
-                        "tautulliApiKey": {
-                          "type": "string"
                         },
                         "deletionMode": {
                           "type": "string",
@@ -6458,9 +6452,7 @@
                         "enableApprise",
                         "appriseUrl",
                         "publicContentNotifications",
-                        "tautulliEnabled",
-                        "tautulliUrl",
-                        "tautulliApiKey",
+                        "plexMobileEnabled",
                         "deletionMode",
                         "queueWaitTime",
                         "newEpisodeThreshold",
@@ -6724,24 +6716,8 @@
                       "enabled"
                     ]
                   },
-                  "tautulliEnabled": {
+                  "plexMobileEnabled": {
                     "type": "boolean"
-                  },
-                  "tautulliUrl": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "string",
-                        "enum": [
-                          ""
-                        ]
-                      }
-                    ]
-                  },
-                  "tautulliApiKey": {
-                    "type": "string"
                   },
                   "queueWaitTime": {
                     "type": "integer",
@@ -7359,14 +7335,8 @@
                           ],
                           "additionalProperties": false
                         },
-                        "tautulliEnabled": {
+                        "plexMobileEnabled": {
                           "type": "boolean"
-                        },
-                        "tautulliUrl": {
-                          "type": "string"
-                        },
-                        "tautulliApiKey": {
-                          "type": "string"
                         },
                         "deletionMode": {
                           "type": "string",
@@ -7841,9 +7811,7 @@
                         "enableApprise",
                         "appriseUrl",
                         "publicContentNotifications",
-                        "tautulliEnabled",
-                        "tautulliUrl",
-                        "tautulliApiKey",
+                        "plexMobileEnabled",
                         "deletionMode",
                         "queueWaitTime",
                         "newEpisodeThreshold",
@@ -9131,6 +9099,69 @@
                     "code",
                     "error",
                     "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/plex-pass-status": {
+      "get": {
+        "operationId": "getPlexPassStatus",
+        "summary": "Get Plex Pass status",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Returns whether the admin Plex account has an active Plex Pass subscription",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "hasPlexPass": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "hasPlexPass"
                   ],
                   "additionalProperties": false
                 }
@@ -11480,362 +11511,6 @@
                     "mode",
                     "sonarr",
                     "radarr"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/tautulli/test-connection": {
-      "post": {
-        "operationId": "testTautulliConnectionWithCredentials",
-        "summary": "Test Tautulli connection with provided credentials",
-        "tags": [
-          "Tautulli"
-        ],
-        "description": "Test the connection to Tautulli using provided URL and API key. Requires Plex Pass.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "tautulliUrl": {
-                    "type": "string"
-                  },
-                  "tautulliApiKey": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "tautulliUrl",
-                  "tautulliApiKey"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "504": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/tautulli/test": {
-      "post": {
-        "operationId": "testTautulliConnection",
-        "summary": "Test Tautulli connection",
-        "tags": [
-          "Tautulli"
-        ],
-        "description": "Test the connection to Tautulli using the current configuration. Requires Plex Pass.",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/tautulli/sync-notifiers": {
-      "post": {
-        "operationId": "syncTautulliNotifiers",
-        "summary": "Sync user notifiers",
-        "tags": [
-          "Tautulli"
-        ],
-        "description": "Sync Pulsarr users with Tautulli notification agents. Requires Plex Pass.",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "eligibleUsers": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "eligibleUsers"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -15973,14 +15648,9 @@
                     "default": true,
                     "type": "boolean"
                   },
-                  "notify_tautulli": {
+                  "notify_plex_mobile": {
                     "default": false,
                     "type": "boolean"
-                  },
-                  "tautulli_notifier_id": {
-                    "default": null,
-                    "nullable": true,
-                    "type": "number"
                   },
                   "can_sync": {
                     "default": true,
@@ -16045,12 +15715,8 @@
                         "notify_discord_mention": {
                           "type": "boolean"
                         },
-                        "notify_tautulli": {
+                        "notify_plex_mobile": {
                           "type": "boolean"
-                        },
-                        "tautulli_notifier_id": {
-                          "nullable": true,
-                          "type": "number"
                         },
                         "can_sync": {
                           "type": "boolean"
@@ -16090,8 +15756,7 @@
                         "notify_apprise",
                         "notify_discord",
                         "notify_discord_mention",
-                        "notify_tautulli",
-                        "tautulli_notifier_id",
+                        "notify_plex_mobile",
                         "can_sync",
                         "requires_approval",
                         "created_at",
@@ -16191,14 +15856,9 @@
                     "default": true,
                     "type": "boolean"
                   },
-                  "notify_tautulli": {
+                  "notify_plex_mobile": {
                     "default": false,
                     "type": "boolean"
-                  },
-                  "tautulli_notifier_id": {
-                    "default": null,
-                    "nullable": true,
-                    "type": "number"
                   },
                   "can_sync": {
                     "default": true,
@@ -16269,12 +15929,8 @@
                         "notify_discord_mention": {
                           "type": "boolean"
                         },
-                        "notify_tautulli": {
+                        "notify_plex_mobile": {
                           "type": "boolean"
-                        },
-                        "tautulli_notifier_id": {
-                          "nullable": true,
-                          "type": "number"
                         },
                         "can_sync": {
                           "type": "boolean"
@@ -16314,8 +15970,7 @@
                         "notify_apprise",
                         "notify_discord",
                         "notify_discord_mention",
-                        "notify_tautulli",
-                        "tautulli_notifier_id",
+                        "notify_plex_mobile",
                         "can_sync",
                         "requires_approval",
                         "created_at",
@@ -16463,12 +16118,8 @@
                         "notify_discord_mention": {
                           "type": "boolean"
                         },
-                        "notify_tautulli": {
+                        "notify_plex_mobile": {
                           "type": "boolean"
-                        },
-                        "tautulli_notifier_id": {
-                          "nullable": true,
-                          "type": "number"
                         },
                         "can_sync": {
                           "type": "boolean"
@@ -16508,8 +16159,7 @@
                         "notify_apprise",
                         "notify_discord",
                         "notify_discord_mention",
-                        "notify_tautulli",
-                        "tautulli_notifier_id",
+                        "notify_plex_mobile",
                         "can_sync",
                         "requires_approval",
                         "created_at",
@@ -16895,14 +16545,9 @@
                         "default": true,
                         "type": "boolean"
                       },
-                      "notify_tautulli": {
+                      "notify_plex_mobile": {
                         "default": false,
                         "type": "boolean"
-                      },
-                      "tautulli_notifier_id": {
-                        "default": null,
-                        "nullable": true,
-                        "type": "number"
                       },
                       "can_sync": {
                         "default": true,
@@ -17494,12 +17139,8 @@
                           "notify_discord_mention": {
                             "type": "boolean"
                           },
-                          "notify_tautulli": {
+                          "notify_plex_mobile": {
                             "type": "boolean"
-                          },
-                          "tautulli_notifier_id": {
-                            "nullable": true,
-                            "type": "number"
                           },
                           "can_sync": {
                             "type": "boolean"
@@ -17542,8 +17183,7 @@
                           "notify_apprise",
                           "notify_discord",
                           "notify_discord_mention",
-                          "notify_tautulli",
-                          "tautulli_notifier_id",
+                          "notify_plex_mobile",
                           "can_sync",
                           "requires_approval",
                           "is_primary_token",
@@ -17653,12 +17293,8 @@
                           "notify_discord_mention": {
                             "type": "boolean"
                           },
-                          "notify_tautulli": {
+                          "notify_plex_mobile": {
                             "type": "boolean"
-                          },
-                          "tautulli_notifier_id": {
-                            "nullable": true,
-                            "type": "number"
                           },
                           "can_sync": {
                             "type": "boolean"
@@ -17704,8 +17340,7 @@
                           "notify_apprise",
                           "notify_discord",
                           "notify_discord_mention",
-                          "notify_tautulli",
-                          "tautulli_notifier_id",
+                          "notify_plex_mobile",
                           "can_sync",
                           "requires_approval",
                           "is_primary_token",
@@ -34831,10 +34466,6 @@
     {
       "name": "Tags",
       "description": "Tag management endpoints"
-    },
-    {
-      "name": "Tautulli",
-      "description": "Tautulli integration endpoints"
     },
     {
       "name": "TMDB",
