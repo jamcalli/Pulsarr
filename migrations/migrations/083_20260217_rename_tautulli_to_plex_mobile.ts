@@ -8,7 +8,14 @@ import type { Knex } from 'knex'
  * - configs: `tautulliEnabled` → `plexMobileEnabled`, drops `tautulliUrl` and `tautulliApiKey`
  *
  * Preserves all existing user notification preferences during the rename.
+ *
+ * CRITICAL: Must run outside a transaction. Knex's SQLite dropColumn uses
+ * PRAGMA foreign_keys = OFF before rebuilding the table, but SQLite silently
+ * ignores this pragma inside a transaction. Without this config, the migration
+ * runner wraps everything in BEGIN/COMMIT, causing DROP TABLE to fire
+ * ON DELETE CASCADE and wipe all child table data (quotas, approvals, usage).
  */
+export const config = { transaction: false }
 export async function up(knex: Knex): Promise<void> {
   // Users table: rename notify column, drop notifier_id
   await knex.schema.alterTable('users', (table) => {
