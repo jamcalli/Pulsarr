@@ -17,7 +17,7 @@
 
 Pulsarr bridges Plex watchlists with Sonarr and Radarr for real-time media monitoring and automated content acquisition—**all from within the Plex app, no extra logins required.**
 
-Features include multi-user watchlist sync, intelligent content routing, approval workflows with quotas, and notifications via Discord and Apprise.
+Features include multi-user watchlist sync, intelligent content routing, approval workflows with quotas, and notifications via Discord, Plex mobile push, and Apprise.
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Dashboard1.png" alt="Dashboard" width="80%"/>

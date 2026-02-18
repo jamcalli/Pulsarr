@@ -369,60 +369,67 @@ export class PlexMobileService {
       const now = Date.now()
 
       for (const [key, pending] of this.pendingQueue) {
-        // Expired
-        if (now - pending.createdAt > MAX_RETRY_AGE_MS) {
-          this.log.warn(
-            { key, title: pending.notification.title },
-            'Plex mobile notification expired after max retry age',
+        try {
+          // Expired
+          if (now - pending.createdAt > MAX_RETRY_AGE_MS) {
+            this.log.warn(
+              { key, title: pending.notification.title },
+              'Plex mobile notification expired after max retry age',
+            )
+            this.pendingQueue.delete(key)
+            continue
+          }
+
+          const plexGuid = buildPlexGuid(
+            pending.notification.type === 'movie' ? 'movie' : 'show',
+            pending.watchlistItemKey,
           )
-          this.pendingQueue.delete(key)
-          continue
-        }
 
-        const plexGuid = buildPlexGuid(
-          pending.notification.type === 'movie' ? 'movie' : 'show',
-          pending.watchlistItemKey,
-        )
-
-        const resolved = await this.resolveRatingKey(
-          plexGuid,
-          pending.notification.type,
-          pending.notification.episodeDetails,
-          pending.isBulkRelease,
-        )
-
-        if (!resolved) continue // Still not indexed, try next cycle
-
-        const plexUserId = await this.resolveUserPlexId(
-          pending.user.name,
-          pending.user.id,
-        )
-        if (plexUserId === null) {
-          this.log.warn(
-            { key, username: pending.user.name },
-            'Could not resolve Plex user ID during retry — dropping notification',
+          const resolved = await this.resolveRatingKey(
+            plexGuid,
+            pending.notification.type,
+            pending.notification.episodeDetails,
+            pending.isBulkRelease,
           )
-          this.pendingQueue.delete(key)
-          continue
-        }
 
-        const sent = await this.sendResolved(
-          pending.notification,
-          resolved,
-          [plexUserId],
-          pending.isBulkRelease,
-        )
+          if (!resolved) continue // Still not indexed, try next cycle
 
-        if (sent) {
-          this.log.info(
-            { key, title: pending.notification.title },
-            'Plex mobile notification sent on retry',
+          const plexUserId = await this.resolveUserPlexId(
+            pending.user.name,
+            pending.user.id,
           )
-          this.pendingQueue.delete(key)
-        } else {
-          this.log.warn(
-            { key, title: pending.notification.title },
-            'Plex mobile notification send failed on retry — will retry next cycle',
+          if (plexUserId === null) {
+            this.log.warn(
+              { key, username: pending.user.name },
+              'Could not resolve Plex user ID during retry — dropping notification',
+            )
+            this.pendingQueue.delete(key)
+            continue
+          }
+
+          const sent = await this.sendResolved(
+            pending.notification,
+            resolved,
+            [plexUserId],
+            pending.isBulkRelease,
+          )
+
+          if (sent) {
+            this.log.info(
+              { key, title: pending.notification.title },
+              'Plex mobile notification sent on retry',
+            )
+            this.pendingQueue.delete(key)
+          } else {
+            this.log.warn(
+              { key, title: pending.notification.title },
+              'Plex mobile notification send failed on retry — will retry next cycle',
+            )
+          }
+        } catch (error) {
+          this.log.error(
+            { error, key, title: pending.notification.title },
+            'Unexpected error processing retry item — will retry next cycle',
           )
         }
       }
