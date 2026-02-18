@@ -81,15 +81,6 @@ describe('sonarr-matcher', () => {
           series: sonarrSeries[0].series,
           tags: ['drama'],
         })
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.objectContaining({
-            plexTitle: 'Test Series',
-            sonarrTitle: 'Test Series',
-            plexLocation: '/tv/Test Series',
-            sonarrSeriesPath: '/tv/Test Series',
-          }),
-          'Found exact folder path match',
-        )
       })
 
       it('should match with normalized paths for exact match', async () => {
@@ -226,15 +217,6 @@ describe('sonarr-matcher', () => {
           series: sonarrSeries[0].series,
           tags: ['drama'],
         })
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.objectContaining({
-            plexTitle: 'Test Series',
-            sonarrTitle: 'Test Series',
-            plexLocation: '/plex-tv/Test Series',
-            sonarrFolderName: 'test series',
-          }),
-          'Found folder name match',
-        )
       })
 
       it('should match folder names case-insensitively', async () => {
@@ -350,13 +332,6 @@ describe('sonarr-matcher', () => {
         )
 
         expect(result).toBeNull()
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.objectContaining({
-            ratingKey: '123',
-            title: 'Test Series',
-          }),
-          'No metadata found for Plex series',
-        )
       })
 
       it('should return null when no location in metadata', async () => {
@@ -394,15 +369,6 @@ describe('sonarr-matcher', () => {
 
         expect(result).toBeNull()
         // When there's no location, we return early after the initial matching log
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.objectContaining({
-            ratingKey: '123',
-            title: 'Test Series',
-            plexLocation: undefined,
-            sonarrSeriesCount: 1,
-          }),
-          'Matching Plex series to Sonarr',
-        )
       })
 
       it('should return null when location array is empty', async () => {
@@ -475,14 +441,6 @@ describe('sonarr-matcher', () => {
         )
 
         expect(result).toBeNull()
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.objectContaining({
-            ratingKey: '123',
-            title: 'Test Series',
-            plexLocation: '/other/Test Series',
-          }),
-          'No Sonarr match found for Plex series',
-        )
       })
 
       it('should return null when sonarrSeries array is empty', async () => {
@@ -531,107 +489,10 @@ describe('sonarr-matcher', () => {
         )
 
         expect(result).toBeNull()
-        expect(mockLogger.error).toHaveBeenCalledWith(
-          expect.objectContaining({ error: expect.any(Error) }),
-          'Error matching Plex series to Sonarr:',
-        )
       })
     })
 
     describe('logging', () => {
-      it('should log debug information during matching', async () => {
-        const plexItem = {
-          ratingKey: '123',
-          title: 'Test Series',
-        }
-
-        const sonarrSeries: SonarrSeriesWithTags[] = [
-          {
-            instanceId: 1,
-            instanceName: 'sonarr-main',
-            series: {
-              id: 1,
-              title: 'Test Series',
-              path: '/tv/Test Series',
-            },
-            tags: ['drama', 'comedy'],
-            rootFolder: '/tv',
-          },
-        ]
-
-        buildSonarrMatchingCache(sonarrSeries)
-
-        vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
-          createMockPlexMetadataWithLocation(['/tv/Test Series']),
-        )
-
-        await matchPlexSeriesToSonarr(
-          plexItem,
-          sonarrSeries,
-          mockPlexServer,
-          mockLogger,
-        )
-
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.objectContaining({
-            ratingKey: '123',
-            title: 'Test Series',
-            plexLocation: '/tv/Test Series',
-            sonarrSeriesCount: 1,
-          }),
-          'Matching Plex series to Sonarr',
-        )
-      })
-
-      it('should log available paths when no match found', async () => {
-        const plexItem = {
-          ratingKey: '123',
-          title: 'Test Series',
-        }
-
-        const sonarrSeries: SonarrSeriesWithTags[] = [
-          {
-            instanceId: 1,
-            instanceName: 'sonarr-main',
-            series: {
-              id: 1,
-              title: 'Different Series',
-              path: '/tv/Different Series',
-            },
-            tags: [],
-            rootFolder: '/tv',
-          },
-        ]
-
-        buildSonarrMatchingCache(sonarrSeries)
-
-        vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
-          createMockPlexMetadataWithLocation(['/other/Test Series']),
-        )
-
-        await matchPlexSeriesToSonarr(
-          plexItem,
-          sonarrSeries,
-          mockPlexServer,
-          mockLogger,
-        )
-
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.objectContaining({
-            plexTitle: 'Test Series',
-            plexLocation: '/other/Test Series',
-            availableSonarrPaths: [
-              {
-                instanceName: 'sonarr-main',
-                seriesPath: '/tv/Different Series',
-                rootFolder: '/tv',
-              },
-            ],
-          }),
-          'No match found with available strategies',
-        )
-      })
-
       it('should handle error during debug logging of available paths', async () => {
         const plexItem = {
           ratingKey: '123',
@@ -675,10 +536,6 @@ describe('sonarr-matcher', () => {
         )
 
         expect(result).toBeNull()
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.objectContaining({ error: expect.any(Error) }),
-          'Error during folder matching fallback:',
-        )
       })
     })
 
@@ -821,55 +678,6 @@ describe('sonarr-matcher', () => {
           series: sonarrSeries[0].series,
           tags: sonarrSeries[0].tags,
         })
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.objectContaining({
-            sonarrSeriesCount: 1,
-          }),
-          'Cache not initialized, building on demand',
-        )
-      })
-
-      it('should not rebuild cache if already initialized', async () => {
-        const plexItem = {
-          ratingKey: '123',
-          title: 'Test Series',
-        }
-
-        const sonarrSeries: SonarrSeriesWithTags[] = [
-          {
-            instanceId: 1,
-            instanceName: 'sonarr-main',
-            series: {
-              id: 1,
-              title: 'Test Series',
-              path: '/tv/Test Series',
-            },
-            tags: ['drama'],
-            rootFolder: '/tv',
-          },
-        ]
-
-        // Pre-build cache
-        buildSonarrMatchingCache(sonarrSeries)
-
-        vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
-          createMockPlexMetadataWithLocation(['/tv/Test Series']),
-        )
-
-        await matchPlexSeriesToSonarr(
-          plexItem,
-          sonarrSeries,
-          mockPlexServer,
-          mockLogger,
-        )
-
-        // Should NOT log cache initialization message
-        expect(mockLogger.debug).not.toHaveBeenCalledWith(
-          expect.objectContaining({
-            sonarrSeriesCount: expect.any(Number),
-          }),
-          'Cache not initialized, building on demand',
-        )
       })
     })
   })

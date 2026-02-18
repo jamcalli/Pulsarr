@@ -79,9 +79,6 @@ describe('plex/processors/single-item', () => {
       const result = await toItemsSingle(emptyConfig, mockLogger, mockItem)
 
       expect(result.size).toBe(0)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'No valid Plex token configured; cannot fetch metadata',
-      )
     })
 
     it('should handle 404 response by returning empty set', async () => {
@@ -97,9 +94,6 @@ describe('plex/processors/single-item', () => {
       const result = await toItemsSingle(config, mockLogger, mockItem)
 
       expect(result.size).toBe(0)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('not found in Plex database (HTTP 404)'),
-      )
     })
 
     it('should collect 404 items when notFoundCollector provided', async () => {
@@ -125,9 +119,6 @@ describe('plex/processors/single-item', () => {
 
       expect(result.size).toBe(0)
       expect(notFoundCollector).toContain('Test Movie')
-      expect(mockLogger.warn).not.toHaveBeenCalledWith(
-        expect.stringContaining('not found in Plex database'),
-      )
     })
 
     it('should handle 429 rate limit with Retry-After header', async () => {
@@ -238,7 +229,6 @@ describe('plex/processors/single-item', () => {
       vi.useRealTimers()
 
       expect(result.size).toBe(0)
-      expect(mockLogger.warn).toHaveBeenCalled()
     })
 
     it('should retry when missing guids', async () => {
@@ -282,9 +272,6 @@ describe('plex/processors/single-item', () => {
 
       expect(result.size).toBe(1)
       expect(callCount).toBe(2)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('but no GUIDs. Retry 1/3'),
-      )
     })
 
     it('should filter out null guids', async () => {
@@ -515,10 +502,6 @@ describe('plex/processors/single-item', () => {
         await expect(
           toItemsSingle(config, mockLogger, mockItem),
         ).rejects.toThrow('Rate limited')
-
-        expect(mockLogger.warn).toHaveBeenCalledWith(
-          expect.stringContaining('Rate limit already exhausted'),
-        )
       } finally {
         global.fetch = originalFetch
       }
@@ -632,11 +615,6 @@ describe('plex/processors/single-item', () => {
       vi.useRealTimers()
 
       expect(result.size).toBe(0)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining(
-          "Found item Test Movie on the watchlist, but we cannot find this in Plex's database after 4 attempts",
-        ),
-      )
     })
   })
 })

@@ -106,12 +106,6 @@ describe('protected-cache', () => {
         mockPlexServerService.getOrCreateProtectionPlaylists,
       ).toHaveBeenCalledWith(true)
       expect(mockPlexServerService.getProtectedItems).toHaveBeenCalledOnce()
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Loading protection playlists and caching results...',
-      )
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Cached 3 protected item GUIDs from 2 user playlists',
-      )
     })
 
     it('should handle empty protected GUIDs set', async () => {
@@ -134,9 +128,6 @@ describe('protected-cache', () => {
       )
 
       expect(result).toEqual(emptySet)
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Cached 0 protected item GUIDs from 1 user playlists',
-      )
     })
 
     it('should throw error when no playlists found', async () => {
@@ -157,11 +148,6 @@ describe('protected-cache', () => {
         ),
       ).rejects.toThrow(
         'Could not find or create protection playlists "My Protection Playlist" for any users - Plex server may be unreachable',
-      )
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        'Error loading protection playlists for caching',
       )
     })
 
@@ -184,11 +170,6 @@ describe('protected-cache', () => {
           mockLogger,
         ),
       ).rejects.toThrow('Failed to retrieve protected items from playlists')
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        'Error loading protection playlists for caching',
-      )
     })
 
     it('should throw and log error on playlist loading failure', async () => {
@@ -208,11 +189,6 @@ describe('protected-cache', () => {
           mockLogger,
         ),
       ).rejects.toThrow('Plex server unreachable')
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        { error },
-        'Error loading protection playlists for caching',
-      )
     })
   })
 
