@@ -35,7 +35,6 @@ The API is organized into the following categories:
 - **[Statistics](./api/statistics)** - Dashboard statistics and analytics
 - **[Sync](./api/sync)** - Sync operations for Sonarr/Radarr instances
 - **[Tags](./api/tags)** - User tagging configuration and synchronization
-- **[Tautulli](./api/tautulli)** - Tautulli integration and connection testing
 - **[TMDB](./api/tmdb)** - TMDB metadata and streaming provider data
 - **[Users](./api/users)** - User management and watchlist access
 - **[Watchlist Workflow](./api/watchlist-workflow)** - Start, stop, and monitor the main workflow
