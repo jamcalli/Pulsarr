@@ -114,7 +114,7 @@ export async function sendPlexMobileNotification(
       return false
     }
 
-    deps.log.debug(
+    deps.log.info(
       { to: payload.userIds, title: payload.title },
       'Plex mobile notification sent successfully',
     )
