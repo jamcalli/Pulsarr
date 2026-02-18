@@ -1,0 +1,63 @@
+---
+id: get-plex-pass-status
+title: "Get Plex Pass status"
+description: "Returns whether the admin Plex account has an active Plex Pass subscription"
+sidebar_label: "Get Plex Pass status"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vk1v2zgQ/SvEnLaAHCVb7EW3oF0UQXsw4u4HEPhAU2OLjUSqnGESQ9B/Xwwp+SNxsSiw2ItliMP33gzfDDWA7zFott7d1VDBDnnZ4stSE61YcyQogPWOoHoAWYB1ATWSCbaXPVDBPXIMjtRzg9xgUNyg0nVnnZJ4pY3x0bFqNCntlDZsnzAvCYmiuDmiFRCQeu8ICaoBfr2+lsc530fc6tiyup8ioQDjHaNjidV931qT8im/kWwYgEyDnZZ/vO8RKvCbb2gYCuiDZM820zWa5txPgjfet6gdjKOo+x5twFqqcRq9LkDXtRVW3S5PQLe6JRxH2fvb/5sMpdP74Gs8iXWx22CAUVjOFoiDdTtZwBB8uLjSIZHeXdhVQGfdF3Q7bqC6eV2nEyET7UxyhPz3+iV+bvzkUUlXCx2UTzdl3+JL+ln0mmhBs3EJwxMG8e4AMbRQwdAHz974dqzKcmg88VgNvQ88wmtff4jEvlOrhAEFPOlg9abN1Z1h5D+62CVDMPdQpAflNklnC9W8co7/tUE1w6hIWCv2yviui07OHNWz5SZ1U05DjkAEZxPN0K03uk2vL+HLgtMdKh/U3VLpug5IpPw24S5jSzqEE3ypxDn+++vr95el+8DKO/XcWNMcoCypEJ1LjhnHYi57qklVlnsfw6LPsQvriLUzeGV894ZiGWynw34u/09AVRclf7QBDU9w6tYYqcMvqcSSybtXDFVZHip7GfDLvHwRbC3mMzFY3if36d5+xv1tFMs+rIWLkMh6d3h1smMlLZ59drrv0Hb5JRRgRUiDuk4GlYOGCv5e3C7vFjngXPLt8k494l7pyA06niaLimTdTh22qQlwLM41/oDeeP9o8Ug/Hckb8lXGWmy0WP2ihAxFwvyMm8b7xxWagPyT6U9eXOTNb4T8laEvS9CR/WKHTq5ErBUliCu18k6HUN7rWkw+iSOlAyrj3dbuYsB6blhLUwkTWqeFom33V+kGsW7rUy6WW5E7N87t8u7iedXexA4dZ5FbHw6ttlA6X6PPmk3TWmJlHeMuHEOzbKVdrbJ0GWMYKMP/eZNbnrjT6WqZKvgJ+fR+nofpmbbheE39xx8A0yEzvnDZt9o6EZkac5hG/gM83cj8l6+R/Dgb++t5TD7AMIjb/gjtOMrr7xGDtOP6OMxzN84mkk59xL2U3hjsOU39NmbTvbqKpWEPN9Kn37/COP4Dm+5BhA==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get Plex Pass status"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/plex/plex-pass-status"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Returns whether the admin Plex account has an active Plex Pass subscription
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"hasPlexPass":{"type":"boolean"}},"required":["hasPlexPass"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

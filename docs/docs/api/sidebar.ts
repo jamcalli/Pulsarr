@@ -400,6 +400,12 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api/get-plex-pass-status",
+          label: "Get Plex Pass status",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
           id: "api/get-plex-user-status",
           label: "Get classified Plex user status",
           className: "api-method get",
@@ -940,34 +946,6 @@ const sidebar: SidebarsConfig = {
           type: "doc",
           id: "api/remove-all-user-tags",
           label: "Remove all user tags",
-          className: "api-method post",
-        },
-      ],
-    },
-    {
-      type: "category",
-      label: "Tautulli",
-      link: {
-        type: "doc",
-        id: "api/tautulli",
-      },
-      items: [
-        {
-          type: "doc",
-          id: "api/test-tautulli-connection-with-credentials",
-          label: "Test Tautulli connection with provided credentials",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/test-tautulli-connection",
-          label: "Test Tautulli connection",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/sync-tautulli-notifiers",
-          label: "Sync user notifiers",
           className: "api-method post",
         },
       ],
