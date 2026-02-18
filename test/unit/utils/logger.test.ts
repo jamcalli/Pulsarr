@@ -526,6 +526,11 @@ describe('logger', () => {
   describe('createLoggerConfig', () => {
     beforeEach(() => {
       vi.clearAllMocks()
+      delete process.env.enableConsoleOutput
+    })
+
+    afterEach(() => {
+      delete process.env.enableConsoleOutput
     })
 
     it('should return file-only config when enableConsoleOutput is false', async () => {
@@ -537,11 +542,9 @@ describe('logger', () => {
       expect(config).toHaveProperty('level', 'info')
       expect(config).toHaveProperty('stream')
       expect(config).toHaveProperty('serializers')
-      delete process.env.enableConsoleOutput
     })
 
     it('should return config with serializers when console output is enabled', async () => {
-      delete process.env.enableConsoleOutput
       const module = await import('@utils/logger.js')
       const config = module.createLoggerConfig()
 
