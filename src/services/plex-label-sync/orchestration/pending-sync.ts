@@ -227,7 +227,7 @@ export async function processPendingLabelSyncs(
                   removedTagPrefix: deps.removedTagPrefix,
                 },
                 pendingSync.webhook_tags,
-                pendingSync.type || 'movie',
+                contentType,
               )
 
               if (!success) {
