@@ -73,7 +73,7 @@ Pulsarr is a modern full-stack TypeScript application built for reliability and 
 | **Native Webhooks** | Direct HTTP callbacks to external services |
 | **Discord Bot** | Interactive commands, approvals, user DMs |
 | **Discord Webhooks** | Channel notifications and announcements |
-| **Tautulli** | Native Plex mobile app notifications |
+| **Plex Mobile** | Native Plex mobile app push notifications |
 | **Apprise** | 80+ services (Telegram, Slack, email, etc.) |
 
 ## API
