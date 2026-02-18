@@ -333,7 +333,10 @@ export class PlexMobileService {
         payloadType !== 'movie' ? notification.title : undefined,
       year: undefined, // Year not available in MediaNotification
       seasonNumber: notification.episodeDetails?.seasonNumber,
-      episodeNumber: notification.episodeDetails?.episodeNumber,
+      episodeNumber:
+        payloadType === 'episode'
+          ? notification.episodeDetails?.episodeNumber
+          : undefined,
       episodeCount: resolved.episodeCount,
       ratingKey: resolved.ratingKey,
       userIds,
