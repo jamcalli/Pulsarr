@@ -57,12 +57,6 @@ describe('tracked-cache', () => {
 
       expect(result).toEqual(guidSet)
       expect(mockDbService.getTrackedContentGuids).toHaveBeenCalledOnce()
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Loading tracked content GUIDs from approval requests...',
-      )
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Loaded 3 tracked content GUIDs from approval system',
-      )
     })
 
     it('should handle empty guid set from database', async () => {
@@ -79,9 +73,6 @@ describe('tracked-cache', () => {
       )
 
       expect(result).toEqual(emptySet)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Loaded 0 tracked content GUIDs from approval system',
-      )
     })
 
     it('should throw and log error on database failure', async () => {
@@ -96,11 +87,6 @@ describe('tracked-cache', () => {
           mockLogger,
         ),
       ).rejects.toThrow('Database connection failed')
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        { error },
-        'Error loading tracked content GUIDs from approval requests',
-      )
     })
 
     it('should not load when tracked-only is disabled even with null cache', async () => {

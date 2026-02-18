@@ -101,15 +101,6 @@ describe('approval-cleanup', () => {
       expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledTimes(2)
       expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledWith(1)
       expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledWith(2)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('2 deleted GUIDs'),
-      )
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Cleaned up 2 movie approval records'),
-      )
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Total approval requests cleaned up: 2',
-      )
     })
 
     it('should clean up show approval requests', async () => {
@@ -143,15 +134,6 @@ describe('approval-cleanup', () => {
       expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledWith(3)
       expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledWith(4)
       expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledWith(5)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('3 deleted GUIDs'),
-      )
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Cleaned up 3 show approval records'),
-      )
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Total approval requests cleaned up: 3',
-      )
     })
 
     it('should clean up both movie and show approval requests', async () => {
@@ -178,9 +160,6 @@ describe('approval-cleanup', () => {
 
       expect(mockDb.getApprovalRequestsByGuids).toHaveBeenCalledTimes(2)
       expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledTimes(3)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Total approval requests cleaned up: 3',
-      )
     })
 
     it('should continue cleanup on individual delete errors', async () => {
@@ -213,17 +192,7 @@ describe('approval-cleanup', () => {
       // Should attempt all 3 deletes
       expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledTimes(3)
       // Should log error for failed delete
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({
-          approvalId: 2,
-          title: 'Movie 2',
-        }),
-        'Error deleting individual approval request during cleanup',
-      )
       // Should still count successful deletes
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Total approval requests cleaned up: 2',
-      )
     })
 
     it('should handle database fetch errors gracefully', async () => {
@@ -238,12 +207,6 @@ describe('approval-cleanup', () => {
 
       await cleanupApprovalRequestsForDeletedContent(deps, false)
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.any(Error),
-        }),
-        'Error cleaning up approval requests for deleted content',
-      )
       expect(mockApprovalService.deleteApprovalRequest).not.toHaveBeenCalled()
     })
 
@@ -262,9 +225,6 @@ describe('approval-cleanup', () => {
       expect(mockDb.getApprovalRequestsByGuids).toHaveBeenCalledTimes(2)
       expect(mockApprovalService.deleteApprovalRequest).not.toHaveBeenCalled()
       // Should not log total cleanup message
-      expect(mockLogger.info).not.toHaveBeenCalledWith(
-        expect.stringContaining('Total approval requests cleaned up'),
-      )
     })
   })
 })

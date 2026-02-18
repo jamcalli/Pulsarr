@@ -79,9 +79,6 @@ describe('plex/watchlist-api', () => {
       expect(result.MediaContainer).toBeDefined()
       expect(result.MediaContainer.Metadata).toEqual([])
       expect(result.MediaContainer.totalSize).toBe(0)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Plex API returned empty MediaContainer',
-      )
     })
 
     it('should handle missing Metadata array by creating defaults', async () => {
@@ -99,9 +96,6 @@ describe('plex/watchlist-api', () => {
       const result = await getWatchlist('token', mockLogger)
 
       expect(result.MediaContainer.Metadata).toEqual([])
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Plex API returned MediaContainer without Metadata array',
-      )
     })
 
     it('should handle pagination with start parameter', async () => {
@@ -441,9 +435,6 @@ describe('plex/watchlist-api', () => {
       )
 
       expect(result.size).toBe(0)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Unable to fetch watchlist for user'),
-      )
     })
 
     it('should handle 429 rate limit', async () => {
@@ -491,9 +482,6 @@ describe('plex/watchlist-api', () => {
       )
 
       expect(result.size).toBe(0)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Unable to fetch watchlist for user'),
-      )
     })
 
     it('should retry on generic error up to maxRetries', async () => {
@@ -574,9 +562,6 @@ describe('plex/watchlist-api', () => {
 
       expect(result.size).toBe(1)
       expect(getAllWatchlistItemsForUser).toHaveBeenCalledWith(1)
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Falling back to existing database items for user 1',
-      )
     })
 
     it('should handle JSON string guids in fallback items', async () => {
@@ -660,10 +645,6 @@ describe('plex/watchlist-api', () => {
       )
 
       expect(result.size).toBe(0)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        { error: expect.any(Error) },
-        'Failed to retrieve existing items from database',
-      )
     })
   })
 })

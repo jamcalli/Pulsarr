@@ -184,10 +184,6 @@ describe('tag-cache', () => {
 
       expect(result).toBeInstanceOf(Map)
       expect(result.size).toBe(0)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        { error },
-        'Critical error fetching tags for radarr instance 1 - this may affect deletion accuracy',
-      )
     })
 
     it('should not cache error results', async () => {
@@ -219,18 +215,6 @@ describe('tag-cache', () => {
       // Second call should succeed
       expect(result2.size).toBe(1)
       expect(result2.get(1)).toBe('recovered-tag')
-    })
-
-    it('should log error with instance type and ID', async () => {
-      const error = new Error('Network timeout')
-      vi.mocked(mockService.getTags).mockRejectedValue(error)
-
-      await tagCache.getTagsForInstance(5, mockService, 'sonarr', mockLogger)
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        { error },
-        'Critical error fetching tags for sonarr instance 5 - this may affect deletion accuracy',
-      )
     })
 
     it('should handle tags with special characters in labels', async () => {

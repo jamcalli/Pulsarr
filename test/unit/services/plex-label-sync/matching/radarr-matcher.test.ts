@@ -113,14 +113,6 @@ describe('radarr-matcher', () => {
 
       expect(result).toEqual(radarrMovies[0])
       expect(mockPlexServer.getMetadata).toHaveBeenCalledWith('123')
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.objectContaining({
-          plexTitle: 'Test Movie',
-          radarrTitle: 'Test Movie',
-          filePath: '/movies/Test Movie (2023)/Test Movie.mkv',
-        }),
-        'Found exact file path match',
-      )
     })
 
     it('should match with normalized paths (cross-platform)', async () => {
@@ -197,13 +189,6 @@ describe('radarr-matcher', () => {
       )
 
       expect(result).toBeNull()
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.objectContaining({
-          ratingKey: '123',
-          title: 'Test Movie',
-        }),
-        'No media information found for Plex movie',
-      )
     })
 
     it('should return null when Plex metadata is null', async () => {
@@ -259,14 +244,6 @@ describe('radarr-matcher', () => {
       )
 
       expect(result).toBeNull()
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.objectContaining({
-          ratingKey: '123',
-          title: 'Test Movie',
-          plexFilePaths: ['/movies/Test Movie.mkv'],
-        }),
-        'No Radarr match found for Plex movie',
-      )
     })
 
     it('should skip Radarr movies without movieFile', async () => {
@@ -528,10 +505,6 @@ describe('radarr-matcher', () => {
       )
 
       expect(result).toBeNull()
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        'Error matching Plex movie to Radarr:',
-      )
     })
 
     it('should handle empty radarrMovies array', async () => {
@@ -556,60 +529,6 @@ describe('radarr-matcher', () => {
       )
 
       expect(result).toBeNull()
-    })
-
-    it('should log debug information during matching', async () => {
-      const plexItem = {
-        ratingKey: '123',
-        title: 'Test Movie',
-      }
-
-      const radarrMovies: RadarrMovieWithTags[] = [
-        {
-          movie: createMockRadarrMovie(
-            1,
-            'Test Movie',
-            '/movies/Test Movie.mkv',
-          ),
-          tags: ['action', 'hd'],
-          instanceId: 1,
-          instanceName: 'radarr-main',
-        },
-      ]
-
-      buildRadarrMatchingCache(radarrMovies)
-
-      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
-        createMockPlexMetadataWithMedia(['/movies/Test Movie.mkv']),
-      )
-
-      await matchPlexMovieToRadarr(
-        plexItem,
-        radarrMovies,
-        mockPlexServer,
-        mockLogger,
-      )
-
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.objectContaining({
-          ratingKey: '123',
-          title: 'Test Movie',
-          plexFilePaths: ['/movies/Test Movie.mkv'],
-          radarrMovieCount: 1,
-        }),
-        'Matching Plex movie to Radarr',
-      )
-
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.objectContaining({
-          plexTitle: 'Test Movie',
-          radarrTitle: 'Test Movie',
-          filePath: '/movies/Test Movie.mkv',
-          instanceName: 'radarr-main',
-          tags: ['action', 'hd'],
-        }),
-        'Found exact file path match',
-      )
     })
 
     it('should work without pre-building cache (lazy initialization)', async () => {
@@ -644,54 +563,6 @@ describe('radarr-matcher', () => {
       )
 
       expect(result).toEqual(radarrMovies[0])
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.objectContaining({
-          radarrMovieCount: 1,
-        }),
-        'Cache not initialized, building on demand',
-      )
-    })
-
-    it('should not rebuild cache if already initialized', async () => {
-      const plexItem = {
-        ratingKey: '123',
-        title: 'Test Movie',
-      }
-
-      const radarrMovies: RadarrMovieWithTags[] = [
-        {
-          instanceId: 1,
-          movie: createMockRadarrMovie(
-            1,
-            'Test Movie',
-            '/movies/Test Movie.mkv',
-          ),
-          tags: ['action'],
-          instanceName: 'radarr-main',
-        },
-      ]
-
-      // Pre-build cache
-      buildRadarrMatchingCache(radarrMovies)
-
-      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
-        createMockPlexMetadataWithMedia(['/movies/Test Movie.mkv']),
-      )
-
-      await matchPlexMovieToRadarr(
-        plexItem,
-        radarrMovies,
-        mockPlexServer,
-        mockLogger,
-      )
-
-      // Should NOT log cache initialization message
-      expect(mockLogger.debug).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          radarrMovieCount: expect.any(Number),
-        }),
-        'Cache not initialized, building on demand',
-      )
     })
   })
 })

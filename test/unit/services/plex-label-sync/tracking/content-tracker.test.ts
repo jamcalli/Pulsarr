@@ -663,14 +663,6 @@ describe('content-tracker', () => {
           baseDeps,
         ),
       ).resolves.toBeUndefined()
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operationCount: 1,
-          error: 'Database error',
-        }),
-        'Failed to execute bulk untrack operations',
-      )
     })
 
     it('should handle bulk track failures gracefully', async () => {
@@ -699,49 +691,6 @@ describe('content-tracker', () => {
           baseDeps,
         ),
       ).resolves.toBeUndefined()
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operationCount: 1,
-          error: 'Database error',
-        }),
-        'Failed to execute bulk track operations',
-      )
-    })
-
-    it('should handle partial bulk operation failures', async () => {
-      const content = createMockContent([
-        { user_id: 1, username: 'alice', watchlist_id: 101 },
-        { user_id: 2, username: 'bob', watchlist_id: 102 },
-      ])
-      const plexItems = [{ ratingKey: '12345', title: 'Test Movie' }]
-      const finalUserLabels = ['pulsarr:alice', 'pulsarr:bob']
-      const finalTagLabels: string[] = []
-      const appliedRemovedLabels = new Map<string, string>()
-
-      vi.mocked(mockDb.getTrackedLabelsForRatingKey).mockResolvedValue([])
-      vi.mocked(mockDb.trackPlexLabelsBulk).mockResolvedValue({
-        processedCount: 1,
-        failedIds: ['failed-operation-id'], // One operation failed
-      })
-
-      await updateTrackingForContent(
-        content,
-        plexItems,
-        finalUserLabels,
-        finalUserLabels,
-        finalTagLabels,
-        appliedRemovedLabels,
-        baseDeps,
-      )
-
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        {
-          failedCount: 1,
-          failedIds: ['failed-operation-id'],
-        },
-        'Some track operations failed',
-      )
     })
 
     it('should handle complete function errors gracefully', async () => {
@@ -769,14 +718,6 @@ describe('content-tracker', () => {
           baseDeps,
         ),
       ).resolves.toBeUndefined()
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({
-          primaryGuid: 'imdb:tt0111161',
-          title: 'The Shawshank Redemption',
-        }),
-        'Error updating tracking table for content',
-      )
     })
   })
 

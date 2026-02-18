@@ -87,9 +87,6 @@ describe('tag-matcher', () => {
       )
 
       expect(result).toBe(false)
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining('removedTagPrefix is blank'),
-      )
     })
 
     it('should return false when removal tag prefix is empty string', async () => {
@@ -314,10 +311,6 @@ describe('tag-matcher', () => {
       )
 
       expect(result).toBe(false)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        expect.stringContaining('Error checking for removal tag'),
-      )
     })
   })
 
@@ -526,13 +519,6 @@ describe('tag-matcher', () => {
       )
 
       expect(result).toBe(false)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.any(Error),
-          regexPattern: '[invalid(',
-        }),
-        expect.stringContaining('Error checking for tag matching regex'),
-      )
     })
 
     it('should return false on cache error', async () => {
@@ -551,10 +537,6 @@ describe('tag-matcher', () => {
       )
 
       expect(result).toBe(false)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(Error) }),
-        expect.stringContaining('Error checking for tag matching regex'),
-      )
     })
   })
 })

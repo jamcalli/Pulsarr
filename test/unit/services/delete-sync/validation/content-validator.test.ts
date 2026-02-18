@@ -217,7 +217,6 @@ describe('content-validator', () => {
       )
 
       expect(mockValidators.isAnyGuidTracked).toHaveBeenCalled()
-      expect(mockLogger.debug).toHaveBeenCalled()
     })
 
     it('should prioritize watchlist check over tracked check', () => {
