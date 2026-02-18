@@ -158,7 +158,7 @@ export async function dispatchWebhooks<T extends WebhookEventType>(
       'Some webhook dispatches failed',
     )
   } else if (succeeded > 0) {
-    deps.log.debug(
+    deps.log.info(
       { eventType, count: succeeded },
       'Webhooks dispatched successfully',
     )

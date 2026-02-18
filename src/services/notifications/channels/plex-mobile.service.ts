@@ -180,9 +180,9 @@ export class PlexMobileService {
       isBulkRelease,
       createdAt: Date.now(),
     })
-    this.log.debug(
-      { queueKey, title: notification.title },
-      'Queued Plex mobile notification for retry (content not yet indexed)',
+    this.log.info(
+      { queueKey, title: notification.title, username: user.name },
+      'Plex mobile notification queued — content not yet indexed in Plex',
     )
     this.ensureRetryTimer()
     return false
@@ -414,7 +414,7 @@ export class PlexMobileService {
         )
 
         if (sent) {
-          this.log.debug(
+          this.log.info(
             { key, title: pending.notification.title },
             'Plex mobile notification sent on retry',
           )
