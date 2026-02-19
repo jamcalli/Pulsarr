@@ -18,14 +18,13 @@
  */
 
 import { readFile, unlink } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { resolveDataDir } from '@utils/data-dir.js'
+import { resolve } from 'node:path'
+import type { CleanupOrphanedRefsResponse } from '@root/schemas/tags/user-tags.schema.js'
+import { projectRoot, resolveDataDir } from '@utils/data-dir.js'
+import { createServiceLogger } from '@utils/logger.js'
+import { normalizeTagLabel } from '@utils/tag-normalization.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
-// Path resolution following the same pattern as logger.ts and knexfile.ts
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-const projectRoot = resolve(__dirname, '../..')
 const dataDir = resolveDataDir()
 
 /**
@@ -37,11 +36,6 @@ function getMigrationFilePath(): string {
   const baseDir = dataDir ?? resolve(projectRoot, 'data')
   return resolve(baseDir, '.pulsarr-tag-migration.json')
 }
-
-import type { CleanupOrphanedRefsResponse } from '@root/schemas/tags/user-tags.schema.js'
-import { createServiceLogger } from '@utils/logger.js'
-import { normalizeTagLabel } from '@utils/tag-normalization.js'
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
  * Tag structure returned from Sonarr/Radarr APIs

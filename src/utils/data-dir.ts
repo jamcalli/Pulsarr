@@ -1,4 +1,10 @@
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+export const projectRoot = resolve(__dirname, '..', '..')
 
 /**
  * Resolves the Pulsarr data directory based on platform and environment.
@@ -36,7 +42,7 @@ export function resolveDataDir(): string | null {
  * With a data dir: {dataDir}/db
  * Without (Linux/Docker): {projectRoot}/data/db
  */
-export function resolveDbPath(projectRoot: string): string {
+export function resolveDbPath(): string {
   const dataDir = resolveDataDir()
   return dataDir ? resolve(dataDir, 'db') : resolve(projectRoot, 'data', 'db')
 }
@@ -46,7 +52,7 @@ export function resolveDbPath(projectRoot: string): string {
  * With a data dir: {dataDir}/logs
  * Without (Linux/Docker): {projectRoot}/data/logs
  */
-export function resolveLogPath(projectRoot: string): string {
+export function resolveLogPath(): string {
   const dataDir = resolveDataDir()
   return dataDir
     ? resolve(dataDir, 'logs')
@@ -58,7 +64,7 @@ export function resolveLogPath(projectRoot: string): string {
  * With a data dir: {dataDir}/.env
  * Without (Linux/Docker): {projectRoot}/.env
  */
-export function resolveEnvPath(projectRoot: string): string {
+export function resolveEnvPath(): string {
   const dataDir = resolveDataDir()
   return dataDir ? resolve(dataDir, '.env') : resolve(projectRoot, '.env')
 }

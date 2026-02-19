@@ -2,6 +2,7 @@ import { EventEmitter } from 'node:events'
 import { open, stat } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import type { LogEntry, LogLevel } from '@schemas/logs/logs.schema.js'
+import { resolveLogPath } from '@utils/data-dir.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
@@ -32,12 +33,7 @@ export class LogStreamingService {
     this.eventEmitter = new EventEmitter()
     // Allow many concurrent SSE consumers without warnings
     this.eventEmitter.setMaxListeners(100)
-    this.logFilePath = resolve(
-      process.cwd(),
-      'data',
-      'logs',
-      'pulsarr-current.log',
-    )
+    this.logFilePath = resolve(resolveLogPath(), 'pulsarr-current.log')
   }
 
   static getInstance(
