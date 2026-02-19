@@ -1,6 +1,4 @@
 import fs from 'node:fs'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { resolveEnvPath, resolveLogPath } from '@utils/data-dir.js'
 import { config } from 'dotenv'
 import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
@@ -37,14 +35,10 @@ type PulsarrLoggerOptions =
   | FileLoggerOptions
   | MultiStreamLoggerOptions
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-const projectRoot = resolve(__dirname, '..', '..')
-
 // Load .env file early for logger configuration
 // Resolve data directory deterministically from platform (Windows/macOS)
 // or fall back to project-relative paths (Linux/Docker)
-config({ path: resolveEnvPath(projectRoot), quiet: true })
+config({ path: resolveEnvPath(), quiet: true })
 
 /**
  * Creates a custom error serializer that handles both standard errors and custom HttpError objects.
@@ -197,7 +191,7 @@ function filename(time: number | Date | null, index?: number): string {
  * @returns A rotating file stream for logs, or {@link process.stdout} if setup fails.
  */
 function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
-  const logDirectory = resolveLogPath(projectRoot)
+  const logDirectory = resolveLogPath()
   try {
     if (!fs.existsSync(logDirectory)) {
       fs.mkdirSync(logDirectory, { recursive: true })
