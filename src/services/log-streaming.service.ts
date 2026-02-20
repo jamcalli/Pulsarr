@@ -3,7 +3,11 @@ import { open, stat } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import type { LogEntry, LogLevel } from '@schemas/logs/logs.schema.js'
 import { resolveLogPath } from '@utils/data-dir.js'
-import { createServiceLogger } from '@utils/logger.js'
+import {
+  createServiceLogger,
+  parseModuleFromMsg,
+  pinoLevelToName,
+} from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export interface LogStreamingOptions {
@@ -11,6 +15,15 @@ export interface LogStreamingOptions {
   follow: boolean
   filter?: string
 }
+
+// Standard pino fields to exclude when collecting extra data
+const PINO_STANDARD_FIELDS = new Set([
+  'level',
+  'time',
+  'msg',
+  'pid',
+  'hostname',
+])
 
 export class LogStreamingService {
   private static instance: LogStreamingService
@@ -145,13 +158,7 @@ export class LogStreamingService {
           )
         }
 
-        // Convert to LogEntry format with simple parsing
-        return tailLines.map((line) => ({
-          timestamp: new Date().toISOString(),
-          level: this.extractLogLevel(line),
-          message: line,
-          module: undefined,
-        }))
+        return tailLines.map((line) => this.parseLogLine(line))
       } finally {
         await fileHandle.close()
       }
@@ -161,18 +168,36 @@ export class LogStreamingService {
     }
   }
 
-  // Regex to extract log level from pino-pretty format: [timestamp] LEVEL: message
-  // Captures the level name after ] and before :
-  private static readonly LOG_LEVEL_REGEX =
-    /]\s*(TRACE|DEBUG|INFO|WARN|ERROR|FATAL):/i
+  private parseLogLine(line: string): LogEntry {
+    try {
+      const parsed = JSON.parse(line) as Record<string, unknown>
+      const timestamp = parsed.time
+        ? new Date(parsed.time as number).toISOString()
+        : new Date().toISOString()
+      const level = pinoLevelToName(parsed.level as number)
+      const { module, message } = parseModuleFromMsg(
+        (parsed.msg as string) ?? '',
+      )
 
-  private extractLogLevel(line: string): LogLevel {
-    const match = LogStreamingService.LOG_LEVEL_REGEX.exec(line)
-    if (match) {
-      return match[1].toLowerCase() as LogLevel
+      // Collect extra fields beyond standard pino fields into data
+      let data: Record<string, unknown> | undefined
+      for (const key of Object.keys(parsed)) {
+        if (PINO_STANDARD_FIELDS.has(key)) continue
+        if (key === 'err' && !parsed[key]) continue
+        if (!data) data = {}
+        data[key] = parsed[key]
+      }
+
+      return { timestamp, level, message, module, data }
+    } catch {
+      // Non-JSON line (legacy pretty text, console.log output, stack traces)
+      return {
+        timestamp: new Date().toISOString(),
+        level: 'info' as LogLevel,
+        message: line,
+        module: undefined,
+      }
     }
-    // Fallback to info for any unmatched lines
-    return 'info'
   }
 
   private async startFileWatching() {
@@ -273,15 +298,7 @@ export class LogStreamingService {
 
           if (newLines.length > 0) {
             for (const line of newLines) {
-              // The message contains the full pino-pretty formatted line including timestamp.
-              // The timestamp field here is approximate (when line was read, not logged).
-              // The level is extracted for filtering purposes.
-              const entry: LogEntry = {
-                timestamp: new Date().toISOString(),
-                level: this.extractLogLevel(line),
-                message: line,
-                module: undefined,
-              }
+              const entry: LogEntry = this.parseLogLine(line)
               this.eventEmitter.emit('log', entry)
             }
           }

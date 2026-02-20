@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import { resolveEnvPath, resolveLogPath } from '@utils/data-dir.js'
 import { config } from 'dotenv'
 import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
-import type { LevelWithSilent, LoggerOptions, MultiStreamRes } from 'pino'
+import type { DestinationStream, LevelWithSilent, LoggerOptions } from 'pino'
 import pino from 'pino'
 import pretty from 'pino-pretty'
 import * as rfs from 'rotating-file-stream'
@@ -19,21 +19,48 @@ export const validLogLevels: LevelWithSilent[] = [
 
 export type LogDestination = 'terminal' | 'file' | 'both'
 
-interface FileLoggerOptions extends LoggerOptions {
-  stream:
-    | rfs.RotatingFileStream
-    | NodeJS.WriteStream
-    | ReturnType<typeof pretty>
+export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal'
+
+const PINO_LEVEL_TO_NAME: Record<number, LogLevel> = {
+  10: 'trace',
+  20: 'debug',
+  30: 'info',
+  40: 'warn',
+  50: 'error',
+  60: 'fatal',
 }
 
-interface MultiStreamLoggerOptions extends LoggerOptions {
-  stream: pino.MultiStreamRes
+const MODULE_PREFIX_REGEX = /^\[([A-Z0-9_]+)\]\s*/
+
+const PRETTY_OPTIONS = {
+  translateTime: 'SYS:yyyy-mm-dd HH:MM:ss Z',
+  ignore: 'pid,hostname',
+} as const
+
+/**
+ * Maps a pino numeric level to a LogLevel string.
+ * Falls back to 'info' for unknown levels.
+ */
+export function pinoLevelToName(level: number): LogLevel {
+  return PINO_LEVEL_TO_NAME[level] ?? 'info'
 }
 
-type PulsarrLoggerOptions =
-  | LoggerOptions
-  | FileLoggerOptions
-  | MultiStreamLoggerOptions
+/**
+ * Extracts a `[SERVICE_NAME]` prefix from a pino msg field
+ * (set by `createServiceLogger`'s `msgPrefix`).
+ *
+ * @returns The uppercased module name and the remaining clean message.
+ */
+export function parseModuleFromMsg(msg: string): {
+  module: string | undefined
+  message: string
+} {
+  const match = MODULE_PREFIX_REGEX.exec(msg)
+  if (match) {
+    return { module: match[1], message: msg.slice(match[0].length) }
+  }
+  return { module: undefined, message: msg }
+}
 
 // Load .env file early for logger configuration
 // Resolve data directory deterministically from platform (Windows/macOS)
@@ -163,6 +190,14 @@ function createRequestSerializer() {
   }
 }
 
+const errorSerializer = createErrorSerializer()
+
+const SERIALIZERS = {
+  req: createRequestSerializer(),
+  error: errorSerializer,
+  err: errorSerializer,
+} as const
+
 /**
  * Build a Pulsarr log filename from a date (or return the current-log name).
  *
@@ -209,61 +244,6 @@ function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
 }
 
 /**
- * Build LoggerOptions for terminal (console) output with human-readable formatting.
- *
- * Returns options configured for an interactive terminal: level set to "info",
- * output formatted via `pino-pretty` with timestamps and forced colorization, and
- * serializers that redact sensitive request query parameters and serialize errors.
- */
-function getTerminalOptions(): LoggerOptions {
-  return {
-    level: 'info',
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        translateTime: 'SYS:yyyy-mm-dd HH:MM:ss Z',
-        ignore: 'pid,hostname',
-        colorize: true, // Force colors even in Docker
-      },
-    },
-    serializers: {
-      req: createRequestSerializer(),
-      error: createErrorSerializer(),
-      err: createErrorSerializer(),
-    },
-  }
-}
-
-/**
- * Builds LoggerOptions for file-based logging using a rotating file stream.
- *
- * Returns LoggerOptions configured with level `info`, a pino-pretty wrapped destination (colors disabled) that writes to the rotating file stream, and serializers for requests and errors. The request serializer redacts sensitive query parameters (e.g., `apiKey`, `password`, `token`, `plexToken`, `X-Plex-Token`) from logged URLs.
- *
- * @returns Logger options suitable for file-based logging.
- */
-function getFileOptions(): FileLoggerOptions {
-  const fileStream = getFileStream()
-
-  // Create a pretty stream for file output (no colors)
-  const prettyFileStream = pretty({
-    translateTime: 'SYS:yyyy-mm-dd HH:MM:ss Z',
-    ignore: 'pid,hostname',
-    colorize: false, // No colors for file output
-    destination: fileStream,
-  })
-
-  return {
-    level: 'info',
-    stream: prettyFileStream,
-    serializers: {
-      req: createRequestSerializer(),
-      error: createErrorSerializer(),
-      err: createErrorSerializer(),
-    },
-  }
-}
-
-/**
  * Create a child logger that prefixes all messages with an uppercased service name.
  *
  * Returns a Fastify logger child whose message prefix is `[SERVICENAME] ` (serviceName is uppercased).
@@ -291,14 +271,14 @@ export function createServiceLogger(
  * in which case terminal-only options are returned to avoid double-writing). When console output
  * is disabled, file-only logger options are returned.
  *
- * Note: request-level logging and log level are controlled elsewhere (Fastify configuration/server).
- *
  * Environment variables:
  * - enableConsoleOutput — `'false'` disables terminal output; any other value (or unset) enables it.
  *
- * @returns PulsarrLoggerOptions configured for terminal, file, or combined output as described above.
+ * @returns Logger options configured for terminal, file, or combined output.
  */
-export function createLoggerConfig(): PulsarrLoggerOptions {
+export function createLoggerConfig(): LoggerOptions & {
+  stream?: DestinationStream
+} {
   // Read from environment variables with sensible defaults
   const enableConsoleOutput = process.env.enableConsoleOutput !== 'false' // Default true
 
@@ -317,40 +297,36 @@ export function createLoggerConfig(): PulsarrLoggerOptions {
 
     // Graceful fallback: avoid double-logging if file stream fell back to stdout
     if (fileStream === process.stdout) {
-      return getTerminalOptions()
+      return {
+        level: 'info',
+        stream: pretty({ ...PRETTY_OPTIONS, colorize: true }),
+        serializers: SERIALIZERS,
+      }
     }
 
     // Create a proper pretty stream for terminal output
     const prettyStream = pretty({
-      translateTime: 'SYS:yyyy-mm-dd HH:MM:ss Z',
-      ignore: 'pid,hostname',
+      ...PRETTY_OPTIONS,
       colorize: true, // Force colors even in Docker
     })
 
-    // Create a pretty stream for file output (no colors)
-    const prettyFileStream = pretty({
-      translateTime: 'SYS:yyyy-mm-dd HH:MM:ss Z',
-      ignore: 'pid,hostname',
-      colorize: false, // No colors for file output
-      destination: fileStream,
-    })
-
+    // File stream gets raw ndjson — no pino-pretty transform
     const multistream = pino.multistream([
-      { stream: prettyStream, level: 'trace' }, // Set to lowest level so it forwards everything
-      { stream: prettyFileStream, level: 'trace' }, // Set to lowest level so it forwards everything
+      { stream: prettyStream, level: 'trace' },
+      { stream: fileStream, level: 'trace' },
     ])
 
     return {
       level: 'info',
-      stream: multistream as MultiStreamRes,
-      serializers: {
-        req: createRequestSerializer(),
-        error: createErrorSerializer(),
-        err: createErrorSerializer(),
-      },
+      stream: multistream,
+      serializers: SERIALIZERS,
     }
-  } else {
-    // File logging only
-    return getFileOptions()
+  }
+
+  // File logging only — raw ndjson
+  return {
+    level: 'info',
+    stream: fileStream,
+    serializers: SERIALIZERS,
   }
 }
