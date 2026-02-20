@@ -190,10 +190,12 @@ function createRequestSerializer() {
   }
 }
 
+const errorSerializer = createErrorSerializer()
+
 const SERIALIZERS = {
   req: createRequestSerializer(),
-  error: createErrorSerializer(),
-  err: createErrorSerializer(),
+  error: errorSerializer,
+  err: errorSerializer,
 } as const
 
 /**

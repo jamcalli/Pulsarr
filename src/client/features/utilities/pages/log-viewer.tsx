@@ -84,7 +84,7 @@ function formatLogTimestamp(iso: string): string {
  * Strings get quoted, objects/arrays get compact JSON, primitives are bare.
  */
 function formatDataValue(value: unknown): string {
-  if (typeof value === 'string') return `"${value}"`
+  if (typeof value === 'string') return JSON.stringify(value)
   if (typeof value === 'object' && value !== null) return JSON.stringify(value)
   return String(value)
 }

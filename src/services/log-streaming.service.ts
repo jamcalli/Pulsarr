@@ -23,7 +23,6 @@ const PINO_STANDARD_FIELDS = new Set([
   'msg',
   'pid',
   'hostname',
-  'err',
 ])
 
 export class LogStreamingService {
@@ -183,16 +182,10 @@ export class LogStreamingService {
       // Collect extra fields beyond standard pino fields into data
       let data: Record<string, unknown> | undefined
       for (const key of Object.keys(parsed)) {
-        if (!PINO_STANDARD_FIELDS.has(key)) {
-          if (!data) data = {}
-          data[key] = parsed[key]
-        }
-      }
-
-      // Include err object in data if present
-      if (parsed.err) {
+        if (PINO_STANDARD_FIELDS.has(key)) continue
+        if (key === 'err' && !parsed[key]) continue
         if (!data) data = {}
-        data.err = parsed.err
+        data[key] = parsed[key]
       }
 
       return { timestamp, level, message, module, data }
