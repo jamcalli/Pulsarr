@@ -1,3 +1,4 @@
+import type { LogEntry } from '@root/schemas/logs/logs.schema.js'
 import type { LogLevel as ConfigLogLevel } from '@root/types/config.types.js'
 import {
   AlertCircle,
@@ -44,68 +45,124 @@ const LOG_LEVELS: { value: ConfigLogLevel; label: string }[] = [
   { value: 'silent', label: 'Silent' },
 ]
 
-// Pino-pretty colors (matches colorette ANSI colors used by pino-pretty)
-// See: node_modules/pino-pretty/lib/colors.js
-// Uses darker shades for light mode, lighter for dark mode
 const LOG_LEVEL_COLORS: Record<string, string> = {
-  TRACE: 'text-gray-500 dark:text-gray-400', // gray
-  DEBUG: 'text-blue-600 dark:text-blue-400', // blue
-  INFO: 'text-green-600 dark:text-green-400', // green
-  WARN: 'text-yellow-600 dark:text-yellow-400', // yellow
-  ERROR: 'text-red-600 dark:text-red-400', // red
-  FATAL: 'text-white bg-red-500 px-0.5 rounded-sm', // bgRed
+  TRACE: 'text-gray-500 dark:text-gray-400',
+  DEBUG: 'text-blue-600 dark:text-blue-400',
+  INFO: 'text-green-600 dark:text-green-400',
+  WARN: 'text-yellow-600 dark:text-yellow-400',
+  ERROR: 'text-red-600 dark:text-red-400',
+  FATAL: 'text-white bg-red-500 px-0.5 rounded-sm',
 }
 
-// Regex to match pino-pretty format: [yyyy-mm-dd HH:MM:ss TZ] LEVEL: [MODULE] message
-// Groups: 1=timestamp, 2=level, 3=colon, 4=rest (module + message)
-// Case-insensitive to match backend LOG_LEVEL_REGEX
-// Flexible timestamp matching to support various formats (with/without date, timezone)
-const LOG_LINE_REGEX =
-  /^(\[[^\]]+\])\s*(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)(:)\s*(.*)/i
+/**
+ * Formats an ISO timestamp string to match the display format: yyyy-mm-dd HH:MM:ss +ZZZZ
+ */
+function formatLogTimestamp(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
 
-// Regex to extract module name like [PLEX_SESSION_MONITOR] from message
-// Includes digits to support names like [PLEX2]
-const MODULE_REGEX = /^(\[[A-Z0-9_]+\])\s*(.*)/i
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const year = d.getFullYear()
+  const month = pad(d.getMonth() + 1)
+  const day = pad(d.getDate())
+  const hours = pad(d.getHours())
+  const minutes = pad(d.getMinutes())
+  const seconds = pad(d.getSeconds())
+
+  // Timezone offset
+  const offset = -d.getTimezoneOffset()
+  const sign = offset >= 0 ? '+' : '-'
+  const absOffset = Math.abs(offset)
+  const tzHours = pad(Math.floor(absOffset / 60))
+  const tzMinutes = pad(absOffset % 60)
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} ${sign}${tzHours}${tzMinutes}`
+}
 
 /**
- * Colorizes a pino-pretty formatted log line to match terminal output
+ * Formats a single data value for display, matching pino-pretty's style.
+ * Strings get quoted, objects/arrays get compact JSON, primitives are bare.
  */
-function colorizeLogLine(line: string): React.ReactNode {
-  const match = LOG_LINE_REGEX.exec(line)
-  if (!match) {
-    return line
+function formatDataValue(value: unknown): string {
+  if (typeof value === 'string') return `"${value}"`
+  if (typeof value === 'object' && value !== null) return JSON.stringify(value)
+  return String(value)
+}
+
+/**
+ * Reconstructs a human-readable log line from a structured LogEntry for export/copy.
+ * Includes indented data fields below the message to match pino-pretty output.
+ */
+function formatLogEntryAsText(entry: LogEntry): string {
+  const ts = formatLogTimestamp(entry.timestamp)
+  const level = entry.level.toUpperCase()
+  const mod = entry.module ? `[${entry.module}] ` : ''
+  let line = `[${ts}] ${level}: ${mod}${entry.message}`
+
+  if (entry.data) {
+    for (const [key, value] of Object.entries(entry.data)) {
+      line += `\n    ${key}: ${formatDataValue(value)}`
+    }
   }
 
-  const [, timestamp, level, colon, rest] = match
-  const levelUpper = level.toUpperCase()
+  return line
+}
+
+/**
+ * Renders the extra data fields from a LogEntry as indented key-value lines,
+ * matching pino-pretty's output style.
+ */
+function renderDataFields(data: Record<string, unknown>): React.ReactNode {
+  return Object.entries(data).map(([key, value]) => (
+    <div key={key} className="text-gray-500 dark:text-gray-400">
+      {'    '}
+      <span className="text-gray-600 dark:text-gray-300">{key}</span>
+      {': '}
+      <span className="text-gray-500 dark:text-gray-400">
+        {formatDataValue(value)}
+      </span>
+    </div>
+  ))
+}
+
+/**
+ * Renders a structured LogEntry with colored spans matching terminal output.
+ * Includes indented data fields below the message when present.
+ */
+function renderLogEntry(entry: LogEntry): React.ReactNode {
+  const levelUpper = entry.level.toUpperCase()
   const levelColor = LOG_LEVEL_COLORS[levelUpper] || ''
+  const ts = formatLogTimestamp(entry.timestamp)
 
-  // Check if rest starts with a module name like [MODULE_NAME]
-  const moduleMatch = MODULE_REGEX.exec(rest)
+  const messageLine = entry.module ? (
+    <>
+      <span className="text-gray-500 dark:text-gray-400">[{ts}]</span>{' '}
+      <span className={levelColor}>{levelUpper}</span>
+      <span className="text-gray-600 dark:text-gray-500">:</span>{' '}
+      <span className="text-fuchsia-600 dark:text-fuchsia-400">
+        [{entry.module}]
+      </span>{' '}
+      <span className="text-cyan-700 dark:text-cyan-300">{entry.message}</span>
+    </>
+  ) : (
+    <>
+      <span className="text-gray-500 dark:text-gray-400">[{ts}]</span>{' '}
+      <span className={levelColor}>{levelUpper}</span>
+      <span className="text-gray-600 dark:text-gray-500">:</span>{' '}
+      <span className="text-cyan-700 dark:text-cyan-300">{entry.message}</span>
+    </>
+  )
 
-  if (moduleMatch) {
-    const [, moduleName, message] = moduleMatch
+  if (entry.data && Object.keys(entry.data).length > 0) {
     return (
       <>
-        <span className="text-gray-500 dark:text-gray-400">{timestamp}</span>{' '}
-        <span className={levelColor}>{level}</span>
-        <span className="text-gray-600 dark:text-gray-500">{colon}</span>{' '}
-        <span className="text-fuchsia-600 dark:text-fuchsia-400">
-          {moduleName}
-        </span>{' '}
-        <span className="text-cyan-700 dark:text-cyan-300">{message}</span>
+        {messageLine}
+        {renderDataFields(entry.data)}
       </>
     )
   }
 
-  return (
-    <>
-      <span className="text-gray-500 dark:text-gray-400">{timestamp}</span>{' '}
-      <span className={levelColor}>{level}</span>
-      <span className="text-gray-600 dark:text-gray-500">{colon}</span>{' '}
-      <span className="text-cyan-700 dark:text-cyan-300">{rest}</span>
-    </>
-  )
+  return messageLine
 }
 
 /**
@@ -156,13 +213,23 @@ export function LogViewerPage() {
   // Auto-scroll ref - MUST be before conditional return
   const logContainerRef = useRef<HTMLPreElement>(null)
 
-  // Filter logs first, then convert to text - MUST be before conditional return to avoid hook order issues
+  // Filter logs across level, module, message, and data fields
   const filteredLogs = logs.filter((log) => {
     if (!displayFilter) return true
-    return log.message.toLowerCase().includes(displayFilter.toLowerCase())
+    const lower = displayFilter.toLowerCase()
+    if (log.level.toLowerCase().includes(lower)) return true
+    if (log.module?.toLowerCase().includes(lower)) return true
+    if (log.message.toLowerCase().includes(lower)) return true
+    if (log.data) {
+      const dataStr = JSON.stringify(log.data).toLowerCase()
+      if (dataStr.includes(lower)) return true
+    }
+    return false
   })
 
-  const logsText = filteredLogs.map((log) => log.message).join('\n')
+  const logsText = filteredLogs
+    .map((log) => formatLogEntryAsText(log))
+    .join('\n')
 
   // Auto-scroll effect - MUST be before conditional return
   // Debounced to handle rapid log arrivals on initial load (100 logs via SSE)
@@ -533,7 +600,7 @@ export function LogViewerPage() {
               {filteredLogs.length > 0 ? (
                 filteredLogs.map((log, index) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: logs are append-only, never reordered
-                  <div key={index}>{colorizeLogLine(log.message)}</div>
+                  <div key={index}>{renderLogEntry(log)}</div>
                 ))
               ) : (
                 <span className="text-muted-foreground">
