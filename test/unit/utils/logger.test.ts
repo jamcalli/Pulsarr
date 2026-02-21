@@ -42,7 +42,12 @@ type LoggerConfigWithSerializers = {
 }
 
 // Now import the module after mocks are set up
-const { createServiceLogger, validLogLevels } = await import('@utils/logger.js')
+const {
+  createServiceLogger,
+  validLogLevels,
+  pinoLevelToName,
+  parseModuleFromMsg,
+} = await import('@utils/logger.js')
 
 describe('logger', () => {
   describe('validLogLevels', () => {
@@ -60,6 +65,74 @@ describe('logger', () => {
 
     it('should be an array of 7 log levels', () => {
       expect(validLogLevels).toHaveLength(7)
+    })
+  })
+
+  describe('pinoLevelToName', () => {
+    it('should map standard pino levels', () => {
+      expect(pinoLevelToName(10)).toBe('trace')
+      expect(pinoLevelToName(20)).toBe('debug')
+      expect(pinoLevelToName(30)).toBe('info')
+      expect(pinoLevelToName(40)).toBe('warn')
+      expect(pinoLevelToName(50)).toBe('error')
+      expect(pinoLevelToName(60)).toBe('fatal')
+    })
+
+    it('should fall back to info for unknown levels', () => {
+      expect(pinoLevelToName(0)).toBe('info')
+      expect(pinoLevelToName(25)).toBe('info')
+      expect(pinoLevelToName(99)).toBe('info')
+      expect(pinoLevelToName(-1)).toBe('info')
+    })
+  })
+
+  describe('parseModuleFromMsg', () => {
+    it('should extract module prefix from msg', () => {
+      const result = parseModuleFromMsg('[PLEX_SERVER] Starting service')
+      expect(result).toEqual({
+        module: 'PLEX_SERVER',
+        message: 'Starting service',
+      })
+    })
+
+    it('should handle module names with digits', () => {
+      const result = parseModuleFromMsg('[PLEX2] Some message')
+      expect(result).toEqual({
+        module: 'PLEX2',
+        message: 'Some message',
+      })
+    })
+
+    it('should return undefined module when no prefix', () => {
+      const result = parseModuleFromMsg('Plain message without module')
+      expect(result).toEqual({
+        module: undefined,
+        message: 'Plain message without module',
+      })
+    })
+
+    it('should handle empty string', () => {
+      const result = parseModuleFromMsg('')
+      expect(result).toEqual({
+        module: undefined,
+        message: '',
+      })
+    })
+
+    it('should not match lowercase module names', () => {
+      const result = parseModuleFromMsg('[lowercase] message')
+      expect(result).toEqual({
+        module: undefined,
+        message: '[lowercase] message',
+      })
+    })
+
+    it('should handle module with underscores and digits', () => {
+      const result = parseModuleFromMsg('[DELETE_SYNC_V2] Processing')
+      expect(result).toEqual({
+        module: 'DELETE_SYNC_V2',
+        message: 'Processing',
+      })
     })
   })
 
@@ -538,7 +611,7 @@ describe('logger', () => {
       const module = await import('@utils/logger.js')
       const config = module.createLoggerConfig()
 
-      // File-only config should have a stream (from getFileOptions)
+      // File-only config should have a stream (raw file stream, no pino-pretty)
       expect(config).toHaveProperty('level', 'info')
       expect(config).toHaveProperty('stream')
       expect(config).toHaveProperty('serializers')

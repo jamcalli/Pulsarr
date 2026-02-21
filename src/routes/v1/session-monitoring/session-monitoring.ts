@@ -8,7 +8,6 @@ import {
   runSessionMonitorSchema,
 } from '@schemas/session-monitoring/session-monitoring.schema.js'
 import type { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
-import { serializeRollingShowDates } from '@utils/date-serializer.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -58,7 +57,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
 
         return reply.send({
           success: true,
-          shows: shows.map(serializeRollingShowDates),
+          shows,
         })
       } catch (error) {
         logRouteError(request.log, request, error, {
@@ -221,7 +220,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
 
         return reply.send({
           success: true,
-          shows: shows.map(serializeRollingShowDates),
+          shows,
           inactivityDays,
         })
       } catch (error) {
