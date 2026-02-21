@@ -952,6 +952,7 @@ export class PlexSessionMonitorService {
           show.sonarr_series_id === rollingShow.sonarr_series_id &&
           show.sonarr_instance_id === rollingShow.sonarr_instance_id &&
           show.plex_user_id != null &&
+          show.last_session_date != null &&
           new Date(show.last_session_date) >= cutoffDate &&
           // Only consider users that are allowed to trigger monitoring actions
           this.isUserAllowedToTriggerActions(

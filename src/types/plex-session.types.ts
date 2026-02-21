@@ -234,13 +234,13 @@ export interface RollingMonitoredShow {
   current_monitored_season: number
   last_watched_season: number
   last_watched_episode: number
-  last_session_date: Date
+  last_session_date: string | null
   sonarr_instance_id: number
   plex_user_id?: string
   plex_username?: string
-  created_at: Date
-  updated_at: Date
-  last_updated_at: Date // For tracking inactivity and cleanup
+  created_at: string
+  updated_at: string
+  last_updated_at: string
 }
 
 /**
