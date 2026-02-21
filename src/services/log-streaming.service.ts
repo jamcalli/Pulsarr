@@ -23,6 +23,7 @@ const PINO_STANDARD_FIELDS = new Set([
   'msg',
   'pid',
   'hostname',
+  'v',
 ])
 
 export class LogStreamingService {

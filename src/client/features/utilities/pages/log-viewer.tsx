@@ -84,8 +84,11 @@ function formatLogTimestamp(iso: string): string {
  * Strings get quoted, objects/arrays get compact JSON, primitives are bare.
  */
 function formatDataValue(value: unknown): string {
-  if (typeof value === 'string') return JSON.stringify(value)
-  if (typeof value === 'object' && value !== null) return JSON.stringify(value)
+  if (
+    typeof value === 'string' ||
+    (typeof value === 'object' && value !== null)
+  )
+    return JSON.stringify(value)
   return String(value)
 }
 
@@ -134,21 +137,18 @@ function renderLogEntry(entry: LogEntry): React.ReactNode {
   const levelColor = LOG_LEVEL_COLORS[levelUpper] || ''
   const ts = formatLogTimestamp(entry.timestamp)
 
-  const messageLine = entry.module ? (
+  const messageLine = (
     <>
       <span className="text-gray-500 dark:text-gray-400">[{ts}]</span>{' '}
       <span className={levelColor}>{levelUpper}</span>
       <span className="text-gray-600 dark:text-gray-500">:</span>{' '}
-      <span className="text-fuchsia-600 dark:text-fuchsia-400">
-        [{entry.module}]
-      </span>{' '}
-      <span className="text-cyan-700 dark:text-cyan-300">{entry.message}</span>
-    </>
-  ) : (
-    <>
-      <span className="text-gray-500 dark:text-gray-400">[{ts}]</span>{' '}
-      <span className={levelColor}>{levelUpper}</span>
-      <span className="text-gray-600 dark:text-gray-500">:</span>{' '}
+      {entry.module && (
+        <>
+          <span className="text-fuchsia-600 dark:text-fuchsia-400">
+            [{entry.module}]
+          </span>{' '}
+        </>
+      )}
       <span className="text-cyan-700 dark:text-cyan-300">{entry.message}</span>
     </>
   )
@@ -229,7 +229,7 @@ export function LogViewerPage() {
 
   const logsText = filteredLogs
     .map((log) => formatLogEntryAsText(log))
-    .join('\n')
+    .join('\n\n')
 
   // Auto-scroll effect - MUST be before conditional return
   // Debounced to handle rapid log arrivals on initial load (100 logs via SSE)
