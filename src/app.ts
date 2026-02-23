@@ -58,7 +58,7 @@ async function serviceApp(
       dev: process.argv.includes('--dev'),
       spa: true,
       distDir: 'dist',
-      prefix: opts.prefix,
+      prefix: opts.prefix || '/',
     })
 
     await fastify.vite.ready()
