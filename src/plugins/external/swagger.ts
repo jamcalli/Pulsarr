@@ -56,7 +56,7 @@ function buildWebhooksSpec(): Record<string, unknown> {
   return webhooks
 }
 
-const createOpenapiConfig = (fastify: FastifyInstance) => {
+const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
   const urlObject = new URL(fastify.config.baseUrl)
 
   fastify.log.debug(
@@ -74,7 +74,7 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
       },
       servers: [
         {
-          url: '{protocol}://{host}:{port}',
+          url: `{protocol}://{host}:{port}${pathSuffix}`,
           description: 'Custom Server',
           variables: {
             protocol: {
@@ -93,15 +93,15 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           },
         },
         {
-          url: fastify.config.baseUrl,
+          url: `${fastify.config.baseUrl}${pathSuffix}`,
           description: 'Primary Server',
         },
         {
-          url: `${urlObject.protocol}//${urlObject.hostname}:${fastify.config.port}`,
+          url: `${urlObject.protocol}//${urlObject.hostname}:${fastify.config.port}${pathSuffix}`,
           description: 'Direct Server Access (with port)',
         },
         {
-          url: `http://localhost:${fastify.config.port}`,
+          url: `http://localhost:${fastify.config.port}${pathSuffix}`,
           description: 'Localhost Access (with port)',
         },
       ],
@@ -257,6 +257,9 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
 
 export default fp(
   async (fastify: FastifyInstance) => {
+    const basePath = normalizeBasePath(fastify.config.basePath)
+    const pathSuffix = basePath === '/' ? '' : basePath
+
     // Register the zod-openapi plugin (required for schema transformation)
     await fastify.register(fastifyZodOpenApiPlugin)
 
@@ -264,17 +267,19 @@ export default fp(
      * Register Swagger with combined config
      * @see {@link https://github.com/fastify/fastify-swagger}
      */
-    await fastify.register(fastifySwagger, createOpenapiConfig(fastify))
+    await fastify.register(
+      fastifySwagger,
+      createOpenapiConfig(fastify, pathSuffix),
+    )
 
     /**
      * Register Swagger UI
+     * routePrefix must include basePath because this plugin is fp()-wrapped,
+     * which registers on the root scope (bypassing the Fastify prefix).
      * @see {@link https://github.com/fastify/fastify-swagger-ui}
      */
-    const normalizedBasePath = normalizeBasePath(fastify.config.basePath)
     const swaggerRoute =
-      normalizedBasePath === '/'
-        ? '/api/docs'
-        : (`${normalizedBasePath}/api/docs` as `/${string}`)
+      basePath === '/' ? '/api/docs' : (`${basePath}/api/docs` as `/${string}`)
     await fastify.register(apiReference, {
       routePrefix: swaggerRoute,
     })
