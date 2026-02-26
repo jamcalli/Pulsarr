@@ -422,10 +422,14 @@ export class ContentRouterService {
         // If user has quota configured and consumption failed (exceeded)
         if (quotaResult.hasQuota && !quotaResult.consumed) {
           const wouldBeUsage = quotaResult.currentUsage + 1
-          const shouldAutoApprove = quotaResult.userBypassEnabled
+          const isLifetimeExceeded = quotaResult.exceededBy === 'lifetime'
+          const shouldAutoApprove =
+            quotaResult.userBypassEnabled && !isLifetimeExceeded
 
           this.log.info(
-            `Quota exceeded for "${item.title}" by user ${options.userName || options.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
+            isLifetimeExceeded
+              ? `Lifetime quota exceeded for "${item.title}" by user ${options.userName || options.userId}: (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
+              : `Quota exceeded for "${item.title}" by user ${options.userName || options.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
           )
 
           // Auto-approve if user has bypass enabled - route and create auto_approved record
@@ -478,8 +482,10 @@ export class ContentRouterService {
             }
           }
 
-          // No bypass - create pending approval request
-          const approvalReasonText = `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
+          // No bypass (or lifetime exceeded) - create pending approval request
+          const approvalReasonText = isLifetimeExceeded
+            ? `lifetime quota exceeded (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
+            : `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
 
           // Get default routing decisions to include in approval request
           const defaultRoutingDecisions =
@@ -498,12 +504,18 @@ export class ContentRouterService {
                   reason: approvalReasonText,
                   triggeredBy: 'quota_exceeded',
                   data: {
-                    quotaType: quotaResult.quotaType as
-                      | 'daily'
-                      | 'weekly_rolling'
-                      | 'monthly',
-                    quotaUsage: wouldBeUsage,
-                    quotaLimit: quotaResult.quotaLimit,
+                    quotaType: isLifetimeExceeded
+                      ? ('lifetime' as const)
+                      : (quotaResult.quotaType as
+                          | 'daily'
+                          | 'weekly_rolling'
+                          | 'monthly'),
+                    quotaUsage: isLifetimeExceeded
+                      ? (quotaResult.lifetimeUsage ?? 0)
+                      : wouldBeUsage,
+                    quotaLimit: isLifetimeExceeded
+                      ? (quotaResult.lifetimeLimit ?? 0)
+                      : quotaResult.quotaLimit,
                   },
                   proposedRouting: await this.createProposedRoutingDecision(
                     defaultRoutingDecisions,
@@ -807,20 +819,28 @@ export class ContentRouterService {
                 // If user has quota configured and consumption failed (exceeded)
                 if (quotaResult.hasQuota && !quotaResult.consumed) {
                   const wouldBeUsage = quotaResult.currentUsage + 1
+                  const isLifetimeExceeded =
+                    quotaResult.exceededBy === 'lifetime'
+                  const shouldAutoApprove =
+                    quotaResult.userBypassEnabled && !isLifetimeExceeded
 
-                  // Check if user has bypass enabled (allows auto-approve when exceeded)
-                  if (quotaResult.userBypassEnabled) {
+                  // Check if user has bypass enabled (allows auto-approve when exceeded, except lifetime)
+                  if (shouldAutoApprove) {
                     this.log.info(
                       `Auto-approving quota-exceeded item "${item.title}" for user ${fallbackContext.userId} due to user bypass setting`,
                     )
                     // Fall through to normal default routing without consuming quota
                   } else {
-                    // No bypass - create pending approval request
+                    // No bypass (or lifetime exceeded) - create pending approval request
                     this.log.info(
-                      `Quota exceeded for "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
+                      isLifetimeExceeded
+                        ? `Lifetime quota exceeded for "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId}: (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
+                        : `Quota exceeded for "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
                     )
 
-                    const approvalReasonText = `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
+                    const approvalReasonText = isLifetimeExceeded
+                      ? `lifetime quota exceeded (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
+                      : `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
 
                     await this.fastify.approvalService.createApprovalRequest(
                       {
@@ -836,12 +856,18 @@ export class ContentRouterService {
                           reason: approvalReasonText,
                           triggeredBy: 'quota_exceeded',
                           data: {
-                            quotaType: quotaResult.quotaType as
-                              | 'daily'
-                              | 'weekly_rolling'
-                              | 'monthly',
-                            quotaUsage: wouldBeUsage,
-                            quotaLimit: quotaResult.quotaLimit,
+                            quotaType: isLifetimeExceeded
+                              ? ('lifetime' as const)
+                              : (quotaResult.quotaType as
+                                  | 'daily'
+                                  | 'weekly_rolling'
+                                  | 'monthly'),
+                            quotaUsage: isLifetimeExceeded
+                              ? (quotaResult.lifetimeUsage ?? 0)
+                              : wouldBeUsage,
+                            quotaLimit: isLifetimeExceeded
+                              ? (quotaResult.lifetimeLimit ?? 0)
+                              : quotaResult.quotaLimit,
                           },
                           proposedRouting:
                             await this.createProposedRoutingDecision(
@@ -1036,20 +1062,27 @@ export class ContentRouterService {
             // If user has quota configured and consumption failed (exceeded)
             if (quotaResult.hasQuota && !quotaResult.consumed) {
               const wouldBeUsage = quotaResult.currentUsage + 1
+              const isLifetimeExceeded = quotaResult.exceededBy === 'lifetime'
+              const shouldAutoApprove =
+                quotaResult.userBypassEnabled && !isLifetimeExceeded
 
-              // Check if user has bypass enabled (allows auto-approve when exceeded)
-              if (quotaResult.userBypassEnabled) {
+              // Check if user has bypass enabled (allows auto-approve when exceeded, except lifetime)
+              if (shouldAutoApprove) {
                 this.log.info(
                   `Auto-approving quota-exceeded item "${enrichedItem.title}" for user ${context.userId} due to user bypass setting`,
                 )
                 // Fall through to normal routing without consuming quota
               } else {
-                // No bypass - create pending approval request
+                // No bypass (or lifetime exceeded) - create pending approval request
                 this.log.info(
-                  `Quota exceeded for "${enrichedItem.title}" by user ${context.userName || context.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
+                  isLifetimeExceeded
+                    ? `Lifetime quota exceeded for "${enrichedItem.title}" by user ${context.userName || context.userId}: (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
+                    : `Quota exceeded for "${enrichedItem.title}" by user ${context.userName || context.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
                 )
 
-                const approvalReasonText = `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
+                const approvalReasonText = isLifetimeExceeded
+                  ? `lifetime quota exceeded (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
+                  : `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
                 const primaryDecision = allDecisions[0]
 
                 const approvalRequest =
@@ -1065,12 +1098,18 @@ export class ContentRouterService {
                         reason: approvalReasonText,
                         triggeredBy: 'quota_exceeded',
                         data: {
-                          quotaType: quotaResult.quotaType as
-                            | 'daily'
-                            | 'weekly_rolling'
-                            | 'monthly',
-                          quotaUsage: wouldBeUsage,
-                          quotaLimit: quotaResult.quotaLimit,
+                          quotaType: isLifetimeExceeded
+                            ? ('lifetime' as const)
+                            : (quotaResult.quotaType as
+                                | 'daily'
+                                | 'weekly_rolling'
+                                | 'monthly'),
+                          quotaUsage: isLifetimeExceeded
+                            ? (quotaResult.lifetimeUsage ?? 0)
+                            : wouldBeUsage,
+                          quotaLimit: isLifetimeExceeded
+                            ? (quotaResult.lifetimeLimit ?? 0)
+                            : quotaResult.quotaLimit,
                         },
                         proposedRouting: primaryDecision
                           ? {

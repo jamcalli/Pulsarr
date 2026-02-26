@@ -704,7 +704,7 @@ export class ApprovalService {
           // Calculate effective usage including items approved in this run
           const effectiveUsage = quotaStatus.currentUsage + pendingConsumption
 
-          // Check if quota is available after accounting for pending approvals in this batch
+          // Check if period quota is available after accounting for pending approvals in this batch
           if (effectiveUsage >= quotaStatus.quotaLimit) {
             this.log.debug(
               {
@@ -719,7 +719,26 @@ export class ApprovalService {
             continue
           }
 
-          // Quota is available - attempt to approve and route
+          // Check lifetime quota (if configured)
+          if (quotaStatus.lifetimeLimit != null) {
+            const effectiveLifetimeUsage =
+              (quotaStatus.lifetimeUsage ?? 0) + pendingConsumption
+            if (effectiveLifetimeUsage >= quotaStatus.lifetimeLimit) {
+              this.log.debug(
+                {
+                  requestId: request.id,
+                  effectiveLifetimeUsage,
+                  lifetimeLimit: quotaStatus.lifetimeLimit,
+                  pendingConsumption,
+                },
+                `Lifetime quota still exceeded for user ${request.userId}, keeping request pending`,
+              )
+              results.skipped++
+              continue
+            }
+          }
+
+          // Both period and lifetime quotas available - attempt to approve and route
           this.log.info(
             {
               requestId: request.id,

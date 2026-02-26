@@ -110,6 +110,8 @@ export async function getConfig(
     newUserDefaultMovieBypassApproval: Boolean(
       config.newUserDefaultMovieBypassApproval ?? false,
     ),
+    newUserDefaultMovieLifetimeLimit:
+      config.newUserDefaultMovieLifetimeLimit ?? null,
     newUserDefaultShowQuotaEnabled: Boolean(
       config.newUserDefaultShowQuotaEnabled ?? false,
     ),
@@ -119,6 +121,8 @@ export async function getConfig(
     newUserDefaultShowBypassApproval: Boolean(
       config.newUserDefaultShowBypassApproval ?? false,
     ),
+    newUserDefaultShowLifetimeLimit:
+      config.newUserDefaultShowLifetimeLimit ?? null,
     // Handle optional RSS fields
     selfRss: config.selfRss || undefined,
     friendsRss: config.friendsRss || undefined,
@@ -374,6 +378,8 @@ export async function createConfig(
       newUserDefaultMovieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
       newUserDefaultMovieBypassApproval:
         config.newUserDefaultMovieBypassApproval ?? false,
+      newUserDefaultMovieLifetimeLimit:
+        config.newUserDefaultMovieLifetimeLimit ?? null,
       newUserDefaultShowQuotaEnabled:
         config.newUserDefaultShowQuotaEnabled ?? false,
       newUserDefaultShowQuotaType:
@@ -381,6 +387,8 @@ export async function createConfig(
       newUserDefaultShowQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
       newUserDefaultShowBypassApproval:
         config.newUserDefaultShowBypassApproval ?? false,
+      newUserDefaultShowLifetimeLimit:
+        config.newUserDefaultShowLifetimeLimit ?? null,
       // TMDB configuration
       tmdbRegion: config.tmdbRegion || 'US',
       // Ready state
@@ -524,10 +532,12 @@ const ALLOWED_COLUMNS = new Set([
   'newUserDefaultMovieQuotaType',
   'newUserDefaultMovieQuotaLimit',
   'newUserDefaultMovieBypassApproval',
+  'newUserDefaultMovieLifetimeLimit',
   'newUserDefaultShowQuotaEnabled',
   'newUserDefaultShowQuotaType',
   'newUserDefaultShowQuotaLimit',
   'newUserDefaultShowBypassApproval',
+  'newUserDefaultShowLifetimeLimit',
 
   // TMDB configuration
   'tmdbRegion',

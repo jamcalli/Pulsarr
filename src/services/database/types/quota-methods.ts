@@ -95,6 +95,17 @@ declare module '@services/database.service.js' {
     ): Promise<number>
 
     /**
+     * Returns lifetime usage count (approved + auto_approved approval records)
+     * @param userId - User ID
+     * @param contentType - Content type (movie or show)
+     * @returns Promise resolving to the count of approved/auto_approved records
+     */
+    getLifetimeUsage(
+      userId: number,
+      contentType: 'movie' | 'show',
+    ): Promise<number>
+
+    /**
      * Gets quota status for a user including current usage and limits
      * @param userId - User ID
      * @param contentType - Content type (movie or show)
@@ -250,12 +261,14 @@ declare module '@services/database.service.js' {
         quotaType?: QuotaType
         quotaLimit?: number
         bypassApproval?: boolean
+        lifetimeLimit?: number | null
       },
       showQuota?: {
         enabled: boolean
         quotaType?: QuotaType
         quotaLimit?: number
         bypassApproval?: boolean
+        lifetimeLimit?: number | null
       },
     ): Promise<{ processedCount: number; failedIds: number[] }>
 
@@ -278,7 +291,13 @@ declare module '@services/database.service.js' {
       contentType: 'movie' | 'show',
       quotaType: QuotaType,
       quotaLimit: number,
+      lifetimeLimit?: number | null,
       requestDate?: Date,
-    ): Promise<{ consumed: boolean; currentUsage: number }>
+    ): Promise<{
+      consumed: boolean
+      currentUsage: number
+      lifetimeExceeded?: boolean
+      lifetimeUsage?: number
+    }>
   }
 }

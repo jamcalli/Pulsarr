@@ -2,75 +2,176 @@ import type { UpdateSeparateQuotasSchema } from '@root/schemas/quota/quota.schem
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema'
 import { z } from 'zod'
 
-// Form schema derived from backend schema to avoid drift
-// Flattens the nested UpdateSeparateQuotasSchema for better UX
+// Shared quota field definitions to avoid duplication between single and bulk forms
+const quotaLimitField = z
+  .number()
+  .min(1, { error: 'Must be at least 1' })
+  .max(1000, { error: 'Must be 1000 or less' })
+  .optional()
+
+const lifetimeLimitField = z
+  .number()
+  .min(1, { error: 'Must be at least 1' })
+  .optional()
+
+// Shared per-content-type quota fields
+const contentTypeQuotaFields = {
+  quotaType: QuotaTypeSchema.optional(),
+  quotaLimit: quotaLimitField,
+  bypassApproval: z.boolean(),
+  hasLifetimeLimit: z.boolean(),
+  lifetimeLimit: lifetimeLimitField,
+}
+
+// Shared validation for lifetime limits
+export function validateLifetimeLimit(
+  hasLimit: boolean,
+  limit: number | null | undefined,
+  contentType: string,
+  ctx: z.RefinementCtx,
+) {
+  if (!hasLimit) return
+  if (limit == null) {
+    ctx.addIssue({
+      code: 'custom',
+      message: `${contentType} lifetime limit is required when enabled`,
+      path: [`${contentType.toLowerCase()}LifetimeLimit`],
+    })
+  } else if (limit < 1) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Must be at least 1',
+      path: [`${contentType.toLowerCase()}LifetimeLimit`],
+    })
+  }
+}
+
+function validatePeriodQuota(
+  hasQuota: boolean,
+  quotaType: string | undefined,
+  quotaLimit: number | undefined,
+  contentType: string,
+  ctx: z.RefinementCtx,
+) {
+  if (!hasQuota) return
+  if (!quotaType) {
+    ctx.addIssue({
+      code: 'custom',
+      message: `${contentType} quota type is required when ${contentType.toLowerCase()} quota is enabled`,
+      path: [`${contentType.toLowerCase()}QuotaType`],
+    })
+  }
+  if (quotaLimit == null) {
+    ctx.addIssue({
+      code: 'custom',
+      message: `${contentType} quota limit is required when ${contentType.toLowerCase()} quota is enabled`,
+      path: [`${contentType.toLowerCase()}QuotaLimit`],
+    })
+  } else if (quotaLimit < 1) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Must be at least 1',
+      path: [`${contentType.toLowerCase()}QuotaLimit`],
+    })
+  }
+}
+
+// Single-user quota form schema
+// Flattens the nested UpdateSeparateQuotasSchema for better form UX
 export const QuotaFormSchema = z
   .object({
     hasMovieQuota: z.boolean(),
-    movieQuotaType: QuotaTypeSchema.optional(),
-    movieQuotaLimit: z.coerce
-      .number()
-      .min(1, { error: 'Must be at least 1' })
-      .max(1000, { error: 'Must be 1000 or less' })
-      .optional(),
-    movieBypassApproval: z.boolean(),
+    movieQuotaType: contentTypeQuotaFields.quotaType,
+    movieQuotaLimit: contentTypeQuotaFields.quotaLimit,
+    movieBypassApproval: contentTypeQuotaFields.bypassApproval,
+    hasMovieLifetimeLimit: contentTypeQuotaFields.hasLifetimeLimit,
+    movieLifetimeLimit: contentTypeQuotaFields.lifetimeLimit,
 
     hasShowQuota: z.boolean(),
-    showQuotaType: QuotaTypeSchema.optional(),
-    showQuotaLimit: z.coerce
-      .number()
-      .min(1, { error: 'Must be at least 1' })
-      .max(1000, { error: 'Must be 1000 or less' })
-      .optional(),
-    showBypassApproval: z.boolean(),
+    showQuotaType: contentTypeQuotaFields.quotaType,
+    showQuotaLimit: contentTypeQuotaFields.quotaLimit,
+    showBypassApproval: contentTypeQuotaFields.bypassApproval,
+    hasShowLifetimeLimit: contentTypeQuotaFields.hasLifetimeLimit,
+    showLifetimeLimit: contentTypeQuotaFields.lifetimeLimit,
   })
   .superRefine((data, ctx) => {
-    if (data.hasMovieQuota) {
-      if (!data.movieQuotaType) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Movie quota type is required when movie quota is enabled',
-          path: ['movieQuotaType'],
-        })
-      }
-      if (data.movieQuotaLimit == null) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Movie quota limit is required when movie quota is enabled',
-          path: ['movieQuotaLimit'],
-        })
-      } else if (data.movieQuotaLimit < 1) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Must be at least 1',
-          path: ['movieQuotaLimit'],
-        })
-      }
-    }
-    if (data.hasShowQuota) {
-      if (!data.showQuotaType) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Show quota type is required when show quota is enabled',
-          path: ['showQuotaType'],
-        })
-      }
-      if (data.showQuotaLimit == null) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Show quota limit is required when show quota is enabled',
-          path: ['showQuotaLimit'],
-        })
-      } else if (data.showQuotaLimit < 1) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Must be at least 1',
-          path: ['showQuotaLimit'],
-        })
-      }
-    }
+    validatePeriodQuota(
+      data.hasMovieQuota,
+      data.movieQuotaType,
+      data.movieQuotaLimit,
+      'Movie',
+      ctx,
+    )
+    validateLifetimeLimit(
+      data.hasMovieLifetimeLimit,
+      data.movieLifetimeLimit,
+      'Movie',
+      ctx,
+    )
+    validatePeriodQuota(
+      data.hasShowQuota,
+      data.showQuotaType,
+      data.showQuotaLimit,
+      'Show',
+      ctx,
+    )
+    validateLifetimeLimit(
+      data.hasShowLifetimeLimit,
+      data.showLifetimeLimit,
+      'Show',
+      ctx,
+    )
   })
 
+// Bulk quota form schema
+export const BulkQuotaFormSchema = z
+  .object({
+    clearQuotas: z.boolean(),
+
+    setMovieQuota: z.boolean(),
+    movieQuotaType: contentTypeQuotaFields.quotaType,
+    movieQuotaLimit: contentTypeQuotaFields.quotaLimit,
+    movieBypassApproval: contentTypeQuotaFields.bypassApproval,
+    hasMovieLifetimeLimit: contentTypeQuotaFields.hasLifetimeLimit,
+    movieLifetimeLimit: contentTypeQuotaFields.lifetimeLimit,
+
+    setShowQuota: z.boolean(),
+    showQuotaType: contentTypeQuotaFields.quotaType,
+    showQuotaLimit: contentTypeQuotaFields.quotaLimit,
+    showBypassApproval: contentTypeQuotaFields.bypassApproval,
+    hasShowLifetimeLimit: contentTypeQuotaFields.hasLifetimeLimit,
+    showLifetimeLimit: contentTypeQuotaFields.lifetimeLimit,
+  })
+  .superRefine((data, ctx) => {
+    validatePeriodQuota(
+      data.setMovieQuota,
+      data.movieQuotaType,
+      data.movieQuotaLimit,
+      'Movie',
+      ctx,
+    )
+    validateLifetimeLimit(
+      data.setMovieQuota && data.hasMovieLifetimeLimit,
+      data.movieLifetimeLimit,
+      'Movie',
+      ctx,
+    )
+    validatePeriodQuota(
+      data.setShowQuota,
+      data.showQuotaType,
+      data.showQuotaLimit,
+      'Show',
+      ctx,
+    )
+    validateLifetimeLimit(
+      data.setShowQuota && data.hasShowLifetimeLimit,
+      data.showLifetimeLimit,
+      'Show',
+      ctx,
+    )
+  })
+
+// Shared status type for both single and bulk quota operations
 export interface QuotaEditStatus {
   type: 'idle' | 'loading' | 'success' | 'error'
   message?: string
@@ -78,16 +179,11 @@ export interface QuotaEditStatus {
 
 export type QuotaFormValues = z.input<typeof QuotaFormSchema>
 export type QuotaFormData = z.infer<typeof QuotaFormSchema>
+export type BulkQuotaFormValues = z.input<typeof BulkQuotaFormSchema>
+export type BulkQuotaFormData = z.infer<typeof BulkQuotaFormSchema>
 
 /**
  * Convert flattened quota form data into the backend `UpdateSeparateQuotasSchema` shape.
- *
- * Maps the form's boolean flags and optional fields for movie and show quotas into
- * the corresponding API payload: each quota becomes `{ enabled: false }` when disabled,
- * or `{ enabled: true, quotaType, quotaLimit, bypassApproval }` when enabled.
- *
- * @param formData - Parsed form values from `QuotaFormSchema`.
- * @returns The payload conforming to `UpdateSeparateQuotasSchema` for updating separate quotas.
  */
 export function transformQuotaFormToAPI(
   formData: QuotaFormData,
@@ -101,6 +197,9 @@ export function transformQuotaFormToAPI(
       quotaType: formData.movieQuotaType,
       quotaLimit: formData.movieQuotaLimit,
       bypassApproval: formData.movieBypassApproval,
+      lifetimeLimit: formData.hasMovieLifetimeLimit
+        ? formData.movieLifetimeLimit
+        : null,
     }
   } else {
     result.movieQuota = { enabled: false }
@@ -113,6 +212,9 @@ export function transformQuotaFormToAPI(
       quotaType: formData.showQuotaType,
       quotaLimit: formData.showQuotaLimit,
       bypassApproval: formData.showBypassApproval,
+      lifetimeLimit: formData.hasShowLifetimeLimit
+        ? formData.showLifetimeLimit
+        : null,
     }
   } else {
     result.showQuota = { enabled: false }

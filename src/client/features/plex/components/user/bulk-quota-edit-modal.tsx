@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertTriangle, Check, Loader2 } from 'lucide-react'
 import React, { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
+import type { z } from 'zod'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -37,60 +37,12 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
+import {
+  BulkQuotaFormSchema,
+  type QuotaEditStatus,
+} from '@/features/plex/quota/form-schema'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { useMediaQuery } from '@/hooks/use-media-query'
-
-// Form schema for bulk quota configuration
-export const BulkQuotaFormSchema = z
-  .object({
-    // Clear quotas
-    clearQuotas: z.boolean(),
-
-    // Movie quota settings
-    setMovieQuota: z.boolean(),
-    movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-    movieQuotaLimit: z
-      .number()
-      .min(1, { error: 'Must be at least 1' })
-      .max(1000, { error: 'Must be 1000 or less' })
-      .optional(),
-    movieBypassApproval: z.boolean(),
-
-    // Show quota settings
-    setShowQuota: z.boolean(),
-    showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-    showQuotaLimit: z
-      .number()
-      .min(1, { error: 'Must be at least 1' })
-      .max(1000, { error: 'Must be 1000 or less' })
-      .optional(),
-    showBypassApproval: z.boolean(),
-  })
-  .refine(
-    (data) => {
-      // Validate movie quota limit when movie quota is enabled
-      if (
-        data.setMovieQuota &&
-        data.movieQuotaLimit !== undefined &&
-        data.movieQuotaLimit < 1
-      ) {
-        return false
-      }
-      // Validate show quota limit when show quota is enabled
-      if (
-        data.setShowQuota &&
-        data.showQuotaLimit !== undefined &&
-        data.showQuotaLimit < 1
-      ) {
-        return false
-      }
-      return true
-    },
-    {
-      message: 'Quota limits must be at least 1 when quotas are enabled',
-      path: ['movieQuotaLimit'], // This could be dynamic, but for now just use one path
-    },
-  )
 
 interface QuotaSectionProps {
   contentType: 'movie' | 'show'
@@ -105,6 +57,11 @@ const QuotaSection = React.memo(
     const capitalizedType =
       contentType.charAt(0).toUpperCase() + contentType.slice(1)
     const fieldPrefix = contentType as 'movie' | 'show'
+    const hasLifetimeLimit = form.watch(
+      `has${capitalizedType}LifetimeLimit` as keyof z.input<
+        typeof BulkQuotaFormSchema
+      >,
+    )
 
     return (
       <div className="space-y-4 border-l-2 pl-4" style={colorStyle}>
@@ -236,6 +193,65 @@ const QuotaSection = React.memo(
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name={
+                `has${capitalizedType}LifetimeLimit` as keyof z.input<
+                  typeof BulkQuotaFormSchema
+                >
+              }
+              render={({ field }) => (
+                <FormItem className="flex flex-col justify-end h-full">
+                  <div className="flex items-center space-x-2">
+                    <FormControl>
+                      <Switch
+                        checked={field.value as boolean}
+                        onCheckedChange={field.onChange}
+                        disabled={disabled}
+                      />
+                    </FormControl>
+                    <div className="flex items-center">
+                      <FormLabel className="text-foreground m-0">
+                        Lifetime Limit
+                      </FormLabel>
+                    </div>
+                  </div>
+                  <div className="mb-2" />
+                </FormItem>
+              )}
+            />
+
+            {hasLifetimeLimit && (
+              <FormField
+                control={form.control}
+                name={
+                  `${fieldPrefix}LifetimeLimit` as keyof z.input<
+                    typeof BulkQuotaFormSchema
+                  >
+                }
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-foreground">
+                      {capitalizedType} Lifetime Limit
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="100"
+                        min="1"
+                        disabled={disabled}
+                        value={field.value as number | undefined}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </div>
         )}
       </div>
@@ -245,16 +261,11 @@ const QuotaSection = React.memo(
 
 QuotaSection.displayName = 'QuotaSection'
 
-export interface BulkQuotaEditStatus {
-  type: 'idle' | 'loading' | 'success' | 'error'
-  message?: string
-}
-
 interface FormContentProps {
   form: ReturnType<typeof useForm<z.input<typeof BulkQuotaFormSchema>>>
   handleSubmit: (values: z.input<typeof BulkQuotaFormSchema>) => Promise<void>
   handleOpenChange: (open: boolean) => void
-  saveStatus: BulkQuotaEditStatus
+  saveStatus: QuotaEditStatus
   isFormDirty: boolean
   selectedCount: number
 }
@@ -417,7 +428,7 @@ interface BulkQuotaEditModalProps {
   onOpenChange: (open: boolean) => void
   selectedRows: PlexUserTableRow[]
   onSave: (formData: z.input<typeof BulkQuotaFormSchema>) => Promise<void>
-  saveStatus: BulkQuotaEditStatus
+  saveStatus: QuotaEditStatus
 }
 
 /**
@@ -450,10 +461,14 @@ export function BulkQuotaEditModal({
       movieQuotaType: 'monthly',
       movieQuotaLimit: 10,
       movieBypassApproval: false,
+      hasMovieLifetimeLimit: false,
+      movieLifetimeLimit: undefined,
       setShowQuota: false,
       showQuotaType: 'monthly',
       showQuotaLimit: 10,
       showBypassApproval: false,
+      hasShowLifetimeLimit: false,
+      showLifetimeLimit: undefined,
     },
   })
 
