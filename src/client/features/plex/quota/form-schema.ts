@@ -24,9 +24,9 @@ const contentTypeQuotaFields = {
 }
 
 // Shared validation for lifetime limits
-function validateLifetimeLimit(
+export function validateLifetimeLimit(
   hasLimit: boolean,
-  limit: number | undefined,
+  limit: number | null | undefined,
   contentType: string,
   ctx: z.RefinementCtx,
 ) {

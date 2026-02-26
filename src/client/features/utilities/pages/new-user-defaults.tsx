@@ -29,26 +29,42 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { validateLifetimeLimit } from '@/features/plex/quota/form-schema'
 import { NewUserDefaultsPageSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-page-skeleton'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useConfigStore } from '@/stores/configStore'
 
-const newUserDefaultsSchema = z.object({
-  canSync: z.boolean(),
-  requiresApproval: z.boolean(),
-  movieQuotaEnabled: z.boolean(),
-  movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
-  movieQuotaLimit: z.number().min(1).max(1000),
-  movieBypassApproval: z.boolean(),
-  movieLifetimeLimitEnabled: z.boolean(),
-  movieLifetimeLimit: z.number().min(1).nullable(),
-  showQuotaEnabled: z.boolean(),
-  showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
-  showQuotaLimit: z.number().min(1).max(1000),
-  showBypassApproval: z.boolean(),
-  showLifetimeLimitEnabled: z.boolean(),
-  showLifetimeLimit: z.number().min(1).nullable(),
-})
+const newUserDefaultsSchema = z
+  .object({
+    canSync: z.boolean(),
+    requiresApproval: z.boolean(),
+    movieQuotaEnabled: z.boolean(),
+    movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
+    movieQuotaLimit: z.number().min(1).max(1000),
+    movieBypassApproval: z.boolean(),
+    movieLifetimeLimitEnabled: z.boolean(),
+    movieLifetimeLimit: z.number().min(1).nullable(),
+    showQuotaEnabled: z.boolean(),
+    showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
+    showQuotaLimit: z.number().min(1).max(1000),
+    showBypassApproval: z.boolean(),
+    showLifetimeLimitEnabled: z.boolean(),
+    showLifetimeLimit: z.number().min(1).nullable(),
+  })
+  .superRefine((data, ctx) => {
+    validateLifetimeLimit(
+      data.movieLifetimeLimitEnabled,
+      data.movieLifetimeLimit,
+      'Movie',
+      ctx,
+    )
+    validateLifetimeLimit(
+      data.showLifetimeLimitEnabled,
+      data.showLifetimeLimit,
+      'Show',
+      ctx,
+    )
+  })
 
 type NewUserDefaultsFormData = z.infer<typeof newUserDefaultsSchema>
 
