@@ -43,6 +43,204 @@ import {
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 
+function QuotaSectionFields({
+  contentType,
+  form,
+  disabled,
+}: {
+  contentType: 'movie' | 'show'
+  form: UseFormReturn<QuotaFormValues>
+  disabled: boolean
+}) {
+  const capitalized = contentType === 'movie' ? 'Movie' : 'Show'
+  const colorVar =
+    contentType === 'movie' ? 'var(--color-movie)' : 'var(--color-show)'
+
+  type FieldName = keyof QuotaFormValues
+  const hasQuotaField = `has${capitalized}Quota` as FieldName
+  const quotaTypeField = `${contentType}QuotaType` as FieldName
+  const quotaLimitField = `${contentType}QuotaLimit` as FieldName
+  const bypassField = `${contentType}BypassApproval` as FieldName
+  const hasLifetimeField = `has${capitalized}LifetimeLimit` as FieldName
+  const lifetimeLimitField = `${contentType}LifetimeLimit` as FieldName
+
+  const hasQuota = form.watch(hasQuotaField) as boolean
+  const hasLifetimeLimit = form.watch(hasLifetimeField) as boolean
+
+  return (
+    <div
+      className="space-y-4 border-l-2 pl-4"
+      style={{ borderColor: colorVar }}
+    >
+      <h4 className="font-medium text-foreground">{capitalized} Quotas</h4>
+
+      <FormField
+        control={form.control}
+        name={hasQuotaField}
+        render={({ field }) => (
+          <FormItem>
+            <div className="flex items-center justify-between">
+              <FormLabel className="text-foreground">
+                Enable {capitalized} Quota
+              </FormLabel>
+              <FormControl>
+                <Switch
+                  checked={field.value as boolean}
+                  onCheckedChange={field.onChange}
+                  disabled={disabled}
+                />
+              </FormControl>
+            </div>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {hasQuota && (
+        <>
+          <FormField
+            control={form.control}
+            name={quotaTypeField}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-foreground">
+                  {capitalized} Quota Type
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value as string}
+                  disabled={disabled}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select quota type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly_rolling">
+                      Weekly Rolling
+                    </SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name={quotaLimitField}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-foreground">
+                  {capitalized} Quota Limit
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    value={String(field.value ?? '')}
+                    type="number"
+                    placeholder="10"
+                    min={1}
+                    max="1000"
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value === ''
+                          ? undefined
+                          : Number(e.target.value),
+                      )
+                    }
+                    disabled={disabled}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name={bypassField}
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center justify-between">
+                  <FormLabel className="text-foreground">
+                    Auto-Approve {capitalized}s When Exceeded
+                  </FormLabel>
+                  <FormControl>
+                    <Switch
+                      checked={field.value as boolean}
+                      onCheckedChange={field.onChange}
+                      disabled={disabled}
+                    />
+                  </FormControl>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name={hasLifetimeField}
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center justify-between">
+                  <FormLabel className="text-foreground">
+                    Lifetime Limit
+                  </FormLabel>
+                  <FormControl>
+                    <Switch
+                      checked={field.value as boolean}
+                      onCheckedChange={field.onChange}
+                      disabled={disabled}
+                    />
+                  </FormControl>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {hasLifetimeLimit && (
+            <FormField
+              control={form.control}
+              name={lifetimeLimitField}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground">
+                    {capitalized} Lifetime Limit
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={String(field.value ?? '')}
+                      type="number"
+                      placeholder="100"
+                      min={1}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === ''
+                            ? undefined
+                            : Number(e.target.value),
+                        )
+                      }
+                      disabled={disabled}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 interface FormContentProps {
   form: UseFormReturn<QuotaFormValues>
   handleSubmit: (values: QuotaFormValues) => Promise<void>
@@ -59,362 +257,20 @@ const FormContent = React.memo(
     saveStatus,
     isFormDirty,
   }: FormContentProps) => {
-    const hasMovieQuota = form.watch('hasMovieQuota')
-    const hasMovieLifetimeLimit = form.watch('hasMovieLifetimeLimit')
-    const hasShowQuota = form.watch('hasShowQuota')
-    const hasShowLifetimeLimit = form.watch('hasShowLifetimeLimit')
-
     return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           <div className="space-y-4">
-            {/* Movie Quota Section */}
-            <div
-              className="space-y-4 border-l-2 pl-4"
-              style={{ borderColor: 'var(--color-movie)' }}
-            >
-              <h4 className="font-medium text-foreground">Movie Quotas</h4>
-
-              {/* Enable/Disable Movie Quota */}
-              <FormField
-                control={form.control}
-                name="hasMovieQuota"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel className="text-foreground">
-                        Enable Movie Quota
-                      </FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={saveStatus.type !== 'idle'}
-                        />
-                      </FormControl>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Movie Quota Configuration */}
-              {hasMovieQuota && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="movieQuotaType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground">
-                          Movie Quota Type
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          disabled={saveStatus.type !== 'idle'}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select quota type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="weekly_rolling">
-                              Weekly Rolling
-                            </SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="movieQuotaLimit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground">
-                          Movie Quota Limit
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            value={String(field.value ?? '')}
-                            type="number"
-                            placeholder="10"
-                            min={1}
-                            max="1000"
-                            onChange={(e) =>
-                              field.onChange(
-                                e.target.value === ''
-                                  ? undefined
-                                  : Number(e.target.value),
-                              )
-                            }
-                            disabled={saveStatus.type !== 'idle'}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="movieBypassApproval"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <FormLabel className="text-foreground">
-                            Auto-Approve Movies When Exceeded
-                          </FormLabel>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={saveStatus.type !== 'idle'}
-                            />
-                          </FormControl>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="hasMovieLifetimeLimit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <FormLabel className="text-foreground">
-                            Lifetime Limit
-                          </FormLabel>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={saveStatus.type !== 'idle'}
-                            />
-                          </FormControl>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {hasMovieLifetimeLimit && (
-                    <FormField
-                      control={form.control}
-                      name="movieLifetimeLimit"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground">
-                            Movie Lifetime Limit
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              value={String(field.value ?? '')}
-                              type="number"
-                              placeholder="100"
-                              min={1}
-                              onChange={(e) =>
-                                field.onChange(
-                                  e.target.value === ''
-                                    ? undefined
-                                    : Number(e.target.value),
-                                )
-                              }
-                              disabled={saveStatus.type !== 'idle'}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Show Quota Section */}
-            <div
-              className="space-y-4 border-l-2 pl-4"
-              style={{ borderColor: 'var(--color-show)' }}
-            >
-              <h4 className="font-medium text-foreground">Show Quotas</h4>
-
-              {/* Enable/Disable Show Quota */}
-              <FormField
-                control={form.control}
-                name="hasShowQuota"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel className="text-foreground">
-                        Enable Show Quota
-                      </FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={saveStatus.type !== 'idle'}
-                        />
-                      </FormControl>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Show Quota Configuration */}
-              {hasShowQuota && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="showQuotaType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground">
-                          Show Quota Type
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          disabled={saveStatus.type !== 'idle'}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select quota type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="weekly_rolling">
-                              Weekly Rolling
-                            </SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="showQuotaLimit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground">
-                          Show Quota Limit
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            value={String(field.value ?? '')}
-                            type="number"
-                            placeholder="10"
-                            min={1}
-                            max="1000"
-                            onChange={(e) =>
-                              field.onChange(
-                                e.target.value === ''
-                                  ? undefined
-                                  : Number(e.target.value),
-                              )
-                            }
-                            disabled={saveStatus.type !== 'idle'}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="showBypassApproval"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <FormLabel className="text-foreground">
-                            Auto-Approve Shows When Exceeded
-                          </FormLabel>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={saveStatus.type !== 'idle'}
-                            />
-                          </FormControl>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="hasShowLifetimeLimit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <FormLabel className="text-foreground">
-                            Lifetime Limit
-                          </FormLabel>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={saveStatus.type !== 'idle'}
-                            />
-                          </FormControl>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {hasShowLifetimeLimit && (
-                    <FormField
-                      control={form.control}
-                      name="showLifetimeLimit"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground">
-                            Show Lifetime Limit
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              value={String(field.value ?? '')}
-                              type="number"
-                              placeholder="100"
-                              min={1}
-                              onChange={(e) =>
-                                field.onChange(
-                                  e.target.value === ''
-                                    ? undefined
-                                    : Number(e.target.value),
-                                )
-                              }
-                              disabled={saveStatus.type !== 'idle'}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </>
-              )}
-            </div>
+            <QuotaSectionFields
+              contentType="movie"
+              form={form}
+              disabled={saveStatus.type !== 'idle'}
+            />
+            <QuotaSectionFields
+              contentType="show"
+              form={form}
+              disabled={saveStatus.type !== 'idle'}
+            />
           </div>
 
           <div className="flex justify-end gap-2">

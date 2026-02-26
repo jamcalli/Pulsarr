@@ -52,6 +52,27 @@ const newUserDefaultsSchema = z.object({
 
 type NewUserDefaultsFormData = z.infer<typeof newUserDefaultsSchema>
 
+function buildFormValues(
+  config: ReturnType<typeof useConfigStore.getState>['config'],
+): NewUserDefaultsFormData {
+  return {
+    canSync: config?.newUserDefaultCanSync ?? true,
+    requiresApproval: config?.newUserDefaultRequiresApproval ?? false,
+    movieQuotaEnabled: config?.newUserDefaultMovieQuotaEnabled ?? false,
+    movieQuotaType: config?.newUserDefaultMovieQuotaType ?? 'monthly',
+    movieQuotaLimit: config?.newUserDefaultMovieQuotaLimit ?? 10,
+    movieBypassApproval: config?.newUserDefaultMovieBypassApproval ?? false,
+    movieLifetimeLimitEnabled: config?.newUserDefaultMovieLifetimeLimit != null,
+    movieLifetimeLimit: config?.newUserDefaultMovieLifetimeLimit ?? null,
+    showQuotaEnabled: config?.newUserDefaultShowQuotaEnabled ?? false,
+    showQuotaType: config?.newUserDefaultShowQuotaType ?? 'monthly',
+    showQuotaLimit: config?.newUserDefaultShowQuotaLimit ?? 10,
+    showBypassApproval: config?.newUserDefaultShowBypassApproval ?? false,
+    showLifetimeLimitEnabled: config?.newUserDefaultShowLifetimeLimit != null,
+    showLifetimeLimit: config?.newUserDefaultShowLifetimeLimit ?? null,
+  }
+}
+
 /**
  * Displays an administrative page for configuring default settings applied to newly discovered Plex users.
  *
@@ -65,23 +86,7 @@ export default function NewUserDefaultsPage() {
 
   const form = useForm<NewUserDefaultsFormData>({
     resolver: zodResolver(newUserDefaultsSchema),
-    defaultValues: {
-      canSync: config?.newUserDefaultCanSync ?? true,
-      requiresApproval: config?.newUserDefaultRequiresApproval ?? false,
-      movieQuotaEnabled: config?.newUserDefaultMovieQuotaEnabled ?? false,
-      movieQuotaType: config?.newUserDefaultMovieQuotaType ?? 'monthly',
-      movieQuotaLimit: config?.newUserDefaultMovieQuotaLimit ?? 10,
-      movieBypassApproval: config?.newUserDefaultMovieBypassApproval ?? false,
-      movieLifetimeLimitEnabled:
-        config?.newUserDefaultMovieLifetimeLimit != null,
-      movieLifetimeLimit: config?.newUserDefaultMovieLifetimeLimit ?? null,
-      showQuotaEnabled: config?.newUserDefaultShowQuotaEnabled ?? false,
-      showQuotaType: config?.newUserDefaultShowQuotaType ?? 'monthly',
-      showQuotaLimit: config?.newUserDefaultShowQuotaLimit ?? 10,
-      showBypassApproval: config?.newUserDefaultShowBypassApproval ?? false,
-      showLifetimeLimitEnabled: config?.newUserDefaultShowLifetimeLimit != null,
-      showLifetimeLimit: config?.newUserDefaultShowLifetimeLimit ?? null,
-    },
+    defaultValues: buildFormValues(config),
   })
 
   // Watch form values for dynamic UI updates
@@ -94,25 +99,7 @@ export default function NewUserDefaultsPage() {
   // Reset form when config changes
   useEffect(() => {
     if (config) {
-      const formValues = {
-        canSync: config.newUserDefaultCanSync ?? true,
-        requiresApproval: config.newUserDefaultRequiresApproval ?? false,
-        movieQuotaEnabled: config.newUserDefaultMovieQuotaEnabled ?? false,
-        movieQuotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
-        movieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
-        movieBypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
-        movieLifetimeLimitEnabled:
-          config.newUserDefaultMovieLifetimeLimit != null,
-        movieLifetimeLimit: config.newUserDefaultMovieLifetimeLimit ?? null,
-        showQuotaEnabled: config.newUserDefaultShowQuotaEnabled ?? false,
-        showQuotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
-        showQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
-        showBypassApproval: config.newUserDefaultShowBypassApproval ?? false,
-        showLifetimeLimitEnabled:
-          config.newUserDefaultShowLifetimeLimit != null,
-        showLifetimeLimit: config.newUserDefaultShowLifetimeLimit ?? null,
-      }
-      form.reset(formValues)
+      form.reset(buildFormValues(config))
     }
   }, [config, form])
 
@@ -157,26 +144,8 @@ export default function NewUserDefaultsPage() {
   }
 
   const handleCancel = () => {
-    // Reset form to last saved values from config store
     if (config) {
-      form.reset({
-        canSync: config.newUserDefaultCanSync ?? true,
-        requiresApproval: config.newUserDefaultRequiresApproval ?? false,
-        movieQuotaEnabled: config.newUserDefaultMovieQuotaEnabled ?? false,
-        movieQuotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
-        movieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
-        movieBypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
-        movieLifetimeLimitEnabled:
-          config.newUserDefaultMovieLifetimeLimit != null,
-        movieLifetimeLimit: config.newUserDefaultMovieLifetimeLimit ?? null,
-        showQuotaEnabled: config.newUserDefaultShowQuotaEnabled ?? false,
-        showQuotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
-        showQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
-        showBypassApproval: config.newUserDefaultShowBypassApproval ?? false,
-        showLifetimeLimitEnabled:
-          config.newUserDefaultShowLifetimeLimit != null,
-        showLifetimeLimit: config.newUserDefaultShowLifetimeLimit ?? null,
-      })
+      form.reset(buildFormValues(config))
     }
   }
 

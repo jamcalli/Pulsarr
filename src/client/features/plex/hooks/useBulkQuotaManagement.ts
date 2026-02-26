@@ -30,6 +30,29 @@ const formatSuccessMessage = (
     : baseMessage
 }
 
+function buildQuotaPayload(
+  shouldSet: boolean,
+  quotaType: BulkQuotaFormData['movieQuotaType'],
+  quotaLimit: BulkQuotaFormData['movieQuotaLimit'],
+  bypassApproval: boolean,
+  hasLifetimeLimit: boolean,
+  lifetimeLimit: BulkQuotaFormData['movieLifetimeLimit'],
+): BulkQuotaOperation['movieQuota'] {
+  if (shouldSet && quotaType && quotaLimit) {
+    return {
+      enabled: true,
+      quotaType,
+      quotaLimit,
+      bypassApproval,
+      lifetimeLimit: hasLifetimeLimit ? lifetimeLimit : null,
+    }
+  }
+  if (!shouldSet) {
+    return { enabled: false }
+  }
+  return undefined
+}
+
 /**
  * React hook for performing bulk quota operations on multiple users, including clearing quotas or updating movie/show quota settings.
  *
@@ -74,47 +97,22 @@ export function useBulkQuotaManagement() {
         operation: 'update',
       }
 
-      // Handle movie quota
-      if (
-        formData.setMovieQuota &&
-        formData.movieQuotaType &&
-        formData.movieQuotaLimit
-      ) {
-        bulkQuotaData.movieQuota = {
-          enabled: true,
-          quotaType: formData.movieQuotaType,
-          quotaLimit: formData.movieQuotaLimit,
-          bypassApproval: formData.movieBypassApproval,
-          lifetimeLimit: formData.hasMovieLifetimeLimit
-            ? formData.movieLifetimeLimit
-            : null,
-        }
-      } else if (!formData.setMovieQuota) {
-        bulkQuotaData.movieQuota = {
-          enabled: false,
-        }
-      }
-
-      // Handle show quota
-      if (
-        formData.setShowQuota &&
-        formData.showQuotaType &&
-        formData.showQuotaLimit
-      ) {
-        bulkQuotaData.showQuota = {
-          enabled: true,
-          quotaType: formData.showQuotaType,
-          quotaLimit: formData.showQuotaLimit,
-          bypassApproval: formData.showBypassApproval,
-          lifetimeLimit: formData.hasShowLifetimeLimit
-            ? formData.showLifetimeLimit
-            : null,
-        }
-      } else if (!formData.setShowQuota) {
-        bulkQuotaData.showQuota = {
-          enabled: false,
-        }
-      }
+      bulkQuotaData.movieQuota = buildQuotaPayload(
+        formData.setMovieQuota,
+        formData.movieQuotaType,
+        formData.movieQuotaLimit,
+        formData.movieBypassApproval,
+        formData.hasMovieLifetimeLimit,
+        formData.movieLifetimeLimit,
+      )
+      bulkQuotaData.showQuota = buildQuotaPayload(
+        formData.setShowQuota,
+        formData.showQuotaType,
+        formData.showQuotaLimit,
+        formData.showBypassApproval,
+        formData.hasShowLifetimeLimit,
+        formData.showLifetimeLimit,
+      )
 
       const response = await fetch(api('/v1/quota/users/bulk'), {
         method: 'PATCH',

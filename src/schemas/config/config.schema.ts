@@ -124,6 +124,20 @@ const DeleteSyncTagRegexSchema = z
     },
   )
 
+const TagMigrationEntrySchema = z.object({
+  completed: z.boolean(),
+  migratedAt: z.string(),
+  tagsMigrated: z.number(),
+  contentUpdated: z.number(),
+})
+
+const TagMigrationSchema = z
+  .object({
+    radarr: z.object({}).catchall(TagMigrationEntrySchema),
+    sonarr: z.object({}).catchall(TagMigrationEntrySchema),
+  })
+  .optional()
+
 // Schema for complete config (GET responses) - matches exactly what getConfig() returns
 export const ConfigFullSchema = z.object({
   // System identifiers and timestamps
@@ -208,26 +222,7 @@ export const ConfigFullSchema = z.object({
   removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
   removedTagPrefix: z.string(),
   // Tag Migration Configuration
-  tagMigration: z
-    .object({
-      radarr: z.object({}).catchall(
-        z.object({
-          completed: z.boolean(),
-          migratedAt: z.string(),
-          tagsMigrated: z.number(),
-          contentUpdated: z.number(),
-        }),
-      ),
-      sonarr: z.object({}).catchall(
-        z.object({
-          completed: z.boolean(),
-          migratedAt: z.string(),
-          tagsMigrated: z.number(),
-          contentUpdated: z.number(),
-        }),
-      ),
-    })
-    .optional(),
+  tagMigration: TagMigrationSchema,
   // Plex Session Monitoring
   plexSessionMonitoring: z
     .object({
@@ -489,26 +484,7 @@ export const ConfigUpdateSchema = z
     cleanupOrphanedTags: z.boolean().optional(),
     tagPrefix: TagPrefixSchema.optional(),
     // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
-    tagMigration: z
-      .object({
-        radarr: z.object({}).catchall(
-          z.object({
-            completed: z.boolean(),
-            migratedAt: z.string(),
-            tagsMigrated: z.number(),
-            contentUpdated: z.number(),
-          }),
-        ),
-        sonarr: z.object({}).catchall(
-          z.object({
-            completed: z.boolean(),
-            migratedAt: z.string(),
-            tagsMigrated: z.number(),
-            contentUpdated: z.number(),
-          }),
-        ),
-      })
-      .optional(),
+    tagMigration: TagMigrationSchema,
   })
   .strict()
 

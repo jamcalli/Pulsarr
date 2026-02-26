@@ -2,7 +2,21 @@ import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { z } from 'zod'
 
-// Base enums
+// Shared quota field definitions
+const QuotaFieldsSchema = z.object({
+  quotaType: QuotaTypeSchema.optional(),
+  quotaLimit: z.number().min(1).optional(),
+  bypassApproval: z.boolean().optional(),
+  lifetimeLimit: z.number().min(1).nullable().optional(),
+})
+
+const EnabledQuotaSchema = QuotaFieldsSchema.extend({
+  enabled: z.boolean(),
+})
+
+const EnabledQuotaCappedSchema = EnabledQuotaSchema.extend({
+  quotaLimit: z.number().min(1).max(1000).optional(),
+})
 
 // User quota schemas
 export const CreateUserQuotaSchema = z.object({
@@ -13,42 +27,17 @@ export const CreateUserQuotaSchema = z.object({
   lifetimeLimit: z.number().min(1).nullable().optional(),
 })
 
-export const UpdateUserQuotaSchema = z.object({
-  quotaType: QuotaTypeSchema.optional(),
-  quotaLimit: z.number().min(1).optional(),
-  bypassApproval: z.boolean().optional(),
-  lifetimeLimit: z.number().min(1).nullable().optional(),
-})
+export const UpdateUserQuotaSchema = QuotaFieldsSchema
 
 // Schema for updating specific content type quota
-export const UpdateSpecificQuotaSchema = z.object({
+export const UpdateSpecificQuotaSchema = QuotaFieldsSchema.extend({
   contentType: z.enum(['movie', 'show']),
-  quotaType: QuotaTypeSchema.optional(),
-  quotaLimit: z.number().min(1).optional(),
-  bypassApproval: z.boolean().optional(),
-  lifetimeLimit: z.number().min(1).nullable().optional(),
 })
 
 // Schema for updating separate movie and show quotas
 export const UpdateSeparateQuotasSchema = z.object({
-  movieQuota: z
-    .object({
-      enabled: z.boolean(),
-      quotaType: QuotaTypeSchema.optional(),
-      quotaLimit: z.number().min(1).optional(),
-      bypassApproval: z.boolean().optional(),
-      lifetimeLimit: z.number().min(1).nullable().optional(),
-    })
-    .optional(),
-  showQuota: z
-    .object({
-      enabled: z.boolean(),
-      quotaType: QuotaTypeSchema.optional(),
-      quotaLimit: z.number().min(1).optional(),
-      bypassApproval: z.boolean().optional(),
-      lifetimeLimit: z.number().min(1).nullable().optional(),
-    })
-    .optional(),
+  movieQuota: EnabledQuotaSchema.optional(),
+  showQuota: EnabledQuotaSchema.optional(),
 })
 
 export const UserQuotaResponseSchema = z.object({
@@ -176,24 +165,8 @@ export const QuotaSuccessResponseSchema = z.object({
 export const BulkQuotaOperationSchema = z.object({
   userIds: z.array(z.number()).min(1).max(100),
   operation: z.enum(['update', 'delete']),
-  movieQuota: z
-    .object({
-      enabled: z.boolean(),
-      quotaType: QuotaTypeSchema.optional(),
-      quotaLimit: z.number().min(1).max(1000).optional(),
-      bypassApproval: z.boolean().optional(),
-      lifetimeLimit: z.number().min(1).nullable().optional(),
-    })
-    .optional(),
-  showQuota: z
-    .object({
-      enabled: z.boolean(),
-      quotaType: QuotaTypeSchema.optional(),
-      quotaLimit: z.number().min(1).max(1000).optional(),
-      bypassApproval: z.boolean().optional(),
-      lifetimeLimit: z.number().min(1).nullable().optional(),
-    })
-    .optional(),
+  movieQuota: EnabledQuotaCappedSchema.optional(),
+  showQuota: EnabledQuotaCappedSchema.optional(),
 })
 
 export const BulkQuotaOperationResponseSchema = z.object({

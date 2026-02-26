@@ -142,29 +142,34 @@ export const BulkQuotaFormSchema = z
     hasShowLifetimeLimit: contentTypeQuotaFields.hasLifetimeLimit,
     showLifetimeLimit: contentTypeQuotaFields.lifetimeLimit,
   })
-  .refine(
-    (data) => {
-      if (
-        data.setMovieQuota &&
-        data.movieQuotaLimit !== undefined &&
-        data.movieQuotaLimit < 1
-      ) {
-        return false
-      }
-      if (
-        data.setShowQuota &&
-        data.showQuotaLimit !== undefined &&
-        data.showQuotaLimit < 1
-      ) {
-        return false
-      }
-      return true
-    },
-    {
-      message: 'Quota limits must be at least 1 when quotas are enabled',
-      path: ['movieQuotaLimit'],
-    },
-  )
+  .superRefine((data, ctx) => {
+    validatePeriodQuota(
+      data.setMovieQuota,
+      data.movieQuotaType,
+      data.movieQuotaLimit,
+      'Movie',
+      ctx,
+    )
+    validateLifetimeLimit(
+      data.setMovieQuota && data.hasMovieLifetimeLimit,
+      data.movieLifetimeLimit,
+      'Movie',
+      ctx,
+    )
+    validatePeriodQuota(
+      data.setShowQuota,
+      data.showQuotaType,
+      data.showQuotaLimit,
+      'Show',
+      ctx,
+    )
+    validateLifetimeLimit(
+      data.setShowQuota && data.hasShowLifetimeLimit,
+      data.showLifetimeLimit,
+      'Show',
+      ctx,
+    )
+  })
 
 // Shared status type for both single and bulk quota operations
 export interface QuotaEditStatus {

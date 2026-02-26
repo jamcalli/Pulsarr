@@ -12,7 +12,7 @@ interface QuotaStatusBadgeProps {
   userQuotas?: UserQuotas | null
 }
 
-const QUOTA_TYPE_SHORT: Record<string, string> = {
+const QUOTA_TYPE_SHORT: Partial<Record<string, string>> = {
   daily: 'daily',
   weekly_rolling: 'weekly',
   monthly: 'monthly',
