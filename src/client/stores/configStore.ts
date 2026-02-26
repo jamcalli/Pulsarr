@@ -28,6 +28,8 @@ type QuotaWithStatus = UserQuotaResponse & {
   currentUsage?: number
   exceeded?: boolean
   resetDate?: string | null
+  lifetimeUsage?: number | null
+  lifetimeExceeded?: boolean
 }
 
 // Custom type for user quotas that includes status data
@@ -322,6 +324,7 @@ export const useConfigStore = create<ConfigState>()(
                         quotaType: config.quotaType,
                         quotaLimit: config.quotaLimit,
                         bypassApproval: config.bypassApproval,
+                        lifetimeLimit: config.lifetimeLimit,
                       }
                     } else if (config.contentType === 'show') {
                       userConfigs.showQuota = {
@@ -330,6 +333,7 @@ export const useConfigStore = create<ConfigState>()(
                         quotaType: config.quotaType,
                         quotaLimit: config.quotaLimit,
                         bypassApproval: config.bypassApproval,
+                        lifetimeLimit: config.lifetimeLimit,
                       }
                     }
                   }
@@ -428,6 +432,10 @@ export const useConfigStore = create<ConfigState>()(
                   userQuotas.movieQuota.currentUsage = movieStatus.currentUsage
                   userQuotas.movieQuota.exceeded = movieStatus.exceeded
                   userQuotas.movieQuota.resetDate = movieStatus.resetDate
+                  userQuotas.movieQuota.lifetimeUsage =
+                    movieStatus.lifetimeUsage
+                  userQuotas.movieQuota.lifetimeExceeded =
+                    movieStatus.lifetimeExceeded
                 }
 
                 // Merge show quota status into showQuota object (like develop branch)
@@ -436,6 +444,9 @@ export const useConfigStore = create<ConfigState>()(
                   userQuotas.showQuota.currentUsage = showStatus.currentUsage
                   userQuotas.showQuota.exceeded = showStatus.exceeded
                   userQuotas.showQuota.resetDate = showStatus.resetDate
+                  userQuotas.showQuota.lifetimeUsage = showStatus.lifetimeUsage
+                  userQuotas.showQuota.lifetimeExceeded =
+                    showStatus.lifetimeExceeded
                 }
 
                 userQuotasMap.set(user.id, userQuotas)

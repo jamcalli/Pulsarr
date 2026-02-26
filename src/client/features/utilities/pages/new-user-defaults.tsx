@@ -40,10 +40,14 @@ const newUserDefaultsSchema = z.object({
   movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
   movieQuotaLimit: z.number().min(1).max(1000),
   movieBypassApproval: z.boolean(),
+  movieLifetimeLimitEnabled: z.boolean(),
+  movieLifetimeLimit: z.number().min(1).nullable(),
   showQuotaEnabled: z.boolean(),
   showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
   showQuotaLimit: z.number().min(1).max(1000),
   showBypassApproval: z.boolean(),
+  showLifetimeLimitEnabled: z.boolean(),
+  showLifetimeLimit: z.number().min(1).nullable(),
 })
 
 type NewUserDefaultsFormData = z.infer<typeof newUserDefaultsSchema>
@@ -68,17 +72,24 @@ export default function NewUserDefaultsPage() {
       movieQuotaType: config?.newUserDefaultMovieQuotaType ?? 'monthly',
       movieQuotaLimit: config?.newUserDefaultMovieQuotaLimit ?? 10,
       movieBypassApproval: config?.newUserDefaultMovieBypassApproval ?? false,
+      movieLifetimeLimitEnabled:
+        config?.newUserDefaultMovieLifetimeLimit != null,
+      movieLifetimeLimit: config?.newUserDefaultMovieLifetimeLimit ?? null,
       showQuotaEnabled: config?.newUserDefaultShowQuotaEnabled ?? false,
       showQuotaType: config?.newUserDefaultShowQuotaType ?? 'monthly',
       showQuotaLimit: config?.newUserDefaultShowQuotaLimit ?? 10,
       showBypassApproval: config?.newUserDefaultShowBypassApproval ?? false,
+      showLifetimeLimitEnabled: config?.newUserDefaultShowLifetimeLimit != null,
+      showLifetimeLimit: config?.newUserDefaultShowLifetimeLimit ?? null,
     },
   })
 
   // Watch form values for dynamic UI updates
   const canSync = form.watch('canSync')
   const movieQuotaEnabled = form.watch('movieQuotaEnabled')
+  const movieLifetimeLimitEnabled = form.watch('movieLifetimeLimitEnabled')
   const showQuotaEnabled = form.watch('showQuotaEnabled')
+  const showLifetimeLimitEnabled = form.watch('showLifetimeLimitEnabled')
 
   // Reset form when config changes
   useEffect(() => {
@@ -90,10 +101,16 @@ export default function NewUserDefaultsPage() {
         movieQuotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
         movieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
         movieBypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
+        movieLifetimeLimitEnabled:
+          config.newUserDefaultMovieLifetimeLimit != null,
+        movieLifetimeLimit: config.newUserDefaultMovieLifetimeLimit ?? null,
         showQuotaEnabled: config.newUserDefaultShowQuotaEnabled ?? false,
         showQuotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
         showQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
         showBypassApproval: config.newUserDefaultShowBypassApproval ?? false,
+        showLifetimeLimitEnabled:
+          config.newUserDefaultShowLifetimeLimit != null,
+        showLifetimeLimit: config.newUserDefaultShowLifetimeLimit ?? null,
       }
       form.reset(formValues)
     }
@@ -111,10 +128,16 @@ export default function NewUserDefaultsPage() {
         newUserDefaultMovieQuotaType: data.movieQuotaType,
         newUserDefaultMovieQuotaLimit: data.movieQuotaLimit,
         newUserDefaultMovieBypassApproval: data.movieBypassApproval,
+        newUserDefaultMovieLifetimeLimit: data.movieLifetimeLimitEnabled
+          ? data.movieLifetimeLimit
+          : null,
         newUserDefaultShowQuotaEnabled: data.showQuotaEnabled,
         newUserDefaultShowQuotaType: data.showQuotaType,
         newUserDefaultShowQuotaLimit: data.showQuotaLimit,
         newUserDefaultShowBypassApproval: data.showBypassApproval,
+        newUserDefaultShowLifetimeLimit: data.showLifetimeLimitEnabled
+          ? data.showLifetimeLimit
+          : null,
       })
 
       // Ensure minimum loading time for better UX
@@ -143,10 +166,16 @@ export default function NewUserDefaultsPage() {
         movieQuotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
         movieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
         movieBypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
+        movieLifetimeLimitEnabled:
+          config.newUserDefaultMovieLifetimeLimit != null,
+        movieLifetimeLimit: config.newUserDefaultMovieLifetimeLimit ?? null,
         showQuotaEnabled: config.newUserDefaultShowQuotaEnabled ?? false,
         showQuotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
         showQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
         showBypassApproval: config.newUserDefaultShowBypassApproval ?? false,
+        showLifetimeLimitEnabled:
+          config.newUserDefaultShowLifetimeLimit != null,
+        showLifetimeLimit: config.newUserDefaultShowLifetimeLimit ?? null,
       })
     }
   }
@@ -229,7 +258,7 @@ export default function NewUserDefaultsPage() {
                 </span>
                 <span className="text-foreground ml-2">
                   {movieQuotaEnabled
-                    ? `${form.watch('movieQuotaType')} limit of ${form.watch('movieQuotaLimit')} movies${form.watch('movieBypassApproval') ? ' (auto-approve when exceeded)' : ''}`
+                    ? `${form.watch('movieQuotaType')} limit of ${form.watch('movieQuotaLimit')} movies${form.watch('movieBypassApproval') ? ' (auto-approve when exceeded)' : ''}${movieLifetimeLimitEnabled && form.watch('movieLifetimeLimit') ? ` · Lifetime: ${form.watch('movieLifetimeLimit')}` : ''}`
                     : 'Unlimited by default'}
                 </span>
               </li>
@@ -248,7 +277,7 @@ export default function NewUserDefaultsPage() {
                 </span>
                 <span className="text-foreground ml-2">
                   {showQuotaEnabled
-                    ? `${form.watch('showQuotaType')} limit of ${form.watch('showQuotaLimit')} shows${form.watch('showBypassApproval') ? ' (auto-approve when exceeded)' : ''}`
+                    ? `${form.watch('showQuotaType')} limit of ${form.watch('showQuotaLimit')} shows${form.watch('showBypassApproval') ? ' (auto-approve when exceeded)' : ''}${showLifetimeLimitEnabled && form.watch('showLifetimeLimit') ? ` · Lifetime: ${form.watch('showLifetimeLimit')}` : ''}`
                     : 'Unlimited by default'}
                 </span>
               </li>
@@ -477,6 +506,70 @@ export default function NewUserDefaultsPage() {
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={form.control}
+                      name="movieLifetimeLimitEnabled"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col justify-end h-full">
+                          <div className="flex items-center space-x-2">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="flex items-center">
+                              <FormLabel className="text-foreground m-0">
+                                Lifetime Limit
+                              </FormLabel>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    When enabled, limits the total number of
+                                    movie requests a user can ever make
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </div>
+                          <div className="mb-2" />
+                        </FormItem>
+                      )}
+                    />
+
+                    {movieLifetimeLimitEnabled && (
+                      <FormField
+                        control={form.control}
+                        name="movieLifetimeLimit"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-foreground">
+                              Movie Lifetime Limit
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="1"
+                                step="1"
+                                placeholder="100"
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const n = Number.parseInt(e.target.value, 10)
+                                  field.onChange(
+                                    Number.isNaN(n) ? null : Math.max(1, n),
+                                  )
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -616,6 +709,70 @@ export default function NewUserDefaultsPage() {
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={form.control}
+                      name="showLifetimeLimitEnabled"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col justify-end h-full">
+                          <div className="flex items-center space-x-2">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="flex items-center">
+                              <FormLabel className="text-foreground m-0">
+                                Lifetime Limit
+                              </FormLabel>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    When enabled, limits the total number of
+                                    show requests a user can ever make
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </div>
+                          <div className="mb-2" />
+                        </FormItem>
+                      )}
+                    />
+
+                    {showLifetimeLimitEnabled && (
+                      <FormField
+                        control={form.control}
+                        name="showLifetimeLimit"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-foreground">
+                              Show Lifetime Limit
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="1"
+                                step="1"
+                                placeholder="100"
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const n = Number.parseInt(e.target.value, 10)
+                                  field.onChange(
+                                    Number.isNaN(n) ? null : Math.max(1, n),
+                                  )
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
                 )}
               </div>

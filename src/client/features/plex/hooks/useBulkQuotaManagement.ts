@@ -1,23 +1,14 @@
 import type { BulkQuotaOperation } from '@root/schemas/quota/quota.schema.js'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
-import type { BulkQuotaEditStatus } from '@/features/plex/components/user/bulk-quota-edit-modal'
+import type {
+  BulkQuotaFormData,
+  QuotaEditStatus,
+} from '@/features/plex/quota/form-schema'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
-
-export interface BulkQuotaFormData {
-  clearQuotas: boolean
-  setMovieQuota: boolean
-  movieQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-  movieQuotaLimit?: number
-  movieBypassApproval: boolean
-  setShowQuota: boolean
-  showQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-  showQuotaLimit?: number
-  showBypassApproval: boolean
-}
 
 /**
  * Helper function to format success messages for bulk quota operations.
@@ -48,7 +39,7 @@ const formatSuccessMessage = (
  */
 export function useBulkQuotaManagement() {
   const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)
-  const [saveStatus, setSaveStatus] = useState<BulkQuotaEditStatus>({
+  const [saveStatus, setSaveStatus] = useState<QuotaEditStatus>({
     type: 'idle',
   })
 
@@ -94,6 +85,9 @@ export function useBulkQuotaManagement() {
           quotaType: formData.movieQuotaType,
           quotaLimit: formData.movieQuotaLimit,
           bypassApproval: formData.movieBypassApproval,
+          lifetimeLimit: formData.hasMovieLifetimeLimit
+            ? formData.movieLifetimeLimit
+            : null,
         }
       } else if (!formData.setMovieQuota) {
         bulkQuotaData.movieQuota = {
@@ -112,6 +106,9 @@ export function useBulkQuotaManagement() {
           quotaType: formData.showQuotaType,
           quotaLimit: formData.showQuotaLimit,
           bypassApproval: formData.showBypassApproval,
+          lifetimeLimit: formData.hasShowLifetimeLimit
+            ? formData.showLifetimeLimit
+            : null,
         }
       } else if (!formData.setShowQuota) {
         bulkQuotaData.showQuota = {

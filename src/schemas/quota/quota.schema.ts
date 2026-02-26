@@ -10,12 +10,14 @@ export const CreateUserQuotaSchema = z.object({
   quotaType: QuotaTypeSchema,
   quotaLimit: z.number().min(1),
   bypassApproval: z.boolean().default(false),
+  lifetimeLimit: z.number().min(1).nullable().optional(),
 })
 
 export const UpdateUserQuotaSchema = z.object({
   quotaType: QuotaTypeSchema.optional(),
   quotaLimit: z.number().min(1).optional(),
   bypassApproval: z.boolean().optional(),
+  lifetimeLimit: z.number().min(1).nullable().optional(),
 })
 
 // Schema for updating specific content type quota
@@ -24,6 +26,7 @@ export const UpdateSpecificQuotaSchema = z.object({
   quotaType: QuotaTypeSchema.optional(),
   quotaLimit: z.number().min(1).optional(),
   bypassApproval: z.boolean().optional(),
+  lifetimeLimit: z.number().min(1).nullable().optional(),
 })
 
 // Schema for updating separate movie and show quotas
@@ -34,6 +37,7 @@ export const UpdateSeparateQuotasSchema = z.object({
       quotaType: QuotaTypeSchema.optional(),
       quotaLimit: z.number().min(1).optional(),
       bypassApproval: z.boolean().optional(),
+      lifetimeLimit: z.number().min(1).nullable().optional(),
     })
     .optional(),
   showQuota: z
@@ -42,6 +46,7 @@ export const UpdateSeparateQuotasSchema = z.object({
       quotaType: QuotaTypeSchema.optional(),
       quotaLimit: z.number().min(1).optional(),
       bypassApproval: z.boolean().optional(),
+      lifetimeLimit: z.number().min(1).nullable().optional(),
     })
     .optional(),
 })
@@ -52,6 +57,7 @@ export const UserQuotaResponseSchema = z.object({
   quotaType: QuotaTypeSchema,
   quotaLimit: z.number(),
   bypassApproval: z.boolean(),
+  lifetimeLimit: z.number().nullable(),
 })
 
 export const UserQuotasResponseSchema = z.object({
@@ -67,6 +73,9 @@ export const QuotaStatusResponseSchema = z.object({
   exceeded: z.boolean(),
   resetDate: z.iso.datetime().nullable(),
   bypassApproval: z.boolean(),
+  lifetimeLimit: z.number().nullable(),
+  lifetimeUsage: z.number().nullable(),
+  lifetimeExceeded: z.boolean(),
 })
 
 export const QuotaUsageResponseSchema = z.object({
@@ -173,6 +182,7 @@ export const BulkQuotaOperationSchema = z.object({
       quotaType: QuotaTypeSchema.optional(),
       quotaLimit: z.number().min(1).max(1000).optional(),
       bypassApproval: z.boolean().optional(),
+      lifetimeLimit: z.number().min(1).nullable().optional(),
     })
     .optional(),
   showQuota: z
@@ -181,6 +191,7 @@ export const BulkQuotaOperationSchema = z.object({
       quotaType: QuotaTypeSchema.optional(),
       quotaLimit: z.number().min(1).max(1000).optional(),
       bypassApproval: z.boolean().optional(),
+      lifetimeLimit: z.number().min(1).nullable().optional(),
     })
     .optional(),
 })

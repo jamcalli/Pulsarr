@@ -60,7 +60,9 @@ const FormContent = React.memo(
     isFormDirty,
   }: FormContentProps) => {
     const hasMovieQuota = form.watch('hasMovieQuota')
+    const hasMovieLifetimeLimit = form.watch('hasMovieLifetimeLimit')
     const hasShowQuota = form.watch('hasShowQuota')
+    const hasShowLifetimeLimit = form.watch('hasShowLifetimeLimit')
 
     return (
       <Form {...form}>
@@ -182,6 +184,60 @@ const FormContent = React.memo(
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="hasMovieLifetimeLimit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <FormLabel className="text-foreground">
+                            Lifetime Limit
+                          </FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={saveStatus.type !== 'idle'}
+                            />
+                          </FormControl>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {hasMovieLifetimeLimit && (
+                    <FormField
+                      control={form.control}
+                      name="movieLifetimeLimit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground">
+                            Movie Lifetime Limit
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              value={String(field.value ?? '')}
+                              type="number"
+                              placeholder="100"
+                              min={1}
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value === ''
+                                    ? undefined
+                                    : Number(e.target.value),
+                                )
+                              }
+                              disabled={saveStatus.type !== 'idle'}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </>
               )}
             </div>
@@ -302,6 +358,60 @@ const FormContent = React.memo(
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="hasShowLifetimeLimit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <FormLabel className="text-foreground">
+                            Lifetime Limit
+                          </FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={saveStatus.type !== 'idle'}
+                            />
+                          </FormControl>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {hasShowLifetimeLimit && (
+                    <FormField
+                      control={form.control}
+                      name="showLifetimeLimit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground">
+                            Show Lifetime Limit
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              value={String(field.value ?? '')}
+                              type="number"
+                              placeholder="100"
+                              min={1}
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value === ''
+                                    ? undefined
+                                    : Number(e.target.value),
+                                )
+                              }
+                              disabled={saveStatus.type !== 'idle'}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </>
               )}
             </div>
@@ -324,7 +434,7 @@ const FormContent = React.memo(
                 !isFormDirty ||
                 !form.formState.isValid
               }
-              className="min-w-[100px] flex items-center justify-center gap-2"
+              className="min-w-25 flex items-center justify-center gap-2"
             >
               {saveStatus.type === 'loading' ? (
                 <>
@@ -386,10 +496,14 @@ export function QuotaEditModal({
       movieQuotaType: 'monthly',
       movieQuotaLimit: 10,
       movieBypassApproval: false,
+      hasMovieLifetimeLimit: false,
+      movieLifetimeLimit: undefined,
       hasShowQuota: false,
       showQuotaType: 'monthly',
       showQuotaLimit: 10,
       showBypassApproval: false,
+      hasShowLifetimeLimit: false,
+      showLifetimeLimit: undefined,
     },
   })
 
@@ -404,10 +518,14 @@ export function QuotaEditModal({
         movieQuotaType: movieQuota?.quotaType || 'monthly',
         movieQuotaLimit: movieQuota?.quotaLimit || 10,
         movieBypassApproval: movieQuota?.bypassApproval || false,
+        hasMovieLifetimeLimit: movieQuota?.lifetimeLimit != null,
+        movieLifetimeLimit: movieQuota?.lifetimeLimit || undefined,
         hasShowQuota: !!showQuota,
         showQuotaType: showQuota?.quotaType || 'monthly',
         showQuotaLimit: showQuota?.quotaLimit || 10,
         showBypassApproval: showQuota?.bypassApproval || false,
+        hasShowLifetimeLimit: showQuota?.lifetimeLimit != null,
+        showLifetimeLimit: showQuota?.lifetimeLimit || undefined,
       })
     }
   }, [user, isOpen, form])
@@ -473,7 +591,7 @@ export function QuotaEditModal({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="sm:max-w-2xl"
+        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
         onPointerDownOutside={(e) => {
           if (saveStatus.type === 'loading') {
             e.preventDefault()
