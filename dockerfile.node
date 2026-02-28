@@ -48,8 +48,8 @@ RUN npm prune --omit=dev && \
 FROM node:24.14.0-alpine@sha256:7fddd9ddeae8196abf4a3ef2de34e11f7b1a722119f91f28ddf1e99dcafdf114
 WORKDIR /app
 
-# wget for healthcheck
-RUN apk add --no-cache wget
+# tini for proper PID 1 zombie reaping, wget for healthcheck
+RUN apk add --no-cache tini wget
 
 ENV CACHE_DIR=/app/build-cache
 
@@ -88,4 +88,5 @@ EXPOSE 3003
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD ./docker-healthcheck.sh
 
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["./docker-entrypoint.sh"]

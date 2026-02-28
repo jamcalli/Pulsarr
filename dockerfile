@@ -31,8 +31,8 @@ RUN --mount=type=cache,target=/app/node_modules/.vite \
 # Final runtime image
 FROM base
 
-# wget for healthcheck
-RUN apk add --no-cache wget
+# tini for proper PID 1 zombie reaping, wget for healthcheck
+RUN apk add --no-cache tini wget
 
 ENV CACHE_DIR=/app/build-cache
 
@@ -74,4 +74,5 @@ EXPOSE 3003
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD ./docker-healthcheck.sh
 
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["./docker-entrypoint.sh"]
