@@ -52,7 +52,7 @@
   --font-weight-bold: 700;
 
   --animate-star-pulse: starPulse 16s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-hard-flicker: hardFlicker 0.16s infinite;
+  --animate-hard-flicker: hardFlicker 0.16s steps(3) infinite;
   --animate-soft-flicker: softFlicker 2s infinite;
   --animate-marquee: marquee 15s linear infinite;
   --animate-marquee2: marquee2 15s linear infinite;
@@ -90,6 +90,7 @@
       opacity: 0.15;
     }
   }
+
   @keyframes spin {
     from {
       transform: rotate(0deg);
@@ -197,6 +198,23 @@
   --ring-offset: #000;
 
   --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+}
+
+.animations-paused,
+.animations-paused *,
+.animations-paused ::before,
+.animations-paused ::after {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+  }
 }
 
 body {
