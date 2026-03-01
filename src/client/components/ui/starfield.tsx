@@ -1,9 +1,25 @@
 import type React from 'react'
 import { useEffect, useRef } from 'react'
 
+interface Star {
+  xRatio: number
+  yRatio: number
+  size: number
+  opacity: number
+}
+
 const STAR_COUNT = 140
 
-function drawStars(canvas: HTMLCanvasElement) {
+function generateStars(count: number): Star[] {
+  return Array.from({ length: count }, () => ({
+    xRatio: Math.random(),
+    yRatio: Math.random(),
+    size: Math.random() * 2.5 + 1,
+    opacity: Math.random() * 0.5 + 0.2,
+  }))
+}
+
+function drawStars(canvas: HTMLCanvasElement, stars: Star[]) {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
@@ -19,16 +35,11 @@ function drawStars(canvas: HTMLCanvasElement) {
 
   ctx.clearRect(0, 0, width, height)
 
-  for (let i = 0; i < STAR_COUNT; i++) {
-    const x = Math.random() * width
-    const y = Math.random() * height
-    const size = Math.random() * 2.5 + 1
-    const opacity = Math.random() * 0.5 + 0.2
-
-    ctx.globalAlpha = opacity
+  for (const star of stars) {
+    ctx.globalAlpha = star.opacity
     ctx.fillStyle = 'white'
     ctx.beginPath()
-    ctx.arc(x, y, size / 2, 0, Math.PI * 2)
+    ctx.arc(star.xRatio * width, star.yRatio * height, star.size / 2, 0, Math.PI * 2)
     ctx.fill()
   }
 
@@ -37,14 +48,20 @@ function drawStars(canvas: HTMLCanvasElement) {
 
 const ParallaxStarfield = ({ children }: { children: React.ReactNode }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const starsRef = useRef<Star[] | null>(null)
+
+  if (!starsRef.current) {
+    starsRef.current = generateStars(STAR_COUNT)
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    const stars = starsRef.current
+    if (!canvas || !stars) return
 
-    drawStars(canvas)
+    drawStars(canvas, stars)
 
-    const handleResize = () => drawStars(canvas)
+    const handleResize = () => drawStars(canvas, stars)
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])

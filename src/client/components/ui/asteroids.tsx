@@ -115,16 +115,14 @@ function drawAsteroid(
 
 const FallingAsteroids = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const shapesRef = useRef<AsteroidShape[]>([])
-  const statesRef = useRef<AsteroidState[]>([])
+  const shapesRef = useRef<AsteroidShape[] | null>(null)
+  const statesRef = useRef<AsteroidState[] | null>(null)
   const animationFrameRef = useRef<number>(0)
   const lastUpdateRef = useRef<number>(0)
   const isPageVisible = usePageVisibility()
 
-  if (shapesRef.current.length === 0) {
-    shapesRef.current = Array.from({ length: NUM_ASTEROIDS }, () =>
-      createAsteroidShape(),
-    )
+  if (!shapesRef.current) {
+    shapesRef.current = Array.from({ length: NUM_ASTEROIDS }, createAsteroidShape)
     statesRef.current = shapesRef.current.map(() => createAsteroidState())
   }
 
@@ -163,6 +161,7 @@ const FallingAsteroids = () => {
 
     const shapes = shapesRef.current
     const states = statesRef.current
+    if (!shapes || !states) return
 
     const gameLoop = (timestamp: number) => {
       if (lastUpdateRef.current === 0) {
