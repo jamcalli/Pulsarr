@@ -1,77 +1,63 @@
-import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import type React from 'react'
+import { useEffect, useRef } from 'react'
 
-interface Star {
-  x: number;
-  y: number;
-  size: number;
-  parallax: boolean;
-  opacity: number;
-  pulseDelay: number;
-}
+const STAR_COUNT = 140
 
-interface MousePosition {
-  x: number;
-  y: number;
+function drawStars(canvas: HTMLCanvasElement) {
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  const dpr = window.devicePixelRatio || 1
+  const width = window.innerWidth
+  const height = window.innerHeight
+
+  canvas.width = width * dpr
+  canvas.height = height * dpr
+  canvas.style.width = `${width}px`
+  canvas.style.height = `${height}px`
+  ctx.scale(dpr, dpr)
+
+  ctx.clearRect(0, 0, width, height)
+
+  for (let i = 0; i < STAR_COUNT; i++) {
+    const x = Math.random() * width
+    const y = Math.random() * height
+    const size = Math.random() * 2.5 + 1
+    const opacity = Math.random() * 0.5 + 0.2
+
+    ctx.globalAlpha = opacity
+    ctx.fillStyle = 'white'
+    ctx.beginPath()
+    ctx.arc(x, y, size / 2, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  ctx.globalAlpha = 1
 }
 
 const ParallaxStarfield = ({ children }: { children: React.ReactNode }) => {
-  const [stars, setStars] = useState<Star[]>([]);
-  const [mousePos, setMousePos] = useState<MousePosition>({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    const starCount = 140;
-    const newStars = Array.from({ length: starCount }, () => ({
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 2.5 + 1,
-      parallax: Math.random() < 0.15,
-      opacity: Math.random() * 0.5 + 0.2,
-      pulseDelay: Math.random() * 8
-    }));
-    setStars(newStars);
+    const canvas = canvasRef.current
+    if (!canvas) return
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      setMousePos({
-        x: ((e.clientX - rect.left) / rect.width - 0.5) * 0.5,
-        y: ((e.clientY - rect.top) / rect.height - 0.5) * 0.5
-      });
-    };
+    drawStars(canvas)
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+    const handleResize = () => drawStars(canvas)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   return (
-    <div 
-      ref={containerRef}
+    <div
       className="fixed inset-0 overflow-hidden pointer-events-none"
       style={{ backgroundColor: 'var(--color-secondary-black)' }}
     >
-      {stars.map((star, i) => (
-        <div
-          key={i}
-          className="absolute rounded-full transition-transform duration-700 ease-out bg-white"
-          style={{
-            left: `${star.x + (star.parallax ? mousePos.x : 0)}%`,
-            top: `${star.y + (star.parallax ? mousePos.y : 0)}%`,
-            width: star.size,
-            height: star.size,
-            opacity: star.opacity,
-            transform: `scale(${star.parallax ? 1.2 : 1})`,
-            animation: star.parallax ? 'var(--animate-star-pulse)' : undefined,
-            animationDelay: star.parallax ? `${star.pulseDelay}s` : undefined
-          }}
-        />
-      ))}
-      <div className="relative z-10 pointer-events-auto">
-        {children}
-      </div>
+      <canvas ref={canvasRef} className="absolute inset-0" />
+      <div className="relative z-10 pointer-events-auto">{children}</div>
     </div>
-  );
-};
+  )
+}
 
-export default ParallaxStarfield;
+export default ParallaxStarfield

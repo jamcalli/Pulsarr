@@ -11,6 +11,7 @@ import Pulsar from '@/components/ui/pulsar'
 import { Toaster } from '@/components/ui/sonner'
 import ParallaxStarfield from '@/components/ui/starfield'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { usePageVisibility } from '@/hooks/use-page-visibility'
 
 interface RootLayoutProps {
   children: ReactNode
@@ -25,6 +26,7 @@ interface RootLayoutProps {
  */
 function BackgroundLayer() {
   const isMobile = useMediaQuery('(max-width: 768px)')
+  const isPageVisible = usePageVisibility()
   const { asteroidsEnabled, fullscreenEnabled } = useSettings()
   const location = useLocation()
   const isLoginRoute = location.pathname === '/login'
@@ -38,7 +40,9 @@ function BackgroundLayer() {
   if (!shouldShowBackground) return null
 
   return (
-    <div className="fixed inset-0">
+    <div
+      className={`fixed inset-0${isPageVisible ? '' : ' animations-paused'}`}
+    >
       <CRTOverlay className="h-full">
         <div className="absolute top-8 left-0 right-0 z-10">
           <div className="relative">
