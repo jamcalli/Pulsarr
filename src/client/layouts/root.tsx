@@ -41,7 +41,7 @@ function BackgroundLayer() {
 
   return (
     <div
-      className={`fixed inset-0${isPageVisible ? '' : ' animations-paused'}`}
+      className={`fixed inset-0 pointer-events-none${isPageVisible ? '' : ' animations-paused'}`}
     >
       <CRTOverlay className="h-full">
         <div className="absolute top-8 left-0 right-0 z-10">

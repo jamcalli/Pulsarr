@@ -6,12 +6,11 @@ interface CRTOverlayProps {
   intensity?: 'light' | 'medium' | 'heavy';
 }
 
-const CRTOverlay = ({ 
-  children, 
+const CRTOverlay = ({
+  children,
   className = '',
-  intensity = 'medium' 
+  intensity = 'medium'
 }: CRTOverlayProps) => {
-  // Intensity settings for different effect levels
   const intensitySettings = {
     light: {
       scanlineOpacity: 0.1,
@@ -34,24 +33,23 @@ const CRTOverlay = ({
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
-      {/* Original content */}
       {children}
 
       {/* CRT Effects Overlay */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ contain: 'strict' }}>
         {/* Scanlines and RGB split */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             background: `
               linear-gradient(
-                transparent 50%, 
+                transparent 50%,
                 rgba(0, 0, 0, ${settings.scanlineOpacity}) 50%
               ),
               linear-gradient(
-                90deg, 
-                rgba(255, 0, 0, ${settings.rgbOffset}), 
-                rgba(0, 255, 0, ${settings.rgbOffset * 0.33}), 
+                90deg,
+                rgba(255, 0, 0, ${settings.rgbOffset}),
+                rgba(0, 255, 0, ${settings.rgbOffset * 0.33}),
                 rgba(0, 0, 255, ${settings.rgbOffset})
               )
             `,
@@ -60,14 +58,14 @@ const CRTOverlay = ({
             zIndex: 20
           }}
         />
-        
+
         {/* Flicker overlay */}
-        <div 
+        <div
           className="absolute inset-0 bg-black"
-          style={{ 
+          style={{
             opacity: settings.flickerOpacity,
             animation: 'var(--animate-soft-flicker)',
-            zIndex: 20 
+            zIndex: 20
           }}
         />
       </div>

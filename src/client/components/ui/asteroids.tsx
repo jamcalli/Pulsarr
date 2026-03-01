@@ -1,38 +1,42 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { usePageVisibility } from '@/hooks/use-page-visibility'
 
 interface AsteroidShape {
   radius: number
-  points: string
-  rotationDuration: string
-  rotationDirection: string
+  vertices: { x: number; y: number }[]
+  rotationSpeed: number
 }
 
-interface AsteroidPosition {
+interface AsteroidState {
   x: number
   y: number
   dx: number
   dy: number
+  angle: number
 }
 
 const START_ASTEROID_RADIUS = 125
 const MIN_ASTEROID_RADIUS = 30
 const ASTEROID_VELOCITY = 20
 const NUM_ASTEROIDS = 8
+const FRAME_INTERVAL = 1000 / 30
+const ROTATION_SPEED = 360 / 32
+const STROKE_WIDTH = 4
 
-function generateAsteroidPoints(radius: number): string {
+function generateVertices(radius: number): { x: number; y: number }[] {
   const corners = 5 + Math.floor(radius / 8)
-  const points: string[] = []
+  const vertices: { x: number; y: number }[] = []
 
   for (let i = 0; i < corners; i++) {
     const angle = (i * 360) / corners
     const distance = radius * 0.33 * (2 + Math.random())
-    const px = radius + distance * Math.cos((angle * Math.PI) / 180)
-    const py = radius + distance * Math.sin((angle * Math.PI) / 180)
-    points.push(`${px},${py}`)
+    vertices.push({
+      x: distance * Math.cos((angle * Math.PI) / 180),
+      y: distance * Math.sin((angle * Math.PI) / 180),
+    })
   }
 
-  return points.join(' ')
+  return vertices
 }
 
 function createAsteroidShape(): AsteroidShape {
@@ -41,13 +45,12 @@ function createAsteroidShape(): AsteroidShape {
     Math.random() * (START_ASTEROID_RADIUS - MIN_ASTEROID_RADIUS)
   return {
     radius,
-    points: generateAsteroidPoints(radius),
-    rotationDuration: '32s',
-    rotationDirection: Math.random() > 0.5 ? 'normal' : 'reverse',
+    vertices: generateVertices(radius),
+    rotationSpeed: ROTATION_SPEED * (Math.random() > 0.5 ? 1 : -1),
   }
 }
 
-function createAsteroidPosition(): AsteroidPosition {
+function createAsteroidState(): AsteroidState {
   const width = window.innerWidth
   const height = window.innerHeight
   const angle = Math.random() * 360
@@ -79,29 +82,68 @@ function createAsteroidPosition(): AsteroidPosition {
       break
   }
 
-  return { x, y, dx, dy }
+  return { x, y, dx, dy, angle: Math.random() * 360 }
+}
+
+function drawAsteroid(
+  ctx: CanvasRenderingContext2D,
+  shape: AsteroidShape,
+  state: AsteroidState,
+) {
+  const { vertices } = shape
+  const rad = (state.angle * Math.PI) / 180
+
+  ctx.save()
+  ctx.translate(state.x + shape.radius, state.y + shape.radius)
+  ctx.rotate(rad)
+
+  ctx.beginPath()
+  ctx.moveTo(vertices[0].x, vertices[0].y)
+  for (let i = 1; i < vertices.length; i++) {
+    ctx.lineTo(vertices[i].x, vertices[i].y)
+  }
+  ctx.closePath()
+
+  ctx.fillStyle = '#948d89'
+  ctx.fill()
+  ctx.strokeStyle = '#dedede'
+  ctx.lineWidth = STROKE_WIDTH
+  ctx.stroke()
+
+  ctx.restore()
 }
 
 const FallingAsteroids = () => {
-  const shapes = useMemo(
-    () => Array.from({ length: NUM_ASTEROIDS }, () => createAsteroidShape()),
-    [],
-  )
-
-  const positionsRef = useRef<AsteroidPosition[]>(
-    shapes.map(() => createAsteroidPosition()),
-  )
-  const elRefs = useRef<(HTMLDivElement | null)[]>([])
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const shapesRef = useRef<AsteroidShape[]>([])
+  const statesRef = useRef<AsteroidState[]>([])
   const animationFrameRef = useRef<number>(0)
   const lastUpdateRef = useRef<number>(0)
   const isPageVisible = usePageVisibility()
 
-  const setElRef = useCallback(
-    (index: number) => (el: HTMLDivElement | null) => {
-      elRefs.current[index] = el
-    },
-    [],
-  )
+  if (shapesRef.current.length === 0) {
+    shapesRef.current = Array.from({ length: NUM_ASTEROIDS }, () =>
+      createAsteroidShape(),
+    )
+    statesRef.current = shapesRef.current.map(() => createAsteroidState())
+  }
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const resizeCanvas = () => {
+      const dpr = window.devicePixelRatio || 1
+      canvas.width = window.innerWidth * dpr
+      canvas.height = window.innerHeight * dpr
+      canvas.style.width = `${window.innerWidth}px`
+      canvas.style.height = `${window.innerHeight}px`
+    }
+
+    resizeCanvas()
+    window.addEventListener('resize', resizeCanvas)
+    return () => window.removeEventListener('resize', resizeCanvas)
+  }, [])
 
   useEffect(() => {
     if (!isPageVisible) {
@@ -112,7 +154,15 @@ const FallingAsteroids = () => {
       return
     }
 
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
     lastUpdateRef.current = 0
+
+    const shapes = shapesRef.current
+    const states = statesRef.current
 
     const gameLoop = (timestamp: number) => {
       if (lastUpdateRef.current === 0) {
@@ -121,31 +171,38 @@ const FallingAsteroids = () => {
         return
       }
 
-      const deltaTime = (timestamp - lastUpdateRef.current) / 1000
+      const elapsed = timestamp - lastUpdateRef.current
+      if (elapsed < FRAME_INTERVAL) {
+        animationFrameRef.current = requestAnimationFrame(gameLoop)
+        return
+      }
+
+      const deltaTime = elapsed / 1000
       lastUpdateRef.current = timestamp
 
+      const dpr = window.devicePixelRatio || 1
       const width = window.innerWidth
       const height = window.innerHeight
-      const positions = positionsRef.current
 
-      for (let i = 0; i < positions.length; i++) {
-        const pos = positions[i]
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      ctx.clearRect(0, 0, width, height)
+
+      for (let i = 0; i < states.length; i++) {
+        const state = states[i]
         const fullSize = shapes[i].radius * 2
-        let newX = pos.x + pos.dx * deltaTime
-        let newY = pos.y + pos.dy * deltaTime
+        let newX = state.x + state.dx * deltaTime
+        let newY = state.y + state.dy * deltaTime
 
         if (newX > width + fullSize) newX = -fullSize
         else if (newX < -fullSize) newX = width
         if (newY > height + fullSize) newY = -fullSize
         else if (newY < -fullSize) newY = height
 
-        pos.x = newX
-        pos.y = newY
+        state.x = newX
+        state.y = newY
+        state.angle += shapes[i].rotationSpeed * deltaTime
 
-        const el = elRefs.current[i]
-        if (el) {
-          el.style.transform = `translate(${newX}px, ${newY}px)`
-        }
+        drawAsteroid(ctx, shapes[i], state)
       }
 
       animationFrameRef.current = requestAnimationFrame(gameLoop)
@@ -159,46 +216,11 @@ const FallingAsteroids = () => {
         animationFrameRef.current = 0
       }
     }
-  }, [isPageVisible, shapes])
+  }, [isPageVisible])
 
   return (
     <div className="fixed inset-0 pointer-events-none z-1">
-      {shapes.map((shape, i) => (
-        <div
-          key={i}
-          ref={setElRef(i)}
-          className="absolute left-0 top-0"
-          style={{
-            width: shape.radius * 2,
-            height: shape.radius * 2,
-            transform: `translate(${positionsRef.current[i].x}px, ${positionsRef.current[i].y}px)`,
-          }}
-        >
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              animation: `spin ${shape.rotationDuration} linear infinite`,
-              animationDirection: shape.rotationDirection,
-            }}
-          >
-            <svg
-              width="100%"
-              height="100%"
-              viewBox={`0 0 ${shape.radius * 2} ${shape.radius * 2}`}
-            >
-              <polygon
-                points={shape.points}
-                className="stroke-[4px]"
-                style={{
-                  stroke: 'var(--static-asteroid-border)',
-                  fill: 'var(--static-asteroid-fill)',
-                }}
-              />
-            </svg>
-          </div>
-        </div>
-      ))}
+      <canvas ref={canvasRef} className="absolute inset-0" />
     </div>
   )
 }
