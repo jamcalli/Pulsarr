@@ -3,6 +3,7 @@ import type { z } from 'zod'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import BulkEditModal from '@/features/plex/components/user/bulk-edit-modal'
 import { BulkQuotaEditModal } from '@/features/plex/components/user/bulk-quota-edit-modal'
+import { QuotaDeleteConfirmation } from '@/features/plex/components/user/quota-delete-confirmation'
 import { QuotaEditModal } from '@/features/plex/components/user/quota-edit-modal'
 import UserEditModal from '@/features/plex/components/user/user-edit-modal'
 import UserTable from '@/features/plex/components/user/user-table'
@@ -60,6 +61,7 @@ export default function PlexUsersPage() {
     saveStatus: quotaSaveStatus,
     saveQuota,
     setSaveStatus: setQuotaSaveStatus,
+    getPendingHeldCount,
   } = useQuotaManagement()
 
   const {
@@ -85,6 +87,19 @@ export default function PlexUsersPage() {
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false)
   const [selectedQuotaUser, setSelectedQuotaUser] =
     useState<UserWithQuotaInfo | null>(null)
+
+  // Quota delete confirmation state
+  const [showQuotaDeleteConfirmation, setShowQuotaDeleteConfirmation] =
+    useState(false)
+  const [pendingHeldCount, setPendingHeldCount] = useState({
+    movieCount: 0,
+    showCount: 0,
+  })
+  const [pendingQuotaSave, setPendingQuotaSave] = useState<{
+    user: UserWithQuotaInfo
+    formData: QuotaFormData
+  } | null>(null)
+  const [isQuotaDeleteSubmitting, setIsQuotaDeleteSubmitting] = useState(false)
 
   // Bulk quota modal state
   const [isBulkQuotaModalOpen, setIsBulkQuotaModalOpen] = useState(false)
@@ -141,10 +156,70 @@ export default function PlexUsersPage() {
   const handleSaveQuota = async (formData: QuotaFormData) => {
     if (!selectedQuotaUser) return
 
-    await saveQuota(selectedQuotaUser, formData, () => {
+    // Detect if quotas are being deleted (user has existing quotas but form disables both)
+    const hasExistingQuotas =
+      selectedQuotaUser.userQuotas?.movieQuota ||
+      selectedQuotaUser.userQuotas?.showQuota
+    // Detect if any individual quota is being removed
+    const isRemovingMovieQuota =
+      !!selectedQuotaUser.userQuotas?.movieQuota && !formData.hasMovieQuota
+    const isRemovingShowQuota =
+      !!selectedQuotaUser.userQuotas?.showQuota && !formData.hasShowQuota
+    const isRemovingAnyQuota = isRemovingMovieQuota || isRemovingShowQuota
+
+    if (hasExistingQuotas && isRemovingAnyQuota) {
+      try {
+        const counts = await getPendingHeldCount(selectedQuotaUser.id)
+        // Only show counts for quota types actually being removed
+        const relevantCounts = {
+          movieCount: isRemovingMovieQuota ? counts.movieCount : 0,
+          showCount: isRemovingShowQuota ? counts.showCount : 0,
+        }
+        if (relevantCounts.movieCount > 0 || relevantCounts.showCount > 0) {
+          // Has held items for removed quota types — show confirmation credenza
+          setPendingHeldCount(relevantCounts)
+          setPendingQuotaSave({ user: selectedQuotaUser, formData })
+          setIsQuotaModalOpen(false)
+          setShowQuotaDeleteConfirmation(true)
+          return
+        }
+      } catch {
+        // If we can't fetch counts, proceed without confirmation
+      }
+    }
+
+    // No held items or not removing quotas — proceed normally
+    await saveQuota(selectedQuotaUser, formData, undefined, () => {
       setIsQuotaModalOpen(false)
       setSelectedQuotaUser(null)
     })
+  }
+
+  const handleQuotaDeleteConfirm = async (autoApprove: boolean) => {
+    if (!pendingQuotaSave) return
+    setIsQuotaDeleteSubmitting(true)
+    try {
+      await saveQuota(
+        pendingQuotaSave.user,
+        pendingQuotaSave.formData,
+        { autoApproveHeld: autoApprove },
+        () => {
+          setPendingQuotaSave(null)
+          setSelectedQuotaUser(null)
+        },
+      )
+    } finally {
+      setIsQuotaDeleteSubmitting(false)
+    }
+  }
+
+  const handleQuotaDeleteConfirmationClose = (open: boolean) => {
+    if (!open) {
+      setShowQuotaDeleteConfirmation(false)
+      setPendingQuotaSave(null)
+      setPendingHeldCount({ movieCount: 0, showCount: 0 })
+      setIsQuotaDeleteSubmitting(false)
+    }
   }
 
   // Bulk quota handlers
@@ -209,6 +284,14 @@ export default function PlexUsersPage() {
               user={selectedQuotaUser}
               onSave={handleSaveQuota}
               saveStatus={quotaSaveStatus}
+            />
+            {/* Quota delete confirmation */}
+            <QuotaDeleteConfirmation
+              open={showQuotaDeleteConfirmation}
+              onOpenChange={handleQuotaDeleteConfirmationClose}
+              onConfirm={handleQuotaDeleteConfirm}
+              pendingCount={pendingHeldCount}
+              isSubmitting={isQuotaDeleteSubmitting}
             />
             {/* Bulk edit modal */}
             <BulkEditModal

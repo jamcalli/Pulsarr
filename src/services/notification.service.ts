@@ -348,7 +348,7 @@ export class NotificationService {
   async sendApprovalResolved(
     request: ApprovalRequest,
     resolution: 'approved' | 'denied',
-    resolvedBy: number,
+    resolvedBy: number | null,
     notes?: string,
   ): Promise<boolean> {
     // Include routing info only when approved (not for rejections)

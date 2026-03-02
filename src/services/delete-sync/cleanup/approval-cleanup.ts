@@ -1,6 +1,90 @@
+import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { FastifyBaseLogger } from 'fastify'
+
+export interface OrphanedApprovalCleanupDeps {
+  db: DatabaseService
+  approvalService: ApprovalService
+  existingMovieGuids: Set<string>
+  existingShowGuids: Set<string>
+  config: {
+    deleteSyncCleanupApprovals: boolean
+  }
+  logger: FastifyBaseLogger
+}
+
+/**
+ * Checks whether any GUID in a record's contentGuids exists in the given set
+ */
+function hasMatchingGuid(
+  record: ApprovalRequest,
+  guidSet: Set<string>,
+): boolean {
+  return record.contentGuids.some((guid) => guidSet.has(guid))
+}
+
+/**
+ * Clean up orphaned approval requests whose content no longer exists in Radarr/Sonarr.
+ * Cross-references approved/auto_approved records against already-fetched content GUID sets.
+ * Catches approval records for content deleted before deleteSyncCleanupApprovals was enabled.
+ */
+export async function cleanupOrphanedApprovalRequests(
+  deps: OrphanedApprovalCleanupDeps,
+  dryRun: boolean,
+): Promise<{ cleaned: number }> {
+  const {
+    db,
+    approvalService,
+    existingMovieGuids,
+    existingShowGuids,
+    config,
+    logger,
+  } = deps
+
+  if (!config.deleteSyncCleanupApprovals || dryRun) {
+    return { cleaned: 0 }
+  }
+
+  try {
+    const allApproved = await db.getAllApprovedApprovalRequests()
+
+    let cleaned = 0
+
+    for (const record of allApproved) {
+      const guidSet =
+        record.contentType === 'movie' ? existingMovieGuids : existingShowGuids
+
+      // Skip if no content exists for this type (no instances configured)
+      if (guidSet.size === 0) {
+        continue
+      }
+
+      if (!hasMatchingGuid(record, guidSet)) {
+        const deleted = await approvalService.deleteApprovalRequest(record.id)
+        if (deleted) {
+          cleaned++
+        } else {
+          logger.warn(
+            { approvalId: record.id, title: record.contentTitle },
+            'Failed to delete orphaned approval request',
+          )
+        }
+      }
+    }
+
+    if (cleaned > 0) {
+      logger.info(
+        `Cleaned up ${cleaned} orphaned approval records (content no longer in Radarr/Sonarr)`,
+      )
+    }
+
+    return { cleaned }
+  } catch (error) {
+    logger.error({ error }, 'Error cleaning up orphaned approval requests')
+    return { cleaned: 0 }
+  }
+}
 
 export interface ApprovalCleanupDeps {
   db: DatabaseService
@@ -47,19 +131,14 @@ export async function cleanupApprovalRequestsForDeletedContent(
         'movie',
       )
 
-      // Use ApprovalService to delete each request (handles SSE events)
       for (const approval of movieApprovals) {
-        try {
-          await approvalService.deleteApprovalRequest(approval.id)
+        const deleted = await approvalService.deleteApprovalRequest(approval.id)
+        if (deleted) {
           totalCleaned++
-        } catch (error) {
-          logger.error(
-            {
-              error,
-              approvalId: approval.id,
-              title: approval.contentTitle,
-            },
-            'Error deleting individual approval request during cleanup',
+        } else {
+          logger.warn(
+            { approvalId: approval.id, title: approval.contentTitle },
+            'Failed to delete movie approval request during cleanup',
           )
         }
       }
@@ -77,19 +156,14 @@ export async function cleanupApprovalRequestsForDeletedContent(
         'show',
       )
 
-      // Use ApprovalService to delete each request (handles SSE events)
       for (const approval of showApprovals) {
-        try {
-          await approvalService.deleteApprovalRequest(approval.id)
+        const deleted = await approvalService.deleteApprovalRequest(approval.id)
+        if (deleted) {
           totalCleaned++
-        } catch (error) {
-          logger.error(
-            {
-              error,
-              approvalId: approval.id,
-              title: approval.contentTitle,
-            },
-            'Error deleting individual approval request during cleanup',
+        } else {
+          logger.warn(
+            { approvalId: approval.id, title: approval.contentTitle },
+            'Failed to delete show approval request during cleanup',
           )
         }
       }

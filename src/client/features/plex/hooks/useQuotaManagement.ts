@@ -1,4 +1,5 @@
 import type {
+  PendingHeldCountResponse,
   QuotaStatusGetResponse,
   UpdateSeparateQuotas,
   UserQuotaUpdateResponse,
@@ -15,6 +16,10 @@ import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { api } from '@/lib/api'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 import { useConfigStore } from '@/stores/configStore'
+
+interface SaveQuotaOptions {
+  autoApproveHeld?: boolean
+}
 
 /**
  * React hook for managing user quota settings for movies and shows.
@@ -50,19 +55,23 @@ export function useQuotaManagement() {
     [],
   )
 
-  const deleteQuota = useCallback(async (userId: number) => {
-    const response = await fetch(api(`/v1/quota/users/${userId}`), {
-      method: 'DELETE',
-    })
+  const deleteQuota = useCallback(
+    async (userId: number, autoApproveHeld = false) => {
+      const params = autoApproveHeld ? '?autoApproveHeld=true' : ''
+      const response = await fetch(api(`/v1/quota/users/${userId}${params}`), {
+        method: 'DELETE',
+      })
 
-    if (!response.ok) {
-      throw new Error(`Failed to delete quota: ${response.status}`)
-    }
+      if (!response.ok) {
+        throw new Error(`Failed to delete quota: ${response.status}`)
+      }
 
-    await response.json()
+      await response.json()
 
-    return true
-  }, [])
+      return true
+    },
+    [],
+  )
 
   const getQuotaStatus = useCallback(async (userId: number) => {
     const response = await fetch(api(`/v1/quota/users/${userId}/status`))
@@ -76,10 +85,25 @@ export function useQuotaManagement() {
     return result.quotaStatus
   }, [])
 
+  const getPendingHeldCount = useCallback(async (userId: number) => {
+    const response = await fetch(
+      api(`/v1/quota/users/${userId}/pending-held-count`),
+    )
+
+    if (!response.ok) {
+      throw new Error(`Failed to get pending held count: ${response.status}`)
+    }
+
+    const result: PendingHeldCountResponse = await response.json()
+
+    return { movieCount: result.movieCount, showCount: result.showCount }
+  }, [])
+
   const saveQuota = useCallback(
     async (
       user: UserWithQuotaInfo,
       formData: QuotaFormValues,
+      options?: SaveQuotaOptions,
       onSuccess?: () => void,
     ) => {
       setSaveStatus({ type: 'loading' })
@@ -98,7 +122,7 @@ export function useQuotaManagement() {
           if (!hasAnyQuota) {
             // Delete all existing quotas if user had any
             if (user.userQuotas?.movieQuota || user.userQuotas?.showQuota) {
-              await deleteQuota(user.id)
+              await deleteQuota(user.id, options?.autoApproveHeld)
               return 'All quotas removed successfully'
             }
             return 'No quotas to remove'
@@ -106,6 +130,9 @@ export function useQuotaManagement() {
 
           // Transform form data to API format using the utility function
           const separateQuotasData = transformQuotaFormToAPI(transformedData)
+          if (options?.autoApproveHeld) {
+            separateQuotasData.autoApproveHeld = true
+          }
           await updateSeparateQuotas(user.id, separateQuotasData)
           return 'Quotas updated successfully'
         }
@@ -151,5 +178,6 @@ export function useQuotaManagement() {
     saveQuota,
     setSaveStatus,
     getQuotaStatus,
+    getPendingHeldCount,
   }
 }

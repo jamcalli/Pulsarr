@@ -423,8 +423,7 @@ export class ContentRouterService {
         if (quotaResult.hasQuota && !quotaResult.consumed) {
           const wouldBeUsage = quotaResult.currentUsage + 1
           const isLifetimeExceeded = quotaResult.exceededBy === 'lifetime'
-          const shouldAutoApprove =
-            quotaResult.userBypassEnabled && !isLifetimeExceeded
+          const shouldAutoApprove = quotaResult.userBypassEnabled
 
           this.log.info(
             isLifetimeExceeded
@@ -482,7 +481,7 @@ export class ContentRouterService {
             }
           }
 
-          // No bypass (or lifetime exceeded) - create pending approval request
+          // No bypass - create pending approval request
           const approvalReasonText = isLifetimeExceeded
             ? `lifetime quota exceeded (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
             : `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
@@ -821,17 +820,16 @@ export class ContentRouterService {
                   const wouldBeUsage = quotaResult.currentUsage + 1
                   const isLifetimeExceeded =
                     quotaResult.exceededBy === 'lifetime'
-                  const shouldAutoApprove =
-                    quotaResult.userBypassEnabled && !isLifetimeExceeded
+                  const shouldAutoApprove = quotaResult.userBypassEnabled
 
-                  // Check if user has bypass enabled (allows auto-approve when exceeded, except lifetime)
+                  // Check if user has bypass enabled (allows auto-approve when exceeded)
                   if (shouldAutoApprove) {
                     this.log.info(
                       `Auto-approving quota-exceeded item "${item.title}" for user ${fallbackContext.userId} due to user bypass setting`,
                     )
                     // Fall through to normal default routing without consuming quota
                   } else {
-                    // No bypass (or lifetime exceeded) - create pending approval request
+                    // No bypass - create pending approval request
                     this.log.info(
                       isLifetimeExceeded
                         ? `Lifetime quota exceeded for "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId}: (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
@@ -1063,17 +1061,16 @@ export class ContentRouterService {
             if (quotaResult.hasQuota && !quotaResult.consumed) {
               const wouldBeUsage = quotaResult.currentUsage + 1
               const isLifetimeExceeded = quotaResult.exceededBy === 'lifetime'
-              const shouldAutoApprove =
-                quotaResult.userBypassEnabled && !isLifetimeExceeded
+              const shouldAutoApprove = quotaResult.userBypassEnabled
 
-              // Check if user has bypass enabled (allows auto-approve when exceeded, except lifetime)
+              // Check if user has bypass enabled (allows auto-approve when exceeded)
               if (shouldAutoApprove) {
                 this.log.info(
                   `Auto-approving quota-exceeded item "${enrichedItem.title}" for user ${context.userId} due to user bypass setting`,
                 )
                 // Fall through to normal routing without consuming quota
               } else {
-                // No bypass (or lifetime exceeded) - create pending approval request
+                // No bypass - create pending approval request
                 this.log.info(
                   isLifetimeExceeded
                     ? `Lifetime quota exceeded for "${enrichedItem.title}" by user ${context.userName || context.userId}: (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
