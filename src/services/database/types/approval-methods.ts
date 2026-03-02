@@ -227,6 +227,13 @@ declare module '@services/database.service.js' {
     ): Promise<ApprovalRequest | null>
 
     /**
+     * Retrieves all approval requests with approved or auto_approved status
+     * Used by orphaned approval cleanup to cross-reference against existing content
+     * @returns Promise resolving to array of approved/auto-approved approval requests
+     */
+    getAllApprovedApprovalRequests(): Promise<ApprovalRequest[]>
+
+    /**
      * Retrieves all unique content GUIDs from approved and auto-approved requests
      * Used by delete sync to filter tracked content
      * @returns Promise resolving to a Set of GUIDs

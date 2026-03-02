@@ -710,6 +710,25 @@ export async function getApprovalRequestsByCriteria(
 }
 
 /**
+ * Retrieves all approval requests with 'approved' or 'auto_approved' status.
+ *
+ * Used by orphaned approval cleanup to cross-reference against existing content in Radarr/Sonarr.
+ * Returns full records so the caller has IDs for deletion, contentGuids for matching, and contentType for routing.
+ *
+ * @returns Array of all approved/auto-approved approval requests
+ */
+export async function getAllApprovedApprovalRequests(
+  this: DatabaseService,
+): Promise<ApprovalRequest[]> {
+  const rows = await this.knex('approval_requests')
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
+    .whereIn('status', ['approved', 'auto_approved'])
+
+  return rows.map((row) => mapRowToApprovalRequest.call(this, row))
+}
+
+/**
  * Retrieves all unique content GUIDs from approval requests with 'approved' or 'auto_approved' status.
  *
  * Used by delete sync to determine which content has been tracked by Pulsarr through the approval system.

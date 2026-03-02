@@ -6,17 +6,52 @@
  * approvals, error recovery, and dry run behavior.
  */
 
+import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
-import type { ApprovalCleanupDeps } from '@services/delete-sync/cleanup/approval-cleanup.js'
-import { cleanupApprovalRequestsForDeletedContent } from '@services/delete-sync/cleanup/index.js'
+import type {
+  ApprovalCleanupDeps,
+  OrphanedApprovalCleanupDeps,
+} from '@services/delete-sync/cleanup/approval-cleanup.js'
+import {
+  cleanupApprovalRequestsForDeletedContent,
+  cleanupOrphanedApprovalRequests,
+} from '@services/delete-sync/cleanup/index.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
+
+/** Helper to create a minimal ApprovalRequest for testing */
+function makeApproval(
+  overrides: Partial<ApprovalRequest> & {
+    id: number
+    contentType: 'movie' | 'show'
+    contentGuids: string[]
+  },
+): ApprovalRequest {
+  return {
+    userId: 1,
+    userName: 'Test User',
+    contentTitle: `Content ${overrides.id}`,
+    contentKey: `key-${overrides.id}`,
+    proposedRouterDecision: { action: 'continue' as const },
+    routerRuleId: null,
+    triggeredBy: 'quota_exceeded',
+    approvalReason: null,
+    status: 'approved',
+    approvedBy: null,
+    approvalNotes: null,
+    expiresAt: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  }
+}
 
 describe('approval-cleanup', () => {
   let mockLogger: ReturnType<typeof createMockLogger>
   let mockDb: {
     getApprovalRequestsByGuids: ReturnType<typeof vi.fn>
+    getAllApprovedApprovalRequests: ReturnType<typeof vi.fn>
   }
   let mockApprovalService: {
     deleteApprovalRequest: ReturnType<typeof vi.fn>
@@ -27,6 +62,7 @@ describe('approval-cleanup', () => {
     mockLogger = createMockLogger()
     mockDb = {
       getApprovalRequestsByGuids: vi.fn().mockResolvedValue([]),
+      getAllApprovedApprovalRequests: vi.fn().mockResolvedValue([]),
     }
     mockApprovalService = {
       deleteApprovalRequest: vi.fn().mockResolvedValue(true),
@@ -225,6 +261,237 @@ describe('approval-cleanup', () => {
       expect(mockDb.getApprovalRequestsByGuids).toHaveBeenCalledTimes(2)
       expect(mockApprovalService.deleteApprovalRequest).not.toHaveBeenCalled()
       // Should not log total cleanup message
+    })
+  })
+
+  describe('cleanupOrphanedApprovalRequests', () => {
+    let orphanDeps: OrphanedApprovalCleanupDeps
+
+    beforeEach(() => {
+      orphanDeps = {
+        db: mockDb as unknown as DatabaseService,
+        approvalService: mockApprovalService as unknown as ApprovalService,
+        existingMovieGuids: new Set(['tmdb:100', 'imdb:tt100']),
+        existingShowGuids: new Set(['tmdb:200', 'tvdb:200']),
+        config: { deleteSyncCleanupApprovals: true },
+        logger: mockLogger,
+      }
+    })
+
+    it('should skip when deleteSyncCleanupApprovals is false', async () => {
+      const deps = {
+        ...orphanDeps,
+        config: { deleteSyncCleanupApprovals: false },
+      }
+
+      const result = await cleanupOrphanedApprovalRequests(deps, false)
+
+      expect(result).toEqual({ cleaned: 0 })
+      expect(mockDb.getAllApprovedApprovalRequests).not.toHaveBeenCalled()
+    })
+
+    it('should skip when dryRun is true', async () => {
+      const result = await cleanupOrphanedApprovalRequests(orphanDeps, true)
+
+      expect(result).toEqual({ cleaned: 0 })
+      expect(mockDb.getAllApprovedApprovalRequests).not.toHaveBeenCalled()
+    })
+
+    it('should delete orphaned movie records', async () => {
+      mockDb.getAllApprovedApprovalRequests.mockResolvedValue([
+        makeApproval({
+          id: 1,
+          contentType: 'movie',
+          contentGuids: ['tmdb:100'],
+        }),
+        makeApproval({
+          id: 2,
+          contentType: 'movie',
+          contentGuids: ['tmdb:999'],
+        }),
+      ])
+
+      const result = await cleanupOrphanedApprovalRequests(orphanDeps, false)
+
+      expect(result).toEqual({ cleaned: 1 })
+      expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledWith(2)
+      expect(
+        mockApprovalService.deleteApprovalRequest,
+      ).not.toHaveBeenCalledWith(1)
+    })
+
+    it('should delete orphaned show records', async () => {
+      mockDb.getAllApprovedApprovalRequests.mockResolvedValue([
+        makeApproval({
+          id: 3,
+          contentType: 'show',
+          contentGuids: ['tmdb:888'],
+        }),
+      ])
+
+      const result = await cleanupOrphanedApprovalRequests(orphanDeps, false)
+
+      expect(result).toEqual({ cleaned: 1 })
+      expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledWith(3)
+    })
+
+    it('should keep records where any GUID matches', async () => {
+      mockDb.getAllApprovedApprovalRequests.mockResolvedValue([
+        makeApproval({
+          id: 1,
+          contentType: 'movie',
+          contentGuids: ['plex:movie/abc', 'tmdb:100'],
+        }),
+      ])
+
+      const result = await cleanupOrphanedApprovalRequests(orphanDeps, false)
+
+      expect(result).toEqual({ cleaned: 0 })
+      expect(mockApprovalService.deleteApprovalRequest).not.toHaveBeenCalled()
+    })
+
+    it('should skip content type when GUID set is empty (no instances configured)', async () => {
+      const deps = {
+        ...orphanDeps,
+        existingMovieGuids: new Set<string>(),
+      }
+
+      mockDb.getAllApprovedApprovalRequests.mockResolvedValue([
+        makeApproval({
+          id: 1,
+          contentType: 'movie',
+          contentGuids: ['tmdb:999'],
+        }),
+        makeApproval({
+          id: 2,
+          contentType: 'show',
+          contentGuids: ['tmdb:888'],
+        }),
+      ])
+
+      const result = await cleanupOrphanedApprovalRequests(deps, false)
+
+      // Movie record skipped (empty set), show record orphaned
+      expect(result).toEqual({ cleaned: 1 })
+      expect(
+        mockApprovalService.deleteApprovalRequest,
+      ).not.toHaveBeenCalledWith(1)
+      expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledWith(2)
+    })
+
+    it('should handle mixed movie and show records', async () => {
+      mockDb.getAllApprovedApprovalRequests.mockResolvedValue([
+        makeApproval({
+          id: 1,
+          contentType: 'movie',
+          contentGuids: ['tmdb:100'],
+        }),
+        makeApproval({
+          id: 2,
+          contentType: 'movie',
+          contentGuids: ['tmdb:999'],
+        }),
+        makeApproval({
+          id: 3,
+          contentType: 'show',
+          contentGuids: ['tvdb:200'],
+        }),
+        makeApproval({
+          id: 4,
+          contentType: 'show',
+          contentGuids: ['tvdb:999'],
+        }),
+      ])
+
+      const result = await cleanupOrphanedApprovalRequests(orphanDeps, false)
+
+      expect(result).toEqual({ cleaned: 2 })
+      expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledWith(2)
+      expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledWith(4)
+      expect(
+        mockApprovalService.deleteApprovalRequest,
+      ).not.toHaveBeenCalledWith(1)
+      expect(
+        mockApprovalService.deleteApprovalRequest,
+      ).not.toHaveBeenCalledWith(3)
+    })
+
+    it('should continue on individual delete errors', async () => {
+      mockDb.getAllApprovedApprovalRequests.mockResolvedValue([
+        makeApproval({
+          id: 1,
+          contentType: 'movie',
+          contentGuids: ['tmdb:777'],
+        }),
+        makeApproval({
+          id: 2,
+          contentType: 'movie',
+          contentGuids: ['tmdb:888'],
+        }),
+        makeApproval({
+          id: 3,
+          contentType: 'movie',
+          contentGuids: ['tmdb:999'],
+        }),
+      ])
+      mockApprovalService.deleteApprovalRequest.mockImplementation(
+        async (id) => {
+          if (id === 2) throw new Error('Delete failed')
+          return true
+        },
+      )
+
+      const result = await cleanupOrphanedApprovalRequests(orphanDeps, false)
+
+      expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledTimes(3)
+      // Only 2 succeeded (id 1 and 3), id 2 threw
+      expect(result).toEqual({ cleaned: 2 })
+    })
+
+    it('should handle database fetch errors gracefully', async () => {
+      mockDb.getAllApprovedApprovalRequests.mockRejectedValue(
+        new Error('Database error'),
+      )
+
+      const result = await cleanupOrphanedApprovalRequests(orphanDeps, false)
+
+      expect(result).toEqual({ cleaned: 0 })
+      expect(mockApprovalService.deleteApprovalRequest).not.toHaveBeenCalled()
+    })
+
+    it('should treat records with empty contentGuids as orphaned', async () => {
+      mockDb.getAllApprovedApprovalRequests.mockResolvedValue([
+        makeApproval({
+          id: 1,
+          contentType: 'movie',
+          contentGuids: [],
+        }),
+      ])
+
+      const result = await cleanupOrphanedApprovalRequests(orphanDeps, false)
+
+      expect(result).toEqual({ cleaned: 1 })
+      expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledWith(1)
+    })
+
+    it('should return cleaned 0 when no records are orphaned', async () => {
+      mockDb.getAllApprovedApprovalRequests.mockResolvedValue([
+        makeApproval({
+          id: 1,
+          contentType: 'movie',
+          contentGuids: ['tmdb:100'],
+        }),
+        makeApproval({
+          id: 2,
+          contentType: 'show',
+          contentGuids: ['tvdb:200'],
+        }),
+      ])
+
+      const result = await cleanupOrphanedApprovalRequests(orphanDeps, false)
+
+      expect(result).toEqual({ cleaned: 0 })
+      expect(mockApprovalService.deleteApprovalRequest).not.toHaveBeenCalled()
     })
   })
 })
