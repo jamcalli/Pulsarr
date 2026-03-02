@@ -213,6 +213,15 @@ export default function PlexUsersPage() {
     }
   }
 
+  const handleQuotaDeleteConfirmationClose = (open: boolean) => {
+    if (!open) {
+      setShowQuotaDeleteConfirmation(false)
+      setPendingQuotaSave(null)
+      setPendingHeldCount({ movieCount: 0, showCount: 0 })
+      setIsQuotaDeleteSubmitting(false)
+    }
+  }
+
   // Bulk quota handlers
   const handleOpenBulkQuotaModal = (selectedRows: PlexUserTableRow[]) => {
     setSelectedQuotaRows(selectedRows)
@@ -279,7 +288,7 @@ export default function PlexUsersPage() {
             {/* Quota delete confirmation */}
             <QuotaDeleteConfirmation
               open={showQuotaDeleteConfirmation}
-              onOpenChange={setShowQuotaDeleteConfirmation}
+              onOpenChange={handleQuotaDeleteConfirmationClose}
               onConfirm={handleQuotaDeleteConfirm}
               pendingCount={pendingHeldCount}
               isSubmitting={isQuotaDeleteSubmitting}
