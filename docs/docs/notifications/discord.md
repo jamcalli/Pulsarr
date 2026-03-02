@@ -130,4 +130,4 @@ When content is available, users will receive DMs like these:
 
 ## Advanced Features
 
-For broadcasting content availability to shared channels independent of individual user watchlists, see [Public Content Notifications](../utilities/05-public-content-notifications.md) in the Utilities section.
+For broadcasting content availability to shared channels independent of individual user watchlists, see [Public Content Notifications](../utilities/public-content-notifications) in the Utilities section.

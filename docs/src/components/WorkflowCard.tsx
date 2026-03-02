@@ -1,10 +1,12 @@
 import BrowserOnly from '@docusaurus/BrowserOnly'
 import useBaseUrl from '@docusaurus/useBaseUrl'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const WorkflowSequence = () => {
   const [currentStep, setCurrentStep] = useState(0)
   const [key, setKey] = useState(0)
+  const [isVisible, setIsVisible] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const steps = [
     {
@@ -27,8 +29,28 @@ const WorkflowSequence = () => {
     },
   ]
 
+  // Pause carousel when scrolled out of view
   useEffect(() => {
-    let timer: NodeJS.Timeout
+    const el = containerRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          setIsVisible(entry.isIntersecting)
+        }
+      },
+      { threshold: 0.1 },
+    )
+
+    observer.observe(el)
+    return () => observer.unobserve(el)
+  }, [])
+
+  useEffect(() => {
+    if (!isVisible) return
+
+    let timer: ReturnType<typeof setTimeout>
 
     if (currentStep === 0) {
       // First GIF (Plex-Grab) - show for 4 seconds
@@ -49,14 +71,14 @@ const WorkflowSequence = () => {
     }
 
     return () => clearTimeout(timer)
-  }, [currentStep])
+  }, [currentStep, isVisible])
 
   const currentAsset = steps[currentStep]
 
   return (
     <BrowserOnly fallback={<div>Loading workflow...</div>}>
       {() => (
-        <div className="flex flex-col justify-between h-full overflow-hidden">
+        <div ref={containerRef} className="flex flex-col justify-between h-full overflow-hidden">
           {/* Content area */}
           <div
             className="flex flex-col"

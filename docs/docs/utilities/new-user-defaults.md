@@ -1,7 +1,3 @@
----
-sidebar_position: 6
----
-
 import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # New User Defaults
@@ -40,7 +36,7 @@ Router Rules > User Requires Approval > Quota Bypass Approval. User-level approv
 ## Features
 
 - **Automatic Application**: Settings applied when new users are discovered
-- **Comprehensive Control**: Configure sync, approval, and quota defaults
+- **Full Control**: Configure sync, approval, and quota defaults
 - **Flexible Quotas**: Independent movie and show quota systems
 - **Per-User Override**: Individual settings can be modified after creation
 - **Environment Variable Support**: Configure via `.env` file for infrastructure-as-code

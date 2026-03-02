@@ -1,7 +1,3 @@
----
-sidebar_position: 5
----
-
 import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Plex Notifications

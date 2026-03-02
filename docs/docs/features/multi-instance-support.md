@@ -104,7 +104,7 @@ Default Sonarr → Sync to:
 
 - Designate one default instance per type for predictable routing
 - Use different quality profiles and root folders per target
-- Leverage content router rules for automated distribution
+- Use content router rules for automated distribution
 - Monitor sync operations during initial setup
 
 ## Troubleshooting

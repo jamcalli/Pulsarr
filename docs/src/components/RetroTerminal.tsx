@@ -95,35 +95,92 @@ APPROVAL SYSTEM: ACTIVE
     setBootProgress(0) // Reset progress
 
     let index = 0
+    let timer: ReturnType<typeof setInterval> | null = null
     const typingSpeed = isSmallScreen ? 50 : 30 // Slower on mobile (50ms vs 30ms)
 
-    const timer = setInterval(() => {
-      if (index < fullText.length) {
-        setDisplayText(fullText.substring(0, index + 1))
-        index++
+    const startTyping = () => {
+      if (timer || index >= fullText.length) return
+      timer = setInterval(() => {
+        if (index < fullText.length) {
+          setDisplayText(fullText.substring(0, index + 1))
+          index++
 
-        // Update boot progress based on text progress
-        const progress = index / fullText.length
-        if (progress < 0.15) {
-          setBootProgress(0) // Red
-        } else if (progress < 0.4) {
-          setBootProgress(1) // Orange
+          // Update boot progress based on text progress
+          const progress = index / fullText.length
+          if (progress < 0.15) {
+            setBootProgress(0) // Red
+          } else if (progress < 0.4) {
+            setBootProgress(1) // Orange
+          } else {
+            setBootProgress(2) // Green
+          }
         } else {
-          setBootProgress(2) // Green
+          if (timer) {
+            clearInterval(timer)
+            timer = null
+          }
         }
-      } else {
-        clearInterval(timer)
-      }
-    }, typingSpeed)
+      }, typingSpeed)
+    }
 
-    return () => clearInterval(timer)
+    const stopTyping = () => {
+      if (timer) {
+        clearInterval(timer)
+        timer = null
+      }
+    }
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopTyping()
+      } else {
+        startTyping()
+      }
+    }
+
+    startTyping()
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      stopTyping()
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [fullText, isInView, isSmallScreen]) // Re-run when text changes, view state changes, or screen size changes
 
+  // Pause cursor blink when tab is hidden
   useEffect(() => {
-    const cursorTimer = setInterval(() => {
-      setShowCursor((prev) => !prev)
-    }, 500)
-    return () => clearInterval(cursorTimer)
+    let cursorTimer: ReturnType<typeof setInterval> | null = null
+
+    const startCursor = () => {
+      if (!cursorTimer) {
+        cursorTimer = setInterval(() => {
+          setShowCursor((prev) => !prev)
+        }, 500)
+      }
+    }
+
+    const stopCursor = () => {
+      if (cursorTimer) {
+        clearInterval(cursorTimer)
+        cursorTimer = null
+      }
+    }
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopCursor()
+      } else {
+        startCursor()
+      }
+    }
+
+    startCursor()
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      stopCursor()
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [])
 
   // Detect screen size changes
@@ -265,7 +322,7 @@ APPROVAL SYSTEM: ACTIVE
           right: 0,
           bottom: 0,
           background: `${getColorForProgress(bootProgress)}02`,
-          animation: 'flicker 0.15s infinite',
+          animation: 'flicker 0.5s steps(4) infinite',
           pointerEvents: 'none',
           zIndex: 95,
           transition: 'background 0.3s ease',
@@ -361,7 +418,6 @@ APPROVAL SYSTEM: ACTIVE
             flex: 1,
             overflow: 'hidden',
             transform: 'perspective(1000px) rotateX(0.5deg)',
-            animation: 'pulse 4s ease-in-out infinite',
           }}
         >
           {/* Terminal text content */}
@@ -375,7 +431,6 @@ APPROVAL SYSTEM: ACTIVE
               fontFamily: 'Courier New, monospace',
               fontSize: '14px',
               lineHeight: '1.4',
-              animation: 'textBlur 3s ease-in-out infinite',
               transition: 'color 0.3s ease, text-shadow 0.3s ease',
               height: '100%',
               overflow: 'hidden',
@@ -433,45 +488,16 @@ APPROVAL SYSTEM: ACTIVE
         }
         
         @keyframes flicker {
-          0% { opacity: 0.27861; }
-          5% { opacity: 0.34769; }
-          10% { opacity: 0.23604; }
-          15% { opacity: 0.90626; }
-          20% { opacity: 0.18128; }
-          25% { opacity: 0.83891; }
-          30% { opacity: 0.65583; }
-          35% { opacity: 0.67807; }
-          40% { opacity: 0.26559; }
-          45% { opacity: 0.84693; }
-          50% { opacity: 0.96019; }
-          55% { opacity: 0.08594; }
-          60% { opacity: 0.20313; }
-          65% { opacity: 0.71988; }
-          70% { opacity: 0.53455; }
-          75% { opacity: 0.37288; }
-          80% { opacity: 0.71428; }
-          85% { opacity: 0.70419; }
-          90% { opacity: 0.7003; }
-          95% { opacity: 0.36108; }
-          100% { opacity: 0.24387; }
+          0% { opacity: 0.95; }
+          33% { opacity: 0.25; }
+          66% { opacity: 0.85; }
+          100% { opacity: 0.4; }
         }
         
         @keyframes glow {
           0% { opacity: 1; }
           50% { opacity: 1.2; }
           100% { opacity: 1; }
-        }
-        
-        @keyframes pulse {
-          0% { transform: perspective(1000px) rotateX(0.5deg) scale(1); }
-          50% { transform: perspective(1000px) rotateX(0.5deg) scale(1.002); }
-          100% { transform: perspective(1000px) rotateX(0.5deg) scale(1); }
-        }
-        
-        @keyframes textBlur {
-          0% { filter: blur(0px); }
-          50% { filter: blur(0.3px); }
-          100% { filter: blur(0px); }
         }
         
         @keyframes blink {

@@ -1,7 +1,3 @@
----
-sidebar_position: 1
----
-
 # API Keys
 
 API Keys provide secure, programmatic access to your Pulsarr instance for external applications, scripts, and integrations.
