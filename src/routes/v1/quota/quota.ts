@@ -385,7 +385,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           userId: z.string(),
         }),
         querystring: z.object({
-          autoApproveHeld: z.coerce.boolean().optional().default(false),
+          autoApproveHeld: z.string().transform(v => v === 'true').pipe(z.boolean()).optional().default(false),
         }),
         response: {
           200: QuotaSuccessResponseSchema,
