@@ -198,7 +198,7 @@ describe('approval-cleanup', () => {
       expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledTimes(3)
     })
 
-    it('should continue cleanup on individual delete errors', async () => {
+    it('should continue cleanup when individual deletes return false', async () => {
       const movieApprovals = [
         { id: 1, contentTitle: 'Movie 1', guids: ['plex://movie/1'] },
         { id: 2, contentTitle: 'Movie 2', guids: ['plex://movie/2'] },
@@ -207,10 +207,7 @@ describe('approval-cleanup', () => {
       mockDb.getApprovalRequestsByGuids.mockResolvedValue(movieApprovals)
       mockApprovalService.deleteApprovalRequest.mockImplementation(
         async (id) => {
-          if (id === 2) {
-            throw new Error('Delete failed for approval 2')
-          }
-          return true
+          return id !== 2
         },
       )
 
@@ -227,8 +224,6 @@ describe('approval-cleanup', () => {
 
       // Should attempt all 3 deletes
       expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledTimes(3)
-      // Should log error for failed delete
-      // Should still count successful deletes
     })
 
     it('should handle database fetch errors gracefully', async () => {
@@ -416,7 +411,7 @@ describe('approval-cleanup', () => {
       ).not.toHaveBeenCalledWith(3)
     })
 
-    it('should continue on individual delete errors', async () => {
+    it('should continue when individual deletes return false', async () => {
       mockDb.getAllApprovedApprovalRequests.mockResolvedValue([
         makeApproval({
           id: 1,
@@ -436,15 +431,14 @@ describe('approval-cleanup', () => {
       ])
       mockApprovalService.deleteApprovalRequest.mockImplementation(
         async (id) => {
-          if (id === 2) throw new Error('Delete failed')
-          return true
+          return id !== 2
         },
       )
 
       const result = await cleanupOrphanedApprovalRequests(orphanDeps, false)
 
       expect(mockApprovalService.deleteApprovalRequest).toHaveBeenCalledTimes(3)
-      // Only 2 succeeded (id 1 and 3), id 2 threw
+      // Only 2 succeeded (id 1 and 3), id 2 returned false
       expect(result).toEqual({ cleaned: 2 })
     })
 

@@ -61,13 +61,13 @@ export async function cleanupOrphanedApprovalRequests(
       }
 
       if (!hasMatchingGuid(record, guidSet)) {
-        try {
-          await approvalService.deleteApprovalRequest(record.id)
+        const deleted = await approvalService.deleteApprovalRequest(record.id)
+        if (deleted) {
           cleaned++
-        } catch (error) {
-          logger.error(
-            { error, approvalId: record.id, title: record.contentTitle },
-            'Error deleting orphaned approval request',
+        } else {
+          logger.warn(
+            { approvalId: record.id, title: record.contentTitle },
+            'Failed to delete orphaned approval request',
           )
         }
       }
@@ -131,19 +131,14 @@ export async function cleanupApprovalRequestsForDeletedContent(
         'movie',
       )
 
-      // Use ApprovalService to delete each request (handles SSE events)
       for (const approval of movieApprovals) {
-        try {
-          await approvalService.deleteApprovalRequest(approval.id)
+        const deleted = await approvalService.deleteApprovalRequest(approval.id)
+        if (deleted) {
           totalCleaned++
-        } catch (error) {
-          logger.error(
-            {
-              error,
-              approvalId: approval.id,
-              title: approval.contentTitle,
-            },
-            'Error deleting individual approval request during cleanup',
+        } else {
+          logger.warn(
+            { approvalId: approval.id, title: approval.contentTitle },
+            'Failed to delete movie approval request during cleanup',
           )
         }
       }
@@ -161,19 +156,14 @@ export async function cleanupApprovalRequestsForDeletedContent(
         'show',
       )
 
-      // Use ApprovalService to delete each request (handles SSE events)
       for (const approval of showApprovals) {
-        try {
-          await approvalService.deleteApprovalRequest(approval.id)
+        const deleted = await approvalService.deleteApprovalRequest(approval.id)
+        if (deleted) {
           totalCleaned++
-        } catch (error) {
-          logger.error(
-            {
-              error,
-              approvalId: approval.id,
-              title: approval.contentTitle,
-            },
-            'Error deleting individual approval request during cleanup',
+        } else {
+          logger.warn(
+            { approvalId: approval.id, title: approval.contentTitle },
+            'Failed to delete show approval request during cleanup',
           )
         }
       }

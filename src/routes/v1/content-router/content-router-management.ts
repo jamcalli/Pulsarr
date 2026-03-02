@@ -66,7 +66,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           type: z.string(),
         }),
         querystring: z.object({
-          enabledOnly: z.string().transform(v => v === 'true').pipe(z.boolean()).optional().default(true),
+          enabledOnly: z
+            .string()
+            .transform((v) => v === 'true')
+            .pipe(z.boolean())
+            .optional()
+            .default(true),
         }),
         response: {
           200: ContentRouterRuleListResponseSchema,
