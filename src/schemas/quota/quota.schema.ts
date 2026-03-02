@@ -38,6 +38,7 @@ export const UpdateSpecificQuotaSchema = QuotaFieldsSchema.extend({
 export const UpdateSeparateQuotasSchema = z.object({
   movieQuota: EnabledQuotaSchema.optional(),
   showQuota: EnabledQuotaSchema.optional(),
+  autoApproveHeld: z.boolean().optional().default(false),
 })
 
 export const UserQuotaResponseSchema = z.object({
@@ -161,6 +162,14 @@ export const QuotaSuccessResponseSchema = z.object({
   message: z.string(),
 })
 
+// Pending held count response schema
+export const PendingHeldCountResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  movieCount: z.number(),
+  showCount: z.number(),
+})
+
 // Bulk quota operation schemas
 export const BulkQuotaOperationSchema = z.object({
   userIds: z.array(z.number()).min(1).max(100),
@@ -214,6 +223,9 @@ export type QuotaSuccessResponse = z.infer<typeof QuotaSuccessResponseSchema>
 export type BulkQuotaOperation = z.infer<typeof BulkQuotaOperationSchema>
 export type BulkQuotaOperationResponse = z.infer<
   typeof BulkQuotaOperationResponseSchema
+>
+export type PendingHeldCountResponse = z.infer<
+  typeof PendingHeldCountResponseSchema
 >
 
 // Re-export shared error schema with domain-specific alias

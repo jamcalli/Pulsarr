@@ -213,7 +213,7 @@ export async function updateApprovalRequest(
 export async function approveRequest(
   this: DatabaseService,
   id: number,
-  approvedBy: number,
+  approvedBy: number | null,
   notes?: string,
 ): Promise<ApprovalRequest | null> {
   return this.updateApprovalRequest(id, {
@@ -469,15 +469,54 @@ export async function getExpiredPendingRequests(
 export async function getPendingRequestsByTrigger(
   this: DatabaseService,
   trigger: ApprovalTrigger,
+  userId?: number,
 ): Promise<ApprovalRequest[]> {
-  const rows = await this.knex('approval_requests')
+  let query = this.knex('approval_requests')
     .select('approval_requests.*', 'users.name as user_name')
     .leftJoin('users', 'approval_requests.user_id', 'users.id')
     .where('approval_requests.status', 'pending')
     .where('approval_requests.triggered_by', trigger)
-    .orderBy('approval_requests.created_at', 'asc')
+
+  if (userId) {
+    query = query.where('approval_requests.user_id', userId)
+  }
+
+  const rows = await query.orderBy('approval_requests.created_at', 'asc')
 
   return rows.map((row) => mapRowToApprovalRequest.call(this, row))
+}
+
+/**
+ * Counts pending quota_exceeded approval requests for a specific user, grouped by content type.
+ *
+ * @param userId - The user ID to count pending held requests for
+ * @returns Object with movieCount and showCount of pending quota_exceeded requests
+ */
+export async function getPendingQuotaExceededCountForUser(
+  this: DatabaseService,
+  userId: number,
+): Promise<{ movieCount: number; showCount: number }> {
+  const rows = await this.knex('approval_requests')
+    .select('content_type')
+    .count('* as count')
+    .where('user_id', userId)
+    .where('status', 'pending')
+    .where('triggered_by', 'quota_exceeded')
+    .groupBy('content_type')
+
+  let movieCount = 0
+  let showCount = 0
+
+  for (const row of rows) {
+    const count = Number.parseInt(String(row.count), 10)
+    if (row.content_type === 'movie') {
+      movieCount = count
+    } else if (row.content_type === 'show') {
+      showCount = count
+    }
+  }
+
+  return { movieCount, showCount }
 }
 
 /**

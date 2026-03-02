@@ -58,7 +58,7 @@ declare module '@services/database.service.js' {
      */
     approveRequest(
       id: number,
-      approvedBy: number,
+      approvedBy: number | null,
       notes?: string,
     ): Promise<ApprovalRequest | null>
 
@@ -164,7 +164,17 @@ declare module '@services/database.service.js' {
      */
     getPendingRequestsByTrigger(
       trigger: ApprovalTrigger,
+      userId?: number,
     ): Promise<ApprovalRequest[]>
+
+    /**
+     * Counts pending quota_exceeded approval requests for a specific user, grouped by content type
+     * @param userId - The user ID to count pending held requests for
+     * @returns Promise resolving to object with movieCount and showCount
+     */
+    getPendingQuotaExceededCountForUser(
+      userId: number,
+    ): Promise<{ movieCount: number; showCount: number }>
 
     /**
      * Gets overall approval statistics

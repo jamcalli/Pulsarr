@@ -312,7 +312,7 @@ export const ApprovalResolvedPayloadSchema = z.object({
   content: ContentInfoSchema,
   requestedBy: UserInfoSchema,
   resolvedBy: z.object({
-    userId: z.number(),
+    userId: z.number().nullable(),
   }),
   approvalNotes: z.string().optional(),
   triggeredBy: ApprovalTriggerSchema,

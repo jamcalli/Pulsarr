@@ -188,7 +188,9 @@ export type BulkQuotaFormData = z.infer<typeof BulkQuotaFormSchema>
 export function transformQuotaFormToAPI(
   formData: QuotaFormData,
 ): z.infer<typeof UpdateSeparateQuotasSchema> {
-  const result: z.infer<typeof UpdateSeparateQuotasSchema> = {}
+  const result: z.infer<typeof UpdateSeparateQuotasSchema> = {
+    autoApproveHeld: false,
+  }
 
   // Movie quota
   if (formData.hasMovieQuota) {
