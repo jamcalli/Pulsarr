@@ -45,7 +45,7 @@
   --translate-y-reverseBoxShadowY: var(--spacing-reverseBoxShadowY);
 
   --animate-star-pulse: starPulse 16s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-hard-flicker: hardFlicker 0.16s infinite;
+  --animate-hard-flicker: hardFlicker 0.16s steps(3) infinite;
   --animate-soft-flicker: softFlicker 2s infinite;
   --animate-marquee: marquee 15s linear infinite;
   --animate-marquee2: marquee2 15s linear infinite;
@@ -506,21 +506,20 @@
     font-family: var(--font-sans);
   }
 
-  /* Stroke width utilities for asteroids - multiple selectors to ensure it works */
-  .stroke-\\[4px\\],
-	polygon[class*="stroke"] {
-    stroke-width: 4px !important;
-  }
-
-  /* Direct targeting of asteroid polygons */
-  svg polygon {
-    stroke-width: 4px !important;
-  }
-
   /* Match main app font rendering */
   body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
   }
 }
