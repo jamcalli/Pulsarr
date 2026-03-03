@@ -150,44 +150,78 @@ export class UserTagService {
   }
 
   /**
-   * Clean up removed tags for re-added content
-   * @param existingTags - Current tags on the content
-   * @param tagIdMap - Map of tag IDs to labels
-   * @param userTagIds - User tags being applied
-   * @param contentTitle - Title for logging purposes
-   * @returns Cleaned tag list with removed tags filtered out if applicable
+   * Compute tag add/remove diffs for a media item based on the current removedTagMode.
+   * Handles keep, special-tag, and remove modes.
    */
-  private cleanupRemovedTagsForReAdd(
+  private async computeTagDiffs(
     existingTags: number[],
-    tagIdMap: Map<number, string>,
     userTagIds: number[],
+    tagIdMap: Map<number, string>,
+    ensureRemovedTagFn: () => Promise<number>,
     contentTitle: string,
-  ): number[] {
-    const removedTagIdSet = new Set(
-      existingTags.filter((tagId: number) => {
-        const tagLabel = tagIdMap.get(tagId)
-        return tagLabel
-          ?.toLowerCase()
-          .startsWith(this.removedTagPrefix.toLowerCase())
-      }),
-    )
+  ): Promise<{ toAdd: number[]; toRemove: number[] }> {
+    const existingTagSet = new Set(existingTags)
+    const removedPrefixLower = this.removedTagPrefix.toLowerCase()
 
-    let cleanedExistingTags = existingTags
-    // Only clean up removal tags if:
-    // 1. There are users who want this content now (userTagIds.length > 0)
-    // 2. There are removal tags present (removedTagIdSet.size > 0)
-    // Removed tags should never coexist with active user tags
+    const existingPulsarrTags = existingTags.filter((tagId: number) => {
+      const tagLabel = tagIdMap.get(tagId)
+      return tagLabel && this.isAppUserTag(tagLabel)
+    })
+    const existingRemovalTags = existingTags.filter((tagId: number) => {
+      const tagLabel = tagIdMap.get(tagId)
+      return !!tagLabel?.toLowerCase().startsWith(removedPrefixLower)
+    })
 
-    if (userTagIds.length > 0 && removedTagIdSet.size > 0) {
-      this.log.debug(
-        `Cleaning up ${removedTagIdSet.size} removed tags for re-added content "${contentTitle}"`,
+    let toAdd: number[] = []
+    let toRemove: number[] = []
+
+    if (this.removedTagMode === 'keep') {
+      toAdd = userTagIds.filter((id) => !existingTagSet.has(id))
+      if (userTagIds.length > 0 && existingRemovalTags.length > 0) {
+        this.log.debug(
+          `Cleaning up ${existingRemovalTags.length} removed tags for re-added content ${contentTitle}`,
+        )
+        toRemove = existingRemovalTags
+      }
+    } else if (this.removedTagMode === 'special-tag') {
+      const removedUserTagIds = existingPulsarrTags.filter(
+        (tagId: number) => !userTagIds.includes(tagId),
       )
-      cleanedExistingTags = existingTags.filter(
-        (tagId: number) => !removedTagIdSet.has(tagId),
-      )
+
+      if (userTagIds.length === 0 && removedUserTagIds.length > 0) {
+        const removedTagId = await ensureRemovedTagFn()
+        toRemove = [
+          ...removedUserTagIds,
+          ...existingRemovalTags.filter((id) => id !== removedTagId),
+        ]
+        if (!existingTagSet.has(removedTagId)) {
+          toAdd = [removedTagId]
+        }
+        this.log.debug(
+          `Added removed tag for ${contentTitle} - no active users, safe for deletion`,
+        )
+      } else if (userTagIds.length === 0 && existingRemovalTags.length > 0) {
+        this.log.debug(
+          `Preserving existing removal tags for ${contentTitle} - no active users, keeping removal tags`,
+        )
+      } else {
+        toAdd = userTagIds.filter((id) => !existingTagSet.has(id))
+        toRemove = [...removedUserTagIds, ...existingRemovalTags]
+        if (removedUserTagIds.length > 0 && userTagIds.length > 0) {
+          this.log.debug(
+            `Cleaned up removed tag for ${contentTitle} - active users still want this content`,
+          )
+        }
+      }
+    } else {
+      toAdd = userTagIds.filter((id) => !existingTagSet.has(id))
+      toRemove = [
+        ...existingPulsarrTags.filter((id) => !userTagIds.includes(id)),
+        ...(userTagIds.length > 0 ? existingRemovalTags : []),
+      ]
     }
 
-    return cleanedExistingTags
+    return { toAdd, toRemove }
   }
 
   /**
@@ -528,8 +562,10 @@ export class UserTagService {
             `Processing ${instanceSeries.length} series in Sonarr instance ${instance.name} for bulk tagging`,
           )
 
-          // Collect all updates that need to be made
-          const bulkUpdates: Array<{ seriesId: number; tagIds: number[] }> = []
+          // Collect add/remove diffs — only pulsarr-managed tags
+          const addUpdates: Array<{ seriesId: number; tagIds: number[] }> = []
+          const removeUpdates: Array<{ seriesId: number; tagIds: number[] }> =
+            []
           const instanceResults = { tagged: 0, skipped: 0, failed: 0 }
 
           for (const show of instanceSeries) {
@@ -594,77 +630,30 @@ export class UserTagService {
                 }
               }
 
-              // Get existing tags and prepare new tag set
+              // Compute add/remove diffs — only pulsarr-managed tags
               const existingTags = seriesDetails.tags || []
-
-              // Clean up any existing "removed" tags when users are re-adding content
-              const cleanedExistingTags = this.cleanupRemovedTagsForReAdd(
+              const { toAdd, toRemove } = await this.computeTagDiffs(
                 existingTags,
-                tagIdMap,
                 userTagIds,
-                show.title,
+                tagIdMap,
+                () =>
+                  this.ensureRemovedTag(
+                    sonarrService,
+                    tagLabelMap,
+                    tagIdMap,
+                    `show "${show.title}"`,
+                  ),
+                `show "${show.title}"`,
               )
 
-              // Handle tags based on configuration mode
-              let newTags: number[]
-
-              if (this.removedTagMode === 'keep') {
-                // Simply add any missing user tags, don't remove any
-                newTags = [...new Set([...cleanedExistingTags, ...userTagIds])]
-              } else if (this.removedTagMode === 'special-tag') {
-                // Find non-user tags to preserve
-                const nonUserTagIds = cleanedExistingTags.filter(
-                  (tagId: number) => {
-                    const tagLabel = tagIdMap.get(tagId)
-                    return !tagLabel || !this.isAppUserTag(tagLabel)
-                  },
-                )
-
-                // Find user tags that are being removed
-                const removedUserTagIds = cleanedExistingTags.filter(
-                  (tagId: number) => {
-                    const tagLabel = tagIdMap.get(tagId)
-                    return (
-                      tagLabel &&
-                      this.isAppUserTag(tagLabel) &&
-                      !userTagIds.includes(tagId)
-                    )
-                  },
-                )
-
-                // Use helper to resolve special-tag mode logic
-                newTags = await this.resolveSpecialModeTags(
-                  userTagIds,
-                  nonUserTagIds,
-                  removedUserTagIds,
-                  tagIdMap,
-                  () =>
-                    this.ensureRemovedTag(
-                      sonarrService,
-                      tagLabelMap,
-                      tagIdMap,
-                      `show "${show.title}"`,
-                    ),
-                  `show "${show.title}"`,
-                )
-              } else {
-                // Default 'remove' mode
-                // Filter out any existing user tags and add current ones
-                const nonUserTagIds = cleanedExistingTags.filter(
-                  (tagId: number) => {
-                    const tagLabel = tagIdMap.get(tagId)
-                    return !tagLabel || !this.isAppUserTag(tagLabel)
-                  },
-                )
-
-                // Combine non-user tags with new user tags
-                newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
+              // Collect updates if there are changes
+              if (toAdd.length > 0) {
+                addUpdates.push({ seriesId: sonarrId, tagIds: toAdd })
               }
-
-              // Only collect for bulk update if tags have changed
-              if (!this.arraysEqual(existingTags, newTags)) {
-                bulkUpdates.push({ seriesId: sonarrId, tagIds: newTags })
-              } else {
+              if (toRemove.length > 0) {
+                removeUpdates.push({ seriesId: sonarrId, tagIds: toRemove })
+              }
+              if (toAdd.length === 0 && toRemove.length === 0) {
                 instanceResults.skipped++
               }
             } catch (showError) {
@@ -676,39 +665,17 @@ export class UserTagService {
             }
           }
 
-          // Perform bulk update if we have any updates to make
-          if (bulkUpdates.length > 0) {
-            try {
-              await sonarrService.bulkUpdateSeriesTags(bulkUpdates)
-              instanceResults.tagged += bulkUpdates.length
-              this.log.debug(
-                `Bulk updated ${bulkUpdates.length} series in Sonarr instance ${instance.name}`,
-              )
-            } catch (bulkError) {
-              this.log.error(
-                { error: bulkError },
-                `Bulk update failed for Sonarr instance ${instance.name}, falling back to individual updates:`,
-              )
-
-              // Fallback to individual updates
-              for (const update of bulkUpdates) {
-                try {
-                  await sonarrService.updateSeriesTags(
-                    update.seriesId,
-                    update.tagIds,
-                  )
-                  instanceResults.tagged++
-                } catch (individualError) {
-                  this.log.error(
-                    { error: individualError },
-                    `Individual update failed for series ID ${update.seriesId}:`,
-                  )
-                  instanceResults.failed++
-                  // Don't decrement tagged - it was never successfully updated
-                }
-              }
-            }
+          // Perform bulk add/remove updates
+          if (addUpdates.length > 0) {
+            await sonarrService.bulkUpdateSeriesTags(addUpdates, 'add')
           }
+          if (removeUpdates.length > 0) {
+            await sonarrService.bulkUpdateSeriesTags(removeUpdates, 'remove')
+          }
+          const taggedSeriesIds = new Set(
+            [...addUpdates, ...removeUpdates].map((u) => u.seriesId),
+          )
+          instanceResults.tagged += taggedSeriesIds.size
 
           this.log.debug(
             `Completed bulk tagging for Sonarr instance ${instance.name}: Processed ${instanceSeries.length} series (tagged: ${instanceResults.tagged}, skipped: ${instanceResults.skipped}, failed: ${instanceResults.failed})`,
@@ -829,8 +796,9 @@ export class UserTagService {
             `Processing ${instanceMovies.length} movies in Radarr instance ${instance.name} for bulk tagging`,
           )
 
-          // Collect all updates that need to be made
-          const bulkUpdates: Array<{ movieId: number; tagIds: number[] }> = []
+          // Collect add/remove diffs — only pulsarr-managed tags
+          const addUpdates: Array<{ movieId: number; tagIds: number[] }> = []
+          const removeUpdates: Array<{ movieId: number; tagIds: number[] }> = []
           const instanceResults = { tagged: 0, skipped: 0, failed: 0 }
 
           for (const movie of instanceMovies) {
@@ -895,77 +863,30 @@ export class UserTagService {
                 }
               }
 
-              // Get existing tags and prepare new tag set
+              // Compute add/remove diffs — only pulsarr-managed tags
               const existingTags = movieDetails.tags || []
-
-              // Clean up any existing "removed" tags when users are re-adding content
-              const cleanedExistingTags = this.cleanupRemovedTagsForReAdd(
+              const { toAdd, toRemove } = await this.computeTagDiffs(
                 existingTags,
-                tagIdMap,
                 userTagIds,
-                movie.title,
+                tagIdMap,
+                () =>
+                  this.ensureRemovedTag(
+                    radarrService,
+                    tagLabelMap,
+                    tagIdMap,
+                    `movie "${movie.title}"`,
+                  ),
+                `movie "${movie.title}"`,
               )
 
-              // Handle tags based on configuration mode
-              let newTags: number[]
-
-              if (this.removedTagMode === 'keep') {
-                // Simply add any missing user tags, don't remove any
-                newTags = [...new Set([...cleanedExistingTags, ...userTagIds])]
-              } else if (this.removedTagMode === 'special-tag') {
-                // Find non-user tags to preserve
-                const nonUserTagIds = cleanedExistingTags.filter(
-                  (tagId: number) => {
-                    const tagLabel = tagIdMap.get(tagId)
-                    return !tagLabel || !this.isAppUserTag(tagLabel)
-                  },
-                )
-
-                // Find user tags that are being removed
-                const removedUserTagIds = cleanedExistingTags.filter(
-                  (tagId: number) => {
-                    const tagLabel = tagIdMap.get(tagId)
-                    return (
-                      tagLabel &&
-                      this.isAppUserTag(tagLabel) &&
-                      !userTagIds.includes(tagId)
-                    )
-                  },
-                )
-
-                // Use helper to resolve special-tag mode logic
-                newTags = await this.resolveSpecialModeTags(
-                  userTagIds,
-                  nonUserTagIds,
-                  removedUserTagIds,
-                  tagIdMap,
-                  () =>
-                    this.ensureRemovedTag(
-                      radarrService,
-                      tagLabelMap,
-                      tagIdMap,
-                      `movie "${movie.title}"`,
-                    ),
-                  `movie "${movie.title}"`,
-                )
-              } else {
-                // Default 'remove' mode
-                // Filter out any existing user tags and add current ones
-                const nonUserTagIds = cleanedExistingTags.filter(
-                  (tagId: number) => {
-                    const tagLabel = tagIdMap.get(tagId)
-                    return !tagLabel || !this.isAppUserTag(tagLabel)
-                  },
-                )
-
-                // Combine non-user tags with new user tags
-                newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
+              // Collect updates if there are changes
+              if (toAdd.length > 0) {
+                addUpdates.push({ movieId: radarrId, tagIds: toAdd })
               }
-
-              // Only collect for bulk update if tags have changed
-              if (!this.arraysEqual(existingTags, newTags)) {
-                bulkUpdates.push({ movieId: radarrId, tagIds: newTags })
-              } else {
+              if (toRemove.length > 0) {
+                removeUpdates.push({ movieId: radarrId, tagIds: toRemove })
+              }
+              if (toAdd.length === 0 && toRemove.length === 0) {
                 instanceResults.skipped++
               }
             } catch (movieError) {
@@ -977,39 +898,17 @@ export class UserTagService {
             }
           }
 
-          // Perform bulk update if we have any updates to make
-          if (bulkUpdates.length > 0) {
-            try {
-              await radarrService.bulkUpdateMovieTags(bulkUpdates)
-              instanceResults.tagged += bulkUpdates.length
-              this.log.debug(
-                `Bulk updated ${bulkUpdates.length} movies in Radarr instance ${instance.name}`,
-              )
-            } catch (bulkError) {
-              this.log.error(
-                { error: bulkError },
-                `Bulk update failed for Radarr instance ${instance.name}, falling back to individual updates:`,
-              )
-
-              // Fallback to individual updates
-              for (const update of bulkUpdates) {
-                try {
-                  await radarrService.updateMovieTags(
-                    update.movieId,
-                    update.tagIds,
-                  )
-                  instanceResults.tagged++
-                } catch (individualError) {
-                  this.log.error(
-                    { error: individualError },
-                    `Individual update failed for movie ID ${update.movieId}:`,
-                  )
-                  instanceResults.failed++
-                  // Don't decrement tagged - it was never successfully updated
-                }
-              }
-            }
+          // Perform bulk add/remove updates
+          if (addUpdates.length > 0) {
+            await radarrService.bulkUpdateMovieTags(addUpdates, 'add')
           }
+          if (removeUpdates.length > 0) {
+            await radarrService.bulkUpdateMovieTags(removeUpdates, 'remove')
+          }
+          const taggedMovieIds = new Set(
+            [...addUpdates, ...removeUpdates].map((u) => u.movieId),
+          )
+          instanceResults.tagged += taggedMovieIds.size
 
           this.log.debug(
             `Completed bulk tagging for Radarr instance ${instance.name}: Processed ${instanceMovies.length} movies (tagged: ${instanceResults.tagged}, skipped: ${instanceResults.skipped}, failed: ${instanceResults.failed})`,
@@ -1514,18 +1413,17 @@ export class UserTagService {
                 continue
               }
 
-              // Filter out user tags
-              const newTags = existingTags.filter(
-                (tagId: number) => !userTagIds.includes(tagId),
+              // Collect user tags present on this series for removal
+              const tagsToRemove = existingTags.filter((tagId: number) =>
+                userTagIds.includes(tagId),
               )
 
-              const tagsRemoved = existingTags.length - newTags.length
-              tagsRemovedCount += tagsRemoved
+              tagsRemovedCount += tagsToRemove.length
 
-              // Add to bulk updates
+              // Add to bulk updates — send only tags to remove
               bulkUpdates.push({
                 seriesId: sonarrId,
-                tagIds: newTags,
+                tagIds: tagsToRemove,
               })
               // increment on success only
             } catch (error) {
@@ -1537,41 +1435,11 @@ export class UserTagService {
             }
           }
 
-          results.tagsRemoved += tagsRemovedCount
-
-          // Apply bulk updates with fallback to individual updates
+          // Apply bulk tag removal
           if (bulkUpdates.length > 0) {
-            try {
-              await service.bulkUpdateSeriesTags(bulkUpdates)
-              results.itemsUpdated += bulkUpdates.length
-              this.log.debug(
-                `Bulk updated ${bulkUpdates.length} series in ${instance.name}, removed ${tagsRemovedCount} user tags`,
-              )
-            } catch (bulkError) {
-              this.log.warn(
-                {
-                  error: bulkError,
-                  instance: instance.name,
-                  instanceId: instance.id,
-                },
-                'Bulk update failed; falling back to individual updates',
-              )
-
-              // Fallback to individual updates
-              for (const update of bulkUpdates) {
-                try {
-                  await service.updateSeriesTags(update.seriesId, update.tagIds)
-                  results.itemsUpdated++
-                } catch (individualError) {
-                  this.log.error(
-                    { error: individualError },
-                    `Failed to update series ${update.seriesId} individually:`,
-                  )
-                  results.failed++
-                  // Don't decrement itemsUpdated - it was never successfully updated
-                }
-              }
-            }
+            await service.bulkUpdateSeriesTags(bulkUpdates, 'remove')
+            results.tagsRemoved += tagsRemovedCount
+            results.itemsUpdated += bulkUpdates.length
           }
 
           // Update progress
@@ -1810,18 +1678,17 @@ export class UserTagService {
                 continue
               }
 
-              // Filter out user tags
-              const newTags = existingTags.filter(
-                (tagId: number) => !userTagIds.includes(tagId),
+              // Collect user tags present on this movie for removal
+              const tagsToRemove = existingTags.filter((tagId: number) =>
+                userTagIds.includes(tagId),
               )
 
-              const tagsRemoved = existingTags.length - newTags.length
-              tagsRemovedCount += tagsRemoved
+              tagsRemovedCount += tagsToRemove.length
 
-              // Add to bulk updates
+              // Add to bulk updates — send only tags to remove
               bulkUpdates.push({
                 movieId: radarrId,
-                tagIds: newTags,
+                tagIds: tagsToRemove,
               })
               // increment on success only
             } catch (error) {
@@ -1833,41 +1700,11 @@ export class UserTagService {
             }
           }
 
-          results.tagsRemoved += tagsRemovedCount
-
-          // Apply bulk updates with fallback to individual updates
+          // Apply bulk tag removal
           if (bulkUpdates.length > 0) {
-            try {
-              await service.bulkUpdateMovieTags(bulkUpdates)
-              results.itemsUpdated += bulkUpdates.length
-              this.log.debug(
-                `Bulk updated ${bulkUpdates.length} movies in ${instance.name}, removed ${tagsRemovedCount} user tags`,
-              )
-            } catch (bulkError) {
-              this.log.warn(
-                {
-                  error: bulkError,
-                  instance: instance.name,
-                  instanceId: instance.id,
-                },
-                'Bulk update failed; falling back to individual updates',
-              )
-
-              // Fallback to individual updates
-              for (const update of bulkUpdates) {
-                try {
-                  await service.updateMovieTags(update.movieId, update.tagIds)
-                  results.itemsUpdated++
-                } catch (individualError) {
-                  this.log.error(
-                    { error: individualError },
-                    `Failed to update movie ${update.movieId} individually:`,
-                  )
-                  results.failed++
-                  // Don't decrement itemsUpdated - it was never successfully updated
-                }
-              }
-            }
+            await service.bulkUpdateMovieTags(bulkUpdates, 'remove')
+            results.tagsRemoved += tagsRemovedCount
+            results.itemsUpdated += bulkUpdates.length
           }
 
           // Update progress
@@ -2058,72 +1895,6 @@ export class UserTagService {
   }
 
   /**
-   * Resolves the appropriate tag set for special-tag mode
-   * Handles the decision tree for when to add/remove the special "removed" tag
-   *
-   * @param userTagIds - Array of user tag IDs that should be present
-   * @param nonUserTagIds - Array of non-user tag IDs to preserve
-   * @param removedUserTagIds - Array of user tag IDs being removed
-   * @param tagIdMap - Map of tag IDs to labels for filtering
-   * @param removedTagIdSupplier - Function that returns the removed tag ID
-   * @param logContext - Context string for logging
-   * @returns Promise resolving to the final tag set
-   */
-  private async resolveSpecialModeTags(
-    userTagIds: number[],
-    nonUserTagIds: number[],
-    removedUserTagIds: number[],
-    tagIdMap: Map<number, string>,
-    removedTagIdSupplier: () => Promise<number>,
-    logContext: string,
-  ): Promise<number[]> {
-    const removedPrefixLower = this.removedTagPrefix.toLowerCase()
-
-    // Check if there are any existing removal tags
-    const existingRemovalTags = nonUserTagIds.filter((id) => {
-      const lbl = tagIdMap.get(id)
-      const lower = lbl?.toLowerCase()
-      return !!lower?.startsWith(removedPrefixLower)
-    })
-
-    // If no active user tags and we're removing some, add the removed tag
-    if (userTagIds.length === 0 && removedUserTagIds.length > 0) {
-      const removedTagId = await removedTagIdSupplier()
-      // Avoid carrying any pre-existing removed-tag variants forward
-      const nonUserSansRemoved = nonUserTagIds.filter((id) => {
-        const lbl = tagIdMap.get(id)
-        return !lbl || !lbl.toLowerCase().startsWith(removedPrefixLower)
-      })
-      this.log.debug(
-        `Added removed tag for ${logContext} - no active users, safe for deletion`,
-      )
-      return [...new Set([...nonUserSansRemoved, removedTagId])]
-    }
-
-    // If no active user tags but existing removal tags exist, preserve them
-    if (userTagIds.length === 0 && existingRemovalTags.length > 0) {
-      this.log.debug(
-        `Preserving existing removal tags for ${logContext} - no active users, keeping removal tags`,
-      )
-      return [...new Set([...nonUserTagIds])]
-    }
-
-    // Users exist OR nothing is actually being removed: keep user tags and implicitly clean removed tags
-    const nonUserKeep = nonUserTagIds.filter((id) => {
-      const lbl = tagIdMap.get(id)
-      return !lbl || !lbl.toLowerCase().startsWith(removedPrefixLower)
-    })
-
-    if (removedUserTagIds.length > 0 && userTagIds.length > 0) {
-      this.log.debug(
-        `Cleaned up removed tag for ${logContext} - active users still want this content`,
-      )
-    }
-
-    return [...new Set([...nonUserKeep, ...userTagIds])]
-  }
-
-  /**
    * Ensures the special "removed" tag exists in the given service
    * Creates it if it doesn't exist yet
    *
@@ -2163,20 +1934,6 @@ export class UserTagService {
       this.log.error({ error }, `Error creating removed tag for ${itemName}:`)
       throw error
     }
-  }
-
-  private arraysEqual(a: number[], b: number[]): boolean {
-    if (a.length !== b.length) return false
-
-    const setA = new Set(a)
-    const setB = new Set(b)
-
-    // If sets have different sizes, there are duplicates
-    // and arrays can't be identical
-    if (setA.size !== setB.size) return false
-
-    // Check if every element in setA exists in setB
-    return [...setA].every((item) => setB.has(item))
   }
 
   /**
@@ -2262,18 +2019,16 @@ export class UserTagService {
               continue
             }
 
-            // Filter out orphaned tags
-            const newTags = existingTags.filter(
-              (tagId) => !orphanedTagIds.has(tagId),
+            // Collect orphaned tags present on this series for removal
+            const tagsToRemove = existingTags.filter((tagId) =>
+              orphanedTagIds.has(tagId),
             )
 
-            // Add to bulk updates
+            // Add to bulk updates — send only tags to remove
             bulkUpdates.push({
               seriesId: seriesDetail.id,
-              tagIds: newTags,
+              tagIds: tagsToRemove,
             })
-
-            results.removed++
           } catch (error) {
             this.log.error(
               { error },
@@ -2283,45 +2038,10 @@ export class UserTagService {
           }
         }
 
-        // Apply bulk updates with fallback to individual updates
+        // Apply bulk tag removal
         if (bulkUpdates.length > 0) {
-          try {
-            await sonarrService.bulkUpdateSeriesTags(bulkUpdates)
-            this.log.debug(
-              {
-                instance: instance.name,
-                instanceId: instance.id,
-                updatedSeries: bulkUpdates.length,
-              },
-              'Bulk removed orphaned tags',
-            )
-          } catch (bulkError) {
-            this.log.warn(
-              {
-                error: bulkError,
-                instance: instance.name,
-                instanceId: instance.id,
-              },
-              'Bulk orphaned tag cleanup failed; falling back to individual updates',
-            )
-
-            // Fallback to individual updates
-            for (const update of bulkUpdates) {
-              try {
-                await sonarrService.updateSeriesTags(
-                  update.seriesId,
-                  update.tagIds,
-                )
-              } catch (individualError) {
-                this.log.error(
-                  { error: individualError },
-                  `Individual orphaned tag cleanup failed for series ID ${update.seriesId}:`,
-                )
-                results.failed++
-                // Don't decrement removed - it was never successfully updated
-              }
-            }
-          }
+          await sonarrService.bulkUpdateSeriesTags(bulkUpdates, 'remove')
+          results.removed += bulkUpdates.length
         }
 
         this.log.debug(
@@ -2429,18 +2149,16 @@ export class UserTagService {
               continue
             }
 
-            // Filter out orphaned tags
-            const newTags = existingTags.filter(
-              (tagId) => !orphanedTagIds.has(tagId),
+            // Collect orphaned tags present on this movie for removal
+            const tagsToRemove = existingTags.filter((tagId) =>
+              orphanedTagIds.has(tagId),
             )
 
-            // Add to bulk updates
+            // Add to bulk updates — send only tags to remove
             bulkUpdates.push({
               movieId: movieDetail.id,
-              tagIds: newTags,
+              tagIds: tagsToRemove,
             })
-
-            results.removed++
           } catch (error) {
             this.log.error(
               { error },
@@ -2450,45 +2168,10 @@ export class UserTagService {
           }
         }
 
-        // Apply bulk updates with fallback to individual updates
+        // Apply bulk tag removal
         if (bulkUpdates.length > 0) {
-          try {
-            await radarrService.bulkUpdateMovieTags(bulkUpdates)
-            this.log.debug(
-              {
-                instance: instance.name,
-                instanceId: instance.id,
-                updatedMovies: bulkUpdates.length,
-              },
-              'Bulk removed orphaned tags',
-            )
-          } catch (bulkError) {
-            this.log.warn(
-              {
-                error: bulkError,
-                instance: instance.name,
-                instanceId: instance.id,
-              },
-              'Bulk orphaned tag cleanup failed; falling back to individual updates',
-            )
-
-            // Fallback to individual updates
-            for (const update of bulkUpdates) {
-              try {
-                await radarrService.updateMovieTags(
-                  update.movieId,
-                  update.tagIds,
-                )
-              } catch (individualError) {
-                this.log.error(
-                  { error: individualError },
-                  `Individual orphaned tag cleanup failed for movie ID ${update.movieId}:`,
-                )
-                results.failed++
-                // Don't decrement removed - it was never successfully updated
-              }
-            }
-          }
+          await radarrService.bulkUpdateMovieTags(bulkUpdates, 'remove')
+          results.removed += bulkUpdates.length
         }
 
         this.log.debug(
