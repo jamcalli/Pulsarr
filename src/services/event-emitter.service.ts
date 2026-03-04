@@ -35,6 +35,9 @@ export class ProgressService {
   }
 
   removeConnection(id: string) {
+    if (!this.activeConnections.has(id)) {
+      return
+    }
     this.activeConnections.delete(id)
     this.log.debug(`Removing progress connection: ${id}`)
   }
