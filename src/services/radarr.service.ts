@@ -31,10 +31,14 @@ import {
 import { createServiceLogger } from '@utils/logger.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import pLimit from 'p-limit'
 
 // HTTP timeout constants
 const RADARR_API_TIMEOUT = 300000 // 300 seconds for API operations
 const RADARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
+
+// Bulk tag update concurrency limit
+const BULK_TAG_CONCURRENCY = 4
 
 // Custom error class to include HTTP status
 class HttpError extends Error {
@@ -1593,26 +1597,28 @@ export class RadarrService {
         tagGroups.get(tagKey)?.push(update.movieId)
       }
 
-      // Process each tag group as a bulk operation
+      // Process each tag group as a bulk operation with concurrency limit
+      const limit = pLimit(BULK_TAG_CONCURRENCY)
       const promises = Array.from(tagGroups.entries()).map(
-        async ([tagKey, movieIds]) => {
-          const tagIds =
-            tagKey === ''
-              ? []
-              : tagKey.split(',').map((id) => Number.parseInt(id, 10))
+        ([tagKey, movieIds]) =>
+          limit(async () => {
+            const tagIds =
+              tagKey === ''
+                ? []
+                : tagKey.split(',').map((id) => Number.parseInt(id, 10))
 
-          const payload = {
-            movieIds: movieIds,
-            tags: tagIds,
-            applyTags,
-          }
+            const payload = {
+              movieIds: movieIds,
+              tags: tagIds,
+              applyTags,
+            }
 
-          await this.putToRadarr('movie/editor', payload)
+            await this.putToRadarr('movie/editor', payload)
 
-          this.log.debug(
-            `Bulk updated ${movieIds.length} movies with tags [${tagIds.join(', ')}] (mode: ${applyTags})`,
-          )
-        },
+            this.log.debug(
+              `Bulk updated ${movieIds.length} movies with tags [${tagIds.join(', ')}] (mode: ${applyTags})`,
+            )
+          }),
       )
 
       await Promise.all(promises)

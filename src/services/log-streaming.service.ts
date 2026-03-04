@@ -36,6 +36,7 @@ export class LogStreamingService {
   > = new Map()
   private readonly logFilePath: string
   private _watchTickInFlight = false
+  private _startingFileWatch = false
   private partialLine = ''
   private readonly log: FastifyBaseLogger
 
@@ -74,6 +75,9 @@ export class LogStreamingService {
   }
 
   removeConnection(id: string) {
+    if (!this.activeConnections.has(id)) {
+      return
+    }
     this.activeConnections.delete(id)
     this.log.debug({ connectionId: id }, 'Removing log streaming connection')
 
@@ -101,6 +105,7 @@ export class LogStreamingService {
     this.activeConnections.clear()
     this.eventEmitter.removeAllListeners()
     this.partialLine = ''
+    this._startingFileWatch = false
   }
 
   async getTailLines(lines: number, filter?: string): Promise<LogEntry[]> {
@@ -202,64 +207,71 @@ export class LogStreamingService {
   }
 
   private async startFileWatching() {
-    if (this.watchedFiles.has(this.logFilePath)) {
+    if (this.watchedFiles.has(this.logFilePath) || this._startingFileWatch) {
       return
     }
+    this._startingFileWatch = true
 
-    // Initialize entry and start interval regardless of file existence
-    let initialSize = 0
     try {
-      const stats = await stat(this.logFilePath)
-      initialSize = stats.size
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        this.log.debug(
-          {
-            file: this.logFilePath,
-          },
-          'Log file not found at startup, will watch for creation',
-        )
-      } else {
-        // Unexpected error, abort
-        this.log.warn(
-          {
-            error,
-            file: this.logFilePath,
-          },
-          'Failed to start watching log file',
-        )
+      let initialSize = 0
+      try {
+        const stats = await stat(this.logFilePath)
+        initialSize = stats.size
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          this.log.debug(
+            {
+              file: this.logFilePath,
+            },
+            'Log file not found at startup, will watch for creation',
+          )
+        } else {
+          this.log.warn(
+            {
+              error,
+              file: this.logFilePath,
+            },
+            'Failed to start watching log file',
+          )
+          return
+        }
+      }
+
+      // All connections may have closed while awaiting stat
+      if (this.activeConnections.size === 0) {
         return
       }
-    }
 
-    this.watchedFiles.set(this.logFilePath, { size: initialSize })
+      this.watchedFiles.set(this.logFilePath, { size: initialSize })
 
-    // Always start the polling interval
-    const interval = setInterval(async () => {
-      if (this._watchTickInFlight) return
-      this._watchTickInFlight = true
-      try {
-        await this.checkFileChanges()
-      } finally {
-        this._watchTickInFlight = false
+      const interval = setInterval(async () => {
+        if (this._watchTickInFlight) return
+        this._watchTickInFlight = true
+        try {
+          await this.checkFileChanges()
+        } finally {
+          this._watchTickInFlight = false
+        }
+      }, 1000)
+
+      const fileInfo = this.watchedFiles.get(this.logFilePath)
+      if (fileInfo) {
+        fileInfo.interval = interval
       }
-    }, 1000)
 
-    const fileInfo = this.watchedFiles.get(this.logFilePath)
-    if (fileInfo) {
-      fileInfo.interval = interval
+      this.log.debug({ file: this.logFilePath }, 'Started watching log file')
+    } finally {
+      this._startingFileWatch = false
     }
-
-    this.log.debug({ file: this.logFilePath }, 'Started watching log file')
   }
 
   private stopFileWatching() {
     const fileInfo = this.watchedFiles.get(this.logFilePath)
     if (fileInfo?.interval) {
       clearInterval(fileInfo.interval)
-      this.watchedFiles.delete(this.logFilePath)
-      this.log.debug({ file: this.logFilePath }, 'Stopped watching log file')
     }
+    this.watchedFiles.delete(this.logFilePath)
+    this.log.debug({ file: this.logFilePath }, 'Stopped watching log file')
   }
 
   private async checkFileChanges() {
