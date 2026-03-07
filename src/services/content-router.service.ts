@@ -62,6 +62,28 @@ export class ContentRouterService {
   }
 
   /**
+   * Checks if a user's watchlist exceeds their configured cap for the content type.
+   * Returns true if capped (routing should be halted), false if clear.
+   * Bypass users are always uncapped.
+   */
+  private async isWatchlistCapped(
+    userId: number,
+    contentType: 'movie' | 'show',
+  ): Promise<boolean> {
+    const quota = await this.fastify.db.getUserQuota(userId, contentType)
+    if (
+      !quota ||
+      quota.watchlistCap == null ||
+      quota.watchlistCap <= 0 ||
+      quota.bypassApproval
+    )
+      return false
+
+    const count = await this.fastify.db.getWatchlistUsage(userId, contentType)
+    return count >= quota.watchlistCap
+  }
+
+  /**
    * Initialize the router service by loading all evaluators from the router-evaluators directory.
    * Each evaluator is loaded, validated, and stored for later use. Evaluators are sorted by
    * priority so higher priority evaluators are executed first.
@@ -411,6 +433,16 @@ export class ContentRouterService {
         `No routing rules exist, using default routing for "${item.title}"`,
       )
 
+      // Watchlist cap gate — runs before quota logic, completely independent
+      if (!options.syncing && options.userId > 0) {
+        if (await this.isWatchlistCapped(options.userId, contentType)) {
+          this.log.info(
+            `Watchlist cap reached for "${item.title}" by user ${options.userName || options.userId} — skipping`,
+          )
+          return { routedInstances: [], routingDetails: [] }
+        }
+      }
+
       // Atomic quota enforcement for default routing path (prevents race conditions)
       // Only for non-sync operations
       if (!options.syncing && options.userId > 0) {
@@ -422,13 +454,10 @@ export class ContentRouterService {
         // If user has quota configured and consumption failed (exceeded)
         if (quotaResult.hasQuota && !quotaResult.consumed) {
           const wouldBeUsage = quotaResult.currentUsage + 1
-          const isLifetimeExceeded = quotaResult.exceededBy === 'lifetime'
           const shouldAutoApprove = quotaResult.userBypassEnabled
 
           this.log.info(
-            isLifetimeExceeded
-              ? `Lifetime quota exceeded for "${item.title}" by user ${options.userName || options.userId}: (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
-              : `Quota exceeded for "${item.title}" by user ${options.userName || options.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
+            `Quota exceeded for "${item.title}" by user ${options.userName || options.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
           )
 
           // Auto-approve if user has bypass enabled - route and create auto_approved record
@@ -482,9 +511,7 @@ export class ContentRouterService {
           }
 
           // No bypass - create pending approval request
-          const approvalReasonText = isLifetimeExceeded
-            ? `lifetime quota exceeded (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
-            : `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
+          const approvalReasonText = `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
 
           // Get default routing decisions to include in approval request
           const defaultRoutingDecisions =
@@ -503,18 +530,12 @@ export class ContentRouterService {
                   reason: approvalReasonText,
                   triggeredBy: 'quota_exceeded',
                   data: {
-                    quotaType: isLifetimeExceeded
-                      ? ('lifetime' as const)
-                      : (quotaResult.quotaType as
-                          | 'daily'
-                          | 'weekly_rolling'
-                          | 'monthly'),
-                    quotaUsage: isLifetimeExceeded
-                      ? (quotaResult.lifetimeUsage ?? 0)
-                      : wouldBeUsage,
-                    quotaLimit: isLifetimeExceeded
-                      ? (quotaResult.lifetimeLimit ?? 0)
-                      : quotaResult.quotaLimit,
+                    quotaType: quotaResult.quotaType as
+                      | 'daily'
+                      | 'weekly_rolling'
+                      | 'monthly',
+                    quotaUsage: wouldBeUsage,
+                    quotaLimit: quotaResult.quotaLimit,
                   },
                   proposedRouting: await this.createProposedRoutingDecision(
                     defaultRoutingDecisions,
@@ -797,6 +818,21 @@ export class ContentRouterService {
               return { routedInstances: [], routingDetails: [] }
             }
 
+            // Watchlist cap gate — runs before quota logic, completely independent
+            if (!options.syncing && fallbackContext.userId > 0) {
+              if (
+                await this.isWatchlistCapped(
+                  fallbackContext.userId,
+                  contentType,
+                )
+              ) {
+                this.log.info(
+                  `Watchlist cap reached for "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId} — skipping`,
+                )
+                return { routedInstances: [], routingDetails: [] }
+              }
+            }
+
             // Atomic quota enforcement for fallback default routing
             if (!options.syncing && fallbackContext.userId > 0) {
               const quotasBypassedByRule =
@@ -818,8 +854,6 @@ export class ContentRouterService {
                 // If user has quota configured and consumption failed (exceeded)
                 if (quotaResult.hasQuota && !quotaResult.consumed) {
                   const wouldBeUsage = quotaResult.currentUsage + 1
-                  const isLifetimeExceeded =
-                    quotaResult.exceededBy === 'lifetime'
                   const shouldAutoApprove = quotaResult.userBypassEnabled
 
                   // Check if user has bypass enabled (allows auto-approve when exceeded)
@@ -831,14 +865,10 @@ export class ContentRouterService {
                   } else {
                     // No bypass - create pending approval request
                     this.log.info(
-                      isLifetimeExceeded
-                        ? `Lifetime quota exceeded for "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId}: (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
-                        : `Quota exceeded for "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
+                      `Quota exceeded for "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
                     )
 
-                    const approvalReasonText = isLifetimeExceeded
-                      ? `lifetime quota exceeded (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
-                      : `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
+                    const approvalReasonText = `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
 
                     await this.fastify.approvalService.createApprovalRequest(
                       {
@@ -854,18 +884,12 @@ export class ContentRouterService {
                           reason: approvalReasonText,
                           triggeredBy: 'quota_exceeded',
                           data: {
-                            quotaType: isLifetimeExceeded
-                              ? ('lifetime' as const)
-                              : (quotaResult.quotaType as
-                                  | 'daily'
-                                  | 'weekly_rolling'
-                                  | 'monthly'),
-                            quotaUsage: isLifetimeExceeded
-                              ? (quotaResult.lifetimeUsage ?? 0)
-                              : wouldBeUsage,
-                            quotaLimit: isLifetimeExceeded
-                              ? (quotaResult.lifetimeLimit ?? 0)
-                              : quotaResult.quotaLimit,
+                            quotaType: quotaResult.quotaType as
+                              | 'daily'
+                              | 'weekly_rolling'
+                              | 'monthly',
+                            quotaUsage: wouldBeUsage,
+                            quotaLimit: quotaResult.quotaLimit,
                           },
                           proposedRouting:
                             await this.createProposedRoutingDecision(
@@ -1038,6 +1062,16 @@ export class ContentRouterService {
           return { routedInstances: [], routingDetails: [] }
         }
 
+        // Watchlist cap gate — runs before quota logic, completely independent
+        if (!options.syncing && context.userId > 0) {
+          if (await this.isWatchlistCapped(context.userId, contentType)) {
+            this.log.info(
+              `Watchlist cap reached for "${enrichedItem.title}" by user ${context.userName || context.userId} — skipping`,
+            )
+            return { routedInstances: [], routingDetails: [] }
+          }
+        }
+
         // PRIORITY 3: Atomic quota consumption (prevents race conditions)
         // Only for non-sync operations
         if (!options.syncing && context.userId > 0) {
@@ -1060,7 +1094,6 @@ export class ContentRouterService {
             // If user has quota configured and consumption failed (exceeded)
             if (quotaResult.hasQuota && !quotaResult.consumed) {
               const wouldBeUsage = quotaResult.currentUsage + 1
-              const isLifetimeExceeded = quotaResult.exceededBy === 'lifetime'
               const shouldAutoApprove = quotaResult.userBypassEnabled
 
               // Check if user has bypass enabled (allows auto-approve when exceeded)
@@ -1072,14 +1105,10 @@ export class ContentRouterService {
               } else {
                 // No bypass - create pending approval request
                 this.log.info(
-                  isLifetimeExceeded
-                    ? `Lifetime quota exceeded for "${enrichedItem.title}" by user ${context.userName || context.userId}: (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
-                    : `Quota exceeded for "${enrichedItem.title}" by user ${context.userName || context.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
+                  `Quota exceeded for "${enrichedItem.title}" by user ${context.userName || context.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
                 )
 
-                const approvalReasonText = isLifetimeExceeded
-                  ? `lifetime quota exceeded (${quotaResult.lifetimeUsage}/${quotaResult.lifetimeLimit})`
-                  : `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
+                const approvalReasonText = `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
                 const primaryDecision = allDecisions[0]
 
                 const approvalRequest =
@@ -1095,18 +1124,12 @@ export class ContentRouterService {
                         reason: approvalReasonText,
                         triggeredBy: 'quota_exceeded',
                         data: {
-                          quotaType: isLifetimeExceeded
-                            ? ('lifetime' as const)
-                            : (quotaResult.quotaType as
-                                | 'daily'
-                                | 'weekly_rolling'
-                                | 'monthly'),
-                          quotaUsage: isLifetimeExceeded
-                            ? (quotaResult.lifetimeUsage ?? 0)
-                            : wouldBeUsage,
-                          quotaLimit: isLifetimeExceeded
-                            ? (quotaResult.lifetimeLimit ?? 0)
-                            : quotaResult.quotaLimit,
+                          quotaType: quotaResult.quotaType as
+                            | 'daily'
+                            | 'weekly_rolling'
+                            | 'monthly',
+                          quotaUsage: wouldBeUsage,
+                          quotaLimit: quotaResult.quotaLimit,
                         },
                         proposedRouting: primaryDecision
                           ? {

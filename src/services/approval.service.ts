@@ -727,29 +727,7 @@ export class ApprovalService {
             continue
           }
 
-          // Check lifetime quota (if configured)
-          if (
-            quotaStatus.lifetimeLimit != null &&
-            !quotaStatus.bypassApproval
-          ) {
-            const effectiveLifetimeUsage =
-              (quotaStatus.lifetimeUsage ?? 0) + pendingConsumption
-            if (effectiveLifetimeUsage >= quotaStatus.lifetimeLimit) {
-              this.log.debug(
-                {
-                  requestId: request.id,
-                  effectiveLifetimeUsage,
-                  lifetimeLimit: quotaStatus.lifetimeLimit,
-                  pendingConsumption,
-                },
-                `Lifetime quota still exceeded for user ${request.userId}, keeping request pending`,
-              )
-              results.skipped++
-              continue
-            }
-          }
-
-          // Both period and lifetime quotas available - attempt to approve and route
+          // Period quota available - attempt to approve and route
           this.log.info(
             {
               requestId: request.id,

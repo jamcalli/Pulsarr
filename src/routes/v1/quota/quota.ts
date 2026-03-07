@@ -69,7 +69,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           request.body.quotaType,
           request.body.quotaLimit,
           request.body.bypassApproval,
-          request.body.lifetimeLimit,
+          request.body.watchlistCap,
         )
 
         reply.status(201)
@@ -206,7 +206,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           quotaType: request.body.quotaType,
           quotaLimit: request.body.quotaLimit,
           bypassApproval: request.body.bypassApproval,
-          lifetimeLimit: request.body.lifetimeLimit,
+          watchlistCap: request.body.watchlistCap,
         }
 
         const [movieQuota, showQuota] = await Promise.all([
@@ -280,7 +280,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               quotaType: movieQuota.quotaType,
               quotaLimit: movieQuota.quotaLimit,
               bypassApproval: movieQuota.bypassApproval ?? false,
-              lifetimeLimit: movieQuota.lifetimeLimit,
+              watchlistCap: movieQuota.watchlistCap,
             }
 
             if (existingQuotas.movieQuota) {
@@ -300,7 +300,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 quotaType: movieData.quotaType,
                 quotaLimit: movieData.quotaLimit,
                 bypassApproval: movieData.bypassApproval,
-                lifetimeLimit: movieData.lifetimeLimit,
+                watchlistCap: movieData.watchlistCap,
               })
             }
           } else if (existingQuotas.movieQuota) {
@@ -318,7 +318,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               quotaType: showQuota.quotaType,
               quotaLimit: showQuota.quotaLimit,
               bypassApproval: showQuota.bypassApproval ?? false,
-              lifetimeLimit: showQuota.lifetimeLimit,
+              watchlistCap: showQuota.watchlistCap,
             }
 
             if (existingQuotas.showQuota) {
@@ -335,7 +335,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 quotaType: showData.quotaType,
                 quotaLimit: showData.quotaLimit,
                 bypassApproval: showData.bypassApproval,
-                lifetimeLimit: showData.lifetimeLimit,
+                watchlistCap: showData.watchlistCap,
               })
             }
           } else if (existingQuotas.showQuota) {

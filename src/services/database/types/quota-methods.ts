@@ -95,12 +95,12 @@ declare module '@services/database.service.js' {
     ): Promise<number>
 
     /**
-     * Returns lifetime usage count (approved + auto_approved approval records)
+     * Returns total watchlist item count for a user and content type (used for watchlist cap display)
      * @param userId - User ID
      * @param contentType - Content type (movie or show)
-     * @returns Promise resolving to the count of approved/auto_approved records
+     * @returns Promise resolving to the count of watchlist items
      */
-    getLifetimeUsage(
+    getWatchlistUsage(
       userId: number,
       contentType: 'movie' | 'show',
     ): Promise<number>
@@ -261,14 +261,14 @@ declare module '@services/database.service.js' {
         quotaType?: QuotaType
         quotaLimit?: number
         bypassApproval?: boolean
-        lifetimeLimit?: number | null
+        watchlistCap?: number | null
       },
       showQuota?: {
         enabled: boolean
         quotaType?: QuotaType
         quotaLimit?: number
         bypassApproval?: boolean
-        lifetimeLimit?: number | null
+        watchlistCap?: number | null
       },
     ): Promise<{ processedCount: number; failedIds: number[] }>
 
@@ -291,13 +291,10 @@ declare module '@services/database.service.js' {
       contentType: 'movie' | 'show',
       quotaType: QuotaType,
       quotaLimit: number,
-      lifetimeLimit?: number | null,
       requestDate?: Date,
     ): Promise<{
       consumed: boolean
       currentUsage: number
-      lifetimeExceeded?: boolean
-      lifetimeUsage?: number
     }>
   }
 }

@@ -40,7 +40,7 @@ const RoutingConfigSchema = z.object({
 
 // Approval data schema matching ApprovalData interface
 const ApprovalDataSchema = z.object({
-  quotaType: z.union([QuotaTypeSchema, z.literal('lifetime')]).optional(),
+  quotaType: QuotaTypeSchema.optional(),
   quotaUsage: z.number().optional(),
   quotaLimit: z.number().optional(),
   criteriaType: z.string().optional(),

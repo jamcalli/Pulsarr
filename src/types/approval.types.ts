@@ -16,7 +16,7 @@ export interface UserQuotaRow {
   quota_type: QuotaType
   quota_limit: number
   bypass_approval: boolean
-  lifetime_limit: number | null
+  watchlist_cap: number | null
   created_at: string
   updated_at: string
 }
@@ -94,7 +94,7 @@ export interface RouterDecision {
 
 // Data attached to approval requirements
 export interface ApprovalData {
-  quotaType?: QuotaType | 'lifetime'
+  quotaType?: QuotaType
   quotaUsage?: number
   quotaLimit?: number
   criteriaType?: string
@@ -112,7 +112,7 @@ export interface UserQuotaConfig {
   quotaType: QuotaType
   quotaLimit: number
   bypassApproval: boolean
-  lifetimeLimit: number | null
+  watchlistCap: number | null
 }
 
 // Helper type for managing both quotas together
@@ -161,9 +161,9 @@ export interface QuotaStatus {
   exceeded: boolean
   resetDate: string | null
   bypassApproval: boolean
-  lifetimeLimit: number | null
-  lifetimeUsage: number | null
-  lifetimeExceeded: boolean
+  watchlistCap: number | null
+  watchlistUsage: number | null
+  watchlistCapExceeded: boolean
 }
 
 export interface QuotaExceeded {
@@ -214,7 +214,7 @@ export interface CreateUserQuotaData {
   quotaType: QuotaType
   quotaLimit: number
   bypassApproval?: boolean
-  lifetimeLimit?: number | null
+  watchlistCap?: number | null
 }
 
 export interface UpdateUserQuotaData {
@@ -222,7 +222,7 @@ export interface UpdateUserQuotaData {
   quotaType?: QuotaType
   quotaLimit?: number
   bypassApproval?: boolean
-  lifetimeLimit?: number | null
+  watchlistCap?: number | null
 }
 
 // Approval workflow context

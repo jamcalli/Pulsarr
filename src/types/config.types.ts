@@ -241,8 +241,8 @@ export interface Config {
   newUserDefaultShowQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
   newUserDefaultShowQuotaLimit?: number
   newUserDefaultShowBypassApproval?: boolean
-  newUserDefaultMovieLifetimeLimit?: number | null
-  newUserDefaultShowLifetimeLimit?: number | null
+  newUserDefaultMovieWatchlistCap?: number | null
+  newUserDefaultShowWatchlistCap?: number | null
   // Quota System Configuration
   quotaSettings?: {
     // Cleanup configuration

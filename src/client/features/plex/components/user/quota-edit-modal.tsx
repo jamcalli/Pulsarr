@@ -61,11 +61,11 @@ function QuotaSectionFields({
   const quotaTypeField = `${contentType}QuotaType` as FieldName
   const quotaLimitField = `${contentType}QuotaLimit` as FieldName
   const bypassField = `${contentType}BypassApproval` as FieldName
-  const hasLifetimeField = `has${capitalized}LifetimeLimit` as FieldName
-  const lifetimeLimitField = `${contentType}LifetimeLimit` as FieldName
+  const hasCapField = `has${capitalized}WatchlistCap` as FieldName
+  const watchlistCapField = `${contentType}WatchlistCap` as FieldName
 
   const hasQuota = form.watch(hasQuotaField) as boolean
-  const hasLifetimeLimit = form.watch(hasLifetimeField) as boolean
+  const hasWatchlistCap = form.watch(hasCapField) as boolean
 
   return (
     <div
@@ -184,12 +184,12 @@ function QuotaSectionFields({
 
           <FormField
             control={form.control}
-            name={hasLifetimeField}
+            name={hasCapField}
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center justify-between">
                   <FormLabel className="text-foreground">
-                    Lifetime Limit
+                    Watchlist Cap
                   </FormLabel>
                   <FormControl>
                     <Switch
@@ -204,14 +204,14 @@ function QuotaSectionFields({
             )}
           />
 
-          {hasLifetimeLimit && (
+          {hasWatchlistCap && (
             <FormField
               control={form.control}
-              name={lifetimeLimitField}
+              name={watchlistCapField}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-foreground">
-                    {capitalized} Lifetime Limit
+                    {capitalized} Watchlist Cap
                   </FormLabel>
                   <FormControl>
                     <Input
@@ -352,14 +352,14 @@ export function QuotaEditModal({
       movieQuotaType: 'monthly',
       movieQuotaLimit: 10,
       movieBypassApproval: false,
-      hasMovieLifetimeLimit: false,
-      movieLifetimeLimit: undefined,
+      hasMovieWatchlistCap: false,
+      movieWatchlistCap: undefined,
       hasShowQuota: false,
       showQuotaType: 'monthly',
       showQuotaLimit: 10,
       showBypassApproval: false,
-      hasShowLifetimeLimit: false,
-      showLifetimeLimit: undefined,
+      hasShowWatchlistCap: false,
+      showWatchlistCap: undefined,
     },
   })
 
@@ -374,14 +374,14 @@ export function QuotaEditModal({
         movieQuotaType: movieQuota?.quotaType || 'monthly',
         movieQuotaLimit: movieQuota?.quotaLimit || 10,
         movieBypassApproval: movieQuota?.bypassApproval || false,
-        hasMovieLifetimeLimit: movieQuota?.lifetimeLimit != null,
-        movieLifetimeLimit: movieQuota?.lifetimeLimit || undefined,
+        hasMovieWatchlistCap: movieQuota?.watchlistCap != null,
+        movieWatchlistCap: movieQuota?.watchlistCap || undefined,
         hasShowQuota: !!showQuota,
         showQuotaType: showQuota?.quotaType || 'monthly',
         showQuotaLimit: showQuota?.quotaLimit || 10,
         showBypassApproval: showQuota?.bypassApproval || false,
-        hasShowLifetimeLimit: showQuota?.lifetimeLimit != null,
-        showLifetimeLimit: showQuota?.lifetimeLimit || undefined,
+        hasShowWatchlistCap: showQuota?.watchlistCap != null,
+        showWatchlistCap: showQuota?.watchlistCap || undefined,
       })
     }
   }, [user, isOpen, form])

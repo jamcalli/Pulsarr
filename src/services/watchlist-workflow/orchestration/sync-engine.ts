@@ -32,6 +32,7 @@ export interface SyncResult {
   }
   skippedDueToUserSetting: number
   skippedDueToMissingIds: number
+  skippedDueToWatchlistCap: number
 }
 
 /**
@@ -78,6 +79,7 @@ export async function syncWatchlistItems(
         unmatched: { shows: 0, movies: 0 },
         skippedDueToUserSetting: 0,
         skippedDueToMissingIds: 0,
+        skippedDueToWatchlistCap: 0,
       }
     }
 
@@ -97,6 +99,7 @@ export async function syncWatchlistItems(
         unmatched: { shows: 0, movies: 0 },
         skippedDueToUserSetting: 0,
         skippedDueToMissingIds: 0,
+        skippedDueToWatchlistCap: 0,
       }
     }
 
@@ -124,6 +127,66 @@ export async function syncWatchlistItems(
       deps.db.getAllMovieWatchlistItems(),
     ])
     const allWatchlistItems = [...shows, ...movies]
+
+    // --- Watchlist cap gate ---
+    // Cap is stored in user_quotas.watchlist_cap — bypass users are exempt.
+    const capsRows = await deps.db
+      .knex('user_quotas')
+      .whereNotNull('watchlist_cap')
+      .where('watchlist_cap', '>', 0)
+      .where('bypass_approval', false)
+      .select('user_id', 'content_type', 'watchlist_cap')
+
+    const skipIds = new Set<string>()
+    let skippedDueToWatchlistCap = 0
+
+    if (capsRows.length > 0) {
+      const capsMap = new Map<string, number>()
+      for (const row of capsRows) {
+        capsMap.set(`${row.user_id}:${row.content_type}`, row.watchlist_cap)
+      }
+
+      // Count total items per user+type (all statuses)
+      const totalCounts = new Map<string, number>()
+      const pendingItems = new Map<string, typeof allWatchlistItems>()
+
+      for (const item of allWatchlistItems) {
+        const mapKey = `${item.user_id}:${item.type}`
+        if (!capsMap.has(mapKey)) continue
+
+        totalCounts.set(mapKey, (totalCounts.get(mapKey) ?? 0) + 1)
+
+        if (item.status === 'pending') {
+          if (!pendingItems.has(mapKey)) pendingItems.set(mapKey, [])
+          pendingItems.get(mapKey)?.push(item)
+        }
+      }
+
+      // Build skip set — binary gate: total >= cap → skip ALL pending
+      for (const [mapKey, cap] of capsMap) {
+        const total = totalCounts.get(mapKey) ?? 0
+        const pending = pendingItems.get(mapKey) ?? []
+
+        if (pending.length === 0) continue
+
+        if (total >= cap) {
+          for (const item of pending) {
+            skipIds.add(item.id)
+          }
+          const [userId, type] = mapKey.split(':')
+          deps.logger.info(
+            {
+              userId: Number(userId),
+              type,
+              total,
+              cap,
+              pendingSkipped: pending.length,
+            },
+            'Watchlist cap reached — skipping all pending items',
+          )
+        }
+      }
+    }
 
     // Get all existing series and movies from Sonarr/Radarr
     // Each instance's bypassIgnored setting determines if exclusions are included
@@ -208,6 +271,11 @@ export async function syncWatchlistItems(
                 `Skipping item "${item.title}" during sync as user ${numericUserId} has sync disabled`,
               )
               return { type: 'skipped', reason: 'user_setting' }
+            }
+
+            // Check watchlist cap gate
+            if (skipIds.has(item.id)) {
+              return { type: 'skipped', reason: 'watchlist_cap' }
             }
 
             // Parse GUIDs and genres once for reuse
@@ -328,6 +396,8 @@ export async function syncWatchlistItems(
         } else if (value.type === 'skipped') {
           if (value.reason === 'user_setting') {
             skippedDueToUserSetting++
+          } else if (value.reason === 'watchlist_cap') {
+            skippedDueToWatchlistCap++
           } else if (value.reason === 'missing_id') {
             skippedDueToMissingIds++
             if (value.contentType === 'show') {
@@ -368,6 +438,7 @@ export async function syncWatchlistItems(
       },
       skippedDueToUserSetting,
       skippedDueToMissingIds,
+      skippedDueToWatchlistCap,
     }
 
     deps.logger.info(
@@ -376,6 +447,7 @@ export async function syncWatchlistItems(
         unmatched: summary.unmatched,
         skippedDueToUserSetting: summary.skippedDueToUserSetting,
         skippedDueToMissingIds: summary.skippedDueToMissingIds,
+        skippedDueToWatchlistCap: summary.skippedDueToWatchlistCap,
       },
       'Watchlist sync completed',
     )

@@ -35,8 +35,8 @@ function buildQuotaPayload(
   quotaType: BulkQuotaFormData['movieQuotaType'],
   quotaLimit: BulkQuotaFormData['movieQuotaLimit'],
   bypassApproval: boolean,
-  hasLifetimeLimit: boolean,
-  lifetimeLimit: BulkQuotaFormData['movieLifetimeLimit'],
+  hasWatchlistCap: boolean,
+  watchlistCap: BulkQuotaFormData['movieWatchlistCap'],
 ): BulkQuotaOperation['movieQuota'] {
   if (shouldSet && quotaType && quotaLimit) {
     return {
@@ -44,7 +44,7 @@ function buildQuotaPayload(
       quotaType,
       quotaLimit,
       bypassApproval,
-      lifetimeLimit: hasLifetimeLimit ? lifetimeLimit : null,
+      watchlistCap: hasWatchlistCap ? watchlistCap : null,
     }
   }
   if (!shouldSet) {
@@ -102,16 +102,16 @@ export function useBulkQuotaManagement() {
         formData.movieQuotaType,
         formData.movieQuotaLimit,
         formData.movieBypassApproval,
-        formData.hasMovieLifetimeLimit,
-        formData.movieLifetimeLimit,
+        formData.hasMovieWatchlistCap,
+        formData.movieWatchlistCap,
       )
       bulkQuotaData.showQuota = buildQuotaPayload(
         formData.setShowQuota,
         formData.showQuotaType,
         formData.showQuotaLimit,
         formData.showBypassApproval,
-        formData.hasShowLifetimeLimit,
-        formData.showLifetimeLimit,
+        formData.hasShowWatchlistCap,
+        formData.showWatchlistCap,
       )
 
       const response = await fetch(api('/v1/quota/users/bulk'), {

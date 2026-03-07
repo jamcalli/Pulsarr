@@ -243,12 +243,12 @@ export const ConfigFullSchema = z.object({
   newUserDefaultMovieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
   newUserDefaultMovieQuotaLimit: z.number(),
   newUserDefaultMovieBypassApproval: z.boolean(),
-  newUserDefaultMovieLifetimeLimit: z.number().nullable(),
+  newUserDefaultMovieWatchlistCap: z.number().nullable(),
   newUserDefaultShowQuotaEnabled: z.boolean(),
   newUserDefaultShowQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
   newUserDefaultShowQuotaLimit: z.number(),
   newUserDefaultShowBypassApproval: z.boolean(),
-  newUserDefaultShowLifetimeLimit: z.number().nullable(),
+  newUserDefaultShowWatchlistCap: z.number().nullable(),
   // Quota System Configuration - getConfig() always returns this with defaults
   quotaSettings: z.object({
     cleanup: z.object({
@@ -415,14 +415,14 @@ export const ConfigUpdateSchema = z
       .optional(),
     newUserDefaultMovieQuotaLimit: z.number().min(1).max(1000).optional(),
     newUserDefaultMovieBypassApproval: z.boolean().optional(),
-    newUserDefaultMovieLifetimeLimit: z.number().min(1).nullable().optional(),
+    newUserDefaultMovieWatchlistCap: z.number().min(1).nullable().optional(),
     newUserDefaultShowQuotaEnabled: z.boolean().optional(),
     newUserDefaultShowQuotaType: z
       .enum(['daily', 'weekly_rolling', 'monthly'])
       .optional(),
     newUserDefaultShowQuotaLimit: z.number().min(1).max(1000).optional(),
     newUserDefaultShowBypassApproval: z.boolean().optional(),
-    newUserDefaultShowLifetimeLimit: z.number().min(1).nullable().optional(),
+    newUserDefaultShowWatchlistCap: z.number().min(1).nullable().optional(),
     // Quota System Configuration
     quotaSettings: z
       .object({

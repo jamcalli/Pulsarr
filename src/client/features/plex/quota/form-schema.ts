@@ -9,7 +9,7 @@ const quotaLimitField = z
   .max(1000, { error: 'Must be 1000 or less' })
   .optional()
 
-const lifetimeLimitField = z
+const watchlistCapField = z
   .number()
   .min(1, { error: 'Must be at least 1' })
   .optional()
@@ -19,12 +19,12 @@ const contentTypeQuotaFields = {
   quotaType: QuotaTypeSchema.optional(),
   quotaLimit: quotaLimitField,
   bypassApproval: z.boolean(),
-  hasLifetimeLimit: z.boolean(),
-  lifetimeLimit: lifetimeLimitField,
+  hasWatchlistCap: z.boolean(),
+  watchlistCap: watchlistCapField,
 }
 
-// Shared validation for lifetime limits
-export function validateLifetimeLimit(
+// Shared validation for watchlist caps
+export function validateWatchlistCap(
   hasLimit: boolean,
   limit: number | null | undefined,
   contentType: string,
@@ -34,14 +34,14 @@ export function validateLifetimeLimit(
   if (limit == null) {
     ctx.addIssue({
       code: 'custom',
-      message: `${contentType} lifetime limit is required when enabled`,
-      path: [`${contentType.toLowerCase()}LifetimeLimit`],
+      message: `${contentType} watchlist cap is required when enabled`,
+      path: [`${contentType.toLowerCase()}WatchlistCap`],
     })
   } else if (limit < 1) {
     ctx.addIssue({
       code: 'custom',
       message: 'Must be at least 1',
-      path: [`${contentType.toLowerCase()}LifetimeLimit`],
+      path: [`${contentType.toLowerCase()}WatchlistCap`],
     })
   }
 }
@@ -84,15 +84,15 @@ export const QuotaFormSchema = z
     movieQuotaType: contentTypeQuotaFields.quotaType,
     movieQuotaLimit: contentTypeQuotaFields.quotaLimit,
     movieBypassApproval: contentTypeQuotaFields.bypassApproval,
-    hasMovieLifetimeLimit: contentTypeQuotaFields.hasLifetimeLimit,
-    movieLifetimeLimit: contentTypeQuotaFields.lifetimeLimit,
+    hasMovieWatchlistCap: contentTypeQuotaFields.hasWatchlistCap,
+    movieWatchlistCap: contentTypeQuotaFields.watchlistCap,
 
     hasShowQuota: z.boolean(),
     showQuotaType: contentTypeQuotaFields.quotaType,
     showQuotaLimit: contentTypeQuotaFields.quotaLimit,
     showBypassApproval: contentTypeQuotaFields.bypassApproval,
-    hasShowLifetimeLimit: contentTypeQuotaFields.hasLifetimeLimit,
-    showLifetimeLimit: contentTypeQuotaFields.lifetimeLimit,
+    hasShowWatchlistCap: contentTypeQuotaFields.hasWatchlistCap,
+    showWatchlistCap: contentTypeQuotaFields.watchlistCap,
   })
   .superRefine((data, ctx) => {
     validatePeriodQuota(
@@ -102,9 +102,9 @@ export const QuotaFormSchema = z
       'Movie',
       ctx,
     )
-    validateLifetimeLimit(
-      data.hasMovieLifetimeLimit,
-      data.movieLifetimeLimit,
+    validateWatchlistCap(
+      data.hasMovieWatchlistCap,
+      data.movieWatchlistCap,
       'Movie',
       ctx,
     )
@@ -115,9 +115,9 @@ export const QuotaFormSchema = z
       'Show',
       ctx,
     )
-    validateLifetimeLimit(
-      data.hasShowLifetimeLimit,
-      data.showLifetimeLimit,
+    validateWatchlistCap(
+      data.hasShowWatchlistCap,
+      data.showWatchlistCap,
       'Show',
       ctx,
     )
@@ -132,15 +132,15 @@ export const BulkQuotaFormSchema = z
     movieQuotaType: contentTypeQuotaFields.quotaType,
     movieQuotaLimit: contentTypeQuotaFields.quotaLimit,
     movieBypassApproval: contentTypeQuotaFields.bypassApproval,
-    hasMovieLifetimeLimit: contentTypeQuotaFields.hasLifetimeLimit,
-    movieLifetimeLimit: contentTypeQuotaFields.lifetimeLimit,
+    hasMovieWatchlistCap: contentTypeQuotaFields.hasWatchlistCap,
+    movieWatchlistCap: contentTypeQuotaFields.watchlistCap,
 
     setShowQuota: z.boolean(),
     showQuotaType: contentTypeQuotaFields.quotaType,
     showQuotaLimit: contentTypeQuotaFields.quotaLimit,
     showBypassApproval: contentTypeQuotaFields.bypassApproval,
-    hasShowLifetimeLimit: contentTypeQuotaFields.hasLifetimeLimit,
-    showLifetimeLimit: contentTypeQuotaFields.lifetimeLimit,
+    hasShowWatchlistCap: contentTypeQuotaFields.hasWatchlistCap,
+    showWatchlistCap: contentTypeQuotaFields.watchlistCap,
   })
   .superRefine((data, ctx) => {
     validatePeriodQuota(
@@ -150,9 +150,9 @@ export const BulkQuotaFormSchema = z
       'Movie',
       ctx,
     )
-    validateLifetimeLimit(
-      data.setMovieQuota && data.hasMovieLifetimeLimit,
-      data.movieLifetimeLimit,
+    validateWatchlistCap(
+      data.setMovieQuota && data.hasMovieWatchlistCap,
+      data.movieWatchlistCap,
       'Movie',
       ctx,
     )
@@ -163,9 +163,9 @@ export const BulkQuotaFormSchema = z
       'Show',
       ctx,
     )
-    validateLifetimeLimit(
-      data.setShowQuota && data.hasShowLifetimeLimit,
-      data.showLifetimeLimit,
+    validateWatchlistCap(
+      data.setShowQuota && data.hasShowWatchlistCap,
+      data.showWatchlistCap,
       'Show',
       ctx,
     )
@@ -199,8 +199,8 @@ export function transformQuotaFormToAPI(
       quotaType: formData.movieQuotaType,
       quotaLimit: formData.movieQuotaLimit,
       bypassApproval: formData.movieBypassApproval,
-      lifetimeLimit: formData.hasMovieLifetimeLimit
-        ? formData.movieLifetimeLimit
+      watchlistCap: formData.hasMovieWatchlistCap
+        ? formData.movieWatchlistCap
         : null,
     }
   } else {
@@ -214,8 +214,8 @@ export function transformQuotaFormToAPI(
       quotaType: formData.showQuotaType,
       quotaLimit: formData.showQuotaLimit,
       bypassApproval: formData.showBypassApproval,
-      lifetimeLimit: formData.hasShowLifetimeLimit
-        ? formData.showLifetimeLimit
+      watchlistCap: formData.hasShowWatchlistCap
+        ? formData.showWatchlistCap
         : null,
     }
   } else {

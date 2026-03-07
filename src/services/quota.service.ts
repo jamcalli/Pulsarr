@@ -37,7 +37,7 @@ export class QuotaService {
     quotaType: QuotaType,
     quotaLimit: number,
     bypassApproval = false,
-    lifetimeLimit?: number | null,
+    watchlistCap?: number | null,
   ): Promise<UserQuotaConfigs> {
     const movieData: CreateUserQuotaData = {
       userId,
@@ -45,7 +45,7 @@ export class QuotaService {
       quotaType,
       quotaLimit,
       bypassApproval,
-      lifetimeLimit: lifetimeLimit ?? null,
+      watchlistCap: watchlistCap ?? null,
     }
 
     const showData: CreateUserQuotaData = {
@@ -54,7 +54,7 @@ export class QuotaService {
       quotaType,
       quotaLimit,
       bypassApproval,
-      lifetimeLimit: lifetimeLimit ?? null,
+      watchlistCap: watchlistCap ?? null,
     }
 
     const [movieQuota, showQuota] = await Promise.all([
@@ -85,7 +85,7 @@ export class QuotaService {
         quotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
         quotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
         bypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
-        lifetimeLimit: config.newUserDefaultMovieLifetimeLimit ?? null,
+        watchlistCap: config.newUserDefaultMovieWatchlistCap ?? null,
       }
       movieQuota = await this.fastify.db.createUserQuota(movieData)
     }
@@ -98,7 +98,7 @@ export class QuotaService {
         quotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
         quotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
         bypassApproval: config.newUserDefaultShowBypassApproval ?? false,
-        lifetimeLimit: config.newUserDefaultShowLifetimeLimit ?? null,
+        watchlistCap: config.newUserDefaultShowWatchlistCap ?? null,
       }
       showQuota = await this.fastify.db.createUserQuota(showData)
     }
@@ -572,9 +572,7 @@ export class QuotaService {
     quotaType: QuotaType | 'none' | 'error'
     hasQuota: boolean
     userBypassEnabled: boolean
-    exceededBy?: 'period' | 'lifetime'
-    lifetimeUsage?: number
-    lifetimeLimit?: number
+    exceededBy?: 'period'
   }> {
     try {
       // Get user's quota configuration
@@ -592,28 +590,8 @@ export class QuotaService {
         }
       }
 
-      // If user has bypass enabled, skip period quota but still check lifetime
+      // If user has bypass enabled, skip period quota entirely
       if (userQuota.bypassApproval) {
-        // Check lifetime even for bypass users (if configured)
-        if (userQuota.lifetimeLimit != null) {
-          const lifetimeUsage = await this.fastify.db.getLifetimeUsage(
-            userId,
-            contentType,
-          )
-          if (lifetimeUsage >= userQuota.lifetimeLimit) {
-            return {
-              consumed: false,
-              currentUsage: 0,
-              quotaLimit: userQuota.quotaLimit,
-              quotaType: userQuota.quotaType,
-              hasQuota: true,
-              userBypassEnabled: true,
-              exceededBy: 'lifetime',
-              lifetimeUsage,
-              lifetimeLimit: userQuota.lifetimeLimit,
-            }
-          }
-        }
         return {
           consumed: false, // Bypassed, no need to track period quota
           currentUsage: 0,
@@ -624,29 +602,15 @@ export class QuotaService {
         }
       }
 
-      // Attempt atomic consumption (includes lifetime check inside transaction)
+      // Attempt atomic period quota consumption
       const result = await this.fastify.db.tryConsumeQuota(
         userId,
         contentType,
         userQuota.quotaType,
         userQuota.quotaLimit,
-        userQuota.lifetimeLimit,
       )
 
       if (!result.consumed) {
-        if (result.lifetimeExceeded) {
-          return {
-            consumed: false,
-            currentUsage: result.currentUsage,
-            quotaLimit: userQuota.quotaLimit,
-            quotaType: userQuota.quotaType,
-            hasQuota: true,
-            userBypassEnabled: false,
-            exceededBy: 'lifetime',
-            lifetimeUsage: result.lifetimeUsage,
-            lifetimeLimit: userQuota.lifetimeLimit ?? undefined,
-          }
-        }
         return {
           consumed: false,
           currentUsage: result.currentUsage,

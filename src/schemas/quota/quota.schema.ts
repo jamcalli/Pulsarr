@@ -7,7 +7,7 @@ const QuotaFieldsSchema = z.object({
   quotaType: QuotaTypeSchema.optional(),
   quotaLimit: z.number().min(1).optional(),
   bypassApproval: z.boolean().optional(),
-  lifetimeLimit: z.number().min(1).nullable().optional(),
+  watchlistCap: z.number().min(1).nullable().optional(),
 })
 
 const EnabledQuotaSchema = QuotaFieldsSchema.extend({
@@ -24,7 +24,7 @@ export const CreateUserQuotaSchema = z.object({
   quotaType: QuotaTypeSchema,
   quotaLimit: z.number().min(1),
   bypassApproval: z.boolean().default(false),
-  lifetimeLimit: z.number().min(1).nullable().optional(),
+  watchlistCap: z.number().min(1).nullable().optional(),
 })
 
 export const UpdateUserQuotaSchema = QuotaFieldsSchema
@@ -47,7 +47,7 @@ export const UserQuotaResponseSchema = z.object({
   quotaType: QuotaTypeSchema,
   quotaLimit: z.number(),
   bypassApproval: z.boolean(),
-  lifetimeLimit: z.number().nullable(),
+  watchlistCap: z.number().nullable(),
 })
 
 export const UserQuotasResponseSchema = z.object({
@@ -63,9 +63,9 @@ export const QuotaStatusResponseSchema = z.object({
   exceeded: z.boolean(),
   resetDate: z.iso.datetime().nullable(),
   bypassApproval: z.boolean(),
-  lifetimeLimit: z.number().nullable(),
-  lifetimeUsage: z.number().nullable(),
-  lifetimeExceeded: z.boolean(),
+  watchlistCap: z.number().nullable(),
+  watchlistUsage: z.number().nullable(),
+  watchlistCapExceeded: z.boolean(),
 })
 
 export const QuotaUsageResponseSchema = z.object({
