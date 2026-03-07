@@ -57,8 +57,8 @@ const QuotaSection = React.memo(
     const capitalizedType =
       contentType.charAt(0).toUpperCase() + contentType.slice(1)
     const fieldPrefix = contentType as 'movie' | 'show'
-    const hasLifetimeLimit = form.watch(
-      `has${capitalizedType}LifetimeLimit` as keyof z.input<
+    const hasWatchlistCap = form.watch(
+      `has${capitalizedType}WatchlistCap` as keyof z.input<
         typeof BulkQuotaFormSchema
       >,
     )
@@ -197,7 +197,7 @@ const QuotaSection = React.memo(
             <FormField
               control={form.control}
               name={
-                `has${capitalizedType}LifetimeLimit` as keyof z.input<
+                `has${capitalizedType}WatchlistCap` as keyof z.input<
                   typeof BulkQuotaFormSchema
                 >
               }
@@ -213,7 +213,7 @@ const QuotaSection = React.memo(
                     </FormControl>
                     <div className="flex items-center">
                       <FormLabel className="text-foreground m-0">
-                        Lifetime Limit
+                        Watchlist Cap
                       </FormLabel>
                     </div>
                   </div>
@@ -222,18 +222,18 @@ const QuotaSection = React.memo(
               )}
             />
 
-            {hasLifetimeLimit && (
+            {hasWatchlistCap && (
               <FormField
                 control={form.control}
                 name={
-                  `${fieldPrefix}LifetimeLimit` as keyof z.input<
+                  `${fieldPrefix}WatchlistCap` as keyof z.input<
                     typeof BulkQuotaFormSchema
                   >
                 }
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-foreground">
-                      {capitalizedType} Lifetime Limit
+                      {capitalizedType} Watchlist Cap
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -461,14 +461,14 @@ export function BulkQuotaEditModal({
       movieQuotaType: 'monthly',
       movieQuotaLimit: 10,
       movieBypassApproval: false,
-      hasMovieLifetimeLimit: false,
-      movieLifetimeLimit: undefined,
+      hasMovieWatchlistCap: false,
+      movieWatchlistCap: undefined,
       setShowQuota: false,
       showQuotaType: 'monthly',
       showQuotaLimit: 10,
       showBypassApproval: false,
-      hasShowLifetimeLimit: false,
-      showLifetimeLimit: undefined,
+      hasShowWatchlistCap: false,
+      showWatchlistCap: undefined,
     },
   })
 

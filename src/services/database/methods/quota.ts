@@ -28,7 +28,7 @@ async function upsertOrDeleteQuota(
     quotaType?: QuotaType
     quotaLimit?: number
     bypassApproval?: boolean
-    lifetimeLimit?: number | null
+    watchlistCap?: number | null
   },
 ): Promise<void> {
   if (!quotaConfig) return
@@ -44,7 +44,7 @@ async function upsertOrDeleteQuota(
       quota_type: quotaConfig.quotaType,
       quota_limit: quotaConfig.quotaLimit,
       bypass_approval: quotaConfig.bypassApproval || false,
-      lifetime_limit: quotaConfig.lifetimeLimit ?? null,
+      watchlist_cap: quotaConfig.watchlistCap ?? null,
       created_at: this.timestamp,
       updated_at: this.timestamp,
     }
@@ -56,7 +56,7 @@ async function upsertOrDeleteQuota(
         quota_type: quotaData.quota_type,
         quota_limit: quotaData.quota_limit,
         bypass_approval: quotaData.bypass_approval,
-        lifetime_limit: quotaData.lifetime_limit,
+        watchlist_cap: quotaData.watchlist_cap,
         updated_at: quotaData.updated_at,
       })
   } else if (!quotaConfig.enabled) {
@@ -79,7 +79,7 @@ function mapRowToUserQuotaConfig(row: UserQuotaRow): UserQuotaConfig {
     quotaType: row.quota_type,
     quotaLimit: row.quota_limit,
     bypassApproval: Boolean(row.bypass_approval),
-    lifetimeLimit: row.lifetime_limit ?? null,
+    watchlistCap: row.watchlist_cap ?? null,
   }
 }
 
@@ -184,7 +184,7 @@ export async function createUserQuota(
       quota_type: data.quotaType,
       quota_limit: data.quotaLimit,
       bypass_approval: data.bypassApproval || false,
-      lifetime_limit: data.lifetimeLimit ?? null,
+      watchlist_cap: data.watchlistCap ?? null,
       created_at: this.timestamp,
       updated_at: this.timestamp,
     })
@@ -257,8 +257,8 @@ export async function updateUserQuota(
   if (data.quotaLimit !== undefined) updateData.quota_limit = data.quotaLimit
   if (data.bypassApproval !== undefined)
     updateData.bypass_approval = data.bypassApproval
-  if (data.lifetimeLimit !== undefined)
-    updateData.lifetime_limit = data.lifetimeLimit
+  if (data.watchlistCap !== undefined)
+    updateData.watchlist_cap = data.watchlistCap
 
   const [row] = await this.knex('user_quotas')
     .where('user_id', userId)
@@ -362,25 +362,23 @@ export async function getCurrentQuotaUsage(
 }
 
 /**
- * Returns the lifetime usage count for a user and content type.
+ * Returns the total watchlist item count for a user and content type.
  *
- * Counts approval_requests with status 'approved' or 'auto_approved' — these represent
- * content that was actually routed to Radarr/Sonarr. This is the single source of truth
- * for lifetime quota enforcement.
+ * Counts all watchlist_items (pending + routed) — used for watchlist cap display
+ * and enforcement. This is the single source of truth for watchlist cap checks.
  *
- * @param userId - The user ID to check lifetime usage for
+ * @param userId - The user ID to check watchlist count for
  * @param contentType - The content type ('movie' or 'show')
- * @returns The count of approved/auto_approved approval records
+ * @returns The count of watchlist items for the user and content type
  */
-export async function getLifetimeUsage(
+export async function getWatchlistUsage(
   this: DatabaseService,
   userId: number,
   contentType: 'movie' | 'show',
 ): Promise<number> {
-  const result = await this.knex('approval_requests')
+  const result = await this.knex('watchlist_items')
     .where('user_id', userId)
-    .where('content_type', contentType)
-    .whereIn('status', ['approved', 'auto_approved'])
+    .where('type', contentType)
     .count('* as count')
     .first()
   return Number.parseInt(result?.count as string, 10) || 0
@@ -414,12 +412,12 @@ export async function getQuotaStatus(
   const exceeded = currentUsage >= quota.quotaLimit
   const resetDate = await getNextResetDate.call(this, quota.quotaType)
 
-  // Lifetime usage: count approved + auto_approved approval records
-  let lifetimeUsage: number | null = null
-  let lifetimeExceeded = false
-  if (quota.lifetimeLimit != null) {
-    lifetimeUsage = await getLifetimeUsage.call(this, userId, contentType)
-    lifetimeExceeded = lifetimeUsage >= quota.lifetimeLimit
+  // Watchlist cap usage: total watchlist items for the user and content type
+  let watchlistUsage: number | null = null
+  let watchlistCapExceeded = false
+  if (quota.watchlistCap != null) {
+    watchlistUsage = await getWatchlistUsage.call(this, userId, contentType)
+    watchlistCapExceeded = watchlistUsage >= quota.watchlistCap
   }
 
   return {
@@ -429,9 +427,9 @@ export async function getQuotaStatus(
     exceeded,
     resetDate: resetDate ? resetDate.toISOString() : null,
     bypassApproval: quota.bypassApproval,
-    lifetimeLimit: quota.lifetimeLimit,
-    lifetimeUsage,
-    lifetimeExceeded,
+    watchlistCap: quota.watchlistCap,
+    watchlistUsage,
+    watchlistCapExceeded,
   }
 }
 
@@ -537,28 +535,27 @@ export async function getBulkQuotaStatus(
     resetDateCache.set(quotaType, resetDate)
   }
 
-  // Batch lifetime usage for users who have a lifetime_limit configured
-  const lifetimeUsageResults = new Map<number, number>()
-  const usersWithLifetime = Array.from(quotaMap.entries())
-    .filter(([, q]) => q.lifetimeLimit != null)
+  // Batch watchlist usage for users who have a watchlist_cap configured
+  const watchlistUsageResults = new Map<number, number>()
+  const usersWithCap = Array.from(quotaMap.entries())
+    .filter(([, q]) => q.watchlistCap != null)
     .map(([uid]) => uid)
 
-  if (usersWithLifetime.length > 0) {
-    let lifetimeQuery = this.knex('approval_requests')
+  if (usersWithCap.length > 0) {
+    let watchlistQuery = this.knex('watchlist_items')
       .select('user_id')
       .count('* as count')
-      .whereIn('user_id', usersWithLifetime)
-      .whereIn('status', ['approved', 'auto_approved'])
+      .whereIn('user_id', usersWithCap)
       .groupBy('user_id')
 
     if (contentType) {
-      lifetimeQuery = lifetimeQuery.where('content_type', contentType)
+      watchlistQuery = watchlistQuery.where('type', contentType)
     }
 
-    const lifetimeRows = await lifetimeQuery
+    const watchlistRows = await watchlistQuery
 
-    for (const row of lifetimeRows) {
-      lifetimeUsageResults.set(
+    for (const row of watchlistRows) {
+      watchlistUsageResults.set(
         Number(row.user_id),
         Number.parseInt(row.count as string, 10) || 0,
       )
@@ -579,12 +576,12 @@ export async function getBulkQuotaStatus(
     const exceeded = currentUsage >= quota.quotaLimit
     const resetDate = resetDateCache.get(quota.quotaType)
 
-    const lifetimeLimit = quota.lifetimeLimit
-    const lifetimeUsage =
-      lifetimeLimit != null ? (lifetimeUsageResults.get(userId) ?? 0) : null
-    const lifetimeExceeded =
-      lifetimeLimit != null && lifetimeUsage != null
-        ? lifetimeUsage >= lifetimeLimit
+    const watchlistCap = quota.watchlistCap
+    const watchlistUsage =
+      watchlistCap != null ? (watchlistUsageResults.get(userId) ?? 0) : null
+    const watchlistCapExceeded =
+      watchlistCap != null && watchlistUsage != null
+        ? watchlistUsage >= watchlistCap
         : false
 
     results.push({
@@ -596,9 +593,9 @@ export async function getBulkQuotaStatus(
         exceeded,
         resetDate: resetDate ? resetDate.toISOString() : null,
         bypassApproval: quota.bypassApproval,
-        lifetimeLimit,
-        lifetimeUsage,
-        lifetimeExceeded,
+        watchlistCap,
+        watchlistUsage,
+        watchlistCapExceeded,
       },
     })
   }
@@ -645,6 +642,32 @@ export async function getUsersWithQuotas(
 ): Promise<UserQuotaConfig[]> {
   const rows = await this.knex('user_quotas').select('*')
   return rows.map(mapRowToUserQuotaConfig)
+}
+
+/**
+ * Retrieves active watchlist caps for non-bypass users.
+ *
+ * Returns rows where watchlist_cap is set, positive, and the user does not have bypass_approval enabled.
+ * Used by the sync engine's cap gate to determine which users have active caps.
+ *
+ * @returns Array of objects with userId, contentType, and watchlistCap
+ */
+export async function getActiveWatchlistCaps(
+  this: DatabaseService,
+): Promise<
+  Array<{ userId: number; contentType: 'movie' | 'show'; watchlistCap: number }>
+> {
+  const rows = await this.knex('user_quotas')
+    .whereNotNull('watchlist_cap')
+    .where('watchlist_cap', '>', 0)
+    .where('bypass_approval', false)
+    .select('user_id', 'content_type', 'watchlist_cap')
+
+  return rows.map((row) => ({
+    userId: row.user_id as number,
+    contentType: row.content_type as 'movie' | 'show',
+    watchlistCap: row.watchlist_cap as number,
+  }))
 }
 
 /**
@@ -1008,14 +1031,14 @@ export async function bulkUpdateQuotas(
     quotaType?: QuotaType
     quotaLimit?: number
     bypassApproval?: boolean
-    lifetimeLimit?: number | null
+    watchlistCap?: number | null
   },
   showQuota?: {
     enabled: boolean
     quotaType?: QuotaType
     quotaLimit?: number
     bypassApproval?: boolean
-    lifetimeLimit?: number | null
+    watchlistCap?: number | null
   },
 ): Promise<{ processedCount: number; failedIds: number[] }> {
   const failedIds: number[] = []
@@ -1085,13 +1108,10 @@ export async function tryConsumeQuota(
   contentType: 'movie' | 'show',
   quotaType: QuotaType,
   quotaLimit: number,
-  lifetimeLimit: number | null = null,
   requestDate: Date = new Date(),
 ): Promise<{
   consumed: boolean
   currentUsage: number
-  lifetimeExceeded?: boolean
-  lifetimeUsage?: number
 }> {
   const dateString = this.getLocalDateString(requestDate)
   const dateRange = await getDateRange.call(this, quotaType)
@@ -1106,41 +1126,6 @@ export async function tryConsumeQuota(
         .where('content_type', contentType)
         .forUpdate()
         .first()
-    }
-
-    // Check lifetime quota first (if configured) — inside the transaction
-    // for the same serialization guarantees as the period check
-    if (lifetimeLimit != null) {
-      const lifetimeResult = await trx('approval_requests')
-        .where('user_id', userId)
-        .where('content_type', contentType)
-        .whereIn('status', ['approved', 'auto_approved'])
-        .count('* as count')
-        .first()
-
-      const lifetimeUsage =
-        Number.parseInt(lifetimeResult?.count as string, 10) || 0
-
-      if (lifetimeUsage >= lifetimeLimit) {
-        // Count current period usage for the return value
-        const periodResult = await trx('quota_usage')
-          .where('user_id', userId)
-          .where('content_type', contentType)
-          .where('request_date', '>=', dateRange.start)
-          .where('request_date', '<=', dateRange.end)
-          .count('* as count')
-          .first()
-
-        const currentUsage =
-          Number.parseInt(periodResult?.count as string, 10) || 0
-
-        return {
-          consumed: false,
-          currentUsage,
-          lifetimeExceeded: true,
-          lifetimeUsage,
-        }
-      }
     }
 
     // Count current period usage within the transaction
@@ -1160,7 +1145,7 @@ export async function tryConsumeQuota(
       return { consumed: false, currentUsage }
     }
 
-    // Under both limits - insert usage record atomically
+    // Under limit - insert usage record atomically
     await trx('quota_usage').insert({
       user_id: userId,
       content_type: contentType,

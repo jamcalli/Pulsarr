@@ -110,8 +110,8 @@ export async function getConfig(
     newUserDefaultMovieBypassApproval: Boolean(
       config.newUserDefaultMovieBypassApproval ?? false,
     ),
-    newUserDefaultMovieLifetimeLimit:
-      config.newUserDefaultMovieLifetimeLimit ?? null,
+    newUserDefaultMovieWatchlistCap:
+      config.newUserDefaultMovieWatchlistCap ?? null,
     newUserDefaultShowQuotaEnabled: Boolean(
       config.newUserDefaultShowQuotaEnabled ?? false,
     ),
@@ -121,8 +121,8 @@ export async function getConfig(
     newUserDefaultShowBypassApproval: Boolean(
       config.newUserDefaultShowBypassApproval ?? false,
     ),
-    newUserDefaultShowLifetimeLimit:
-      config.newUserDefaultShowLifetimeLimit ?? null,
+    newUserDefaultShowWatchlistCap:
+      config.newUserDefaultShowWatchlistCap ?? null,
     // Handle optional RSS fields
     selfRss: config.selfRss || undefined,
     friendsRss: config.friendsRss || undefined,
@@ -165,6 +165,8 @@ export async function getConfig(
     ),
     deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex || '',
     approvalNotify: config.approvalNotify || 'none',
+    watchlistCapNotify: config.watchlistCapNotify || 'none',
+    watchlistCapNotifyUser: Boolean(config.watchlistCapNotifyUser ?? false),
     // Plex playlist protection
     enablePlexPlaylistProtection: Boolean(config.enablePlexPlaylistProtection),
     plexProtectionPlaylistName:
@@ -300,6 +302,8 @@ export async function createConfig(
       deleteSyncCleanupApprovals: config.deleteSyncCleanupApprovals ?? false,
       deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex || '',
       approvalNotify: config.approvalNotify || 'none',
+      watchlistCapNotify: config.watchlistCapNotify || 'none',
+      watchlistCapNotifyUser: config.watchlistCapNotifyUser ?? false,
       maxDeletionPrevention: config.maxDeletionPrevention ?? 10,
       // Plex playlist protection
       enablePlexPlaylistProtection:
@@ -378,8 +382,8 @@ export async function createConfig(
       newUserDefaultMovieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
       newUserDefaultMovieBypassApproval:
         config.newUserDefaultMovieBypassApproval ?? false,
-      newUserDefaultMovieLifetimeLimit:
-        config.newUserDefaultMovieLifetimeLimit ?? null,
+      newUserDefaultMovieWatchlistCap:
+        config.newUserDefaultMovieWatchlistCap ?? null,
       newUserDefaultShowQuotaEnabled:
         config.newUserDefaultShowQuotaEnabled ?? false,
       newUserDefaultShowQuotaType:
@@ -387,8 +391,8 @@ export async function createConfig(
       newUserDefaultShowQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
       newUserDefaultShowBypassApproval:
         config.newUserDefaultShowBypassApproval ?? false,
-      newUserDefaultShowLifetimeLimit:
-        config.newUserDefaultShowLifetimeLimit ?? null,
+      newUserDefaultShowWatchlistCap:
+        config.newUserDefaultShowWatchlistCap ?? null,
       // TMDB configuration
       tmdbRegion: config.tmdbRegion || 'US',
       // Ready state
@@ -500,6 +504,8 @@ const ALLOWED_COLUMNS = new Set([
   'deleteSyncCleanupApprovals',
   'deleteSyncRequiredTagRegex',
   'approvalNotify',
+  'watchlistCapNotify',
+  'watchlistCapNotifyUser',
   'maxDeletionPrevention',
   'enablePlexPlaylistProtection',
   'plexProtectionPlaylistName',
@@ -532,12 +538,12 @@ const ALLOWED_COLUMNS = new Set([
   'newUserDefaultMovieQuotaType',
   'newUserDefaultMovieQuotaLimit',
   'newUserDefaultMovieBypassApproval',
-  'newUserDefaultMovieLifetimeLimit',
+  'newUserDefaultMovieWatchlistCap',
   'newUserDefaultShowQuotaEnabled',
   'newUserDefaultShowQuotaType',
   'newUserDefaultShowQuotaLimit',
   'newUserDefaultShowBypassApproval',
-  'newUserDefaultShowLifetimeLimit',
+  'newUserDefaultShowWatchlistCap',
 
   // TMDB configuration
   'tmdbRegion',

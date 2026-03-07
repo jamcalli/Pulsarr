@@ -13,3 +13,4 @@ export type NotificationType =
   | 'approval_resolved'
   | 'approval_auto'
   | 'user_created'
+  | 'watchlist_cap'

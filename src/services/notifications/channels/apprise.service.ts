@@ -22,7 +22,9 @@ import {
   sendPublicNotification as sendPublic,
   sendSystemNotification as sendSystem,
   sendTestNotification as sendTest,
+  sendUserWatchlistCapNotification as sendUserWatchlistCap,
   sendWatchlistAdditionNotification as sendWatchlistAddition,
+  sendWatchlistCapNotification as sendWatchlistCap,
 } from './apprise.js'
 import { fetchSchemaFormats } from './apprise-format-cache.js'
 
@@ -119,6 +121,33 @@ export class AppriseService {
     tmdbUrl?: string
   }): Promise<boolean> {
     return sendWatchlistAddition(item, this.appriseDeps)
+  }
+
+  /**
+   * Send a watchlist cap notification to the admin system endpoint.
+   */
+  async sendWatchlistCapNotification(event: {
+    userName: string
+    contentType: string
+    currentCount: number
+    cap: number
+  }): Promise<boolean> {
+    return sendWatchlistCap(event, this.appriseDeps)
+  }
+
+  /**
+   * Send a watchlist cap notification to a specific user's Apprise URL.
+   */
+  async sendUserWatchlistCapNotification(
+    user: User,
+    event: {
+      userName: string
+      contentType: string
+      currentCount: number
+      cap: number
+    },
+  ): Promise<boolean> {
+    return sendUserWatchlistCap(user, event, this.appriseDeps)
   }
 
   /**

@@ -15,6 +15,7 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import pLimit from 'p-limit'
+import { evaluateWatchlistCaps } from '../quota/watchlist-cap-gate.js'
 import { routeMovie, routeShow } from '../routing/index.js'
 import type { SyncEngineDeps } from '../types.js'
 
@@ -32,6 +33,7 @@ export interface SyncResult {
   }
   skippedDueToUserSetting: number
   skippedDueToMissingIds: number
+  skippedDueToWatchlistCap: number
 }
 
 /**
@@ -78,6 +80,7 @@ export async function syncWatchlistItems(
         unmatched: { shows: 0, movies: 0 },
         skippedDueToUserSetting: 0,
         skippedDueToMissingIds: 0,
+        skippedDueToWatchlistCap: 0,
       }
     }
 
@@ -97,6 +100,7 @@ export async function syncWatchlistItems(
         unmatched: { shows: 0, movies: 0 },
         skippedDueToUserSetting: 0,
         skippedDueToMissingIds: 0,
+        skippedDueToWatchlistCap: 0,
       }
     }
 
@@ -125,6 +129,12 @@ export async function syncWatchlistItems(
     ])
     const allWatchlistItems = [...shows, ...movies]
 
+    // --- Watchlist cap gate ---
+    const { skipIds } = await evaluateWatchlistCaps(
+      { db: deps.db, logger: deps.logger },
+      allWatchlistItems,
+    )
+
     // Get all existing series and movies from Sonarr/Radarr
     // Each instance's bypassIgnored setting determines if exclusions are included
     const [existingSeries, existingMovies] = await Promise.all([
@@ -139,6 +149,7 @@ export async function syncWatchlistItems(
     let unmatchedMovies = 0
     let skippedDueToUserSetting = 0
     let skippedDueToMissingIds = 0
+    let skippedDueToWatchlistCap = 0
     const skippedItems: { shows: string[]; movies: string[] } = {
       shows: [],
       movies: [],
@@ -208,6 +219,11 @@ export async function syncWatchlistItems(
                 `Skipping item "${item.title}" during sync as user ${numericUserId} has sync disabled`,
               )
               return { type: 'skipped', reason: 'user_setting' }
+            }
+
+            // Check watchlist cap gate
+            if (skipIds.has(item.id)) {
+              return { type: 'skipped', reason: 'watchlist_cap' }
             }
 
             // Parse GUIDs and genres once for reuse
@@ -328,6 +344,8 @@ export async function syncWatchlistItems(
         } else if (value.type === 'skipped') {
           if (value.reason === 'user_setting') {
             skippedDueToUserSetting++
+          } else if (value.reason === 'watchlist_cap') {
+            skippedDueToWatchlistCap++
           } else if (value.reason === 'missing_id') {
             skippedDueToMissingIds++
             if (value.contentType === 'show') {
@@ -368,6 +386,7 @@ export async function syncWatchlistItems(
       },
       skippedDueToUserSetting,
       skippedDueToMissingIds,
+      skippedDueToWatchlistCap,
     }
 
     deps.logger.info(
@@ -376,6 +395,7 @@ export async function syncWatchlistItems(
         unmatched: summary.unmatched,
         skippedDueToUserSetting: summary.skippedDueToUserSetting,
         skippedDueToMissingIds: summary.skippedDueToMissingIds,
+        skippedDueToWatchlistCap: summary.skippedDueToWatchlistCap,
       },
       'Watchlist sync completed',
     )

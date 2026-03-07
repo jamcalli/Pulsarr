@@ -291,6 +291,62 @@ export function createSystemNotificationHtml(
 }
 
 /**
+ * Creates HTML content for a watchlist cap notification.
+ */
+export function createWatchlistCapNotificationHtml(event: {
+  userName: string
+  contentType: string
+  currentCount: number
+  cap: number
+}): { htmlBody: string; textBody: string } {
+  const contentLabel = event.contentType === 'movie' ? 'Movie' : 'Show'
+
+  const detailsCard = `
+    <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+      <h3 style="margin-top: 0; color: #ffffff; font-weight: 700; border-bottom: 1px solid #343746; padding-bottom: 5px;">Cap Details</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+        <div>
+          <div style="color: #ffffff; font-weight: 700; font-size: 14px;">USER</div>
+          <div style="color: #ffffff; font-weight: 500;">${escapeHtml(event.userName)}</div>
+        </div>
+        <div>
+          <div style="color: #ffffff; font-weight: 700; font-size: 14px;">CONTENT TYPE</div>
+          <div style="color: #ffffff; font-weight: 500;">${escapeHtml(contentLabel)}</div>
+        </div>
+      </div>
+      <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #343746;">
+        <div style="color: #ffffff; font-weight: 700; font-size: 14px;">USAGE</div>
+        <div style="color: #ffffff; font-weight: 500; margin-top: 5px;">${event.currentCount} / ${event.cap}</div>
+      </div>
+    </div>
+  `
+
+  const impactCard = `
+    <div style="margin-bottom: 20px; padding: 15px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+      <div style="color: #ffffff; font-weight: 700; text-align: center;">New items will not be processed until the cap is raised or items are removed.</div>
+    </div>
+  `
+
+  let textBody = 'Watchlist Cap Reached\n\n'
+  textBody += `User: ${event.userName}\n`
+  textBody += `Content Type: ${contentLabel}\n`
+  textBody += `Usage: ${event.currentCount} / ${event.cap}\n\n`
+  textBody +=
+    'New items will not be processed until the cap is raised or items are removed.\n'
+  textBody += '\n- Pulsarr'
+
+  const content = `
+    <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Watchlist Cap Reached</h2>
+    ${detailsCard}
+    ${impactCard}
+  `
+
+  const htmlBody = htmlWrapper(content)
+
+  return { htmlBody, textBody }
+}
+
+/**
  * Creates HTML content for a delete sync notification.
  */
 export function createDeleteSyncNotificationHtml(

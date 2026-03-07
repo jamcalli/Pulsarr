@@ -28,6 +28,7 @@ const EVENT_TYPE_DESCRIPTIONS: Record<WebhookEventType, string> = {
   'approval.auto': 'When content is auto-approved',
   'delete_sync.completed': 'When a delete sync job completes',
   'user.created': 'When a new user is added',
+  'quota.cap_reached': 'When a user reaches their watchlist cap',
 }
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {

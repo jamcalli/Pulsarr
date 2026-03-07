@@ -27,6 +27,7 @@ import {
   createSystemNotificationHtml,
   createTestNotificationHtml,
   createWatchlistAdditionHtml,
+  createWatchlistCapNotificationHtml,
   PULSARR_ICON_URL,
 } from '../templates/apprise-html.js'
 import {
@@ -485,6 +486,128 @@ export async function sendDeleteSyncNotification(
     log.error(
       { error: error instanceof Error ? error : new Error(String(error)) },
       'Error sending delete sync notification',
+    )
+    return false
+  }
+}
+
+/**
+ * Send a watchlist cap notification to the admin system endpoint.
+ */
+export async function sendWatchlistCapNotification(
+  event: {
+    userName: string
+    contentType: string
+    currentCount: number
+    cap: number
+  },
+  deps: AppriseDeps,
+): Promise<boolean> {
+  const { log, config } = deps
+
+  if (!isAppriseEnabled(deps)) {
+    return false
+  }
+
+  try {
+    const systemUrl = resolveAppriseUrls(
+      config.systemAppriseUrl || '',
+      config.appriseEmailSender,
+    )
+    if (!systemUrl) {
+      log.debug(
+        'System Apprise URL not configured or could not be resolved, skipping watchlist cap notification',
+      )
+      return false
+    }
+
+    const { htmlBody, textBody } = createWatchlistCapNotificationHtml(event)
+
+    const appriseNotification: AppriseNotification = {
+      title: 'Watchlist Cap Reached',
+      body: textBody,
+      type: 'warning',
+      format: 'text',
+      tag: 'watchlist-cap',
+      body_html: htmlBody,
+      attach_url: PULSARR_ICON_URL,
+    }
+
+    return await sendAppriseNotification(systemUrl, appriseNotification, deps)
+  } catch (error) {
+    log.error(
+      { error: error instanceof Error ? error : new Error(String(error)) },
+      'Error sending watchlist cap Apprise notification',
+    )
+    return false
+  }
+}
+
+/**
+ * Send a watchlist cap notification to a specific user's Apprise URL.
+ */
+export async function sendUserWatchlistCapNotification(
+  user: User,
+  event: {
+    userName: string
+    contentType: string
+    currentCount: number
+    cap: number
+  },
+  deps: AppriseDeps,
+): Promise<boolean> {
+  const { log, config } = deps
+
+  if (!isAppriseEnabled(deps) || !user.apprise) {
+    return false
+  }
+
+  if (user.notify_apprise === false) {
+    log.debug(
+      `User ${user.name} has Apprise notifications disabled, skipping watchlist cap notification`,
+    )
+    return false
+  }
+
+  const targetUrl = resolveAppriseUrls(user.apprise, config.appriseEmailSender)
+  if (!targetUrl) {
+    log.debug(
+      { userId: user.id, apprise: user.apprise },
+      'Could not resolve apprise URL for watchlist cap notification',
+    )
+    return false
+  }
+
+  try {
+    const { htmlBody, textBody } = createWatchlistCapNotificationHtml(event)
+
+    const appriseNotification: AppriseNotification = {
+      title: 'Watchlist Cap Reached',
+      body: textBody,
+      type: 'warning',
+      format: 'text',
+      tag: 'watchlist-cap',
+      body_html: htmlBody,
+      attach_url: PULSARR_ICON_URL,
+    }
+
+    const success = await sendAppriseNotification(
+      targetUrl,
+      appriseNotification,
+      deps,
+    )
+
+    if (success) {
+      log.info(
+        `Watchlist cap Apprise notification sent to ${user.alias || user.name}`,
+      )
+    }
+
+    return success
+  } catch (error) {
+    log.error(
+      { error: error instanceof Error ? error : new Error(String(error)) },
+      `Error sending watchlist cap notification to user ${user.name}`,
     )
     return false
   }

@@ -29,7 +29,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
-import { validateLifetimeLimit } from '@/features/plex/quota/form-schema'
+import { validateWatchlistCap } from '@/features/plex/quota/form-schema'
 import { NewUserDefaultsPageSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-page-skeleton'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useConfigStore } from '@/stores/configStore'
@@ -42,25 +42,25 @@ const newUserDefaultsSchema = z
     movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
     movieQuotaLimit: z.number().min(1).max(1000),
     movieBypassApproval: z.boolean(),
-    movieLifetimeLimitEnabled: z.boolean(),
-    movieLifetimeLimit: z.number().min(1).nullable(),
+    movieWatchlistCapEnabled: z.boolean(),
+    movieWatchlistCap: z.number().min(1).nullable(),
     showQuotaEnabled: z.boolean(),
     showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
     showQuotaLimit: z.number().min(1).max(1000),
     showBypassApproval: z.boolean(),
-    showLifetimeLimitEnabled: z.boolean(),
-    showLifetimeLimit: z.number().min(1).nullable(),
+    showWatchlistCapEnabled: z.boolean(),
+    showWatchlistCap: z.number().min(1).nullable(),
   })
   .superRefine((data, ctx) => {
-    validateLifetimeLimit(
-      data.movieLifetimeLimitEnabled,
-      data.movieLifetimeLimit,
+    validateWatchlistCap(
+      data.movieWatchlistCapEnabled,
+      data.movieWatchlistCap,
       'Movie',
       ctx,
     )
-    validateLifetimeLimit(
-      data.showLifetimeLimitEnabled,
-      data.showLifetimeLimit,
+    validateWatchlistCap(
+      data.showWatchlistCapEnabled,
+      data.showWatchlistCap,
       'Show',
       ctx,
     )
@@ -78,14 +78,14 @@ function buildFormValues(
     movieQuotaType: config?.newUserDefaultMovieQuotaType ?? 'monthly',
     movieQuotaLimit: config?.newUserDefaultMovieQuotaLimit ?? 10,
     movieBypassApproval: config?.newUserDefaultMovieBypassApproval ?? false,
-    movieLifetimeLimitEnabled: config?.newUserDefaultMovieLifetimeLimit != null,
-    movieLifetimeLimit: config?.newUserDefaultMovieLifetimeLimit ?? null,
+    movieWatchlistCapEnabled: config?.newUserDefaultMovieWatchlistCap != null,
+    movieWatchlistCap: config?.newUserDefaultMovieWatchlistCap ?? null,
     showQuotaEnabled: config?.newUserDefaultShowQuotaEnabled ?? false,
     showQuotaType: config?.newUserDefaultShowQuotaType ?? 'monthly',
     showQuotaLimit: config?.newUserDefaultShowQuotaLimit ?? 10,
     showBypassApproval: config?.newUserDefaultShowBypassApproval ?? false,
-    showLifetimeLimitEnabled: config?.newUserDefaultShowLifetimeLimit != null,
-    showLifetimeLimit: config?.newUserDefaultShowLifetimeLimit ?? null,
+    showWatchlistCapEnabled: config?.newUserDefaultShowWatchlistCap != null,
+    showWatchlistCap: config?.newUserDefaultShowWatchlistCap ?? null,
   }
 }
 
@@ -108,9 +108,9 @@ export default function NewUserDefaultsPage() {
   // Watch form values for dynamic UI updates
   const canSync = form.watch('canSync')
   const movieQuotaEnabled = form.watch('movieQuotaEnabled')
-  const movieLifetimeLimitEnabled = form.watch('movieLifetimeLimitEnabled')
+  const movieWatchlistCapEnabled = form.watch('movieWatchlistCapEnabled')
   const showQuotaEnabled = form.watch('showQuotaEnabled')
-  const showLifetimeLimitEnabled = form.watch('showLifetimeLimitEnabled')
+  const showWatchlistCapEnabled = form.watch('showWatchlistCapEnabled')
 
   // Reset form when config changes
   useEffect(() => {
@@ -131,15 +131,15 @@ export default function NewUserDefaultsPage() {
         newUserDefaultMovieQuotaType: data.movieQuotaType,
         newUserDefaultMovieQuotaLimit: data.movieQuotaLimit,
         newUserDefaultMovieBypassApproval: data.movieBypassApproval,
-        newUserDefaultMovieLifetimeLimit: data.movieLifetimeLimitEnabled
-          ? data.movieLifetimeLimit
+        newUserDefaultMovieWatchlistCap: data.movieWatchlistCapEnabled
+          ? data.movieWatchlistCap
           : null,
         newUserDefaultShowQuotaEnabled: data.showQuotaEnabled,
         newUserDefaultShowQuotaType: data.showQuotaType,
         newUserDefaultShowQuotaLimit: data.showQuotaLimit,
         newUserDefaultShowBypassApproval: data.showBypassApproval,
-        newUserDefaultShowLifetimeLimit: data.showLifetimeLimitEnabled
-          ? data.showLifetimeLimit
+        newUserDefaultShowWatchlistCap: data.showWatchlistCapEnabled
+          ? data.showWatchlistCap
           : null,
       })
 
@@ -243,7 +243,7 @@ export default function NewUserDefaultsPage() {
                 </span>
                 <span className="text-foreground ml-2">
                   {movieQuotaEnabled
-                    ? `${form.watch('movieQuotaType')} limit of ${form.watch('movieQuotaLimit')} movies${form.watch('movieBypassApproval') ? ' (auto-approve when exceeded)' : ''}${movieLifetimeLimitEnabled && form.watch('movieLifetimeLimit') ? ` · Lifetime: ${form.watch('movieLifetimeLimit')}` : ''}`
+                    ? `${form.watch('movieQuotaType')} limit of ${form.watch('movieQuotaLimit')} movies${form.watch('movieBypassApproval') ? ' (auto-approve when exceeded)' : ''}${movieWatchlistCapEnabled && form.watch('movieWatchlistCap') ? ` · Cap: ${form.watch('movieWatchlistCap')}` : ''}`
                     : 'Unlimited by default'}
                 </span>
               </li>
@@ -262,7 +262,7 @@ export default function NewUserDefaultsPage() {
                 </span>
                 <span className="text-foreground ml-2">
                   {showQuotaEnabled
-                    ? `${form.watch('showQuotaType')} limit of ${form.watch('showQuotaLimit')} shows${form.watch('showBypassApproval') ? ' (auto-approve when exceeded)' : ''}${showLifetimeLimitEnabled && form.watch('showLifetimeLimit') ? ` · Lifetime: ${form.watch('showLifetimeLimit')}` : ''}`
+                    ? `${form.watch('showQuotaType')} limit of ${form.watch('showQuotaLimit')} shows${form.watch('showBypassApproval') ? ' (auto-approve when exceeded)' : ''}${showWatchlistCapEnabled && form.watch('showWatchlistCap') ? ` · Cap: ${form.watch('showWatchlistCap')}` : ''}`
                     : 'Unlimited by default'}
                 </span>
               </li>
@@ -494,7 +494,7 @@ export default function NewUserDefaultsPage() {
 
                     <FormField
                       control={form.control}
-                      name="movieLifetimeLimitEnabled"
+                      name="movieWatchlistCapEnabled"
                       render={({ field }) => (
                         <FormItem className="flex flex-col justify-end h-full">
                           <div className="flex items-center space-x-2">
@@ -506,7 +506,7 @@ export default function NewUserDefaultsPage() {
                             </FormControl>
                             <div className="flex items-center">
                               <FormLabel className="text-foreground m-0">
-                                Lifetime Limit
+                                Watchlist Cap
                               </FormLabel>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -515,7 +515,7 @@ export default function NewUserDefaultsPage() {
                                 <TooltipContent>
                                   <p className="max-w-xs">
                                     When enabled, limits the total number of
-                                    movie requests a user can ever make
+                                    movies on a user's watchlist
                                   </p>
                                 </TooltipContent>
                               </Tooltip>
@@ -526,14 +526,14 @@ export default function NewUserDefaultsPage() {
                       )}
                     />
 
-                    {movieLifetimeLimitEnabled && (
+                    {movieWatchlistCapEnabled && (
                       <FormField
                         control={form.control}
-                        name="movieLifetimeLimit"
+                        name="movieWatchlistCap"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-foreground">
-                              Movie Lifetime Limit
+                              Movie Watchlist Cap
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -697,7 +697,7 @@ export default function NewUserDefaultsPage() {
 
                     <FormField
                       control={form.control}
-                      name="showLifetimeLimitEnabled"
+                      name="showWatchlistCapEnabled"
                       render={({ field }) => (
                         <FormItem className="flex flex-col justify-end h-full">
                           <div className="flex items-center space-x-2">
@@ -709,7 +709,7 @@ export default function NewUserDefaultsPage() {
                             </FormControl>
                             <div className="flex items-center">
                               <FormLabel className="text-foreground m-0">
-                                Lifetime Limit
+                                Watchlist Cap
                               </FormLabel>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -718,7 +718,7 @@ export default function NewUserDefaultsPage() {
                                 <TooltipContent>
                                   <p className="max-w-xs">
                                     When enabled, limits the total number of
-                                    show requests a user can ever make
+                                    shows on a user's watchlist
                                   </p>
                                 </TooltipContent>
                               </Tooltip>
@@ -729,14 +729,14 @@ export default function NewUserDefaultsPage() {
                       )}
                     />
 
-                    {showLifetimeLimitEnabled && (
+                    {showWatchlistCapEnabled && (
                       <FormField
                         control={form.control}
-                        name="showLifetimeLimit"
+                        name="showWatchlistCap"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-foreground">
-                              Show Lifetime Limit
+                              Show Watchlist Cap
                             </FormLabel>
                             <FormControl>
                               <Input

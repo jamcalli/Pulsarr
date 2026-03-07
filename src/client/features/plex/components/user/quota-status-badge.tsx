@@ -58,9 +58,9 @@ function SingleQuotaRow({
 
   const currentUsage = quota.currentUsage ?? 0
   const periodLabel = QUOTA_TYPE_SHORT[quota.quotaType] ?? quota.quotaType
-  const lifetimeUsage = quota.lifetimeUsage ?? 0
-  const lifetimeLimit = quota.lifetimeLimit ?? 0
-  const hasLifetime = lifetimeLimit > 0
+  const watchlistUsage = quota.watchlistUsage ?? 0
+  const watchlistCap = quota.watchlistCap ?? 0
+  const hasCap = watchlistCap > 0
 
   if (quota.quotaLimit <= 0) {
     return (
@@ -74,12 +74,12 @@ function SingleQuotaRow({
   }
 
   const periodPct = (currentUsage / quota.quotaLimit) * 100
-  const lifetimePct = hasLifetime ? (lifetimeUsage / lifetimeLimit) * 100 : 0
+  const capPct = hasCap ? (watchlistUsage / watchlistCap) * 100 : 0
   // Use the worst percentage for the row color
-  const worstPct = hasLifetime ? Math.max(periodPct, lifetimePct) : periodPct
+  const worstPct = hasCap ? Math.max(periodPct, capPct) : periodPct
 
-  const label = hasLifetime
-    ? `${prefix}: ${currentUsage}/${quota.quotaLimit} ${periodLabel} · L: ${lifetimeUsage}/${lifetimeLimit}`
+  const label = hasCap
+    ? `${prefix}: ${currentUsage}/${quota.quotaLimit} ${periodLabel} · Cap: ${watchlistUsage}/${watchlistCap}`
     : `${prefix}: ${currentUsage}/${quota.quotaLimit} ${periodLabel}`
 
   return (

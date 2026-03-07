@@ -655,9 +655,7 @@ export default function DeleteSyncPage() {
                                 Automatically remove approval request records
                                 when content is deleted. This helps keep the
                                 approval history clean and prevents old records
-                                from accumulating. Also required for lifetime
-                                quota slot recovery — without this, lifetime
-                                slots are not returned when content is removed.
+                                from accumulating.
                               </p>
                             </TooltipContent>
                           </Tooltip>

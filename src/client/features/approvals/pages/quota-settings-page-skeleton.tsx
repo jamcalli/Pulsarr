@@ -112,6 +112,25 @@ export function QuotaSettingsPageSkeleton() {
           </div>
         </div>
 
+        <Separator />
+
+        {/* Watchlist Cap Notifications skeleton */}
+        <div>
+          <h3 className="font-medium text-sm text-foreground mb-2">
+            Watchlist Cap Notifications
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="flex items-center space-x-2 mt-6">
+              <Skeleton className="h-5 w-10 rounded-full" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          </div>
+        </div>
+
         {/* Action buttons skeleton */}
         <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
           <Skeleton className="h-10 w-32" />
