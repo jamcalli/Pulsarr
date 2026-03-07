@@ -293,10 +293,10 @@ async function dispatchNotification(
   lastNotifiedCount.set(key, event.currentCount)
 
   // Admin channel notifications
-  if (notifySetting !== 'none') {
-    const { sendWebhook, sendDM, sendApprise } =
-      getApprovalNotificationChannels(notifySetting)
+  const { sendWebhook, sendDM, sendApprise } =
+    getApprovalNotificationChannels(notifySetting)
 
+  if (notifySetting !== 'none') {
     const promises: Promise<boolean>[] = []
 
     if (sendWebhook) {
@@ -355,9 +355,8 @@ async function dispatchNotification(
       type: 'watchlist_cap',
       title: `${contentLabel} Watchlist Cap Reached`,
       message: `${userName} reached their ${contentLabel.toLowerCase()} cap (${event.currentCount}/${event.cap})`,
-      sent_to_discord: notifySetting !== 'none',
-      sent_to_apprise:
-        notifySetting === 'all' || notifySetting === 'apprise-only',
+      sent_to_discord: sendWebhook || sendDM,
+      sent_to_apprise: sendApprise,
       sent_to_native_webhook: true,
     })
   } catch (error) {
