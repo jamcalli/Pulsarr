@@ -534,6 +534,102 @@ export default function QuotaSettingsPage() {
               </div>
             </div>
 
+            <Separator />
+
+            <div>
+              <h3 className="font-medium text-sm text-foreground mb-2">
+                Watchlist Cap Notifications
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="watchlistCapNotify"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground m-0">
+                            Admin Notifications
+                          </FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Send notifications to admin channels when a user
+                                reaches their watchlist cap.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={isSaving}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select notification type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all">All Channels</SelectItem>
+                            <SelectItem value="apprise-only">
+                              Apprise Only
+                            </SelectItem>
+                            <SelectItem value="discord-both">
+                              Discord (Webhook + DM)
+                            </SelectItem>
+                            <SelectItem value="dm-only">
+                              Discord (DM Only)
+                            </SelectItem>
+                            <SelectItem value="webhook-only">
+                              Discord (Webhook Only)
+                            </SelectItem>
+                            <SelectItem value="none">None</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="watchlistCapNotifyUser"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2 mt-6">
+                      <FormControl>
+                        <Switch
+                          checked={field.value ?? false}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="flex items-center">
+                        <FormLabel className="text-foreground m-0">
+                          Notify User
+                        </FormLabel>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">
+                              When enabled, the user who reached their cap will
+                              also be notified via their configured notification
+                              channels (Discord DM, Apprise).
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
             {/* Action buttons - always show, but disable save when not dirty */}
             <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
               {form.formState.isDirty && !isSaving && (

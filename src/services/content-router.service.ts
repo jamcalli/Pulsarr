@@ -69,6 +69,7 @@ export class ContentRouterService {
   private async isWatchlistCapped(
     userId: number,
     contentType: 'movie' | 'show',
+    userName?: string,
   ): Promise<boolean> {
     const quota = await this.fastify.db.getUserQuota(userId, contentType)
     if (
@@ -80,7 +81,19 @@ export class ContentRouterService {
       return false
 
     const count = await this.fastify.db.getWatchlistUsage(userId, contentType)
-    return count >= quota.watchlistCap
+    const capped = count >= quota.watchlistCap
+
+    if (capped) {
+      this.fastify.notifications.sendWatchlistCapReached({
+        userId,
+        userName: userName ?? null,
+        contentType,
+        currentCount: count,
+        cap: quota.watchlistCap,
+      })
+    }
+
+    return capped
   }
 
   /**
@@ -435,7 +448,13 @@ export class ContentRouterService {
 
       // Watchlist cap gate — runs before quota logic, completely independent
       if (!options.syncing && options.userId > 0) {
-        if (await this.isWatchlistCapped(options.userId, contentType)) {
+        if (
+          await this.isWatchlistCapped(
+            options.userId,
+            contentType,
+            options.userName,
+          )
+        ) {
           this.log.info(
             `Watchlist cap reached for "${item.title}" by user ${options.userName || options.userId} — skipping`,
           )
@@ -824,6 +843,7 @@ export class ContentRouterService {
                 await this.isWatchlistCapped(
                   fallbackContext.userId,
                   contentType,
+                  fallbackContext.userName,
                 )
               ) {
                 this.log.info(
@@ -1064,7 +1084,13 @@ export class ContentRouterService {
 
         // Watchlist cap gate — runs before quota logic, completely independent
         if (!options.syncing && context.userId > 0) {
-          if (await this.isWatchlistCapped(context.userId, contentType)) {
+          if (
+            await this.isWatchlistCapped(
+              context.userId,
+              contentType,
+              context.userName,
+            )
+          ) {
             this.log.info(
               `Watchlist cap reached for "${enrichedItem.title}" by user ${context.userName || context.userId} — skipping`,
             )

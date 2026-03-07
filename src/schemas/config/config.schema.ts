@@ -200,6 +200,8 @@ export const ConfigFullSchema = z.object({
   respectUserSyncSetting: z.boolean(),
   deleteSyncNotify: DeleteSyncNotifyOptionEnum,
   approvalNotify: NotifyOptionEnum,
+  watchlistCapNotify: NotifyOptionEnum,
+  watchlistCapNotifyUser: z.boolean(),
   deleteSyncNotifyOnlyOnDeletion: z.boolean(),
   maxDeletionPrevention: z.number().optional(),
   deleteSyncTrackedOnly: z.boolean(),
@@ -357,6 +359,8 @@ export const ConfigUpdateSchema = z
     respectUserSyncSetting: z.boolean().optional(),
     deleteSyncNotify: DeleteSyncNotifyOptionEnum.optional(),
     approvalNotify: NotifyOptionEnum.optional(),
+    watchlistCapNotify: NotifyOptionEnum.optional(),
+    watchlistCapNotifyUser: z.boolean().optional(),
     deleteSyncNotifyOnlyOnDeletion: z.boolean().optional(),
     maxDeletionPrevention: z.number().min(1).max(100).optional(),
     // Deletion mode

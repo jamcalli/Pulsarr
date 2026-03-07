@@ -11,6 +11,8 @@ const approvalConfigurationSchema = z.object({
   approvalExpiration: ConfigUpdateSchema.shape.approvalExpiration,
   quotaSettings: ConfigUpdateSchema.shape.quotaSettings,
   approvalNotify: ConfigUpdateSchema.shape.approvalNotify,
+  watchlistCapNotify: ConfigUpdateSchema.shape.watchlistCapNotify,
+  watchlistCapNotifyUser: ConfigUpdateSchema.shape.watchlistCapNotifyUser,
   scheduleInterval: z.number().min(1).max(12).optional(),
   scheduleTime: z.date().optional(),
   dayOfWeek: z.string().optional(),
@@ -67,6 +69,8 @@ export function useApprovalConfiguration() {
         },
       },
       approvalNotify: 'none',
+      watchlistCapNotify: 'none',
+      watchlistCapNotifyUser: false,
       scheduleInterval: undefined,
       scheduleTime: undefined,
       dayOfWeek: '*',
@@ -82,6 +86,7 @@ export function useApprovalConfiguration() {
       currentDayOfWeek?: string,
     ): ApprovalConfigurationFormData => {
       const notifyValue = config.approvalNotify || 'none'
+      const watchlistCapNotifyValue = config.watchlistCapNotify || 'none'
 
       // Parse and validate the data through the form schema to ensure correct types
       const formData = {
@@ -134,6 +139,8 @@ export function useApprovalConfiguration() {
               monthly: { resetDay: 1, handleMonthEnd: 'last-day' },
             },
         approvalNotify: notifyValue,
+        watchlistCapNotify: watchlistCapNotifyValue,
+        watchlistCapNotifyUser: config.watchlistCapNotifyUser ?? false,
         scheduleInterval: currentScheduleInterval,
         scheduleTime: currentScheduleTime,
         dayOfWeek: currentDayOfWeek ?? '*',
@@ -166,6 +173,12 @@ export function useApprovalConfiguration() {
         if (form.getValues('approvalNotify') !== notifyValue) {
           form.setValue('approvalNotify', notifyValue, { shouldDirty: false })
         }
+        const watchlistCapNotifyValue = config.watchlistCapNotify || 'none'
+        if (form.getValues('watchlistCapNotify') !== watchlistCapNotifyValue) {
+          form.setValue('watchlistCapNotify', watchlistCapNotifyValue, {
+            shouldDirty: false,
+          })
+        }
         form.reset(form.getValues(), { keepDirty: false })
       }, 0)
     }
@@ -197,6 +210,11 @@ export function useApprovalConfiguration() {
 
       // Add approval notification settings (always include with default)
       updatePayload.approvalNotify = data.approvalNotify || 'none'
+
+      // Add watchlist cap notification settings
+      updatePayload.watchlistCapNotify = data.watchlistCapNotify || 'none'
+      updatePayload.watchlistCapNotifyUser =
+        data.watchlistCapNotifyUser ?? false
 
       // Schedule fields should NOT be sent to config - they need to be handled by scheduler
       // Remove schedule fields from config update payload

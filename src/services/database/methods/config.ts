@@ -165,6 +165,8 @@ export async function getConfig(
     ),
     deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex || '',
     approvalNotify: config.approvalNotify || 'none',
+    watchlistCapNotify: config.watchlistCapNotify || 'none',
+    watchlistCapNotifyUser: Boolean(config.watchlistCapNotifyUser ?? false),
     // Plex playlist protection
     enablePlexPlaylistProtection: Boolean(config.enablePlexPlaylistProtection),
     plexProtectionPlaylistName:
@@ -300,6 +302,8 @@ export async function createConfig(
       deleteSyncCleanupApprovals: config.deleteSyncCleanupApprovals ?? false,
       deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex || '',
       approvalNotify: config.approvalNotify || 'none',
+      watchlistCapNotify: config.watchlistCapNotify || 'none',
+      watchlistCapNotifyUser: config.watchlistCapNotifyUser ?? false,
       maxDeletionPrevention: config.maxDeletionPrevention ?? 10,
       // Plex playlist protection
       enablePlexPlaylistProtection:
@@ -500,6 +504,8 @@ const ALLOWED_COLUMNS = new Set([
   'deleteSyncCleanupApprovals',
   'deleteSyncRequiredTagRegex',
   'approvalNotify',
+  'watchlistCapNotify',
+  'watchlistCapNotifyUser',
   'maxDeletionPrevention',
   'enablePlexPlaylistProtection',
   'plexProtectionPlaylistName',

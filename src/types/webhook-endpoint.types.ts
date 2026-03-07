@@ -12,6 +12,7 @@ export const WEBHOOK_EVENT_TYPES = [
   'approval.auto',
   'delete_sync.completed',
   'user.created',
+  'quota.cap_reached',
 ] as const
 
 export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number]
@@ -28,6 +29,7 @@ export const EVENT_TYPE_LABELS: Record<WebhookEventType, string> = {
   'approval.auto': 'Auto Approved',
   'delete_sync.completed': 'Delete Sync Complete',
   'user.created': 'User Created',
+  'quota.cap_reached': 'Watchlist Cap Reached',
 }
 
 /**

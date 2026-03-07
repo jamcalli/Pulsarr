@@ -36,3 +36,9 @@ export {
   type WatchlistAddedDeps,
   type WatchlistItemInfo,
 } from './watchlist-added.js'
+
+export {
+  sendWatchlistCapNotification,
+  type WatchlistCapDeps,
+  type WatchlistCapEvent,
+} from './watchlist-cap.js'
