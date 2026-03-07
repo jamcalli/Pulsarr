@@ -645,6 +645,32 @@ export async function getUsersWithQuotas(
 }
 
 /**
+ * Retrieves active watchlist caps for non-bypass users.
+ *
+ * Returns rows where watchlist_cap is set, positive, and the user does not have bypass_approval enabled.
+ * Used by the sync engine's cap gate to determine which users have active caps.
+ *
+ * @returns Array of objects with userId, contentType, and watchlistCap
+ */
+export async function getActiveWatchlistCaps(
+  this: DatabaseService,
+): Promise<
+  Array<{ userId: number; contentType: 'movie' | 'show'; watchlistCap: number }>
+> {
+  const rows = await this.knex('user_quotas')
+    .whereNotNull('watchlist_cap')
+    .where('watchlist_cap', '>', 0)
+    .where('bypass_approval', false)
+    .select('user_id', 'content_type', 'watchlist_cap')
+
+  return rows.map((row) => ({
+    userId: row.user_id as number,
+    contentType: row.content_type as 'movie' | 'show',
+    watchlistCap: row.watchlist_cap as number,
+  }))
+}
+
+/**
  * Retrieves quota usage records for a user, optionally filtered by date range, content type, and paginated.
  *
  * @param userId - The user ID to retrieve usage history for

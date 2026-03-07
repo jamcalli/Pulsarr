@@ -145,6 +145,18 @@ declare module '@services/database.service.js' {
     getUsersWithQuotas(): Promise<UserQuotaConfig[]>
 
     /**
+     * Gets active watchlist caps for non-bypass users
+     * @returns Promise resolving to array of { userId, contentType, watchlistCap }
+     */
+    getActiveWatchlistCaps(): Promise<
+      Array<{
+        userId: number
+        contentType: 'movie' | 'show'
+        watchlistCap: number
+      }>
+    >
+
+    /**
      * Gets quota usage history for a user
      * @param userId - User ID
      * @param startDate - Optional start date filter

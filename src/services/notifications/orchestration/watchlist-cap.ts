@@ -386,13 +386,6 @@ export function sendWatchlistCapNotification(
   deps: WatchlistCapDeps,
   event: WatchlistCapEvent,
 ): void {
-  const notifySetting = deps.config.watchlistCapNotify || 'none'
-
-  // Skip if notifications disabled
-  if (notifySetting === 'none' && !deps.config.watchlistCapNotifyUser) {
-    return
-  }
-
   const key = `${event.userId}:${event.contentType}`
 
   // Clear any existing pending timer for this key
