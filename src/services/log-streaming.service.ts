@@ -106,6 +106,7 @@ export class LogStreamingService {
     this.eventEmitter.removeAllListeners()
     this.partialLine = ''
     this._startingFileWatch = false
+    this._watchTickInFlight = false
   }
 
   async getTailLines(lines: number, filter?: string): Promise<LogEntry[]> {

@@ -374,6 +374,22 @@ export class ContentRouterService {
           return existingResult
         }
 
+        // Watchlist cap gate — hard block before approval creation
+        if (!options.syncing && options.userId > 0) {
+          if (
+            await this.isWatchlistCapped(
+              options.userId,
+              contentType,
+              options.userName,
+            )
+          ) {
+            this.log.info(
+              `Watchlist cap reached for "${item.title}" by user ${options.userName || options.userId} — skipping`,
+            )
+            return { routedInstances: [], routingDetails: [] }
+          }
+        }
+
         // Get all default routing decisions that would be made (default + synced instances)
         const defaultRoutingDecisions =
           await this.getDefaultRoutingDecisions(contentType)
@@ -445,22 +461,6 @@ export class ContentRouterService {
         { title: item.title, contentType },
         `No routing rules exist, using default routing for "${item.title}"`,
       )
-
-      // Watchlist cap gate — runs before quota logic, completely independent
-      if (!options.syncing && options.userId > 0) {
-        if (
-          await this.isWatchlistCapped(
-            options.userId,
-            contentType,
-            options.userName,
-          )
-        ) {
-          this.log.info(
-            `Watchlist cap reached for "${item.title}" by user ${options.userName || options.userId} — skipping`,
-          )
-          return { routedInstances: [], routingDetails: [] }
-        }
-      }
 
       // Atomic quota enforcement for default routing path (prevents race conditions)
       // Only for non-sync operations
@@ -782,6 +782,22 @@ export class ContentRouterService {
             return existingResult
           }
 
+          // Watchlist cap gate — hard block before approval creation
+          if (!options.syncing && fallbackContext.userId > 0) {
+            if (
+              await this.isWatchlistCapped(
+                fallbackContext.userId,
+                contentType,
+                fallbackContext.userName,
+              )
+            ) {
+              this.log.info(
+                `Watchlist cap reached for "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId} — skipping`,
+              )
+              return { routedInstances: [], routingDetails: [] }
+            }
+          }
+
           // Check if new approval is required based on router rules
           // Get all default routing decisions that would be made
           const defaultRoutingDecisions =
@@ -835,22 +851,6 @@ export class ContentRouterService {
 
               // Return empty - content will not be routed until approved
               return { routedInstances: [], routingDetails: [] }
-            }
-
-            // Watchlist cap gate — runs before quota logic, completely independent
-            if (!options.syncing && fallbackContext.userId > 0) {
-              if (
-                await this.isWatchlistCapped(
-                  fallbackContext.userId,
-                  contentType,
-                  fallbackContext.userName,
-                )
-              ) {
-                this.log.info(
-                  `Watchlist cap reached for "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId} — skipping`,
-                )
-                return { routedInstances: [], routingDetails: [] }
-              }
             }
 
             // Atomic quota enforcement for fallback default routing
@@ -1022,6 +1022,22 @@ export class ContentRouterService {
           }
         }
 
+        // Watchlist cap gate — hard block before approval creation
+        if (!options.syncing && context.userId > 0) {
+          if (
+            await this.isWatchlistCapped(
+              context.userId,
+              contentType,
+              context.userName,
+            )
+          ) {
+            this.log.info(
+              `Watchlist cap reached for "${enrichedItem.title}" by user ${context.userName || context.userId} — skipping`,
+            )
+            return { routedInstances: [], routingDetails: [] }
+          }
+        }
+
         // Sort decisions by priority for approval checking
         allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
 
@@ -1080,22 +1096,6 @@ export class ContentRouterService {
 
           // Return empty - content will not be routed until approved
           return { routedInstances: [], routingDetails: [] }
-        }
-
-        // Watchlist cap gate — runs before quota logic, completely independent
-        if (!options.syncing && context.userId > 0) {
-          if (
-            await this.isWatchlistCapped(
-              context.userId,
-              contentType,
-              context.userName,
-            )
-          ) {
-            this.log.info(
-              `Watchlist cap reached for "${enrichedItem.title}" by user ${context.userName || context.userId} — skipping`,
-            )
-            return { routedInstances: [], routingDetails: [] }
-          }
         }
 
         // PRIORITY 3: Atomic quota consumption (prevents race conditions)

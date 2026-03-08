@@ -581,7 +581,7 @@ export async function getBulkQuotaStatus(
       watchlistCap != null ? (watchlistUsageResults.get(userId) ?? 0) : null
     const watchlistCapExceeded =
       watchlistCap != null && watchlistUsage != null
-        ? watchlistUsage >= watchlistCap
+        ? watchlistUsage > watchlistCap
         : false
 
     results.push({
