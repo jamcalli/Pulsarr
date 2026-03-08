@@ -271,6 +271,7 @@ export class LogStreamingService {
       clearInterval(fileInfo.interval)
     }
     this.watchedFiles.delete(this.logFilePath)
+    this.partialLine = ''
     this.log.debug({ file: this.logFilePath }, 'Stopped watching log file')
   }
 

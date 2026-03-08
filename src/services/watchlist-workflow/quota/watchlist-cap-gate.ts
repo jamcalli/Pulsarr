@@ -4,7 +4,7 @@
  * Determines which pending watchlist items should be skipped because
  * the owning user has reached their watchlist cap.
  *
- * Binary gate: total items (all statuses) >= cap → skip ALL pending items
+ * Binary gate: total items (all statuses) > cap → skip ALL pending items
  * for that user+contentType. Bypass-approval users are exempt.
  */
 
@@ -17,9 +17,17 @@ export interface WatchlistCapGateDeps {
   logger: FastifyBaseLogger
 }
 
+export interface CappedEntry {
+  userId: number
+  contentType: 'movie' | 'show'
+  currentCount: number
+  cap: number
+}
+
 export interface WatchlistCapGateResult {
   skipIds: Set<string>
   skippedCount: number
+  cappedEntries: CappedEntry[]
 }
 
 /**
@@ -36,11 +44,12 @@ export async function evaluateWatchlistCaps(
 ): Promise<WatchlistCapGateResult> {
   const skipIds = new Set<string>()
   let skippedCount = 0
+  const cappedEntries: CappedEntry[] = []
 
   const capsRows = await deps.db.getActiveWatchlistCaps()
 
   if (capsRows.length === 0) {
-    return { skipIds, skippedCount }
+    return { skipIds, skippedCount, cappedEntries }
   }
 
   const capsMap = new Map<string, number>()
@@ -64,22 +73,23 @@ export async function evaluateWatchlistCaps(
     }
   }
 
-  // Build skip set — binary gate: total >= cap → skip ALL pending
+  // Build skip set — binary gate: total > cap → skip ALL pending
   for (const [mapKey, cap] of capsMap) {
     const total = totalCounts.get(mapKey) ?? 0
     const pending = pendingItems.get(mapKey) ?? []
 
     if (pending.length === 0) continue
 
-    if (total >= cap) {
+    if (total > cap) {
       for (const item of pending) {
         skipIds.add(item.id)
       }
       skippedCount += pending.length
       const [userId, type] = mapKey.split(':')
+      const numericUserId = Number(userId)
       deps.logger.info(
         {
-          userId: Number(userId),
+          userId: numericUserId,
           type,
           total,
           cap,
@@ -87,8 +97,14 @@ export async function evaluateWatchlistCaps(
         },
         'Watchlist cap reached — skipping all pending items',
       )
+      cappedEntries.push({
+        userId: numericUserId,
+        contentType: type as 'movie' | 'show',
+        currentCount: total,
+        cap,
+      })
     }
   }
 
-  return { skipIds, skippedCount }
+  return { skipIds, skippedCount, cappedEntries }
 }

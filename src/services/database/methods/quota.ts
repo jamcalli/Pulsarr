@@ -417,7 +417,7 @@ export async function getQuotaStatus(
   let watchlistCapExceeded = false
   if (quota.watchlistCap != null) {
     watchlistUsage = await getWatchlistUsage.call(this, userId, contentType)
-    watchlistCapExceeded = watchlistUsage >= quota.watchlistCap
+    watchlistCapExceeded = watchlistUsage > quota.watchlistCap
   }
 
   return {

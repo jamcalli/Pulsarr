@@ -130,10 +130,22 @@ export async function syncWatchlistItems(
     const allWatchlistItems = [...shows, ...movies]
 
     // --- Watchlist cap gate ---
-    const { skipIds } = await evaluateWatchlistCaps(
+    const { skipIds, cappedEntries } = await evaluateWatchlistCaps(
       { db: deps.db, logger: deps.logger },
       allWatchlistItems,
     )
+
+    // Fire cap notifications (debounced by notification service)
+    for (const entry of cappedEntries) {
+      const user = userById.get(entry.userId)
+      deps.notifications.sendWatchlistCapReached({
+        userId: entry.userId,
+        userName: user?.name ?? null,
+        contentType: entry.contentType,
+        currentCount: entry.currentCount,
+        cap: entry.cap,
+      })
+    }
 
     // Get all existing series and movies from Sonarr/Radarr
     // Each instance's bypassIgnored setting determines if exclusions are included

@@ -81,7 +81,7 @@ export class ContentRouterService {
       return false
 
     const count = await this.fastify.db.getWatchlistUsage(userId, contentType)
-    const capped = count >= quota.watchlistCap
+    const capped = count > quota.watchlistCap
 
     if (capped) {
       this.fastify.notifications.sendWatchlistCapReached({

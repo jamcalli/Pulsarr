@@ -217,7 +217,7 @@ export class UserTagService {
       toAdd = userTagIds.filter((id) => !existingTagSet.has(id))
       toRemove = [
         ...existingPulsarrTags.filter((id) => !userTagIds.includes(id)),
-        ...(userTagIds.length > 0 ? existingRemovalTags : []),
+        ...existingRemovalTags,
       ]
     }
 
