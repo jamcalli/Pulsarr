@@ -626,9 +626,9 @@ export default function PlexConfigurationPage() {
             {/* Server Selection Cards */}
             {showServerCards && servers.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {servers.map((server, index) => (
+                {servers.map((server) => (
                   <Card
-                    key={`${server.host}-${server.port}-${index}`}
+                    key={`${server.host}-${server.port}`}
                     className="cursor-pointer hover:border-primary transition-colors flex flex-col"
                   >
                     <CardHeader className="py-3 px-4 pb-2">
