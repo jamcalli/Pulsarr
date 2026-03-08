@@ -258,11 +258,11 @@ export function StatusTransitionsChart() {
             barSize={30}
           >
             {/* Display sample size (count) as a label on each bar */}
-            {notifiedByContentTypeData.map((entry, index) => (
+            {notifiedByContentTypeData.map((entry, entryIdx) => (
               <text
-                key={`text-${entry.contentType}-${entry.avgMinutes}-${entry.count}-${index}`}
+                key={`text-${entry.contentType}`}
                 x={entry.avgMinutes > 5 ? 25 : entry.avgMinutes + 3}
-                y={index * 40 + 20}
+                y={entryIdx * 40 + 20}
                 textAnchor={entry.avgMinutes > 5 ? 'end' : 'start'}
                 fill={entry.avgMinutes > 5 ? 'white' : 'black'}
                 fontWeight="500"
@@ -282,9 +282,9 @@ export function StatusTransitionsChart() {
               key="errorbar-x"
             />
 
-            {notifiedByContentTypeData.map((entry, index) => (
+            {notifiedByContentTypeData.map((entry) => (
               <Cell
-                key={`bar-cell-${entry.contentType}-${entry.avgMinutes}-${entry.count}-${index}`}
+                key={`bar-cell-${entry.contentType}`}
                 fill={
                   entry.contentType === 'Movies'
                     ? cssColors.movie
@@ -295,7 +295,7 @@ export function StatusTransitionsChart() {
           </Bar>
 
           {/* Add reference lines for each data point's min and max */}
-          {notifiedByContentTypeData.flatMap((entry, index) => {
+          {notifiedByContentTypeData.flatMap((entry) => {
             // Only show reference lines if min != max
             if (entry.minMinutes === entry.maxMinutes) {
               return []
@@ -306,7 +306,7 @@ export function StatusTransitionsChart() {
 
             return [
               <ReferenceLine
-                key={`refline-min-${index}-${entry.contentType}-${entry.minMinutes}`}
+                key={`refline-min-${entry.contentType}-${entry.minMinutes}`}
                 x={entry.minMinutes}
                 stroke={lineColor}
                 strokeOpacity={0.6}
@@ -315,7 +315,7 @@ export function StatusTransitionsChart() {
                 ifOverflow="extendDomain"
               />,
               <ReferenceLine
-                key={`refline-max-${index}-${entry.contentType}-${entry.maxMinutes}`}
+                key={`refline-max-${entry.contentType}-${entry.maxMinutes}`}
                 x={entry.maxMinutes}
                 stroke={lineColor}
                 strokeOpacity={0.6}
