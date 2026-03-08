@@ -112,7 +112,7 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: digests-bun-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
@@ -127,7 +127,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download digests
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
         with:
           pattern: digests-bun-*
           merge-multiple: true
@@ -222,7 +222,7 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: digests-node-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
@@ -237,7 +237,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download digests
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
         with:
           pattern: digests-node-*
           merge-multiple: true
@@ -287,7 +287,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Set up Bun
-        uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2
+        uses: oven-sh/setup-bun@ecf28ddc73e819eb6fa29df6b34ef8921c743461 # v2
         with:
           bun-version-file: ".bun-version"
 
@@ -300,7 +300,7 @@ jobs:
           TMDBAPIKEY: ${{ secrets.TMDBAPIKEY }}
 
       - name: Create Draft Release
-        uses: release-drafter/release-drafter@6db134d15f3909ccc9eefd369f02bd1e9cffdf97 # v6
+        uses: release-drafter/release-drafter@6a93d829887aa2e0748befe2e808c66c0ec6e4c7 # v6
         with:
           config-name: release-drafter.yml
           tag: ${{ github.ref_name }}

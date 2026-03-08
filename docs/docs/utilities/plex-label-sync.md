@@ -1,12 +1,8 @@
----
-sidebar_position: 4
----
-
 import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Plex Label Sync
 
-Automatically synchronize Plex labels based on user watchlists and content requests, providing seamless content organization and tracking directly in your Plex library.
+Automatically synchronize Plex labels based on user watchlists and content requests, keeping your Plex library organized and trackable.
 
 ## Quick Setup
 
@@ -14,7 +10,7 @@ Automatically synchronize Plex labels based on user watchlists and content reque
 2. Toggle **Enable Label Sync** to `ON`
 3. Configure label prefix (default: "pulsarr")
 4. Optionally enable **Tag Sync** to sync Radarr/Sonarr tags to Plex labels
-5. Click **Sync Now** to apply labels to existing content
+5. Click **Sync Labels** to apply labels to existing content
 
 ## Label Types
 
@@ -26,7 +22,7 @@ Automatically synchronize Plex labels based on user watchlists and content reque
 
 ## Configuration
 
-### Basic Settings
+### Label Configuration
 
 | Setting | Description |
 |---------|-------------|
@@ -34,36 +30,43 @@ Automatically synchronize Plex labels based on user watchlists and content reque
 | **Label Prefix** | Customize prefix for user labels (default: "pulsarr") |
 | **Concurrency Limit** | Control processing speed (1-20, default: 5) |
 
-### Label Management
+### Cleanup Settings
 
 | Setting | Description |
 |---------|-------------|
 | **Cleanup Orphaned Labels** | Remove labels for deleted users |
-| **Removed Label Mode** | Remove, keep, or special label behavior |
-| **Removed Label Prefix** | Custom prefix for removed user labels |
+| **Auto Reset on Scheduled Sync** | Automatically reset labels before scheduled sync operations |
+| **Removed Label Mode** | `remove`: delete labels, `keep`: preserve for history, `special-label`: replace with custom prefix |
+| **Removed Label Prefix** | Custom prefix for removed user labels (only when mode is `special-label`) |
 
-### Tag Synchronization
+### Tag Sync Configuration
 
 | Setting | Description |
 |---------|-------------|
 | **Enable Tag Sync** | Sync Radarr/Sonarr tags to Plex labels |
-| **Sync Radarr/Sonarr Tags** | Select which instances to sync from |
+| **Sync Radarr Tags** | Toggle syncing tags from Radarr instances |
+| **Sync Sonarr Tags** | Toggle syncing tags from Sonarr instances |
 
-### Scheduling
+### Full Sync Schedule
 
 | Setting | Description |
 |---------|-------------|
 | **Schedule Time** | Automatically run full sync at specific time |
 | **Day of Week** | Choose days for scheduled sync |
 
-## Running Label Sync
+## Actions
 
 | Action | Description |
 |--------|-------------|
 | **Automatic** | Webhook-triggered on Arr import/upgrade/rename events |
 | **Scheduled** | Run full sync at configured time/days |
-| **Sync Now** | Manual immediate execution |
-| **Cleanup** | Remove orphaned labels and clear pending queue |
+| **Sync Labels** | Manual immediate sync |
+| **Clean Up** | Remove orphaned labels (requires **Cleanup Orphaned Labels** enabled) |
+| **Remove Pulsarr Labels** | Remove all Pulsarr-created labels from Plex (destructive) |
+
+:::warning
+**Remove Pulsarr Labels** deletes all labels matching your prefix from Plex. This cannot be undone. Run a full sync to recreate them.
+:::
 
 ## Troubleshooting
 
@@ -72,3 +75,18 @@ Automatically synchronize Plex labels based on user watchlists and content reque
 | **Labels not appearing** | Verify Plex connection/permissions; check content exists in Plex; confirm prefix config |
 | **Webhook updates not working** | Verify Arr webhook config; check endpoint URL; review logs |
 | **Performance issues** | Reduce concurrency limit; schedule during off-peak; enable orphaned cleanup |
+
+## Best Practices
+
+- Schedule full syncs during off-peak hours to minimize Plex API load
+- Enable "Cleanup Orphaned Labels" to keep Plex labels tidy as users are removed
+- Use a distinctive label prefix to avoid conflicts with manually-created Plex labels
+- Start with user labels before enabling tag sync to keep label volume manageable
+
+:::tip User Tagging vs Label Sync
+[User Tagging](/docs/utilities/user-tagging) adds user tags in **Sonarr/Radarr**. Label Sync adds user labels in **Plex**. Enable both for full tracking across your stack.
+:::
+
+## API Reference
+
+See the [Plex Labels API documentation](/docs/api/sync-plex-labels) for detailed endpoint information.

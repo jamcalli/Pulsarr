@@ -173,6 +173,8 @@ export interface Config {
   respectUserSyncSetting: boolean
   deleteSyncNotify: DeleteSyncNotifyOption
   approvalNotify: NotifyOption
+  watchlistCapNotify: NotifyOption
+  watchlistCapNotifyUser: boolean
   deleteSyncNotifyOnlyOnDeletion: boolean
   maxDeletionPrevention: number
   deleteSyncTrackedOnly: boolean // Only delete content tracked in approval_requests
@@ -241,6 +243,8 @@ export interface Config {
   newUserDefaultShowQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
   newUserDefaultShowQuotaLimit?: number
   newUserDefaultShowBypassApproval?: boolean
+  newUserDefaultMovieWatchlistCap?: number | null
+  newUserDefaultShowWatchlistCap?: number | null
   // Quota System Configuration
   quotaSettings?: {
     // Cleanup configuration

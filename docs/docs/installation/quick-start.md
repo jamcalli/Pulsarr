@@ -86,7 +86,7 @@ If you previously installed Pulsarr with Node.js, you must switch to [Bun](https
 :::
 
 #### Prerequisites
-- Bun 1.3 or higher — install from [bun.sh](https://bun.sh)
+- Bun 1.3 or higher ([bun.sh](https://bun.sh))
 - Git
 
 #### Steps
@@ -122,7 +122,7 @@ For more detailed configuration options, see:
 
 ### Native Installation
 
-Standalone builds with easy installers are available for Linux, macOS, and Windows — no Docker or runtime install required.
+Standalone builds with easy installers are available for Linux, macOS, and Windows. No Docker or runtime install required.
 
 | Platform | Recommended Method |
 |----------|-------------------|
@@ -147,13 +147,13 @@ See the [Native Installation Guide](./native-installation) for detailed instruct
    | Badge | Meaning |
    |-------|---------|
    | **Owner** | Your Plex account |
-   | **Friend** | On your friends list and shared to your server — click to remove |
-   | **No Friend** | On your server but not your friend — click to send a friend request |
-   | **Pending** | Friend request sent — click for cancel/resend options |
-   | **Incoming** | They sent you a request — accept it in Plex |
+   | **Friend** | On your friends list and shared to your server. Click to remove |
+   | **No Friend** | On your server but not your friend. Click to send a friend request |
+   | **Pending** | Friend request sent. Click for cancel/resend options |
+   | **Incoming** | They sent you a request. Accept it in Plex |
    | **No Server** | On your friends list but not shared to your server |
 
-   - Watchlist syncing requires Plex friendship — users showing "No Friend" can be sent a friend request directly from the badge
+   - Watchlist syncing requires Plex friendship. Users showing "No Friend" can be sent a friend request directly from the badge
    - Ensure users have their [Account Visibility](https://app.plex.tv/desktop/#!/settings/account) set to 'Friends Only' or 'Friends of Friends'
 6. Head to the `Dashboard` page and click on the Start button next to the Main Workflow heading
    - Toggle 'Auto Start' to true for automatic operation
@@ -165,5 +165,5 @@ After completing the quick start, you might want to:
 - [Configure Discord notifications](../notifications/discord)
 - [Set up Apprise integration](../notifications/apprise)
 - [Configure content routing rules](../features/content-routing)
-- [Set up user tagging](../utilities/07-user-tagging.md)
-- [Configure automatic deletion](../utilities/02-delete-sync.md)
+- [Set up user tagging](../utilities/user-tagging)
+- [Configure automatic deletion](../utilities/delete-sync)

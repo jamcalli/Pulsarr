@@ -37,6 +37,7 @@ export class QuotaService {
     quotaType: QuotaType,
     quotaLimit: number,
     bypassApproval = false,
+    watchlistCap?: number | null,
   ): Promise<UserQuotaConfigs> {
     const movieData: CreateUserQuotaData = {
       userId,
@@ -44,6 +45,7 @@ export class QuotaService {
       quotaType,
       quotaLimit,
       bypassApproval,
+      watchlistCap: watchlistCap ?? null,
     }
 
     const showData: CreateUserQuotaData = {
@@ -52,6 +54,7 @@ export class QuotaService {
       quotaType,
       quotaLimit,
       bypassApproval,
+      watchlistCap: watchlistCap ?? null,
     }
 
     const [movieQuota, showQuota] = await Promise.all([
@@ -82,6 +85,7 @@ export class QuotaService {
         quotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
         quotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
         bypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
+        watchlistCap: config.newUserDefaultMovieWatchlistCap ?? null,
       }
       movieQuota = await this.fastify.db.createUserQuota(movieData)
     }
@@ -94,6 +98,7 @@ export class QuotaService {
         quotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
         quotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
         bypassApproval: config.newUserDefaultShowBypassApproval ?? false,
+        watchlistCap: config.newUserDefaultShowWatchlistCap ?? null,
       }
       showQuota = await this.fastify.db.createUserQuota(showData)
     }
@@ -567,6 +572,7 @@ export class QuotaService {
     quotaType: QuotaType | 'none' | 'error'
     hasQuota: boolean
     userBypassEnabled: boolean
+    exceededBy?: 'period'
   }> {
     try {
       // Get user's quota configuration
@@ -584,25 +590,37 @@ export class QuotaService {
         }
       }
 
-      // If user has bypass enabled, skip quota consumption but signal bypass
+      // If user has bypass enabled, skip period quota entirely
       if (userQuota.bypassApproval) {
         return {
-          consumed: false, // Bypassed, no need to track
+          consumed: false, // Bypassed, no need to track period quota
           currentUsage: 0,
           quotaLimit: userQuota.quotaLimit,
           quotaType: userQuota.quotaType,
           hasQuota: true,
-          userBypassEnabled: true, // Signal that user has bypass enabled
+          userBypassEnabled: true,
         }
       }
 
-      // Attempt atomic consumption
+      // Attempt atomic period quota consumption
       const result = await this.fastify.db.tryConsumeQuota(
         userId,
         contentType,
         userQuota.quotaType,
         userQuota.quotaLimit,
       )
+
+      if (!result.consumed) {
+        return {
+          consumed: false,
+          currentUsage: result.currentUsage,
+          quotaLimit: userQuota.quotaLimit,
+          quotaType: userQuota.quotaType,
+          hasQuota: true,
+          userBypassEnabled: false,
+          exceededBy: 'period',
+        }
+      }
 
       return {
         consumed: result.consumed,

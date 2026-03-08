@@ -7,6 +7,7 @@ import {
   GetDailyStatsQuerySchema,
   GetQuotaUsageQuerySchema,
   GetUsersWithQuotasResponseSchema,
+  PendingHeldCountResponseSchema,
   QuotaErrorSchema,
   QuotaStatusGetResponseSchema,
   QuotaSuccessResponseSchema,
@@ -68,6 +69,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           request.body.quotaType,
           request.body.quotaLimit,
           request.body.bypassApproval,
+          request.body.watchlistCap,
         )
 
         reply.status(201)
@@ -128,6 +130,49 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
+  // Get pending held count for user
+  fastify.get(
+    '/users/:userId/pending-held-count',
+    {
+      schema: {
+        summary: 'Get pending held count for user',
+        operationId: 'getPendingHeldCount',
+        description:
+          'Get the count of pending quota_exceeded approval requests for a user, grouped by content type',
+        params: z.object({
+          userId: z.string(),
+        }),
+        response: {
+          200: PendingHeldCountResponseSchema,
+          500: QuotaErrorSchema,
+        },
+        tags: ['Quota'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const userId = Number.parseInt(request.params.userId, 10)
+        const counts =
+          await fastify.db.getPendingQuotaExceededCountForUser(userId)
+
+        return {
+          success: true,
+          message: 'Pending held count retrieved successfully',
+          movieCount: counts.movieCount,
+          showCount: counts.showCount,
+        }
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to get pending held count',
+          context: { userId: request.params.userId },
+        })
+        return reply.internalServerError(
+          'Failed to retrieve pending held count',
+        )
+      }
+    },
+  )
+
   // Update user quota
   fastify.patch(
     '/users/:userId',
@@ -161,6 +206,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           quotaType: request.body.quotaType,
           quotaLimit: request.body.quotaLimit,
           bypassApproval: request.body.bypassApproval,
+          watchlistCap: request.body.watchlistCap,
         }
 
         const [movieQuota, showQuota] = await Promise.all([
@@ -219,7 +265,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const userId = Number.parseInt(request.params.userId, 10)
-        const { movieQuota, showQuota } = request.body
+        const { movieQuota, showQuota, autoApproveHeld } = request.body
 
         const existingQuotas = await fastify.db.getUserQuotas(userId)
 
@@ -234,6 +280,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               quotaType: movieQuota.quotaType,
               quotaLimit: movieQuota.quotaLimit,
               bypassApproval: movieQuota.bypassApproval ?? false,
+              watchlistCap: movieQuota.watchlistCap,
             }
 
             if (existingQuotas.movieQuota) {
@@ -253,6 +300,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 quotaType: movieData.quotaType,
                 quotaLimit: movieData.quotaLimit,
                 bypassApproval: movieData.bypassApproval,
+                watchlistCap: movieData.watchlistCap,
               })
             }
           } else if (existingQuotas.movieQuota) {
@@ -270,6 +318,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               quotaType: showQuota.quotaType,
               quotaLimit: showQuota.quotaLimit,
               bypassApproval: showQuota.bypassApproval ?? false,
+              watchlistCap: showQuota.watchlistCap,
             }
 
             if (existingQuotas.showQuota) {
@@ -286,6 +335,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 quotaType: showData.quotaType,
                 quotaLimit: showData.quotaLimit,
                 bypassApproval: showData.bypassApproval,
+                watchlistCap: showData.watchlistCap,
               })
             }
           } else if (existingQuotas.showQuota) {
@@ -293,6 +343,15 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             await fastify.db.deleteUserQuota(userId, 'show')
             showResult = undefined
           }
+        }
+
+        // Re-evaluate held approvals if requested
+        if (autoApproveHeld) {
+          const adminId = request.session.user?.id
+          await fastify.approvalService.reEvaluateQuotaExceededApprovals(
+            userId,
+            adminId,
+          )
         }
 
         return {
@@ -325,6 +384,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         params: z.object({
           userId: z.string(),
         }),
+        querystring: z.object({
+          autoApproveHeld: z
+            .string()
+            .transform((v) => v === 'true')
+            .pipe(z.boolean())
+            .optional()
+            .default(false),
+        }),
         response: {
           200: QuotaSuccessResponseSchema,
           404: QuotaErrorSchema,
@@ -335,10 +402,23 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const userId = Number.parseInt(request.params.userId, 10)
+        const { autoApproveHeld } = request.query
         const deleted = await fastify.db.deleteAllUserQuotas(userId)
 
         if (!deleted) {
           return reply.notFound('User quotas not found')
+        }
+
+        if (autoApproveHeld) {
+          const adminId = request.session.user?.id
+          const result =
+            await fastify.approvalService.reEvaluateQuotaExceededApprovals(
+              userId,
+              adminId,
+            )
+          return createQuotaSuccess(
+            `User quotas deleted successfully. ${result.approved} held item(s) approved.`,
+          )
         }
 
         return createQuotaSuccess('User quotas deleted successfully')

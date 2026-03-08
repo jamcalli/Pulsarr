@@ -58,7 +58,6 @@ import {
 } from '@/components/ui/tooltip'
 import { FriendStatusBadge } from '@/features/plex/components/user/friend-status-badge'
 import { QuotaStatusBadge } from '@/features/plex/components/user/quota-status-badge'
-import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
 import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
 import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
@@ -353,82 +352,9 @@ export default function UserTable({
     {
       accessorKey: 'userQuotas.movieQuota.quotaType',
       meta: {
-        displayName: 'Quota Type',
+        displayName: 'Quotas',
       },
-      header: () => <div className="text-center">Quota Type</div>,
-      cell: ({ row }) => {
-        if (isNonFriend(row)) return NON_FRIEND_DASH
-        const userQuotas = row.original.userQuotas
-        if (!userQuotas || (!userQuotas.movieQuota && !userQuotas.showQuota)) {
-          return (
-            <div className="text-center">
-              <span className="text-sm text-muted-foreground">None</span>
-            </div>
-          )
-        }
-
-        const types = []
-        if (userQuotas.movieQuota)
-          types.push(`M:${formatQuotaType(userQuotas.movieQuota.quotaType)}`)
-        if (userQuotas.showQuota)
-          types.push(`S:${formatQuotaType(userQuotas.showQuota.quotaType)}`)
-
-        return (
-          <div className="text-center">
-            <span className="text-sm font-medium">{types.join(', ')}</span>
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'userQuotas.movieQuota.quotaLimit',
-      meta: {
-        displayName: 'Quota Limit',
-      },
-      header: () => <div className="text-center">Quota Limit</div>,
-      cell: ({ row }) => {
-        if (isNonFriend(row)) return NON_FRIEND_DASH
-        const userQuotas = row.original.userQuotas
-        if (!userQuotas || (!userQuotas.movieQuota && !userQuotas.showQuota)) {
-          return (
-            <div className="text-center">
-              <span className="text-sm text-muted-foreground">-</span>
-            </div>
-          )
-        }
-
-        const hasAutoApprove =
-          userQuotas.movieQuota?.bypassApproval ||
-          userQuotas.showQuota?.bypassApproval
-        if (hasAutoApprove) {
-          return (
-            <div className="text-center">
-              <span className="text-sm font-medium text-blue-600">
-                Auto-Approved
-              </span>
-            </div>
-          )
-        }
-
-        const limits = []
-        if (userQuotas.movieQuota)
-          limits.push(`M:${userQuotas.movieQuota.quotaLimit}`)
-        if (userQuotas.showQuota)
-          limits.push(`S:${userQuotas.showQuota.quotaLimit}`)
-
-        return (
-          <div className="text-center">
-            <span className="text-sm font-medium">{limits.join(', ')}</span>
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'userQuotas.movieQuota.currentUsage',
-      meta: {
-        displayName: 'Quota Usage',
-      },
-      header: () => <div className="text-center">Usage</div>,
+      header: () => <div className="text-center">Quotas</div>,
       cell: ({ row }) => {
         if (isNonFriend(row)) return NON_FRIEND_DASH
         const userQuotas = row.original.userQuotas

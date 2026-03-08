@@ -15,6 +15,9 @@ categories:
       - 'chore'
       - 'maintenance'
       - 'documentation'
+    exclude-labels:
+      - 'dependencies'
+      - 'deps'
   - title: '⚡ Performance'
     labels:
       - 'performance'

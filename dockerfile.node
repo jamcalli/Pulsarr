@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Build with Node.js
 # -----------------------------------------------------------------------------
-FROM node:24.13.1-alpine@sha256:4f696fbf39f383c1e486030ba6b289a5d9af541642fc78ab197e584a113b9c03 AS builder
+FROM node:24.14.0-alpine@sha256:7fddd9ddeae8196abf4a3ef2de34e11f7b1a722119f91f28ddf1e99dcafdf114 AS builder
 WORKDIR /app
 
 ARG TMDBAPIKEY
@@ -45,11 +45,11 @@ RUN npm prune --omit=dev && \
 # -----------------------------------------------------------------------------
 # Stage 2: Final runtime image - Node.js only
 # -----------------------------------------------------------------------------
-FROM node:24.13.1-alpine@sha256:4f696fbf39f383c1e486030ba6b289a5d9af541642fc78ab197e584a113b9c03
+FROM node:24.14.0-alpine@sha256:7fddd9ddeae8196abf4a3ef2de34e11f7b1a722119f91f28ddf1e99dcafdf114
 WORKDIR /app
 
-# wget for healthcheck
-RUN apk add --no-cache wget
+# tini for proper PID 1 zombie reaping, wget for healthcheck
+RUN apk add --no-cache tini wget
 
 ENV CACHE_DIR=/app/build-cache
 
@@ -88,4 +88,5 @@ EXPOSE 3003
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD ./docker-healthcheck.sh
 
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["./docker-entrypoint.sh"]

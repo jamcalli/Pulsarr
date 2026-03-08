@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.9-alpine@sha256:9028ee7a60a04777190f0c3129ce49c73384d3fc918f3e5c75f5af188e431981 AS base
+FROM oven/bun:1.3.10-alpine@sha256:32f1fcccb1523960b254c4f80973bee1a910d60be000a45c20c9129a1efcffee AS base
 WORKDIR /app
 
 # Install production dependencies in a temp directory (cached independently)
@@ -31,8 +31,8 @@ RUN --mount=type=cache,target=/app/node_modules/.vite \
 # Final runtime image
 FROM base
 
-# wget for healthcheck
-RUN apk add --no-cache wget
+# tini for proper PID 1 zombie reaping, wget for healthcheck
+RUN apk add --no-cache tini wget
 
 ENV CACHE_DIR=/app/build-cache
 
@@ -74,4 +74,5 @@ EXPOSE 3003
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD ./docker-healthcheck.sh
 
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["./docker-entrypoint.sh"]

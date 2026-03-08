@@ -30,10 +30,14 @@ import {
 import { createServiceLogger } from '@utils/logger.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import pLimit from 'p-limit'
 
 // HTTP timeout constants
 const SONARR_API_TIMEOUT = 300000 // 300 seconds for API operations
 const SONARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
+
+// Bulk tag update concurrency limit
+const BULK_TAG_CONCURRENCY = 4
 
 // Custom error class to include HTTP status
 class HttpError extends Error {
@@ -1464,27 +1468,43 @@ export class SonarrService {
    * @param tagIds Array of tag IDs to apply
    * @returns Promise resolving when the update is complete
    */
-  async updateSeriesTags(seriesId: number, tagIds: number[]): Promise<void> {
+  async updateSeriesTags(
+    seriesId: number,
+    tagIds: number[],
+    applyTags: 'add' | 'remove' | 'replace' = 'replace',
+  ): Promise<void> {
     try {
       // First get the current series to preserve all fields
       const series = await this.getFromSonarr<SonarrSeries>(
         `series/${seriesId}`,
       )
 
-      // Normalize both tag arrays for comparison
-      const currentTags = [...new Set(series.tags || [])].sort()
-      const newTags = [...new Set(tagIds)].sort()
+      const existingTags = series.tags || []
+      const tagIdSet = new Set(tagIds)
+
+      // Compute the resulting tags based on applyTags mode
+      let resultTags: number[]
+      if (applyTags === 'add') {
+        resultTags = [...new Set([...existingTags, ...tagIds])]
+      } else if (applyTags === 'remove') {
+        resultTags = existingTags.filter((t) => !tagIdSet.has(t))
+      } else {
+        resultTags = [...new Set(tagIds)]
+      }
+
+      // Normalize for comparison
+      const currentSorted = [...new Set(existingTags)].sort()
+      const resultSorted = [...new Set(resultTags)].sort()
 
       // Skip update if tags are already correct
-      if (JSON.stringify(currentTags) === JSON.stringify(newTags)) {
+      if (JSON.stringify(currentSorted) === JSON.stringify(resultSorted)) {
         this.log.debug(
           `Tags already correct for series ID ${seriesId}, skipping update`,
         )
         return
       }
 
-      // Use Set to deduplicate tags
-      series.tags = [...new Set(tagIds)]
+      series.tags = resultTags
 
       // Send the update
       await this.putToSonarr(`series/${seriesId}`, series)
@@ -1508,6 +1528,7 @@ export class SonarrService {
    */
   async bulkUpdateSeriesTags(
     updates: Array<{ seriesId: number; tagIds: number[] }>,
+    applyTags: 'add' | 'remove' | 'replace' = 'replace',
   ): Promise<void> {
     if (updates.length === 0) {
       return
@@ -1526,32 +1547,34 @@ export class SonarrService {
         tagGroups.get(tagKey)?.push(update.seriesId)
       }
 
-      // Process each tag group as a bulk operation
+      // Process each tag group as a bulk operation with concurrency limit
+      const limit = pLimit(BULK_TAG_CONCURRENCY)
       const promises = Array.from(tagGroups.entries()).map(
-        async ([tagKey, seriesIds]) => {
-          const tagIds =
-            tagKey === ''
-              ? []
-              : tagKey.split(',').map((id) => Number.parseInt(id, 10))
+        ([tagKey, seriesIds]) =>
+          limit(async () => {
+            const tagIds =
+              tagKey === ''
+                ? []
+                : tagKey.split(',').map((id) => Number.parseInt(id, 10))
 
-          const payload = {
-            seriesIds: seriesIds,
-            tags: tagIds,
-            applyTags: 'replace' as const, // Replace existing tags
-          }
+            const payload = {
+              seriesIds: seriesIds,
+              tags: tagIds,
+              applyTags,
+            }
 
-          await this.putToSonarr('series/editor', payload)
+            await this.putToSonarr('series/editor', payload)
 
-          this.log.debug(
-            `Bulk updated ${seriesIds.length} series with tags [${tagIds.join(', ')}]`,
-          )
-        },
+            this.log.debug(
+              `Bulk updated ${seriesIds.length} series with tags [${tagIds.join(', ')}] (mode: ${applyTags})`,
+            )
+          }),
       )
 
       await Promise.all(promises)
 
       this.log.info(
-        `Bulk updated tags for ${updates.length} series across ${tagGroups.size} tag groups`,
+        `Bulk updated tags for ${updates.length} series across ${tagGroups.size} tag groups (mode: ${applyTags})`,
       )
     } catch (error) {
       this.log.error({ error }, 'Failed to bulk update series tags:')

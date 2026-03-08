@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Configuration
 
-Pulsarr uses a hybrid configuration approach. Core settings (port, URL, logging) are defined in a `.env` file, while application settings are configured through the web UI.
+Pulsarr uses a hybrid configuration approach. Most settings are configured through the web UI, while infrastructure settings (timezone, database, HTTPS) are defined in a `.env` file.
 
 :::warning Environment Variables Override Web UI
 Environment variables override web UI settings **on app restart**. Remove a variable from `.env` to let web UI changes persist.
@@ -12,50 +12,25 @@ Environment variables override web UI settings **on app restart**. Remove a vari
 
 ## Core Configuration
 
-:::tip Network Settings (baseUrl + port)
-The `baseUrl` and `port` create the webhook address for Sonarr/Radarr to reach Pulsarr. These settings are **automatically configured via the web UI** when you test your Sonarr/Radarr connections — if Pulsarr detects a webhook callback error, it will prompt you to configure the correct address.
-
-Common configurations:
-- **Docker Compose (same network)**: `http://pulsarr` (service name)
-- **Docker host networking**: `http://localhost`
-- **Separate machines**: `http://server-ip`
-- **Reverse proxy**: `https://subdomain.domain.com`
-:::
-
 <div style={{overflowX: 'auto'}}>
 
 | Variable | Description | Required? | Default |
 |----------|-------------|-----------|---------|
-| `baseUrl` | Webhook address for Sonarr/Radarr to reach Pulsarr | No (UI configurable) | `http://localhost` |
-| `port` | External port for webhook URLs. Omit for HTTPS on 443 | No (UI configurable) | `3003` |
-| `listenPort` | Internal port the server binds to | No | `3003` |
 | `TZ` | Timezone (e.g., America/New_York) | Recommended | `UTC` |
-| `logLevel` | Log level: silent, error, warn, info, debug, trace | Recommended | `silent` |
-| `enableConsoleOutput` | Show logs in terminal | No | `true` |
-| `enableRequestLogging` | Log HTTP requests (sensitive params redacted) | No | `false` |
 | `cookieSecured` | Set true ONLY if serving UI over HTTPS | No | `false` |
+| `listenPort` | Internal port the server binds to | No | `3003` |
 | `basePath` | URL path prefix for subfolder reverse proxy (e.g., `/pulsarr`) | No | None |
+| `enableRequestLogging` | Log HTTP requests (sensitive params redacted) | No | `false` |
 | `appriseUrl` | Apprise server URL (if using Apprise) | No | None |
 
 </div>
 
-:::tip Non-Default Port
-When using a different port, ensure values align:
-
-**Docker**: Map ports in compose (`8080:3003`), set `port=8080`, keep `listenPort=3003`
-
-**Bare metal**: Set both `port` and `listenPort` to the same value
+:::tip Network Settings
+The `baseUrl` and `port` are configured through the **web UI**. Pulsarr will prompt you to set the correct address when you test your Sonarr/Radarr connections. You can also set them via `.env` if you prefer, but it's not required.
 :::
 
 :::tip Subfolder Reverse Proxy (basePath)
-To run Pulsarr at a subfolder like `https://domain.com/pulsarr/`:
-
-```env
-baseUrl=https://domain.com
-basePath=/pulsarr
-```
-
-Pulsarr registers all routes under the basePath prefix. Your reverse proxy should forward requests to Pulsarr with the path intact (e.g., `/pulsarr/api/...`).
+To run Pulsarr at a subfolder like `https://domain.com/pulsarr/`, set `basePath=/pulsarr` in your `.env`. Configure `baseUrl` through the web UI. All routes are registered under the basePath prefix. Your reverse proxy should forward requests to Pulsarr with the path intact.
 :::
 
 ## Database Configuration
@@ -87,17 +62,8 @@ Before using PostgreSQL, create a database and user with appropriate permissions
 # Recommended
 TZ=America/Los_Angeles
 
-# Logging
-logLevel=info
-enableConsoleOutput=true
-enableRequestLogging=false
-
 # Security
 cookieSecured=false
-
-# Network (optional - configurable via UI when testing Sonarr/Radarr connections)
-# baseUrl=http://your-server-ip
-# port=3003
 
 # Database - SQLite (default, no config needed)
 # dbPath=./data/db/pulsarr.db

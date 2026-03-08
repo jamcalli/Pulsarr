@@ -1,23 +1,14 @@
 import type { BulkQuotaOperation } from '@root/schemas/quota/quota.schema.js'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
-import type { BulkQuotaEditStatus } from '@/features/plex/components/user/bulk-quota-edit-modal'
+import type {
+  BulkQuotaFormData,
+  QuotaEditStatus,
+} from '@/features/plex/quota/form-schema'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
-
-export interface BulkQuotaFormData {
-  clearQuotas: boolean
-  setMovieQuota: boolean
-  movieQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-  movieQuotaLimit?: number
-  movieBypassApproval: boolean
-  setShowQuota: boolean
-  showQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-  showQuotaLimit?: number
-  showBypassApproval: boolean
-}
 
 /**
  * Helper function to format success messages for bulk quota operations.
@@ -39,6 +30,29 @@ const formatSuccessMessage = (
     : baseMessage
 }
 
+function buildQuotaPayload(
+  shouldSet: boolean,
+  quotaType: BulkQuotaFormData['movieQuotaType'],
+  quotaLimit: BulkQuotaFormData['movieQuotaLimit'],
+  bypassApproval: boolean,
+  hasWatchlistCap: boolean,
+  watchlistCap: BulkQuotaFormData['movieWatchlistCap'],
+): BulkQuotaOperation['movieQuota'] {
+  if (shouldSet && quotaType && quotaLimit) {
+    return {
+      enabled: true,
+      quotaType,
+      quotaLimit,
+      bypassApproval,
+      watchlistCap: hasWatchlistCap ? watchlistCap : null,
+    }
+  }
+  if (!shouldSet) {
+    return { enabled: false }
+  }
+  return undefined
+}
+
 /**
  * React hook for performing bulk quota operations on multiple users, including clearing quotas or updating movie/show quota settings.
  *
@@ -48,7 +62,7 @@ const formatSuccessMessage = (
  */
 export function useBulkQuotaManagement() {
   const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)
-  const [saveStatus, setSaveStatus] = useState<BulkQuotaEditStatus>({
+  const [saveStatus, setSaveStatus] = useState<QuotaEditStatus>({
     type: 'idle',
   })
 
@@ -83,41 +97,22 @@ export function useBulkQuotaManagement() {
         operation: 'update',
       }
 
-      // Handle movie quota
-      if (
-        formData.setMovieQuota &&
-        formData.movieQuotaType &&
-        formData.movieQuotaLimit
-      ) {
-        bulkQuotaData.movieQuota = {
-          enabled: true,
-          quotaType: formData.movieQuotaType,
-          quotaLimit: formData.movieQuotaLimit,
-          bypassApproval: formData.movieBypassApproval,
-        }
-      } else if (!formData.setMovieQuota) {
-        bulkQuotaData.movieQuota = {
-          enabled: false,
-        }
-      }
-
-      // Handle show quota
-      if (
-        formData.setShowQuota &&
-        formData.showQuotaType &&
-        formData.showQuotaLimit
-      ) {
-        bulkQuotaData.showQuota = {
-          enabled: true,
-          quotaType: formData.showQuotaType,
-          quotaLimit: formData.showQuotaLimit,
-          bypassApproval: formData.showBypassApproval,
-        }
-      } else if (!formData.setShowQuota) {
-        bulkQuotaData.showQuota = {
-          enabled: false,
-        }
-      }
+      bulkQuotaData.movieQuota = buildQuotaPayload(
+        formData.setMovieQuota,
+        formData.movieQuotaType,
+        formData.movieQuotaLimit,
+        formData.movieBypassApproval,
+        formData.hasMovieWatchlistCap,
+        formData.movieWatchlistCap,
+      )
+      bulkQuotaData.showQuota = buildQuotaPayload(
+        formData.setShowQuota,
+        formData.showQuotaType,
+        formData.showQuotaLimit,
+        formData.showBypassApproval,
+        formData.hasShowWatchlistCap,
+        formData.showWatchlistCap,
+      )
 
       const response = await fetch(api('/v1/quota/users/bulk'), {
         method: 'PATCH',

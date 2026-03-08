@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Native Installation
 
-Pulsarr provides native builds for Linux, macOS, and Windows — no Docker or runtime installation required. Each platform has an easy installer method (recommended) and a manual option for advanced users.
+Pulsarr provides native builds for Linux, macOS, and Windows. No Docker or runtime installation required. Each platform has an easy installer method (recommended) and a manual option for advanced users.
 
 ## Linux
 
@@ -45,7 +45,7 @@ sudo systemctl restart pulsarr
 
 #### Updating
 
-Re-run the install script — it preserves your `.env` and `data/` directory:
+Re-run the install script. It preserves your `.env` and `data/` directory:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh | sudo bash
@@ -86,8 +86,8 @@ curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/ins
    :::
 
 3. Choose your installation options:
-   - **Install as Windows Service** (recommended) — runs in background without login
-   - **Create desktop shortcut** — optional
+   - **Install as Windows Service** (recommended) - runs in background without login
+   - **Create desktop shortcut** - optional
 
 4. Open http://localhost:3003 to complete setup
 
@@ -145,7 +145,7 @@ Use **Add or Remove Programs** in Windows Settings, or run the uninstaller from 
    macOS applies a quarantine flag to downloaded files. This command removes it so the app can launch normally.
    :::
 
-4. Open Pulsarr from Applications (or Spotlight). Pulsarr runs as a background service — it won't appear in the Dock or App Switcher. Access it via your browser.
+4. Open Pulsarr from Applications (or Spotlight). Pulsarr runs as a background service and won't appear in the Dock or App Switcher. Access it via your browser.
 
 5. Open http://localhost:3003 to complete setup
 
@@ -204,7 +204,7 @@ Alternatively, use Activity Monitor to find and quit the `pulsarr` process.
 1. Stop Pulsarr (see above) or stop the LaunchAgent
 2. Download the new version and drag to Applications (replace existing)
 3. Re-run the quarantine removal command
-4. Reopen Pulsarr — your data is preserved
+4. Reopen Pulsarr. Your data is preserved
 
 #### Data Locations
 

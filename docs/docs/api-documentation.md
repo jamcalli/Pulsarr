@@ -4,7 +4,7 @@ sidebar_position: 10
 
 # API Documentation
 
-Pulsarr provides a comprehensive REST API for integrating with external applications and services. The API is fully documented using OpenAPI 3.0 specification.
+Pulsarr provides a REST API for integrating with external applications and services. The API is documented using the OpenAPI 3.0 specification.
 
 ## Docusaurus API Reference (This Site)
 

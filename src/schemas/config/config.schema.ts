@@ -124,6 +124,20 @@ const DeleteSyncTagRegexSchema = z
     },
   )
 
+const TagMigrationEntrySchema = z.object({
+  completed: z.boolean(),
+  migratedAt: z.string(),
+  tagsMigrated: z.number(),
+  contentUpdated: z.number(),
+})
+
+const TagMigrationSchema = z
+  .object({
+    radarr: z.object({}).catchall(TagMigrationEntrySchema),
+    sonarr: z.object({}).catchall(TagMigrationEntrySchema),
+  })
+  .optional()
+
 // Schema for complete config (GET responses) - matches exactly what getConfig() returns
 export const ConfigFullSchema = z.object({
   // System identifiers and timestamps
@@ -186,6 +200,8 @@ export const ConfigFullSchema = z.object({
   respectUserSyncSetting: z.boolean(),
   deleteSyncNotify: DeleteSyncNotifyOptionEnum,
   approvalNotify: NotifyOptionEnum,
+  watchlistCapNotify: NotifyOptionEnum,
+  watchlistCapNotifyUser: z.boolean(),
   deleteSyncNotifyOnlyOnDeletion: z.boolean(),
   maxDeletionPrevention: z.number().optional(),
   deleteSyncTrackedOnly: z.boolean(),
@@ -208,28 +224,7 @@ export const ConfigFullSchema = z.object({
   removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
   removedTagPrefix: z.string(),
   // Tag Migration Configuration
-  tagMigration: z
-    .object({
-      radarr: z.record(
-        z.string(),
-        z.object({
-          completed: z.boolean(),
-          migratedAt: z.string(),
-          tagsMigrated: z.number(),
-          contentUpdated: z.number(),
-        }),
-      ),
-      sonarr: z.record(
-        z.string(),
-        z.object({
-          completed: z.boolean(),
-          migratedAt: z.string(),
-          tagsMigrated: z.number(),
-          contentUpdated: z.number(),
-        }),
-      ),
-    })
-    .optional(),
+  tagMigration: TagMigrationSchema,
   // Plex Session Monitoring
   plexSessionMonitoring: z
     .object({
@@ -250,10 +245,12 @@ export const ConfigFullSchema = z.object({
   newUserDefaultMovieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
   newUserDefaultMovieQuotaLimit: z.number(),
   newUserDefaultMovieBypassApproval: z.boolean(),
+  newUserDefaultMovieWatchlistCap: z.number().nullable(),
   newUserDefaultShowQuotaEnabled: z.boolean(),
   newUserDefaultShowQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
   newUserDefaultShowQuotaLimit: z.number(),
   newUserDefaultShowBypassApproval: z.boolean(),
+  newUserDefaultShowWatchlistCap: z.number().nullable(),
   // Quota System Configuration - getConfig() always returns this with defaults
   quotaSettings: z.object({
     cleanup: z.object({
@@ -362,6 +359,8 @@ export const ConfigUpdateSchema = z
     respectUserSyncSetting: z.boolean().optional(),
     deleteSyncNotify: DeleteSyncNotifyOptionEnum.optional(),
     approvalNotify: NotifyOptionEnum.optional(),
+    watchlistCapNotify: NotifyOptionEnum.optional(),
+    watchlistCapNotifyUser: z.boolean().optional(),
     deleteSyncNotifyOnlyOnDeletion: z.boolean().optional(),
     maxDeletionPrevention: z.number().min(1).max(100).optional(),
     // Deletion mode
@@ -420,12 +419,14 @@ export const ConfigUpdateSchema = z
       .optional(),
     newUserDefaultMovieQuotaLimit: z.number().min(1).max(1000).optional(),
     newUserDefaultMovieBypassApproval: z.boolean().optional(),
+    newUserDefaultMovieWatchlistCap: z.number().min(1).nullable().optional(),
     newUserDefaultShowQuotaEnabled: z.boolean().optional(),
     newUserDefaultShowQuotaType: z
       .enum(['daily', 'weekly_rolling', 'monthly'])
       .optional(),
     newUserDefaultShowQuotaLimit: z.number().min(1).max(1000).optional(),
     newUserDefaultShowBypassApproval: z.boolean().optional(),
+    newUserDefaultShowWatchlistCap: z.number().min(1).nullable().optional(),
     // Quota System Configuration
     quotaSettings: z
       .object({
@@ -487,28 +488,7 @@ export const ConfigUpdateSchema = z
     cleanupOrphanedTags: z.boolean().optional(),
     tagPrefix: TagPrefixSchema.optional(),
     // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
-    tagMigration: z
-      .object({
-        radarr: z.record(
-          z.string(),
-          z.object({
-            completed: z.boolean(),
-            migratedAt: z.string(),
-            tagsMigrated: z.number(),
-            contentUpdated: z.number(),
-          }),
-        ),
-        sonarr: z.record(
-          z.string(),
-          z.object({
-            completed: z.boolean(),
-            migratedAt: z.string(),
-            tagsMigrated: z.number(),
-            contentUpdated: z.number(),
-          }),
-        ),
-      })
-      .optional(),
+    tagMigration: TagMigrationSchema,
   })
   .strict()
 

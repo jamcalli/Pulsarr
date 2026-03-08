@@ -1,7 +1,3 @@
----
-sidebar_position: 6
----
-
 import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # New User Defaults
@@ -32,15 +28,20 @@ Configure default settings automatically applied to newly discovered Plex users,
 | **Quota Type** | `daily`, `weekly_rolling`, or `monthly` |
 | **Quota Limit** | Number allowed per period (1-1000) |
 | **Auto-approve when exceeded** | Auto-approve or require manual review |
+| **Watchlist Cap** | Toggle to enable a total item limit on the user's watchlist |
+| **Cap Limit** | Maximum total items allowed per content type (requires Watchlist Cap enabled) |
 
-:::info Approval Hierarchy
-Router Rules > User Requires Approval > Quota Bypass Approval. User-level approval overrides quota settings.
+:::info Enforcement Order
+1. **Watchlist Cap** — hard blocks routing if total items exceed cap (bypass users exempt)
+2. **Router Rules** — can force approval, but cannot override a user's "Requires Approval" flag
+3. **User Requires Approval** — forces approval regardless of other settings
+4. **Periodic Quota** — triggers approval when period limit is exceeded (bypass users auto-approve instead)
 :::
 
 ## Features
 
 - **Automatic Application**: Settings applied when new users are discovered
-- **Comprehensive Control**: Configure sync, approval, and quota defaults
+- **Full Control**: Configure sync, approval, and quota defaults
 - **Flexible Quotas**: Independent movie and show quota systems
 - **Per-User Override**: Individual settings can be modified after creation
 - **Environment Variable Support**: Configure via `.env` file for infrastructure-as-code
@@ -48,13 +49,13 @@ Router Rules > User Requires Approval > Quota Bypass Approval. User-level approv
 ## Example Configurations
 
 **Conservative (Public Servers):**
-Sync disabled, approval required, monthly quotas (5 movies, 3 shows)
+Sync disabled, approval required, monthly quotas (5 movies, 3 shows), watchlist caps (20 movies, 10 shows)
 
 **Moderate (Friends/Family):**
-Sync enabled, no approval, monthly quotas (15 movies, 10 shows) with auto-approval
+Sync enabled, no approval, monthly quotas (15 movies, 10 shows) with auto-approval, watchlist caps (50 movies, 30 shows)
 
 **Open (Private/Personal):**
-Sync enabled, no approval, unlimited quotas
+Sync enabled, no approval, unlimited quotas, no caps
 
 ## Integration
 

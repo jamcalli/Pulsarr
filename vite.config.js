@@ -7,16 +7,9 @@ const packageJson = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
 )
 
-const renderBuiltUrl = (filename, { hostType }) => {
-  if (hostType === 'js') {
-    return { runtime: `window.__assetBase(${JSON.stringify(filename)})` }
-  }
-  return { relative: true }
-}
-
 /** @type {import('vite').UserConfig} */
 export default {
-  base: '/',
+  base: './',
   root: resolve(import.meta.dirname, 'src/client'),
   plugins: [viteReact(), viteFastify({ spa: true, useRelativePaths: true })],
   build: {
@@ -35,9 +28,6 @@ export default {
         },
       },
     },
-  },
-  experimental: {
-    renderBuiltUrl,
   },
   resolve: {
     alias: {

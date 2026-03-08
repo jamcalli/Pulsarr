@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import AuthenticatedLayout from '@/layouts/authenticated'
 import RootLayout from '@/layouts/root'
+import { BASE_PATH } from '@/lib/basePath.js'
 
 const LoginPage = lazy(() => import('@/features/auth'))
 const CreateUserPage = lazy(() => import('@/features/create-user'))
@@ -55,19 +56,11 @@ const NotFoundPage = lazy(() => import('@/features/not-found'))
 const LoadingFallback = () => null
 
 /**
- * Get the configured base path for the router
- * Uses runtime configuration set by the server
+ * Get the configured base path for the router.
+ * Reads from the <base> tag injected by the server.
  */
 function getBasename(): string {
-  const basePath = window.__BASE_PATH__ || '/'
-
-  // Return empty string for root
-  if (basePath === '/') {
-    return ''
-  }
-
-  // Remove trailing slash if present (React Router basename must not end with /)
-  return basePath.endsWith('/') ? basePath.slice(0, -1) : basePath
+  return BASE_PATH === '/' ? '' : BASE_PATH
 }
 
 export const router = createBrowserRouter(

@@ -37,6 +37,8 @@ import {
   sendDeleteSyncCompleted,
   sendMediaAvailable,
   sendWatchlistAdded,
+  sendWatchlistCapNotification,
+  type WatchlistCapEvent,
   type WatchlistItemInfo,
 } from './notifications/orchestration/index.js'
 
@@ -269,6 +271,30 @@ export class NotificationService {
   }
 
   /**
+   * Queues a watchlist cap notification with trailing-edge debounce.
+   * Each call resets the timer; notification fires after quiet period.
+   *
+   * @param event - The watchlist cap event details
+   */
+  sendWatchlistCapReached(event: WatchlistCapEvent): void {
+    sendWatchlistCapNotification(
+      {
+        db: this.fastify.db,
+        logger: this.log,
+        discordBot: this._discordBot,
+        discordWebhook: this._discordWebhook,
+        apprise: this._apprise,
+        config: {
+          watchlistCapNotify: this.fastify.config.watchlistCapNotify || 'none',
+          watchlistCapNotifyUser:
+            this.fastify.config.watchlistCapNotifyUser || false,
+        },
+      },
+      event,
+    )
+  }
+
+  /**
    * Sends media available notifications to all relevant users and public channels.
    *
    * Orchestration method that:
@@ -348,7 +374,7 @@ export class NotificationService {
   async sendApprovalResolved(
     request: ApprovalRequest,
     resolution: 'approved' | 'denied',
-    resolvedBy: number,
+    resolvedBy: number | null,
     notes?: string,
   ): Promise<boolean> {
     // Include routing info only when approved (not for rejections)

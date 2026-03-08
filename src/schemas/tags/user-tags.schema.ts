@@ -119,8 +119,8 @@ const OrphanedRefInstanceResultSchema = z.object({
 
 // Cleanup orphaned tag references response schema
 export const CleanupOrphanedRefsResponseSchema = BaseResponseSchema.extend({
-  radarr: z.record(z.string(), OrphanedRefInstanceResultSchema),
-  sonarr: z.record(z.string(), OrphanedRefInstanceResultSchema),
+  radarr: z.object({}).catchall(OrphanedRefInstanceResultSchema),
+  sonarr: z.object({}).catchall(OrphanedRefInstanceResultSchema),
 })
 
 // Re-export shared schemas

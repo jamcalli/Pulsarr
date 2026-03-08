@@ -16,6 +16,7 @@ export interface UserQuotaRow {
   quota_type: QuotaType
   quota_limit: number
   bypass_approval: boolean
+  watchlist_cap: number | null
   created_at: string
   updated_at: string
 }
@@ -111,6 +112,7 @@ export interface UserQuotaConfig {
   quotaType: QuotaType
   quotaLimit: number
   bypassApproval: boolean
+  watchlistCap: number | null
 }
 
 // Helper type for managing both quotas together
@@ -159,6 +161,9 @@ export interface QuotaStatus {
   exceeded: boolean
   resetDate: string | null
   bypassApproval: boolean
+  watchlistCap: number | null
+  watchlistUsage: number | null
+  watchlistCapExceeded: boolean
 }
 
 export interface QuotaExceeded {
@@ -209,6 +214,7 @@ export interface CreateUserQuotaData {
   quotaType: QuotaType
   quotaLimit: number
   bypassApproval?: boolean
+  watchlistCap?: number | null
 }
 
 export interface UpdateUserQuotaData {
@@ -216,6 +222,7 @@ export interface UpdateUserQuotaData {
   quotaType?: QuotaType
   quotaLimit?: number
   bypassApproval?: boolean
+  watchlistCap?: number | null
 }
 
 // Approval workflow context

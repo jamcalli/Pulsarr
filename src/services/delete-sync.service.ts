@@ -30,6 +30,7 @@ import {
 } from '@services/delete-sync/cache/index.js'
 import {
   cleanupApprovalRequestsForDeletedContent,
+  cleanupOrphanedApprovalRequests,
   cleanupRollingMonitoredShowsForDeletedContent,
 } from '@services/delete-sync/cleanup/index.js'
 import {
@@ -45,6 +46,7 @@ import {
   createSafetyTriggeredResult,
 } from '@services/delete-sync/utils/index.js'
 import { performWatchlistSafetyCheck } from '@services/delete-sync/validation/safety-checker.js'
+import { createGuidSet } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
@@ -356,7 +358,24 @@ export class DeleteSyncService {
         `Delete sync operation${dryRun ? ' (DRY RUN)' : ''} completed successfully`,
       )
 
-      // Step 10: Clean up approval requests for deleted content if enabled
+      // Step 10a: Clean up orphaned approval records (content deleted before setting was enabled)
+      const existingMovieGuids = createGuidSet(existingMovies)
+      const existingSeriesGuids = createGuidSet(existingSeries)
+      await cleanupOrphanedApprovalRequests(
+        {
+          db: this.dbService,
+          approvalService: this.fastify.approvalService,
+          existingMovieGuids,
+          existingShowGuids: existingSeriesGuids,
+          config: {
+            deleteSyncCleanupApprovals: this.config.deleteSyncCleanupApprovals,
+          },
+          logger: this.log,
+        },
+        dryRun,
+      )
+
+      // Step 10b: Clean up approval requests for content deleted in this cycle
       await cleanupApprovalRequestsForDeletedContent(
         {
           db: this.dbService,

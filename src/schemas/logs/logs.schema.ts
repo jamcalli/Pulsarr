@@ -43,7 +43,7 @@ export const LogEntrySchema = z.object({
   level: LogLevelSchema,
   message: z.string(),
   module: z.string().optional(),
-  data: z.record(z.string(), z.unknown()).optional(),
+  data: z.object({}).catchall(z.unknown()).optional(),
 })
 
 // SSE message schema for logs

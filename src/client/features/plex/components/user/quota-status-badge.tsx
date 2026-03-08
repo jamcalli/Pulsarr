@@ -12,28 +12,35 @@ interface QuotaStatusBadgeProps {
   userQuotas?: UserQuotas | null
 }
 
-/**
- * Renders a badge showing a user's quota status for movies or shows.
- *
- * The badge displays "None" if no quota is set, "Auto" if approval is bypassed, the current usage and quota limit if limited, or usage over infinity if unlimited. Badge color reflects usage severity.
- *
- * @param type - Specifies whether the badge represents a movie or show quota.
- * @param quota - The user's quota data, or null if no quota is assigned.
- */
-function SingleQuotaBadge({
+const QUOTA_TYPE_SHORT: Partial<Record<string, string>> = {
+  daily: 'daily',
+  weekly_rolling: 'weekly',
+  monthly: 'monthly',
+}
+
+function getBadgeColor(pct: number) {
+  if (pct >= 100) return 'bg-red-500 hover:bg-red-500 text-black'
+  if (pct >= 80) return 'bg-orange-500 hover:bg-orange-500 text-black'
+  if (pct >= 60) return 'bg-yellow-500 hover:bg-yellow-500 text-black'
+  return 'bg-green-500 hover:bg-green-500 text-black'
+}
+
+function SingleQuotaRow({
   type,
   quota,
 }: {
   type: 'movie' | 'show'
   quota: QuotaWithStatus | null
 }) {
+  const prefix = type === 'movie' ? 'M' : 'S'
+
   if (!quota) {
     return (
       <Badge
         variant="neutral"
-        className="px-1.5 py-0.5 h-6 text-xs bg-gray-400 hover:bg-gray-400 text-black"
+        className="px-1.5 py-0.5 h-5 text-xs bg-gray-400 hover:bg-gray-400 text-black"
       >
-        {type === 'movie' ? 'M' : 'S'}: None
+        {prefix}: None
       </Badge>
     )
   }
@@ -42,57 +49,55 @@ function SingleQuotaBadge({
     return (
       <Badge
         variant="neutral"
-        className="px-1.5 py-0.5 h-6 text-xs bg-blue-500 hover:bg-blue-500 text-black"
+        className="px-1.5 py-0.5 h-5 text-xs bg-blue-500 hover:bg-blue-500 text-black"
       >
-        {type === 'movie' ? 'M' : 'S'}: Auto
+        {prefix}: Auto
       </Badge>
     )
   }
 
   const currentUsage = quota.currentUsage ?? 0
+  const periodLabel = QUOTA_TYPE_SHORT[quota.quotaType] ?? quota.quotaType
+  const watchlistUsage = quota.watchlistUsage ?? 0
+  const watchlistCap = quota.watchlistCap ?? 0
+  const hasCap = watchlistCap > 0
 
-  // Treat 0 or negative limits as "unlimited"
   if (quota.quotaLimit <= 0) {
     return (
       <Badge
         variant="neutral"
-        className="px-1.5 py-0.5 h-6 text-xs bg-green-500 hover:bg-green-500 text-black"
+        className="px-1.5 py-0.5 h-5 text-xs bg-green-500 hover:bg-green-500 text-black"
       >
-        {type === 'movie' ? 'M' : 'S'}:{currentUsage}/∞
+        {prefix}: {currentUsage}/∞
       </Badge>
     )
   }
 
-  const percentage = (currentUsage / quota.quotaLimit) * 100
+  const periodPct = (currentUsage / quota.quotaLimit) * 100
+  const capPct = hasCap ? (watchlistUsage / watchlistCap) * 100 : 0
+  // Use the worst percentage for the row color
+  const worstPct = hasCap ? Math.max(periodPct, capPct) : periodPct
 
-  const getBadgeColor = () => {
-    if (percentage >= 100) return 'bg-red-500 hover:bg-red-500 text-black'
-    if (percentage >= 80) return 'bg-orange-500 hover:bg-orange-500 text-black'
-    if (percentage >= 60) return 'bg-yellow-500 hover:bg-yellow-500 text-black'
-    return 'bg-green-500 hover:bg-green-500 text-black'
-  }
+  const label = hasCap
+    ? `${prefix}: ${currentUsage}/${quota.quotaLimit} ${periodLabel} · Cap: ${watchlistUsage}/${watchlistCap}`
+    : `${prefix}: ${currentUsage}/${quota.quotaLimit} ${periodLabel}`
 
   return (
     <Badge
       variant="neutral"
-      className={cn('px-1.5 py-0.5 h-6 text-xs', getBadgeColor())}
+      className={cn('px-1.5 py-0.5 h-5 text-xs', getBadgeColor(worstPct))}
     >
-      {type === 'movie' ? 'M' : 'S'}:{currentUsage}/{quota.quotaLimit}
+      {label}
     </Badge>
   )
 }
 
-/**
- * Renders badges indicating the user's quota usage for movies and shows.
- *
- * If no quota data is provided or both quotas are absent, displays a neutral badge labeled "No Quota". Otherwise, shows individual badges for each available quota type.
- */
 export function QuotaStatusBadge({ userQuotas }: QuotaStatusBadgeProps) {
   if (!userQuotas || (!userQuotas.movieQuota && !userQuotas.showQuota)) {
     return (
       <Badge
         variant="neutral"
-        className="px-2 py-0.5 h-7 text-sm bg-gray-400 hover:bg-gray-400 text-black"
+        className="px-2 py-0.5 h-5 text-xs bg-gray-400 hover:bg-gray-400 text-black"
       >
         No Quota
       </Badge>
@@ -100,12 +105,12 @@ export function QuotaStatusBadge({ userQuotas }: QuotaStatusBadgeProps) {
   }
 
   return (
-    <div className="flex gap-1 justify-center">
+    <div className="flex flex-col gap-0.5 items-center">
       {userQuotas.movieQuota && (
-        <SingleQuotaBadge type="movie" quota={userQuotas.movieQuota} />
+        <SingleQuotaRow type="movie" quota={userQuotas.movieQuota} />
       )}
       {userQuotas.showQuota && (
-        <SingleQuotaBadge type="show" quota={userQuotas.showQuota} />
+        <SingleQuotaRow type="show" quota={userQuotas.showQuota} />
       )}
     </div>
   )

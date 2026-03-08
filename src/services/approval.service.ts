@@ -270,7 +270,7 @@ export class ApprovalService {
     contentGuids: string[],
     contentType: 'movie' | 'show',
     excludeUserId: number,
-    approvedBy: number,
+    approvedBy: number | null,
   ): Promise<void> {
     try {
       // Find all pending requests for the same content from other users
@@ -517,7 +517,7 @@ export class ApprovalService {
           request.contentGuids,
           request.contentType,
           request.userId,
-          request.approvedBy || 0, // Use the same approver or system user
+          request.approvedBy ?? null, // Use the same approver or null for system
         )
 
         return { success: true }
@@ -580,7 +580,7 @@ export class ApprovalService {
             for (const request of expiredRequests) {
               const result = await this.approveAndRoute(
                 request.id,
-                0, // System user
+                null, // System auto-approval
                 'Auto-approved: Request expired with auto-approval enabled',
               )
 
@@ -629,7 +629,10 @@ export class ApprovalService {
    * - Uses existing approveAndRoute() which handles atomic approve+route with rollback
    * - If user's quota was deleted entirely, auto-approves (no quota = no restriction)
    */
-  async reEvaluateQuotaExceededApprovals(): Promise<{
+  async reEvaluateQuotaExceededApprovals(
+    userId?: number,
+    approvedBy?: number,
+  ): Promise<{
     evaluated: number
     approved: number
     failed: number
@@ -639,8 +642,10 @@ export class ApprovalService {
 
     try {
       // Get all pending requests triggered by quota_exceeded (oldest first)
-      const pendingRequests =
-        await this.fastify.db.getPendingRequestsByTrigger('quota_exceeded')
+      const pendingRequests = await this.fastify.db.getPendingRequestsByTrigger(
+        'quota_exceeded',
+        userId,
+      )
 
       if (pendingRequests.length === 0) {
         this.log.debug('No pending quota_exceeded requests to re-evaluate')
@@ -689,7 +694,7 @@ export class ApprovalService {
 
             const result = await this.approveAndRoute(
               request.id,
-              0, // System user (automated)
+              approvedBy ?? null, // Session admin or system auto-approval
               'Auto-approved: user quota configuration removed',
             )
 
@@ -704,8 +709,11 @@ export class ApprovalService {
           // Calculate effective usage including items approved in this run
           const effectiveUsage = quotaStatus.currentUsage + pendingConsumption
 
-          // Check if quota is available after accounting for pending approvals in this batch
-          if (effectiveUsage >= quotaStatus.quotaLimit) {
+          // Check if period quota is available after accounting for pending approvals in this batch
+          if (
+            effectiveUsage >= quotaStatus.quotaLimit &&
+            !quotaStatus.bypassApproval
+          ) {
             this.log.debug(
               {
                 requestId: request.id,
@@ -719,7 +727,7 @@ export class ApprovalService {
             continue
           }
 
-          // Quota is available - attempt to approve and route
+          // Period quota available - attempt to approve and route
           this.log.info(
             {
               requestId: request.id,
@@ -732,7 +740,7 @@ export class ApprovalService {
 
           const result = await this.approveAndRoute(
             request.id,
-            0, // System user (automated)
+            approvedBy ?? null, // Session admin or system auto-approval
             'Auto-approved: quota became available',
           )
 
@@ -810,13 +818,13 @@ export class ApprovalService {
    * 4. On failure: rolls back status to "pending" and clears approval metadata
    *
    * @param requestId - The approval request ID
-   * @param approvedBy - User ID of the approver (0 for system/auto-approval)
+   * @param approvedBy - User ID of the approver (null for system/auto-approval)
    * @param notes - Optional approval notes
    * @returns Result object indicating success/failure with details
    */
   async approveAndRoute(
     requestId: number,
-    approvedBy: number,
+    approvedBy: number | null,
     notes?: string,
   ): Promise<ApproveAndRouteResult> {
     try {

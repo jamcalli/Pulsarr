@@ -312,7 +312,7 @@ export const ApprovalResolvedPayloadSchema = z.object({
   content: ContentInfoSchema,
   requestedBy: UserInfoSchema,
   resolvedBy: z.object({
-    userId: z.number(),
+    userId: z.number().nullable(),
   }),
   approvalNotes: z.string().optional(),
   triggeredBy: ApprovalTriggerSchema,
@@ -367,6 +367,17 @@ export const DeleteSyncCompletedPayloadSchema = z.object({
   safetyMessage: z.string().optional(),
 })
 
+/** quota.cap_reached - Fired when a user hits their watchlist cap */
+export const QuotaCapReachedPayloadSchema = z.object({
+  user: z.object({
+    userId: z.number(),
+    username: z.string().nullable(),
+  }),
+  contentType: z.enum(['movie', 'show']),
+  currentCount: z.number(),
+  cap: z.number(),
+})
+
 /** user.created - Fired when a new user is added */
 export const UserCreatedPayloadSchema = z.object({
   user: z.object({
@@ -403,6 +414,9 @@ export type ApprovalAutoPayload = z.infer<typeof ApprovalAutoPayloadSchema>
 export type DeleteSyncCompletedPayload = z.infer<
   typeof DeleteSyncCompletedPayloadSchema
 >
+export type QuotaCapReachedPayload = z.infer<
+  typeof QuotaCapReachedPayloadSchema
+>
 export type UserCreatedPayload = z.infer<typeof UserCreatedPayloadSchema>
 
 // =============================================================================
@@ -419,6 +433,7 @@ export type WebhookPayloadMap = {
   'approval.auto': ApprovalAutoPayload
   'delete_sync.completed': DeleteSyncCompletedPayload
   'user.created': UserCreatedPayload
+  'quota.cap_reached': QuotaCapReachedPayload
 }
 
 /** Mapped type preserving schema output types per event */
@@ -436,6 +451,7 @@ export const WEBHOOK_PAYLOAD_SCHEMAS: WebhookPayloadSchemas = {
   'approval.auto': ApprovalAutoPayloadSchema,
   'delete_sync.completed': DeleteSyncCompletedPayloadSchema,
   'user.created': UserCreatedPayloadSchema,
+  'quota.cap_reached': QuotaCapReachedPayloadSchema,
 }
 
 // =============================================================================
@@ -605,6 +621,16 @@ export const DELETE_SYNC_COMPLETED_EXAMPLE: DeleteSyncCompletedPayload = {
   safetyTriggered: false,
 }
 
+export const QUOTA_CAP_REACHED_EXAMPLE: QuotaCapReachedPayload = {
+  user: {
+    userId: 1,
+    username: 'john_doe',
+  },
+  contentType: 'movie',
+  currentCount: 25,
+  cap: 25,
+}
+
 export const USER_CREATED_EXAMPLE: UserCreatedPayload = {
   user: {
     id: 42,
@@ -670,5 +696,10 @@ export const WEBHOOK_PAYLOAD_REGISTRY: Record<
     schema: UserCreatedPayloadSchema,
     example: USER_CREATED_EXAMPLE,
     description: 'Fired when a new user is added',
+  },
+  'quota.cap_reached': {
+    schema: QuotaCapReachedPayloadSchema,
+    example: QUOTA_CAP_REACHED_EXAMPLE,
+    description: 'Fired when a user reaches their watchlist cap',
   },
 }

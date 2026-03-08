@@ -95,6 +95,17 @@ declare module '@services/database.service.js' {
     ): Promise<number>
 
     /**
+     * Returns total watchlist item count for a user and content type (used for watchlist cap display)
+     * @param userId - User ID
+     * @param contentType - Content type (movie or show)
+     * @returns Promise resolving to the count of watchlist items
+     */
+    getWatchlistUsage(
+      userId: number,
+      contentType: 'movie' | 'show',
+    ): Promise<number>
+
+    /**
      * Gets quota status for a user including current usage and limits
      * @param userId - User ID
      * @param contentType - Content type (movie or show)
@@ -132,6 +143,18 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to array of user quota configs
      */
     getUsersWithQuotas(): Promise<UserQuotaConfig[]>
+
+    /**
+     * Gets active watchlist caps for non-bypass users
+     * @returns Promise resolving to array of { userId, contentType, watchlistCap }
+     */
+    getActiveWatchlistCaps(): Promise<
+      Array<{
+        userId: number
+        contentType: 'movie' | 'show'
+        watchlistCap: number
+      }>
+    >
 
     /**
      * Gets quota usage history for a user
@@ -250,12 +273,14 @@ declare module '@services/database.service.js' {
         quotaType?: QuotaType
         quotaLimit?: number
         bypassApproval?: boolean
+        watchlistCap?: number | null
       },
       showQuota?: {
         enabled: boolean
         quotaType?: QuotaType
         quotaLimit?: number
         bypassApproval?: boolean
+        watchlistCap?: number | null
       },
     ): Promise<{ processedCount: number; failedIds: number[] }>
 
@@ -279,6 +304,9 @@ declare module '@services/database.service.js' {
       quotaType: QuotaType,
       quotaLimit: number,
       requestDate?: Date,
-    ): Promise<{ consumed: boolean; currentUsage: number }>
+    ): Promise<{
+      consumed: boolean
+      currentUsage: number
+    }>
   }
 }

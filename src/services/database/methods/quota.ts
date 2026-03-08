@@ -28,6 +28,7 @@ async function upsertOrDeleteQuota(
     quotaType?: QuotaType
     quotaLimit?: number
     bypassApproval?: boolean
+    watchlistCap?: number | null
   },
 ): Promise<void> {
   if (!quotaConfig) return
@@ -43,6 +44,7 @@ async function upsertOrDeleteQuota(
       quota_type: quotaConfig.quotaType,
       quota_limit: quotaConfig.quotaLimit,
       bypass_approval: quotaConfig.bypassApproval || false,
+      watchlist_cap: quotaConfig.watchlistCap ?? null,
       created_at: this.timestamp,
       updated_at: this.timestamp,
     }
@@ -54,6 +56,7 @@ async function upsertOrDeleteQuota(
         quota_type: quotaData.quota_type,
         quota_limit: quotaData.quota_limit,
         bypass_approval: quotaData.bypass_approval,
+        watchlist_cap: quotaData.watchlist_cap,
         updated_at: quotaData.updated_at,
       })
   } else if (!quotaConfig.enabled) {
@@ -76,6 +79,7 @@ function mapRowToUserQuotaConfig(row: UserQuotaRow): UserQuotaConfig {
     quotaType: row.quota_type,
     quotaLimit: row.quota_limit,
     bypassApproval: Boolean(row.bypass_approval),
+    watchlistCap: row.watchlist_cap ?? null,
   }
 }
 
@@ -180,6 +184,7 @@ export async function createUserQuota(
       quota_type: data.quotaType,
       quota_limit: data.quotaLimit,
       bypass_approval: data.bypassApproval || false,
+      watchlist_cap: data.watchlistCap ?? null,
       created_at: this.timestamp,
       updated_at: this.timestamp,
     })
@@ -252,6 +257,8 @@ export async function updateUserQuota(
   if (data.quotaLimit !== undefined) updateData.quota_limit = data.quotaLimit
   if (data.bypassApproval !== undefined)
     updateData.bypass_approval = data.bypassApproval
+  if (data.watchlistCap !== undefined)
+    updateData.watchlist_cap = data.watchlistCap
 
   const [row] = await this.knex('user_quotas')
     .where('user_id', userId)
@@ -355,6 +362,29 @@ export async function getCurrentQuotaUsage(
 }
 
 /**
+ * Returns the total watchlist item count for a user and content type.
+ *
+ * Counts all watchlist_items (pending + routed) — used for watchlist cap display
+ * and enforcement. This is the single source of truth for watchlist cap checks.
+ *
+ * @param userId - The user ID to check watchlist count for
+ * @param contentType - The content type ('movie' or 'show')
+ * @returns The count of watchlist items for the user and content type
+ */
+export async function getWatchlistUsage(
+  this: DatabaseService,
+  userId: number,
+  contentType: 'movie' | 'show',
+): Promise<number> {
+  const result = await this.knex('watchlist_items')
+    .where('user_id', userId)
+    .where('type', contentType)
+    .count('* as count')
+    .first()
+  return Number.parseInt(result?.count as string, 10) || 0
+}
+
+/**
  * Retrieves the current quota status for a user and content type.
  *
  * Returns an object containing the quota type, usage limit, current usage count, whether the quota is exceeded, the next reset date (if available), and the bypass approval flag. Returns null if no quota configuration exists for the user and content type.
@@ -382,6 +412,14 @@ export async function getQuotaStatus(
   const exceeded = currentUsage >= quota.quotaLimit
   const resetDate = await getNextResetDate.call(this, quota.quotaType)
 
+  // Watchlist cap usage: total watchlist items for the user and content type
+  let watchlistUsage: number | null = null
+  let watchlistCapExceeded = false
+  if (quota.watchlistCap != null) {
+    watchlistUsage = await getWatchlistUsage.call(this, userId, contentType)
+    watchlistCapExceeded = watchlistUsage > quota.watchlistCap
+  }
+
   return {
     quotaType: quota.quotaType,
     quotaLimit: quota.quotaLimit,
@@ -389,6 +427,9 @@ export async function getQuotaStatus(
     exceeded,
     resetDate: resetDate ? resetDate.toISOString() : null,
     bypassApproval: quota.bypassApproval,
+    watchlistCap: quota.watchlistCap,
+    watchlistUsage,
+    watchlistCapExceeded,
   }
 }
 
@@ -494,6 +535,33 @@ export async function getBulkQuotaStatus(
     resetDateCache.set(quotaType, resetDate)
   }
 
+  // Batch watchlist usage for users who have a watchlist_cap configured
+  const watchlistUsageResults = new Map<number, number>()
+  const usersWithCap = Array.from(quotaMap.entries())
+    .filter(([, q]) => q.watchlistCap != null)
+    .map(([uid]) => uid)
+
+  if (usersWithCap.length > 0) {
+    let watchlistQuery = this.knex('watchlist_items')
+      .select('user_id')
+      .count('* as count')
+      .whereIn('user_id', usersWithCap)
+      .groupBy('user_id')
+
+    if (contentType) {
+      watchlistQuery = watchlistQuery.where('type', contentType)
+    }
+
+    const watchlistRows = await watchlistQuery
+
+    for (const row of watchlistRows) {
+      watchlistUsageResults.set(
+        Number(row.user_id),
+        Number.parseInt(row.count as string, 10) || 0,
+      )
+    }
+  }
+
   // Build final results
   const results: Array<{ userId: number; quotaStatus: QuotaStatus | null }> = []
 
@@ -508,6 +576,14 @@ export async function getBulkQuotaStatus(
     const exceeded = currentUsage >= quota.quotaLimit
     const resetDate = resetDateCache.get(quota.quotaType)
 
+    const watchlistCap = quota.watchlistCap
+    const watchlistUsage =
+      watchlistCap != null ? (watchlistUsageResults.get(userId) ?? 0) : null
+    const watchlistCapExceeded =
+      watchlistCap != null && watchlistUsage != null
+        ? watchlistUsage > watchlistCap
+        : false
+
     results.push({
       userId,
       quotaStatus: {
@@ -517,6 +593,9 @@ export async function getBulkQuotaStatus(
         exceeded,
         resetDate: resetDate ? resetDate.toISOString() : null,
         bypassApproval: quota.bypassApproval,
+        watchlistCap,
+        watchlistUsage,
+        watchlistCapExceeded,
       },
     })
   }
@@ -563,6 +642,32 @@ export async function getUsersWithQuotas(
 ): Promise<UserQuotaConfig[]> {
   const rows = await this.knex('user_quotas').select('*')
   return rows.map(mapRowToUserQuotaConfig)
+}
+
+/**
+ * Retrieves active watchlist caps for non-bypass users.
+ *
+ * Returns rows where watchlist_cap is set, positive, and the user does not have bypass_approval enabled.
+ * Used by the sync engine's cap gate to determine which users have active caps.
+ *
+ * @returns Array of objects with userId, contentType, and watchlistCap
+ */
+export async function getActiveWatchlistCaps(
+  this: DatabaseService,
+): Promise<
+  Array<{ userId: number; contentType: 'movie' | 'show'; watchlistCap: number }>
+> {
+  const rows = await this.knex('user_quotas')
+    .whereNotNull('watchlist_cap')
+    .where('watchlist_cap', '>', 0)
+    .where('bypass_approval', false)
+    .select('user_id', 'content_type', 'watchlist_cap')
+
+  return rows.map((row) => ({
+    userId: row.user_id as number,
+    contentType: row.content_type as 'movie' | 'show',
+    watchlistCap: row.watchlist_cap as number,
+  }))
 }
 
 /**
@@ -926,12 +1031,14 @@ export async function bulkUpdateQuotas(
     quotaType?: QuotaType
     quotaLimit?: number
     bypassApproval?: boolean
+    watchlistCap?: number | null
   },
   showQuota?: {
     enabled: boolean
     quotaType?: QuotaType
     quotaLimit?: number
     bypassApproval?: boolean
+    watchlistCap?: number | null
   },
 ): Promise<{ processedCount: number; failedIds: number[] }> {
   const failedIds: number[] = []
@@ -1002,7 +1109,10 @@ export async function tryConsumeQuota(
   quotaType: QuotaType,
   quotaLimit: number,
   requestDate: Date = new Date(),
-): Promise<{ consumed: boolean; currentUsage: number }> {
+): Promise<{
+  consumed: boolean
+  currentUsage: number
+}> {
   const dateString = this.getLocalDateString(requestDate)
   const dateRange = await getDateRange.call(this, quotaType)
 
@@ -1018,7 +1128,7 @@ export async function tryConsumeQuota(
         .first()
     }
 
-    // Count current usage within the transaction
+    // Count current period usage within the transaction
     const result = await trx('quota_usage')
       .where('user_id', userId)
       .where('content_type', contentType)
@@ -1029,7 +1139,7 @@ export async function tryConsumeQuota(
 
     const currentUsage = Number.parseInt(result?.count as string, 10) || 0
 
-    // Check if already at or over limit
+    // Check if already at or over period limit
     if (currentUsage >= quotaLimit) {
       // Cannot consume - at or over quota
       return { consumed: false, currentUsage }

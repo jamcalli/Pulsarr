@@ -62,6 +62,41 @@ export class ContentRouterService {
   }
 
   /**
+   * Checks if a user's watchlist exceeds their configured cap for the content type.
+   * Returns true if capped (routing should be halted), false if clear.
+   * Bypass users are always uncapped.
+   */
+  private async isWatchlistCapped(
+    userId: number,
+    contentType: 'movie' | 'show',
+    userName?: string,
+  ): Promise<boolean> {
+    const quota = await this.fastify.db.getUserQuota(userId, contentType)
+    if (
+      !quota ||
+      quota.watchlistCap == null ||
+      quota.watchlistCap <= 0 ||
+      quota.bypassApproval
+    )
+      return false
+
+    const count = await this.fastify.db.getWatchlistUsage(userId, contentType)
+    const capped = count > quota.watchlistCap
+
+    if (capped) {
+      this.fastify.notifications.sendWatchlistCapReached({
+        userId,
+        userName: userName ?? null,
+        contentType,
+        currentCount: count,
+        cap: quota.watchlistCap,
+      })
+    }
+
+    return capped
+  }
+
+  /**
    * Initialize the router service by loading all evaluators from the router-evaluators directory.
    * Each evaluator is loaded, validated, and stored for later use. Evaluators are sorted by
    * priority so higher priority evaluators are executed first.
@@ -337,6 +372,22 @@ export class ContentRouterService {
 
         if (existingResult) {
           return existingResult
+        }
+
+        // Watchlist cap gate — hard block before approval creation
+        if (!options.syncing && options.userId > 0) {
+          if (
+            await this.isWatchlistCapped(
+              options.userId,
+              contentType,
+              options.userName,
+            )
+          ) {
+            this.log.info(
+              `Watchlist cap reached for "${item.title}" by user ${options.userName || options.userId} — skipping`,
+            )
+            return { routedInstances: [], routingDetails: [] }
+          }
         }
 
         // Get all default routing decisions that would be made (default + synced instances)
@@ -731,6 +782,22 @@ export class ContentRouterService {
             return existingResult
           }
 
+          // Watchlist cap gate — hard block before approval creation
+          if (!options.syncing && fallbackContext.userId > 0) {
+            if (
+              await this.isWatchlistCapped(
+                fallbackContext.userId,
+                contentType,
+                fallbackContext.userName,
+              )
+            ) {
+              this.log.info(
+                `Watchlist cap reached for "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId} — skipping`,
+              )
+              return { routedInstances: [], routingDetails: [] }
+            }
+          }
+
           // Check if new approval is required based on router rules
           // Get all default routing decisions that would be made
           const defaultRoutingDecisions =
@@ -807,9 +874,10 @@ export class ContentRouterService {
                 // If user has quota configured and consumption failed (exceeded)
                 if (quotaResult.hasQuota && !quotaResult.consumed) {
                   const wouldBeUsage = quotaResult.currentUsage + 1
+                  const shouldAutoApprove = quotaResult.userBypassEnabled
 
                   // Check if user has bypass enabled (allows auto-approve when exceeded)
-                  if (quotaResult.userBypassEnabled) {
+                  if (shouldAutoApprove) {
                     this.log.info(
                       `Auto-approving quota-exceeded item "${item.title}" for user ${fallbackContext.userId} due to user bypass setting`,
                     )
@@ -954,6 +1022,22 @@ export class ContentRouterService {
           }
         }
 
+        // Watchlist cap gate — hard block before approval creation
+        if (!options.syncing && context.userId > 0) {
+          if (
+            await this.isWatchlistCapped(
+              context.userId,
+              contentType,
+              context.userName,
+            )
+          ) {
+            this.log.info(
+              `Watchlist cap reached for "${enrichedItem.title}" by user ${context.userName || context.userId} — skipping`,
+            )
+            return { routedInstances: [], routingDetails: [] }
+          }
+        }
+
         // Sort decisions by priority for approval checking
         allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
 
@@ -1036,9 +1120,10 @@ export class ContentRouterService {
             // If user has quota configured and consumption failed (exceeded)
             if (quotaResult.hasQuota && !quotaResult.consumed) {
               const wouldBeUsage = quotaResult.currentUsage + 1
+              const shouldAutoApprove = quotaResult.userBypassEnabled
 
               // Check if user has bypass enabled (allows auto-approve when exceeded)
-              if (quotaResult.userBypassEnabled) {
+              if (shouldAutoApprove) {
                 this.log.info(
                   `Auto-approving quota-exceeded item "${enrichedItem.title}" for user ${context.userId} due to user bypass setting`,
                 )
