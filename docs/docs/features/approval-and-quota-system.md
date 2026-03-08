@@ -42,6 +42,37 @@ Manage user content requests with configurable quotas and administrative approva
 | **Weekly Rolling** | 7-day rolling window that shifts each day |
 | **Monthly** | Calendar month-based with configurable reset day |
 
+## Watchlist Caps
+
+Watchlist caps limit the **total number of items** a user can have on their watchlist at any time, independent of periodic quotas. While quotas control how many *new requests* a user can make per period, caps control the *overall size* of a user's watchlist.
+
+| | Periodic Quota | Watchlist Cap |
+|---|---|---|
+| **Controls** | New requests per time window | Total items on watchlist |
+| **Resets** | Daily, weekly, or monthly | Never — based on current count |
+| **When exceeded** | Creates approval request | Hard blocks routing entirely |
+
+### How Caps Work
+
+- A cap of **10** means the user can have up to 10 items on their watchlist. The 11th item is blocked.
+- Caps count **all** watchlist items (pending + routed) for that content type.
+- When a user hits their cap, new items are silently skipped — no approval request is created.
+- Items approved **before** a cap was enabled still route through normally.
+- Users with **Bypass Approval** enabled are exempt from caps.
+
+### Cap Notifications
+
+Configure cap notifications in **Approvals → Quota Settings**:
+
+| Setting | Description |
+|---------|-------------|
+| **Admin Notifications** | Send notifications to admin channels (Discord, Apprise) when a user reaches their cap |
+| **Notify User** | Also notify the user via their configured channels (Discord DM, Apprise) |
+
+:::tip Quotas vs Caps
+Use **quotas** to pace how fast users add content. Use **caps** to set a hard ceiling on total watchlist size. They work together — a user might have a monthly quota of 10 and a cap of 50.
+:::
+
 ## Configuration
 
 ### New User Defaults
@@ -59,8 +90,9 @@ Navigate to **Plex → Users** to manage individual user quotas:
 | **Quota Type** | Daily, Weekly Rolling, or Monthly |
 | **Quota Limit** | Number of allowed requests per period |
 | **Separate Limits** | Different quotas for movies vs shows |
-| **Bypass Approval** | Allow trusted users unlimited requests |
+| **Bypass Approval** | Allow trusted users unlimited requests (also exempts from caps) |
 | **Requires Approval** | Force all requests from this user to require approval |
+| **Watchlist Cap** | Maximum total items allowed on the user's watchlist per content type |
 
 <img alt="User Quota Configuration" src={useBaseUrl('/img/Quota-Settings.png')} />
 
@@ -132,6 +164,7 @@ The router stores complete routing decisions (instance, quality profile, tags) a
 | **Quota Exceeded** | User reaches their daily/weekly/monthly limit |
 | **Router Rules** | Content matches rules configured for approval |
 | **Manual Flags** | User account set to require approval for all requests |
+| **Watchlist Cap Reached** | User's total watchlist items exceed their configured cap (hard block, no approval created) |
 | **Content Criteria** | Specific attributes trigger approval |
 
 ## Discord Bot Integration
