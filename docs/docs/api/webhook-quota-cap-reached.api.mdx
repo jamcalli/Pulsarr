@@ -1,0 +1,71 @@
+---
+id: webhook-quota-cap-reached
+title: "Watchlist Cap Reached"
+description: "Fired when a user reaches their watchlist cap"
+sidebar_label: "Watchlist Cap Reached"
+hide_title: true
+hide_table_of_contents: true
+api: eJyVVtuO2zYQ/RVinhpAXjsb5EVv220KGC1Qdx20ARZGQVNji7sSR+XFjmDo34shJa18CZo8SRY5Z84cnhn6BF7uHeTP8DduS6JXsZJtRbJwsMmgQKesbrwmAzn8qi0W4liiEVIEh1ZYlKpEJ3yJ2oqj9KqstPNCyQYyoAat5NhlATkcE/6fgbx8lM1TDC0gA4v/BnT+ZypayE/xJyeC3NuAGSgyHo3nJdk0lVYRcv7imNMJnCqxlvzm2wYhB9q+oPKQQWOZgNfoeJX5ft8uZjvuM6HeooUui0tG1hiJmPaPHeTP4zbnrTZ76LJJYFVBt+m6bFLR85BgArfJQBaF5qJktZqw2cnKYTcK8DniXmbMAE2oGbmmg0bIwJV0hA3HBWvR+EcKSb2riviUrr/fIAznJC6gE9D/loFfZd1UOD2LQe33U3XhhUrzT0EIl7WPJZ5Xdv+xL+X+Y9cl+q4h49KJ3i8W/Dh38uB1iwr1AQvhglLo3C5UVRslqNGXxLbFA8YaG+nLNxezzmgPaF10QbAV5HBqLHlSVHX5fH4qyfkuPzVkfQeXrfQYnKdarCMGZHCQVsttlSgPMPw+nG7pPbcUP/rO3MlQeciHlXP8zyWKAYZbtRCehKK6DoYbCMVR+5LbVqQyWGsmnKQaoCtSsoqfb+HzAh+ZICuWKyGLwqJzgnYRdxUqJ62d4LMS5/gfFosPt6mT9YKMOJZalSOUdsIGY2KjddxqSfaoST6ftxTsrEl7Z9o4L43CO0X1VYqV1bW07SD/D0DlNyn/oi0q38OJh2gl8VOUmCt5d5Ehn89HZW8D/j4s3wTbsPlUsNq30X2y0b9h+xDYoM8bzuXQOU1m/DSJWPO8TD6bxo1jIH2EDDQTKVEW0aB9b36ZPayWs7ThnPLDailesRUy+BKN78e0CE6bvRjDRA/YZeccv5FeEb3Gju/T90dylXydsGZbyVa/SSFBOc7c9/AalUX/g+X3Xpyl4Csiw2C5SUEGT7M9Gr4VeeZEiDuxJiOtnT/Jgk3ek3NCWhSKzE7vQ7x2U8Nq10sY0WrJKaqqvYtDi+/Ep7fb9NO3J+7ibOKOt9d3zdtFP24XHau0o6ie9pwIhlZ9WC1vOqQgFWo0PsmyIzs290xIsarw6+RfhDYe9/ZtaxJKSFOIJBYPTrQuwf/1HrruP/6BFl0=
+sidebar_class_name: "event api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Watchlist Cap Reached"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"event"}
+  path={"webhook"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Fired when a user reaches their watchlist cap
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"user":{"type":"object","properties":{"userId":{"type":"number"},"username":{"anyOf":[{"type":"string"},{"type":"null"}]}},"required":["userId","username"],"additionalProperties":false},"contentType":{"type":"string","enum":["movie","show"]},"currentCount":{"type":"number"},"cap":{"type":"number"}},"required":["user","contentType","currentCount","cap"],"additionalProperties":false},"example":{"user":{"userId":1,"username":"john_doe"},"contentType":"movie","currentCount":25,"cap":25}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Webhook received successfully"}}}
+>
+  
+</StatusCodes>
+
+
+      
