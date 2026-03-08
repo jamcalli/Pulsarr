@@ -1,0 +1,71 @@
+---
+id: get-pending-held-count
+title: "Get pending held count for user"
+description: "Get the count of pending quota_exceeded approval requests for a user, grouped by content type"
+sidebar_label: "Get pending held count for user"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vktv2zgQ/ivEnFpAjpIt9qJbkC66xvbgTboPIDAWNDm22EikQg6dGIb++2JIyY9E2aKH7skyH99883Fee3AdeknG2bmGCjZIC7Ta2M2v2OgbFy1BASQ3Aap7+D06krAsQGNQ3nR8DSr4hCSoRqH4uHBr0WUI8cjn/8FnhahRC9l13m1lIzw+RgwUxNp5IUUM6Aux8S52qMVqJ5SzhJYE7TqEAjrpZYuEnknsIagaWwnVHtJ+BYG8sRvoCzBMp5NUQwFWtrzJ4HMNBbBR41FDRT5iv+SV0DkbMDDWT5eX/HPu2Udcy9iQuB1OQgEDNz4ru64xKolXfg18YYKcW31FxSJ2nqUmk82FqBSGcHJw5VyD0rIbLYYgNzjpYuu2BvPDHLdtbFfoeTvU7umt3f5UhPsDhaO9M/RTrGUBUmvDnspmceLIWjYB+56hf/6fBSRJMdw4jZM6qPONo37ovfPTyr6legGtsZ/RbqiG6uqVjEcig9nRyBHy2/ol+1S7IQlT1LM5KLdXZcqjkiM5lPsc0H05JNmsxkbP1Phk6LdjnkTfQAX7zjtyyjV9VZb72gXqq33nPPXwMo9vYiDXiruEAQVspTdy1WS9Rxj+Rhtbdr0m6qBIPyGXhfTaUI075/hfahQjDCe9FuSEcm0bLUcBiidDdaok2Q1+FCacw2qEbpySTVqewucNznzhvJgvhNTaYwhclBh3EZsgvT/BZyXO8T9cXn6Ypu48CWfFU21UfYAyQfhobYqhvi9G2ZMmVVnuXPSzLp+dGRtIWoUXyrWvTCy8aaXfjfJ/B1Q1Sfmj8ahogBPXKdfFuyQxe/L+hYWqLA/KTgN+HrcnwZYcfCp6Q7sUfbIzv+HuOnIQ3y/ZVsAQjLOHpZMbd5z0Oc5O7x0SMS/CUOBrlDoF6FDi/55dL+azfOCc8vViLh5wJ2SkGi0NtUbEwN3pcE0MgFw+Tzm+YV4592DwaH54klfG7zLWbCU51CcpZKjAlp9wVTv3cIfKI32n+0MszvLlV0T+ytDTFGQkN9ug5SkAtQgJ4kLcOSu9L2+l5iAfyAUhPbd5uzab6FGPCWvCIGFCayWbaJrdRWo5xq5d8sVQw3THxLlezCffSzsVW7SUSfKEMN6YCSkWDT6LJ0mqbkwgYSzhxh+PZtpCWi0ydS5j6EOG//Mqp3ygVqZmMyjIA8w4s3A5HSYZBuRq+5Lm/tjDfvjsM0QA4TOVXSNNmg9S1u6HDnEP2ysoINmDIs073NOrw+Az0SiWY2G9h/2e4/MP3/Q9Lz9G9JzAy2P5T+msTeBvPbSs/1Dk3e3QHN+Lt/iPYW13qcs0kf9BAQ+4O05s/ZLLf451ZpA3ufR0dHLt1QzBdeXQSj/98gX6/l9/I87O
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get pending held count for user"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/quota/users/{userId}/pending-held-count"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get the count of pending quota_exceeded approval requests for a user, grouped by content type
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"userId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"movieCount":{"type":"number"},"showCount":{"type":"number"}},"required":["success","message","movieCount","showCount"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
