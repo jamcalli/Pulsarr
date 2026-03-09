@@ -5,11 +5,26 @@ categories:
     labels:
       - 'feature'
       - 'enhancement'
+    exclude-labels:
+      - 'dependencies'
+      - 'deps'
   - title: '🐛 Bug Fixes'
     labels:
       - 'fix'
       - 'bugfix'
       - 'bug'
+    exclude-labels:
+      - 'feature'
+      - 'enhancement'
+      - 'dependencies'
+      - 'deps'
+  - title: '⚡ Performance'
+    labels:
+      - 'performance'
+      - 'optimization'
+    exclude-labels:
+      - 'dependencies'
+      - 'deps'
   - title: '🧰 Maintenance'
     labels:
       - 'chore'
@@ -18,8 +33,11 @@ categories:
     exclude-labels:
       - 'dependencies'
       - 'deps'
-  - title: '⚡ Performance'
-    labels:
+      - 'feature'
+      - 'enhancement'
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
       - 'performance'
       - 'optimization'
   - title: '🔄 Dependencies'
@@ -56,6 +74,9 @@ autolabeler:
     branch:
       - '/^perf(ormance)?\//'
   - label: 'dependencies'
+    title:
+      - '/^chore\(deps\)/i'
+      - '/^fix\(deps\)/i'
     branch:
       - '/^renovate\//'
 
