@@ -14,6 +14,7 @@ import { SonarrMonitoringOption } from '../sonarr.types.js'
 export const ROLLING_MONITORING_OPTIONS = new Set<string>([
   SonarrMonitoringOption.PILOT_ROLLING,
   SonarrMonitoringOption.FIRST_SEASON_ROLLING,
+  SonarrMonitoringOption.ALL_SEASON_PILOT_ROLLING,
 ])
 
 /**

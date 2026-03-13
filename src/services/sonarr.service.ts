@@ -1759,6 +1759,27 @@ export class SonarrService {
   }
 
   /**
+   * Search for specific episodes by their IDs
+   * Uses Sonarr's EpisodeSearch command for targeted episode searching
+   * @param episodeIds Array of Sonarr episode IDs to search for
+   */
+  async searchEpisodes(episodeIds: number[]): Promise<void> {
+    if (episodeIds.length === 0) return
+
+    try {
+      await this.postToSonarr('command', {
+        name: 'EpisodeSearch',
+        episodeIds,
+      })
+
+      this.log.info(`Triggered search for ${episodeIds.length} episodes`)
+    } catch (error) {
+      this.log.error({ error }, 'Error searching episodes')
+      throw error
+    }
+  }
+
+  /**
    * Update monitoring for a specific season
    * @param seriesId The Sonarr series ID
    * @param seasonNumber The season number
@@ -1904,19 +1925,28 @@ export class SonarrService {
   async updateEpisodesMonitoring(
     episodes: Array<{ id: number; monitored: boolean }>,
   ): Promise<void> {
-    try {
-      // Sonarr API requires updating episodes one by one or in bulk
-      // We'll use the bulk endpoint
-      const episodeIds = episodes.map((ep) => ep.id)
-      const monitored = episodes[0]?.monitored || false
+    if (episodes.length === 0) return
 
-      await this.putToSonarr('episode/monitor', {
-        episodeIds,
-        monitored,
-      })
+    try {
+      const toMonitor = episodes.filter((ep) => ep.monitored)
+      const toUnmonitor = episodes.filter((ep) => !ep.monitored)
+
+      if (toMonitor.length > 0) {
+        await this.putToSonarr('episode/monitor', {
+          episodeIds: toMonitor.map((ep) => ep.id),
+          monitored: true,
+        })
+      }
+
+      if (toUnmonitor.length > 0) {
+        await this.putToSonarr('episode/monitor', {
+          episodeIds: toUnmonitor.map((ep) => ep.id),
+          monitored: false,
+        })
+      }
 
       this.log.info(
-        `Updated monitoring for ${episodes.length} episodes to ${monitored}`,
+        `Updated monitoring for ${episodes.length} episodes (${toMonitor.length} monitored, ${toUnmonitor.length} unmonitored)`,
       )
     } catch (error) {
       this.log.error({ error }, 'Error updating episode monitoring:')

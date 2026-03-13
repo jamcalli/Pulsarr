@@ -151,6 +151,56 @@ export default fp(
             )
           }
         }
+
+        // Register pilot sync job for allSeasonPilotRolling shows
+        await fastify.scheduler.scheduleJob(
+          'plex-rolling-pilot-sync',
+          async () => {
+            try {
+              const config = fastify.config
+              if (!config?.plexSessionMonitoring?.enabled) {
+                fastify.log.debug(
+                  'Plex session monitoring is disabled, skipping pilot sync task',
+                )
+                return
+              }
+
+              fastify.log.debug(
+                'Starting new season pilot sync for allSeasonPilotRolling shows',
+              )
+              await service.syncNewSeasonPilots()
+
+              fastify.log.info('New season pilot sync task completed')
+            } catch (error) {
+              fastify.log.error({ error }, 'New season pilot sync task failed:')
+            }
+          },
+        )
+
+        // Configure pilot sync schedule (reuse autoResetIntervalHours)
+        const pilotSyncSchedule = await fastify.db.getScheduleByName(
+          'plex-rolling-pilot-sync',
+        )
+        if (pilotSyncSchedule?.enabled) {
+          const config = fastify.config
+          const sessionConfig = config?.plexSessionMonitoring
+          const intervalHours = sessionConfig?.autoResetIntervalHours || 24
+
+          fastify.log.debug(
+            `Scheduling Plex rolling pilot sync to run every ${intervalHours} hours`,
+          )
+
+          const updated = await fastify.scheduler.updateJobSchedule(
+            'plex-rolling-pilot-sync',
+            { hours: intervalHours },
+            true,
+          )
+          if (!updated) {
+            fastify.log.error(
+              'Failed to update plex-rolling-pilot-sync schedule',
+            )
+          }
+        }
       } catch (error) {
         fastify.log.error(
           { error },
