@@ -8,7 +8,11 @@ const RollingMonitoredShowSchema = z.object({
   tvdb_id: z.string().nullish(),
   imdb_id: z.string().nullish(),
   show_title: z.string(),
-  monitoring_type: z.enum(['pilotRolling', 'firstSeasonRolling']),
+  monitoring_type: z.enum([
+    'pilotRolling',
+    'firstSeasonRolling',
+    'allSeasonPilotRolling',
+  ]),
   current_monitored_season: z.number(),
   last_watched_season: z.number(),
   last_watched_episode: z.number(),

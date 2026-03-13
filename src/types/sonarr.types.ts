@@ -13,6 +13,7 @@ export enum SonarrMonitoringOption {
   // Custom rolling options for progressive monitoring
   PILOT_ROLLING = 'pilotRolling', // Monitor pilot only, expand as watched
   FIRST_SEASON_ROLLING = 'firstSeasonRolling', // Monitor S1 only, expand as watched
+  ALL_SEASON_PILOT_ROLLING = 'allSeasonPilotRolling', // Monitor E01 of every season, expand each on watch
 }
 
 export interface SonarrAddOptions {

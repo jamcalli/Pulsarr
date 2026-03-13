@@ -12,11 +12,7 @@ import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 /**
- * Resets a rolling monitored show's monitoring state to its original configuration based on its monitoring type.
- *
- * If the monitoring type is 'pilotRolling', the show is reset to monitor only the pilot episode. If 'firstSeasonRolling', it is reset to monitor only the first season.
- *
- * @param show - The rolling monitored show to reset.
+ * Resets a rolling monitored show's Sonarr state to match its monitoring type.
  */
 async function resetShowMonitoring(
   show: RollingMonitoredShow,
@@ -30,6 +26,12 @@ async function resetShowMonitoring(
     )
   } else if (show.monitoring_type === 'firstSeasonRolling') {
     await plexSessionMonitor.resetToFirstSeasonOnly(
+      show.sonarr_series_id,
+      show.sonarr_instance_id,
+      show.show_title,
+    )
+  } else if (show.monitoring_type === 'allSeasonPilotRolling') {
+    await plexSessionMonitor.resetToAllSeasonPilots(
       show.sonarr_series_id,
       show.sonarr_instance_id,
       show.show_title,

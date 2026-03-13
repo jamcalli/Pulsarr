@@ -14,7 +14,10 @@ declare module '@services/database.service.js' {
       tvdb_id?: string
       imdb_id?: string
       show_title: string
-      monitoring_type: 'pilotRolling' | 'firstSeasonRolling'
+      monitoring_type:
+        | 'pilotRolling'
+        | 'firstSeasonRolling'
+        | 'allSeasonPilotRolling'
       current_monitored_season: number
       plex_user_id?: string
       plex_username?: string

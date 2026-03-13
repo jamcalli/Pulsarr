@@ -230,7 +230,10 @@ export interface RollingMonitoredShow {
   tvdb_id?: string
   imdb_id?: string
   show_title: string
-  monitoring_type: 'pilotRolling' | 'firstSeasonRolling'
+  monitoring_type:
+    | 'pilotRolling'
+    | 'firstSeasonRolling'
+    | 'allSeasonPilotRolling'
   current_monitored_season: number
   last_watched_season: number
   last_watched_episode: number
