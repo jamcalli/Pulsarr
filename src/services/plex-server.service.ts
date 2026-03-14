@@ -53,6 +53,15 @@ import {
 } from './plex-server/playlists/index.js'
 import { getAllPlexResources } from './plex-server/resources/resource-operations.js'
 import { getActiveSessions } from './plex-server/sessions/session-operations.js'
+import {
+  PlexEventSource,
+  type PlexSSEEventMap,
+} from './plex-server/sse/plex-event-source.js'
+import { SessionTracker } from './plex-server/sse/session-tracker.js'
+import {
+  type ContentScannedHandler,
+  TimelineDebouncer,
+} from './plex-server/sse/timeline-debouncer.js'
 
 // HTTP timeout constants
 const PLEX_API_TIMEOUT = 30000 // 30 seconds for Plex API operations
@@ -113,6 +122,14 @@ export class PlexServerService {
   private readonly CONNECTION_CACHE_TTL = 30 * 60 * 1000 // 30 minutes
   private readonly DEAD_SERVER_BACKOFF = 5 * 60 * 1000 // 5 minutes
   // Note: No CONTENT_CACHE_TTL - content cache is reconciliation-scoped
+
+  // SSE connection and session tracking
+  private eventSource: PlexEventSource | null = null
+  private sessionTracker: SessionTracker | null = null
+  private timelineDebouncer: TimelineDebouncer | null = null
+  private staleSweepInterval: ReturnType<typeof setInterval> | null = null
+  private static readonly STALE_SESSION_MS = 5 * 60 * 1000 // 5 minutes
+  private static readonly STALE_SWEEP_INTERVAL_MS = 60 * 1000 // 60 seconds
 
   /**
    * Creates a new PlexServerService instance
@@ -1405,6 +1422,146 @@ export class PlexServerService {
     if (resetInitialized) {
       this.log.warn('Resetting Plex server initialization state')
       this.initialized = false
+    }
+  }
+
+  /**
+   * Connect to Plex SSE notification endpoint for real-time event delivery.
+   * Polling jobs remain as a safety net - SSE provides faster reaction times.
+   */
+  async connectSSE(): Promise<void> {
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+
+    if (!token) {
+      this.log.warn('No Plex token available, skipping SSE connection')
+      return
+    }
+
+    this.sessionTracker = new SessionTracker(this.log)
+    this.timelineDebouncer = new TimelineDebouncer()
+
+    this.eventSource = new PlexEventSource({
+      serverUrl,
+      token,
+      logger: this.log,
+    })
+
+    this.eventSource.on('timeline', (entries) => {
+      this.timelineDebouncer?.handleTimelineEntries(entries)
+    })
+
+    this.eventSource.on('connected', () => {
+      this.log.info('SSE connected - reconciling with live sessions')
+      void this.reconcileSessionsOnConnect()
+    })
+
+    this.eventSource.on('disconnected', () => {
+      this.log.warn('SSE disconnected - polling continues as fallback')
+    })
+
+    // Start stale session sweep
+    this.staleSweepInterval = setInterval(() => {
+      if (this.sessionTracker) {
+        const stale = this.sessionTracker.sweepStale(
+          PlexServerService.STALE_SESSION_MS,
+        )
+        if (stale.length > 0) {
+          this.log.info(
+            { count: stale.length },
+            'Swept stale sessions from SSE tracker',
+          )
+        }
+      }
+    }, PlexServerService.STALE_SWEEP_INTERVAL_MS)
+
+    await this.eventSource.connect()
+  }
+
+  /**
+   * Disconnect SSE and clean up all related resources.
+   */
+  disconnectSSE(): void {
+    if (this.staleSweepInterval) {
+      clearInterval(this.staleSweepInterval)
+      this.staleSweepInterval = null
+    }
+    if (this.timelineDebouncer) {
+      this.timelineDebouncer.destroy()
+      this.timelineDebouncer = null
+    }
+    if (this.eventSource) {
+      this.eventSource.disconnect()
+      this.eventSource.removeAllListeners()
+      this.eventSource = null
+    }
+    if (this.sessionTracker) {
+      this.sessionTracker.clear()
+      this.sessionTracker = null
+    }
+  }
+
+  /**
+   * Subscribe to SSE events emitted by the Plex connection.
+   */
+  onSSE<K extends keyof PlexSSEEventMap>(
+    event: K,
+    handler: (...args: PlexSSEEventMap[K]) => void,
+  ): void {
+    this.eventSource?.on(event, handler)
+  }
+
+  /**
+   * Check if the SSE connection to Plex is currently active.
+   * Used by polling jobs to skip redundant work when SSE delivers events in real time.
+   */
+  isSSEConnected(): boolean {
+    return this.eventSource?.isConnected() ?? false
+  }
+
+  /**
+   * Unsubscribe from SSE events.
+   */
+  offSSE<K extends keyof PlexSSEEventMap>(
+    event: K,
+    handler: (...args: PlexSSEEventMap[K]) => void,
+  ): void {
+    this.eventSource?.off(event, handler)
+  }
+
+  /**
+   * Get the session tracker instance for SSE playing event filtering.
+   */
+  getSessionTracker(): SessionTracker | null {
+    return this.sessionTracker
+  }
+
+  /**
+   * Subscribe to debounced "content scanned" events from Plex timeline SSE.
+   * Fires after a 2-second quiet period following state-5 timeline entries.
+   */
+  onContentScanned(handler: ContentScannedHandler): void {
+    this.timelineDebouncer?.onContentScanned(handler)
+  }
+
+  /**
+   * On SSE reconnect, hydrate the session tracker with any sessions that
+   * started while we were disconnected.
+   */
+  private async reconcileSessionsOnConnect(): Promise<void> {
+    try {
+      const liveSessions = await this.getActiveSessions()
+      if (liveSessions.length === 0) return
+
+      const added = this.sessionTracker?.hydrate(liveSessions) ?? 0
+      if (added > 0) {
+        this.log.info(
+          { total: liveSessions.length, added },
+          'Hydrated session tracker from live sessions on SSE connect',
+        )
+      }
+    } catch (error) {
+      this.log.warn({ error }, 'Failed to reconcile sessions on SSE connect')
     }
   }
 

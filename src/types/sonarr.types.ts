@@ -170,6 +170,7 @@ export interface SonarrSeries {
     releaseGroups?: string[]
     percentOfEpisodes?: number
   }
+  addOptions?: SonarrAddOptions | null
   languageProfileId?: number
   id: number
   episodeFiles?: Array<{

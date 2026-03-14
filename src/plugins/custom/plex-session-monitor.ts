@@ -24,6 +24,20 @@ export default fp(
     // Register scheduled jobs after server is ready
     fastify.addHook('onReady', async () => {
       try {
+        // Subscribe to SSE playing events for immediate session processing
+        fastify.plexServerService.onSSE('playing', (notifications) => {
+          if (fastify.config.plexSessionMonitoring?.enabled) {
+            void service.handlePlayingEvent(notifications)
+          }
+        })
+
+        // On SSE disconnect, run one immediate poll to bridge the gap
+        fastify.plexServerService.onSSE('disconnected', () => {
+          if (fastify.config.plexSessionMonitoring?.enabled) {
+            void service.monitorSessions()
+          }
+        })
+
         await fastify.scheduler.scheduleJob(
           'plex-session-monitor',
           async () => {
@@ -34,6 +48,12 @@ export default fp(
                 fastify.log.debug(
                   'Plex session monitoring is disabled, skipping task',
                 )
+                return
+              }
+
+              // Skip polling when SSE is delivering events in real time
+              if (fastify.plexServerService.isSSEConnected()) {
+                fastify.log.debug('SSE active, skipping session monitor poll')
                 return
               }
 

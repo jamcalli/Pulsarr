@@ -35,13 +35,17 @@ interface PendingPlexNotification {
   createdAt: number
 }
 
-const RETRY_INTERVAL_MS = 30_000
+const RETRY_INTERVAL_MS = 120_000
+const INITIAL_RETRY_DELAY_MS = 60_000
 const MAX_RETRY_AGE_MS = 10 * 60 * 1000
 
 export class PlexMobileService {
   private readonly log: FastifyBaseLogger
   private readonly pendingQueue = new Map<string, PendingPlexNotification>()
-  private retryTimer: ReturnType<typeof setInterval> | null = null
+  private retryTimer:
+    | ReturnType<typeof setTimeout>
+    | ReturnType<typeof setInterval>
+    | null = null
   private isProcessingRetries = false
   private plexUsersCache: PlexUser[] | null = null
   private plexUsersCacheTimestamp = 0
@@ -104,7 +108,7 @@ export class PlexMobileService {
 
   shutdown(): void {
     if (this.retryTimer) {
-      clearInterval(this.retryTimer)
+      clearTimeout(this.retryTimer)
       this.retryTimer = null
     }
     if (this.pendingQueue.size > 0) {
@@ -114,6 +118,15 @@ export class PlexMobileService {
     }
     this.pendingQueue.clear()
     this.plexUsersCache = null
+  }
+
+  // ---------------------------------------------------------------------------
+  // SSE-triggered retry - bypasses polling interval for near-instant delivery
+  // ---------------------------------------------------------------------------
+
+  triggerRetryProcessing(): void {
+    if (this.pendingQueue.size === 0) return
+    void this.processRetryQueue()
   }
 
   // ---------------------------------------------------------------------------
@@ -349,11 +362,25 @@ export class PlexMobileService {
   // Retry queue
   // ---------------------------------------------------------------------------
 
+  // Start retry polling on SSE disconnect so queued items still get processed
+  startRetryPolling(): void {
+    if (this.pendingQueue.size === 0) return
+    this.ensureRetryTimer()
+  }
+
   private ensureRetryTimer(): void {
     if (this.retryTimer) return
-    this.retryTimer = setInterval(() => {
+    // Skip starting the timer when SSE is connected - items will be
+    // processed via onContentScanned -> triggerRetryProcessing() instead
+    if (this.fastify.plexServerService.isSSEConnected()) return
+    // Wait for initial grace period before first poll, then switch to regular interval.
+    // SSE content-scanned events handle the fast path via triggerRetryProcessing().
+    this.retryTimer = setTimeout(() => {
       void this.processRetryQueue()
-    }, RETRY_INTERVAL_MS)
+      this.retryTimer = setInterval(() => {
+        void this.processRetryQueue()
+      }, RETRY_INTERVAL_MS)
+    }, INITIAL_RETRY_DELAY_MS)
   }
 
   private async processRetryQueue(): Promise<void> {
@@ -363,7 +390,7 @@ export class PlexMobileService {
     try {
       if (this.pendingQueue.size === 0) {
         if (this.retryTimer) {
-          clearInterval(this.retryTimer)
+          clearTimeout(this.retryTimer)
           this.retryTimer = null
         }
         return
@@ -439,7 +466,7 @@ export class PlexMobileService {
 
       // Stop timer if queue is empty
       if (this.pendingQueue.size === 0 && this.retryTimer) {
-        clearInterval(this.retryTimer)
+        clearTimeout(this.retryTimer)
         this.retryTimer = null
       }
     } finally {
