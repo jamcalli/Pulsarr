@@ -279,18 +279,20 @@ export interface PlexPlaySessionNotification {
 }
 
 // Plex SSE timeline event payload from /:/eventsource/notifications
+// Note: Plex sends sectionID and itemID as strings in named SSE events
 export interface PlexTimelineEntry {
-  itemID: number
-  parentItemID: number
-  rootItemID: number
+  itemID: number | string
+  parentItemID?: number | string
+  rootItemID?: number | string
   identifier: string
-  sectionID: number
+  sectionID: number | string
   type: number
   state: number
   title: string
-  metadataState: string
-  mediaState: string
-  queueSize: number
+  metadataState?: string
+  mediaState?: string
+  queueSize?: number
+  updatedAt?: number
 }
 
 // Plex SSE reachability event payload from /:/eventsource/notifications

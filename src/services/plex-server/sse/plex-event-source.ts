@@ -137,6 +137,7 @@ export class PlexEventSource {
     this.addSSEListener('error', this.handleError.bind(this))
     this.addSSEListener('message', this.handleMessage.bind(this))
     this.addSSEListener('playing', this.handlePlaying.bind(this))
+    this.addSSEListener('timeline', this.handleTimeline.bind(this))
     this.addSSEListener('ping', this.handlePing.bind(this))
 
     // If stuck in CONNECTING for too long, force a reconnect
@@ -252,6 +253,24 @@ export class PlexEventSource {
       this.dispatchContainer(container)
     } catch {
       this.log.debug('Failed to parse SSE message data')
+    }
+  }
+
+  private handleTimeline(evt: MessageEvent): void {
+    this.resetHeartbeat()
+    this.maybeResetBackoff()
+
+    try {
+      // Plex SSE timeline events are {"TimelineEntry": {...}} (single object)
+      const data = JSON.parse(String(evt.data)) as {
+        TimelineEntry: PlexTimelineEntry
+      }
+      if (data.TimelineEntry) {
+        // Normalize to array for consistent downstream handling
+        this.emitter.emit('timeline', [data.TimelineEntry])
+      }
+    } catch {
+      this.log.debug('Failed to parse SSE timeline event data')
     }
   }
 

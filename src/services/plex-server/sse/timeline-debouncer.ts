@@ -30,13 +30,16 @@ export class TimelineDebouncer {
     let hasNew = false
 
     for (const entry of entries) {
+      // Plex sends sectionID/itemID as strings in named SSE events
+      const sectionID = Number(entry.sectionID)
+      const itemID = Number(entry.itemID)
       if (
         entry.state === 5 &&
         entry.identifier === 'com.plexapp.plugins.library' &&
-        entry.sectionID > 0 &&
+        sectionID > 0 &&
         RELEVANT_TYPES.has(entry.type)
       ) {
-        this.pendingIDs.add(entry.itemID)
+        this.pendingIDs.add(itemID)
         hasNew = true
       }
     }
