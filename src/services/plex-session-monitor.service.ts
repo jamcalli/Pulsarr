@@ -146,16 +146,12 @@ export class PlexSessionMonitorService {
           rollingUpdates: [],
         }
 
-        // Find the matching session by ratingKey (sessionKey isn't on PlexSession)
+        // Match on sessionKey - unique per playback session and present in
+        // both the SSE event and the REST session response
         for (const session of sessions) {
           if (session.type !== 'episode') continue
 
-          // Match on grandparentKey containing the ratingKey, or direct key match
-          const sessionRatingKey = session.grandparentKey?.split('/').pop()
-          if (
-            sessionRatingKey === notification.ratingKey ||
-            session.grandparentKey?.includes(notification.ratingKey)
-          ) {
+          if (session.sessionKey === notification.sessionKey) {
             await this.processSession(session, result)
             break
           }
@@ -650,7 +646,6 @@ export class PlexSessionMonitorService {
         unmonitoredInNextSeason.map((ep) => ({ id: ep.id, monitored: true })),
       )
 
-      // Search for the newly monitored season
       await sonarr.searchSeason(rollingShow.sonarr_series_id, nextSeason)
 
       // Update database only if this is a new high-water mark
@@ -701,9 +696,9 @@ export class PlexSessionMonitorService {
       if (!sonarr) return
 
       // Explicitly monitor all episodes in the season before searching.
-      // searchSeason sets season.monitored=true, but Sonarr only cascades to
-      // episodes when the flag *changes*. After progressive cleanup, the season
-      // flag may still be true while individual E02+ are unmonitored.
+      // Sonarr only cascades season.monitored to episodes when the flag
+      // *changes*. After progressive cleanup, the season flag may still be
+      // true while individual E02+ are unmonitored.
       const allEpisodes = await sonarr.getEpisodes(rollingShow.sonarr_series_id)
       const unmonitoredInSeason = allEpisodes.filter(
         (ep) => ep.seasonNumber === seasonNumber && !ep.monitored,
@@ -721,7 +716,6 @@ export class PlexSessionMonitorService {
         unmonitoredInSeason.map((ep) => ({ id: ep.id, monitored: true })),
       )
 
-      // Only search when we actually changed monitoring state
       await sonarr.searchSeason(rollingShow.sonarr_series_id, seasonNumber)
 
       // Update high-water mark if this season is higher
@@ -798,6 +792,12 @@ export class PlexSessionMonitorService {
       if (!sonarr) {
         throw new Error(`Sonarr instance ${instanceId} not found`)
       }
+
+      // Sonarr queues a background RefreshSeriesCommand after adding a series.
+      // That task re-applies the addOptions monitoring preset (e.g. 'none') and
+      // clobbers any episode-level changes made before it finishes. Wait for it
+      // to complete before touching monitoring.
+      await sonarr.waitForAddComplete(seriesId)
 
       // Ensure series is monitored but don't auto-monitor new seasons
       await sonarr.updateSeriesMonitoring(seriesId, {

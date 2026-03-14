@@ -66,6 +66,11 @@ export default fp(
       fastify.plexServerService.onContentScanned(() => {
         notifications.plexMobile.triggerRetryProcessing()
       })
+
+      // On SSE disconnect, start retry polling so queued items still get processed
+      fastify.plexServerService.onSSE('disconnected', () => {
+        notifications.plexMobile.startRetryPolling()
+      })
     })
 
     // Cleanup on close

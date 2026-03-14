@@ -245,23 +245,13 @@ export class PlexEventSource {
     this.maybeResetBackoff()
 
     try {
-      const notifications = JSON.parse(
-        String(evt.data),
-      ) as PlexPlaySessionNotification[]
-      if (Array.isArray(notifications) && notifications.length > 0) {
-        this.emitter.emit('playing', notifications)
+      // Plex SSE playing events are always {"PlaySessionStateNotification": {...}}
+      const data = JSON.parse(String(evt.data)) as {
+        PlaySessionStateNotification: PlexPlaySessionNotification
       }
+      this.emitter.emit('playing', [data.PlaySessionStateNotification])
     } catch {
-      // Some Plex versions wrap playing events in NotificationContainer
-      try {
-        const data = JSON.parse(String(evt.data)) as NotificationContainer
-        const container = data.NotificationContainer
-        if (container?.PlaySessionStateNotification) {
-          this.emitter.emit('playing', container.PlaySessionStateNotification)
-        }
-      } catch {
-        this.log.debug('Failed to parse SSE playing event data')
-      }
+      this.log.debug('Failed to parse SSE playing event data')
     }
   }
 

@@ -8,16 +8,35 @@
  * Minimal Plex session as returned by /status/sessions
  */
 export interface PlexSession {
-  type: string // Must be "episode" to be processed
-  grandparentTitle: string // Series name
-  grandparentKey: string // Series metadata key (e.g., "/library/metadata/1234")
-  index: number // Episode number
+  type: string // "episode", "movie", "track", etc.
+  sessionKey: string // Unique per playback session (e.g., "92")
+  ratingKey: string // Episode rating key (e.g., "106942")
+  key: string // Episode metadata path (e.g., "/library/metadata/106942")
+  guid: string // Plex GUID (e.g., "plex://episode/...")
+  title: string // Episode title
+  parentRatingKey: string // Season rating key
+  parentKey: string // Season metadata path
   parentIndex: number // Season number
+  parentTitle: string // Season title (e.g., "Season 1")
+  parentGuid: string // Season Plex GUID
+  grandparentRatingKey: string // Series rating key
+  grandparentKey: string // Series metadata path (e.g., "/library/metadata/106940")
+  grandparentTitle: string // Series name
+  grandparentGuid: string // Series Plex GUID
+  index: number // Episode number
+  viewOffset: number // Current playback position in ms
+  duration: number // Total duration in ms
   User: {
     id: string
     title: string // Username
   }
+  Session: {
+    id: string
+    bandwidth: number
+    location: string
+  }
   librarySectionTitle: string // Library name
+  librarySectionID: string // Library section ID
 }
 
 /**

@@ -359,8 +359,17 @@ export class PlexMobileService {
   // Retry queue
   // ---------------------------------------------------------------------------
 
+  // Start retry polling on SSE disconnect so queued items still get processed
+  startRetryPolling(): void {
+    if (this.pendingQueue.size === 0) return
+    this.ensureRetryTimer()
+  }
+
   private ensureRetryTimer(): void {
     if (this.retryTimer) return
+    // Skip starting the timer when SSE is connected - items will be
+    // processed via onContentScanned -> triggerRetryProcessing() instead
+    if (this.fastify.plexServerService.isSSEConnected()) return
     // Wait for initial grace period before first poll, then switch to regular interval.
     // SSE content-scanned events handle the fast path via triggerRetryProcessing().
     this.retryTimer = setTimeout(() => {

@@ -41,6 +41,12 @@ export default fp(
           void fastify.pendingLabelSyncProcessor.processPendingLabelSyncs()
         })
 
+        // On SSE disconnect, run one immediate sync to bridge the gap
+        fastify.plexServerService.onSSE('disconnected', () => {
+          if (!fastify.config?.plexLabelSync?.enabled) return
+          void fastify.pendingLabelSyncProcessor.processPendingLabelSyncs()
+        })
+
         // Register the pending label sync processor job
         await fastify.scheduler.scheduleJob(
           'pending-label-sync-processor',
@@ -54,6 +60,11 @@ export default fp(
 
               // Check if the plex label sync feature is enabled using cached config
               if (!fastify.config?.plexLabelSync?.enabled) {
+                return
+              }
+
+              // Skip polling when SSE is delivering events in real time
+              if (fastify.plexServerService.isSSEConnected()) {
                 return
               }
 

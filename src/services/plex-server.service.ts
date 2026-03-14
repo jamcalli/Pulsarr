@@ -1512,6 +1512,14 @@ export class PlexServerService {
   }
 
   /**
+   * Check if the SSE connection to Plex is currently active.
+   * Used by polling jobs to skip redundant work when SSE delivers events in real time.
+   */
+  isSSEConnected(): boolean {
+    return this.eventSource?.isConnected() ?? false
+  }
+
+  /**
    * Unsubscribe from SSE events.
    */
   offSSE<K extends keyof PlexSSEEventMap>(

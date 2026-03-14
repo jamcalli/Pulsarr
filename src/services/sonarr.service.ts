@@ -1854,6 +1854,31 @@ export class SonarrService {
   }
 
   /**
+   * Wait for Sonarr to finish its post-add background refresh.
+   * Sonarr queues a RefreshSeriesCommand after adding a series. Until that
+   * completes, addOptions is non-null and Sonarr will re-apply its monitoring
+   * preset, clobbering any episode-level changes we make. Poll until
+   * addOptions is cleared, then it's safe to set custom monitoring.
+   */
+  async waitForAddComplete(
+    seriesId: number,
+    timeoutMs = 30_000,
+    intervalMs = 1_000,
+  ): Promise<void> {
+    const start = Date.now()
+    while (Date.now() - start < timeoutMs) {
+      const series = await this.getFromSonarr<SonarrSeries>(
+        `series/${seriesId}`,
+      )
+      if (!series.addOptions) return
+      await new Promise((resolve) => setTimeout(resolve, intervalMs))
+    }
+    this.log.warn(
+      `Timed out waiting for Sonarr to finish post-add refresh for series ${seriesId}`,
+    )
+  }
+
+  /**
    * Get all episodes for a series
    * @param seriesId The Sonarr series ID
    * @returns Array of episodes
