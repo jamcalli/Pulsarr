@@ -59,6 +59,7 @@ export class PlexEventSource {
   private es: EventSource | null = null
   private heartbeatTimer: ReturnType<typeof setTimeout> | null = null
   private connectionTimer: ReturnType<typeof setTimeout> | null = null
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private backoffMs = INITIAL_BACKOFF_MS
   private connectedSince: number | null = null
   private shutdownRequested = false
@@ -164,6 +165,10 @@ export class PlexEventSource {
       clearTimeout(this.connectionTimer)
       this.connectionTimer = null
     }
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
     if (this.es) {
       // Remove all tracked listeners before closing
       for (const { type, handler } of this.boundListeners) {
@@ -198,7 +203,8 @@ export class PlexEventSource {
 
     this.log.info({ delayMs: Math.round(delay) }, 'Scheduling SSE reconnect')
 
-    setTimeout(() => {
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
       if (!this.shutdownRequested) {
         this.createConnection()
       }
