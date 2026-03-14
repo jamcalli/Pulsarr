@@ -35,6 +35,12 @@ export default fp(
     // Register scheduled jobs on ready (following the same pattern as other plugins)
     fastify.addHook('onReady', async () => {
       try {
+        // Subscribe to SSE content-scanned events for near-instant processing
+        fastify.plexServerService.onContentScanned(() => {
+          if (!fastify.config?.plexLabelSync?.enabled) return
+          void fastify.pendingLabelSyncProcessor.processPendingLabelSyncs()
+        })
+
         // Register the pending label sync processor job
         await fastify.scheduler.scheduleJob(
           'pending-label-sync-processor',
@@ -61,10 +67,10 @@ export default fp(
           },
         )
 
-        // Update the schedule to run at configured interval (match pending webhook interval)
+        // Polling is a safety net - SSE content-scanned handles the fast path
         await fastify.db.updateSchedule('pending-label-sync-processor', {
           type: 'interval',
-          config: { seconds: 30 }, // Check every 30 seconds
+          config: { seconds: 120 },
           enabled: true,
         })
 

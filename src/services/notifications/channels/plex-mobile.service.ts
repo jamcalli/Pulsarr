@@ -35,7 +35,8 @@ interface PendingPlexNotification {
   createdAt: number
 }
 
-const RETRY_INTERVAL_MS = 30_000
+const RETRY_INTERVAL_MS = 120_000
+const INITIAL_RETRY_DELAY_MS = 60_000
 const MAX_RETRY_AGE_MS = 10 * 60 * 1000
 
 export class PlexMobileService {
@@ -114,6 +115,15 @@ export class PlexMobileService {
     }
     this.pendingQueue.clear()
     this.plexUsersCache = null
+  }
+
+  // ---------------------------------------------------------------------------
+  // SSE-triggered retry - bypasses polling interval for near-instant delivery
+  // ---------------------------------------------------------------------------
+
+  triggerRetryProcessing(): void {
+    if (this.pendingQueue.size === 0) return
+    void this.processRetryQueue()
   }
 
   // ---------------------------------------------------------------------------
@@ -351,9 +361,14 @@ export class PlexMobileService {
 
   private ensureRetryTimer(): void {
     if (this.retryTimer) return
-    this.retryTimer = setInterval(() => {
+    // Wait for initial grace period before first poll, then switch to regular interval.
+    // SSE content-scanned events handle the fast path via triggerRetryProcessing().
+    this.retryTimer = setTimeout(() => {
       void this.processRetryQueue()
-    }, RETRY_INTERVAL_MS)
+      this.retryTimer = setInterval(() => {
+        void this.processRetryQueue()
+      }, RETRY_INTERVAL_MS)
+    }, INITIAL_RETRY_DELAY_MS)
   }
 
   private async processRetryQueue(): Promise<void> {

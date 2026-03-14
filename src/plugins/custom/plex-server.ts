@@ -30,6 +30,15 @@ export default fp(
           )
         } else {
           fastify.log.info('PlexServerService initialized successfully')
+
+          try {
+            await service.connectSSE()
+          } catch (error) {
+            fastify.log.warn(
+              { error },
+              'SSE connection failed - polling will continue as fallback',
+            )
+          }
         }
       } catch (error) {
         fastify.log.error(
@@ -40,8 +49,9 @@ export default fp(
       }
     })
 
-    // Clear workflow caches on close
+    // Disconnect SSE and clear workflow caches on close
     fastify.addHook('onClose', () => {
+      service.disconnectSSE()
       service.clearWorkflowCaches()
     })
   },

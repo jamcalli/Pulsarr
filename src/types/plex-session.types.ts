@@ -246,6 +246,39 @@ export interface RollingMonitoredShow {
   last_updated_at: string
 }
 
+// Plex SSE playing event payload from /:/eventsource/notifications
+export interface PlexPlaySessionNotification {
+  sessionKey: string
+  clientIdentifier: string
+  guid: string
+  ratingKey: string
+  url: string
+  key: string
+  viewOffset: number
+  playQueueItemID: number
+  state: 'playing' | 'paused' | 'stopped' | 'buffering' | 'error'
+}
+
+// Plex SSE timeline event payload from /:/eventsource/notifications
+export interface PlexTimelineEntry {
+  itemID: number
+  parentItemID: number
+  rootItemID: number
+  identifier: string
+  sectionID: number
+  type: number
+  state: number
+  title: string
+  metadataState: string
+  mediaState: string
+  queueSize: number
+}
+
+// Plex SSE reachability event payload from /:/eventsource/notifications
+export interface PlexReachabilityNotification {
+  reachability: boolean
+}
+
 /**
  * Session monitoring configuration
  */

@@ -24,6 +24,13 @@ export default fp(
     // Register scheduled jobs after server is ready
     fastify.addHook('onReady', async () => {
       try {
+        // Subscribe to SSE playing events for immediate session processing
+        fastify.plexServerService.onSSE('playing', (notifications) => {
+          if (fastify.config.plexSessionMonitoring?.enabled) {
+            void service.handlePlayingEvent(notifications)
+          }
+        })
+
         await fastify.scheduler.scheduleJob(
           'plex-session-monitor',
           async () => {

@@ -6,6 +6,7 @@
  */
 
 import type {
+  PlexPlaySessionNotification,
   PlexSession,
   RollingMonitoredShow,
   SessionMonitoringResult,
@@ -111,6 +112,70 @@ export class PlexSessionMonitorService {
       this.log.error({ error }, 'Fatal error in session monitoring')
       result.errors.push('Fatal error in session monitoring')
       return result
+    }
+  }
+
+  /**
+   * Handle SSE playing events for immediate session processing.
+   * Only processes meaningful state transitions (new sessions, state changes).
+   * Falls back gracefully if the REST hydration call fails.
+   */
+  async handlePlayingEvent(
+    notifications: PlexPlaySessionNotification[],
+  ): Promise<void> {
+    if (!this.config.plexSessionMonitoring?.enabled) return
+
+    const tracker = this.plexServer.getSessionTracker()
+    if (!tracker) return
+
+    for (const notification of notifications) {
+      const isTransition = tracker.handlePlayingEvent(notification)
+      if (!isTransition) continue
+
+      // Stopped sessions just get removed from tracking, no processing needed
+      if (notification.state === 'stopped') continue
+
+      // For new/resumed sessions, hydrate full session data from the REST API
+      // so we can reuse the existing processSession logic
+      try {
+        const sessions = await this.plexServer.getActiveSessions()
+        const result: SessionMonitoringResult = {
+          processedSessions: 0,
+          triggeredSearches: 0,
+          errors: [],
+          rollingUpdates: [],
+        }
+
+        // Find the matching session by ratingKey (sessionKey isn't on PlexSession)
+        for (const session of sessions) {
+          if (session.type !== 'episode') continue
+
+          // Match on grandparentKey containing the ratingKey, or direct key match
+          const sessionRatingKey = session.grandparentKey?.split('/').pop()
+          if (
+            sessionRatingKey === notification.ratingKey ||
+            session.grandparentKey?.includes(notification.ratingKey)
+          ) {
+            await this.processSession(session, result)
+            break
+          }
+        }
+
+        if (result.triggeredSearches > 0) {
+          this.log.info(
+            {
+              ratingKey: notification.ratingKey,
+              searches: result.triggeredSearches,
+            },
+            'SSE playing event triggered search',
+          )
+        }
+      } catch (error) {
+        this.log.warn(
+          { error, ratingKey: notification.ratingKey },
+          'Failed to hydrate session from SSE event - polling will catch it',
+        )
+      }
     }
   }
 

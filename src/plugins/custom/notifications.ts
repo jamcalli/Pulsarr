@@ -61,6 +61,11 @@ export default fp(
     // Initialize on ready
     fastify.addHook('onReady', async () => {
       await notifications.initialize()
+
+      // Subscribe to SSE content-scanned events for near-instant mobile retry
+      fastify.plexServerService.onContentScanned(() => {
+        notifications.plexMobile.triggerRetryProcessing()
+      })
     })
 
     // Cleanup on close
@@ -71,7 +76,7 @@ export default fp(
   },
   {
     name: 'notification-service',
-    dependencies: ['config', 'database', 'progress'],
+    dependencies: ['config', 'database', 'progress', 'plex-server'],
   },
 )
 
