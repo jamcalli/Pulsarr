@@ -117,10 +117,19 @@ export class PlexEventSource {
     this.cleanup()
     if (this.shutdownRequested) return
 
-    const url = `${this.serverUrl}/:/eventsource/notifications?X-Plex-Token=${this.token}`
+    const url = `${this.serverUrl}/:/eventsource/notifications`
     this.log.info('Opening SSE connection to Plex')
 
-    this.es = new EventSource(url)
+    this.es = new EventSource(url, {
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          headers: {
+            ...init.headers,
+            'X-Plex-Token': this.token,
+          },
+        }),
+    })
 
     // Bind listeners and track references for cleanup
     this.addSSEListener('open', this.handleOpen.bind(this))

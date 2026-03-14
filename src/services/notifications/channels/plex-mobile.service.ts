@@ -42,7 +42,10 @@ const MAX_RETRY_AGE_MS = 10 * 60 * 1000
 export class PlexMobileService {
   private readonly log: FastifyBaseLogger
   private readonly pendingQueue = new Map<string, PendingPlexNotification>()
-  private retryTimer: ReturnType<typeof setInterval> | null = null
+  private retryTimer:
+    | ReturnType<typeof setTimeout>
+    | ReturnType<typeof setInterval>
+    | null = null
   private isProcessingRetries = false
   private plexUsersCache: PlexUser[] | null = null
   private plexUsersCacheTimestamp = 0
@@ -105,7 +108,7 @@ export class PlexMobileService {
 
   shutdown(): void {
     if (this.retryTimer) {
-      clearInterval(this.retryTimer)
+      clearTimeout(this.retryTimer)
       this.retryTimer = null
     }
     if (this.pendingQueue.size > 0) {
@@ -387,7 +390,7 @@ export class PlexMobileService {
     try {
       if (this.pendingQueue.size === 0) {
         if (this.retryTimer) {
-          clearInterval(this.retryTimer)
+          clearTimeout(this.retryTimer)
           this.retryTimer = null
         }
         return
@@ -463,7 +466,7 @@ export class PlexMobileService {
 
       // Stop timer if queue is empty
       if (this.pendingQueue.size === 0 && this.retryTimer) {
-        clearInterval(this.retryTimer)
+        clearTimeout(this.retryTimer)
         this.retryTimer = null
       }
     } finally {

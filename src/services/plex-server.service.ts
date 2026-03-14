@@ -1551,10 +1551,13 @@ export class PlexServerService {
   private async reconcileSessionsOnConnect(): Promise<void> {
     try {
       const liveSessions = await this.getActiveSessions()
-      if (liveSessions.length > 0) {
+      if (liveSessions.length === 0) return
+
+      const added = this.sessionTracker?.hydrate(liveSessions) ?? 0
+      if (added > 0) {
         this.log.info(
-          { count: liveSessions.length },
-          'Found active sessions on SSE reconnect',
+          { total: liveSessions.length, added },
+          'Hydrated session tracker from live sessions on SSE connect',
         )
       }
     } catch (error) {

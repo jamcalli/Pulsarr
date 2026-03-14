@@ -80,38 +80,27 @@ export class SessionTracker {
   }
 
   /**
-   * Compare tracked sessions against live session data from /status/sessions.
-   * Returns sessions that should be removed (tracked but no longer live) and
-   * sessions that should be added (live but not tracked).
+   * Seed the tracker with live sessions from the REST API so that SSE events
+   * arriving after reconnect are correctly deduplicated. Sessions already
+   * tracked (e.g. from a previous connection) are left untouched.
    */
-  reconcile(liveSessions: PlexSession[]): {
-    toRemove: string[]
-    toAdd: PlexSession[]
-  } {
-    // PlexSession doesn't have sessionKey, so we match by what we have.
-    // Build a set of grandparentKey+User.id combos from live sessions for matching.
-    const liveKeys = new Set(
-      liveSessions.map((s) => `${s.grandparentKey}:${s.User.id}`),
-    )
+  hydrate(liveSessions: PlexSession[]): number {
+    const now = Date.now()
+    let added = 0
 
-    // Sessions in tracker that are no longer live
-    const toRemove: string[] = []
-    for (const [sessionKey, tracked] of this.sessions) {
-      // We can't perfectly match since PlexSession lacks sessionKey,
-      // so we keep tracked sessions unless they're clearly stale.
-      // The stale sweep handles cleanup for sessions that stop sending events.
-      // This is intentionally conservative - false positives are worse than
-      // keeping a session tracked slightly longer.
-      void tracked
-      void liveKeys
-      void sessionKey
+    for (const session of liveSessions) {
+      if (this.sessions.has(session.sessionKey)) continue
+
+      this.sessions.set(session.sessionKey, {
+        sessionKey: session.sessionKey,
+        ratingKey: session.ratingKey,
+        lastState: 'playing',
+        lastEventTime: now,
+      })
+      added++
     }
 
-    // Live sessions not in tracker - can't match without sessionKey on PlexSession,
-    // so we return all live sessions and let the caller decide
-    const toAdd = liveSessions
-
-    return { toRemove, toAdd }
+    return added
   }
 
   /**
