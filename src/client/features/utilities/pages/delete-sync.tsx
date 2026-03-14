@@ -287,12 +287,10 @@ export default function DeleteSyncPage() {
                   {deleteSyncJob.config.expression === '0 0 * * * *'
                     ? 'Every hour'
                     : formatScheduleDisplay(
-                        isSaving &&
-                          submittedValues &&
-                          submittedValues.scheduleTime
+                        isSaving && submittedValues?.scheduleTime
                           ? submittedValues.scheduleTime
                           : scheduleTime,
-                        isSaving && submittedValues && submittedValues.dayOfWeek
+                        isSaving && submittedValues?.dayOfWeek
                           ? submittedValues.dayOfWeek
                           : dayOfWeek,
                       )}
