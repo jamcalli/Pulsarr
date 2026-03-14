@@ -517,4 +517,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   main()
 }
 
-export { SQLiteToPostgresMigration, type MigrationConfig }
+export { type MigrationConfig, SQLiteToPostgresMigration }

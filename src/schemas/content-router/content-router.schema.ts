@@ -1,6 +1,7 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { SERIES_TYPES } from '@root/schemas/content-router/constants.js'
 import { z } from 'zod'
+
 export { SERIES_TYPES }
 
 /**
