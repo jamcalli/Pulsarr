@@ -30,7 +30,7 @@ jobs:
           restore-keys: |
             vitest-${{ runner.os }}-
       - name: Setup Biome
-        uses: biomejs/setup-biome@29711cbb52afee00eb13aeb30636592f9edc0088 # v2
+        uses: biomejs/setup-biome@4c91541eaada48f67d7dbd7833600ce162b68f51 # v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run Biome
