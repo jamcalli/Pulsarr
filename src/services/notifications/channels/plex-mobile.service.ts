@@ -175,12 +175,18 @@ export class PlexMobileService {
     )
 
     if (resolved) {
-      return this.sendResolved(
+      const sent = await this.sendResolved(
         notification,
         resolved,
         [plexUserId],
         isBulkRelease,
       )
+      if (sent) {
+        this.log.info(
+          `Plex mobile notification sent successfully to ${user.name} for "${notification.title}"`,
+        )
+      }
+      return sent
     }
 
     // Not found yet — queue for retry

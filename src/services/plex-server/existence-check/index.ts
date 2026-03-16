@@ -15,6 +15,7 @@ export {
   getCachedConnection,
   invalidateServerConnection,
   isServerInBackoff,
+  testConnectionReachability,
 } from './connection-cache.js'
 
 // Content cache exports
