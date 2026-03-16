@@ -33,7 +33,7 @@ export function usePlexServerDiscovery() {
 
     // Set up a timeout for the request
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5-second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
 
     try {
       const response = await fetch(api('/v1/plex/discover-servers'), {

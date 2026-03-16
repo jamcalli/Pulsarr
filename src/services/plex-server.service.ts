@@ -31,9 +31,11 @@ import {
   buildUniqueServerList,
   type CachedConnection,
   type CachedContentAvailability,
+  type ConnectionCandidate,
   checkContentOnServer,
   clearContentCacheForReconciliation,
   getBestServerConnection,
+  testConnectionReachability,
 } from './plex-server/existence-check/index.js'
 import {
   getCurrentLabels,
@@ -353,14 +355,41 @@ export class PlexServerService {
         })
       }
 
-      // Sort connections by priority: local first, then non-relay, then relay
+      // Sort connections by priority: non-relay first, then local first
       connections.sort((a, b) => {
-        if (a.local && !b.local) return -1
-        if (!a.local && b.local) return 1
         if (!a.relay && b.relay) return -1
         if (a.relay && !b.relay) return 1
+        if (a.local && !b.local) return -1
+        if (!a.local && b.local) return 1
         return 0
       })
+
+      if (!(configUrl && configUrl !== defaultUrl) && connections.length > 0) {
+        const candidates: ConnectionCandidate[] = connections.map((c) => ({
+          uri: c.url,
+          local: c.local,
+          relay: c.relay,
+        }))
+
+        const reachable = await testConnectionReachability(
+          candidates,
+          adminToken,
+          this.log,
+        )
+
+        if (reachable.length > 0) {
+          const reachableUris = new Set(reachable.map((r) => r.uri))
+          const filtered = connections.filter((c) => reachableUris.has(c.url))
+          connections.splice(0, connections.length, ...filtered)
+          this.log.info(
+            `Filtered to ${connections.length} reachable connections (${candidates.length - connections.length} unreachable)`,
+          )
+        } else {
+          this.log.warn(
+            'All connection tests failed - keeping full list as fallback',
+          )
+        }
+      }
 
       // Mark the first one as default
       if (connections.length > 0) {
