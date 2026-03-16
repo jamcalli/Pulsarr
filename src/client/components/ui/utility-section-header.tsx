@@ -3,10 +3,11 @@ import { cn } from '@/lib/utils'
 
 interface UtilitySectionHeaderProps {
   title: string
-  description: string
+  description?: string
   status?: 'enabled' | 'disabled' | 'failed' | 'unknown'
   showStatus?: boolean
   className?: string
+  children?: React.ReactNode
 }
 
 /**
@@ -26,6 +27,7 @@ export function UtilitySectionHeader({
   status = 'unknown',
   showStatus = true,
   className,
+  children,
 }: UtilitySectionHeaderProps) {
   const getStatusStyles = (status: string) => {
     switch (status) {
@@ -70,8 +72,11 @@ export function UtilitySectionHeader({
             </Badge>
           </div>
         )}
+        {children}
       </div>
-      <p className="text-sm text-foreground mt-1">{description}</p>
+      {description && (
+        <p className="text-sm text-foreground mt-1">{description}</p>
+      )}
     </div>
   )
 }
