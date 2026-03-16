@@ -288,6 +288,7 @@ export default function PlexConfigurationPage() {
                               variant="neutralnoShadow"
                               onClick={() => setShowReauthDialog(true)}
                               disabled={status === 'loading'}
+                              aria-label="Re-authenticate with Plex"
                             >
                               <RotateCcw className="h-4 w-4" />
                             </Button>
@@ -307,6 +308,7 @@ export default function PlexConfigurationPage() {
                                 status === 'loading' ||
                                 !form.getValues('plexToken')
                               }
+                              aria-label="Remove Plex token"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
