@@ -4,7 +4,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 /**
  * Displays a skeleton placeholder for the Plex Session Monitoring page body while data is loading.
  *
- * This component visually represents all major sections of the page—including configuration inputs, user filtering, auto-reset settings, status panels, informational content, and action buttons—using skeleton elements to indicate loading state. The page header is rendered by the parent component and is not included here.
+ * Visually represents all major sections of the page using skeleton elements to indicate loading state.
+ * The page header is rendered by the parent component and is not included here.
  */
 export function PlexSessionMonitoringPageSkeleton() {
   return (
@@ -90,42 +91,20 @@ export function PlexSessionMonitoringPageSkeleton() {
 
       <Separator />
 
-      {/* Status and Management section */}
+      {/* Rolling Monitoring Status section */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-medium text-sm text-foreground">
             Rolling Monitoring Status
           </h3>
-          <Skeleton className="h-7 w-28" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-7 w-28" />
+            <Skeleton className="h-7 w-28" />
+          </div>
         </div>
-        <div className="space-y-4">
-          {/* Rolling Shows */}
-          <div>
-            <h4 className="font-medium text-sm text-foreground mb-2">
-              Rolling Shows
-            </h4>
-            <div className="space-y-2">
-              <Skeleton className="h-16 w-full rounded-md" />
-              <Skeleton className="h-16 w-full rounded-md" />
-            </div>
-          </div>
-
-          {/* Inactive Shows */}
-          <div>
-            <h4 className="font-medium text-sm text-foreground mb-2">
-              Inactive Shows
-            </h4>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm text-foreground">Inactivity Days:</span>
-              <Skeleton className="h-8 w-20" />
-              <Skeleton className="h-8 w-16" />
-              <Skeleton className="h-8 w-24" />
-            </div>
-            <div className="space-y-2">
-              <Skeleton className="h-16 w-full rounded-md" />
-              <Skeleton className="h-16 w-full rounded-md" />
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Skeleton className="h-14 w-full rounded-base" />
+          <Skeleton className="h-14 w-full rounded-base" />
         </div>
       </div>
 

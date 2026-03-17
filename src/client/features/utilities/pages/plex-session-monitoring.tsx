@@ -1,12 +1,14 @@
 import { Loader2, Save, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { PlexSSEStatusBadge } from '@/components/ui/plex-sse-status-badge'
 import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { BulkManageDialog } from '@/features/utilities/components/session-monitoring/bulk-manage-dialog'
+import type { SonarrShow } from '@/features/utilities/components/session-monitoring/manage-rolling-sheet'
+import { ManageRollingSheet } from '@/features/utilities/components/session-monitoring/manage-rolling-sheet'
 import { PlexSessionMonitoringPageSkeleton } from '@/features/utilities/components/session-monitoring/plex-session-monitoring-page-skeleton'
 
 import { SessionMonitoringActions } from '@/features/utilities/components/session-monitoring/session-monitoring-actions'
@@ -53,6 +55,11 @@ export default function PlexSessionMonitoringPage() {
   const resetInactiveMutation = useResetInactiveShowsMutation()
 
   const [activeActionId, setActiveActionId] = useState<number | null>(null)
+
+  // Manage rolling sheet + bulk manage dialog state (siblings at page level)
+  const [showManageRolling, setShowManageRolling] = useState(false)
+  const [showBulkManage, setShowBulkManage] = useState(false)
+  const [bulkManageShows, setBulkManageShows] = useState<SonarrShow[]>([])
 
   const rollingShows = rollingShowsData?.shows ?? []
   const inactiveShows = inactiveShowsData?.shows ?? []
@@ -102,6 +109,17 @@ export default function PlexSessionMonitoringPage() {
     } catch (_err) {
       // Error is surfaced by mutation state
     }
+  }
+
+  const handleManageSelected = (shows: SonarrShow[]) => {
+    setBulkManageShows(shows)
+    setShowBulkManage(true)
+  }
+
+  const handleBulkManageSuccess = () => {
+    setShowBulkManage(false)
+    setBulkManageShows([])
+    setShowManageRolling(false)
   }
 
   const getStatus = () => {
@@ -170,6 +188,7 @@ export default function PlexSessionMonitoringPage() {
                 resetShow={handleResetShow}
                 deleteShow={handleDeleteShow}
                 resetInactiveShows={handleResetInactiveShows}
+                onOpenManageRolling={() => setShowManageRolling(true)}
               />
 
               <Separator />
@@ -220,6 +239,25 @@ export default function PlexSessionMonitoringPage() {
               </div>
             </form>
           </Form>
+
+          {/* Only mount when open so hooks/queries don't run when closed */}
+          {showManageRolling && (
+            <ManageRollingSheet
+              isOpen={showManageRolling}
+              onClose={() => setShowManageRolling(false)}
+              isEnabled={isEnabled}
+              onManageSelected={handleManageSelected}
+            />
+          )}
+
+          {showBulkManage && (
+            <BulkManageDialog
+              open={showBulkManage}
+              onOpenChange={setShowBulkManage}
+              selectedShows={bulkManageShows}
+              onSuccess={handleBulkManageSuccess}
+            />
+          )}
         </div>
       )}
     </div>

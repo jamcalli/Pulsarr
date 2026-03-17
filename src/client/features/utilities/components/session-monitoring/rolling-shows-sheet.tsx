@@ -125,7 +125,7 @@ export function RollingShowsSheet({
     React.useState<VisibilityState>({})
 
   // Persistent table pagination
-  const { pageSize, setPageSize } = useTablePagination('rolling-shows', 15)
+  const { pageSize, setPageSize } = useTablePagination('rolling-shows', 10)
 
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = React.useState<{
