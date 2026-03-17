@@ -246,6 +246,7 @@ export function SessionMonitoringStatus({
                     type="button"
                     size="sm"
                     variant="error"
+                    aria-label="Reset all inactive shows"
                     onClick={() => setShowBulkResetConfirmation(true)}
                     disabled={
                       !isEnabled ||

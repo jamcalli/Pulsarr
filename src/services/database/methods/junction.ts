@@ -485,13 +485,15 @@ export async function addWatchlistToSonarrInstance(
         updated_at: this.timestamp,
       })
       .onConflict(['watchlist_id', 'sonarr_instance_id'])
-      .merge([
-        'status',
-        'is_primary',
-        'syncing',
-        'sonarr_series_id',
-        'updated_at',
-      ])
+      .merge({
+        status,
+        is_primary: isPrimary,
+        syncing,
+        ...(sonarrSeriesId !== undefined && {
+          sonarr_series_id: sonarrSeriesId,
+        }),
+        updated_at: this.timestamp,
+      })
 
     this.log.debug(
       `Added watchlist ${watchlistId} to Sonarr instance ${instanceId}`,
