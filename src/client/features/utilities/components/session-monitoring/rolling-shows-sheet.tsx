@@ -125,7 +125,7 @@ export function RollingShowsSheet({
     React.useState<VisibilityState>({})
 
   // Persistent table pagination
-  const { pageSize, setPageSize } = useTablePagination('rolling-shows', 15)
+  const { pageSize, setPageSize } = useTablePagination('rolling-shows', 10)
 
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = React.useState<{
@@ -588,6 +588,7 @@ export function RollingShowsSheet({
             <Button
               variant="noShadow"
               size="sm"
+              aria-label="Previous page"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage() || isLoading}
             >
@@ -597,6 +598,7 @@ export function RollingShowsSheet({
             <Button
               variant="noShadow"
               size="sm"
+              aria-label="Next page"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage() || isLoading}
             >

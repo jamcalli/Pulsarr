@@ -135,5 +135,21 @@ declare module '@services/database.service.js' {
     getInactiveRollingMonitoredShows(
       inactivityDays: number,
     ): Promise<RollingMonitoredShow[]>
+
+    /**
+     * Updates the monitoring type and initial season for a master rolling monitored show.
+     * @param id - The ID of the master entry
+     * @param monitoringType - The new monitoring type
+     * @param currentMonitoredSeason - The initial season for the new type
+     * @returns True if a row was updated
+     */
+    updateRollingShowMonitoringType(
+      id: number,
+      monitoringType:
+        | 'pilotRolling'
+        | 'firstSeasonRolling'
+        | 'allSeasonPilotRolling',
+      currentMonitoredSeason: number,
+    ): Promise<boolean>
   }
 }

@@ -351,6 +351,7 @@ export class SonarrManagerService {
 
       await this.fastify.db.updateWatchlistItem(userId, key, {
         sonarr_instance_id: targetInstanceId,
+        sonarr_series_id: sonarrSeriesId,
         syncing: syncing,
         status: 'requested',
       })

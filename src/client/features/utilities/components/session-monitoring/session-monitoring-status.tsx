@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Clock,
   Eye,
+  ListPlus,
   Loader2,
   RotateCcw,
 } from 'lucide-react'
@@ -27,7 +28,8 @@ interface RollingLoading {
   runningMonitor: boolean
   fetchingShows: boolean
   fetchingInactive: boolean
-  resetting: boolean
+  resettingShow: boolean
+  resettingInactive: boolean
   deleting: boolean
 }
 
@@ -43,8 +45,7 @@ interface SessionMonitoringStatusProps {
   resetShow: (id: number) => Promise<void>
   deleteShow: (id: number, shouldReset?: boolean) => Promise<void>
   resetInactiveShows: (days: number) => Promise<void>
-  fetchRollingShows: () => Promise<void>
-  fetchInactiveShows: (days: number) => Promise<void>
+  onOpenManageRolling?: () => void
 }
 
 /**
@@ -64,8 +65,7 @@ export function SessionMonitoringStatus({
   resetShow,
   deleteShow,
   resetInactiveShows,
-  fetchRollingShows,
-  fetchInactiveShows,
+  onOpenManageRolling,
 }: SessionMonitoringStatusProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [showActiveShows, setShowActiveShows] = useState(false)
@@ -91,19 +91,6 @@ export function SessionMonitoringStatus({
     setLocalInactivityDays(inactivityDays)
   }, [inactivityDays])
 
-  // Optimized data fetching for sheet interactions
-  useEffect(() => {
-    if (isEnabled && showActiveShows) {
-      fetchRollingShows()
-    }
-  }, [isEnabled, showActiveShows, fetchRollingShows])
-
-  useEffect(() => {
-    if (isEnabled && showInactiveShows) {
-      fetchInactiveShows(inactivityDays)
-    }
-  }, [isEnabled, showInactiveShows, inactivityDays, fetchInactiveShows])
-
   // Handle bulk reset of inactive shows with confirmation
   const handleBulkResetConfirm = async () => {
     try {
@@ -126,29 +113,49 @@ export function SessionMonitoringStatus({
         <h3 className="font-medium text-sm text-foreground">
           Rolling Monitoring Status
         </h3>
-        <Button
-          type="button"
-          size="sm"
-          variant="noShadow"
-          onClick={async () => {
-            try {
-              await runSessionMonitor()
-            } catch (error) {
-              console.error('Failed to run session monitor:', error)
-              toast.error('Failed to run session monitor. Please try again.')
-            }
-          }}
-          disabled={!isEnabled || rollingLoading.runningMonitor}
-          aria-disabled={!isEnabled || rollingLoading.runningMonitor}
-          className="h-7"
-        >
-          {rollingLoading.runningMonitor ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Activity className="h-4 w-4" />
+        <div className="flex items-center gap-2">
+          {onOpenManageRolling && (
+            <Button
+              type="button"
+              size="sm"
+              variant="noShadow"
+              aria-label="Manage Rolling"
+              onClick={onOpenManageRolling}
+              disabled={!isEnabled}
+              aria-disabled={!isEnabled}
+              className="h-7"
+            >
+              <ListPlus className="h-4 w-4" />
+              <span className={isMobile ? 'hidden' : 'ml-2'}>
+                Manage Rolling
+              </span>
+            </Button>
           )}
-          <span className={isMobile ? 'hidden' : 'ml-2'}>Check Sessions</span>
-        </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="noShadow"
+            aria-label="Check Sessions"
+            onClick={async () => {
+              try {
+                await runSessionMonitor()
+              } catch (error) {
+                console.error('Failed to run session monitor:', error)
+                toast.error('Failed to run session monitor. Please try again.')
+              }
+            }}
+            disabled={!isEnabled || rollingLoading.runningMonitor}
+            aria-disabled={!isEnabled || rollingLoading.runningMonitor}
+            className="h-7"
+          >
+            {rollingLoading.runningMonitor ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Activity className="h-4 w-4" />
+            )}
+            <span className={isMobile ? 'hidden' : 'ml-2'}>Check Sessions</span>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -167,6 +174,7 @@ export function SessionMonitoringStatus({
             type="button"
             size="sm"
             variant="noShadow"
+            aria-label="View active shows"
             onClick={() => setShowActiveShows(true)}
             disabled={!isEnabled}
             aria-disabled={!isEnabled}
@@ -238,20 +246,21 @@ export function SessionMonitoringStatus({
                     type="button"
                     size="sm"
                     variant="error"
+                    aria-label="Reset all inactive shows"
                     onClick={() => setShowBulkResetConfirmation(true)}
                     disabled={
                       !isEnabled ||
-                      rollingLoading.resetting ||
+                      rollingLoading.resettingInactive ||
                       inactiveShows.length === 0
                     }
                     aria-disabled={
                       !isEnabled ||
-                      rollingLoading.resetting ||
+                      rollingLoading.resettingInactive ||
                       inactiveShows.length === 0
                     }
                     className="h-7 px-2"
                   >
-                    {rollingLoading.resetting ? (
+                    {rollingLoading.resettingInactive ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
                     ) : (
                       <RotateCcw className="h-3 w-3" />
@@ -267,6 +276,7 @@ export function SessionMonitoringStatus({
               type="button"
               size="sm"
               variant="noShadow"
+              aria-label="View inactive shows"
               onClick={() => setShowInactiveShows(true)}
               disabled={!isEnabled}
               aria-disabled={!isEnabled}
@@ -290,7 +300,7 @@ export function SessionMonitoringStatus({
         onDeleteShow={deleteShow}
         showActions={true}
         actionLoading={{
-          resetting: rollingLoading.resetting,
+          resetting: rollingLoading.resettingShow,
           deleting: rollingLoading.deleting,
         }}
         activeActionId={activeActionId}
@@ -311,7 +321,7 @@ export function SessionMonitoringStatus({
         onConfirm={handleBulkResetConfirm}
         inactiveCount={inactiveShows.length}
         inactivityDays={localInactivityDays}
-        isLoading={rollingLoading.resetting}
+        isLoading={rollingLoading.resettingInactive}
       />
     </div>
   )

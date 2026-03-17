@@ -37,6 +37,7 @@ interface BaseStatusUpdate {
 export interface ShowStatusUpdate extends BaseStatusUpdate {
   series_status?: 'continuing' | 'ended'
   sonarr_instance_id?: number
+  sonarr_series_id?: number
 }
 
 /**
@@ -202,6 +203,21 @@ export function createSonarrStatusConfig(): StatusProcessorConfig<
 
       if (item.sonarr_instance_id !== instanceId) {
         update.sonarr_instance_id = instanceId
+      }
+
+      // Extract Sonarr series ID from guids (embedded as "sonarr:{id}" by toItem())
+      // to backfill the junction table via the normal update path
+      const sonarrGuid = content.guids.find((g) =>
+        g.toLowerCase().startsWith('sonarr:'),
+      )
+      if (sonarrGuid) {
+        const seriesId = Number.parseInt(
+          sonarrGuid.replace(/^sonarr:/i, ''),
+          10,
+        )
+        if (!Number.isNaN(seriesId)) {
+          update.sonarr_series_id = seriesId
+        }
       }
 
       return update
