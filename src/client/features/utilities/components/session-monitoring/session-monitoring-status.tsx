@@ -28,7 +28,8 @@ interface RollingLoading {
   runningMonitor: boolean
   fetchingShows: boolean
   fetchingInactive: boolean
-  resetting: boolean
+  resettingShow: boolean
+  resettingInactive: boolean
   deleting: boolean
 }
 
@@ -118,6 +119,7 @@ export function SessionMonitoringStatus({
               type="button"
               size="sm"
               variant="noShadow"
+              aria-label="Manage Rolling"
               onClick={onOpenManageRolling}
               disabled={!isEnabled}
               aria-disabled={!isEnabled}
@@ -133,6 +135,7 @@ export function SessionMonitoringStatus({
             type="button"
             size="sm"
             variant="noShadow"
+            aria-label="Check Sessions"
             onClick={async () => {
               try {
                 await runSessionMonitor()
@@ -171,6 +174,7 @@ export function SessionMonitoringStatus({
             type="button"
             size="sm"
             variant="noShadow"
+            aria-label="View active shows"
             onClick={() => setShowActiveShows(true)}
             disabled={!isEnabled}
             aria-disabled={!isEnabled}
@@ -245,17 +249,17 @@ export function SessionMonitoringStatus({
                     onClick={() => setShowBulkResetConfirmation(true)}
                     disabled={
                       !isEnabled ||
-                      rollingLoading.resetting ||
+                      rollingLoading.resettingInactive ||
                       inactiveShows.length === 0
                     }
                     aria-disabled={
                       !isEnabled ||
-                      rollingLoading.resetting ||
+                      rollingLoading.resettingInactive ||
                       inactiveShows.length === 0
                     }
                     className="h-7 px-2"
                   >
-                    {rollingLoading.resetting ? (
+                    {rollingLoading.resettingInactive ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
                     ) : (
                       <RotateCcw className="h-3 w-3" />
@@ -271,6 +275,7 @@ export function SessionMonitoringStatus({
               type="button"
               size="sm"
               variant="noShadow"
+              aria-label="View inactive shows"
               onClick={() => setShowInactiveShows(true)}
               disabled={!isEnabled}
               aria-disabled={!isEnabled}
@@ -294,7 +299,7 @@ export function SessionMonitoringStatus({
         onDeleteShow={deleteShow}
         showActions={true}
         actionLoading={{
-          resetting: rollingLoading.resetting,
+          resetting: rollingLoading.resettingShow,
           deleting: rollingLoading.deleting,
         }}
         activeActionId={activeActionId}
@@ -315,7 +320,7 @@ export function SessionMonitoringStatus({
         onConfirm={handleBulkResetConfirm}
         inactiveCount={inactiveShows.length}
         inactivityDays={localInactivityDays}
-        isLoading={rollingLoading.resetting}
+        isLoading={rollingLoading.resettingInactive}
       />
     </div>
   )

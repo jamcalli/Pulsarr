@@ -485,7 +485,13 @@ export async function addWatchlistToSonarrInstance(
         updated_at: this.timestamp,
       })
       .onConflict(['watchlist_id', 'sonarr_instance_id'])
-      .merge(['status', 'is_primary', 'syncing', 'updated_at'])
+      .merge([
+        'status',
+        'is_primary',
+        'syncing',
+        'sonarr_series_id',
+        'updated_at',
+      ])
 
     this.log.debug(
       `Added watchlist ${watchlistId} to Sonarr instance ${instanceId}`,
@@ -1106,15 +1112,18 @@ export async function getSonarrShowsWithEnrollmentStatus(
       })
       .whereNotNull('wsi.sonarr_series_id')
       .andWhere('wi.type', 'show')
-      .select(
-        'wsi.watchlist_id',
-        'wsi.sonarr_instance_id',
-        'wsi.sonarr_series_id',
-        'wi.title',
-        'wi.guids',
-        'rms.id as rolling_show_id',
-        'rms.monitoring_type',
-      )
+      // Multiple users can watchlist the same show, producing duplicate
+      // junction rows for the same series+instance. Group to deduplicate.
+      .groupBy('wsi.sonarr_instance_id', 'wsi.sonarr_series_id')
+      .min({
+        watchlist_id: 'wsi.watchlist_id',
+        sonarr_instance_id: 'wsi.sonarr_instance_id',
+        sonarr_series_id: 'wsi.sonarr_series_id',
+        title: 'wi.title',
+        guids: 'wi.guids',
+        rolling_show_id: 'rms.id',
+        monitoring_type: 'rms.monitoring_type',
+      })
 
     if (instanceId) {
       query = query.andWhere('wsi.sonarr_instance_id', instanceId)

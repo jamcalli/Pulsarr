@@ -467,6 +467,7 @@ export function ManageRollingSheet({
             <Button
               variant="noShadow"
               size="sm"
+              aria-label="Previous page"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage() || isLoading}
             >
@@ -476,6 +477,7 @@ export function ManageRollingSheet({
             <Button
               variant="noShadow"
               size="sm"
+              aria-label="Next page"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage() || isLoading}
             >

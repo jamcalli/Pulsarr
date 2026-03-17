@@ -83,10 +83,6 @@ export function useSessionMonitoringForm() {
 
       form.reset(formValues, { keepDirty: false })
       setInactivityDays(config.plexSessionMonitoring.inactivityResetDays || 7)
-
-      setTimeout(() => {
-        form.reset(form.getValues(), { keepDirty: false })
-      }, 0)
     }
   }, [config?.plexSessionMonitoring, form, saveStatus])
 

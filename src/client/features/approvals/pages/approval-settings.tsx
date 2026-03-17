@@ -119,6 +119,11 @@ export default function ApprovalSettingsPage() {
             <Button
               type="button"
               size="sm"
+              aria-label={
+                isScheduleEnabled
+                  ? 'Disable approval schedule'
+                  : 'Enable approval schedule'
+              }
               onClick={() => toggleApprovalSchedule(!isScheduleEnabled)}
               disabled={isTogglingApproval || !approvalMaintenanceJob}
               variant={isScheduleEnabled ? 'error' : 'noShadow'}
@@ -137,6 +142,7 @@ export default function ApprovalSettingsPage() {
             <Button
               type="button"
               size="sm"
+              aria-label="Run approval now"
               onClick={runApprovalNow}
               disabled={!isScheduleEnabled || isRunningApproval}
               variant="noShadow"

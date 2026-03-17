@@ -317,6 +317,7 @@ export const ApprovalTable = React.forwardRef<
             <Button
               variant="noShadow"
               size="sm"
+              aria-label="Previous page"
               onClick={() => setPageIndex(pageIndex - 1)}
               disabled={pageIndex === 0}
             >
@@ -326,6 +327,7 @@ export const ApprovalTable = React.forwardRef<
             <Button
               variant="noShadow"
               size="sm"
+              aria-label="Next page"
               onClick={() => setPageIndex(pageIndex + 1)}
               disabled={pageIndex >= pageCount - 1}
             >

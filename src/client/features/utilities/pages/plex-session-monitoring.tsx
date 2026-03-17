@@ -65,14 +65,10 @@ export default function PlexSessionMonitoringPage() {
   const inactiveShows = inactiveShowsData?.shows ?? []
 
   const handleRunSessionMonitor = async () => {
-    try {
-      const data = await runMonitor.mutateAsync()
-      toast.success(
-        `Session monitor completed. Processed ${data.result.processedSessions} sessions, triggered ${data.result.triggeredSearches} searches.`,
-      )
-    } catch (_err) {
-      // Error is surfaced by mutation state
-    }
+    const data = await runMonitor.mutateAsync()
+    toast.success(
+      `Session monitor completed. Processed ${data.result.processedSessions} sessions, triggered ${data.result.triggeredSearches} searches.`,
+    )
   }
 
   const handleResetShow = async (id: number) => {
@@ -99,16 +95,8 @@ export default function PlexSessionMonitoringPage() {
     }
   }
 
-  const handleResetInactiveShows = async () => {
-    try {
-      const currentInactivityDays = form.getValues('inactivityResetDays') ?? 7
-      const result = await resetInactiveMutation.mutateAsync(
-        currentInactivityDays,
-      )
-      toast.success(`${result.message} (${result.resetCount} shows reset)`)
-    } catch (_err) {
-      // Error is surfaced by mutation state
-    }
+  const handleResetInactiveShows = async (days: number) => {
+    await resetInactiveMutation.mutateAsync(days)
   }
 
   const handleManageSelected = (shows: SonarrShow[]) => {
@@ -175,7 +163,8 @@ export default function PlexSessionMonitoringPage() {
                   runningMonitor: runMonitor.isPending,
                   fetchingShows: rollingShowsLoading,
                   fetchingInactive: inactiveShowsLoading,
-                  resetting: resetShowMutation.isPending,
+                  resettingShow: resetShowMutation.isPending,
+                  resettingInactive: resetInactiveMutation.isPending,
                   deleting: deleteShowMutation.isPending,
                 }}
                 activeActionId={activeActionId}
