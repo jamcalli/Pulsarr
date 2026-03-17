@@ -12,14 +12,7 @@ import { useConfigStore } from '@/stores/configStore'
 
 export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
-/**
- * React hook that manages Plex session monitoring configuration, schedules, and related operations.
- *
- * Provides form state and validation for session monitoring settings, synchronizes with global configuration, manages schedule enablement and intervals, and exposes handlers for running the session monitor, resetting or deleting shows, and resetting inactive shows. Integrates with external stores for state management and displays toast notifications for user feedback.
- *
- * @returns An object containing the form instance, save status, schedule data, rolling and inactive shows, loading and error states, active action ID, computed enabled state, and handler functions for all session monitoring operations.
- */
-export function useSessionMonitoring() {
+export function useSessionMonitoringForm() {
   const { config, updateConfig } = useConfigStore()
   const {
     schedules,
@@ -28,17 +21,6 @@ export function useSessionMonitoring() {
     updateSessionMonitorSchedule,
     updateAutoResetSchedule,
     setLoadingWithMinDuration,
-    rollingShows,
-    inactiveShows,
-    sessionMonitoringResults,
-    fetchRollingShows,
-    fetchInactiveShows,
-    runSessionMonitor,
-    resetShow,
-    deleteShow,
-    resetInactiveShows,
-    loading,
-    error,
   } = useUtilitiesStore()
 
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
@@ -47,11 +29,9 @@ export function useSessionMonitoring() {
   const [inactivityDays, setInactivityDays] = useState(
     config?.plexSessionMonitoring?.inactivityResetDays || 7,
   )
-  const [activeActionId, setActiveActionId] = useState<number | null>(null)
   const [isToggling, setIsToggling] = useState(false)
   const formInitializedRef = useRef(false)
 
-  // Initialize form with default values following established patterns
   const form = useForm<SessionMonitoringFormData>({
     resolver: zodResolver(SessionMonitoringConfigSchema),
     mode: 'onChange',
@@ -75,10 +55,9 @@ export function useSessionMonitoring() {
     (s) => s.name === 'plex-rolling-auto-reset',
   )
 
-  // Watch enabled state
   const isEnabled = form.watch('enabled')
 
-  // Update form values when config data is available (following usePlexLabels pattern)
+  // Update form values when config data is available
   useEffect(() => {
     if (
       config?.plexSessionMonitoring &&
@@ -111,23 +90,12 @@ export function useSessionMonitoring() {
     }
   }, [config?.plexSessionMonitoring, form, saveStatus])
 
-  // Fetch data when enabled
-  useEffect(() => {
-    if (isEnabled) {
-      fetchRollingShows()
-      fetchInactiveShows(inactivityDays)
-    }
-  }, [isEnabled, fetchRollingShows, fetchInactiveShows, inactivityDays])
-
-  // Helper function to update session monitor schedule
   const handleUpdateSessionMonitorSchedule = useCallback(
     async (schedule: JobStatus, data: SessionMonitoringFormData) => {
-      // Check if enabled state changed
       if (schedule.enabled !== data.enabled) {
         await toggleScheduleStatus(schedule.name, data.enabled)
       }
 
-      // Check if polling interval changed and schedule is enabled
       const currentInterval =
         schedule.type === 'interval' ? schedule.config?.minutes || 15 : 15
       if (data.enabled && currentInterval !== data.pollingIntervalMinutes) {
@@ -143,19 +111,15 @@ export function useSessionMonitoring() {
     [toggleScheduleStatus, updateSessionMonitorSchedule],
   )
 
-  // Helper function to update auto-reset schedule
   const handleUpdateAutoResetSchedule = useCallback(
     async (schedule: JobStatus, data: SessionMonitoringFormData) => {
-      // Auto-reset should be enabled when session monitoring is enabled AND enableAutoReset is true
       const shouldEnableAutoReset =
         data.enabled && (data.enableAutoReset ?? true)
 
-      // Check if enabled state changed
       if (schedule.enabled !== shouldEnableAutoReset) {
         await toggleScheduleStatus(schedule.name, shouldEnableAutoReset)
       }
 
-      // Check if auto-reset interval changed and schedule should be enabled
       const currentAutoResetInterval =
         schedule.type === 'interval' ? schedule.config?.hours || 24 : 24
       const newAutoResetInterval = data.autoResetIntervalHours ?? 24
@@ -175,28 +139,23 @@ export function useSessionMonitoring() {
     [toggleScheduleStatus, updateAutoResetSchedule],
   )
 
-  // Handle toggle enable/disable with consistent loading patterns
   const handleToggle = useCallback(
     async (newEnabledState: boolean) => {
       setIsToggling(true)
       try {
-        // Apply minimum loading time for better UX
         const minimumLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, 500),
         )
 
-        // Get current form values and update enabled state
         const currentValues = form.getValues()
         const formData = { ...currentValues, enabled: newEnabledState }
 
-        // Transform the form data using the schema before passing to updateConfig
         const transformedData = SessionMonitoringConfigSchema.parse(formData)
 
         const updateConfigPromise = updateConfig({
           plexSessionMonitoring: transformedData,
         })
 
-        // Keep schedules consistent with the new enabled state
         const schedulePromises: Promise<void>[] = []
         if (sessionMonitorSchedule) {
           schedulePromises.push(
@@ -218,7 +177,6 @@ export function useSessionMonitoring() {
           minimumLoadingTime,
         ])
 
-        // Only update form state if the API call succeeds
         form.setValue('enabled', newEnabledState, { shouldDirty: false })
         toast.success(
           `Session monitoring ${newEnabledState ? 'enabled' : 'disabled'} successfully`,
@@ -228,7 +186,6 @@ export function useSessionMonitoring() {
         toast.error(
           `Failed to ${newEnabledState ? 'enable' : 'disable'} session monitoring`,
         )
-        // Re-throw the error for the component to handle
         throw error
       } finally {
         setIsToggling(false)
@@ -244,7 +201,6 @@ export function useSessionMonitoring() {
     ],
   )
 
-  // Form submission handler following established patterns
   const onSubmit = useCallback(
     async (data: SessionMonitoringFormData) => {
       setSubmittedValues(data)
@@ -256,13 +212,11 @@ export function useSessionMonitoring() {
           setTimeout(resolve, 500),
         )
 
-        // Transform the form data using the schema before passing to updateConfig
         const transformedData = SessionMonitoringConfigSchema.parse(data)
         const updateConfigPromise = updateConfig({
           plexSessionMonitoring: transformedData,
         })
 
-        // Handle schedule updates in parallel
         const schedulePromises: Promise<void>[] = []
 
         if (sessionMonitorSchedule) {
@@ -277,20 +231,17 @@ export function useSessionMonitoring() {
           )
         }
 
-        // Run all operations in parallel
         await Promise.all([
           updateConfigPromise,
           ...schedulePromises,
           minimumLoadingTime,
         ])
 
-        // Refresh schedules
         await fetchSchedules()
 
         setSaveStatus('success')
         toast.success('Session monitoring settings updated successfully')
 
-        // Reset form with updated values
         form.reset(data, { keepDirty: false })
 
         await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -327,7 +278,6 @@ export function useSessionMonitoring() {
     ],
   )
 
-  // Cancel handler following established patterns
   const handleCancel = useCallback(() => {
     if (config?.plexSessionMonitoring) {
       const formValues = {
@@ -349,122 +299,19 @@ export function useSessionMonitoring() {
     }
   }, [config?.plexSessionMonitoring, form])
 
-  // Action handlers with consistent loading patterns
-  const handleRunSessionMonitor = useCallback(async () => {
-    try {
-      const result = await runSessionMonitor()
-      toast.success(
-        `Session monitor completed. Processed ${result.processedSessions} sessions, triggered ${result.triggeredSearches} searches.`,
-      )
-
-      // Refresh rolling shows after running session monitor
-      await fetchRollingShows()
-    } catch (_err) {
-      // Error handling is done in the store
-    }
-  }, [runSessionMonitor, fetchRollingShows])
-
-  const handleResetShow = useCallback(
-    async (id: number) => {
-      setActiveActionId(id)
-      try {
-        const result = await resetShow(id)
-        toast.success(result.message || 'Show reset successfully')
-      } catch (_err) {
-        // Error handling is done in the store
-      } finally {
-        setActiveActionId(null)
-      }
-    },
-    [resetShow],
-  )
-
-  const handleDeleteShow = useCallback(
-    async (id: number) => {
-      setActiveActionId(id)
-      try {
-        const result = await deleteShow(id)
-        toast.success(result.message || 'Show removed successfully')
-      } catch (_err) {
-        // Error handling is done in the store
-      } finally {
-        setActiveActionId(null)
-      }
-    },
-    [deleteShow],
-  )
-
-  const handleResetInactiveShows = useCallback(async () => {
-    try {
-      // Use current form value to stay in sync with UI, fallback to default if undefined
-      const currentInactivityDays = form.getValues('inactivityResetDays') ?? 7
-      const result = await resetInactiveShows(currentInactivityDays)
-      toast.success(`${result.message} (${result.resetCount} shows reset)`)
-
-      // Refresh both rolling and inactive shows using current form value
-      await fetchRollingShows()
-      await fetchInactiveShows(currentInactivityDays)
-    } catch (_err) {
-      // Error handling is done in the store
-    }
-  }, [resetInactiveShows, fetchRollingShows, fetchInactiveShows, form])
-
   return {
-    // Form state
     form,
     saveStatus,
     isSaving: saveStatus === 'loading',
     submittedValues,
-
-    // Schedule data
     sessionMonitorSchedule,
     autoResetSchedule,
-
-    // Rolling shows data
-    rollingShows,
-    inactiveShows,
-    sessionMonitoringResults,
     inactivityDays,
     setInactivityDays,
-
-    // Loading states
-    loading: {
-      rollingShows: loading.rollingShows,
-      inactiveShows: loading.inactiveShows,
-      sessionMonitor: loading.sessionMonitor,
-      resetShow: loading.resetShow,
-      deleteShow: loading.deleteShow,
-      resetInactiveShows: loading.resetInactiveShows,
-    },
-
-    // Error states
-    error: {
-      rollingShows: error.rollingShows,
-      inactiveShows: error.inactiveShows,
-      sessionMonitor: error.sessionMonitor,
-      resetShow: error.resetShow,
-      deleteShow: error.deleteShow,
-      resetInactiveShows: error.resetInactiveShows,
-    },
-
-    // Action states
-    activeActionId,
-
-    // Toggle states
     isToggling,
-
-    // Computed values
     isEnabled,
-
-    // Handlers
     onSubmit,
     handleCancel,
     handleToggle,
-    handleRunSessionMonitor,
-    handleResetShow,
-    handleDeleteShow,
-    handleResetInactiveShows,
-    fetchRollingShows,
-    fetchInactiveShows,
   }
 }

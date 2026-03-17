@@ -43,8 +43,6 @@ interface SessionMonitoringStatusProps {
   resetShow: (id: number) => Promise<void>
   deleteShow: (id: number, shouldReset?: boolean) => Promise<void>
   resetInactiveShows: (days: number) => Promise<void>
-  fetchRollingShows: () => Promise<void>
-  fetchInactiveShows: (days: number) => Promise<void>
 }
 
 /**
@@ -64,8 +62,6 @@ export function SessionMonitoringStatus({
   resetShow,
   deleteShow,
   resetInactiveShows,
-  fetchRollingShows,
-  fetchInactiveShows,
 }: SessionMonitoringStatusProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [showActiveShows, setShowActiveShows] = useState(false)
@@ -90,19 +86,6 @@ export function SessionMonitoringStatus({
   useEffect(() => {
     setLocalInactivityDays(inactivityDays)
   }, [inactivityDays])
-
-  // Optimized data fetching for sheet interactions
-  useEffect(() => {
-    if (isEnabled && showActiveShows) {
-      fetchRollingShows()
-    }
-  }, [isEnabled, showActiveShows, fetchRollingShows])
-
-  useEffect(() => {
-    if (isEnabled && showInactiveShows) {
-      fetchInactiveShows(inactivityDays)
-    }
-  }, [isEnabled, showInactiveShows, inactivityDays, fetchInactiveShows])
 
   // Handle bulk reset of inactive shows with confirmation
   const handleBulkResetConfirm = async () => {

@@ -159,7 +159,7 @@ export const getInactiveRollingMonitoredSchema = {
 }
 
 // Reusable monitoring type enum
-const MonitoringTypeEnum = z.enum([
+export const MonitoringTypeEnum = z.enum([
   'pilotRolling',
   'firstSeasonRolling',
   'allSeasonPilotRolling',
@@ -226,8 +226,48 @@ export const bulkManageRollingMonitoredSchema = {
   },
 }
 
-// Export inferred types following established patterns
+// Standalone response schemas for client-side validation via apiClient
+export const RollingMonitoredListResponseSchema =
+  getRollingMonitoredSchema.response[200]
+export const InactiveRollingMonitoredResponseSchema =
+  getInactiveRollingMonitoredSchema.response[200]
+export const RunSessionMonitorResponseSchema =
+  runSessionMonitorSchema.response[200]
+export const ResetRollingMonitoredResponseSchema =
+  resetRollingMonitoredSchema.response[200]
+export const DeleteRollingMonitoredResponseSchema =
+  deleteRollingMonitoredSchema.response[200]
+export const ResetInactiveShowsResponseSchema =
+  resetInactiveShowsSchema.response[200]
+export const SonarrShowsResponseSchema = getSonarrShowsSchema.response[200]
+export const BulkManageResponseSchema =
+  bulkManageRollingMonitoredSchema.response[200]
+
 export type RollingMonitoredShow = z.infer<typeof RollingMonitoredShowSchema>
 export type SessionMonitoringResult = z.infer<
   typeof SessionMonitoringResultSchema
 >
+export type RollingMonitoredListResponse = z.infer<
+  typeof RollingMonitoredListResponseSchema
+>
+export type InactiveRollingMonitoredResponse = z.infer<
+  typeof InactiveRollingMonitoredResponseSchema
+>
+export type RunSessionMonitorResponse = z.infer<
+  typeof RunSessionMonitorResponseSchema
+>
+export type ResetRollingMonitoredResponse = z.infer<
+  typeof ResetRollingMonitoredResponseSchema
+>
+export type DeleteRollingMonitoredResponse = z.infer<
+  typeof DeleteRollingMonitoredResponseSchema
+>
+export type ResetInactiveShowsResponse = z.infer<
+  typeof ResetInactiveShowsResponseSchema
+>
+export type SonarrShowsResponse = z.infer<typeof SonarrShowsResponseSchema>
+export type BulkManageResponse = z.infer<typeof BulkManageResponseSchema>
+export type BulkManageBody = z.infer<
+  typeof bulkManageRollingMonitoredSchema.body
+>
+export type MonitoringType = z.infer<typeof MonitoringTypeEnum>

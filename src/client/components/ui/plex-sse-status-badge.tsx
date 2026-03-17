@@ -21,28 +21,32 @@ export function PlexSSEStatusBadge() {
     }
   }
 
-  const badge = (
-    <div className="ml-2 inline-flex items-center gap-2 h-full">
-      <Badge
-        variant="neutral"
-        className={cn('px-2 py-0.5 h-7 text-sm', getBadgeVariant())}
-      >
-        SSE: {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    </div>
-  )
-
-  if (status === 'disconnected') {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{badge}</TooltipTrigger>
-        <TooltipContent>
-          Unable to connect to Plex SSE. Check your server connection in Plex
-          Configuration.
-        </TooltipContent>
-      </Tooltip>
-    )
+  const getTooltipText = () => {
+    switch (status) {
+      case 'connected':
+        return 'Real-time event stream from your Plex server is active.'
+      case 'disconnected':
+        return 'Unable to connect to Plex SSE. Check your server connection in Plex Configuration.'
+      default:
+        return 'Connecting to your Plex server event stream...'
+    }
   }
 
-  return badge
+  const label = status === 'connected' ? 'Connected' : `SSE: ${status.charAt(0).toUpperCase() + status.slice(1)}`
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="ml-2 inline-flex items-center gap-2 h-full cursor-help">
+          <Badge
+            variant="neutral"
+            className={cn('px-2 py-0.5 h-7 text-sm', getBadgeVariant())}
+          >
+            {label}
+          </Badge>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>{getTooltipText()}</TooltipContent>
+    </Tooltip>
+  )
 }

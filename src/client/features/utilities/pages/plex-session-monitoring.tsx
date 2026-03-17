@@ -1,4 +1,6 @@
 import { Loader2, Save, X } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
@@ -12,46 +14,96 @@ import { SessionMonitoringConfig } from '@/features/utilities/components/session
 import { SessionMonitoringFiltering } from '@/features/utilities/components/session-monitoring/session-monitoring-filtering'
 import { SessionMonitoringResetSettings } from '@/features/utilities/components/session-monitoring/session-monitoring-reset-settings'
 import { SessionMonitoringStatus } from '@/features/utilities/components/session-monitoring/session-monitoring-status'
-import { useSessionMonitoring } from '@/features/utilities/hooks/useSessionMonitoring'
+import { useSessionMonitoringForm } from '@/features/utilities/hooks/useSessionMonitoring'
+import {
+  useDeleteShowMutation,
+  useInactiveShowsQuery,
+  useResetInactiveShowsMutation,
+  useResetShowMutation,
+  useRollingShowsQuery,
+  useRunSessionMonitorMutation,
+} from '@/features/utilities/hooks/useSessionMonitoringQueries'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useConfigStore } from '@/stores/configStore'
 
-/**
- * Plex Session Monitoring page component.
- *
- * Renders the UI for configuring, managing, and monitoring Plex session tracking and rolling-monitor reset options.
- * Exposes controls to enable/disable monitoring, adjust polling and filtering, configure automatic reset/cleanup for rolling monitored shows, run the session monitor, and manage rolling/inactive show lists.
- *
- * @returns The React element for the Plex Session Monitoring page.
- */
 export default function PlexSessionMonitoringPage() {
   const { initialize, isInitialized } = useConfigStore()
   const isInitializing = useInitializeWithMinDuration(initialize)
 
-  // Use the centralized hook for all session monitoring logic
   const {
     form,
     isSaving,
     isToggling,
-    rollingShows,
-    inactiveShows,
+    isEnabled,
     inactivityDays,
     setInactivityDays,
-    loading,
-    activeActionId,
-    isEnabled,
     onSubmit,
     handleCancel,
     handleToggle,
-    handleRunSessionMonitor,
-    handleResetShow,
-    handleDeleteShow,
-    handleResetInactiveShows,
-    fetchRollingShows,
-    fetchInactiveShows,
-  } = useSessionMonitoring()
+  } = useSessionMonitoringForm()
 
-  // Determine status based on configuration state
+  const { data: rollingShowsData, isLoading: rollingShowsLoading } =
+    useRollingShowsQuery(isEnabled)
+  const { data: inactiveShowsData, isLoading: inactiveShowsLoading } =
+    useInactiveShowsQuery(inactivityDays, isEnabled)
+
+  const runMonitor = useRunSessionMonitorMutation()
+  const resetShowMutation = useResetShowMutation()
+  const deleteShowMutation = useDeleteShowMutation()
+  const resetInactiveMutation = useResetInactiveShowsMutation()
+
+  const [activeActionId, setActiveActionId] = useState<number | null>(null)
+
+  const rollingShows = rollingShowsData?.shows ?? []
+  const inactiveShows = inactiveShowsData?.shows ?? []
+
+  const handleRunSessionMonitor = async () => {
+    try {
+      const data = await runMonitor.mutateAsync()
+      toast.success(
+        `Session monitor completed. Processed ${data.result.processedSessions} sessions, triggered ${data.result.triggeredSearches} searches.`,
+      )
+    } catch (_err) {
+      // Error is surfaced by mutation state
+    }
+  }
+
+  const handleResetShow = async (id: number) => {
+    setActiveActionId(id)
+    try {
+      const result = await resetShowMutation.mutateAsync(id)
+      toast.success(result.message || 'Show reset successfully')
+    } catch (_err) {
+      // Error is surfaced by mutation state
+    } finally {
+      setActiveActionId(null)
+    }
+  }
+
+  const handleDeleteShow = async (id: number) => {
+    setActiveActionId(id)
+    try {
+      const result = await deleteShowMutation.mutateAsync(id)
+      toast.success(result.message || 'Show removed successfully')
+    } catch (_err) {
+      // Error is surfaced by mutation state
+    } finally {
+      setActiveActionId(null)
+    }
+  }
+
+  const handleResetInactiveShows = async () => {
+    try {
+      const currentInactivityDays = form.getValues('inactivityResetDays') ?? 7
+      const result = await resetInactiveMutation.mutateAsync(
+        currentInactivityDays,
+      )
+      toast.success(`${result.message} (${result.resetCount} shows reset)`)
+    } catch (_err) {
+      // Error is surfaced by mutation state
+    }
+  }
+
   const getStatus = () => {
     if (!isInitialized || isInitializing) return 'unknown'
     return isEnabled ? 'enabled' : 'disabled'
@@ -99,27 +151,25 @@ export default function PlexSessionMonitoringPage() {
 
               <SessionMonitoringStatus
                 isEnabled={isEnabled}
-                rollingShows={rollingShows || []}
-                inactiveShows={inactiveShows || []}
+                rollingShows={rollingShows}
+                inactiveShows={inactiveShows}
                 rollingLoading={{
-                  runningMonitor: loading.sessionMonitor,
-                  fetchingShows: loading.rollingShows,
-                  fetchingInactive: loading.inactiveShows,
-                  resetting: loading.resetShow,
-                  deleting: loading.deleteShow,
+                  runningMonitor: runMonitor.isPending,
+                  fetchingShows: rollingShowsLoading,
+                  fetchingInactive: inactiveShowsLoading,
+                  resetting: resetShowMutation.isPending,
+                  deleting: deleteShowMutation.isPending,
                 }}
                 activeActionId={activeActionId}
                 inactivityDays={inactivityDays}
                 setInactivityDays={setInactivityDays}
                 runSessionMonitor={async () => {
                   await handleRunSessionMonitor()
-                  return null // Component expects this signature
+                  return null
                 }}
                 resetShow={handleResetShow}
                 deleteShow={handleDeleteShow}
                 resetInactiveShows={handleResetInactiveShows}
-                fetchRollingShows={fetchRollingShows}
-                fetchInactiveShows={fetchInactiveShows}
               />
 
               <Separator />

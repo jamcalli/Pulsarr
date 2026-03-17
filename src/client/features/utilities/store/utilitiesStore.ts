@@ -8,10 +8,6 @@ import type {
   JobStatus,
   ScheduleUpdate,
 } from '@root/schemas/scheduler/scheduler.schema'
-import type {
-  RollingMonitoredShow,
-  SessionMonitoringResult,
-} from '@root/schemas/session-monitoring/session-monitoring.schema'
 import {
   CleanupResponseSchema,
   CreateTaggingResponseSchema,
@@ -38,9 +34,6 @@ export interface UtilitiesState {
   showDeleteTagsConfirmation: boolean
   removePlexLabelsResults: PlexLabelRemovalResult | null
   showDeletePlexLabelsConfirmation: boolean
-  rollingShows: RollingMonitoredShow[] | null
-  inactiveShows: RollingMonitoredShow[] | null
-  sessionMonitoringResults: SessionMonitoringResult | null
   loading: {
     schedules: boolean
     deleteSyncDryRun: boolean
@@ -56,12 +49,6 @@ export interface UtilitiesState {
     syncPlexLabels: boolean
     cleanupPlexLabels: boolean
     removePlexLabels: boolean
-    rollingShows: boolean
-    inactiveShows: boolean
-    sessionMonitor: boolean
-    resetShow: boolean
-    deleteShow: boolean
-    resetInactiveShows: boolean
     updateSchedule: boolean
   }
   error: {
@@ -79,12 +66,6 @@ export interface UtilitiesState {
     syncPlexLabels: string | null
     cleanupPlexLabels: string | null
     removePlexLabels: string | null
-    rollingShows: string | null
-    inactiveShows: string | null
-    sessionMonitor: string | null
-    resetShow: string | null
-    deleteShow: string | null
-    resetInactiveShows: string | null
     updateSchedule: string | null
   }
   hasLoadedSchedules: boolean
@@ -118,7 +99,7 @@ export interface UtilitiesState {
   setShowDeletePlexLabelsConfirmation: (show: boolean) => void
   removePlexLabels: () => Promise<PlexLabelRemovalResult>
 
-  // Session monitoring functions
+  // Session monitoring schedule functions
   updateSessionMonitorSchedule: (
     scheduleName: string,
     intervalMinutes: number,
@@ -127,14 +108,6 @@ export interface UtilitiesState {
     scheduleName: string,
     intervalHours: number,
   ) => Promise<boolean>
-  fetchRollingShows: () => Promise<void>
-  fetchInactiveShows: (inactivityDays: number) => Promise<void>
-  runSessionMonitor: () => Promise<SessionMonitoringResult>
-  resetShow: (id: number) => Promise<{ success: boolean; message: string }>
-  deleteShow: (id: number) => Promise<{ success: boolean; message: string }>
-  resetInactiveShows: (
-    inactivityDays: number,
-  ) => Promise<{ success: boolean; message: string; resetCount: number }>
 }
 
 // Enhanced helper function to handle API responses with Zod schema validation
@@ -288,9 +261,6 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       showDeleteTagsConfirmation: false,
       removePlexLabelsResults: null,
       showDeletePlexLabelsConfirmation: false,
-      rollingShows: null,
-      inactiveShows: null,
-      sessionMonitoringResults: null,
       loading: {
         schedules: false,
         deleteSyncDryRun: false,
@@ -306,12 +276,6 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         syncPlexLabels: false,
         cleanupPlexLabels: false,
         removePlexLabels: false,
-        rollingShows: false,
-        inactiveShows: false,
-        sessionMonitor: false,
-        resetShow: false,
-        deleteShow: false,
-        resetInactiveShows: false,
         updateSchedule: false,
       },
       error: {
@@ -329,12 +293,6 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         syncPlexLabels: null,
         cleanupPlexLabels: null,
         removePlexLabels: null,
-        rollingShows: null,
-        inactiveShows: null,
-        sessionMonitor: null,
-        resetShow: null,
-        deleteShow: null,
-        resetInactiveShows: null,
         updateSchedule: null,
       },
 
@@ -377,12 +335,6 @@ export const useUtilitiesStore = create<UtilitiesState>()(
             syncPlexLabels: null,
             cleanupPlexLabels: null,
             removePlexLabels: null,
-            rollingShows: null,
-            inactiveShows: null,
-            sessionMonitor: null,
-            resetShow: null,
-            deleteShow: null,
-            resetInactiveShows: null,
             updateSchedule: null,
           },
         }))
@@ -623,7 +575,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         })
       },
 
-      // Session Monitoring methods
+      // Session monitoring schedule helpers
 
       updateSessionMonitorSchedule: async (
         scheduleName: string,
@@ -642,108 +594,6 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           type: 'interval',
           config: { hours: intervalHours },
         }),
-
-      fetchRollingShows: async () => {
-        return apiRequest<{ success: boolean; shows: RollingMonitoredShow[] }>({
-          url: '/v1/session-monitoring/rolling-monitored',
-          method: 'GET',
-          loadingKey: 'rollingShows',
-          errorKey: 'rollingShows',
-          defaultErrorMessage: 'Failed to fetch rolling shows',
-          onSuccess: (data) => {
-            set((state) => ({
-              ...state,
-              rollingShows: data.shows,
-            }))
-          },
-        })
-      },
-
-      fetchInactiveShows: async (inactivityDays: number) => {
-        return apiRequest<{
-          success: boolean
-          shows: RollingMonitoredShow[]
-          inactivityDays: number
-        }>({
-          url: `/v1/session-monitoring/rolling-monitored/inactive?inactivityDays=${inactivityDays}`,
-          method: 'GET',
-          loadingKey: 'inactiveShows',
-          errorKey: 'inactiveShows',
-          defaultErrorMessage: 'Failed to fetch inactive shows',
-          onSuccess: (data) => {
-            set((state) => ({
-              ...state,
-              inactiveShows: data.shows,
-            }))
-          },
-        })
-      },
-
-      runSessionMonitor: async () => {
-        return apiRequest<{
-          success: boolean
-          result: SessionMonitoringResult
-        }>({
-          url: '/v1/session-monitoring/run',
-          method: 'POST',
-          loadingKey: 'sessionMonitor',
-          errorKey: 'sessionMonitor',
-          defaultErrorMessage: 'Failed to run session monitor',
-          onSuccess: (data) => {
-            set((state) => ({
-              ...state,
-              sessionMonitoringResults: data.result,
-            }))
-          },
-        }).then((response) => response.result)
-      },
-
-      resetShow: async (id: number) => {
-        return apiRequest<{ success: boolean; message: string }>({
-          url: `/v1/session-monitoring/rolling-monitored/${id}/reset`,
-          method: 'POST',
-          loadingKey: 'resetShow',
-          errorKey: 'resetShow',
-          defaultErrorMessage: 'Failed to reset show',
-          onSuccess: () => {
-            // Refresh rolling shows after reset
-            get().fetchRollingShows()
-          },
-        })
-      },
-
-      deleteShow: async (id: number) => {
-        return apiRequest<{ success: boolean; message: string }>({
-          url: `/v1/session-monitoring/rolling-monitored/${id}?reset=false`,
-          method: 'DELETE',
-          loadingKey: 'deleteShow',
-          errorKey: 'deleteShow',
-          defaultErrorMessage: 'Failed to delete show',
-          onSuccess: () => {
-            // Refresh rolling shows after deletion
-            get().fetchRollingShows()
-          },
-        })
-      },
-
-      resetInactiveShows: async (inactivityDays: number) => {
-        return apiRequest<
-          { success: boolean; message: string; resetCount: number },
-          { inactivityDays: number }
-        >({
-          url: '/v1/session-monitoring/rolling-monitored/reset-inactive',
-          method: 'POST',
-          body: { inactivityDays },
-          loadingKey: 'resetInactiveShows',
-          errorKey: 'resetInactiveShows',
-          defaultErrorMessage: 'Failed to reset inactive shows',
-          onSuccess: () => {
-            // Refresh both rolling and inactive shows after reset
-            get().fetchRollingShows()
-            get().fetchInactiveShows(inactivityDays)
-          },
-        })
-      },
     }
   }),
 )

@@ -5,14 +5,16 @@ import {
   WebhookEndpointResponseSchema,
   WebhookTestResponseSchema,
 } from '@root/schemas/webhooks/webhook-endpoints.schema'
-import { useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/apiClient'
+import { queryClient } from '@/lib/queryClient'
 import { useAppMutation } from '@/lib/useAppQuery'
 import { webhookEndpointKeys } from './useWebhookEndpointsQuery'
 
-export function useCreateWebhookEndpoint() {
-  const queryClient = useQueryClient()
+function invalidateWebhookEndpointCaches() {
+  queryClient.invalidateQueries({ queryKey: webhookEndpointKeys.all })
+}
 
+export function useCreateWebhookEndpoint() {
   return useAppMutation({
     mutationFn: (data: CreateWebhookEndpoint) =>
       apiClient.post(
@@ -21,14 +23,12 @@ export function useCreateWebhookEndpoint() {
         WebhookEndpointResponseSchema,
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: webhookEndpointKeys.all })
+      invalidateWebhookEndpointCaches()
     },
   })
 }
 
 export function useUpdateWebhookEndpoint() {
-  const queryClient = useQueryClient()
-
   return useAppMutation({
     mutationFn: ({ id, data }: { id: number; data: UpdateWebhookEndpoint }) =>
       apiClient.put(
@@ -37,19 +37,17 @@ export function useUpdateWebhookEndpoint() {
         WebhookEndpointResponseSchema,
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: webhookEndpointKeys.all })
+      invalidateWebhookEndpointCaches()
     },
   })
 }
 
 export function useDeleteWebhookEndpoint() {
-  const queryClient = useQueryClient()
-
   return useAppMutation({
     mutationFn: (id: number) =>
       apiClient.delete<void>(`/v1/webhooks/endpoints/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: webhookEndpointKeys.all })
+      invalidateWebhookEndpointCaches()
     },
   })
 }
