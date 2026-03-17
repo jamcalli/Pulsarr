@@ -1,5 +1,6 @@
 import type { User } from '@root/types/config.types.js'
 import type {
+  SonarrShowWithEnrollmentStatus,
   WatchlistInstanceStatus,
   WatchlistStatus,
 } from '@root/types/watchlist-status.types.js'
@@ -179,6 +180,7 @@ declare module '@services/database.service.js' {
       isPrimary?: boolean,
       syncing?: boolean,
       trx?: Knex.Transaction,
+      sonarrSeriesId?: number,
     ): Promise<void>
 
     /**
@@ -356,5 +358,15 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to array of User objects for tag creation
      */
     getUsersWithSonarrItems(instanceId: number): Promise<User[]>
+
+    /**
+     * Returns all Pulsarr-tracked Sonarr shows with their rolling enrollment status.
+     * Only returns rows where sonarr_series_id is populated.
+     * @param instanceId - Optional filter by Sonarr instance
+     * @returns Array of shows with enrollment status
+     */
+    getSonarrShowsWithEnrollmentStatus(
+      instanceId?: number,
+    ): Promise<SonarrShowWithEnrollmentStatus[]>
   }
 }

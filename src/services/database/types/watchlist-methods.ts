@@ -95,6 +95,12 @@ declare module '@services/database.service.js' {
         key: string
         added?: string
         status?: WatchlistStatus
+        series_status?: 'continuing' | 'ended'
+        movie_status?: 'available' | 'unavailable'
+        last_notified_at?: string
+        sonarr_instance_id?: number | null
+        sonarr_series_id?: number
+        radarr_instance_id?: number | null
       }>,
     ): Promise<number>
 

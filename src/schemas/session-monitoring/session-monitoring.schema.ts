@@ -158,6 +158,74 @@ export const getInactiveRollingMonitoredSchema = {
   },
 }
 
+// Reusable monitoring type enum
+const MonitoringTypeEnum = z.enum([
+  'pilotRolling',
+  'firstSeasonRolling',
+  'allSeasonPilotRolling',
+])
+
+// Schema for getting Sonarr shows with enrollment status
+export const getSonarrShowsSchema = {
+  summary: 'Get Sonarr shows with enrollment status',
+  operationId: 'getSonarrShows',
+  description:
+    'Retrieve all Pulsarr-tracked Sonarr shows with their rolling monitoring enrollment status',
+  tags: ['Session Monitoring'],
+  querystring: z.object({
+    instanceId: z.coerce.number().int().positive().optional(),
+  }),
+  response: {
+    200: z.object({
+      success: z.boolean(),
+      shows: z.array(
+        z.object({
+          watchlistId: z.number(),
+          sonarrInstanceId: z.number(),
+          sonarrSeriesId: z.number(),
+          title: z.string(),
+          guids: z.array(z.string()),
+          rollingShowId: z.number().nullable(),
+          monitoringType: MonitoringTypeEnum.nullable(),
+        }),
+      ),
+    }),
+    400: ErrorSchema,
+  },
+}
+
+// Schema for bulk managing rolling monitored shows (enroll and/or modify)
+export const bulkManageRollingMonitoredSchema = {
+  summary: 'Bulk manage rolling monitored shows',
+  operationId: 'bulkManageRollingMonitoredShows',
+  description:
+    'Enroll new shows into rolling monitoring and/or change the monitoring type of already-enrolled shows in bulk',
+  tags: ['Session Monitoring'],
+  body: z.object({
+    shows: z.array(
+      z.object({
+        sonarrSeriesId: z.number().int().positive(),
+        sonarrInstanceId: z.number().int().positive(),
+        title: z.string(),
+        guids: z.array(z.string()),
+        rollingShowId: z.number().nullable(),
+      }),
+    ),
+    monitoringType: MonitoringTypeEnum,
+    resetMonitoring: z.boolean().optional(),
+  }),
+  response: {
+    200: z.object({
+      success: z.boolean(),
+      message: z.string(),
+      enrolled: z.number(),
+      modified: z.number(),
+      skipped: z.number(),
+    }),
+    400: ErrorSchema,
+  },
+}
+
 // Export inferred types following established patterns
 export type RollingMonitoredShow = z.infer<typeof RollingMonitoredShowSchema>
 export type SessionMonitoringResult = z.infer<

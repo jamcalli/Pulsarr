@@ -544,3 +544,44 @@ export async function getInactiveRollingMonitoredShows(
     return []
   }
 }
+
+/**
+ * Updates the monitoring type and initial season for a rolling monitored show.
+ *
+ * Used when changing an enrolled show's monitoring approach (e.g. pilotRolling
+ * to firstSeasonRolling). Only updates the master record.
+ *
+ * @param id - The ID of the master rolling monitored show entry
+ * @param monitoringType - The new monitoring type
+ * @param currentMonitoredSeason - The initial season for the new type
+ * @returns True if a row was updated
+ */
+export async function updateRollingShowMonitoringType(
+  this: DatabaseService,
+  id: number,
+  monitoringType:
+    | 'pilotRolling'
+    | 'firstSeasonRolling'
+    | 'allSeasonPilotRolling',
+  currentMonitoredSeason: number,
+): Promise<boolean> {
+  try {
+    const updated = await this.knex('rolling_monitored_shows')
+      .where({ id })
+      .whereNull('plex_user_id')
+      .update({
+        monitoring_type: monitoringType,
+        current_monitored_season: currentMonitoredSeason,
+        updated_at: this.timestamp,
+        last_updated_at: this.timestamp,
+      })
+
+    return Number(updated) > 0
+  } catch (error) {
+    this.log.error(
+      { error, id, monitoringType },
+      'Error updating rolling show monitoring type',
+    )
+    return false
+  }
+}

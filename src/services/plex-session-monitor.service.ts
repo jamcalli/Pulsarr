@@ -757,12 +757,12 @@ export class PlexSessionMonitorService {
       | 'pilotRolling'
       | 'firstSeasonRolling'
       | 'allSeasonPilotRolling',
-  ): Promise<void> {
+  ): Promise<number> {
     try {
       // allSeasonPilotRolling uses 0 to track full-season expansion (not pilot seeding)
       const initialSeason = monitoringType === 'allSeasonPilotRolling' ? 0 : 1
 
-      await this.db.createRollingMonitoredShow({
+      return await this.db.createRollingMonitoredShow({
         sonarr_series_id: sonarrSeriesId,
         sonarr_instance_id: sonarrInstanceId,
         tvdb_id: tvdbId,
