@@ -1621,8 +1621,7 @@ export class ContentRouterService {
     for (const evaluator of this.evaluators) {
       if (
         evaluator.evaluateCondition &&
-        evaluator.canEvaluateConditionField &&
-        evaluator.canEvaluateConditionField(field)
+        evaluator.canEvaluateConditionField?.(field)
       ) {
         try {
           const result = evaluator.evaluateCondition(condition, item, context)

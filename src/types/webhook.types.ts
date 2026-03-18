@@ -38,5 +38,6 @@ export interface WebhookQueue {
     }
     title: string
     sonarrSeriesId?: number
+    isPilotRolling?: boolean
   }
 }

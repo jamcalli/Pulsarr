@@ -332,8 +332,13 @@ export async function updateWatchlistItem(
       return
     }
 
-    const { radarr_instance_id, sonarr_instance_id, syncing, ...otherUpdates } =
-      updates
+    const {
+      radarr_instance_id,
+      sonarr_instance_id,
+      sonarr_series_id,
+      syncing,
+      ...otherUpdates
+    } = updates
 
     // Handle status updates with regression prevention and history tracking
     const statusResult = processStatusUpdate(
@@ -448,6 +453,7 @@ export async function updateWatchlistItem(
             true,
             syncing ?? false,
             trx,
+            sonarr_series_id,
           )
         } else {
           await this.setPrimarySonarrInstance(item.id, sonarr_instance_id, trx)
@@ -473,6 +479,18 @@ export async function updateWatchlistItem(
               syncing ?? false,
               trx,
             )
+          }
+
+          if (sonarr_series_id !== undefined) {
+            await trx('watchlist_sonarr_instances')
+              .where({
+                watchlist_id: item.id,
+                sonarr_instance_id,
+              })
+              .update({
+                sonarr_series_id,
+                updated_at: this.timestamp,
+              })
           }
         }
       }
@@ -758,8 +776,9 @@ export async function bulkUpdateWatchlistItems(
     series_status?: 'continuing' | 'ended'
     movie_status?: 'available' | 'unavailable'
     last_notified_at?: string
-    sonarr_instance_id?: number
-    radarr_instance_id?: number
+    sonarr_instance_id?: number | null
+    sonarr_series_id?: number
+    radarr_instance_id?: number | null
   }>,
 ): Promise<number> {
   let updatedCount = 0
@@ -769,12 +788,10 @@ export async function bulkUpdateWatchlistItems(
 
     for (const chunk of chunks) {
       for (const update of chunk) {
-        const { userId, key, ...updateFields } = update
-
         const currentItem = await trx('watchlist_items')
           .where({
-            user_id: userId,
-            key: key,
+            user_id: update.userId,
+            key: update.key,
           })
           .select('id', 'status')
           .first()
@@ -784,50 +801,39 @@ export async function bulkUpdateWatchlistItems(
         // Process status update with regression prevention
         const statusResult = processStatusUpdate(
           currentItem.status,
-          updateFields.status,
-          `bulk update item ${key}`,
+          update.status,
+          `bulk update item ${update.key}`,
           this.log,
         )
 
         const effectiveStatus = statusResult.effectiveStatus
 
-        const mainTableFields: Record<string, unknown> = {}
-        const junctionFields: Record<string, unknown> = {}
-
-        for (const [field, value] of Object.entries(updateFields)) {
-          if (
-            field === 'radarr_instance_id' ||
-            field === 'sonarr_instance_id'
-          ) {
-            if (
-              value === null ||
-              typeof value === 'number' ||
-              value === undefined
-            ) {
-              junctionFields[field] = value
-            } else {
-              const numericValue =
-                typeof value === 'string' ? Number(value) : null
-              junctionFields[field] = Number.isNaN(numericValue)
-                ? null
-                : numericValue
-            }
-          } else if (field === 'status') {
-            // Only include status in main table update if it should be updated
-            if (statusResult.shouldUpdateStatus) {
-              mainTableFields[field] = effectiveStatus
-            }
-          } else {
-            mainTableFields[field] = value
-          }
-        }
+        const mainTableFields: Partial<
+          Record<
+            | 'added'
+            | 'series_status'
+            | 'movie_status'
+            | 'last_notified_at'
+            | 'status',
+            string
+          >
+        > = {}
+        if (update.added !== undefined) mainTableFields.added = update.added
+        if (update.series_status !== undefined)
+          mainTableFields.series_status = update.series_status
+        if (update.movie_status !== undefined)
+          mainTableFields.movie_status = update.movie_status
+        if (update.last_notified_at !== undefined)
+          mainTableFields.last_notified_at = update.last_notified_at
+        if (statusResult.shouldUpdateStatus)
+          mainTableFields.status = effectiveStatus
 
         let wroteMain = false
         let wroteJunction = false
         if (Object.keys(mainTableFields).length > 0) {
           const builder = trx('watchlist_items').where({
-            user_id: userId,
-            key: key,
+            user_id: update.userId,
+            key: update.key,
           })
           if (statusResult.shouldUpdateStatus) {
             builder.whereIn('status', allowedStatusesUpTo(effectiveStatus))
@@ -845,18 +851,15 @@ export async function bulkUpdateWatchlistItems(
         }
 
         // Handle Radarr instance junction updates
-        if ('radarr_instance_id' in junctionFields) {
-          const radarrInstanceId = junctionFields.radarr_instance_id as
-            | number
-            | null
-            | undefined
+        if (update.radarr_instance_id !== undefined) {
+          const radarrInstanceId = update.radarr_instance_id
 
           if (radarrInstanceId === null) {
             const del = await trx('watchlist_radarr_instances')
               .where({ watchlist_id: currentItem.id })
               .delete()
             wroteJunction = wroteJunction || Number(del) > 0
-          } else if (radarrInstanceId !== undefined) {
+          } else {
             const existingAssoc = await trx('watchlist_radarr_instances')
               .where({
                 watchlist_id: currentItem.id,
@@ -918,18 +921,15 @@ export async function bulkUpdateWatchlistItems(
         }
 
         // Handle Sonarr instance junction updates
-        if ('sonarr_instance_id' in junctionFields) {
-          const sonarrInstanceId = junctionFields.sonarr_instance_id as
-            | number
-            | null
-            | undefined
+        if (update.sonarr_instance_id !== undefined) {
+          const sonarrInstanceId = update.sonarr_instance_id
 
           if (sonarrInstanceId === null) {
             const del = await trx('watchlist_sonarr_instances')
               .where({ watchlist_id: currentItem.id })
               .delete()
             wroteJunction = wroteJunction || Number(del) > 0
-          } else if (sonarrInstanceId !== undefined) {
+          } else {
             const existingAssoc = await trx('watchlist_sonarr_instances')
               .where({
                 watchlist_id: currentItem.id,
@@ -941,6 +941,9 @@ export async function bulkUpdateWatchlistItems(
               await trx('watchlist_sonarr_instances').insert({
                 watchlist_id: currentItem.id,
                 sonarr_instance_id: sonarrInstanceId,
+                ...(update.sonarr_series_id !== undefined && {
+                  sonarr_series_id: update.sonarr_series_id,
+                }),
                 status: effectiveStatus,
                 is_primary: true,
                 last_notified_at: update.last_notified_at,
@@ -969,6 +972,11 @@ export async function bulkUpdateWatchlistItems(
                 ...(statusResult.shouldUpdateStatus
                   ? { status: effectiveStatus }
                   : {}),
+                ...(update.sonarr_series_id !== undefined &&
+                  existingAssoc.sonarr_series_id !==
+                    update.sonarr_series_id && {
+                    sonarr_series_id: update.sonarr_series_id,
+                  }),
                 is_primary: true,
                 last_notified_at:
                   update.last_notified_at !== undefined
@@ -1001,7 +1009,7 @@ export async function bulkUpdateWatchlistItems(
             trx,
             currentItem.id,
             effectiveStatus,
-            `${currentItem.status} → ${effectiveStatus} for bulk update item ${key}`,
+            `${currentItem.status} → ${effectiveStatus} for bulk update item ${update.key}`,
             this.timestamp,
             this.log,
           )

@@ -282,9 +282,14 @@ export class SonarrManagerService {
       // If rolling monitoring, convert to appropriate Sonarr monitoring option
       let sonarrMonitoringOption = targetSeasonMonitoring
       if (isRollingMonitoring) {
-        // For rolling options, start with pilot or firstSeason
-        sonarrMonitoringOption =
-          targetSeasonMonitoring === 'pilotRolling' ? 'pilot' : 'firstSeason'
+        // For rolling options, start with the appropriate Sonarr monitoring base
+        if (targetSeasonMonitoring === 'pilotRolling') {
+          sonarrMonitoringOption = 'pilot'
+        } else if (targetSeasonMonitoring === 'allSeasonPilotRolling') {
+          sonarrMonitoringOption = 'none' // Pilots are monitored individually post-add
+        } else {
+          sonarrMonitoringOption = 'firstSeason'
+        }
       }
 
       // Add to Sonarr and get the series ID directly
@@ -315,8 +320,19 @@ export class SonarrManagerService {
               targetInstanceId,
               tvdbId || '',
               sonarrItem.title,
-              targetSeasonMonitoring as 'pilotRolling' | 'firstSeasonRolling',
+              targetSeasonMonitoring as
+                | 'pilotRolling'
+                | 'firstSeasonRolling'
+                | 'allSeasonPilotRolling',
             )
+
+            // For allSeasonPilotRolling, seed E01 of every season after add
+            if (targetSeasonMonitoring === 'allSeasonPilotRolling') {
+              await plexSessionMonitor.monitorAllSeasonPilots(
+                sonarrSeriesId,
+                targetInstanceId,
+              )
+            }
 
             this.log.debug(
               {
@@ -335,6 +351,7 @@ export class SonarrManagerService {
 
       await this.fastify.db.updateWatchlistItem(userId, key, {
         sonarr_instance_id: targetInstanceId,
+        sonarr_series_id: sonarrSeriesId,
         syncing: syncing,
         status: 'requested',
       })

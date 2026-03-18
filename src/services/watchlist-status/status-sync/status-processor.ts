@@ -10,7 +10,7 @@ import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
 import type { DatabaseService } from '@services/database.service.js'
-import { parseGuids } from '@utils/guid-handler.js'
+import { extractSonarrId, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /**
@@ -37,6 +37,7 @@ interface BaseStatusUpdate {
 export interface ShowStatusUpdate extends BaseStatusUpdate {
   series_status?: 'continuing' | 'ended'
   sonarr_instance_id?: number
+  sonarr_series_id?: number
 }
 
 /**
@@ -202,6 +203,15 @@ export function createSonarrStatusConfig(): StatusProcessorConfig<
 
       if (item.sonarr_instance_id !== instanceId) {
         update.sonarr_instance_id = instanceId
+      }
+
+      // Backfill sonarr_series_id from the synthetic "sonarr:{id}" guid
+      // injected by toItem(), but only when we have an instance
+      if (instanceId !== undefined) {
+        const seriesId = extractSonarrId(content.guids)
+        if (seriesId > 0) {
+          update.sonarr_series_id = seriesId
+        }
       }
 
       return update

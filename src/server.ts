@@ -31,6 +31,10 @@ async function init() {
     forceCloseConnections: true,
     // Control request logging based on env var
     disableRequestLogging: !enableRequestLogging,
+    // Trust X-Forwarded-For from private networks so request.ip resolves to
+    // the real client behind a reverse proxy (needed for auth bypass, rate
+    // limiting, and logging). Uses proxy-addr presets for RFC1918 + loopback.
+    trustProxy: 'loopback,linklocal,uniquelocal',
   })
 
   // Register the app with optional base path prefix

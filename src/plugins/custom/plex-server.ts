@@ -20,6 +20,14 @@ export default fp(
 
     fastify.decorate('plexServerService', service)
 
+    emitPlexSSEStatus(fastify)
+
+    const statusInterval = setInterval(() => {
+      if (fastify.progress.hasActiveConnections()) {
+        emitPlexSSEStatus(fastify)
+      }
+    }, 1000)
+
     // Move initialization to onReady hook
     fastify.addHook('onReady', async () => {
       try {
@@ -30,6 +38,18 @@ export default fp(
           )
         } else {
           fastify.log.info('PlexServerService initialized successfully')
+
+          try {
+            await service.connectSSE()
+          } catch (error) {
+            fastify.log.warn(
+              { error },
+              'SSE connection failed - polling will continue as fallback',
+            )
+          }
+
+          service.onSSE('connected', () => emitPlexSSEStatus(fastify))
+          service.onSSE('disconnected', () => emitPlexSSEStatus(fastify))
         }
       } catch (error) {
         fastify.log.error(
@@ -40,13 +60,30 @@ export default fp(
       }
     })
 
-    // Clear workflow caches on close
+    // Disconnect SSE and clear workflow caches on close
     fastify.addHook('onClose', () => {
+      clearInterval(statusInterval)
+      service.disconnectSSE()
       service.clearWorkflowCaches()
     })
   },
   {
     name: 'plex-server',
-    dependencies: ['config'],
+    dependencies: ['config', 'progress'],
   },
 )
+
+function emitPlexSSEStatus(fastify: FastifyInstance) {
+  if (!fastify.progress.hasActiveConnections()) return
+
+  const connected = fastify.plexServerService.isSSEConnected()
+  const status = connected ? 'connected' : 'disconnected'
+
+  fastify.progress.emit({
+    operationId: `plex-sse-status-${Date.now()}`,
+    type: 'system',
+    phase: 'info',
+    progress: 100,
+    message: `Plex SSE status: ${status}`,
+  })
+}

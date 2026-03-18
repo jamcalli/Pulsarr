@@ -1759,6 +1759,27 @@ export class SonarrService {
   }
 
   /**
+   * Search for specific episodes by their IDs
+   * Uses Sonarr's EpisodeSearch command for targeted episode searching
+   * @param episodeIds Array of Sonarr episode IDs to search for
+   */
+  async searchEpisodes(episodeIds: number[]): Promise<void> {
+    if (episodeIds.length === 0) return
+
+    try {
+      await this.postToSonarr('command', {
+        name: 'EpisodeSearch',
+        episodeIds,
+      })
+
+      this.log.info(`Triggered search for ${episodeIds.length} episodes`)
+    } catch (error) {
+      this.log.error({ error }, 'Error searching episodes')
+      throw error
+    }
+  }
+
+  /**
    * Update monitoring for a specific season
    * @param seriesId The Sonarr series ID
    * @param seasonNumber The season number
@@ -1833,6 +1854,31 @@ export class SonarrService {
   }
 
   /**
+   * Wait for Sonarr to finish its post-add background refresh.
+   * Sonarr queues a RefreshSeriesCommand after adding a series. Until that
+   * completes, addOptions is non-null and Sonarr will re-apply its monitoring
+   * preset, clobbering any episode-level changes we make. Poll until
+   * addOptions is cleared, then it's safe to set custom monitoring.
+   */
+  async waitForAddComplete(
+    seriesId: number,
+    timeoutMs = 30_000,
+    intervalMs = 1_000,
+  ): Promise<void> {
+    const start = Date.now()
+    while (Date.now() - start < timeoutMs) {
+      const series = await this.getFromSonarr<SonarrSeries>(
+        `series/${seriesId}`,
+      )
+      if (!series.addOptions) return
+      await new Promise((resolve) => setTimeout(resolve, intervalMs))
+    }
+    this.log.warn(
+      `Timed out waiting for Sonarr to finish post-add refresh for series ${seriesId}`,
+    )
+  }
+
+  /**
    * Get all episodes for a series
    * @param seriesId The Sonarr series ID
    * @returns Array of episodes
@@ -1904,19 +1950,28 @@ export class SonarrService {
   async updateEpisodesMonitoring(
     episodes: Array<{ id: number; monitored: boolean }>,
   ): Promise<void> {
-    try {
-      // Sonarr API requires updating episodes one by one or in bulk
-      // We'll use the bulk endpoint
-      const episodeIds = episodes.map((ep) => ep.id)
-      const monitored = episodes[0]?.monitored || false
+    if (episodes.length === 0) return
 
-      await this.putToSonarr('episode/monitor', {
-        episodeIds,
-        monitored,
-      })
+    try {
+      const toMonitor = episodes.filter((ep) => ep.monitored)
+      const toUnmonitor = episodes.filter((ep) => !ep.monitored)
+
+      if (toMonitor.length > 0) {
+        await this.putToSonarr('episode/monitor', {
+          episodeIds: toMonitor.map((ep) => ep.id),
+          monitored: true,
+        })
+      }
+
+      if (toUnmonitor.length > 0) {
+        await this.putToSonarr('episode/monitor', {
+          episodeIds: toUnmonitor.map((ep) => ep.id),
+          monitored: false,
+        })
+      }
 
       this.log.info(
-        `Updated monitoring for ${episodes.length} episodes to ${monitored}`,
+        `Updated monitoring for ${episodes.length} episodes (${toMonitor.length} monitored, ${toUnmonitor.length} unmonitored)`,
       )
     } catch (error) {
       this.log.error({ error }, 'Error updating episode monitoring:')

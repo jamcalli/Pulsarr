@@ -14,7 +14,10 @@ declare module '@services/database.service.js' {
       tvdb_id?: string
       imdb_id?: string
       show_title: string
-      monitoring_type: 'pilotRolling' | 'firstSeasonRolling'
+      monitoring_type:
+        | 'pilotRolling'
+        | 'firstSeasonRolling'
+        | 'allSeasonPilotRolling'
       current_monitored_season: number
       plex_user_id?: string
       plex_username?: string
@@ -132,5 +135,21 @@ declare module '@services/database.service.js' {
     getInactiveRollingMonitoredShows(
       inactivityDays: number,
     ): Promise<RollingMonitoredShow[]>
+
+    /**
+     * Updates the monitoring type and initial season for a master rolling monitored show.
+     * @param id - The ID of the master entry
+     * @param monitoringType - The new monitoring type
+     * @param currentMonitoredSeason - The initial season for the new type
+     * @returns True if a row was updated
+     */
+    updateRollingShowMonitoringType(
+      id: number,
+      monitoringType:
+        | 'pilotRolling'
+        | 'firstSeasonRolling'
+        | 'allSeasonPilotRolling',
+      currentMonitoredSeason: number,
+    ): Promise<boolean>
   }
 }
