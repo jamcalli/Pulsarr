@@ -1,6 +1,13 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
+// Reusable monitoring type enum
+export const MonitoringTypeEnum = z.enum([
+  'pilotRolling',
+  'firstSeasonRolling',
+  'allSeasonPilotRolling',
+])
+
 // Base rolling monitored show schema
 const RollingMonitoredShowSchema = z.object({
   id: z.number(),
@@ -8,11 +15,7 @@ const RollingMonitoredShowSchema = z.object({
   tvdb_id: z.string().nullish(),
   imdb_id: z.string().nullish(),
   show_title: z.string(),
-  monitoring_type: z.enum([
-    'pilotRolling',
-    'firstSeasonRolling',
-    'allSeasonPilotRolling',
-  ]),
+  monitoring_type: MonitoringTypeEnum,
   current_monitored_season: z.number(),
   last_watched_season: z.number(),
   last_watched_episode: z.number(),
@@ -157,13 +160,6 @@ export const getInactiveRollingMonitoredSchema = {
     400: ErrorSchema,
   },
 }
-
-// Reusable monitoring type enum
-export const MonitoringTypeEnum = z.enum([
-  'pilotRolling',
-  'firstSeasonRolling',
-  'allSeasonPilotRolling',
-])
 
 // Schema for getting Sonarr shows with enrollment status
 export const getSonarrShowsSchema = {

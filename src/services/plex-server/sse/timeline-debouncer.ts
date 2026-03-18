@@ -37,6 +37,7 @@ export class TimelineDebouncer {
         entry.state === 5 &&
         entry.identifier === 'com.plexapp.plugins.library' &&
         sectionID > 0 &&
+        itemID > 0 &&
         RELEVANT_TYPES.has(entry.type)
       ) {
         this.pendingIDs.add(itemID)

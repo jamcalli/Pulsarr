@@ -10,10 +10,7 @@ import { SEED_ADMIN_USERS, SEED_USERS, seedUsers } from './users.js'
 import { SEED_WATCHLIST_ITEMS, seedWatchlist } from './watchlist.js'
 
 /**
- * Export all seed data for direct access in tests
- */
-/**
- * Export individual seed functions
+ * Export seed data and individual seed functions for direct access in tests
  */
 export {
   SEED_ADMIN_USERS,

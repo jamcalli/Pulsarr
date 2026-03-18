@@ -712,6 +712,13 @@ export class PlexSessionMonitorService {
         return
       }
 
+      // Set the season flag so future episodes auto-monitor when added
+      await sonarr.updateSeasonMonitoring(
+        rollingShow.sonarr_series_id,
+        seasonNumber,
+        true,
+      )
+
       await sonarr.updateEpisodesMonitoring(
         unmonitoredInSeason.map((ep) => ({ id: ep.id, monitored: true })),
       )
@@ -1551,6 +1558,16 @@ export class PlexSessionMonitorService {
 
       if (episodesToUnmonitor.length > 0) {
         await sonarr.updateEpisodesMonitoring(episodesToUnmonitor)
+      }
+
+      // Unmonitor all seasons so Sonarr doesn't auto-monitor future episodes
+      const seasonNumbers = new Set(
+        allEpisodes
+          .filter((ep) => ep.seasonNumber > 0)
+          .map((ep) => ep.seasonNumber),
+      )
+      for (const seasonNumber of seasonNumbers) {
+        await sonarr.updateSeasonMonitoring(sonarrSeriesId, seasonNumber, false)
       }
 
       // Ensure all pilots are monitored

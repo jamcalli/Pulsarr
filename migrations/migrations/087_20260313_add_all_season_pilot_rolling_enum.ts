@@ -19,37 +19,37 @@ export async function up(knex: Knex): Promise<void> {
     `)
   } else {
     // Column-rename trick to expand the CHECK constraint from table.enum()
-    await knex.transaction(async (trx) => {
-      await trx.schema.alterTable('rolling_monitored_shows', (table) => {
-        table
-          .enum('monitoring_type_new', [
-            'pilotRolling',
-            'firstSeasonRolling',
-            'allSeasonPilotRolling',
-          ])
-          .notNullable()
-          .defaultTo('pilotRolling')
-      })
+    // Knex already wraps this migration in a transaction, no need for an explicit one.
+    // dropColumn is safe here because rolling_monitored_shows has no CASCADE children.
+    await knex.schema.alterTable('rolling_monitored_shows', (table) => {
+      table
+        .enum('monitoring_type_new', [
+          'pilotRolling',
+          'firstSeasonRolling',
+          'allSeasonPilotRolling',
+        ])
+        .notNullable()
+        .defaultTo('pilotRolling')
+    })
 
-      await trx('rolling_monitored_shows').update({
-        monitoring_type_new: trx.ref('monitoring_type'),
-      })
+    await knex('rolling_monitored_shows').update({
+      monitoring_type_new: knex.ref('monitoring_type'),
+    })
 
-      await trx.schema.alterTable('rolling_monitored_shows', (table) => {
-        table.dropIndex(['monitoring_type'])
-      })
+    await knex.schema.alterTable('rolling_monitored_shows', (table) => {
+      table.dropIndex(['monitoring_type'])
+    })
 
-      await trx.schema.alterTable('rolling_monitored_shows', (table) => {
-        table.dropColumn('monitoring_type')
-      })
+    await knex.schema.alterTable('rolling_monitored_shows', (table) => {
+      table.dropColumn('monitoring_type')
+    })
 
-      await trx.schema.alterTable('rolling_monitored_shows', (table) => {
-        table.renameColumn('monitoring_type_new', 'monitoring_type')
-      })
+    await knex.schema.alterTable('rolling_monitored_shows', (table) => {
+      table.renameColumn('monitoring_type_new', 'monitoring_type')
+    })
 
-      await trx.schema.alterTable('rolling_monitored_shows', (table) => {
-        table.index(['monitoring_type'])
-      })
+    await knex.schema.alterTable('rolling_monitored_shows', (table) => {
+      table.index(['monitoring_type'])
     })
   }
 }

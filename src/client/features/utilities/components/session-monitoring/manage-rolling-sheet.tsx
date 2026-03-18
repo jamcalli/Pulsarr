@@ -231,6 +231,7 @@ export function ManageRollingSheet({
   const table = useReactTable({
     data: shows,
     columns,
+    getRowId: (row) => `${row.sonarrInstanceId}:${row.sonarrSeriesId}`,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),

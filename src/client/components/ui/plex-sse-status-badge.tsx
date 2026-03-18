@@ -37,14 +37,14 @@ export function PlexSSEStatusBadge() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="ml-2 inline-flex items-center gap-2 h-full cursor-help">
+        <button type="button" className="ml-2 inline-flex items-center gap-2 h-full cursor-help">
           <Badge
             variant="neutral"
             className={cn('px-2 py-0.5 h-7 text-sm', getBadgeVariant())}
           >
             {label}
           </Badge>
-        </div>
+        </button>
       </TooltipTrigger>
       <TooltipContent>{getTooltipText()}</TooltipContent>
     </Tooltip>

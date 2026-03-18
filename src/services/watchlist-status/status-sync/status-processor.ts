@@ -10,7 +10,7 @@ import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
 import type { DatabaseService } from '@services/database.service.js'
-import { parseGuids } from '@utils/guid-handler.js'
+import { extractSonarrId, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /**
@@ -205,17 +205,11 @@ export function createSonarrStatusConfig(): StatusProcessorConfig<
         update.sonarr_instance_id = instanceId
       }
 
-      // Extract Sonarr series ID from guids (embedded as "sonarr:{id}" by toItem())
-      // to backfill the junction table via the normal update path
-      const sonarrGuid = content.guids.find((g) =>
-        g.toLowerCase().startsWith('sonarr:'),
-      )
-      if (sonarrGuid) {
-        const seriesId = Number.parseInt(
-          sonarrGuid.replace(/^sonarr:/i, ''),
-          10,
-        )
-        if (!Number.isNaN(seriesId)) {
+      // Backfill sonarr_series_id from the synthetic "sonarr:{id}" guid
+      // injected by toItem(), but only when we have an instance
+      if (instanceId !== undefined) {
+        const seriesId = extractSonarrId(content.guids)
+        if (seriesId > 0) {
           update.sonarr_series_id = seriesId
         }
       }

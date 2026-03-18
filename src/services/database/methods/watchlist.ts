@@ -972,9 +972,11 @@ export async function bulkUpdateWatchlistItems(
                 ...(statusResult.shouldUpdateStatus
                   ? { status: effectiveStatus }
                   : {}),
-                ...(update.sonarr_series_id !== undefined && {
-                  sonarr_series_id: update.sonarr_series_id,
-                }),
+                ...(update.sonarr_series_id !== undefined &&
+                  existingAssoc.sonarr_series_id !==
+                    update.sonarr_series_id && {
+                    sonarr_series_id: update.sonarr_series_id,
+                  }),
                 is_primary: true,
                 last_notified_at:
                   update.last_notified_at !== undefined
