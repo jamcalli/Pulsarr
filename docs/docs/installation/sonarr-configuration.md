@@ -56,6 +56,7 @@ Configure your Sonarr instances to manage TV show downloads and monitoring.
 | `Pilot Only` | Pilot episode only |
 | `Pilot Rolling` | Pilot, auto-expands with session monitoring |
 | `First Season Rolling` | First season, auto-expands with session monitoring |
+| `All Season Pilot Rolling` | All season pilots, auto-expands each season with session monitoring |
 | `Recent Episodes` | Recent episodes only |
 | `Monitor Specials` | Include specials |
 | `Unmonitor Specials` | Exclude specials |
@@ -63,7 +64,7 @@ Configure your Sonarr instances to manage TV show downloads and monitoring.
 | `Skip` | Skip monitoring setup |
 
 :::tip Rolling Monitoring
-Pilot Rolling and First Season Rolling auto-expand monitoring based on viewing activity when session monitoring is enabled. They can also auto-cleanup when nobody is watching, reverting to original state.
+Pilot Rolling, First Season Rolling, and All Season Pilot Rolling auto-expand monitoring based on viewing activity when session monitoring is enabled. They can also auto-cleanup when nobody is watching, reverting to original state.
 :::
 
 ## Series Settings

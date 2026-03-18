@@ -33,6 +33,10 @@ The `baseUrl` and `port` are configured through the **web UI**. Pulsarr will pro
 To run Pulsarr at a subfolder like `https://domain.com/pulsarr/`, set `basePath=/pulsarr` in your `.env`. Configure `baseUrl` through the web UI. All routes are registered under the basePath prefix. Your reverse proxy should forward requests to Pulsarr with the path intact.
 :::
 
+:::tip Reverse Proxy IP Detection
+Pulsarr automatically trusts `X-Forwarded-For` headers from private network ranges, so `request.ip` resolves to the real client IP behind reverse proxies. No configuration needed.
+:::
+
 ## Database Configuration
 
 Pulsarr supports SQLite (default) and PostgreSQL.

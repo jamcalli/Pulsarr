@@ -8,7 +8,7 @@ Automatically searches for upcoming episodes and seasons by monitoring what user
 
 1. Navigate to **Utilities → Plex Session Monitoring**
 2. Toggle **Enable** to turn on monitoring
-3. Configure polling interval (default: 15 minutes)
+3. Configure settings (SSE connects automatically; polling serves as fallback)
 4. Set episode threshold (default: 2 episodes remaining)
 5. Optionally filter to specific users
 6. Click **Save Changes**
@@ -17,10 +17,12 @@ Automatically searches for upcoming episodes and seasons by monitoring what user
 
 ## How It Works
 
-1. **Monitors active Plex sessions** via polling (configurable interval)
+1. **Monitors active Plex sessions** in real time via Plex SSE (Server-Sent Events), with polling as a fallback
 2. **Calculates remaining episodes** in the current season
 3. **Triggers searches** when users reach a threshold (e.g., 2 episodes remaining)
 4. **Handles next seasons** automatically or via rolling monitoring
+
+A live SSE connection status badge appears in the page header, showing whether real-time monitoring is active or if the system has fallen back to polling.
 
 ## Rolling Monitoring
 
@@ -28,6 +30,7 @@ Progressive downloading strategy that starts minimal and expands based on viewin
 
 - **Pilot Rolling**: Start with pilot only → expand to full season when watched → add seasons progressively
 - **First Season Rolling**: Start with Season 1 → add Season 2 when nearing completion → continue expanding
+- **All Season Pilot Rolling**: Download the pilot of every season upfront → each season expands to full when its pilot is watched
 - **Auto-cleanup**: Automatically reverts shows to original monitoring states when nobody is watching
 - **Best for**: Testing user interest and managing storage efficiently
 
@@ -43,13 +46,23 @@ With a threshold of 2 episodes remaining:
 
 **First Season Rolling** works the same way but starts with the full Season 1 instead of just the pilot. Useful when you want users to have a full season available upfront.
 
+### Example: All Season Pilot Rolling Flow
+
+1. User adds **The Office** to their Plex watchlist → Pulsarr sends to Sonarr with **All Season Pilot Rolling** → the pilot episode of every season downloads (S01E01, S02E01, S03E01, etc.)
+2. User starts watching S01E01 → Pulsarr detects the session and searches for the **full Season 1**
+3. User finishes Season 1 and starts watching S02E01 (already downloaded) → Pulsarr expands **Season 2** to full monitoring
+4. User skips ahead to S05E01 → Pulsarr expands **Season 5** to full monitoring (seasons don't need to be watched in order)
+5. User stops watching → after the inactivity period (default: 7 days), **auto-cleanup** reverts the show to its original state, keeping pilots but removing expanded episodes
+
+Unlike Pilot Rolling and First Season Rolling, this type does not auto-expand to the next season based on the remaining episodes threshold. Instead, each season expands individually when its pre-downloaded pilot is watched.
+
 ## Configuration
 
 ### Monitoring Configuration
 
 | Setting | Description |
 |---------|-------------|
-| **Polling Interval (minutes)** | How often to check for active Plex sessions (1-1440, default: 15) |
+| **Polling Interval (minutes)** | Fallback polling frequency when SSE is unavailable (1-1440, default: 15) |
 | **Remaining Episodes Threshold** | Trigger searches when this many episodes remain in a season (1-10, default: 2) |
 
 ### Filtering Options
@@ -73,7 +86,7 @@ The status section shows your rolling monitored content split into two views:
 
 | View | Description |
 |------|-------------|
-| **Active Shows** | Currently monitored shows with user tracking. Shows which users are watching, monitoring type (Pilot/First Season), current season, and last activity |
+| **Active Shows** | Currently monitored shows with user tracking. Shows which users are watching, monitoring type (Pilot/First Season/All Season Pilot), current season, and last activity |
 | **Inactive Shows** | Shows not watched within the inactivity period. Can be bulk reset to reclaim storage |
 
 ### Per-Show Actions
@@ -88,6 +101,7 @@ The status section shows your rolling monitored content split into two views:
 | Action | Description |
 |--------|-------------|
 | **Check Sessions** | Manually trigger a session check without waiting for the next poll |
+| **Manage Rolling** | Opens the rolling management sheet for bulk enrollment and monitoring type changes |
 | **Reset All Inactive** | Bulk reset all inactive shows (with confirmation) |
 
 :::warning
@@ -115,6 +129,7 @@ Rolling monitoring options only appear when Session Monitoring is enabled.
 
 | Problem | Solution |
 |---------|----------|
+| **SSE not connected** | Pulsarr auto-discovers your server via Plex.tv. If discovery fails, manually set the URL in **Plex → Configuration → Server Connection** using the **Find Server** button |
 | **Sessions not detected** | Verify Plex connection; check polling interval; ensure users watching content |
 | **Searches not triggering** | Verify series exists in Sonarr with metadata; check threshold config; review logs |
 | **Rolling monitoring issues** | Ensure feature enabled; confirm content added with rolling options; check Sonarr modifications |

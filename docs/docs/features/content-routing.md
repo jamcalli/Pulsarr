@@ -81,6 +81,7 @@ Override default instance settings when routing:
 | `pilot` | Pilot Only |
 | `pilotRolling` | Pilot Rolling (auto-expand with session monitoring) |
 | `firstSeasonRolling` | First Season Rolling (auto-expand with session monitoring) |
+| `allSeasonPilotRolling` | All Season Pilot Rolling (auto-expand each season with session monitoring) |
 | `recent` | Recent Episodes |
 | `monitorSpecials` | Monitor Specials |
 | `unmonitorSpecials` | Unmonitor Specials |
