@@ -5326,7 +5326,8 @@
                             "type": "string",
                             "enum": [
                               "pilotRolling",
-                              "firstSeasonRolling"
+                              "firstSeasonRolling",
+                              "allSeasonPilotRolling"
                             ]
                           },
                           "current_monitored_season": {
@@ -5821,7 +5822,8 @@
                             "type": "string",
                             "enum": [
                               "pilotRolling",
-                              "firstSeasonRolling"
+                              "firstSeasonRolling",
+                              "allSeasonPilotRolling"
                             ]
                           },
                           "current_monitored_season": {
@@ -5970,6 +5972,274 @@
                     "success",
                     "message",
                     "resetCount"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/session-monitoring/sonarr-shows": {
+      "get": {
+        "operationId": "getSonarrShows",
+        "summary": "Get Sonarr shows with enrollment status",
+        "tags": [
+          "Session Monitoring"
+        ],
+        "description": "Retrieve all Pulsarr-tracked Sonarr shows with their rolling monitoring enrollment status",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
+            },
+            "in": "query",
+            "name": "instanceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "shows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "watchlistId": {
+                            "type": "number"
+                          },
+                          "sonarrInstanceId": {
+                            "type": "number"
+                          },
+                          "sonarrSeriesId": {
+                            "type": "number"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "guids": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "rollingShowId": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "monitoringType": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "pilotRolling",
+                              "firstSeasonRolling",
+                              "allSeasonPilotRolling"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "watchlistId",
+                          "sonarrInstanceId",
+                          "sonarrSeriesId",
+                          "title",
+                          "guids",
+                          "rollingShowId",
+                          "monitoringType"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "shows"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/session-monitoring/rolling-monitored/bulk": {
+      "post": {
+        "operationId": "bulkManageRollingMonitoredShows",
+        "summary": "Bulk manage rolling monitored shows",
+        "tags": [
+          "Session Monitoring"
+        ],
+        "description": "Enroll new shows into rolling monitoring and/or change the monitoring type of already-enrolled shows in bulk",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shows": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "sonarrSeriesId": {
+                          "type": "integer",
+                          "exclusiveMinimum": true,
+                          "maximum": 9007199254740991
+                        },
+                        "sonarrInstanceId": {
+                          "type": "integer",
+                          "exclusiveMinimum": true,
+                          "maximum": 9007199254740991
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "guids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "rollingShowId": {
+                          "nullable": true,
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "sonarrSeriesId",
+                        "sonarrInstanceId",
+                        "title",
+                        "guids",
+                        "rollingShowId"
+                      ]
+                    }
+                  },
+                  "monitoringType": {
+                    "type": "string",
+                    "enum": [
+                      "pilotRolling",
+                      "firstSeasonRolling",
+                      "allSeasonPilotRolling"
+                    ]
+                  },
+                  "resetMonitoring": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "shows",
+                  "monitoringType"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "enrolled": {
+                      "type": "number"
+                    },
+                    "modified": {
+                      "type": "number"
+                    },
+                    "skipped": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "enrolled",
+                    "modified",
+                    "skipped"
                   ],
                   "additionalProperties": false
                 }

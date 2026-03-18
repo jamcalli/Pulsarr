@@ -724,6 +724,18 @@ const sidebar: SidebarsConfig = {
           label: "Reset inactive rolling monitored shows",
           className: "api-method post",
         },
+        {
+          type: "doc",
+          id: "api/get-sonarr-shows",
+          label: "Get Sonarr shows with enrollment status",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/bulk-manage-rolling-monitored-shows",
+          label: "Bulk manage rolling monitored shows",
+          className: "api-method post",
+        },
       ],
     },
     {
