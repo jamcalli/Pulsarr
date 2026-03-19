@@ -75,6 +75,18 @@ Pulsarr is available in the Unraid Community Applications (CA) store:
 5. Configure the container settings as needed
 6. Start the container
 
+### Truenas Installation
+
+Pulsarr is also available in the Truenas community app catalog:
+
+1. Open the Truenas web UI and sign in
+2. Navigate to the "Apps" panel
+3. Click "Discover Apps" and search for "Pulsarr"
+4. Click "Install"
+5. Configure the container settings as needed
+6. Click "Install"
+7. After the app is installed, click "WebUI" to verify the app is reachable
+
 Alternatively, you can use the Docker installation method described above.
 
 ### Manual Installation
@@ -165,5 +177,10 @@ After completing the quick start, you might want to:
 - [Configure Discord notifications](../notifications/discord)
 - [Set up Apprise integration](../notifications/apprise)
 - [Configure content routing rules](../features/content-routing)
+<<<<<<< HEAD
+- [Set up user tagging](../utilities/07-user-tagging.md)
+- [Configure automatic deletion](../utilities/02-delete-sync.md)
+=======
 - [Set up user tagging](../utilities/user-tagging)
 - [Configure automatic deletion](../utilities/delete-sync)
+>>>>>>> 6ec501f2be63b305e30fd68cdf828d32e4e711f1
