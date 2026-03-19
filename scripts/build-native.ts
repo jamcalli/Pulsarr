@@ -237,7 +237,7 @@ try {
 }
 
 // Remove build tools that leak through optional peer dep resolution
-const buildToolDirs = ['vite', 'rollup', 'esbuild', '@rollup', '@esbuild']
+const buildToolDirs = ['vite', 'rollup', 'esbuild', '@rollup', '@esbuild', 'rolldown', '@rolldown']
 for (const dir of buildToolDirs) {
   const dirPath = resolve(COMMON_DIR, 'node_modules', dir)
   if (existsSync(dirPath)) {
