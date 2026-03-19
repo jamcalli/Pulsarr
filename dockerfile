@@ -11,7 +11,8 @@ RUN mkdir -p /temp/prod && \
     cd /temp/prod && \
     bun install --frozen-lockfile --production --ignore-scripts && \
     rm -rf node_modules/vite node_modules/rollup node_modules/esbuild \
-           node_modules/@rollup node_modules/@esbuild
+           node_modules/@rollup node_modules/@esbuild \
+           node_modules/rolldown node_modules/@rolldown
 
 # Build stage: full install + compile
 FROM base AS builder

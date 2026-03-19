@@ -41,7 +41,8 @@ RUN --mount=type=cache,target=/app/node_modules/.vite \
 # Prune to production deps only (tsx included via package.json transform)
 RUN npm prune --omit=dev && \
     rm -rf node_modules/vite node_modules/rollup node_modules/esbuild \
-           node_modules/@rollup node_modules/@esbuild && \
+           node_modules/@rollup node_modules/@esbuild \
+           node_modules/rolldown node_modules/@rolldown && \
     mkdir -p ${CACHE_DIR}
 
 # -----------------------------------------------------------------------------
