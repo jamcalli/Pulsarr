@@ -66,7 +66,6 @@
   "author": "jamcalli",
   "license": "AGPL-3.0",
   "dependencies": {
-    "@epic-web/invariant": "^1.0.0",
     "@fastify/auth": "^5.0.2",
     "@fastify/autoload": "^6.3.0",
     "@fastify/compress": "^8.0.1",
@@ -76,7 +75,6 @@
     "@fastify/formbody": "^8.0.2",
     "@fastify/helmet": "^13.0.1",
     "@fastify/rate-limit": "^10.2.2",
-    "@fastify/react": "^1.0.2",
     "@fastify/sensible": "^6.0.3",
     "@fastify/session": "^11.1.0",
     "@fastify/swagger": "^9.5.1",
@@ -101,14 +99,13 @@
     "safe-regex2": "^5.0.0",
     "semver": "^7.7.1",
     "toad-scheduler": "^3.0.1",
-    "turndown": "^7.2.0",
-    "vite": "^7.0.0",
     "zod": "^4.0.17"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",
     "@commitlint/cli": "^20.0.0",
     "@commitlint/config-conventional": "^20.0.0",
+    "@epic-web/invariant": "^1.0.0",
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-accordion": "^1.2.8",
     "@radix-ui/react-alert-dialog": "^1.1.11",
@@ -167,9 +164,11 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.10",
     "tsc-alias": "^1.8.15",
+    "turndown": "^7.2.0",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5.9.0",
     "vaul": "^1.1.2",
+    "vite": "^7.0.0",
     "vitest": "^4.0.0",
     "zustand": "^5.0.3"
   }

@@ -9,7 +9,9 @@ RUN mkdir -p /temp/prod && \
     cp package.json bun.lock /temp/prod/ && \
     cp -r packages /temp/prod/packages && \
     cd /temp/prod && \
-    bun install --frozen-lockfile --production --ignore-scripts
+    bun install --frozen-lockfile --production --ignore-scripts && \
+    rm -rf node_modules/vite node_modules/rollup node_modules/esbuild \
+           node_modules/@rollup node_modules/@esbuild
 
 # Build stage: full install + compile
 FROM base AS builder
