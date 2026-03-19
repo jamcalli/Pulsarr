@@ -58,7 +58,7 @@ autolabeler:
       - '/^fix\//'
   - label: 'chore'
     title:
-      - '/^chore(\(.+\))?[:/]/i'
+      - '/^chore(?!\(deps?\))(\(.+\))?[:/]/i'
       - '/^refactor(\(.+\))?[:/]/i'
     branch:
       - '/^chore\//'
