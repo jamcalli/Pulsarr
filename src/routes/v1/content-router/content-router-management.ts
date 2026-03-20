@@ -194,11 +194,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Router rule retrieved successfully',
           rule: formattedRule,
         }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to retrieve router rule by ID',
           ruleId: request.params.id,
         })
@@ -243,11 +240,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: `Router rules for target type '${targetType}' retrieved successfully`,
           rules: formattedRules,
         }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to retrieve router rules by target type',
           targetType: request.params.targetType,
         })
@@ -496,11 +490,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Router rule updated successfully',
           rule: formattedRule,
         }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to update router rule',
           ruleId: request.params.id,
         })
@@ -554,11 +545,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           success: true,
           message: 'Router rule deleted successfully',
         }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to delete router rule',
           ruleId: request.params.id,
         })
@@ -614,11 +602,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           success: true,
           message: `Router rule ${enabled ? 'enabled' : 'disabled'} successfully`,
         }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to toggle router rule',
           ruleId: request.params.id,
           enabled: request.body.enabled,

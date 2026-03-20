@@ -94,11 +94,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           })
           return reply.internalServerError('Failed to start Watchlist workflow')
         }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to start Watchlist workflow',
         })
         return reply.internalServerError('Unable to start Watchlist workflow')
@@ -142,11 +139,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Watchlist workflow is stopping',
         }
         return response
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to stop Watchlist workflow',
         })
         return reply.internalServerError('Unable to stop Watchlist workflow')
@@ -180,11 +174,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: `Watchlist workflow is ${status}`,
         }
         return response
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to get Watchlist workflow status',
         })
         return reply.internalServerError(

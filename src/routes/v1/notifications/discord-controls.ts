@@ -48,12 +48,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         return response
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to start Discord bot',
         })
         return reply.internalServerError('Unable to start Discord bot')
@@ -100,12 +96,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         return response
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to stop Discord bot',
         })
         return reply.internalServerError('Unable to stop Discord bot')
@@ -205,12 +197,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               }`
             : 'One or more webhooks failed validation',
         }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to validate webhooks',
         })
         return reply.internalServerError('Unable to validate webhooks')
