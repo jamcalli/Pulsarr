@@ -15,7 +15,7 @@
 
 ---
 
-Pulsarr bridges Plex watchlists with Sonarr and Radarr for real-time media monitoring and automated content acquisition—**all from within the Plex app, no extra logins required.**
+Pulsarr bridges Plex watchlists with Sonarr and Radarr for real-time media monitoring and automated content acquisition, **all from within the Plex app, no extra logins required.**
 
 Features include multi-user watchlist sync, intelligent content routing, approval workflows with quotas, and notifications via Discord, Plex mobile push, and Apprise.
 
@@ -79,7 +79,7 @@ docker compose pull && docker compose up -d
 
 ### Native Installation
 
-Standalone builds with easy installers are available for Linux, macOS, and Windows — no Docker or runtime install required.
+Standalone builds with easy installers are available for Linux, macOS, and Windows. No Docker or runtime install required.
 
 | Platform | Install Method |
 |----------|---------------|
@@ -121,6 +121,10 @@ See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/in
 
 - [Home Assistant Integration](https://github.com/SpaceFrags/pulsarr_enhanced_requests) - Community-maintained integration to manage Pulsarr requests from Home Assistant
 - [Pulsarr Card](https://github.com/SpaceFrags/pulsarr-requests-card) - Community-maintained companion card for the HA integration
+
+## Transparency
+
+Pulsarr started as a fun personal project that grew into something much bigger than I ever expected. AI coding tools assist in the development. I have a background in coding but I'm not a full-stack software engineer by trade. The design, architecture, and direction are entirely my own, and every line is reviewed and understood before it ships. I take security and code quality seriously: dependencies are kept current via Renovate, auth follows Fastify best practices, and all endpoints are protected by default. As sentiment towards AI-assisted development has become divisive, I feel it's best to be upfront about how this project is built. If you spot anything that could be improved or handled better, please open an issue or reach out. I'm always learning and welcome the feedback.
 
 ## Contributing
 
