@@ -34,10 +34,16 @@ RUN --mount=type=cache,target=/app/node_modules/.vite \
 # Final runtime image
 FROM base
 
-# tini for proper PID 1 zombie reaping, wget for healthcheck
-RUN apk add --no-cache tini wget
+# tini for proper PID 1 zombie reaping, wget for healthcheck, su-exec for privilege drop
+RUN apk add --no-cache tini wget su-exec
 
 ENV CACHE_DIR=/app/build-cache
+
+# Remove bun user from base image (occupies UID 1000) and create pulsarr user
+RUN deluser --remove-home bun && \
+    delgroup bun; \
+    addgroup -g 1000 -S pulsarr && \
+    adduser -u 1000 -G pulsarr -D -H -s /sbin/nologin pulsarr
 
 # Copy package files
 COPY package.json bun.lock ./
@@ -45,10 +51,11 @@ COPY packages ./packages
 # Production-only dependencies from the install stage
 COPY --from=install /temp/prod/node_modules ./node_modules
 
-# Create necessary directories
+# Create necessary directories with correct ownership
 RUN mkdir -p /app/data/db && \
-    mkdir -p /app/data/log && \
-    mkdir -p ${CACHE_DIR}
+    mkdir -p /app/data/logs && \
+    mkdir -p ${CACHE_DIR} && \
+    chown -R pulsarr:pulsarr /app/data /app/build-cache
 
 # Copy build artifacts
 COPY --from=builder /app/dist ./dist

@@ -37,6 +37,19 @@ To run Pulsarr at a subfolder like `https://domain.com/pulsarr/`, set `basePath=
 Pulsarr automatically trusts `X-Forwarded-For` headers from private network ranges, so `request.ip` resolves to the real client IP behind reverse proxies. No configuration needed.
 :::
 
+## Docker User Configuration
+
+<div style={{overflowX: 'auto'}}>
+
+| Variable | Description | Required? | Default |
+|----------|-------------|-----------|---------|
+| `PUID` | User ID the container runs as | No | `1000` |
+| `PGID` | Group ID the container runs as | No | `1000` |
+
+</div>
+
+Controls which user/group owns files in the mounted volumes.
+
 ## Database Configuration
 
 Pulsarr supports SQLite (default) and PostgreSQL.
