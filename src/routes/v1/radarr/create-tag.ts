@@ -44,12 +44,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         reply.status(200)
         return newTag
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to create tag',
           context: {
             service: 'radarr',
