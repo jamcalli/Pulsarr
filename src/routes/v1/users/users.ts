@@ -20,6 +20,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         response: {
           201: UserResponseSchema,
           409: UserErrorSchema,
+          500: UserErrorSchema,
         },
         tags: ['Users'],
       },
@@ -66,6 +67,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           200: UserResponseSchema,
           404: UserErrorSchema,
           409: UserErrorSchema,
+          500: UserErrorSchema,
         },
         tags: ['Users'],
       },
@@ -123,6 +125,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         response: {
           200: UserResponseSchema,
           404: UserErrorSchema,
+          500: UserErrorSchema,
         },
         tags: ['Users'],
       },
