@@ -61,8 +61,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           itemsCopied,
           message: `Successfully synchronized ${itemsCopied} items to ${type} instance`,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to sync instance',
           instanceId: request.params.instanceId,
           type: request.query.type,
@@ -111,8 +111,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           ...results,
           message: `Successfully synchronized ${totalRadarrItems} movies and ${totalSonarrItems} shows across all configured instances`,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to sync all instances',
         })
         return reply.internalServerError('Unable to sync all instances')

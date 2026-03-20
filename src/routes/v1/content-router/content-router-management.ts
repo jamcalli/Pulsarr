@@ -45,8 +45,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Router rules retrieved successfully',
           rules: formattedRules,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to retrieve router rules',
         })
         return reply.internalServerError('Unable to retrieve router rules')
@@ -97,8 +97,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: `Router rules of type '${type}' retrieved successfully`,
           rules: formattedRules,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to retrieve router rules by type',
           type: request.params.type,
         })
@@ -146,8 +146,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: `Router rules for ${targetType} instance ${instanceId} retrieved successfully`,
           rules: formattedRules,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to retrieve router rules by target',
           targetType: request.query.targetType,
           instanceId: request.query.instanceId,
@@ -350,8 +350,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Router rule created successfully',
           rule: formattedRule,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to create router rule',
           ruleName: request.body.name,
         })
