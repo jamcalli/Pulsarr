@@ -1,24 +1,8 @@
-import type { User } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { groupWatchlistItemsByContent } from '@services/plex-label-sync/utils/content-grouper.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
-
-// Helper to create minimal User objects for testing
-function createMockUser(id: number, name: string | null = null): User {
-  return {
-    id,
-    name: name === null ? `user_${id}` : name,
-    apprise: null,
-    alias: null,
-    discord_id: null,
-    notify_apprise: false,
-    notify_discord: false,
-    notify_discord_mention: true,
-    notify_plex_mobile: false,
-    can_sync: true,
-  }
-}
+import { createMockUser } from '../../../../mocks/user.js'
 
 describe('content-grouper', () => {
   let mockDb: DatabaseService
