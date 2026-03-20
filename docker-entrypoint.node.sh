@@ -17,7 +17,7 @@ find /app/data /app/build-cache ! \( -user "$PUID" -group "$PGID" \) -exec chown
 echo "Starting Pulsarr as uid=$PUID, gid=$PGID"
 
 echo "Running database migrations..."
-su-exec pulsarr npx tsx migrations/migrate.ts
+su-exec pulsarr ./node_modules/.bin/tsx migrations/migrate.ts
 
 echo "Starting application..."
 exec su-exec pulsarr node dist/server.js "$@"
