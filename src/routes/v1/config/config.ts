@@ -50,8 +50,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         reply.status(200)
         return response
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch configuration',
         })
         return reply.internalServerError('Unable to fetch configuration')
@@ -226,8 +226,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         reply.status(200)
         return response
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to update configuration',
         })
         return reply.internalServerError('Unable to update configuration')

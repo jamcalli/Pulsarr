@@ -76,11 +76,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           statusTransitions =
             await fastify.db.getDetailedStatusTransitionMetrics(days)
           statusFlow = await fastify.db.getStatusFlowData(days)
-        } catch (err) {
-          fastify.log.warn(
-            { error: err },
-            'Could not fetch advanced status metrics',
-          )
+        } catch (error) {
+          fastify.log.warn({ error }, 'Could not fetch advanced status metrics')
         }
 
         const response = {
@@ -101,8 +98,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         return response
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch dashboard statistics',
         })
         return reply.internalServerError('Unable to fetch dashboard statistics')
@@ -129,8 +126,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const breakdown = await fastify.db.getInstanceContentBreakdown()
         return breakdown
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch instance content breakdown',
         })
         return reply.internalServerError(
@@ -162,8 +159,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const { limit } = request.query
         const topGenres = await fastify.db.getTopGenres(limit)
         return topGenres
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch genre statistics',
         })
         return reply.internalServerError('Unable to fetch genre statistics')
@@ -198,8 +195,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           days,
         })
         return shows
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch show statistics',
         })
         return reply.internalServerError('Unable to fetch show statistics')
@@ -234,8 +231,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           days,
         })
         return movies
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch movie statistics',
         })
         return reply.internalServerError('Unable to fetch movie statistics')
@@ -265,8 +262,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const { limit } = request.query
         const topUsers = await fastify.db.getUsersWithMostWatchlistItems(limit)
         return topUsers
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch user statistics',
         })
         return reply.internalServerError('Unable to fetch user statistics')
@@ -297,8 +294,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const { days } = request.query
         const activity = await fastify.db.getRecentActivityStats(days)
         return activity
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch activity statistics',
         })
         return reply.internalServerError('Unable to fetch activity statistics')
@@ -329,8 +326,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const { days } = request.query
         const availability = await fastify.db.getAverageTimeToAvailability(days)
         return availability
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch availability statistics',
         })
         return reply.internalServerError(
@@ -363,8 +360,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const { days } = request.query
         const times = await fastify.db.getAverageTimeFromGrabbedToNotified(days)
         return times
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch grabbed-to-notified statistics',
         })
         return reply.internalServerError(
@@ -397,8 +394,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const transitions =
           await fastify.db.getDetailedStatusTransitionMetrics(days)
         return transitions
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch status transition metrics',
         })
         return reply.internalServerError(
@@ -430,8 +427,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const { days } = request.query
         const flowData = await fastify.db.getStatusFlowData(days)
         return flowData
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch status flow data',
         })
         return reply.internalServerError('Unable to fetch status flow data')
@@ -461,8 +458,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const { days } = request.query
         const stats = await fastify.db.getNotificationStats(days)
         return stats
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch notification statistics',
         })
         return reply.internalServerError(

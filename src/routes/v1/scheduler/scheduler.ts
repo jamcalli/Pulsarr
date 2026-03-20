@@ -31,8 +31,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const schedules = await fastify.db.getAllSchedules()
         return schedules
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch schedules',
         })
         return reply.internalServerError('Unable to fetch schedules')

@@ -12,8 +12,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
         const response =
           await fastify.plexWatchlist.processRssWatchlistsWithUserDetails()
         return reply.send(response)
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to process RSS watchlists',
         })
         return reply.internalServerError('Unable to fetch RSS watchlist items')

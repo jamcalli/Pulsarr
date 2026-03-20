@@ -110,8 +110,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             instances: radarrResults.instances,
           },
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to create user tags',
         })
         return reply.internalServerError('Unable to create user tags')
@@ -206,8 +206,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           },
           orphanedCleanup: results.orphanedCleanup,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to sync user tags',
         })
         return reply.internalServerError(
@@ -276,8 +276,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           radarr: results.radarr,
           sonarr: results.sonarr,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to cleanup orphaned tags',
         })
         return reply.internalServerError('Unable to clean up orphaned tags')
@@ -334,8 +334,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           radarr: results.radarr,
           sonarr: results.sonarr,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to cleanup orphaned tag references',
         })
         return reply.internalServerError(
@@ -426,8 +426,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           sonarr: results.sonarr,
           radarr: results.radarr,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to remove user tags',
         })
         return reply.internalServerError('Unable to remove user tags')

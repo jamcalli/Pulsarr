@@ -58,8 +58,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         reply.status(200)
         return response
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch TMDB providers',
         })
         return reply.internalServerError('Failed to fetch providers')

@@ -32,8 +32,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           success: true,
           items,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch recent requests',
         })
         return reply.internalServerError('Unable to fetch recent requests')
