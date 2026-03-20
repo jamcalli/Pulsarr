@@ -8,7 +8,7 @@
  * - Delegates to the pure sendPlexMobileNotification function
  */
 
-import type { User } from '@root/types/config.types.js'
+import type { NotificationUser } from '@root/types/config.types.js'
 import type { MediaNotification } from '@root/types/discord.types.js'
 import type { PlexUser } from '@root/types/plex-server.types.js'
 import { buildPlexGuid } from '@utils/guid-handler.js'
@@ -27,7 +27,7 @@ export type PlexMobileStatus =
   | 'not_configured'
 
 interface PendingPlexNotification {
-  user: User
+  user: NotificationUser
   notification: MediaNotification
   watchlistItemKey: string
   guid: string
@@ -134,7 +134,7 @@ export class PlexMobileService {
   // ---------------------------------------------------------------------------
 
   async sendMediaNotification(
-    user: User,
+    user: NotificationUser,
     notification: MediaNotification,
     watchlistItemKey: string,
     guid: string,

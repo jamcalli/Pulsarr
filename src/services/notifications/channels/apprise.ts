@@ -10,7 +10,7 @@ import type {
   AppriseNotification,
   AppriseSchemaFormatMap,
 } from '@root/types/apprise.types.js'
-import type { User } from '@root/types/config.types.js'
+import type { NotificationUser } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
   MediaNotification,
@@ -273,8 +273,7 @@ export async function sendPublicNotification(
     return false
   }
 
-  // Create a fake user for public notifications
-  const publicNotificationUser: User = {
+  const publicNotificationUser: NotificationUser = {
     id: -1,
     name: 'Public Content',
     apprise: appriseUrls.join(','),
@@ -298,7 +297,7 @@ export async function sendPublicNotification(
  * URLs using the admin's sender with ?to= parameter.
  */
 export async function sendMediaNotification(
-  user: User,
+  user: NotificationUser,
   notification: MediaNotification,
   deps: AppriseDeps,
 ): Promise<boolean> {
@@ -547,7 +546,7 @@ export async function sendWatchlistCapNotification(
  * Send a watchlist cap notification to a specific user's Apprise URL.
  */
 export async function sendUserWatchlistCapNotification(
-  user: User,
+  user: NotificationUser,
   event: {
     userName: string
     contentType: string

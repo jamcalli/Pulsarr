@@ -11,15 +11,30 @@ export interface User {
   notify_discord_mention: boolean
   notify_plex_mobile: boolean
   can_sync: boolean
-  requires_approval?: boolean
-  is_primary_token?: boolean
+  requires_approval: boolean
+  is_primary_token: boolean
   plex_uuid?: string | null
   avatar?: string | null
   display_name?: string | null
   friend_created_at?: string | null
-  created_at?: string
-  updated_at?: string
+  created_at: string
+  updated_at: string
 }
+
+// Fields needed by the notification layer (apprise, plex-mobile, discord DM, orchestration)
+export type NotificationUser = Pick<
+  User,
+  | 'id'
+  | 'name'
+  | 'alias'
+  | 'apprise'
+  | 'discord_id'
+  | 'notify_apprise'
+  | 'notify_discord'
+  | 'notify_discord_mention'
+  | 'notify_plex_mobile'
+  | 'can_sync'
+>
 
 export type LogLevel =
   | 'fatal'
