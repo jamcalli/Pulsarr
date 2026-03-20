@@ -73,8 +73,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               } else {
                 failedIds.push(userId)
               }
-            } catch (err) {
-              logRouteError(fastify.log, request, err, {
+            } catch (error) {
+              logRouteError(fastify.log, request, error, {
                 message: 'Failed to update individual user',
                 context: { userId },
               })

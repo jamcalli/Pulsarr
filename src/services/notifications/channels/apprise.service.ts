@@ -6,7 +6,7 @@
  */
 
 import type { AppriseSchemaFormatMap } from '@root/types/apprise.types.js'
-import type { User } from '@root/types/config.types.js'
+import type { NotificationUser } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
   MediaNotification,
@@ -82,7 +82,7 @@ export class AppriseService {
    * Sends a media notification to a user via their configured Apprise URL.
    */
   async sendMediaNotification(
-    user: User,
+    user: NotificationUser,
     notification: MediaNotification,
   ): Promise<boolean> {
     return sendMedia(user, notification, this.appriseDeps)
@@ -139,7 +139,7 @@ export class AppriseService {
    * Send a watchlist cap notification to a specific user's Apprise URL.
    */
   async sendUserWatchlistCapNotification(
-    user: User,
+    user: NotificationUser,
     event: {
       userName: string
       contentType: string

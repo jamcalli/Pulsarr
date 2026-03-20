@@ -130,8 +130,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
           message: `Removed Plex notifications from ${totalSuccessCount} of ${totalInstanceCount} instances (${radarrSuccessCount} Radarr, ${sonarrSuccessCount} Sonarr)`,
           results,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to remove Plex notifications',
         })
         return reply.internalServerError('Unable to remove Plex notifications')

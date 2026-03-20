@@ -35,14 +35,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           success: result.success,
           message: result.message,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Error testing Sonarr connection',
         })
 
         const errorMessage =
-          err instanceof Error
-            ? err.message
+          error instanceof Error
+            ? error.message
             : 'Unable to test Sonarr connection'
 
         return reply.internalServerError(

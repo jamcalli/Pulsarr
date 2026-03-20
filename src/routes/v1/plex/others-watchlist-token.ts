@@ -11,8 +11,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
       try {
         const response = await fastify.plexWatchlist.getOthersWatchlists()
         return reply.send(response)
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch others watchlists',
         })
         return reply.internalServerError(

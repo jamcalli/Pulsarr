@@ -489,18 +489,7 @@ async function buildUserNotifications(
 
     if (notificationCreated) {
       notifications.push({
-        user: {
-          id: user.id,
-          name: user.name,
-          apprise: user.apprise,
-          alias: user.alias,
-          discord_id: user.discord_id,
-          notify_apprise: user.notify_apprise,
-          notify_discord: user.notify_discord,
-          notify_discord_mention: user.notify_discord_mention,
-          notify_plex_mobile: user.notify_plex_mobile,
-          can_sync: user.can_sync,
-        },
+        user,
         notification: {
           type: mediaInfo.type,
           title: notificationTitle,

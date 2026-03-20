@@ -15,6 +15,7 @@ import {
 import type { PlexServerService } from '@services/plex-server.service.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
+import { createMockUser } from '../../../../mocks/user.js'
 
 // Helper to create minimal PlexMetadata with labels
 function createMockPlexMetadata(labels: string[]): PlexMetadata {
@@ -50,76 +51,11 @@ describe('label-applicator', () => {
 
     // Mock getAllUsers to return test users
     vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-      {
-        id: 1,
-        name: 'alice',
-        can_sync: true,
-        discord_id: null,
-        notify_discord: false,
-        notify_discord_mention: true,
-        notify_apprise: false,
-        apprise: null,
-        alias: null,
-        notify_plex_mobile: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        name: 'bob',
-        can_sync: true,
-        discord_id: null,
-        notify_discord: false,
-        notify_discord_mention: true,
-        notify_apprise: false,
-        apprise: null,
-        alias: null,
-        notify_plex_mobile: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 3,
-        name: 'charlie',
-        can_sync: true,
-        discord_id: null,
-        notify_discord: false,
-        notify_discord_mention: true,
-        notify_apprise: false,
-        apprise: null,
-        alias: null,
-        notify_plex_mobile: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 4,
-        name: 'userA',
-        can_sync: true,
-        discord_id: null,
-        notify_discord: false,
-        notify_discord_mention: true,
-        notify_apprise: false,
-        apprise: null,
-        alias: null,
-        notify_plex_mobile: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 5,
-        name: 'userB',
-        can_sync: true,
-        discord_id: null,
-        notify_discord: false,
-        notify_discord_mention: true,
-        notify_apprise: false,
-        apprise: null,
-        alias: null,
-        notify_plex_mobile: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
+      createMockUser(1, 'alice'),
+      createMockUser(2, 'bob'),
+      createMockUser(3, 'charlie'),
+      createMockUser(4, 'userA'),
+      createMockUser(5, 'userB'),
     ])
 
     const config: PlexLabelSyncConfig = {

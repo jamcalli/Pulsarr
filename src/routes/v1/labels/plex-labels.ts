@@ -69,8 +69,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             pending: results.pending,
           },
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to sync plex labels',
         })
         return reply.internalServerError('Unable to sync plex labels')
@@ -161,8 +161,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             failed: orphanedResult.failed,
           },
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to cleanup plex labels',
         })
         return reply.internalServerError('Unable to clean up plex labels')
@@ -229,8 +229,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             failed: results.failed,
           },
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to remove plex labels',
         })
         return reply.internalServerError('Unable to remove plex labels')

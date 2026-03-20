@@ -148,8 +148,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
           message: `${totalSuccessCount} of ${totalInstanceCount} instances have Plex notifications configured (${radarrSuccessCount} Radarr, ${sonarrSuccessCount} Sonarr)`,
           results,
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to check Plex notification status',
         })
         return reply.internalServerError(
