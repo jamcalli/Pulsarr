@@ -1,7 +1,7 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
-const UserBaseSchema = z.object({
+export const UserBaseSchema = z.object({
   id: z.number(),
   name: z.string(),
   apprise: z.string().nullable(),

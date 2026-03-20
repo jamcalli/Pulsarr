@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { UserBaseSchema } from '@root/schemas/users/users-list.schema.js'
 import { z } from 'zod'
 
 export const CreateUserSchema = z.object({
@@ -14,55 +15,13 @@ export const CreateUserSchema = z.object({
   requires_approval: z.boolean().default(false),
 })
 
-export const CreateUserResponseSchema = z.object({
+export const UserResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
-  user: z.object({
-    id: z.number(),
-    name: z.string(),
-    apprise: z.string().nullable(),
-    alias: z.string().nullable(),
-    discord_id: z.string().nullable(),
-    notify_apprise: z.boolean(),
-    notify_discord: z.boolean(),
-    notify_discord_mention: z.boolean(),
-    notify_plex_mobile: z.boolean(),
-    can_sync: z.boolean(),
-    requires_approval: z.boolean(),
-    plex_uuid: z.string().nullable().optional(),
-    avatar: z.string().nullable().optional(),
-    display_name: z.string().nullable().optional(),
-    friend_created_at: z.string().nullable().optional(),
-    created_at: z.string(),
-    updated_at: z.string(),
-  }),
+  user: UserBaseSchema,
 })
 
 export const UpdateUserSchema = CreateUserSchema.partial()
-
-export const UpdateUserResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  user: z.object({
-    id: z.number(),
-    name: z.string(),
-    apprise: z.string().nullable(),
-    alias: z.string().nullable(),
-    discord_id: z.string().nullable(),
-    notify_apprise: z.boolean(),
-    notify_discord: z.boolean(),
-    notify_discord_mention: z.boolean(),
-    notify_plex_mobile: z.boolean(),
-    can_sync: z.boolean(),
-    requires_approval: z.boolean(),
-    plex_uuid: z.string().nullable().optional(),
-    avatar: z.string().nullable().optional(),
-    display_name: z.string().nullable().optional(),
-    friend_created_at: z.string().nullable().optional(),
-    created_at: z.string(),
-    updated_at: z.string(),
-  }),
-})
 
 export const BulkUpdateRequestSchema = z.object({
   userIds: z.array(z.number()).min(1),
@@ -77,9 +36,8 @@ export const BulkUpdateResponseSchema = z.object({
 })
 
 export type CreateUser = z.infer<typeof CreateUserSchema>
-export type CreateUserResponse = z.infer<typeof CreateUserResponseSchema>
+export type UserResponse = z.infer<typeof UserResponseSchema>
 export type UpdateUser = z.infer<typeof UpdateUserSchema>
-export type UpdateUserResponse = z.infer<typeof UpdateUserResponseSchema>
 export type BulkUpdateRequest = z.infer<typeof BulkUpdateRequestSchema>
 export type BulkUpdateResponse = z.infer<typeof BulkUpdateResponseSchema>
 
