@@ -5,8 +5,8 @@ import {
   RemovedTagPrefixSchema,
   TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
+import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
 import { DISCORD_WEBHOOK_HOSTS } from '@root/types/discord.types.js'
-import safeRegex from 'safe-regex2'
 import { z } from 'zod'
 
 // Max constants for validation
@@ -100,29 +100,10 @@ const DeletionModeEnum = z.enum([
 const DeleteSyncTagRegexSchema = z
   .string()
   .max(1024, { message: 'Regex pattern too long (max 1024 characters)' })
-  .refine(
-    (pattern) => {
-      const p = (pattern ?? '').trim()
-      // Allow empty string (treated as not set)
-      if (p.length === 0) return true
-      // Check if the regex is safe using safe-regex2 library
-      if (!safeRegex(p)) {
-        return false
-      }
-      // Verify the regex syntax is valid in both standard and unicode mode
-      try {
-        new RegExp(p)
-        new RegExp(p, 'u')
-        return true
-      } catch {
-        return false
-      }
-    },
-    {
-      message:
-        'Invalid or unsafe regex pattern. Pattern must be valid regex syntax and not contain catastrophic backtracking patterns.',
-    },
-  )
+  .refine((pattern) => isRegexPatternSafe(pattern), {
+    message:
+      'Invalid or unsafe regex pattern. Pattern must be valid regex syntax and not contain catastrophic backtracking patterns.',
+  })
 
 const TagMigrationEntrySchema = z.object({
   completed: z.boolean(),
