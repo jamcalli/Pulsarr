@@ -166,20 +166,22 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
-        // Handle Plex server URL changes - clear connection cache
+        // Handle Plex server URL changes - clear connection cache and restart SSE
         if (
           'plexServerUrl' in safeConfigUpdate ||
           'plexTokens' in safeConfigUpdate
         ) {
           try {
             fastify.log.info(
-              'Plex server connection settings changed, clearing caches',
+              'Plex server connection settings changed, clearing caches and reconnecting SSE',
             )
             fastify.plexServerService.clearCaches()
+            fastify.plexServerService.disconnectSSE()
+            await fastify.plexServerService.connectSSE()
           } catch (error) {
             fastify.log.error(
               { error },
-              'Failed to clear Plex server caches after config update',
+              'Failed to refresh Plex server caches and SSE after config update',
             )
           }
         }
