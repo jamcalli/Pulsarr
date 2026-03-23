@@ -44,7 +44,5 @@ export type UserListResponse = z.infer<typeof UserListResponseSchema>
 export type UserListWithCountsResponse = z.infer<
   typeof UserListWithCountsResponseSchema
 >
-
-// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as UserErrorSchema }
 export type UserError = z.infer<typeof ErrorSchema>

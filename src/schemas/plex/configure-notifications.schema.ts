@@ -37,8 +37,6 @@ export const plexConfigNotificationSchema = {
     500: CommonErrorSchema,
   },
 }
-
-// Export schema for client use
 export { PlexNotificationConfigSchema }
 
 export type PlexNotificationConfig = z.infer<

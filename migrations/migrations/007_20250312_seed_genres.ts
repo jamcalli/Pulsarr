@@ -4,14 +4,6 @@ import {
   shouldSkipForPostgreSQL,
 } from '../utils/clientDetection.js'
 
-/**
- * Seeds the `genres` table with a predefined list of genre names, inserting only those that do not already exist.
- *
- * Skips execution if running on PostgreSQL, as determined by {@link shouldSkipForPostgreSQL}.
- *
- * @remark
- * Genres are inserted in batches of 10. If all genres already exist, no changes are made.
- */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '007_20250312_seed_genres')) {
     return
@@ -80,19 +72,10 @@ export async function up(knex: Knex): Promise<void> {
   }
 }
 
-/**
- * Reverts the genre seeding by removing specific genres from the database.
- *
- * Deletes all entries in the `genres` table whose names match the list of genres added by the corresponding `up` migration.
- *
- * @remark
- * This operation is skipped when running on PostgreSQL.
- */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
     return
   }
-  // List of genres that were added by this migration
   const genresToRemove = [
     'Action',
     'Action/Adventure',
@@ -137,6 +120,5 @@ export async function down(knex: Knex): Promise<void> {
     'Western',
   ]
 
-  // Remove the genres added by this migration
   await knex('genres').whereIn('name', genresToRemove).delete()
 }

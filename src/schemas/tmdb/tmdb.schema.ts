@@ -1,21 +1,19 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
-// Shared homepage schema: allow valid URL strings, null, or empty string from TMDB
+// TMDB returns empty string, null, or a valid URL for homepage fields
 export const TmdbHomepageSchema = z.union([
   z.string().pipe(z.url({ error: 'Invalid URL format' })),
   z.literal(''),
   z.null(),
 ])
 
-// Radarr Rating Source Schema
 export const RadarrRatingSourceSchema = z.object({
   votes: z.number(),
   value: z.number(),
   type: z.enum(['user', 'critic']),
 })
 
-// Radarr Ratings Schema
 export const RadarrRatingsSchema = z.object({
   imdb: RadarrRatingSourceSchema.optional(),
   tmdb: RadarrRatingSourceSchema.optional(),
@@ -24,7 +22,6 @@ export const RadarrRatingsSchema = z.object({
   trakt: RadarrRatingSourceSchema.optional(),
 })
 
-// Plex Ratings Schema (from stored watchlist metadata)
 export const PlexRatingsSchema = z.object({
   imdb: z
     .object({
@@ -37,19 +34,16 @@ export const PlexRatingsSchema = z.object({
   tmdb: z.number().optional(),
 })
 
-// TMDB Genre Schema
 export const TmdbGenreSchema = z.object({
   id: z.number(),
   name: z.string(),
 })
 
-// TMDB Region Schema
 export const TmdbRegionSchema = z.object({
   code: z.string(),
   name: z.string(),
 })
 
-// TMDB Production Company Schema
 export const TmdbProductionCompanySchema = z.object({
   id: z.number(),
   logo_path: z.string().nullable(),
@@ -57,20 +51,17 @@ export const TmdbProductionCompanySchema = z.object({
   origin_country: z.string(),
 })
 
-// TMDB Production Country Schema
 export const TmdbProductionCountrySchema = z.object({
   iso_3166_1: z.string(),
   name: z.string(),
 })
 
-// TMDB Spoken Language Schema
 export const TmdbSpokenLanguageSchema = z.object({
   english_name: z.string(),
   iso_639_1: z.string(),
   name: z.string(),
 })
 
-// TMDB Collection Schema
 export const TmdbBelongsToCollectionSchema = z
   .object({
     id: z.number(),
@@ -80,7 +71,6 @@ export const TmdbBelongsToCollectionSchema = z
   })
   .nullable()
 
-// TMDB Movie Details Schema
 export const TmdbMovieDetailsSchema = z.object({
   adult: z.boolean(),
   backdrop_path: z.string().nullable(),
@@ -110,7 +100,6 @@ export const TmdbMovieDetailsSchema = z.object({
   vote_count: z.number(),
 })
 
-// TMDB Creator Schema
 export const TmdbCreatorSchema = z.object({
   id: z.number(),
   credit_id: z.string(),
@@ -120,7 +109,6 @@ export const TmdbCreatorSchema = z.object({
   profile_path: z.string().nullable(),
 })
 
-// TMDB Episode Schema
 export const TmdbEpisodeSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -137,7 +125,6 @@ export const TmdbEpisodeSchema = z.object({
   still_path: z.string().nullable(),
 })
 
-// TMDB Network Schema
 export const TmdbNetworkSchema = z.object({
   id: z.number(),
   logo_path: z.string().nullable(),
@@ -145,7 +132,6 @@ export const TmdbNetworkSchema = z.object({
   origin_country: z.string(),
 })
 
-// TMDB Season Schema
 export const TmdbSeasonSchema = z.object({
   air_date: z.string().nullable(),
   episode_count: z.number(),
@@ -157,7 +143,6 @@ export const TmdbSeasonSchema = z.object({
   vote_average: z.number(),
 })
 
-// TMDB TV Details Schema
 export const TmdbTvDetailsSchema = z.object({
   adult: z.boolean(),
   backdrop_path: z.string().nullable(),
@@ -193,7 +178,6 @@ export const TmdbTvDetailsSchema = z.object({
   vote_count: z.number(),
 })
 
-// TMDB Watch Provider Schema (for API responses)
 export const TmdbWatchProviderSchema = z.object({
   display_priority: z.number(),
   logo_path: z.string().nullable(),
@@ -201,7 +185,6 @@ export const TmdbWatchProviderSchema = z.object({
   provider_name: z.string(),
 })
 
-// TMDB Watch Provider Data Schema (for API responses)
 export const TmdbWatchProviderDataSchema = z.object({
   link: z.string().optional(),
   flatrate: z.array(TmdbWatchProviderSchema).optional(),
@@ -209,7 +192,6 @@ export const TmdbWatchProviderDataSchema = z.object({
   buy: z.array(TmdbWatchProviderSchema).optional(),
 })
 
-// TMDB Movie Metadata Schema (combined details + watch providers + ratings)
 export const TmdbMovieMetadataSchema = z.object({
   details: TmdbMovieDetailsSchema,
   watchProviders: TmdbWatchProviderDataSchema.optional(),
@@ -217,20 +199,17 @@ export const TmdbMovieMetadataSchema = z.object({
   plexRatings: PlexRatingsSchema.optional(),
 })
 
-// TMDB TV Metadata Schema (combined details + watch providers + ratings)
 export const TmdbTvMetadataSchema = z.object({
   details: TmdbTvDetailsSchema,
   watchProviders: TmdbWatchProviderDataSchema.optional(),
   plexRatings: PlexRatingsSchema.optional(),
 })
 
-// Union schema for content metadata
 export const TmdbContentMetadataSchema = z.union([
   TmdbMovieMetadataSchema,
   TmdbTvMetadataSchema,
 ])
 
-// Request schemas
 export const GetTmdbMetadataParamsSchema = z.object({
   id: z.string().min(1, { error: 'TMDB ID is required' }),
 })
@@ -250,21 +229,18 @@ export const GetTmdbMetadataQuerySchema = z.object({
     .optional(),
 })
 
-// Response schemas
 export const TmdbMetadataSuccessResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   metadata: TmdbContentMetadataSchema,
 })
 
-// TMDB Regions Response Schemas
 export const TmdbRegionsSuccessResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   regions: z.array(TmdbRegionSchema),
 })
 
-// Type exports
 export type RadarrRatingSource = z.infer<typeof RadarrRatingSourceSchema>
 export type RadarrRatings = z.infer<typeof RadarrRatingsSchema>
 export type PlexRatings = z.infer<typeof PlexRatingsSchema>
@@ -297,7 +273,6 @@ export type TmdbRegionsSuccessResponse = z.infer<
   typeof TmdbRegionsSuccessResponseSchema
 >
 
-// Re-export shared error schema with domain-specific aliases
 export { ErrorSchema as TmdbMetadataErrorResponseSchema }
 export type TmdbMetadataErrorResponse = z.infer<typeof ErrorSchema>
 export { ErrorSchema as TmdbRegionsErrorResponseSchema }

@@ -4,7 +4,6 @@ import {
 } from '@schemas/plex/get-genres.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
-import type { z } from 'zod'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.get(
@@ -26,13 +25,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         await fastify.db.syncGenresFromWatchlist()
         const genres = await fastify.db.getAllGenres()
 
-        const response: z.infer<typeof WatchlistGenresResponseSchema> = {
+        reply.status(200)
+        return {
           success: true,
           genres: genres.map((genre) => genre.name),
         }
-
-        reply.status(200)
-        return response
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch watchlist genres',

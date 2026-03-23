@@ -27,12 +27,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        // Check if plex label sync service is available
         if (!fastify.plexLabelSyncService) {
           return reply.notFound('Plex label sync service not available')
         }
 
-        // Check config first to see if labeling is enabled
         const { plexLabelSync } = fastify.config
         if (!plexLabelSync?.enabled) {
           return {
@@ -96,12 +94,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        // Check if plex label sync service is available
         if (!fastify.plexLabelSyncService) {
           return reply.notFound('Plex label sync service not available')
         }
 
-        // Check if cleanup is enabled
         const { plexLabelSync } = fastify.config
         if (!plexLabelSync?.enabled) {
           return {
@@ -118,10 +114,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
-        // Clean up expired pending syncs
         const expiredPendingCount = await fastify.db.expirePendingLabelSyncs()
 
-        // Clean up orphaned labels if enabled in configuration
         let orphanedResult = { removed: 0, failed: 0 }
         if (plexLabelSync?.cleanupOrphanedLabels) {
           try {
@@ -189,12 +183,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        // Check if plex label sync service is available
         if (!fastify.plexLabelSyncService) {
           return reply.notFound('Plex label sync service not available')
         }
 
-        // Check config first to see if labeling is enabled
         const { plexLabelSync } = fastify.config
         if (!plexLabelSync?.enabled) {
           return {

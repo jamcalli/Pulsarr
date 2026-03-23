@@ -1,8 +1,5 @@
 import { z } from 'zod'
 
-/**
- * Shared tag prefix schema
- */
 export const TagPrefixSchema = z
   .string()
   .trim()
@@ -12,9 +9,6 @@ export const TagPrefixSchema = z
       'Tag prefix can only contain letters, numbers, underscores, hyphens, colons, and dots',
   })
 
-/**
- * Shared removed tag prefix schema
- */
 export const RemovedTagPrefixSchema = z
   .string()
   .trim()

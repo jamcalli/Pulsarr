@@ -2,7 +2,6 @@ import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { z } from 'zod'
 
-// Shared quota field definitions
 const QuotaFieldsSchema = z.object({
   quotaType: QuotaTypeSchema.optional(),
   quotaLimit: z.number().min(1).optional(),
@@ -17,8 +16,6 @@ const EnabledQuotaSchema = QuotaFieldsSchema.extend({
 const EnabledQuotaCappedSchema = EnabledQuotaSchema.extend({
   quotaLimit: z.number().min(1).max(1000).optional(),
 })
-
-// User quota schemas
 export const CreateUserQuotaSchema = z.object({
   userId: z.number(),
   quotaType: QuotaTypeSchema,
@@ -28,13 +25,9 @@ export const CreateUserQuotaSchema = z.object({
 })
 
 export const UpdateUserQuotaSchema = QuotaFieldsSchema
-
-// Schema for updating specific content type quota
 export const UpdateSpecificQuotaSchema = QuotaFieldsSchema.extend({
   contentType: z.enum(['movie', 'show']),
 })
-
-// Schema for updating separate movie and show quotas
 export const UpdateSeparateQuotasSchema = z.object({
   movieQuota: EnabledQuotaSchema.optional(),
   showQuota: EnabledQuotaSchema.optional(),
@@ -161,16 +154,12 @@ export const QuotaSuccessResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
 })
-
-// Pending held count response schema
 export const PendingHeldCountResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   movieCount: z.number(),
   showCount: z.number(),
 })
-
-// Bulk quota operation schemas
 export const BulkQuotaOperationSchema = z.object({
   userIds: z.array(z.number()).min(1).max(100),
   operation: z.enum(['update', 'delete']),
@@ -184,8 +173,6 @@ export const BulkQuotaOperationResponseSchema = z.object({
   processedCount: z.number(),
   failedIds: z.array(z.number()).optional(),
 })
-
-// Type exports
 export type CreateUserQuota = z.infer<typeof CreateUserQuotaSchema>
 export type UpdateUserQuota = z.infer<typeof UpdateUserQuotaSchema>
 export type UpdateSpecificQuota = z.infer<typeof UpdateSpecificQuotaSchema>
@@ -227,6 +214,4 @@ export type BulkQuotaOperationResponse = z.infer<
 export type PendingHeldCountResponse = z.infer<
   typeof PendingHeldCountResponseSchema
 >
-
-// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as QuotaErrorSchema }

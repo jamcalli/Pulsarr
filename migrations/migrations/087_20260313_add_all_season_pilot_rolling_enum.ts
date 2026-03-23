@@ -2,8 +2,6 @@ import type { Knex } from 'knex'
 import { isPostgreSQL } from '../utils/clientDetection.js'
 
 /**
- * Adds 'allSeasonPilotRolling' to the monitoring_type enum.
- *
  * PostgreSQL uses ALTER TYPE ADD VALUE on its native enum type.
  * SQLite needs the column-rename trick to expand the CHECK constraint
  * created by Knex's table.enum().

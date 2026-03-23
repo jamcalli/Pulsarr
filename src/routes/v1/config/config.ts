@@ -59,7 +59,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Updated PUT handler for config route to avoid race conditions
   fastify.put(
     '/',
     {
@@ -82,7 +81,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         // Schema is .strict() so unknown fields (like enableApprise/appriseUrl) are rejected by Zod
         const safeConfigUpdate = request.body
 
-        // Validate Plex Pass requirement for Plex Mobile notifications
         if (safeConfigUpdate.plexMobileEnabled === true) {
           const hasPlexPass = fastify.plexServerService.getHasPlexPass()
           if (!hasPlexPass) {
@@ -103,7 +101,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             fastify.config[key as keyof typeof fastify.config]
         }
 
-        // First update the runtime config
         try {
           await fastify.updateConfig(safeConfigUpdate)
         } catch (configUpdateError) {
@@ -115,7 +112,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
-        // Now update the database
         const dbUpdated = await fastify.db.updateConfig(safeConfigUpdate)
         if (!dbUpdated) {
           // Revert runtime config using stored values

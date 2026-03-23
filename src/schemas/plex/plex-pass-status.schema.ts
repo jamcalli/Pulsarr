@@ -9,6 +9,5 @@ export type PlexPassStatusResponse = z.infer<
   typeof PlexPassStatusResponseSchema
 >
 
-// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as PlexPassStatusErrorSchema }
 export type PlexPassStatusError = z.infer<typeof ErrorSchema>

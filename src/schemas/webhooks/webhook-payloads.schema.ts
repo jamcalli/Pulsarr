@@ -1,28 +1,16 @@
 /**
- * Webhook Payload Schemas
- *
- * Zod schemas for validating native webhook dispatch payloads.
- * These are NOT API schemas - they validate internal webhook payloads
- * before dispatch to external endpoints.
- *
- * Uses discriminated unions to ensure Radarr/Sonarr-specific fields
- * are mutually exclusive based on instanceType.
+ * Internal webhook dispatch payloads, not API schemas. Validated before
+ * dispatch to external endpoints.
  */
 
 import type { WebhookEventType } from '@root/types/webhook-endpoint.types.js'
 import { z } from 'zod'
 
-// =============================================================================
-// Common Sub-Schemas
-// =============================================================================
-
-/** User information included in webhook payloads */
 const UserInfoSchema = z.object({
   userId: z.number(),
   username: z.string(),
 })
 
-/** Basic content information */
 const ContentInfoSchema = z.object({
   title: z.string(),
   type: z.enum(['movie', 'show']),
@@ -30,7 +18,6 @@ const ContentInfoSchema = z.object({
   guids: z.array(z.string()),
 })
 
-/** Approval trigger types */
 const ApprovalTriggerSchema = z.enum([
   'quota_exceeded',
   'router_rule',
@@ -38,11 +25,6 @@ const ApprovalTriggerSchema = z.enum([
   'content_criteria',
 ])
 
-// =============================================================================
-// Routing Schemas (Discriminated Union)
-// =============================================================================
-
-/** Base routing fields shared by both Radarr and Sonarr */
 const BaseRoutingFieldsSchema = z.object({
   instanceId: z.number(),
   qualityProfile: z.union([z.number(), z.string()]).nullable(),
@@ -52,27 +34,23 @@ const BaseRoutingFieldsSchema = z.object({
   syncedInstances: z.array(z.number()).optional(),
 })
 
-/** Radarr-specific routing - includes minimumAvailability and monitor, excludes Sonarr fields */
 export const RadarrRoutingPayloadSchema = BaseRoutingFieldsSchema.extend({
   instanceType: z.literal('radarr'),
   minimumAvailability: z.string().nullable(),
   monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).nullable(),
 })
 
-/** Sonarr-specific routing - includes seasonMonitoring/seriesType, excludes Radarr fields */
 export const SonarrRoutingPayloadSchema = BaseRoutingFieldsSchema.extend({
   instanceType: z.literal('sonarr'),
   seasonMonitoring: z.string().nullable(),
   seriesType: z.enum(['standard', 'anime', 'daily']).nullable(),
 })
 
-/** Discriminated union for routing - picks schema based on instanceType */
 export const RoutingPayloadSchema = z.discriminatedUnion('instanceType', [
   RadarrRoutingPayloadSchema,
   SonarrRoutingPayloadSchema,
 ])
 
-/** Input type for routing builder - accepts any routing-like object */
 interface RoutingInput {
   instanceType: 'radarr' | 'sonarr'
   instanceId: number
@@ -87,10 +65,6 @@ interface RoutingInput {
   syncedInstances?: number[]
 }
 
-/**
- * Builds a properly typed routing payload from a generic routing object.
- * Returns a discriminated union with only the fields relevant to the instance type.
- */
 export function buildRoutingPayload(
   routing: RoutingInput,
 ): RadarrRoutingPayload | SonarrRoutingPayload {
@@ -120,7 +94,6 @@ export function buildRoutingPayload(
   }
 }
 
-/** Radarr routing for routedTo arrays (with optional rule info) */
 export const RadarrRoutedToItemSchema = z.object({
   instanceId: z.number(),
   instanceType: z.literal('radarr'),
@@ -134,7 +107,6 @@ export const RadarrRoutedToItemSchema = z.object({
   monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).optional(),
 })
 
-/** Sonarr routing for routedTo arrays (with optional rule info) */
 export const SonarrRoutedToItemSchema = z.object({
   instanceId: z.number(),
   instanceType: z.literal('sonarr'),
@@ -148,13 +120,11 @@ export const SonarrRoutedToItemSchema = z.object({
   seriesType: z.enum(['standard', 'anime', 'daily']).optional(),
 })
 
-/** Discriminated union for routedTo items */
 export const RoutedToItemSchema = z.discriminatedUnion('instanceType', [
   RadarrRoutedToItemSchema,
   SonarrRoutedToItemSchema,
 ])
 
-/** Input type for routedTo item builder */
 interface RoutedToInput {
   instanceType: 'radarr' | 'sonarr'
   instanceId: number
@@ -170,19 +140,12 @@ interface RoutedToInput {
   seriesType?: string | null
 }
 
-/** Valid series type values */
 type SeriesType = 'standard' | 'anime' | 'daily'
 
-/**
- * Type guard for valid series type values.
- */
 function isValidSeriesType(value: string): value is SeriesType {
   return value === 'standard' || value === 'anime' || value === 'daily'
 }
 
-/**
- * Normalizes seriesType to valid enum value or undefined.
- */
 function normalizeSeriesType(
   value: string | null | undefined,
 ): SeriesType | undefined {
@@ -190,10 +153,6 @@ function normalizeSeriesType(
   return isValidSeriesType(value) ? value : undefined
 }
 
-/**
- * Builds a properly typed routedTo item from a generic routing detail object.
- * Returns a discriminated union with only the fields relevant to the instance type.
- */
 export function buildRoutedToItem(
   detail: RoutedToInput,
 ):
@@ -227,11 +186,6 @@ export function buildRoutedToItem(
   }
 }
 
-// =============================================================================
-// Event Payload Schemas
-// =============================================================================
-
-/** media.available - Fired when content becomes available to watch */
 export const MediaAvailablePayloadSchema = z.object({
   mediaType: z.enum(['movie', 'show']),
   title: z.string(),
@@ -258,7 +212,6 @@ export const MediaAvailablePayloadSchema = z.object({
   ),
 })
 
-/** watchlist.added - Fired when a user adds content to their Plex watchlist */
 export const WatchlistAddedPayloadSchema = z.object({
   addedBy: UserInfoSchema,
   content: z.object({
@@ -271,7 +224,6 @@ export const WatchlistAddedPayloadSchema = z.object({
   routedTo: z.array(RoutedToItemSchema),
 })
 
-/** watchlist.removed - Fired when a user removes content from their watchlist */
 export const WatchlistRemovedPayloadSchema = z.object({
   watchlistItemId: z.number(),
   content: z.object({
@@ -286,7 +238,6 @@ export const WatchlistRemovedPayloadSchema = z.object({
   }),
 })
 
-/** approval.created - Fired when a new approval request is submitted */
 export const ApprovalCreatedPayloadSchema = z.object({
   approvalId: z.number(),
   content: z.object({
@@ -305,7 +256,6 @@ export const ApprovalCreatedPayloadSchema = z.object({
   proposedRouting: RoutingPayloadSchema.optional(),
 })
 
-/** approval.resolved - Fired when an approval is approved or rejected */
 export const ApprovalResolvedPayloadSchema = z.object({
   approvalId: z.number(),
   status: z.enum(['approved', 'rejected']),
@@ -321,7 +271,6 @@ export const ApprovalResolvedPayloadSchema = z.object({
   routing: RoutingPayloadSchema.optional(),
 })
 
-/** approval.auto - Fired when content is auto-approved */
 export const ApprovalAutoPayloadSchema = z.object({
   approvalId: z.number(),
   content: ContentInfoSchema,
@@ -330,7 +279,6 @@ export const ApprovalAutoPayloadSchema = z.object({
   reason: z.string(),
 })
 
-/** delete_sync.completed - Fired when a delete sync job finishes */
 export const DeleteSyncCompletedPayloadSchema = z.object({
   dryRun: z.boolean(),
   total: z.object({
@@ -367,7 +315,6 @@ export const DeleteSyncCompletedPayloadSchema = z.object({
   safetyMessage: z.string().optional(),
 })
 
-/** quota.cap_reached - Fired when a user hits their watchlist cap */
 export const QuotaCapReachedPayloadSchema = z.object({
   user: z.object({
     userId: z.number(),
@@ -378,7 +325,6 @@ export const QuotaCapReachedPayloadSchema = z.object({
   cap: z.number(),
 })
 
-/** user.created - Fired when a new user is added */
 export const UserCreatedPayloadSchema = z.object({
   user: z.object({
     id: z.number(),
@@ -389,10 +335,6 @@ export const UserCreatedPayloadSchema = z.object({
   requiresApproval: z.boolean(),
   createdAt: z.string(),
 })
-
-// =============================================================================
-// Inferred Types
-// =============================================================================
 
 export type RadarrRoutingPayload = z.infer<typeof RadarrRoutingPayloadSchema>
 export type SonarrRoutingPayload = z.infer<typeof SonarrRoutingPayloadSchema>
@@ -419,11 +361,6 @@ export type QuotaCapReachedPayload = z.infer<
 >
 export type UserCreatedPayload = z.infer<typeof UserCreatedPayloadSchema>
 
-// =============================================================================
-// Payload Map (for typed dispatch)
-// =============================================================================
-
-/** Maps event types to their payload types for typed dispatch */
 export type WebhookPayloadMap = {
   'media.available': MediaAvailablePayload
   'watchlist.added': WatchlistAddedPayload
@@ -436,12 +373,10 @@ export type WebhookPayloadMap = {
   'quota.cap_reached': QuotaCapReachedPayload
 }
 
-/** Mapped type preserving schema output types per event */
 type WebhookPayloadSchemas = {
   [K in WebhookEventType]: z.ZodType<WebhookPayloadMap[K]>
 }
 
-/** Maps event types to their Zod schemas for runtime validation */
 export const WEBHOOK_PAYLOAD_SCHEMAS: WebhookPayloadSchemas = {
   'media.available': MediaAvailablePayloadSchema,
   'watchlist.added': WatchlistAddedPayloadSchema,
@@ -453,10 +388,6 @@ export const WEBHOOK_PAYLOAD_SCHEMAS: WebhookPayloadSchemas = {
   'user.created': UserCreatedPayloadSchema,
   'quota.cap_reached': QuotaCapReachedPayloadSchema,
 }
-
-// =============================================================================
-// Example Payloads (Type-checked)
-// =============================================================================
 
 export const MEDIA_AVAILABLE_EXAMPLE: MediaAvailablePayload = {
   mediaType: 'movie',
@@ -642,17 +573,12 @@ export const USER_CREATED_EXAMPLE: UserCreatedPayload = {
   createdAt: '2024-12-20T10:30:00.000Z',
 }
 
-// =============================================================================
-// Payload Registry (for API/UI consumption)
-// =============================================================================
-
 export interface WebhookPayloadRegistryEntry {
   schema: z.ZodType
   example: unknown
   description: string
 }
 
-/** Registry mapping event types to their schema, example, and description */
 export const WEBHOOK_PAYLOAD_REGISTRY: Record<
   WebhookEventType,
   WebhookPayloadRegistryEntry

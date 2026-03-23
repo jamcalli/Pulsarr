@@ -1,7 +1,6 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
-// Base Radarr instance schema for creation (with defaults)
 export const RadarrInstanceSchema = z.object({
   name: z.string().min(1, { error: 'Name is required' }),
   baseUrl: z.string().url({ error: 'Invalid base URL' }),
@@ -23,7 +22,7 @@ export const RadarrInstanceSchema = z.object({
   syncedInstances: z.array(z.number()).optional(),
 })
 
-// Radarr instance schema for updates (no defaults to prevent overwriting existing values)
+// No defaults on update - prevents overwriting existing values with defaults
 export const RadarrInstanceUpdateSchema = z.object({
   name: z.string().min(1, { error: 'Name is required' }).optional(),
   baseUrl: z.string().url({ error: 'Invalid base URL' }).optional(),
@@ -41,22 +40,18 @@ export const RadarrInstanceUpdateSchema = z.object({
   syncedInstances: z.array(z.number()).optional(),
 })
 
-// Response schema for a single instance (includes id)
 export const RadarrInstanceResponseSchema = RadarrInstanceSchema.extend({
   id: z.number(),
 })
 
-// Response schema for list of instances
 export const RadarrInstanceListResponseSchema = z.array(
   RadarrInstanceResponseSchema,
 )
 
-// Response schema for instance creation
 export const RadarrInstanceCreateResponseSchema = z.object({
   id: z.number().int().positive(),
 })
 
-// Inferred types for use in client and server
 export type RadarrInstance = z.infer<typeof RadarrInstanceSchema>
 export type RadarrInstanceUpdate = z.infer<typeof RadarrInstanceUpdateSchema>
 export type RadarrInstanceResponse = z.infer<
@@ -69,5 +64,4 @@ export type RadarrInstanceCreateResponse = z.infer<
   typeof RadarrInstanceCreateResponseSchema
 >
 
-// Re-export shared schemas for route use
 export { ErrorSchema }
