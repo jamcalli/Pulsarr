@@ -8,7 +8,6 @@ import {
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-// Keep-alive interval in milliseconds (30 seconds)
 const KEEP_ALIVE_INTERVAL = 30_000
 
 const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -56,7 +55,6 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       return reply.sse(
         (async function* source() {
           try {
-            // First, send historical log entries if tail > 0
             if (tail > 0) {
               const tailEntries = await logService.getTailLines(tail, filter)
 
@@ -68,7 +66,6 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               }
             }
 
-            // Then stream live entries if follow is enabled
             if (follow) {
               const emitter = logService.getEventEmitter()
 
@@ -121,10 +118,8 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                   continue
                 }
 
-                // Got a log entry
                 const logEntry = result[0] as LogEntry
 
-                // Apply text filter if provided
                 if (
                   filter &&
                   !logEntry.message.toLowerCase().includes(filter.toLowerCase())
