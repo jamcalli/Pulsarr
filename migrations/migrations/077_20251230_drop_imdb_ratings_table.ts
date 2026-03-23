@@ -6,10 +6,17 @@ import type { Knex } from 'knex'
  * stored directly on watchlist items.
  */
 export async function up(knex: Knex): Promise<void> {
+  // Delete the imdb-update schedule if it exists
   await knex('schedules').where('name', 'imdb-update').delete()
+
+  // Drop the imdb_ratings table
   await knex.schema.dropTableIfExists('imdb_ratings')
 }
 
+/**
+ * Recreates the imdb_ratings table.
+ * Note: This will NOT restore the data or re-enable the schedule.
+ */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.createTable('imdb_ratings', (table) => {
     table.increments('id').primary()

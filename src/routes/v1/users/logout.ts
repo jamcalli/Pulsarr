@@ -22,17 +22,20 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
+        // Check authentication method setting
         const authMethod = fastify.config.authenticationMethod
         const isAuthDisabled = authMethod === 'disabled'
         const isLocalBypass =
           authMethod === 'requiredExceptLocal' && isLocalIpAddress(request.ip)
 
+        // If auth is disabled globally or for local addresses
         if (isAuthDisabled || isLocalBypass) {
           return reply.badRequest(
             'Logout not available: Authentication is disabled for your IP address.',
           )
         }
 
+        // Normal logout flow
         if (!request.session.user) {
           return reply.badRequest('No active session found.')
         }

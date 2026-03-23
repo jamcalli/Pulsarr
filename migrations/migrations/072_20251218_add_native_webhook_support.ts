@@ -7,6 +7,7 @@ import type { Knex } from 'knex'
  * 2. Adds `sent_to_native_webhook` column to notifications table for stats tracking
  */
 export async function up(knex: Knex): Promise<void> {
+  // Create webhook endpoints table
   await knex.schema.createTable('webhook_endpoints', (table) => {
     table.increments('id').primary()
     table.string('name').notNullable()
@@ -18,9 +19,13 @@ export async function up(knex: Knex): Promise<void> {
     table.timestamp('created_at').notNullable().defaultTo(knex.fn.now())
     table.timestamp('updated_at').notNullable().defaultTo(knex.fn.now())
 
+    // Index for efficient filtering of enabled endpoints
     table.index('enabled')
   })
 
+  // Add webhook tracking column to notifications table for stats
+  // This enables native webhooks to appear in notification stats UI
+  // alongside Discord, Apprise, and Tautulli channels
   await knex.schema.alterTable('notifications', (table) => {
     table.boolean('sent_to_native_webhook').notNullable().defaultTo(false)
   })

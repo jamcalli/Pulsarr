@@ -5,6 +5,7 @@ import {
 } from '@schemas/radarr/get-quality-profiles.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.get(
@@ -40,9 +41,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         const qualityProfiles = await service.fetchQualityProfiles()
-
-        reply.status(200)
-        return {
+        const response: z.infer<typeof QualityProfilesResponseSchema> = {
           success: true,
           instance: {
             id: instance.id,
@@ -51,6 +50,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           },
           qualityProfiles,
         }
+
+        reply.status(200)
+        return response
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Error fetching quality profiles',

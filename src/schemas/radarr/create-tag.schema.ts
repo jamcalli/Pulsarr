@@ -21,4 +21,6 @@ export type CreateTagBodyInput = z.input<typeof CreateTagBodySchema>
 export type CreateTagBody = z.output<typeof CreateTagBodySchema>
 export type CreateTagResponse = z.infer<typeof CreateTagResponseSchema>
 export type CreateTagError = z.infer<typeof ErrorSchema>
+
+// Re-export shared schemas
 export { ErrorSchema }

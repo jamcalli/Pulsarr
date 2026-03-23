@@ -13,6 +13,7 @@ import { isPostgreSQL } from '../utils/clientDetection.js'
  *    (architecturally nonsensical: modifying historical records serves no purpose)
  */
 export async function up(knex: Knex): Promise<void> {
+  // Drop the dead triggers first
   if (isPostgreSQL(knex)) {
     await knex.raw(
       'DROP TRIGGER IF EXISTS watchlist_add_trigger ON watchlist_items',
@@ -31,15 +32,21 @@ export async function up(knex: Knex): Promise<void> {
     await knex.raw('DROP TRIGGER IF EXISTS watchlist_remove_trigger')
   }
 
+  // Drop the unused columns
   await knex.schema.alterTable('notifications', (table) => {
     table.dropColumn('sent_to_webhook')
     table.dropColumn('triggered_by_user_ids')
   })
 }
 
+/**
+ * Restores the columns and triggers for rollback.
+ * Note: triggers are recreated but remain unused by application code.
+ */
 export async function down(knex: Knex): Promise<void> {
   const isPostgres = isPostgreSQL(knex)
 
+  // Restore columns
   await knex.schema.alterTable('notifications', (table) => {
     table.boolean('sent_to_webhook').defaultTo(false)
     if (isPostgres) {

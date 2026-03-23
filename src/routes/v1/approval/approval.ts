@@ -102,6 +102,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
+        // Check if approval request already exists for this user and content
         const existingRequest = await fastify.db.getApprovalRequestByContent(
           request.body.userId,
           request.body.contentKey,
@@ -180,6 +181,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           sortOrder,
         } = request.query
 
+        // Get approval requests with all filters and sorting
         const requests = await fastify.db.getApprovalHistory(
           userId,
           status,
@@ -192,6 +194,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           sortOrder,
         )
 
+        // Get the total count with the same filters but without pagination
         const total = await fastify.db.getApprovalHistoryCount(
           userId,
           status,
@@ -344,6 +347,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const currentStatus = existingRequest.status
 
         if (targetStatus) {
+          // Only validate transitions if status is being updated
           if (
             currentStatus === 'approved' ||
             currentStatus === 'expired' ||
@@ -366,6 +370,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             )
           }
 
+          // Check instance health before approving
           if (targetStatus === 'approved') {
             const healthCheck =
               await fastify.approvalService.checkInstanceHealth(
@@ -393,12 +398,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         // If approving, use approveAndRoute() for atomic approval + routing
         if (targetStatus === 'approved') {
+          // First update proposedRouterDecision if provided (before approving)
           if (request.body.proposedRouterDecision) {
             await fastify.db.updateApprovalRequest(requestId, {
               proposedRouterDecision: request.body.proposedRouterDecision,
             })
           }
 
+          // Now approve and route atomically
           const result = await fastify.approvalService.approveAndRoute(
             requestId,
             actorId,
@@ -438,6 +445,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
+        // Not approving - just update the request fields
         const updatedRequest = await fastify.db.updateApprovalRequest(
           requestId,
           {
@@ -473,7 +481,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Delete approval request
+  // Delete approval request (hard delete from database)
   fastify.delete(
     '/requests/:id',
     {
@@ -502,6 +510,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.badRequest('Invalid request id')
         }
 
+        // Use the approval service to delete the request (handles SSE events)
         const deleted =
           await fastify.approvalService.deleteApprovalRequest(requestId)
 
@@ -523,7 +532,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Reject approval request
+  // Reject approval request (marks as rejected, keeps in database)
   fastify.post(
     '/requests/:id/reject',
     {
@@ -561,6 +570,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.unauthorized('User not authenticated')
         }
 
+        // Check if the request exists and is in pending status
         const existingRequest = await fastify.db.getApprovalRequest(requestId)
         if (!existingRequest) {
           return reply.notFound('Approval request not found')
@@ -572,6 +582,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
+        // Reject the request using the approval service (handles SSE events)
         const rejectedRequest = await fastify.approvalService.rejectRequest(
           requestId,
           rejectedBy,
@@ -671,6 +682,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.unauthorized('User not authenticated')
         }
 
+        // Check if the request exists and is in pending status
         const existingRequest = await fastify.db.getApprovalRequest(requestId)
         if (!existingRequest) {
           return reply.notFound('Approval request not found')
@@ -686,6 +698,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
+        // Check instance health before approving
         const healthCheck = await fastify.approvalService.checkInstanceHealth(
           existingRequest.contentType,
         )
@@ -695,6 +708,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
+        // Approve and route atomically via service
         const result = await fastify.approvalService.approveAndRoute(
           requestId,
           approvedBy,
@@ -755,6 +769,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.unauthorized('User not authenticated')
         }
 
+        // Check all instance health before bulk approve
         const healthCheck =
           await fastify.approvalService.checkAllInstancesHealth()
         if (!healthCheck.allAvailable) {
@@ -862,6 +877,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const { requestIds } = request.body
 
+        // Use the approval service batch delete method (handles SSE events)
         const result = await fastify.approvalService.batchDelete(requestIds)
 
         return {

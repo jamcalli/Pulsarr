@@ -56,6 +56,9 @@ export async function up(knex: Knex): Promise<void> {
   }
 }
 
+/**
+ * Reverts watchlist cap columns back to lifetime naming.
+ */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('user_quotas', (table) => {
     table.renameColumn('watchlist_cap', 'lifetime_limit')

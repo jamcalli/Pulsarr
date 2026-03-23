@@ -20,5 +20,6 @@ export const rssFeedsSchema = {
 
 export type RssFeedsSuccess = z.infer<typeof RssFeedsSuccessSchema>
 
+// Re-export ErrorSchema for domain-specific error type
 export { ErrorSchema as RssFeedsErrorSchema }
 export type RssFeedsError = z.infer<typeof ErrorSchema>

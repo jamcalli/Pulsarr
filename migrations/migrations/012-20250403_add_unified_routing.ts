@@ -1,6 +1,13 @@
 import type { Knex } from 'knex'
 import { isPostgreSQL } from '../utils/clientDetection.js'
 
+/**
+ * Migrates legacy genre routing data into a unified `router_rules` table and sets up referential integrity triggers.
+ *
+ * Creates the `router_rules` table to consolidate routing rules for multiple plugin types, adds indexes, and defines triggers to cascade deletions from related Sonarr and Radarr instance tables. Migrates existing genre routing entries from `sonarr_genre_routing` and `radarr_genre_routing` into the new table, converting genre data to JSON format, and drops the legacy tables after migration.
+ *
+ * @remark This migration is skipped for PostgreSQL databases, as the schema changes are handled in a later migration.
+ */
 export async function up(knex: Knex): Promise<void> {
   // Skip this migration for PostgreSQL - it's included in migration 034
   if (isPostgreSQL(knex)) {
@@ -11,27 +18,29 @@ export async function up(knex: Knex): Promise<void> {
   }
 
   await knex.transaction(async (trx) => {
+    // Create the router_rules table
     await trx.schema.createTable('router_rules', (table) => {
       table.increments('id').primary()
       table.string('name').notNullable()
-      table.string('type').notNullable()
-      table.json('criteria').notNullable()
-      table.string('target_type').notNullable()
+      table.string('type').notNullable() // Plugin type: 'genre', 'user', 'time', etc.
+      table.json('criteria').notNullable() // Flexible JSON structure for criteria
+      table.string('target_type').notNullable() // 'sonarr' or 'radarr'
       table.integer('target_instance_id').notNullable()
       table.string('root_folder')
       table.integer('quality_profile')
       table.integer('order').defaultTo(50)
       table.boolean('enabled').defaultTo(true)
-      table.json('metadata').nullable()
+      table.json('metadata').nullable() // For plugin-specific extra data
       table.timestamp('created_at').defaultTo(trx.fn.now())
       table.timestamp('updated_at').defaultTo(trx.fn.now())
 
+      // Add appropriate indexes
       table.index(['type', 'enabled'])
       table.index('target_type')
       table.index('target_instance_id')
     })
 
-    // Triggers for cascading deletes - can't use normal FKs since target_instance_id is polymorphic
+    // Create triggers to maintain referential integrity with cascading deletes
     await trx.raw(`
       CREATE TRIGGER fk_router_rules_sonarr_delete
       BEFORE DELETE ON sonarr_instances
@@ -52,6 +61,7 @@ export async function up(knex: Knex): Promise<void> {
       END;
     `)
 
+    // Migrate Sonarr genre routes to the new table
     const sonarrRoutes = await knex('sonarr_genre_routing').select('*')
 
     for (const route of sonarrRoutes) {
@@ -63,13 +73,14 @@ export async function up(knex: Knex): Promise<void> {
         target_instance_id: route.sonarr_instance_id,
         root_folder: route.root_folder,
         quality_profile: route.quality_profile,
-        order: 50,
+        order: 50, // Default priority
         enabled: true,
         created_at: route.created_at,
         updated_at: route.updated_at,
       })
     }
 
+    // Migrate Radarr genre routes to the new table
     const radarrRoutes = await knex('radarr_genre_routing').select('*')
 
     for (const route of radarrRoutes) {
@@ -81,18 +92,26 @@ export async function up(knex: Knex): Promise<void> {
         target_instance_id: route.radarr_instance_id,
         root_folder: route.root_folder,
         quality_profile: route.quality_profile,
-        order: 50,
+        order: 50, // Default priority
         enabled: true,
         created_at: route.created_at,
         updated_at: route.updated_at,
       })
     }
 
+    // Now that we've migrated all the data, we can drop the original tables
     await trx.schema.dropTable('sonarr_genre_routing')
     await trx.schema.dropTable('radarr_genre_routing')
   })
 }
 
+/**
+ * Rolls back the unified routing migration by restoring the original genre routing tables and migrating data back from the unified table.
+ *
+ * Recreates the `sonarr_genre_routing` and `radarr_genre_routing` tables with their original schema and constraints, migrates genre routing rules from the `router_rules` table based on target type, and drops the unified `router_rules` table.
+ *
+ * @remark Skips execution on PostgreSQL databases, as rollback is handled by a separate migration.
+ */
 export async function down(knex: Knex): Promise<void> {
   // Skip this migration for PostgreSQL - it's included in migration 034
   if (isPostgreSQL(knex)) {
@@ -102,9 +121,11 @@ export async function down(knex: Knex): Promise<void> {
     return
   }
 
+  // Drop the triggers first
   await knex.raw('DROP TRIGGER IF EXISTS fk_router_rules_sonarr_delete')
   await knex.raw('DROP TRIGGER IF EXISTS fk_router_rules_radarr_delete')
 
+  // First recreate the original genre routing tables
   await knex.schema.createTable('sonarr_genre_routing', (table) => {
     table.increments('id').primary()
     table
@@ -141,6 +162,7 @@ export async function down(knex: Knex): Promise<void> {
     table.index('name')
   })
 
+  // Migrate data back from router_rules to the genre-specific tables
   const rules = await knex('router_rules').where('type', 'genre').select('*')
 
   for (const rule of rules) {
@@ -169,5 +191,6 @@ export async function down(knex: Knex): Promise<void> {
     }
   }
 
+  // Drop the router_rules table
   await knex.schema.dropTable('router_rules')
 }

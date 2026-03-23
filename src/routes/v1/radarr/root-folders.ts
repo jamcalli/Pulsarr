@@ -5,6 +5,7 @@ import {
 } from '@schemas/radarr/get-root-folders.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.get(
@@ -40,9 +41,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         const rootFolders = await service.fetchRootFolders()
-
-        reply.status(200)
-        return {
+        const response: z.infer<typeof RootFoldersResponseSchema> = {
           success: true,
           instance: {
             id: instance.id,
@@ -51,6 +50,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           },
           rootFolders,
         }
+
+        reply.status(200)
+        return response
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Error fetching root folders',

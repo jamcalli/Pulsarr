@@ -4,6 +4,7 @@ import { basename, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Knex } from 'knex'
 
+// Path resolution following established pattern
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '../..')
@@ -71,6 +72,9 @@ async function updateHistoryFile(historyPath: string): Promise<boolean> {
   return false
 }
 
+/**
+ * Reverts the history file by removing .gz extensions.
+ */
 async function revertHistoryFile(historyPath: string): Promise<boolean> {
   const content = await readFile(historyPath, 'utf8')
 

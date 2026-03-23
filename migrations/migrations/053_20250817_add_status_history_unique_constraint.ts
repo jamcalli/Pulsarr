@@ -1,9 +1,20 @@
 import type { Knex } from 'knex'
 
+/**
+ * Remove duplicate status-history rows (keeping the earliest per item/status) and add a unique constraint on (watchlist_item_id, status).
+ *
+ * Performs a destructive cleanup of duplicate rows in the watchlist_status_history table, using a set-based DELETE via a window function on PostgreSQL and a per-group removal on SQLite, then creates the unique constraint named `uq_watchlist_status_history_item_status`.
+ *
+ * Note: This migration mutates data (deletes rows) and alters the schema.
+ */
 export async function up(knex: Knex): Promise<void> {
+  // Step 1: Clean up existing duplicates
+  // Use optimized approach for PostgreSQL, fallback for SQLite
+
   const isPostgres = knex.client.config.client === 'pg'
 
   if (isPostgres) {
+    // PostgreSQL: Use efficient window function DELETE for large datasets
     await knex.raw(`
       WITH ranked AS (
         SELECT id,
@@ -19,11 +30,13 @@ export async function up(knex: Knex): Promise<void> {
         AND r.rn > 1
     `)
   } else {
+    // SQLite: Use per-group cleanup (safer for SQLite limitations)
     const duplicateGroups = await knex('watchlist_status_history')
       .select('watchlist_item_id', 'status')
       .groupBy('watchlist_item_id', 'status')
       .havingRaw('COUNT(*) > 1')
 
+    // Collect all IDs to delete in batches for better performance
     const idsToDelete: number[] = []
 
     for (const group of duplicateGroups) {
@@ -36,11 +49,13 @@ export async function up(knex: Knex): Promise<void> {
         .orderBy('id', 'asc')
         .select('id')
 
+      // Keep the first record, delete the rest
       if (records.length > 1) {
         idsToDelete.push(...records.slice(1).map((r) => r.id))
       }
     }
 
+    // Batch delete in chunks to avoid query size limits (matches database service pattern)
     const chunkSize = 50
     for (let i = 0; i < idsToDelete.length; i += chunkSize) {
       const chunk = idsToDelete.slice(i, i + chunkSize)
@@ -50,6 +65,7 @@ export async function up(knex: Knex): Promise<void> {
     }
   }
 
+  // Step 2: Add the unique constraint
   await knex.schema.alterTable('watchlist_status_history', (table) => {
     table.unique(
       ['watchlist_item_id', 'status'],
@@ -58,6 +74,9 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Removes the unique constraint from watchlist_status_history.
+ */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('watchlist_status_history', (table) => {
     table.dropUnique(

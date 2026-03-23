@@ -22,6 +22,7 @@ import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
+// Helper to create quota success responses
 function createQuotaSuccess(
   message: string,
 ): z.infer<typeof QuotaSuccessResponseSchema> {
@@ -48,11 +49,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
+        // Check if user exists
         const user = await fastify.db.getUser(request.body.userId)
         if (!user) {
           return reply.badRequest('User not found')
         }
 
+        // Check if quotas already exist
         const existingQuotas = await fastify.db.getUserQuotas(
           request.body.userId,
         )
@@ -60,6 +63,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.conflict('User already has quota configurations')
         }
 
+        // Create both movie and show quotas with the same settings
         const userQuotas = await fastify.quotaService.createUserQuotas(
           request.body.userId,
           request.body.quotaType,
@@ -197,6 +201,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound('User quotas not found')
         }
 
+        // Update both movie and show quotas with the same settings
         const updateData = {
           quotaType: request.body.quotaType,
           quotaLimit: request.body.quotaLimit,
@@ -270,6 +275,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         // Handle movie quota
         if (movieQuota) {
           if (movieQuota.enabled) {
+            // Create or update movie quota
             const movieData = {
               quotaType: movieQuota.quotaType,
               quotaLimit: movieQuota.quotaLimit,
@@ -298,6 +304,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               })
             }
           } else if (existingQuotas.movieQuota) {
+            // Delete movie quota if it exists but is disabled
             await fastify.db.deleteUserQuota(userId, 'movie')
             movieResult = undefined
           }
@@ -306,6 +313,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         // Handle show quota
         if (showQuota) {
           if (showQuota.enabled) {
+            // Create or update show quota
             const showData = {
               quotaType: showQuota.quotaType,
               quotaLimit: showQuota.quotaLimit,
@@ -331,6 +339,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               })
             }
           } else if (existingQuotas.showQuota) {
+            // Delete show quota if it exists but is disabled
             await fastify.db.deleteUserQuota(userId, 'show')
             showResult = undefined
           }
@@ -530,6 +539,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.badRequest('User IDs array cannot be empty')
         }
 
+        // Use bulk method to fetch quota status for all users efficiently
         const quotaStatuses = await fastify.db.getBulkQuotaStatus(
           userIds,
           contentType,
@@ -723,8 +733,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         let result: { processedCount: number; failedIds: number[] }
 
         if (operation === 'delete') {
+          // Delete all quotas for the specified users
           result = await fastify.db.bulkDeleteQuotas(userIds)
         } else {
+          // Update/create quotas for the specified users
           if (!movieQuota && !showQuota) {
             return reply.badRequest(
               'At least one quota configuration (movie or show) must be provided for update operation',

@@ -27,11 +27,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       const { userIds, updates } = request.body
 
       try {
+        // Validate notification preferences against user data
         const isUpdatingNotifications =
           updates.notify_apprise !== undefined ||
           updates.notify_discord !== undefined
 
         if (isUpdatingNotifications) {
+          // Process each user individually to check notification settings
           const failedIds: number[] = []
           let updatedCount = 0
 
@@ -40,8 +42,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               const user = await fastify.db.getUser(userId)
 
               if (user) {
+                // Create a user-specific update object
                 const userUpdates = { ...updates }
 
+                // Validate apprise notification settings
                 if (updates.notify_apprise !== undefined) {
                   const userApprise = user.apprise || ''
                   // Only enable apprise notifications if user has a valid apprise value
@@ -50,6 +54,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                   }
                 }
 
+                // Validate Discord notification settings
                 if (updates.notify_discord !== undefined) {
                   // Only enable Discord notifications if user has a Discord ID
                   if (updates.notify_discord && !user.discord_id) {
@@ -57,6 +62,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                   }
                 }
 
+                // Apply the update
                 const result = await fastify.db.updateUser(userId, userUpdates)
 
                 if (result) {

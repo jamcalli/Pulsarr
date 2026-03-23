@@ -25,13 +25,17 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
+        // Check if TMDB is configured
         if (!fastify.tmdb.isConfigured()) {
           return reply.serviceUnavailable(
             'TMDB API is not configured. Please add your TMDB API key to the settings.',
           )
         }
 
+        // Use configured region
         const region = fastify.config.tmdbRegion || 'US'
+
+        // Fetch available providers (uses cache if available)
         const providers = await fastify.tmdb.getAvailableProviders(region)
 
         if (!providers) {

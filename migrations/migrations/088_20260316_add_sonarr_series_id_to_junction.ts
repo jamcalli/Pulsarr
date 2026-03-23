@@ -1,6 +1,8 @@
 import type { Knex } from 'knex'
 
 /**
+ * Adds sonarr_series_id column to watchlist_sonarr_instances junction table.
+ *
  * Stores the Sonarr internal series ID so we can query which shows Pulsarr
  * has already added without hitting the Sonarr API. Nullable because existing
  * rows will be backfilled incrementally by the status sync.

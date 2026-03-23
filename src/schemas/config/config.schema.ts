@@ -9,6 +9,7 @@ import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema
 import { DISCORD_WEBHOOK_HOSTS } from '@root/types/discord.types.js'
 import { z } from 'zod'
 
+// Max constants for validation
 const QUEUE_WAIT_TIME_MAX_MS = 30 * 60 * 1000
 const NEW_EPISODE_THRESHOLD_MAX_MS = 720 * 60 * 60 * 1000
 
@@ -25,6 +26,7 @@ const DiscordWebhookUrlSchema = z
       return val.split(',').every((url) => {
         const trimmed = url.trim()
         if (trimmed === '') return true
+        // First check if it's a valid URL
         if (!z.url().safeParse(trimmed).success) return false
         // Then check Discord-specific requirements
         const parsed = new URL(trimmed)
@@ -58,35 +60,43 @@ const LogLevelEnum = z.enum([
 ])
 
 const NotifyOptionEnum = z.enum([
-  'none',
-  'all',
-  'discord-only',
-  'apprise-only',
-  'webhook-only',
-  'dm-only',
+  'none', // No notifications
+  'all', // All available notification channels
+  'discord-only', // Only Discord (both webhook and DM if configured)
+  'apprise-only', // Only Apprise
+  'webhook-only', // Only Discord webhook (no DMs)
+  'dm-only', // Only Discord DMs (no webhook)
   'discord-webhook', // Same as webhook-only for backward compatibility
   'discord-message', // Same as dm-only for backward compatibility
-  'discord-both',
+  'discord-both', // Both Discord webhook and DMs but no Apprise
 ])
 
 // Legacy enum for backward compatibility
 const DeleteSyncNotifyOptionEnum = z.enum([
-  'none',
+  'none', // No notifications
   'message', // Legacy option for DM
   'webhook', // Legacy option for webhook
   'both', // Legacy option for both webhook and DM
-  'all',
-  'discord-only',
-  'apprise-only',
-  'webhook-only',
-  'dm-only',
+  'all', // All available notification channels
+  'discord-only', // Only Discord (both webhook and DM if configured)
+  'apprise-only', // Only Apprise
+  'webhook-only', // Only Discord webhook (no DMs)
+  'dm-only', // Only Discord DMs (no webhook)
   'discord-webhook', // Same as webhook-only for backward compatibility
   'discord-message', // Same as dm-only for backward compatibility
-  'discord-both',
+  'discord-both', // Both Discord webhook and DMs but no Apprise
 ])
 
-const DeletionModeEnum = z.enum(['watchlist', 'tag-based'])
+const DeletionModeEnum = z.enum([
+  'watchlist', // Remove content when it's no longer on any watchlist
+  'tag-based', // Only remove content that has a specific tag
+])
 
+/**
+ * Schema for validating regex patterns used in delete sync tag matching.
+ * Ensures the regex is safe (not catastrophic) and syntactically valid.
+ * Enforces maximum length to prevent pathologically large patterns.
+ */
 const DeleteSyncTagRegexSchema = z
   .string()
   .max(1024, { message: 'Regex pattern too long (max 1024 characters)' })
@@ -109,27 +119,34 @@ const TagMigrationSchema = z
   })
   .optional()
 
+// Schema for complete config (GET responses) - matches exactly what getConfig() returns
 export const ConfigFullSchema = z.object({
+  // System identifiers and timestamps
   id: z.number(),
-  created_at: z.string(),
-  updated_at: z.string(),
+  created_at: z.string(), // ISO timestamp from database
+  updated_at: z.string(), // ISO timestamp from database
+  // System Config (from database)
   baseUrl: z.string().optional(),
   port: z.number().int().min(1).max(65535).optional(),
   dbPath: z.string().optional(),
   cookieSecret: z.string().optional(),
   cookieName: z.string().optional(),
   cookieSecured: z.boolean(),
+  // Logging & Performance
   logLevel: LogLevelEnum.optional(),
   closeGraceDelay: z.number().optional(),
   rateLimitMax: z.number().optional(),
   queueProcessDelaySeconds: z.number(),
+  // Discord Config
   discordWebhookUrl: z.string().optional(),
   discordBotToken: z.string().optional(),
   discordClientId: z.string().optional(),
+  // Apprise Config (merged from runtime in route handler)
   enableApprise: z.boolean(),
   appriseUrl: z.string(),
   systemAppriseUrl: z.string().optional(),
   appriseEmailSender: z.string().optional(),
+  // Public Content Notifications - getConfig() always returns this with defaults
   publicContentNotifications: z.object({
     enabled: z.boolean(),
     discordWebhookUrls: z.string(),
@@ -139,16 +156,20 @@ export const ConfigFullSchema = z.object({
     appriseUrlsMovies: z.string(),
     appriseUrlsShows: z.string(),
   }),
+  // Plex Mobile Config
   plexMobileEnabled: z.boolean(),
+  // Delete Config
   deletionMode: DeletionModeEnum,
-  // Stored in milliseconds
+  // General Notifications (stored in milliseconds)
   queueWaitTime: z.number(),
   newEpisodeThreshold: z.number(),
+  // Pending Webhooks Config
   pendingWebhookRetryInterval: z.number(),
   pendingWebhookMaxAge: z.number(),
   pendingWebhookCleanupInterval: z.number(),
-  // API key NOT returned for security
+  // TMDB Config (region from DB, API key NOT returned for security)
   tmdbRegion: z.string(),
+  // Plex Config
   plexTokens: z.array(z.string()),
   skipFriendSync: z.boolean(),
   plexServerUrl: z.string().optional(),
@@ -169,9 +190,12 @@ export const ConfigFullSchema = z.object({
   deleteSyncRequiredTagRegex: z.string(),
   enablePlexPlaylistProtection: z.boolean(),
   plexProtectionPlaylistName: z.string(),
+  // Plex Label Sync Configuration - getConfig() always returns this with defaults
   plexLabelSync: PlexLabelSyncConfigSchema,
+  // RSS Config
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),
+  // Tagging Config
   tagUsersInSonarr: z.boolean(),
   tagUsersInRadarr: z.boolean(),
   cleanupOrphanedTags: z.boolean(),
@@ -180,7 +204,9 @@ export const ConfigFullSchema = z.object({
   tagPrefix: z.string(),
   removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
   removedTagPrefix: z.string(),
+  // Tag Migration Configuration
   tagMigration: TagMigrationSchema,
+  // Plex Session Monitoring
   plexSessionMonitoring: z
     .object({
       enabled: z.boolean(),
@@ -193,6 +219,7 @@ export const ConfigFullSchema = z.object({
       enableProgressiveCleanup: z.boolean().optional(),
     })
     .optional(),
+  // New User Defaults - getConfig() applies defaults with Boolean() and || operators
   newUserDefaultCanSync: z.boolean(),
   newUserDefaultRequiresApproval: z.boolean(),
   newUserDefaultMovieQuotaEnabled: z.boolean(),
@@ -205,6 +232,7 @@ export const ConfigFullSchema = z.object({
   newUserDefaultShowQuotaLimit: z.number(),
   newUserDefaultShowBypassApproval: z.boolean(),
   newUserDefaultShowWatchlistCap: z.number().nullable(),
+  // Quota System Configuration - getConfig() always returns this with defaults
   quotaSettings: z.object({
     cleanup: z.object({
       enabled: z.boolean(),
@@ -218,20 +246,25 @@ export const ConfigFullSchema = z.object({
       handleMonthEnd: z.enum(['last-day', 'skip-month', 'next-month']),
     }),
   }),
+  // Approval System Configuration - getConfig() always returns this with defaults
   approvalExpiration: z.object({
     enabled: z.boolean(),
     defaultExpirationHours: z.number(),
     expirationAction: z.enum(['expire', 'auto_approve']),
+    // Auto-approve quota_exceeded requests when quota becomes available
     autoApproveOnQuotaAvailable: z.boolean(),
+    // Per-trigger expiration overrides (optional - only present if explicitly set)
     quotaExceededExpirationHours: z.number().optional(),
     routerRuleExpirationHours: z.number().optional(),
     manualFlagExpirationHours: z.number().optional(),
     contentCriteriaExpirationHours: z.number().optional(),
     cleanupExpiredDays: z.number(),
   }),
+  // Ready state
   _isReady: z.boolean(),
 })
 
+// Schema for config updates (PUT) - all fields optional for partial updates
 export const ConfigUpdateSchema = z
   .object({
     baseUrl: HttpUrlOptionalSchema,
@@ -244,25 +277,34 @@ export const ConfigUpdateSchema = z
     closeGraceDelay: z.number().optional(),
     rateLimitMax: z.number().optional(),
     queueProcessDelaySeconds: z.number().optional(),
+    // Discord Config
     discordWebhookUrl: DiscordWebhookUrlSchema,
     discordBotToken: z.string().optional(),
     discordClientId: z.string().optional(),
-    // enableApprise/appriseUrl are runtime-only, not writable via API
+    // Apprise Config (enableApprise/appriseUrl are runtime-only; not writable via API)
     systemAppriseUrl: AppriseUrlSchema,
     appriseEmailSender: AppriseUrlSchema,
+    // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
     publicContentNotifications: z
       .object({
         enabled: z.boolean(),
+        // Discord webhook URLs for public content announcements (comma-separated)
         discordWebhookUrls: DiscordWebhookUrlSchema,
+        // Movie-specific Discord webhook URLs (comma-separated)
         discordWebhookUrlsMovies: DiscordWebhookUrlSchema,
+        // Show-specific Discord webhook URLs (comma-separated)
         discordWebhookUrlsShows: DiscordWebhookUrlSchema,
+        // Apprise URLs for public content announcements (comma-separated)
         appriseUrls: AppriseUrlSchema,
+        // Movie-specific Apprise URLs (comma-separated)
         appriseUrlsMovies: AppriseUrlSchema,
+        // Show-specific Apprise URLs (comma-separated)
         appriseUrlsShows: AppriseUrlSchema,
       })
       .optional(),
+    // Plex Mobile Config
     plexMobileEnabled: z.boolean().optional(),
-    // Stored in milliseconds
+    // General Notifications (stored in milliseconds)
     queueWaitTime: z.coerce
       .number()
       .int()
@@ -270,7 +312,7 @@ export const ConfigUpdateSchema = z
       .max(QUEUE_WAIT_TIME_MAX_MS, {
         error: `Queue wait time cannot exceed ${QUEUE_WAIT_TIME_MAX_MS} milliseconds (30 minutes)`,
       })
-      .optional(),
+      .optional(), // 0-30 minutes in ms
     newEpisodeThreshold: z.coerce
       .number()
       .int()
@@ -280,10 +322,15 @@ export const ConfigUpdateSchema = z
       .max(NEW_EPISODE_THRESHOLD_MAX_MS, {
         error: `New episode threshold cannot exceed ${NEW_EPISODE_THRESHOLD_MAX_MS} milliseconds (720 hours)`,
       })
-      .optional(),
-    pendingWebhookRetryInterval: z.number().optional(), // seconds
-    pendingWebhookMaxAge: z.number().optional(), // minutes
-    pendingWebhookCleanupInterval: z.number().optional(), // seconds
+      .optional(), // 0-720 hours in ms
+    // Pending Webhooks Config
+    // How often to retry processing pending webhooks (in seconds)
+    pendingWebhookRetryInterval: z.number().optional(),
+    // Maximum age of a pending webhook before it expires (in minutes)
+    pendingWebhookMaxAge: z.number().optional(),
+    // How often to clean up expired webhooks (in seconds)
+    pendingWebhookCleanupInterval: z.number().optional(),
+    // Other configs
     plexTokens: z.array(z.string()).optional(),
     skipFriendSync: z.boolean().optional(),
     deleteMovie: z.boolean().optional(),
@@ -297,22 +344,32 @@ export const ConfigUpdateSchema = z
     watchlistCapNotifyUser: z.boolean().optional(),
     deleteSyncNotifyOnlyOnDeletion: z.boolean().optional(),
     maxDeletionPrevention: z.number().min(1).max(100).optional(),
+    // Deletion mode
     deletionMode: DeletionModeEnum.optional(),
     removedTagPrefix: RemovedTagPrefixSchema.optional(),
-    // Content must have BOTH the removal tag AND a tag matching this regex to be deleted
+    // Additional regex filter for tag-based deletion - content must have BOTH the removal tag AND a tag matching this regex to be deleted
     deleteSyncRequiredTagRegex: DeleteSyncTagRegexSchema.optional(),
+    // Tracked-only deletion - only delete content tracked by Pulsarr in approval_requests
     deleteSyncTrackedOnly: z.boolean().optional(),
+    // Cleanup approval_requests when content is deleted
     deleteSyncCleanupApprovals: z.boolean().optional(),
+    // Tag removal mode
     removedTagMode: z.enum(['remove', 'keep', 'special-tag']).optional(),
+    // Plex Playlist Protection
     enablePlexPlaylistProtection: z.boolean().optional(),
     plexProtectionPlaylistName: z.string().optional(),
     plexServerUrl: HttpUrlOptionalSchema,
-    // Primary token user checks ALL servers, friends check only owned
+    // Plex Existence Check - skip downloading if content exists on Plex servers
+    // Primary token user: checks ALL accessible servers (owned + shared)
+    // Friend/other users: checks ONLY the owned server (no access tokens for shared)
     skipIfExistsOnPlex: z.boolean().optional(),
+    // Plex Label Sync Configuration - nested object following complex config pattern
     plexLabelSync: PlexLabelSyncConfigSchema.optional(),
+    // RSS and other settings
     selfRss: z.string().optional(),
     friendsRss: z.string().optional(),
     _isReady: z.boolean().optional(),
+    // Plex Session Monitoring
     plexSessionMonitoring: z
       .object({
         enabled: z.boolean(),
@@ -326,12 +383,15 @@ export const ConfigUpdateSchema = z
             return Array.isArray(val) ? val : [val]
           })
           .optional(),
+        // Rolling monitoring reset settings
         enableAutoReset: z.boolean().optional(),
         inactivityResetDays: z.number().min(1).max(365).optional(),
         autoResetIntervalHours: z.number().min(1).max(168).optional(),
+        // Progressive cleanup mode - cleans up previous seasons as user progresses
         enableProgressiveCleanup: z.boolean().optional(),
       })
       .optional(),
+    // New User Defaults
     newUserDefaultCanSync: z.boolean().optional(),
     newUserDefaultRequiresApproval: z.boolean().optional(),
     newUserDefaultMovieQuotaEnabled: z.boolean().optional(),
@@ -348,22 +408,26 @@ export const ConfigUpdateSchema = z
     newUserDefaultShowQuotaLimit: z.number().min(1).max(1000).optional(),
     newUserDefaultShowBypassApproval: z.boolean().optional(),
     newUserDefaultShowWatchlistCap: z.number().min(1).nullable().optional(),
+    // Quota System Configuration
     quotaSettings: z
       .object({
+        // Cleanup configuration
         cleanup: z
           .object({
             enabled: z.boolean().optional(),
-            retentionDays: z.number().min(1).max(365).optional(),
+            retentionDays: z.number().min(1).max(365).optional(), // 1 day to 1 year
           })
           .optional(),
+        // Weekly rolling quota configuration
         weeklyRolling: z
           .object({
-            resetDays: z.number().min(1).max(365).optional(),
+            resetDays: z.number().min(1).max(365).optional(), // 1 day to 1 year
           })
           .optional(),
+        // Monthly quota configuration
         monthly: z
           .object({
-            resetDay: z.number().min(1).max(31).optional(),
+            resetDay: z.number().min(1).max(31).optional(), // 1st to 31st
             handleMonthEnd: z
               .enum(['last-day', 'skip-month', 'next-month'])
               .optional(),
@@ -371,19 +435,26 @@ export const ConfigUpdateSchema = z
           .optional(),
       })
       .optional(),
+    // Approval System Configuration
     approvalExpiration: z
       .object({
         enabled: z.boolean().optional(),
-        defaultExpirationHours: z.number().min(1).max(8760).optional(),
+        // Default expiration time in hours for approval requests
+        defaultExpirationHours: z.number().min(1).max(8760).optional(), // 1 hour to 1 year
+        // What happens when approvals expire
         expirationAction: z.enum(['expire', 'auto_approve']).optional(),
+        // Auto-approve quota_exceeded requests when quota becomes available
         autoApproveOnQuotaAvailable: z.boolean().optional(),
+        // Per-trigger expiration overrides
         quotaExceededExpirationHours: z.number().min(1).max(8760).optional(),
         routerRuleExpirationHours: z.number().min(1).max(8760).optional(),
         manualFlagExpirationHours: z.number().min(1).max(8760).optional(),
         contentCriteriaExpirationHours: z.number().min(1).max(8760).optional(),
+        // Maintenance settings
         cleanupExpiredDays: z.number().min(1).max(365).optional(),
       })
       .optional(),
+    // TMDB Configuration
     tmdbRegion: z
       .string()
       .trim()
@@ -392,15 +463,17 @@ export const ConfigUpdateSchema = z
       })
       .transform((s) => s.toUpperCase())
       .optional(),
+    // User Tags Configuration - flat properties following new pattern
     tagUsersInSonarr: z.boolean().optional(),
     tagUsersInRadarr: z.boolean().optional(),
     cleanupOrphanedTags: z.boolean().optional(),
     tagPrefix: TagPrefixSchema.optional(),
-    // Tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
+    // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
     tagMigration: TagMigrationSchema,
   })
   .strict()
 
+// Response schemas - success is always true for 200 responses (errors use ConfigErrorSchema)
 export const ConfigGetResponseSchema = z.object({
   success: z.literal(true),
   config: ConfigFullSchema,
@@ -411,13 +484,16 @@ export const ConfigUpdateResponseSchema = z.object({
   config: ConfigFullSchema,
 })
 
+// Type exports
 export type ConfigFull = z.infer<typeof ConfigFullSchema>
 export type ConfigUpdate = z.infer<typeof ConfigUpdateSchema>
 export type ConfigGetResponse = z.infer<typeof ConfigGetResponseSchema>
 export type ConfigUpdateResponse = z.infer<typeof ConfigUpdateResponseSchema>
 
+// Legacy export for backward compatibility - prefer ConfigUpdate for new code
 export type Config = ConfigUpdate
 export type ConfigResponse = ConfigGetResponse
 
+// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as ConfigErrorSchema }
 export type ConfigError = z.infer<typeof ErrorSchema>

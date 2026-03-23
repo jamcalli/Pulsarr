@@ -18,6 +18,7 @@ import { testWebhookEndpoint } from '@services/notifications/channels/native-web
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
+/** Event type descriptions for UI display */
 const EVENT_TYPE_DESCRIPTIONS: Record<WebhookEventType, string> = {
   'media.available': 'When content becomes available to watch',
   'watchlist.added': 'When a user adds content to their watchlist',

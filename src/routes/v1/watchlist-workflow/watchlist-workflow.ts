@@ -38,8 +38,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         try {
+          // Start the workflow
           await fastify.watchlistWorkflow.startWorkflow()
 
+          // Check if autoStart parameter is provided and is true
           if (request.body?.autoStart === true) {
             try {
               // Update only the _isReady flag - no need to spread entire config
@@ -48,6 +50,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 _isReady: true,
               })
               if (dbUpdated) {
+                // Update the runtime config if database update was successful
                 try {
                   await fastify.updateConfig({ _isReady: true })
                   fastify.log.info('Updated config _isReady to true')

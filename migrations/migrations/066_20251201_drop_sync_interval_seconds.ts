@@ -13,6 +13,9 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Restores the syncIntervalSeconds column for rollback.
+ */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
     table.integer('syncIntervalSeconds').defaultTo(10)

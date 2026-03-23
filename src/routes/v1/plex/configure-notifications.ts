@@ -11,7 +11,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
       try {
         const { plexToken, plexHost, plexPort, useSsl } = request.body
 
+        // Get all Radarr instances
         const radarrInstances = await fastify.radarrManager.getAllInstances()
+        // Get all Sonarr instances
         const sonarrInstances = await fastify.sonarrManager.getAllInstances()
 
         if (radarrInstances.length === 0 && sonarrInstances.length === 0) {
@@ -33,8 +35,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
           }>,
         }
 
+        // Process each Radarr instance with timeout
         for (const instance of radarrInstances) {
           try {
+            // Get the RadarrService for this instance
             const radarrService = fastify.radarrManager.getRadarrService(
               instance.id,
             )
@@ -68,7 +72,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
               useSsl,
             )
 
+            // Race the configuration against the timeout
             await Promise.race([
+              // Clear timeout if configurePromise settles first
               configurePromise.finally(() => clearTimeout(timeoutId)),
               timeoutPromise,
             ])
@@ -93,8 +99,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
           }
         }
 
+        // Process each Sonarr instance with timeout
         for (const instance of sonarrInstances) {
           try {
+            // Get the SonarrService for this instance
             const sonarrService = fastify.sonarrManager.getSonarrService(
               instance.id,
             )
@@ -128,7 +136,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
               useSsl,
             )
 
+            // Race the configuration against the timeout
             await Promise.race([
+              // Clear timeout if configurePromise settles first
               configurePromise.finally(() => clearTimeout(timeoutId)),
               timeoutPromise,
             ])

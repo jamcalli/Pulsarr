@@ -42,5 +42,6 @@ export type WatchlistItem = z.infer<typeof WatchlistItemSchema>
 export type User = z.infer<typeof UserSchema>
 export type UserWatchlist = z.infer<typeof UserWatchlistSchema>
 
+// Re-export ErrorSchema for domain-specific error type
 export { ErrorSchema as SelfWatchlistErrorSchema }
 export type SelfWatchlistError = z.infer<typeof ErrorSchema>

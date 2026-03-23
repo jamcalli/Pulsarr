@@ -2,12 +2,13 @@ import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { CronExpressionParser } from 'cron-parser'
 import { z } from 'zod'
 
+// Zod schema for interval configuration
 export const IntervalConfigSchema = z
   .object({
     days: z.number().int().positive().max(365).optional(),
-    hours: z.number().int().positive().max(8760).optional(),
-    minutes: z.number().int().positive().max(525600).optional(),
-    seconds: z.number().int().positive().max(31536000).optional(),
+    hours: z.number().int().positive().max(8760).optional(), // Allow up to 1 year in hours
+    minutes: z.number().int().positive().max(525600).optional(), // Allow up to 1 year in minutes
+    seconds: z.number().int().positive().max(31536000).optional(), // Allow up to 1 year in seconds
     runImmediately: z.boolean().optional(),
   })
   .refine(
@@ -22,6 +23,7 @@ export const IntervalConfigSchema = z
     },
   )
 
+// Zod schema for cron configuration
 export const CronConfigSchema = z.object({
   expression: z
     .string()
@@ -29,9 +31,11 @@ export const CronConfigSchema = z.object({
     .refine(
       (expression) => {
         try {
+          // Use cron-parser to validate - it handles field count and format validation
           CronExpressionParser.parse(expression, { currentDate: new Date() })
           return true
         } catch (_error) {
+          // If validation fails for any reason, assume invalid
           return false
         }
       },
@@ -42,6 +46,7 @@ export const CronConfigSchema = z.object({
     ),
 })
 
+// Zod schema for job configuration
 export const ScheduleConfigSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('interval'),
@@ -57,6 +62,7 @@ export const ScheduleConfigSchema = z.discriminatedUnion('type', [
   }),
 ])
 
+// Create schema for partial updates (without the name field)
 export const ScheduleUpdateSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('interval'),
@@ -70,6 +76,7 @@ export const ScheduleUpdateSchema = z.discriminatedUnion('type', [
   }),
 ])
 
+// Rest of your type definitions remain the same...
 export const JobRunInfoSchema = z.object({
   time: z.string(),
   status: z.enum(['completed', 'failed', 'pending']),
@@ -77,6 +84,7 @@ export const JobRunInfoSchema = z.object({
   estimated: z.boolean().optional(),
 })
 
+// Define specific job types
 const IntervalJobSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -101,15 +109,19 @@ const CronJobSchema = z.object({
   updated_at: z.string(),
 })
 
+// Combine with regular union instead of discriminated union
 export const JobStatusSchema = z.union([IntervalJobSchema, CronJobSchema])
 
+// Standard response schemas
 export const SuccessResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
 })
 
+// Re-export shared ErrorSchema with alias for backward compatibility
 export { ErrorSchema, ErrorSchema as ErrorResponseSchema }
 
+// Schema for delete sync dry run results
 export const DeleteItemSchema = z.object({
   title: z.string(),
   guid: z.string(),
@@ -142,6 +154,7 @@ export const DeleteSyncDryRunResponseSchema = z.object({
   results: DeleteSyncResultSchema,
 })
 
+// Inferred types for exports
 export type IntervalConfig = z.infer<typeof IntervalConfigSchema>
 export type CronConfig = z.infer<typeof CronConfigSchema>
 export type ScheduleConfig = z.infer<typeof ScheduleConfigSchema>

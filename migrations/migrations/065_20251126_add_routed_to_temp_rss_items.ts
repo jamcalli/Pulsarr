@@ -17,6 +17,9 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Removes the routed flag from temp_rss_items table.
+ */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('temp_rss_items', (table) => {
     table.dropColumn('routed')

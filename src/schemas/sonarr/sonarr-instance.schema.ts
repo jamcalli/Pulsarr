@@ -1,6 +1,7 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
+// Base Sonarr instance schema for creation (with defaults)
 export const SonarrInstanceSchema = z.object({
   name: z.string().min(1, { error: 'Name is required' }),
   baseUrl: z.string().url({ error: 'Invalid base URL' }),
@@ -21,7 +22,7 @@ export const SonarrInstanceSchema = z.object({
     .default('standard'),
 })
 
-// No defaults on update - prevents overwriting existing values with defaults
+// Sonarr instance schema for updates (no defaults to prevent overwriting existing values)
 export const SonarrInstanceUpdateSchema = z.object({
   name: z.string().min(1, { error: 'Name is required' }).optional(),
   baseUrl: z.string().url({ error: 'Invalid base URL' }).optional(),
@@ -39,18 +40,22 @@ export const SonarrInstanceUpdateSchema = z.object({
   seriesType: z.enum(['standard', 'anime', 'daily']).optional(),
 })
 
+// Response schema for a single instance (includes id)
 export const SonarrInstanceResponseSchema = SonarrInstanceSchema.extend({
   id: z.number(),
 })
 
+// Response schema for list of instances
 export const SonarrInstanceListResponseSchema = z.array(
   SonarrInstanceResponseSchema,
 )
 
+// Response schema for instance creation
 export const SonarrInstanceCreateResponseSchema = z.object({
   id: z.number().int().positive(),
 })
 
+// Inferred types for use in client and server
 export type SonarrInstance = z.infer<typeof SonarrInstanceSchema>
 export type SonarrInstanceUpdate = z.infer<typeof SonarrInstanceUpdateSchema>
 export type SonarrInstanceResponse = z.infer<
@@ -63,4 +68,5 @@ export type SonarrInstanceCreateResponse = z.infer<
   typeof SonarrInstanceCreateResponseSchema
 >
 
+// Re-export shared schemas for route use
 export { ErrorSchema }

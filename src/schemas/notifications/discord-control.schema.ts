@@ -1,16 +1,19 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
+// Schema for Discord bot status responses
 export const DiscordBotResponseSchema = z.object({
   success: z.boolean(),
   status: z.enum(['running', 'stopped', 'starting', 'stopping', 'unknown']),
   message: z.string().optional(),
 })
 
+// Schema for webhook validation requests
 export const WebhookValidationRequestSchema = z.object({
   webhookUrls: z.string().min(1, { error: 'Webhook URLs are required' }),
 })
 
+// Schema for webhook validation responses
 export const WebhookValidationResponseSchema = z.object({
   success: z.boolean(),
   valid: z.boolean(),
@@ -25,6 +28,7 @@ export const WebhookValidationResponseSchema = z.object({
   message: z.string().optional(),
 })
 
+// Type exports
 export type DiscordBotResponse = z.infer<typeof DiscordBotResponseSchema>
 export type WebhookValidationRequest = z.infer<
   typeof WebhookValidationRequestSchema
@@ -34,4 +38,5 @@ export type WebhookValidationResponse = z.infer<
 >
 export type DiscordControlError = z.infer<typeof ErrorSchema>
 
+// Re-export shared schemas
 export { ErrorSchema }

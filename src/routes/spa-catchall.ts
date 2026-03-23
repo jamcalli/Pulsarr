@@ -4,7 +4,13 @@ import { createTemporaryAdminSession } from '@utils/session.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance } from 'fastify'
 
+/**
+ * SPA catch-all route handler.
+ * Must be registered last (after all other routes) to act as a catch-all.
+ * Handles client-side routing authentication and redirects.
+ */
 export default async function spaRoute(fastify: FastifyInstance) {
+  // Helper to build paths with basePath prefix
   const buildPath = (path: string): string => {
     const basePath = normalizeBasePath(fastify.config.basePath)
     if (basePath === '/') return path
@@ -15,6 +21,7 @@ export default async function spaRoute(fastify: FastifyInstance) {
     '/*',
     {
       preHandler: async (request, reply) => {
+        // Normalize request path (strip query + basePath)
         const rawPath = request.url.split('?')[0] ?? request.url
         const basePath = normalizeBasePath(fastify.config.basePath)
         const hasBasePrefix =
@@ -41,6 +48,7 @@ export default async function spaRoute(fastify: FastifyInstance) {
           return reply.callNotFound()
         }
 
+        // Get auth bypass status first
         const { isAuthDisabled, isLocalBypass } = getAuthBypassStatus(
           fastify,
           request,
@@ -101,25 +109,32 @@ export default async function spaRoute(fastify: FastifyInstance) {
           return
         }
 
+        // Check if users exist - needed for remaining cases
         const hasUsers = await fastify.db.hasAdminUsers()
 
         // CASE 3: Normal auth flow - no bypassing
         if (!hasUsers) {
+          // No users exist yet, force create-user page
           if (!isCreateUserPage) {
             return reply.redirect(buildPath('/create-user'))
           }
 
+          // Allow access to create-user page
           return
         }
 
+        // CASE 4: Users exist, normal auth flow
         // Prevent create-user access when users already exist
         if (isCreateUserPage) {
           return reply.redirect(buildPath('/login'))
         }
 
+        // If trying to access any page other than login, redirect to login
         if (!isLoginPage) {
           return reply.redirect(buildPath('/login'))
         }
+
+        // Allow access to login page
       },
     },
     (_req, reply) => {

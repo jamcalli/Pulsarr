@@ -5,6 +5,7 @@ import {
 import { TagsResponseSchema } from '@schemas/radarr/get-tags.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.get(
@@ -40,9 +41,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         const tags = await service.getTags()
-
-        reply.status(200)
-        return {
+        const response: z.infer<typeof TagsResponseSchema> = {
           success: true,
           instance: {
             id: instance.id,
@@ -51,6 +50,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           },
           tags,
         }
+
+        reply.status(200)
+        return response
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch tags',

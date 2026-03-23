@@ -7,13 +7,16 @@ import Fastify, { type FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 import openapiApp from './openapi-app.js'
 
+// Type for FastifyInstance with swagger method
 type FastifyInstanceWithSwagger = FastifyInstance & {
   swagger?: () => Record<string, unknown>
 }
 
+// Set up environment for generation
 process.env.NODE_ENV = 'production'
 process.env.authenticationMethod = 'disabled'
 process.env.logLevel = 'error'
+// Override baseUrl for public documentation
 process.env.baseUrl = 'https://your-pulsarr-instance.com'
 
 const app = Fastify({
@@ -37,11 +40,12 @@ const schema = JSON.stringify(app.swagger(), undefined, 2)
 const outputPath = resolve(process.cwd(), 'docs/static/openapi.json')
 
 await writeFile(outputPath, schema, { flag: 'w+' })
-console.log(`OpenAPI spec generated: ${outputPath}`)
+console.log(`✅ OpenAPI spec generated at: ${outputPath}`)
 
 await app.close()
 
-console.log('Running formatter...')
+// Format the generated file
+console.log('🎨 Running formatter on generated OpenAPI spec...')
 const formatProcess = spawn('bun', ['run', 'fix'], {
   stdio: 'inherit',
 })
@@ -49,16 +53,16 @@ const formatProcess = spawn('bun', ['run', 'fix'], {
 await new Promise((resolve) => {
   formatProcess.on('exit', (code) => {
     if (code === 0) {
-      console.log('OpenAPI spec formatted successfully')
+      console.log('✅ OpenAPI spec formatted successfully')
     } else {
       console.warn(
-        `Formatter exited with code ${code}, but spec was still generated`,
+        `⚠️  Formatter exited with code ${code}, but OpenAPI spec was still generated`,
       )
     }
     resolve(undefined)
   })
   formatProcess.on('error', (error) => {
-    console.warn(`Failed to run formatter: ${error.message}`)
+    console.warn(`⚠️  Failed to run formatter: ${error.message}`)
     resolve(undefined)
   })
 })

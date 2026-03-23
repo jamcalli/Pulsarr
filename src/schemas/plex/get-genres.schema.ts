@@ -10,5 +10,6 @@ export type WatchlistGenresResponse = z.infer<
   typeof WatchlistGenresResponseSchema
 >
 
+// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as WatchlistGenresErrorSchema }
 export type WatchlistGenresError = z.infer<typeof ErrorSchema>

@@ -14,6 +14,9 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.dropTableIfExists('temp_rss_items')
 }
 
+/**
+ * Restores the temp_rss_items table for rollback.
+ */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.createTable('temp_rss_items', (table) => {
     table.increments('id').primary()

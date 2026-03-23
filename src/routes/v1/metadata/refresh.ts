@@ -25,9 +25,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         fastify.log.info('Starting metadata refresh for all watchlist items')
 
+        // Refresh self watchlist with force refresh flag
         const selfWatchlistResult =
           await fastify.plexWatchlist.getSelfWatchlist(true)
 
+        // Refresh others watchlist with force refresh flag
         const othersWatchlistResult =
           await fastify.plexWatchlist.getOthersWatchlists(true)
 

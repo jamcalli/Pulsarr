@@ -1,5 +1,10 @@
 import type { Knex } from 'knex'
 
+/**
+ * Creates the `api_keys` table with columns for ID, name, unique key, creation timestamp, and active status.
+ *
+ * Adds indexes on the `key` and `is_active` columns to improve query performance.
+ */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('api_keys', (table) => {
     table.increments('id').primary()
@@ -13,6 +18,9 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Reverts the migration by removing the `api_keys` table if it exists.
+ */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTableIfExists('api_keys')
 }

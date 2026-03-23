@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+// Log levels schema
 export const LogLevelSchema = z.enum([
   'fatal',
   'error',
@@ -9,6 +10,7 @@ export const LogLevelSchema = z.enum([
   'trace',
 ])
 
+// Query parameters for log streaming
 export const LogStreamQuerySchema = z.object({
   tail: z.coerce
     .number()
@@ -35,6 +37,7 @@ export const LogStreamQuerySchema = z.object({
     ),
 })
 
+// Individual log entry schema
 export const LogEntrySchema = z.object({
   timestamp: z.string(),
   level: LogLevelSchema,
@@ -43,15 +46,18 @@ export const LogEntrySchema = z.object({
   data: z.object({}).catchall(z.unknown()).optional(),
 })
 
+// SSE message schema for logs
 export const LogSSEMessageSchema = z.object({
   id: z.string(),
   data: z.string(), // JSON stringified LogEntry
 })
 
+// Response schema for documentation
 export const LogStreamResponseSchema = z.object({
   message: z.string().describe('SSE stream of log entries'),
 })
 
+// Export types
 export type LogLevel = z.infer<typeof LogLevelSchema>
 export type LogStreamQuery = z.infer<typeof LogStreamQuerySchema>
 export type LogEntry = z.infer<typeof LogEntrySchema>

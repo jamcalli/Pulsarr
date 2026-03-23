@@ -15,5 +15,7 @@ export const MeResponseSchema = z.object({
 })
 
 export type MeResponse = z.infer<typeof MeResponseSchema>
+
+// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as MeErrorSchema }
 export type MeError = z.infer<typeof ErrorSchema>

@@ -35,6 +35,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const rules = await fastify.db.getAllRouterRules()
 
+        // Format rules for API response using the utility function
         const formattedRules = rules.map((rule) =>
           formatRule(rule, fastify.log),
         )
@@ -86,6 +87,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         const rules = await fastify.db.getRouterRulesByType(type, enabledOnly)
 
+        // Format rules using the utility function
         const formattedRules = rules.map((rule) =>
           formatRule(rule, fastify.log),
         )
@@ -134,6 +136,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           instanceId,
         )
 
+        // Format rules using the utility function
         const formattedRules = rules.map((rule) =>
           formatRule(rule, fastify.log),
         )
@@ -183,6 +186,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound(`Router rule with ID ${id} not found`)
         }
 
+        // Format rule using the utility function
         const formattedRule = formatRule(rule, fastify.log)
 
         return {
@@ -226,6 +230,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         const rules = await fastify.db.getRouterRulesByTargetType(targetType)
 
+        // Format rules using the utility function
         const formattedRules = rules.map((rule) =>
           formatRule(rule, fastify.log),
         )
@@ -267,6 +272,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const ruleData = request.body
 
+        // Validate target_type-specific fields
         if (
           ruleData.target_type === 'radarr' &&
           ruleData.season_monitoring !== null &&
@@ -277,6 +283,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
+        // Use RuleBuilder to create a properly structured rule
         const builtRule = RuleBuilder.createRule({
           name: ruleData.name,
           target_type: ruleData.target_type,
@@ -305,6 +312,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           approval_reason: ruleData.approval_reason,
         })
 
+        // Prepare the rule for database insertion, ensuring required fields have values
         const formattedRuleData: Omit<
           RouterRule,
           'id' | 'created_at' | 'updated_at'
@@ -330,8 +338,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         const createdRule = await fastify.db.createRouterRule(formattedRuleData)
 
+        // Clear router rules cache after creating a new rule
         fastify.contentRouter.clearRouterRulesCache()
 
+        // Format the response using the utility function
         const formattedRule = formatRule(createdRule, fastify.log)
 
         reply.status(201)
@@ -375,13 +385,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const { id } = request.params
         const updates = request.body
 
+        // Check if rule exists
         const existingRule = await fastify.db.getRouterRuleById(id)
         if (!existingRule) {
           return reply.notFound(`Router rule with ID ${id} not found`)
         }
 
+        // Determine the target_type (either from updates or from existing rule)
         const targetType = updates.target_type || existingRule.target_type
 
+        // Validate target_type-specific fields
         if (
           targetType === 'radarr' &&
           updates.season_monitoring !== null &&
@@ -392,10 +405,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
+        // Prepare updates for the database
         const updatesAsRouterRule: Partial<
           Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>
         > = {}
 
+        // Copy over simple properties
         if (updates.name !== undefined) updatesAsRouterRule.name = updates.name
         if (updates.target_type !== undefined)
           updatesAsRouterRule.target_type = updates.target_type
@@ -425,6 +440,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         if (updates.approval_reason !== undefined)
           updatesAsRouterRule.approval_reason = updates.approval_reason
 
+        // Handle quality profile conversion
         if (updates.quality_profile !== undefined) {
           updatesAsRouterRule.quality_profile = (() => {
             if (typeof updates.quality_profile === 'string') {
@@ -435,12 +451,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           })()
         }
 
+        // Update condition if provided
         if (updates.condition) {
           updatesAsRouterRule.criteria = {
             condition: updates.condition,
           }
         }
 
+        // Update the rule
         const updated = await fastify.db.updateRouterRule(
           id,
           updatesAsRouterRule,
@@ -452,6 +470,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
+        // Get the updated rule
         const updatedRule = await fastify.db.getRouterRuleById(id)
 
         if (!updatedRule) {
@@ -460,8 +479,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
+        // Clear router rules cache after successful update
         fastify.contentRouter.clearRouterRulesCache()
 
+        // Format the response using the utility function
         const formattedRule = formatRule(updatedRule, fastify.log)
 
         return {
@@ -502,11 +523,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const { id } = request.params
 
+        // Check if rule exists
         const existingRule = await fastify.db.getRouterRuleById(id)
         if (!existingRule) {
           return reply.notFound(`Router rule with ID ${id} not found`)
         }
 
+        // Delete the rule
         const deleted = await fastify.db.deleteRouterRule(id)
 
         if (!deleted) {
@@ -515,6 +538,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
+        // Clear router rules cache after successful deletion
         fastify.contentRouter.clearRouterRulesCache()
 
         return {
@@ -556,11 +580,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const { id } = request.params
         const { enabled } = request.body
 
+        // Check if rule exists
         const existingRule = await fastify.db.getRouterRuleById(id)
         if (!existingRule) {
           return reply.notFound(`Router rule with ID ${id} not found`)
         }
 
+        // Toggle the rule
         const updated = await fastify.db.toggleRouterRule(id, enabled)
 
         if (!updated) {
@@ -569,6 +595,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
+        // Clear router rules cache after successful toggle
         fastify.contentRouter.clearRouterRulesCache()
 
         return {

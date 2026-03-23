@@ -4,6 +4,12 @@ import {
   shouldSkipForPostgreSQL,
 } from '../utils/clientDetection.js'
 
+/**
+ * Creates the `notifications` table with columns for notification details, foreign keys, status flags, and indexes.
+ *
+ * @remark
+ * The migration is skipped for PostgreSQL databases as determined by {@link shouldSkipForPostgreSQL}.
+ */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '003_20250303_add_notifications_history')) {
     return
@@ -34,6 +40,7 @@ export async function up(knex: Knex): Promise<void> {
     table.boolean('sent_to_webhook').defaultTo(false)
     table.timestamp('created_at').defaultTo(knex.fn.now())
 
+    // Indexes
     table.index(['watchlist_item_id'])
     table.index(['user_id'])
     table.index(['created_at'])
@@ -41,6 +48,9 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Drops the `notifications` table from the database unless the operation should be skipped for PostgreSQL.
+ */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
     return

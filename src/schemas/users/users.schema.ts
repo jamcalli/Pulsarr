@@ -40,5 +40,7 @@ export type UserResponse = z.infer<typeof UserResponseSchema>
 export type UpdateUser = z.infer<typeof UpdateUserSchema>
 export type BulkUpdateRequest = z.infer<typeof BulkUpdateRequestSchema>
 export type BulkUpdateResponse = z.infer<typeof BulkUpdateResponseSchema>
+
+// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as UserErrorSchema }
 export type UserError = z.infer<typeof ErrorSchema>

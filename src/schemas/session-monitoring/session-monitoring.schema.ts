@@ -1,10 +1,14 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
+
+// Reusable monitoring type enum
 export const MonitoringTypeEnum = z.enum([
   'pilotRolling',
   'firstSeasonRolling',
   'allSeasonPilotRolling',
 ])
+
+// Base rolling monitored show schema
 const RollingMonitoredShowSchema = z.object({
   id: z.number(),
   sonarr_series_id: z.number(),
@@ -23,6 +27,8 @@ const RollingMonitoredShowSchema = z.object({
   updated_at: z.string(),
   last_updated_at: z.string(),
 })
+
+// Session monitoring result schema
 const SessionMonitoringResultSchema = z.object({
   processedSessions: z.number(),
   triggeredSearches: z.number(),
@@ -39,6 +45,8 @@ const SessionMonitoringResultSchema = z.object({
     }),
   ),
 })
+
+// Schema for getting rolling monitored shows
 export const getRollingMonitoredSchema = {
   summary: 'Get rolling monitored shows',
   operationId: 'getRollingMonitoredShows',
@@ -53,6 +61,8 @@ export const getRollingMonitoredSchema = {
     400: ErrorSchema,
   },
 }
+
+// Schema for manually running session monitor
 export const runSessionMonitorSchema = {
   summary: 'Run session monitor manually',
   operationId: 'runSessionMonitor',
@@ -67,6 +77,8 @@ export const runSessionMonitorSchema = {
     400: ErrorSchema,
   },
 }
+
+// Schema for deleting a rolling monitored show
 export const deleteRollingMonitoredSchema = {
   summary: 'Delete rolling monitored show',
   operationId: 'deleteRollingMonitoredShow',
@@ -88,6 +100,8 @@ export const deleteRollingMonitoredSchema = {
     404: ErrorSchema,
   },
 }
+
+// Schema for resetting a rolling monitored show
 export const resetRollingMonitoredSchema = {
   summary: 'Reset rolling monitored show',
   operationId: 'resetRollingMonitoredShow',
@@ -106,6 +120,8 @@ export const resetRollingMonitoredSchema = {
     404: ErrorSchema,
   },
 }
+
+// Schema for resetting inactive shows
 export const resetInactiveShowsSchema = {
   summary: 'Reset inactive rolling monitored shows',
   operationId: 'resetInactiveRollingMonitoredShows',
@@ -124,6 +140,8 @@ export const resetInactiveShowsSchema = {
     400: ErrorSchema,
   },
 }
+
+// Schema for getting inactive rolling monitored shows
 export const getInactiveRollingMonitoredSchema = {
   summary: 'Get inactive rolling monitored shows',
   operationId: 'getInactiveRollingMonitoredShows',
@@ -142,6 +160,8 @@ export const getInactiveRollingMonitoredSchema = {
     400: ErrorSchema,
   },
 }
+
+// Schema for getting Sonarr shows with enrollment status
 export const getSonarrShowsSchema = {
   summary: 'Get Sonarr shows with enrollment status',
   operationId: 'getSonarrShows',
@@ -169,6 +189,8 @@ export const getSonarrShowsSchema = {
     400: ErrorSchema,
   },
 }
+
+// Schema for bulk managing rolling monitored shows (enroll and/or modify)
 export const bulkManageRollingMonitoredSchema = {
   summary: 'Bulk manage rolling monitored shows',
   operationId: 'bulkManageRollingMonitoredShows',
@@ -199,6 +221,8 @@ export const bulkManageRollingMonitoredSchema = {
     400: ErrorSchema,
   },
 }
+
+// Standalone response schemas for client-side validation via apiClient
 export const RollingMonitoredListResponseSchema =
   getRollingMonitoredSchema.response[200]
 export const InactiveRollingMonitoredResponseSchema =

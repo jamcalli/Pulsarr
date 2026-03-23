@@ -5,6 +5,15 @@ import { z } from 'zod'
 
 export { SERIES_TYPES }
 
+/**
+ * Determines whether a value should be treated as "non-empty" for validation.
+ *
+ * Strings that are only whitespace, null, or undefined are considered empty.
+ * Empty arrays are considered empty. All other values are considered non-empty.
+ *
+ * @param value - The value to evaluate.
+ * @returns `true` if the value is non-empty; otherwise `false`.
+ */
 function isNonEmptyValue(value: unknown): boolean {
   if (value === undefined || value === null) return false
   if (typeof value === 'string') return value.trim() !== ''
@@ -50,6 +59,7 @@ const VALID_SEASON_MONITORING = new Set([
   'skip',
 ])
 
+// Base schemas for conditions
 export const ComparisonOperatorSchema = z.enum([
   'equals',
   'notEquals',
@@ -63,6 +73,7 @@ export const ComparisonOperatorSchema = z.enum([
   'regex',
 ])
 
+// Define the criteria schemas first
 export const UserCriteriaSchema = z.object({
   id: z.string().or(z.number()),
   name: z.string(),
@@ -73,6 +84,8 @@ export const GenreCriteriaSchema = z.object({
   name: z.string(),
 })
 
+// Then define the value types
+// Schema for compound IMDB values (rating with optional votes)
 const ImdbCompoundValueSchema = z
   .object({
     rating: z
@@ -113,11 +126,13 @@ export const ConditionValueSchema = z.union([
   UserCriteriaSchema,
   GenreCriteriaSchema,
   z.array(z.union([z.string(), z.number()])),
+  // Range object for "between" operator - validation handled by isNonEmptyValue in ConditionSchema
   z.object({ min: z.number().optional(), max: z.number().optional() }),
   ImdbCompoundValueSchema,
   z.null(),
 ])
 
+// Then define the interfaces
 export interface ICondition {
   field: string
   operator: ComparisonOperator
@@ -166,6 +181,7 @@ export interface IConditionGroup {
   _cid?: string
 }
 
+// Helper function to check if a value is a condition group
 function isConditionGroupObject(value: unknown): value is IConditionGroup {
   return (
     value !== null &&
@@ -176,15 +192,18 @@ function isConditionGroupObject(value: unknown): value is IConditionGroup {
   )
 }
 
+// Helper function to validate group recursion safely, preventing stack overflow and circular references
 const isValidConditionGroup = (
   group: IConditionGroup,
   depth = 0,
   visited = new WeakSet(),
 ): boolean => {
+  // Guard against excessive nesting (prevent stack overflow)
   if (depth > 20) {
     return false
   }
 
+  // Guard against circular references (prevent infinite loops)
   if (visited.has(group)) {
     return false
   }
@@ -195,15 +214,18 @@ const isValidConditionGroup = (
   }
 
   return group.conditions.every((cond) => {
+    // Check if this is a nested condition group
     if (isConditionGroupObject(cond)) {
+      // Recursive check for nested groups with increased depth counter
       return isValidConditionGroup(cond, depth + 1, visited)
     }
+    // Validate individual conditions explicitly since nested groups may accept any values in OpenAPI shape
     return ConditionSchema.safeParse(cond).success
   })
 }
 
-// Simplified shape avoids z.lazy() so OpenAPI generation works without infinite recursion.
-// Runtime validation of nested groups is handled by isValidConditionGroup's refine.
+// For OpenAPI compatibility, define a simplified condition group that avoids infinite recursion
+// This allows conditions OR a simple object with operator/conditions but no deep nesting in OpenAPI docs
 export const ConditionGroupSchema = z
   .object({
     operator: z.enum(['AND', 'OR']),
@@ -211,6 +233,7 @@ export const ConditionGroupSchema = z
       .array(
         z.union([
           ConditionSchema,
+          // For docs, we'll allow any object structure for nested groups to avoid z.lazy()
           z.object({
             operator: z.enum(['AND', 'OR']),
             conditions: z.array(z.any()).max(20),
@@ -228,6 +251,7 @@ export const ConditionGroupSchema = z
       'Condition groups cannot contain circular references or exceed maximum nesting depth (20)',
   })
 
+// Base router rule schema
 export const BaseRouterRuleSchema = z.object({
   name: z.string().min(1, { error: 'Name is required' }),
   target_type: z.enum(['sonarr', 'radarr']),
@@ -239,19 +263,22 @@ export const BaseRouterRuleSchema = z.object({
   order: z.number().optional(),
   enabled: z.boolean().optional().default(true),
   search_on_add: z.boolean().nullable().optional(),
-  // Sonarr only - Radarr rules with this set are rejected by route handlers
+  // For Sonarr only - sending this with Radarr rules will be rejected by the API
+  // Additional validation happens in the route handlers
   season_monitoring: z.string().nullable().optional(),
   series_type: z.enum(SERIES_TYPES).nullable().optional(),
-  // Radarr only
+  // For Radarr only - monitor type when adding movies
   monitor: z
     .enum(['movieOnly', 'movieAndCollection', 'none'])
     .nullable()
     .optional(),
+  // Actions - approval behavior
   always_require_approval: z.boolean().optional().default(false),
   bypass_user_quotas: z.boolean().optional().default(false),
   approval_reason: z.string().optional(),
 })
 
+// For the ConditionalRouteFormSchema (used in the frontend)
 export const ConditionalRouteFormSchema = z.object({
   name: z.string().min(2, {
     error: 'Route name must be at least 2 characters.',
@@ -277,6 +304,7 @@ export const ConditionalRouteFormSchema = z.object({
   order: z.number().int().min(1).max(100).default(50),
 })
 
+// Plugin schema
 export const ContentRouterPluginsResponseSchema = z.object({
   success: z.boolean(),
   plugins: z.array(
@@ -288,14 +316,18 @@ export const ContentRouterPluginsResponseSchema = z.object({
   ),
 })
 
+// Schema for creating a new rule
 export const ContentRouterRuleSchema = BaseRouterRuleSchema
 
+// Schema for updating an existing rule
 export const ContentRouterRuleUpdateSchema = BaseRouterRuleSchema.partial()
 
+// Schema for toggling a rule
 export const ContentRouterRuleToggleSchema = z.object({
   enabled: z.boolean(),
 })
 
+// Response schemas
 export const RouterRuleSchema = BaseRouterRuleSchema.extend({
   id: z.number(),
   created_at: z.string(),
@@ -319,6 +351,7 @@ export const ContentRouterRuleSuccessSchema = z.object({
   message: z.string(),
 })
 
+// Export inferred types
 export type ComparisonOperator = z.infer<typeof ComparisonOperatorSchema>
 export type ConditionValue = z.infer<typeof ConditionValueSchema>
 export type Condition = z.infer<typeof ConditionSchema>
@@ -332,6 +365,14 @@ export type ContentRouterRuleUpdate = z.infer<
   typeof ContentRouterRuleUpdateSchema
 >
 
+/**
+ * Normalizes the input for the `search_on_add` field to a boolean or `undefined`.
+ *
+ * Returns `undefined` if the input is `null` or `undefined`; otherwise, returns the boolean equivalent of the input.
+ *
+ * @param value - Input to normalize for the `search_on_add` field.
+ * @returns The boolean value of the input, or `undefined` if the input is `null` or `undefined`.
+ */
 export function normalizeSearchOnAdd(value: unknown): boolean | undefined {
   if (value === undefined || value === null) {
     return undefined
@@ -339,6 +380,14 @@ export function normalizeSearchOnAdd(value: unknown): boolean | undefined {
   return Boolean(value)
 }
 
+/**
+ * Normalizes the input to a valid season monitoring option in lowercase.
+ *
+ * Converts the input to a lowercase string and returns it if it matches a valid season monitoring option; returns 'all' if the input is invalid, or undefined if the input is null or undefined.
+ *
+ * @param value - The value to normalize as a season monitoring option.
+ * @returns The normalized season monitoring value, or undefined if the input is null or undefined.
+ */
 export function normalizeSeasonMonitoring(value: unknown): string | undefined {
   if (value === undefined || value === null) {
     return undefined
@@ -361,5 +410,6 @@ export type ContentRouterRuleSuccess = z.infer<
   typeof ContentRouterRuleSuccessSchema
 >
 
+// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as ContentRouterRuleErrorSchema }
 export type ContentRouterRuleError = z.infer<typeof ErrorSchema>

@@ -23,6 +23,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       let dbStatus: 'ok' | 'failed' = 'ok'
 
       try {
+        // Test database connectivity with a simple query
         await fastify.db.knex.raw('SELECT 1')
       } catch (error) {
         fastify.log.error(

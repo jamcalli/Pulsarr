@@ -80,7 +80,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Create or update a job schedule
+  // Create/update a job schedule
   fastify.post(
     '/schedules',
     {
@@ -102,6 +102,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const existing = await fastify.db.getScheduleByName(scheduleData.name)
 
         if (existing) {
+          // Update existing
           const success = await fastify.scheduler.updateJobSchedule(
             scheduleData.name,
             scheduleData.config,
@@ -120,6 +121,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
+        // Create new
         try {
           await fastify.db.createSchedule({
             name: scheduleData.name,
@@ -241,7 +243,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound(`Schedule "${name}" not found`)
         }
 
+        // Remove from scheduler
         await fastify.scheduler.unscheduleJob(name)
+
+        // Delete from database
         const deleted = await fastify.db.deleteSchedule(name)
         if (!deleted) {
           return reply.internalServerError(
@@ -394,8 +399,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound(`Schedule "${jobName}" not found`)
         }
 
+        // Run the delete sync in dry run mode
         const results = await fastify.deleteSync.run(true)
 
+        // Handle safety checks
         const safetyTriggered =
           'safetyTriggered' in results && results.safetyTriggered
         const safetyMessage =

@@ -4,6 +4,12 @@ import {
   shouldSkipForPostgreSQL,
 } from '../utils/clientDetection.js'
 
+/**
+ * Applies the initial database schema by creating all required tables and indexes for users, admin users, Sonarr and Radarr instances, genre routing, configurations, watchlists, genres, and temporary RSS items.
+ *
+ * @remark
+ * If running on PostgreSQL and `shouldSkipForPostgreSQL` returns true for this migration, the schema creation is skipped.
+ */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '001_initial_schema')) {
     return
@@ -111,6 +117,7 @@ export async function up(knex: Knex): Promise<void> {
 
   await knex.schema.createTable('configs', (table) => {
     table.increments('id').primary()
+    // App
     table.integer('port')
     table.string('dbPath')
     table.string('baseUrl')
@@ -122,22 +129,28 @@ export async function up(knex: Knex): Promise<void> {
     table.integer('rateLimitMax')
     table.integer('syncIntervalSeconds').defaultTo(10)
     table.integer('queueProcessDelaySeconds').defaultTo(60)
+    // Discord
     table.string('discordWebhookUrl')
     table.string('discordBotToken')
     table.string('discordClientId')
     table.string('discordGuildId')
+    // General Notifications
     table.integer('queueWaitTime').defaultTo(120000)
     table.integer('newEpisodeThreshold').defaultTo(172800000)
     table.integer('upgradeBufferTime').defaultTo(2000)
+    // Plex
     table.json('plexTokens')
     table.boolean('skipFriendSync')
+    // Delete
     table.boolean('deleteMovie')
     table.boolean('deleteEndedShow')
     table.boolean('deleteContinuingShow')
     table.integer('deleteIntervalDays')
     table.boolean('deleteFiles')
+    // RSS
     table.string('selfRss')
     table.string('friendsRss')
+    // Ready State
     table.boolean('_isReady').defaultTo(false)
     table.timestamp('created_at').defaultTo(knex.fn.now())
     table.timestamp('updated_at').defaultTo(knex.fn.now())
@@ -207,6 +220,11 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Reverts the initial database schema by dropping all tables created in the corresponding migration.
+ *
+ * Drops tables in reverse order of creation, unless the operation is skipped for PostgreSQL.
+ */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
     return

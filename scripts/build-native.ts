@@ -88,6 +88,8 @@ const PLATFORMS: Platform[] = [
   },
 ]
 
+// --- Helpers ---
+
 function run(cmd: string, cwd?: string) {
   execSync(cmd, { stdio: 'inherit', cwd: cwd ?? PROJECT_ROOT })
 }
@@ -114,6 +116,8 @@ function formatSize(bytes: number): string {
   return `${mb.toFixed(0)}M`
 }
 
+// --- Parse args ---
+
 const args = new Set(process.argv.slice(2))
 const runAfter = args.has('--run')
 const currentOnly = args.has('--current') || runAfter
@@ -127,10 +131,14 @@ console.log(
 )
 console.log('')
 
+// --- Clean ---
+
 if (existsSync(BUILD_DIR)) {
   rmSync(BUILD_DIR, { recursive: true })
 }
 mkdirSync(BUILD_DIR, { recursive: true })
+
+// --- Step 1: Build server + client ---
 
 if (!skipBuild) {
   console.log('[1/4] Building server...')
@@ -143,6 +151,8 @@ if (!skipBuild) {
   console.log('[1/4] Skipping server build (--skip-build)')
   console.log('[2/4] Skipping client build (--skip-build)')
 }
+
+// --- Step 2: Assemble common files ---
 
 console.log('[3/4] Assembling common files...')
 mkdirSync(COMMON_DIR, { recursive: true })
@@ -191,11 +201,13 @@ cpSync(
   { recursive: true },
 )
 
+// .env.example — configuration template for users
 cpSync(
   resolve(PROJECT_ROOT, '.env.example'),
   resolve(COMMON_DIR, '.env.example'),
 )
 
+// Inject TMDB API key if provided (for native builds to match Docker)
 const tmdbKey = process.env.TMDBAPIKEY
 if (tmdbKey) {
   const envExample = resolve(COMMON_DIR, '.env.example')
@@ -205,12 +217,14 @@ if (tmdbKey) {
   console.log('    Injected TMDB API key into .env.example')
 }
 
+// package.json + lockfile — version reading + dependency install
 cpSync(
   resolve(PROJECT_ROOT, 'package.json'),
   resolve(COMMON_DIR, 'package.json'),
 )
 cpSync(resolve(PROJECT_ROOT, 'bun.lock'), resolve(COMMON_DIR, 'bun.lock'))
 
+// Install production dependencies
 console.log('    Installing production dependencies...')
 try {
   run('bun install --production --frozen-lockfile', COMMON_DIR)
@@ -238,6 +252,8 @@ for (const dir of buildToolDirs) {
     rmSync(dirPath, { recursive: true })
   }
 }
+
+// --- Step 3: Package per platform ---
 
 console.log('[4/4] Packaging platforms...')
 
@@ -519,8 +535,10 @@ for (const platform of PLATFORMS) {
 
   console.log(`    ${platform.zipSuffix}...`)
 
+  // Copy common files
   cpSync(COMMON_DIR, platformDir, { recursive: true })
 
+  // Download Bun binary for this platform
   const bunUrl = `https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/${platform.bunArchive}.zip`
   const bunTmp = resolve(BUILD_DIR, `_bun_${platform.detectName}.zip`)
   const checksumUrl = `https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/SHASUMS256.txt`
@@ -529,6 +547,7 @@ for (const platform of PLATFORMS) {
   if (!existsSync(bunTmp)) {
     run(`curl -fsSL "${bunUrl}" -o "${bunTmp}"`)
 
+    // Verify checksum
     if (!existsSync(checksumFile)) {
       run(`curl -fsSL "${checksumUrl}" -o "${checksumFile}"`)
     }
@@ -556,6 +575,7 @@ for (const platform of PLATFORMS) {
     console.log(`      Checksum verified for ${platform.bunArchive}.zip`)
   }
 
+  // Extract just the binary
   try {
     run(`unzip -qjo "${bunTmp}" "*/${platform.bunBinary}" -d "${platformDir}/"`)
   } catch (_e1) {
@@ -574,9 +594,11 @@ for (const platform of PLATFORMS) {
     // Windows binaries don't need chmod
   }
 
+  // Create platform-appropriate startup script
   if (isWindows) {
     writeFileSync(resolve(platformDir, 'start.bat'), WINDOWS_START)
 
+    // Bundle WinSW for Windows service support
     const winswTmp = resolve(BUILD_DIR, '_winsw.exe')
     if (!existsSync(winswTmp)) {
       run(`curl -fsSL "${WINSW_URL}" -o "${winswTmp}"`)
@@ -597,13 +619,16 @@ for (const platform of PLATFORMS) {
     chmodSync(startPath, 0o755)
   }
 
+  // Write platform-specific README
   writeFileSync(
     resolve(platformDir, 'README.txt'),
     getReadme(platform.zipSuffix),
   )
 
+  // Create zip
   run(`zip -qr "${zipName}.zip" "${zipName}"`, BUILD_DIR)
 
+  // Report size
   const zipSize = statSync(resolve(BUILD_DIR, `${zipName}.zip`)).size
   console.log(`      -> ${zipName}.zip (${formatSize(zipSize)})`)
 }
@@ -644,6 +669,7 @@ for (const f of readdirSync(BUILD_DIR)
   console.log(`  ${f} (${formatSize(size)})`)
 }
 
+// Optionally run from the current platform build
 if (runAfter) {
   const target = PLATFORMS.find((p) => p.detectName === currentPlatform)
   if (target) {

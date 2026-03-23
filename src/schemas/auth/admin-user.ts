@@ -19,6 +19,7 @@ export const CreateAdminSchema = z.object({
     .min(8, { error: 'Password must be at least 8 characters' }),
 })
 
+// For forms that need password confirmation
 export const CreateAdminFormSchema = CreateAdminSchema.extend({
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {

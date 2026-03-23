@@ -20,12 +20,15 @@ RUN cat package.json.bak \
     | sed 's|bun run --bun|npx tsx|g' \
     > package.json
 
+# Install dependencies (npm will download better-sqlite3 prebuilts)
 RUN --mount=type=cache,target=/root/.npm \
     HUSKY=0 npm install
 
+# Copy build configuration and source
 COPY vite.config.js tsconfig.json postcss.config.mjs ./
 COPY src ./src
 
+# Build the application
 RUN --mount=type=cache,target=/app/node_modules/.vite \
     npm run build
 
@@ -51,14 +54,19 @@ RUN deluser --remove-home node && \
     addgroup -g 1000 -S pulsarr && \
     adduser -u 1000 -G pulsarr -D -H -s /sbin/nologin pulsarr
 
+# Copy package.json (original, for reference)
 COPY package.json ./
+
+# Production dependencies from builder (includes real better-sqlite3)
 COPY --from=builder /app/node_modules ./node_modules
 
+# Create necessary directories with correct ownership
 RUN mkdir -p /app/data/db && \
     mkdir -p /app/data/logs && \
     mkdir -p ${CACHE_DIR} && \
     chown -R pulsarr:pulsarr /app/data /app/build-cache
 
+# Copy build artifacts
 COPY --from=builder /app/dist ./dist
 COPY migrations ./migrations
 COPY docker-entrypoint.node.sh ./docker-entrypoint.sh
@@ -72,6 +80,8 @@ COPY README.md ./
 
 # Pass TMDB API key to runtime (GitHub Actions converts to TMDBAPIKEY)
 ARG TMDBAPIKEY
+
+# Set production environment
 ENV NODE_ENV=production
 ENV tmdbApiKey=${TMDBAPIKEY}
 

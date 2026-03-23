@@ -13,6 +13,9 @@ import type { PlexSessionMonitorService } from '@services/plex-session-monitor.s
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
+/**
+ * Resets a rolling monitored show's Sonarr state to match its monitoring type.
+ */
 async function resetShowMonitoring(
   show: RollingMonitoredShow,
   plexSessionMonitor: PlexSessionMonitorService,
@@ -38,6 +41,11 @@ async function resetShowMonitoring(
   }
 }
 
+/**
+ * Registers Fastify routes for managing rolling monitored shows and Plex session monitoring.
+ *
+ * Provides endpoints to retrieve, delete, and reset rolling monitored shows, manually trigger the session monitor, and manage shows inactive for a specified number of days. All routes include request validation, error handling, and structured JSON responses.
+ */
 const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
   fastify,
 ) => {
@@ -109,6 +117,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
           return reply.badRequest('Invalid show ID')
         }
 
+        // Check if the show exists
         const existingShow =
           await fastify.db.getRollingMonitoredShowById(showId)
 
@@ -116,13 +125,15 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
           return reply.notFound('Rolling monitored show not found')
         }
 
-        // Default to true for backwards compatibility
+        // Check if reset is requested (for backwards compatibility, default to true)
         const shouldReset = request.query.reset !== 'false'
 
         if (shouldReset) {
+          // Reset the show to its original monitoring state and delete excess files
           await resetShowMonitoring(existingShow, fastify.plexSessionMonitor)
         }
 
+        // Remove all user entries for this show from tracking
         const deletedCount =
           await fastify.db.deleteAllRollingMonitoredShowEntries(showId)
 
@@ -163,6 +174,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
           return reply.badRequest('Invalid show ID')
         }
 
+        // Check if the show exists
         const existingShow =
           await fastify.db.getRollingMonitoredShowById(showId)
 
@@ -170,8 +182,10 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
           return reply.notFound('Rolling monitored show not found')
         }
 
+        // Reset the show based on its monitoring type
         await resetShowMonitoring(existingShow, fastify.plexSessionMonitor)
 
+        // Remove all user entries and reset master record to original state
         const deletedUserEntries =
           await fastify.db.resetRollingMonitoredShowToOriginal(showId)
 
@@ -235,9 +249,11 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
       try {
         const inactivityDays = request.body.inactivityDays ?? 7
 
+        // Get inactive shows before resetting to count them
         const inactiveShows =
           await fastify.db.getInactiveRollingMonitoredShows(inactivityDays)
 
+        // Reset the inactive shows
         await fastify.plexSessionMonitor.resetInactiveRollingShows(
           inactivityDays,
         )
@@ -319,6 +335,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
 
         for (const show of shows) {
           if (show.rollingShowId === null) {
+            // Enroll: extract tvdbId from guids
             const tvdbGuid = show.guids.find((g) =>
               g.toLowerCase().startsWith('tvdb:'),
             )
@@ -341,6 +358,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
               }
             }
 
+            // For allSeasonPilotRolling, seed E01 of every season
             if (monitoringType === 'allSeasonPilotRolling') {
               await fastify.plexSessionMonitor.monitorAllSeasonPilots(
                 show.sonarrSeriesId,
@@ -350,6 +368,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
 
             enrolled++
           } else {
+            // Modify: check if type actually changed
             const existing = await fastify.db.getRollingMonitoredShowById(
               show.rollingShowId,
             )
@@ -373,6 +392,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
               initialSeason,
             )
 
+            // Reset Sonarr state to match the new type
             const updatedShow = await fastify.db.getRollingMonitoredShowById(
               show.rollingShowId,
             )
@@ -380,6 +400,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
               await resetShowMonitoring(updatedShow, fastify.plexSessionMonitor)
             }
 
+            // Reset master record progress and delete user entries
             await fastify.db.resetRollingMonitoredShowToOriginal(
               show.rollingShowId,
             )

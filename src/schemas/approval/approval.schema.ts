@@ -2,6 +2,7 @@ import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { z } from 'zod'
 
+// Base enums matching approval types
 export const ApprovalStatusSchema = z.enum([
   'pending',
   'approved',
@@ -16,6 +17,7 @@ export const ApprovalTriggerSchema = z.enum([
   'content_criteria',
 ])
 
+// Shared routing configuration schema
 const RoutingConfigSchema = z.object({
   instanceId: z.number(),
   instanceType: z.enum(['radarr', 'sonarr']),
@@ -36,16 +38,18 @@ const RoutingConfigSchema = z.object({
   syncedInstances: z.array(z.number()).optional(),
 })
 
+// Approval data schema matching ApprovalData interface
 const ApprovalDataSchema = z.object({
   quotaType: QuotaTypeSchema.optional(),
   quotaUsage: z.number().optional(),
   quotaLimit: z.number().optional(),
   criteriaType: z.string().optional(),
-  criteriaValue: z.string().optional(),
+  criteriaValue: z.string().optional(), // Changed from unknown to string for strict typing
   ruleId: z.number().optional(),
   autoApprove: z.boolean().optional(),
 })
 
+// Router decision schema
 export const RouterDecisionSchema = z.object({
   action: z.enum(['route', 'require_approval', 'reject', 'continue']),
   routing: RoutingConfigSchema.optional(),
@@ -59,6 +63,7 @@ export const RouterDecisionSchema = z.object({
     .optional(),
 })
 
+// Approval request schemas
 export const CreateApprovalRequestSchema = z.object({
   userId: z.number(),
   contentType: z.enum(['movie', 'show']),
@@ -94,7 +99,7 @@ export const ApprovalRequestResponseSchema = z.object({
   approvedBy: z.number().nullable(),
   approvalNotes: z.string().nullable(),
   expiresAt: z.string().nullable(),
-  // Computed from current config at response time, not stored in DB
+  // Dynamic expiration fields based on current config
   isExpired: z.boolean().optional(),
   expirationStatus: z.enum(['active', 'expiring_soon', 'expired']).optional(),
   expirationDisplayText: z.string().optional(),
@@ -104,6 +109,7 @@ export const ApprovalRequestResponseSchema = z.object({
 })
 
 export const GetApprovalRequestsQuerySchema = z.object({
+  // Status filter - accepts single value or comma-separated list for multi-select
   status: z
     .string()
     .optional()
@@ -115,6 +121,7 @@ export const GetApprovalRequestsQuerySchema = z.object({
     .pipe(
       z.union([ApprovalStatusSchema, z.array(ApprovalStatusSchema)]).optional(),
     ),
+  // User ID filter - accepts single value or comma-separated list for multi-select
   userId: z
     .string()
     .optional()
@@ -154,9 +161,12 @@ export const GetApprovalRequestsQuerySchema = z.object({
         .union([ApprovalTriggerSchema, z.array(ApprovalTriggerSchema)])
         .optional(),
     ),
+  // Content title search (case-insensitive partial match)
   search: z.string().optional(),
+  // Server-side pagination
   limit: z.coerce.number().min(1).max(1000).default(20),
   offset: z.coerce.number().min(0).default(0),
+  // Server-side sorting
   sortBy: z
     .enum([
       'contentTitle',
@@ -214,6 +224,7 @@ export type ApprovalSuccessResponse = z.infer<
   typeof ApprovalSuccessResponseSchema
 >
 
+// Bulk operation schemas
 export const BulkApprovalRequestSchema = z.object({
   requestIds: z
     .array(z.number())
@@ -245,6 +256,7 @@ export const BulkOperationResponseSchema = z.object({
   }),
 })
 
+// Type exports
 export type RouterDecision = z.infer<typeof RouterDecisionSchema>
 export type ProposedRouting = NonNullable<
   NonNullable<RouterDecision['approval']>['proposedRouting']
@@ -268,10 +280,12 @@ export type ApprovalRequestUpdateResponse = z.infer<
 >
 export type ApprovalStatsResponse = z.infer<typeof ApprovalStatsResponseSchema>
 
+// Bulk operation types
 export type BulkApprovalRequest = z.infer<typeof BulkApprovalRequestSchema>
 export type BulkRejectRequest = z.infer<typeof BulkRejectRequestSchema>
 export type BulkDeleteRequest = z.infer<typeof BulkDeleteRequestSchema>
 export type BulkOperationResponse = z.infer<typeof BulkOperationResponseSchema>
 
+// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as ApprovalErrorSchema }
 export type ApprovalError = z.infer<typeof ErrorSchema>

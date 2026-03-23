@@ -1,6 +1,7 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
+// Common API Key Schema
 const ApiKeySchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -10,6 +11,7 @@ const ApiKeySchema = z.object({
   is_active: z.boolean(),
 })
 
+// Create API Key Schema
 export const CreateApiKeySchema = z.object({
   name: z
     .string()
@@ -24,12 +26,14 @@ export const CreateApiKeyResponseSchema = z.object({
   apiKey: ApiKeySchema,
 })
 
+// Get API Keys Schema
 export const GetApiKeysResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   apiKeys: z.array(ApiKeySchema),
 })
 
+// Revoke API Key Schema
 export const RevokeApiKeyParamsSchema = z.object({
   id: z.coerce.number(),
 })
@@ -39,11 +43,13 @@ export const RevokeApiKeyResponseSchema = z.object({
   message: z.string(),
 })
 
+// Exported inferred types
 export type CreateApiKey = z.infer<typeof CreateApiKeySchema>
 export type CreateApiKeyResponse = z.infer<typeof CreateApiKeyResponseSchema>
 export type GetApiKeysResponse = z.infer<typeof GetApiKeysResponseSchema>
 export type RevokeApiKeyParams = z.infer<typeof RevokeApiKeyParamsSchema>
 export type RevokeApiKeyResponse = z.infer<typeof RevokeApiKeyResponseSchema>
 
+// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as ApiKeyErrorSchema }
 export type ApiKeyError = z.infer<typeof ErrorSchema>

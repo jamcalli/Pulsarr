@@ -45,15 +45,19 @@ RUN deluser --remove-home bun && \
     addgroup -g 1000 -S pulsarr && \
     adduser -u 1000 -G pulsarr -D -H -s /sbin/nologin pulsarr
 
+# Copy package files
 COPY package.json bun.lock ./
 COPY packages ./packages
+# Production-only dependencies from the install stage
 COPY --from=install /temp/prod/node_modules ./node_modules
 
+# Create necessary directories with correct ownership
 RUN mkdir -p /app/data/db && \
     mkdir -p /app/data/logs && \
     mkdir -p ${CACHE_DIR} && \
     chown -R pulsarr:pulsarr /app/data /app/build-cache
 
+# Copy build artifacts
 COPY --from=builder /app/dist ./dist
 COPY migrations ./migrations
 COPY docker-entrypoint.sh ./
@@ -68,9 +72,11 @@ COPY README.md ./
 # Pass TMDB API key to runtime (GitHub Actions converts to TMDBAPIKEY)
 ARG TMDBAPIKEY
 
+# Set production environment
 ENV NODE_ENV=production
 ENV tmdbApiKey=${TMDBAPIKEY}
 
+# Make volumes
 VOLUME ["/app/build-cache"]
 VOLUME ["/app/data"]
 EXPOSE 3003
