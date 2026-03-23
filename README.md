@@ -13,6 +13,10 @@
   ![GitHub Stars](https://img.shields.io/github/stars/jamcalli/pulsarr?style=flat-square)
 </div>
 
+<div align="center">
+  <sub><a href="#transparency">AI Transparency</a></sub>
+</div>
+
 ---
 
 Pulsarr bridges Plex watchlists with Sonarr and Radarr for real-time media monitoring and automated content acquisition, **all from within the Plex app, no extra logins required.**
@@ -128,7 +132,11 @@ See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/in
 
 ## Transparency
 
-Pulsarr started as a fun personal project that grew into something much bigger than I ever expected. AI coding tools assist in the development. I have a background in coding but I'm not a full-stack software engineer by trade. The design, architecture, and direction are entirely my own, and every line is reviewed and understood before it ships. I take security and code quality seriously: dependencies are kept current via Renovate, auth follows Fastify best practices, and all endpoints are protected by default. As sentiment towards AI-assisted development has become divisive, I feel it's best to be upfront about how this project is built. If you spot anything that could be improved or handled better, please open an issue or reach out. I'm always learning and welcome the feedback.
+Pulsarr started in early 2024 while I was home with a newborn, wanting to explore what AI coding tools could actually do. Watchlistarr had some bugs I wanted to fix, but it was written in Scala and I had no idea how to work with it, so I used AI to help me rewrite it in TypeScript instead. I threw together a basic UI, posted it, and didn't think much of it. The conversation around AI-assisted development has shifted a lot since then, and I think it's important to be upfront about how this project is built.
+
+I'm not a software engineer by trade and I used this project as a way to learn. I didn't expect it to become what it is. Over the past 16 months I've kept developing, supporting, and iterating on it using my own judgment and research, with AI tools playing a role throughout. Every decision about architecture, features, and direction is my own, and everything is reviewed before it ships. If you ever spot anything I've missed or that's cause for concern, please reach out.
+
+I take security seriously. Renovate keeps dependencies current, auth follows Fastify best practices, and all endpoints are protected by default. I'm always learning and welcome the feedback.
 
 ## Contributing
 
