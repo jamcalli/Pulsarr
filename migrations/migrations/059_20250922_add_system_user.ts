@@ -9,7 +9,6 @@ import type { Knex } from 'knex'
  */
 export async function up(knex: Knex): Promise<void> {
   return knex.transaction(async (trx) => {
-    // Insert system user with ID 0; idempotent across reruns
     await trx('users')
       .insert({
         id: 0,
@@ -32,15 +31,7 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
-/**
- * Prevents rollback of the migration that creates the system user (ID 0).
- *
- * This down migration is intentionally irreversible and always throws. The system
- * user may be referenced by auto-approval or other persistent data, so removing
- * it could break referential integrity.
- *
- * @throws Error indicating the migration cannot be reversed
- */
+// Irreversible - system user may be referenced by auto-approval data
 export async function down(_: Knex): Promise<void> {
   throw new Error(
     'Irreversible: system user (ID 0) may be referenced by auto-approval data.',

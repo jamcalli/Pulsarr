@@ -38,7 +38,6 @@ function resolveEnvPath(root: string): string {
 // or fall back to project-relative paths (Linux/Docker)
 const dataDir = resolveDataDir()
 
-// Load environment variables before anything else
 dotenv.config({
   path: resolveEnvPath(projectRoot),
   quiet: true,
@@ -255,24 +254,19 @@ function ensureDbDirectory() {
   }
 }
 
-// Helper to determine database type from environment
 const dbType = process.env.dbType || 'sqlite'
 const isPostgres = dbType === 'postgres'
 
-// Build PostgreSQL connection configuration
 const getPostgresConnection = () => {
-  // If connection string is provided, use it
   if (process.env.dbConnectionString) {
     return process.env.dbConnectionString
   }
 
-  // Parse and validate port number
   const port = Number.parseInt(process.env.dbPort || '5432', 10)
   if (Number.isNaN(port) || port < 1 || port > 65535) {
     throw new Error('Invalid database port number')
   }
 
-  // Otherwise, build from individual components
   return {
     host: process.env.dbHost || 'localhost',
     port,
@@ -282,7 +276,6 @@ const getPostgresConnection = () => {
   }
 }
 
-// Build SQLite connection configuration
 const getSqliteConnection = () => ({
   filename: process.env.dbPath || resolve(ensureDbDirectory(), 'pulsarr.db'),
 })
@@ -302,7 +295,6 @@ const config: { [key: string]: Knex.Config } = {
         }
       : {
           afterCreate: (conn: unknown, cb: () => void) => {
-            // Type assertion for SQLite database connection
             const sqliteConn = conn as { exec: (sql: string) => void }
             sqliteConn.exec('PRAGMA journal_mode = WAL;')
             sqliteConn.exec('PRAGMA foreign_keys = ON;')

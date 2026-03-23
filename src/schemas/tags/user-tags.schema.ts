@@ -5,7 +5,6 @@ import {
 } from '@root/schemas/shared/prefix-validation.schema.js'
 import { z } from 'zod'
 
-// Configuration schema for user tagging
 export const TaggingConfigSchema = z
   .object({
     tagUsersInSonarr: z.boolean(),
@@ -21,15 +20,11 @@ export const TaggingConfigSchema = z
     message: 'removedTagPrefix required when removedTagMode is "special-tag"',
   })
 
-// Status response schema - REMOVED: Configuration data is now available through main config system only
-
-// Base response schema with common fields
 const BaseResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
 })
 
-// Create operation schemas with discriminant
 const CreateOperationResultSchema = z.object({
   created: z.number(),
   skipped: z.number(),
@@ -43,14 +38,12 @@ export const CreateTaggingResponseSchema = BaseResponseSchema.extend({
   radarr: CreateOperationResultSchema,
 })
 
-// Sync operation schemas with discriminant
 const SyncOperationResultSchema = z.object({
   tagged: z.number(),
   skipped: z.number(),
   failed: z.number(),
 })
 
-// Shared schema for cleanup stats (used in both sync and standalone cleanup)
 const CleanupStatsSchema = z.object({
   removed: z.number(),
   skipped: z.number(),
@@ -70,7 +63,6 @@ export const SyncTaggingResponseSchema = BaseResponseSchema.extend({
     .optional(),
 })
 
-// Schema for the remove tags response
 export const RemoveTagsResponseSchema = BaseResponseSchema.extend({
   mode: z.literal('remove'),
   sonarr: z.object({
@@ -95,20 +87,17 @@ export const RemoveTagsRequestSchema = z.object({
   deleteTagDefinitions: z.boolean().optional().default(false),
 })
 
-// Union of the two operation types with proper discrimination
 export const TaggingOperationResponseSchema = z.discriminatedUnion('mode', [
   CreateTaggingResponseSchema,
   SyncTaggingResponseSchema,
   RemoveTagsResponseSchema,
 ])
 
-// Cleanup response schema
 export const CleanupResponseSchema = BaseResponseSchema.extend({
   radarr: CleanupStatsSchema,
   sonarr: CleanupStatsSchema,
 })
 
-// Instance result for orphaned tag reference cleanup
 const OrphanedRefInstanceResultSchema = z.object({
   instanceName: z.string(),
   itemsScanned: z.number(),
@@ -117,16 +106,13 @@ const OrphanedRefInstanceResultSchema = z.object({
   error: z.string().optional(),
 })
 
-// Cleanup orphaned tag references response schema
 export const CleanupOrphanedRefsResponseSchema = BaseResponseSchema.extend({
   radarr: z.object({}).catchall(OrphanedRefInstanceResultSchema),
   sonarr: z.object({}).catchall(OrphanedRefInstanceResultSchema),
 })
 
-// Re-export shared schemas
 export { ErrorSchema }
 
-// Exported TypeScript types
 export type TaggingConfig = z.infer<typeof TaggingConfigSchema>
 export type CreateTaggingResponse = z.infer<typeof CreateTaggingResponseSchema>
 export type SyncTaggingResponse = z.infer<typeof SyncTaggingResponseSchema>

@@ -10,7 +10,5 @@ export const ProvidersResponseSchema = z.object({
 })
 
 export type ProvidersResponse = z.infer<typeof ProvidersResponseSchema>
-
-// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as ProvidersErrorSchema }
 export type ProvidersError = z.infer<typeof ErrorSchema>

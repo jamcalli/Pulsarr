@@ -1,9 +1,7 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds Plex classification columns to the `users` table.
- *
- * These columns store friend metadata from the Plex API so the classification
+ * Stores friend metadata from the Plex API so the classification
  * endpoint can query directly from the DB instead of re-fetching each time.
  */
 export async function up(knex: Knex): Promise<void> {
@@ -16,9 +14,6 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
-/**
- * Reverts the migration by dropping the Plex classification columns.
- */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('users', (table) => {
     table.dropIndex(['plex_uuid'])

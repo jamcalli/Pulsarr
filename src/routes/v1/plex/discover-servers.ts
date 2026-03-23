@@ -15,7 +15,6 @@ import {
 } from '@utils/version.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-// Types for Plex API responses
 interface PlexResourceConnection {
   uri: string
   address: string
@@ -31,7 +30,6 @@ interface PlexResource {
   connections: PlexResourceConnection[]
 }
 
-// Helper class to carry HTTP status information
 class PlexApiError extends Error {
   status: number
 
@@ -69,7 +67,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         fastify.log.info('Discovering Plex servers using provided token')
 
-        // Build the request to Plex.tv API
         const url = new URL('https://plex.tv/api/v2/resources')
         url.searchParams.append('includeHttps', '1')
         url.searchParams.append('includeRelay', '0')
@@ -91,7 +88,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }).finally(() => clearTimeout(timeout))
 
         if (!response.ok) {
-          // Pass along the HTTP status code with the error
           throw new PlexApiError(
             `Failed to fetch Plex servers: ${response.statusText}`,
             response.status,
@@ -100,10 +96,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         const resources = (await response.json()) as PlexResource[]
 
-        // Extract server options from resources
         const serverOptions = []
 
-        // Filter resources that provide server functionality and are owned by the user
         const serverResources = resources.filter(
           (r) =>
             r.provides &&
@@ -147,7 +141,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             try {
               const url = new URL(connection.uri)
 
-              // Add option with direct Plex URL (secure)
               if (url.hostname) {
                 serverOptions.push({
                   name: `${server.name} (${url.hostname})`,
@@ -159,7 +152,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 })
               }
 
-              // Add option with direct IP address (non-secure by default)
               if (connection.address) {
                 serverOptions.push({
                   name: `${server.name} (${connection.address})`,
@@ -192,14 +184,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: 'Failed to discover Plex servers',
         })
 
-        // Handle timeout/abort errors
         if (error instanceof Error && error.name === 'AbortError') {
           return reply.gatewayTimeout(
             'Request to Plex API timed out after 10 seconds',
           )
         }
 
-        // Handle Fastify-specific errors
         if (
           typeof error === 'object' &&
           error !== null &&
@@ -209,9 +199,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           throw error
         }
 
-        // Handle PlexApiError
         if (error instanceof PlexApiError) {
-          // Map HTTP status codes to appropriate Fastify replies
           const status = error.status
 
           if (status === 400) {
@@ -234,11 +222,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             return reply.internalServerError(error.message)
           }
 
-          // For any other client errors (default case)
           return reply.badRequest(error.message)
         }
 
-        // Default error handling for unexpected errors
         if (error instanceof Error) {
           return reply.internalServerError(error.message)
         }

@@ -39,7 +39,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound('Radarr service not initialized')
         }
 
-        // Create the tag using the service
         const newTag = await service.createTag(label)
 
         reply.status(200)

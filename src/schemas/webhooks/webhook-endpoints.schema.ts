@@ -3,10 +3,8 @@ import { HttpUrlSchema } from '@root/schemas/common/url.schema.js'
 import { WEBHOOK_EVENT_TYPES } from '@root/types/webhook-endpoint.types.js'
 import { z } from 'zod'
 
-// Event type schema derived from the constant array
 export const WebhookEventTypeSchema = z.enum(WEBHOOK_EVENT_TYPES)
 
-// Base webhook endpoint schema (database representation)
 export const WebhookEndpointSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -19,7 +17,6 @@ export const WebhookEndpointSchema = z.object({
   updatedAt: z.string(),
 })
 
-// Create webhook endpoint request schema
 export const CreateWebhookEndpointSchema = z.object({
   name: z
     .string()
@@ -42,7 +39,6 @@ export const CreateWebhookEndpointSchema = z.object({
   enabled: z.boolean().optional().default(true),
 })
 
-// Update webhook endpoint request schema
 export const UpdateWebhookEndpointSchema = z.object({
   name: z
     .string()
@@ -69,7 +65,6 @@ export const UpdateWebhookEndpointSchema = z.object({
   enabled: z.boolean().optional(),
 })
 
-// Test webhook endpoint request schema
 export const TestWebhookEndpointSchema = z.object({
   url: HttpUrlSchema,
   authHeaderName: z
@@ -83,12 +78,10 @@ export const TestWebhookEndpointSchema = z.object({
     .optional(),
 })
 
-// Route params schema
 export const WebhookEndpointParamsSchema = z.object({
   id: z.coerce.number(),
 })
 
-// Response schemas
 export const WebhookEndpointResponseSchema = z.object({
   success: z.literal(true),
   data: WebhookEndpointSchema,
@@ -103,7 +96,7 @@ export const WebhookTestResponseSchema = z.object({
   success: z.boolean(),
   statusCode: z.number().optional(),
   error: z.string().optional(),
-  responseTime: z.number(), // milliseconds
+  responseTime: z.number(),
 })
 
 export const WebhookDeleteResponseSchema = z.object({
@@ -111,7 +104,6 @@ export const WebhookDeleteResponseSchema = z.object({
   message: z.string(),
 })
 
-// Event types list for UI
 export const WebhookEventTypesResponseSchema = z.object({
   success: z.literal(true),
   data: z.array(
@@ -122,7 +114,6 @@ export const WebhookEventTypesResponseSchema = z.object({
   ),
 })
 
-// Inferred types
 export type WebhookEventTypeValue = z.infer<typeof WebhookEventTypeSchema>
 export type WebhookEndpoint = z.infer<typeof WebhookEndpointSchema>
 export type CreateWebhookEndpoint = z.infer<typeof CreateWebhookEndpointSchema>
@@ -141,6 +132,5 @@ export type WebhookEventTypesResponse = z.infer<
   typeof WebhookEventTypesResponseSchema
 >
 
-// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as WebhookEndpointErrorSchema }
 export type WebhookEndpointError = z.infer<typeof ErrorSchema>

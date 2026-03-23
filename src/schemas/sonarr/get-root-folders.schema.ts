@@ -21,6 +21,4 @@ export type Querystring = z.infer<typeof QuerystringSchema>
 export type InstanceInfo = z.infer<typeof InstanceInfoSchema>
 export type RootFoldersResponse = z.infer<typeof RootFoldersResponseSchema>
 export type GetRootFoldersError = z.infer<typeof ErrorSchema>
-
-// Re-export shared schemas
 export { ErrorSchema }

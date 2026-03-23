@@ -17,6 +17,4 @@ export type TestConnectionResponse = z.infer<
   typeof TestConnectionResponseSchema
 >
 export type TestConnectionError = z.infer<typeof ErrorSchema>
-
-// Re-export shared schemas
 export { ErrorSchema }

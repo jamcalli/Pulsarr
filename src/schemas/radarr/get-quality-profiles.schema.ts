@@ -23,6 +23,4 @@ export type QualityProfilesResponse = z.infer<
   typeof QualityProfilesResponseSchema
 >
 export type GetRadarrQualityProfilesError = z.infer<typeof ErrorSchema>
-
-// Re-export shared schemas
 export { ErrorSchema }

@@ -1,18 +1,11 @@
 import type { Knex } from 'knex'
 
-/**
- * Adds a unique constraint to the `notifications` table to prevent duplicate notifications for the same user and content combination.
- *
- * Removes existing duplicate notifications, keeping only the most recent entry for each unique set of `user_id`, `watchlist_item_id`, `type`, `season_number`, `episode_number`, and `notification_status`, then enforces uniqueness on these columns for future inserts.
- */
 export async function up(knex: Knex): Promise<void> {
-  // Check if we're using PostgreSQL or SQLite
   const isPostgres = knex.client.config.client === 'pg'
 
-  // First, identify and remove duplicate notifications
-  // Keep the most recent notification for each unique combination
+  // Remove existing duplicates before adding the unique constraint, keeping the most recent
   if (isPostgres) {
-    // PostgreSQL: Use a more reliable approach with CTEs to avoid subquery issues
+    // PG can't use NOT IN with subqueries that return NULL, so CTE with ROW_NUMBER is safer
     const duplicateQuery = `
       WITH duplicates AS (
         SELECT id, ROW_NUMBER() OVER (
@@ -26,7 +19,6 @@ export async function up(knex: Knex): Promise<void> {
     `
     await knex.raw(duplicateQuery)
   } else {
-    // SQLite: Original query works fine
     const duplicateQuery = `
       DELETE FROM notifications 
       WHERE id NOT IN (
@@ -39,14 +31,12 @@ export async function up(knex: Knex): Promise<void> {
   }
 
   if (isPostgres) {
-    // PostgreSQL: Add constraint directly after cleaning duplicates
     await knex.raw(`
       ALTER TABLE notifications
       ADD CONSTRAINT notifications_unique_content_user
       UNIQUE (user_id, watchlist_item_id, type, season_number, episode_number, notification_status)
     `)
   } else {
-    // SQLite: Use standard unique constraint after cleanup
     await knex.schema.alterTable('notifications', (table) => {
       table.unique(
         [
@@ -63,21 +53,15 @@ export async function up(knex: Knex): Promise<void> {
   }
 }
 
-/**
- * Reverts the migration by removing the unique constraint from the `notifications` table.
- */
 export async function down(knex: Knex): Promise<void> {
-  // Check if we're using PostgreSQL or SQLite
   const isPostgres = knex.client.config.client === 'pg'
 
   if (isPostgres) {
-    // PostgreSQL: Drop constraint using raw SQL
     await knex.raw(`
       ALTER TABLE notifications
       DROP CONSTRAINT IF EXISTS notifications_unique_content_user
     `)
   } else {
-    // SQLite: Use schema builder
     await knex.schema.alterTable('notifications', (table) => {
       table.dropUnique(
         [

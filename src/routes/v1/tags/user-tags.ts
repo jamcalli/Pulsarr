@@ -11,7 +11,7 @@ import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
-  // Create user tags in Sonarr and/or Radarr instances
+  // Create user tags
   fastify.post(
     '/create',
     {
@@ -67,17 +67,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               message: 'Radarr user tagging is disabled in configuration',
             })
 
-        // Execute the enabled operations
         const [sonarrTagResults, radarrTagResults] = await Promise.all([
           sonarrPromise,
           radarrPromise,
         ])
 
-        // Merge results
         Object.assign(sonarrResults, sonarrTagResults)
         Object.assign(radarrResults, radarrTagResults)
 
-        // If both services are disabled, adjust the success message
         const totalCreated = sonarrResults.created + radarrResults.created
         const totalSkipped = sonarrResults.skipped + radarrResults.skipped
         const totalInstances = sonarrResults.instances + radarrResults.instances
@@ -119,7 +116,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Synchronize content with user tags in Sonarr and Radarr
+  // Synchronize content with user tags
   fastify.post(
     '/sync',
     {
@@ -137,10 +134,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        // Check config first to see if tagging is enabled at all
         const config = fastify.config
 
-        // If both Sonarr and Radarr tagging are disabled, return early
         if (!config.tagUsersInSonarr && !config.tagUsersInRadarr) {
           return {
             success: false,
@@ -174,10 +169,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
-        // Proceed with sync operation
         const results = await fastify.userTags.syncAllTags()
 
-        // Calculate totals
         const totalTagged = results.sonarr.tagged + results.radarr.tagged
         const totalSkipped = results.sonarr.skipped + results.radarr.skipped
         const totalFailed = results.sonarr.failed + results.radarr.failed
@@ -234,10 +227,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        // Check if cleanup is enabled
         const config = fastify.config
 
-        // If cleanup is disabled, return early with appropriate message
         if (!config.cleanupOrphanedTags) {
           return {
             success: false,
@@ -257,7 +248,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
-        // Proceed with cleanup operation
         const results = await fastify.userTags.cleanupOrphanedUserTags()
         const totalRemoved = results.radarr.removed + results.sonarr.removed
         const totalInstances =
@@ -285,7 +275,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Clean up orphaned tag references (tag IDs on items that don't exist)
+  // Clean up orphaned tag references
   fastify.post(
     '/cleanup-orphaned-refs',
     {
@@ -305,7 +295,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const results = await fastify.userTags.cleanupOrphanedTagReferences()
 
-        // Calculate totals for message
         let totalItemsScanned = 0
         let totalOrphanedFound = 0
         let totalItemsUpdated = 0
@@ -364,10 +353,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        // Check if tagging is enabled
         const config = fastify.config
 
-        // If both Sonarr and Radarr tagging are disabled, return early
         if (!config.tagUsersInSonarr && !config.tagUsersInRadarr) {
           return {
             success: false,
@@ -393,14 +380,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
-        // Extract option from request
         const { deleteTagDefinitions = false } = request.body
-
-        // Call the service to remove all tags
         const results =
           await fastify.userTags.removeAllUserTags(deleteTagDefinitions)
 
-        // Calculate total items and tags for the response message
         const totalItemsUpdated =
           results.sonarr.itemsUpdated + results.radarr.itemsUpdated
         const totalTagsRemoved =
@@ -408,7 +391,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const totalTagsDeleted =
           results.sonarr.tagsDeleted + results.radarr.tagsDeleted
 
-        // Build appropriate message based on results
         let message = `Removed ${totalTagsRemoved} user tags from ${totalItemsUpdated} items`
 
         if (deleteTagDefinitions) {

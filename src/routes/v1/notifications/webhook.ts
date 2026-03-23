@@ -70,13 +70,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return reply.unauthorized('Invalid webhook secret')
       }
 
-      // Test webhook
       if ('eventType' in body && body.eventType === 'Test') {
         fastify.log.debug('Received test webhook')
         return { success: true }
       }
 
-      // Deduplication filter
       if (!isWebhookProcessable(body, fastify.log)) {
         fastify.log.debug(
           {
@@ -88,7 +86,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return { success: true }
       }
 
-      // Log receipt
       const contentTitle =
         'movie' in body
           ? body.movie.title
@@ -109,7 +106,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         // Trigger Plex label sync (fire and forget)
         fastify.webhookQueue.triggerLabelSync(body)
 
-        // Movie webhook
         if ('movie' in body) {
           const instance = instanceId
             ? await fastify.db.getRadarrInstanceByIdentifier(instanceId)
@@ -131,7 +127,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return { success: true }
         }
 
-        // Sonarr webhook
         if (
           'series' in body &&
           'episodes' in body &&
