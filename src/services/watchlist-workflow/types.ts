@@ -70,6 +70,8 @@ export interface ContentRoutingDeps extends BaseDeps {
 export interface HealthCheckDeps {
   sonarrManager: SonarrManagerService
   radarrManager: RadarrManagerService
+  plexServerService?: PlexServerService
+  skipIfExistsOnPlex?: boolean
   deferredRoutingQueue: DeferredRoutingQueue | null
   logger: FastifyBaseLogger
 }
@@ -81,6 +83,7 @@ export interface HealthCheckResult {
   available: boolean
   sonarrUnavailable: number[]
   radarrUnavailable: number[]
+  plexServerUnreachable?: boolean
 }
 
 // ============================================================================

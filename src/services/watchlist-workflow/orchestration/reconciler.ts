@@ -101,6 +101,8 @@ async function handleEtagModeChanges(
   const health = await checkInstanceHealth({
     sonarrManager: deps.sonarrManager,
     radarrManager: deps.radarrManager,
+    plexServerService: deps.fastify.plexServerService,
+    skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
     deferredRoutingQueue: deps.deferredRoutingQueue,
     logger: deps.logger,
   })
@@ -110,6 +112,7 @@ async function handleEtagModeChanges(
       {
         sonarrUnavailable: health.sonarrUnavailable,
         radarrUnavailable: health.radarrUnavailable,
+        plexServerUnreachable: health.plexServerUnreachable,
         changesCount: changesWithNewItems.length,
       },
       'Some instances unavailable, queuing changes for deferred routing',

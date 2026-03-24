@@ -23,14 +23,28 @@ export async function checkInstanceHealth(
     deps.radarrManager.checkInstancesHealth(),
   ])
 
+  let plexServerUnreachable = false
+  if (deps.skipIfExistsOnPlex && deps.plexServerService) {
+    const plexHealth = await deps.plexServerService.checkPlexServerHealth()
+    if (!plexHealth.reachable) {
+      deps.logger.warn(
+        { serverName: plexHealth.serverName },
+        'Plex server unreachable (skipIfExistsOnPlex is enabled)',
+      )
+      plexServerUnreachable = true
+    }
+  }
+
   const available =
     sonarrHealth.unavailable.length === 0 &&
-    radarrHealth.unavailable.length === 0
+    radarrHealth.unavailable.length === 0 &&
+    !plexServerUnreachable
 
   return {
     available,
     sonarrUnavailable: sonarrHealth.unavailable,
     radarrUnavailable: radarrHealth.unavailable,
+    plexServerUnreachable,
   }
 }
 
@@ -85,6 +99,7 @@ export async function checkHealthAndQueueIfUnavailable(
         context,
         sonarrUnavailable: health.sonarrUnavailable,
         radarrUnavailable: health.radarrUnavailable,
+        plexServerUnreachable: health.plexServerUnreachable,
       },
       'Some instances unavailable, queuing for deferred routing',
     )

@@ -64,6 +64,8 @@ export async function processRssFriendsItems(
   const health = await checkInstanceHealth({
     sonarrManager: deps.sonarrManager,
     radarrManager: deps.radarrManager,
+    plexServerService: deps.fastify.plexServerService,
+    skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
     deferredRoutingQueue: deps.deferredRoutingQueue,
     logger: deps.logger,
   })
@@ -139,6 +141,7 @@ export async function processRssFriendsItems(
           itemCount: allItems.length,
           sonarrUnavailable: health.sonarrUnavailable,
           radarrUnavailable: health.radarrUnavailable,
+          plexServerUnreachable: health.plexServerUnreachable,
         },
         'Some instances unavailable, queuing friend RSS items for deferred routing',
       )

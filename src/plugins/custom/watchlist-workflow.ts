@@ -84,6 +84,7 @@ export default fp(
   {
     name: 'watchlist-workflow-service',
     dependencies: [
+      'plex-server',
       'plex-watchlist',
       'sonarr-manager',
       'radarr-manager',

@@ -1693,6 +1693,60 @@ export class PlexServerService {
   }
 
   /**
+   * Checks if the owner's Plex server is reachable via the /identity endpoint.
+   * Used as a pre-flight check before processing watchlist items when
+   * skipIfExistsOnPlex is enabled - if the primary server is down, we can't
+   * trust "not found" results and must abort to prevent mass-routing.
+   *
+   * @returns Promise resolving to health status with reachable flag
+   */
+  async checkPlexServerHealth(): Promise<{
+    reachable: boolean
+    serverName: string | null
+  }> {
+    try {
+      const ownerConnections = await this.getPlexServerConnectionInfo()
+
+      if (ownerConnections.length === 0) {
+        this.log.warn('No owner server connections available for health check')
+        return { reachable: false, serverName: this.serverName }
+      }
+
+      const candidates: ConnectionCandidate[] = ownerConnections.map((c) => ({
+        uri: c.url,
+        local: c.local,
+        relay: c.relay,
+      }))
+
+      const reachable = await testConnectionReachability(
+        candidates,
+        this.config.plexTokens?.[0] || '',
+        this.log,
+      )
+
+      if (reachable.length === 0) {
+        this.log.warn(
+          { serverName: this.serverName },
+          'Plex server health check failed - no connections reachable',
+        )
+        return { reachable: false, serverName: this.serverName }
+      }
+
+      this.log.debug(
+        { serverName: this.serverName, reachableCount: reachable.length },
+        'Plex server health check passed',
+      )
+      return { reachable: true, serverName: this.serverName }
+    } catch (error) {
+      this.log.error(
+        { error, serverName: this.serverName },
+        'Error during Plex server health check',
+      )
+      return { reachable: false, serverName: this.serverName }
+    }
+  }
+
+  /**
    * Checks if content exists across accessible Plex servers using the primary token.
    * Uses cached connections (one per server) and reconciliation-scoped content cache
    * for efficient checking across multiple items.
