@@ -16293,6 +16293,9 @@
                         "requires_approval": {
                           "type": "boolean"
                         },
+                        "is_primary_token": {
+                          "type": "boolean"
+                        },
                         "plex_uuid": {
                           "nullable": true,
                           "type": "string"
@@ -16328,6 +16331,7 @@
                         "notify_plex_mobile",
                         "can_sync",
                         "requires_approval",
+                        "is_primary_token",
                         "created_at",
                         "updated_at"
                       ],
@@ -16345,6 +16349,38 @@
             }
           },
           "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -16507,6 +16543,9 @@
                         "requires_approval": {
                           "type": "boolean"
                         },
+                        "is_primary_token": {
+                          "type": "boolean"
+                        },
                         "plex_uuid": {
                           "nullable": true,
                           "type": "string"
@@ -16542,6 +16581,7 @@
                         "notify_plex_mobile",
                         "can_sync",
                         "requires_approval",
+                        "is_primary_token",
                         "created_at",
                         "updated_at"
                       ],
@@ -16591,6 +16631,38 @@
             }
           },
           "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -16696,6 +16768,9 @@
                         "requires_approval": {
                           "type": "boolean"
                         },
+                        "is_primary_token": {
+                          "type": "boolean"
+                        },
                         "plex_uuid": {
                           "nullable": true,
                           "type": "string"
@@ -16731,6 +16806,7 @@
                         "notify_plex_mobile",
                         "can_sync",
                         "requires_approval",
+                        "is_primary_token",
                         "created_at",
                         "updated_at"
                       ],
@@ -16748,6 +16824,38 @@
             }
           },
           "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
             "description": "Default Response",
             "content": {
               "application/json": {
