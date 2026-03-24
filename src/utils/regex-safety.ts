@@ -12,7 +12,7 @@ export { isRegexPatternSafe }
  * @param context - Context string for logging (e.g., 'genre rule', 'certification condition').
  * @returns True if the input matches the pattern and the pattern is safe and valid; otherwise, false.
  *
- * @remark Unsafe regex patterns (as determined by `safe-regex2`) and invalid regex syntax are rejected and logged.
+ * @remark Unsafe regex patterns and invalid regex syntax are rejected and logged.
  */
 export function evaluateRegexSafely(
   pattern: string,

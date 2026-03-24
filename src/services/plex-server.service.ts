@@ -311,8 +311,6 @@ export class PlexServerService {
       const defaultUrl = 'http://localhost:32400'
 
       let server: PlexResource | undefined
-      let configMatchFound = false
-
       if (configUrl && configUrl !== defaultUrl) {
         // Find the server whose connections include the configured URL
         for (const candidate of serverResources) {
@@ -326,7 +324,6 @@ export class PlexServerService {
           )
           if (match) {
             server = candidate
-            configMatchFound = true
             this.log.debug(
               `Matched configured URL to server "${candidate.name}" (${candidate.clientIdentifier})`,
             )
@@ -416,7 +413,7 @@ export class PlexServerService {
           this.log.debug(
             'Manually configured URL matches a discovered connection - setting as default',
           )
-        } else if (!configMatchFound) {
+        } else {
           // URL didn't match any server — add as manual override
           connections.push({
             url: configUrl,

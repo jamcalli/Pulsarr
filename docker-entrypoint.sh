@@ -1,5 +1,7 @@
 #!/bin/sh
-set -euo pipefail
+set -eu
+# Enable pipefail only when supported
+( set -o pipefail ) 2>/dev/null && set -o pipefail
 
 PUID=${PUID:-1000}
 PGID=${PGID:-1000}

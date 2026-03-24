@@ -49,15 +49,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           othersItems: totalOthersItems,
         }
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error'
         logRouteError(fastify.log, request, error, {
           message: 'Failed to refresh metadata',
         })
 
-        return reply.internalServerError(
-          `Unable to refresh metadata: ${errorMessage}`,
-        )
+        return reply.internalServerError('Unable to refresh metadata')
       }
     },
   )
