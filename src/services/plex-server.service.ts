@@ -275,6 +275,7 @@ export class PlexServerService {
 
       // Retrieve server resources from Plex.tv API
       const resourcesUrl = new URL('/api/v2/resources', plexTvUrl)
+      resourcesUrl.searchParams.append('includeHttps', '1')
       const resourcesResponse = await fetch(resourcesUrl.toString(), {
         headers: {
           'User-Agent': USER_AGENT,
@@ -315,8 +316,13 @@ export class PlexServerService {
       if (configUrl && configUrl !== defaultUrl) {
         // Find the server whose connections include the configured URL
         for (const candidate of serverResources) {
-          const match = candidate.connections.some((conn) =>
-            isSameServerEndpoint(conn.uri, configUrl),
+          const match = candidate.connections.some(
+            (conn) =>
+              isSameServerEndpoint(conn.uri, configUrl) ||
+              isSameServerEndpoint(
+                `http://${conn.address}:${conn.port}`,
+                configUrl,
+              ),
           )
           if (match) {
             server = candidate
