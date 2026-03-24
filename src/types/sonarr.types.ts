@@ -245,6 +245,7 @@ export interface WebhookNotification {
   }>
 }
 
+import type { NotificationUser } from '@root/types/config.types.js'
 import type { ContentItem } from '@root/types/router.types.js'
 
 export interface Item extends ContentItem {
@@ -340,17 +341,6 @@ export interface MediaNotification {
 }
 
 export interface NotificationResult {
-  user: {
-    apprise: string | null
-    discord_id: string | null
-    notify_apprise: boolean
-    notify_discord: boolean
-    notify_discord_mention: boolean
-    notify_plex_mobile: boolean
-    name: string
-    id: number
-    alias: string | null
-    can_sync: boolean
-  }
+  user: NotificationUser
   notification: MediaNotification
 }

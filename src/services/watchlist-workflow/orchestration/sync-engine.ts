@@ -104,6 +104,28 @@ export async function syncWatchlistItems(
       }
     }
 
+    // When skipIfExistsOnPlex is enabled, verify the primary Plex server is
+    // reachable before processing. If it's down, existence checks would
+    // return "not found" for everything, causing mass-routing to Sonarr/Radarr.
+    if (deps.config.skipIfExistsOnPlex) {
+      const plexHealth =
+        await deps.fastify.plexServerService.checkPlexServerHealth()
+
+      if (!plexHealth.reachable) {
+        deps.logger.error(
+          { serverName: plexHealth.serverName },
+          'Plex server unreachable, aborting reconciliation to prevent incorrect routing (skipIfExistsOnPlex is enabled)',
+        )
+        return {
+          added: { shows: 0, movies: 0 },
+          unmatched: { shows: 0, movies: 0 },
+          skippedDueToUserSetting: 0,
+          skippedDueToMissingIds: 0,
+          skippedDueToWatchlistCap: 0,
+        }
+      }
+    }
+
     // Get all users to check their sync permissions
     const allUsers = await deps.db.getAllUsers()
     const userSyncStatus = new Map<number, boolean>()

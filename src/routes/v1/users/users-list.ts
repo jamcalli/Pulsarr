@@ -5,7 +5,6 @@ import {
 } from '@schemas/users/users-list.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
-import type { z } from 'zod'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.get(
@@ -24,43 +23,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const dbUsers = await fastify.db.getAllUsers()
+        const users = await fastify.db.getAllUsers()
 
-        const users = dbUsers.map((user) => ({
-          id: user.id,
-          name: user.name,
-          apprise: user.apprise,
-          alias: user.alias,
-          discord_id: user.discord_id,
-          notify_apprise: user.notify_apprise,
-          notify_discord: user.notify_discord,
-          notify_discord_mention: user.notify_discord_mention,
-          notify_plex_mobile: user.notify_plex_mobile,
-          can_sync: user.can_sync,
-          requires_approval: user.requires_approval ?? false,
-          is_primary_token: user.is_primary_token ?? false,
-          plex_uuid: user.plex_uuid ?? null,
-          avatar: user.avatar ?? null,
-          display_name: user.display_name ?? null,
-          friend_created_at: user.friend_created_at ?? null,
-          created_at: user.created_at ?? new Date().toISOString(),
-          updated_at: user.updated_at ?? new Date().toISOString(),
-        }))
-
-        const response: z.infer<typeof UserListResponseSchema> = {
+        reply.status(200)
+        return {
           success: true,
           message: 'Users retrieved successfully',
           users,
         }
-
-        reply.status(200)
-        return response
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to retrieve users list',
         })
         return reply.internalServerError('Unable to retrieve users')
@@ -85,44 +57,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const dbUsers = await fastify.db.getUsersWithWatchlistCount()
+        const users = await fastify.db.getUsersWithWatchlistCount()
 
-        const users = dbUsers.map((user) => ({
-          id: user.id,
-          name: user.name,
-          apprise: user.apprise,
-          alias: user.alias,
-          discord_id: user.discord_id,
-          notify_apprise: user.notify_apprise,
-          notify_discord: user.notify_discord,
-          notify_discord_mention: user.notify_discord_mention,
-          notify_plex_mobile: user.notify_plex_mobile,
-          can_sync: user.can_sync,
-          requires_approval: user.requires_approval ?? false,
-          is_primary_token: user.is_primary_token ?? false,
-          plex_uuid: user.plex_uuid ?? null,
-          avatar: user.avatar ?? null,
-          display_name: user.display_name ?? null,
-          friend_created_at: user.friend_created_at ?? null,
-          created_at: user.created_at ?? new Date().toISOString(),
-          updated_at: user.updated_at ?? new Date().toISOString(),
-          watchlist_count: user.watchlist_count,
-        }))
-
-        const response: z.infer<typeof UserListWithCountsResponseSchema> = {
+        reply.status(200)
+        return {
           success: true,
           message: 'Users with watchlist counts retrieved successfully',
           users,
         }
-
-        reply.status(200)
-        return response
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to retrieve users with watchlist counts',
         })
         return reply.internalServerError('Unable to retrieve users with counts')

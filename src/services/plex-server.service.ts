@@ -275,6 +275,7 @@ export class PlexServerService {
 
       // Retrieve server resources from Plex.tv API
       const resourcesUrl = new URL('/api/v2/resources', plexTvUrl)
+      resourcesUrl.searchParams.append('includeHttps', '1')
       const resourcesResponse = await fetch(resourcesUrl.toString(), {
         headers: {
           'User-Agent': USER_AGENT,
@@ -310,17 +311,19 @@ export class PlexServerService {
       const defaultUrl = 'http://localhost:32400'
 
       let server: PlexResource | undefined
-      let configMatchFound = false
-
       if (configUrl && configUrl !== defaultUrl) {
         // Find the server whose connections include the configured URL
         for (const candidate of serverResources) {
-          const match = candidate.connections.some((conn) =>
-            isSameServerEndpoint(conn.uri, configUrl),
+          const match = candidate.connections.some(
+            (conn) =>
+              isSameServerEndpoint(conn.uri, configUrl) ||
+              isSameServerEndpoint(
+                `http://${conn.address}:${conn.port}`,
+                configUrl,
+              ),
           )
           if (match) {
             server = candidate
-            configMatchFound = true
             this.log.debug(
               `Matched configured URL to server "${candidate.name}" (${candidate.clientIdentifier})`,
             )
@@ -410,7 +413,7 @@ export class PlexServerService {
           this.log.debug(
             'Manually configured URL matches a discovered connection - setting as default',
           )
-        } else if (!configMatchFound) {
+        } else {
           // URL didn't match any server — add as manual override
           connections.push({
             url: configUrl,
@@ -1690,6 +1693,60 @@ export class PlexServerService {
    */
   clearContentCacheForReconciliation(): void {
     clearContentCacheForReconciliation(this.contentAvailabilityCache, this.log)
+  }
+
+  /**
+   * Checks if the owner's Plex server is reachable via the /identity endpoint.
+   * Used as a pre-flight check before processing watchlist items when
+   * skipIfExistsOnPlex is enabled - if the primary server is down, we can't
+   * trust "not found" results and must abort to prevent mass-routing.
+   *
+   * @returns Promise resolving to health status with reachable flag
+   */
+  async checkPlexServerHealth(): Promise<{
+    reachable: boolean
+    serverName: string | null
+  }> {
+    try {
+      const ownerConnections = await this.getPlexServerConnectionInfo()
+
+      if (ownerConnections.length === 0) {
+        this.log.warn('No owner server connections available for health check')
+        return { reachable: false, serverName: this.serverName }
+      }
+
+      const candidates: ConnectionCandidate[] = ownerConnections.map((c) => ({
+        uri: c.url,
+        local: c.local,
+        relay: c.relay,
+      }))
+
+      const reachable = await testConnectionReachability(
+        candidates,
+        this.config.plexTokens?.[0] || '',
+        this.log,
+      )
+
+      if (reachable.length === 0) {
+        this.log.warn(
+          { serverName: this.serverName },
+          'Plex server health check failed - no connections reachable',
+        )
+        return { reachable: false, serverName: this.serverName }
+      }
+
+      this.log.debug(
+        { serverName: this.serverName, reachableCount: reachable.length },
+        'Plex server health check passed',
+      )
+      return { reachable: true, serverName: this.serverName }
+    } catch (error) {
+      this.log.error(
+        { error, serverName: this.serverName },
+        'Error during Plex server health check',
+      )
+      return { reachable: false, serverName: this.serverName }
+    }
   }
 
   /**

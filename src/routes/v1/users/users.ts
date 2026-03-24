@@ -1,10 +1,10 @@
 import {
-  CreateUserResponseSchema,
   CreateUserSchema,
-  UpdateUserResponseSchema,
   UpdateUserSchema,
   UserErrorSchema,
+  UserResponseSchema,
 } from '@schemas/users/users.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
@@ -18,8 +18,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Create a new user with the provided information',
         body: CreateUserSchema,
         response: {
-          201: CreateUserResponseSchema,
+          201: UserResponseSchema,
           409: UserErrorSchema,
+          500: UserErrorSchema,
         },
         tags: ['Users'],
       },
@@ -31,33 +32,21 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.conflict('User with this name already exists')
         }
 
-        const user = await fastify.db.createUser(request.body)
+        const user = await fastify.db.createUser({
+          ...request.body,
+          is_primary_token: false,
+        })
 
         reply.status(201)
         return {
           success: true,
           message: 'User created successfully',
-          user: {
-            id: user.id,
-            name: user.name,
-            apprise: user.apprise,
-            alias: user.alias,
-            discord_id: user.discord_id,
-            notify_apprise: user.notify_apprise ?? false,
-            notify_discord: user.notify_discord ?? false,
-            notify_discord_mention: user.notify_discord_mention ?? true,
-            notify_plex_mobile: user.notify_plex_mobile ?? false,
-            can_sync: user.can_sync ?? true,
-            requires_approval: user.requires_approval ?? false,
-            plex_uuid: user.plex_uuid ?? null,
-            avatar: user.avatar ?? null,
-            display_name: user.display_name ?? null,
-            friend_created_at: user.friend_created_at ?? null,
-            created_at: user.created_at ?? new Date().toISOString(),
-            updated_at: user.updated_at ?? new Date().toISOString(),
-          },
+          user,
         }
-      } catch (_error) {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to create user',
+        })
         return reply.internalServerError('Failed to create user')
       }
     },
@@ -75,9 +64,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }),
         body: UpdateUserSchema,
         response: {
-          200: UpdateUserResponseSchema,
+          200: UserResponseSchema,
           404: UserErrorSchema,
           409: UserErrorSchema,
+          500: UserErrorSchema,
         },
         tags: ['Users'],
       },
@@ -111,27 +101,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return {
           success: true,
           message: 'User updated successfully',
-          user: {
-            id: updatedUser.id,
-            name: updatedUser.name,
-            apprise: updatedUser.apprise,
-            alias: updatedUser.alias,
-            discord_id: updatedUser.discord_id,
-            notify_apprise: updatedUser.notify_apprise ?? false,
-            notify_discord: updatedUser.notify_discord ?? false,
-            notify_discord_mention: updatedUser.notify_discord_mention ?? true,
-            notify_plex_mobile: updatedUser.notify_plex_mobile ?? false,
-            can_sync: updatedUser.can_sync ?? true,
-            requires_approval: updatedUser.requires_approval ?? false,
-            plex_uuid: updatedUser.plex_uuid ?? null,
-            avatar: updatedUser.avatar ?? null,
-            display_name: updatedUser.display_name ?? null,
-            friend_created_at: updatedUser.friend_created_at ?? null,
-            created_at: updatedUser.created_at ?? new Date().toISOString(),
-            updated_at: updatedUser.updated_at ?? new Date().toISOString(),
-          },
+          user: updatedUser,
         }
-      } catch (_error) {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to update user',
+        })
         return reply.internalServerError('Failed to update user')
       }
     },
@@ -148,8 +123,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           id: z.coerce.number().int().positive(),
         }),
         response: {
-          200: CreateUserResponseSchema,
+          200: UserResponseSchema,
           404: UserErrorSchema,
+          500: UserErrorSchema,
         },
         tags: ['Users'],
       },
@@ -164,27 +140,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return {
           success: true,
           message: 'User retrieved successfully',
-          user: {
-            id: user.id,
-            name: user.name,
-            apprise: user.apprise,
-            alias: user.alias,
-            discord_id: user.discord_id,
-            notify_apprise: user.notify_apprise ?? false,
-            notify_discord: user.notify_discord ?? false,
-            notify_discord_mention: user.notify_discord_mention ?? true,
-            notify_plex_mobile: user.notify_plex_mobile ?? false,
-            can_sync: user.can_sync ?? true,
-            requires_approval: user.requires_approval ?? false,
-            plex_uuid: user.plex_uuid ?? null,
-            avatar: user.avatar ?? null,
-            display_name: user.display_name ?? null,
-            friend_created_at: user.friend_created_at ?? null,
-            created_at: user.created_at ?? new Date().toISOString(),
-            updated_at: user.updated_at ?? new Date().toISOString(),
-          },
+          user,
         }
-      } catch (_error) {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to retrieve user',
+        })
         return reply.internalServerError('Failed to retrieve user')
       }
     },

@@ -65,7 +65,7 @@ export default async function (fastify: FastifyInstance) {
         })
         // Valid API key, allow access
         return
-      } catch (_err) {
+      } catch (_error) {
         // Invalid API key
         return reply.unauthorized('Invalid API key')
       }

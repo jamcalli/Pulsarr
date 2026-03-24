@@ -1,10 +1,4 @@
-# =============================================================================
-# Node.js Docker image for Synology/legacy kernel compatibility
-# =============================================================================
-
-# -----------------------------------------------------------------------------
-# Stage 1: Build with Node.js
-# -----------------------------------------------------------------------------
+# Build stage: full install + compile (Node.js for Synology/legacy kernel compatibility)
 FROM node:24.14.0-alpine@sha256:7fddd9ddeae8196abf4a3ef2de34e11f7b1a722119f91f28ddf1e99dcafdf114 AS builder
 WORKDIR /app
 
@@ -40,18 +34,25 @@ RUN --mount=type=cache,target=/app/node_modules/.vite \
 
 # Prune to production deps only (tsx included via package.json transform)
 RUN npm prune --omit=dev && \
+    rm -rf node_modules/vite node_modules/rollup \
+           node_modules/@rollup \
+           node_modules/rolldown node_modules/@rolldown && \
     mkdir -p ${CACHE_DIR}
 
-# -----------------------------------------------------------------------------
-# Stage 2: Final runtime image - Node.js only
-# -----------------------------------------------------------------------------
+# Final runtime image
 FROM node:24.14.0-alpine@sha256:7fddd9ddeae8196abf4a3ef2de34e11f7b1a722119f91f28ddf1e99dcafdf114
 WORKDIR /app
 
-# tini for proper PID 1 zombie reaping, wget for healthcheck
-RUN apk add --no-cache tini wget
+# tini for proper PID 1 zombie reaping, wget for healthcheck, su-exec for privilege drop
+RUN apk add --no-cache tini wget su-exec
 
 ENV CACHE_DIR=/app/build-cache
+
+# Remove node user from base image (occupies UID 1000) and create pulsarr user
+RUN deluser --remove-home node && \
+    delgroup node; \
+    addgroup -g 1000 -S pulsarr && \
+    adduser -u 1000 -G pulsarr -D -H -s /sbin/nologin pulsarr
 
 # Copy package.json (original, for reference)
 COPY package.json ./
@@ -59,10 +60,11 @@ COPY package.json ./
 # Production dependencies from builder (includes real better-sqlite3)
 COPY --from=builder /app/node_modules ./node_modules
 
-# Create necessary directories
+# Create necessary directories with correct ownership
 RUN mkdir -p /app/data/db && \
-    mkdir -p /app/data/log && \
-    mkdir -p ${CACHE_DIR}
+    mkdir -p /app/data/logs && \
+    mkdir -p ${CACHE_DIR} && \
+    chown -R pulsarr:pulsarr /app/data /app/build-cache
 
 # Copy build artifacts
 COPY --from=builder /app/dist ./dist
@@ -76,8 +78,10 @@ RUN chmod +x docker-healthcheck.sh
 COPY LICENSE* ./
 COPY README.md ./
 
+# Pass TMDB API key to runtime (GitHub Actions converts to TMDBAPIKEY)
 ARG TMDBAPIKEY
 
+# Set production environment
 ENV NODE_ENV=production
 ENV tmdbApiKey=${TMDBAPIKEY}
 

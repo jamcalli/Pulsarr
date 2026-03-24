@@ -46,8 +46,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           success: true,
           plugins: plugins || [],
         }
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to retrieve router plugins',
         })
         return reply.internalServerError('Unable to retrieve router plugins')

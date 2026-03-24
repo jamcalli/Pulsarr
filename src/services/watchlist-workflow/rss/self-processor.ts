@@ -46,6 +46,8 @@ export async function processRssSelfItems(
   const health = await checkInstanceHealth({
     sonarrManager: deps.sonarrManager,
     radarrManager: deps.radarrManager,
+    plexServerService: deps.fastify.plexServerService,
+    skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
     deferredRoutingQueue: deps.deferredRoutingQueue,
     logger: deps.logger,
   })
@@ -101,6 +103,7 @@ export async function processRssSelfItems(
       {
         sonarrUnavailable: health.sonarrUnavailable,
         radarrUnavailable: health.radarrUnavailable,
+        plexServerUnreachable: health.plexServerUnreachable,
         itemCount: allItems.length,
       },
       'Some instances unavailable, queuing self RSS items for deferred routing',
