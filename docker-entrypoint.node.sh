@@ -6,6 +6,11 @@ set -eu
 # Rootless mode: when container runs with user: directive, skip all privilege operations
 if [ "$(id -u)" -ne 0 ]; then
   echo "Starting Pulsarr in rootless mode (uid=$(id -u), gid=$(id -g))"
+  if [ ! -w /app/data ]; then
+    echo "ERROR: /app/data is not writable by uid=$(id -u). Fix volume permissions on the host." >&2
+    exit 1
+  fi
+  mkdir -p /app/data/db /app/data/logs /app/build-cache
   echo "Running database migrations..."
   ./node_modules/.bin/tsx migrations/migrate.ts
   echo "Starting application..."
