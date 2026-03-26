@@ -3,6 +3,15 @@ set -eu
 # Enable pipefail only when supported
 ( set -o pipefail ) 2>/dev/null && set -o pipefail
 
+# Rootless mode: when container runs with user: directive, skip all privilege operations
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Starting Pulsarr in rootless mode (uid=$(id -u), gid=$(id -g))"
+  echo "Running database migrations..."
+  ./node_modules/.bin/tsx migrations/migrate.ts
+  echo "Starting application..."
+  exec node dist/server.js "$@"
+fi
+
 PUID=${PUID:-1000}
 PGID=${PGID:-1000}
 
