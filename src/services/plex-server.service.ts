@@ -1155,12 +1155,13 @@ export class PlexServerService {
       // Get or create playlists for all users
       const userPlaylists = await this.getOrCreateProtectionPlaylists(true)
 
-      // Owner always succeeds (admin token) - check that at least
-      // one shared user's playlist was accessible.
+      // Owner always succeeds (admin token). If shared users exist
+      // but none got through, Plex has revoked token access.
+      const sharedUserCount = (await this.getPlexUsers()).length
       const nonOwnerPlaylists = [...userPlaylists.keys()].filter(
         (u) => u !== 'owner',
       )
-      if (nonOwnerPlaylists.length === 0) {
+      if (sharedUserCount > 0 && nonOwnerPlaylists.length === 0) {
         throw new Error(
           'Plex has removed shared user access tokens - playlist protection cannot function. Delete sync aborted to prevent content loss. Disable playlist protection to resume delete sync.',
         )
