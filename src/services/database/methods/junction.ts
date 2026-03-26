@@ -1122,7 +1122,10 @@ export async function getSonarrShowsWithEnrollmentStatus(
         sonarr_instance_id: 'wsi.sonarr_instance_id',
         sonarr_series_id: 'wsi.sonarr_series_id',
         title: 'wi.title',
-        guids: 'wi.guids',
+        // jsonb doesn't support min() in Postgres
+        guids: this.isPostgres
+          ? this.knex.raw('"wi"."guids"::text')
+          : 'wi.guids',
         rolling_show_id: 'rms.id',
         monitoring_type: 'rms.monitoring_type',
       })
