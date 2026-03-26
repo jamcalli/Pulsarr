@@ -145,6 +145,10 @@ export function ManageRollingSheet({
       ),
       enableSorting: false,
       enableHiding: false,
+      meta: {
+        className: 'w-10',
+        headerClassName: 'w-10',
+      },
     },
     {
       accessorKey: 'title',
@@ -362,7 +366,7 @@ export function ManageRollingSheet({
           </div>
         </div>
         <div className="rounded-md">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader className="font-heading">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
