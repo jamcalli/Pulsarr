@@ -1155,11 +1155,15 @@ export class PlexServerService {
       // Get or create playlists for all users
       const userPlaylists = await this.getOrCreateProtectionPlaylists(true)
 
-      if (userPlaylists.size === 0) {
-        this.log.warn(
-          `No "${playlistName}" playlists found or created for any users`,
+      // Owner always succeeds (admin token) - check that at least
+      // one shared user's playlist was accessible.
+      const nonOwnerPlaylists = [...userPlaylists.keys()].filter(
+        (u) => u !== 'owner',
+      )
+      if (nonOwnerPlaylists.length === 0) {
+        throw new Error(
+          'Plex has removed shared user access tokens - playlist protection cannot function. Delete sync aborted to prevent content loss. Disable playlist protection to resume delete sync.',
         )
-        return protectedGuids
       }
 
       // Process each user's playlist
@@ -1255,7 +1259,8 @@ export class PlexServerService {
         { error },
         'Error getting protected items from user playlists:',
       )
-      return protectedGuids
+      // Rethrow so delete sync aborts rather than proceeding unprotected
+      throw error
     }
   }
 
