@@ -126,8 +126,8 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/logout-user",
-          label: "User logout",
+          id: "api/login-user",
+          label: "User login",
           className: "api-method post",
         },
         {
@@ -138,8 +138,8 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/login-user",
-          label: "User login",
+          id: "api/logout-user",
+          label: "User logout",
           className: "api-method post",
         },
         {
@@ -352,21 +352,15 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/generate-rss-feeds",
-          label: "Generate RSS feeds",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
           id: "api/send-plex-friend-request",
           label: "Send a Plex friend request",
           className: "api-method post",
         },
         {
           type: "doc",
-          id: "api/cancel-plex-friend-request",
-          label: "Cancel a Plex friend request",
-          className: "api-method post",
+          id: "api/get-self-watchlist-items",
+          label: "Get self watchlist items",
+          className: "api-method get",
         },
         {
           type: "doc",
@@ -376,15 +370,15 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/parse-rss-watchlists",
-          label: "Parse RSS watchlists",
-          className: "api-method get",
+          id: "api/cancel-plex-friend-request",
+          label: "Cancel a Plex friend request",
+          className: "api-method post",
         },
         {
           type: "doc",
-          id: "api/remove-plex-notifications",
-          label: "Remove Plex notifications",
-          className: "api-method delete",
+          id: "api/parse-rss-watchlists",
+          label: "Parse RSS watchlists",
+          className: "api-method get",
         },
         {
           type: "doc",
@@ -394,8 +388,26 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-others-watchlist-tokens",
-          label: "Get others watchlist tokens",
+          id: "api/remove-plex-notifications",
+          label: "Remove Plex notifications",
+          className: "api-method delete",
+        },
+        {
+          type: "doc",
+          id: "api/get-plex-notification-status",
+          label: "Get Plex notification status",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/discover-plex-servers",
+          label: "Discover Plex servers",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/get-watchlist-genres",
+          label: "Get watchlist genres",
           className: "api-method get",
         },
         {
@@ -412,26 +424,8 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-watchlist-genres",
-          label: "Get watchlist genres",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/discover-plex-servers",
-          label: "Discover Plex servers",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/get-plex-notification-status",
-          label: "Get Plex notification status",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-self-watchlist-items",
-          label: "Get self watchlist items",
+          id: "api/get-others-watchlist-tokens",
+          label: "Get others watchlist tokens",
           className: "api-method get",
         },
         {
@@ -444,6 +438,12 @@ const sidebar: SidebarsConfig = {
           type: "doc",
           id: "api/poll-plex-pin",
           label: "Poll Plex PIN for auth token",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/generate-rss-feeds",
+          label: "Generate RSS feeds",
           className: "api-method get",
         },
       ],
@@ -568,15 +568,9 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/create-radarr-tag",
-          label: "Create Radarr tag",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/test-radarr-connection",
-          label: "Test Radarr connection",
-          className: "api-method post",
+          id: "api/get-radarr-root-folders",
+          label: "Get Radarr root folders",
+          className: "api-method get",
         },
         {
           type: "doc",
@@ -586,15 +580,15 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-radarr-tags",
-          label: "Get Radarr tags",
-          className: "api-method get",
+          id: "api/test-radarr-connection",
+          label: "Test Radarr connection",
+          className: "api-method post",
         },
         {
           type: "doc",
-          id: "api/get-radarr-root-folders",
-          label: "Get Radarr root folders",
-          className: "api-method get",
+          id: "api/create-radarr-tag",
+          label: "Create Radarr tag",
+          className: "api-method post",
         },
         {
           type: "doc",
@@ -619,6 +613,12 @@ const sidebar: SidebarsConfig = {
           id: "api/delete-radarr-instance",
           label: "Delete Radarr instance",
           className: "api-method delete",
+        },
+        {
+          type: "doc",
+          id: "api/get-radarr-tags",
+          label: "Get Radarr tags",
+          className: "api-method get",
         },
       ],
     },
@@ -748,30 +748,6 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/create-sonarr-tag",
-          label: "Create Sonarr tag",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/test-sonarr-connection",
-          label: "Test Sonarr connection",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/get-sonarr-quality-profiles",
-          label: "Get Sonarr quality profiles",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-sonarr-tags",
-          label: "Get Sonarr tags",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
           id: "api/get-sonarr-root-folders",
           label: "Get Sonarr root folders",
           className: "api-method get",
@@ -799,6 +775,30 @@ const sidebar: SidebarsConfig = {
           id: "api/delete-sonarr-instance",
           label: "Delete Sonarr instance",
           className: "api-method delete",
+        },
+        {
+          type: "doc",
+          id: "api/get-sonarr-quality-profiles",
+          label: "Get Sonarr quality profiles",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/test-sonarr-connection",
+          label: "Test Sonarr connection",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/create-sonarr-tag",
+          label: "Create Sonarr tag",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/get-sonarr-tags",
+          label: "Get Sonarr tags",
+          className: "api-method get",
         },
       ],
     },
@@ -978,6 +978,12 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
+          id: "api/get-tmdb-providers",
+          label: "Get streaming providers",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
           id: "api/get-tmdb-metadata-by-guid",
           label: "Get TMDB metadata by GUID",
           className: "api-method get",
@@ -1000,12 +1006,6 @@ const sidebar: SidebarsConfig = {
           label: "Get available TMDB regions",
           className: "api-method get",
         },
-        {
-          type: "doc",
-          id: "api/get-tmdb-providers",
-          label: "Get streaming providers",
-          className: "api-method get",
-        },
       ],
     },
     {
@@ -1016,6 +1016,24 @@ const sidebar: SidebarsConfig = {
         id: "api/users",
       },
       items: [
+        {
+          type: "doc",
+          id: "api/get-users-list",
+          label: "Get users list",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-users-with-counts",
+          label: "Get users with watchlist counts",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-current-user",
+          label: "Get current user information",
+          className: "api-method get",
+        },
         {
           type: "doc",
           id: "api/get-user-watchlist",
@@ -1045,24 +1063,6 @@ const sidebar: SidebarsConfig = {
           id: "api/bulk-update-users",
           label: "Bulk update users",
           className: "api-method patch",
-        },
-        {
-          type: "doc",
-          id: "api/get-current-user",
-          label: "Get current user information",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-users-list",
-          label: "Get users list",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-users-with-counts",
-          label: "Get users with watchlist counts",
-          className: "api-method get",
         },
       ],
     },
