@@ -74,7 +74,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         try {
           // Check if job is still enabled
           const currentSchedule = await fastify.db.getScheduleByName(jobName)
-          if (!currentSchedule || !currentSchedule.enabled) {
+          if (!currentSchedule?.enabled) {
             fastify.log.debug(`Job ${jobName} is disabled, skipping`)
             return
           }

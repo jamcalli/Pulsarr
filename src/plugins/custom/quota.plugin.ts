@@ -45,7 +45,7 @@ const quotaPlugin: FastifyPluginAsync = async (fastify, _opts) => {
         try {
           const currentSchedule =
             await fastify.db.getScheduleByName('quota-maintenance')
-          if (!currentSchedule || !currentSchedule.enabled) {
+          if (!currentSchedule?.enabled) {
             fastify.log.debug(`Skipping disabled job: ${jobName}`)
             return
           }

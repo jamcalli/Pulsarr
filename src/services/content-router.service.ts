@@ -2555,7 +2555,7 @@ export class ContentRouterService {
       const proposedRouting =
         approvedRequest.proposedRouterDecision?.approval?.proposedRouting
 
-      if (!proposedRouting || !proposedRouting.instanceId) {
+      if (!proposedRouting?.instanceId) {
         this.log.error(
           { approvedRequest },
           'Approved request has invalid routing decision',

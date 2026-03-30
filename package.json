@@ -102,7 +102,7 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.8",
+    "@biomejs/biome": "^2.4.10",
     "@commitlint/cli": "^20.0.0",
     "@commitlint/config-conventional": "^20.0.0",
     "@epic-web/invariant": "^1.0.0",

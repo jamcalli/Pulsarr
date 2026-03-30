@@ -491,7 +491,7 @@ async function handleSpecialLabelModeForDeletedItems(
     for (const item of watchlistItems) {
       // Get the full watchlist item to access the guids
       const fullItem = await deps.db.getWatchlistItemById(item.id)
-      if (!fullItem || !fullItem.guids) {
+      if (!fullItem?.guids) {
         deps.logger.debug(
           {
             itemId: item.id,

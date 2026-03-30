@@ -234,7 +234,7 @@ export const getWatchlistForUser = async (
   const seenKeys = new Set<string>()
   const url = new URL('https://community.plex.tv/api')
 
-  if (!user || !user.watchlistId) {
+  if (!user?.watchlistId) {
     const error = 'Invalid user object provided to getWatchlistForUser'
     log.error(error)
     throw new Error(error)

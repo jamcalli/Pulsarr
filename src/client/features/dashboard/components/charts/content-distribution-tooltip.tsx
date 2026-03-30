@@ -15,7 +15,7 @@ export function ContentDistributionTooltip({
   payload,
   totalContentItems,
 }: ContentDistributionTooltipProps) {
-  if (!active || !payload || !payload.length) {
+  if (!active || !payload?.length) {
     return null
   }
   const data = payload[0].payload as { name: string; count: number }
