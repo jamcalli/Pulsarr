@@ -202,15 +202,6 @@ class SQLiteToPostgresMigration {
         } else {
           transformed[key] = JSON.stringify(value)
         }
-      } else if (
-        typeof value === 'string' &&
-        (value.startsWith('{') || value.startsWith('['))
-      ) {
-        try {
-          JSON.parse(value)
-        } catch {
-          // Not valid JSON, leave as-is
-        }
       }
     }
 
