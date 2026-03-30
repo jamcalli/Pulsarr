@@ -620,7 +620,7 @@ export async function checkQuotaExceeded(
   }
 
   const status = await this.getQuotaStatus(userId, contentType)
-  if (!status || !status.exceeded) {
+  if (!status?.exceeded) {
     return null
   }
 
@@ -898,7 +898,7 @@ export async function getNextMaintenanceRun(
   this: DatabaseService,
 ): Promise<Date | undefined> {
   const schedule = await this.getScheduleByName('quota-maintenance')
-  if (!schedule || !schedule.enabled) {
+  if (!schedule?.enabled) {
     return undefined
   }
 

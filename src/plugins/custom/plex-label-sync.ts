@@ -54,7 +54,7 @@ export default fp(
             try {
               // Check if the schedule itself is enabled
               const schedule = await fastify.db.getScheduleByName(jobName)
-              if (!schedule || !schedule.enabled) {
+              if (!schedule?.enabled) {
                 return
               }
 
@@ -92,7 +92,7 @@ export default fp(
             try {
               // Check if the schedule itself is enabled
               const schedule = await fastify.db.getScheduleByName(jobName)
-              if (!schedule || !schedule.enabled) {
+              if (!schedule?.enabled) {
                 return
               }
 
@@ -158,7 +158,7 @@ export default fp(
           async (jobName) => {
             try {
               const schedule = await fastify.db.getScheduleByName(jobName)
-              if (!schedule || !schedule.enabled) {
+              if (!schedule?.enabled) {
                 return
               }
 

@@ -29,7 +29,7 @@ export default fp(
         await fastify.scheduler.scheduleJob('delete-sync', async (_jobName) => {
           // First check if the schedule itself is enabled
           const schedule = await fastify.db.getScheduleByName('delete-sync')
-          if (!schedule || !schedule.enabled) {
+          if (!schedule?.enabled) {
             // Schedule is disabled - don't run
             return
           }

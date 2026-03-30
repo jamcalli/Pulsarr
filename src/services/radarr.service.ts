@@ -1240,11 +1240,7 @@ export class RadarrService {
    * @returns Promise resolving to HealthCheckResult
    */
   async isHealthy(): Promise<HealthCheckResult> {
-    if (
-      !this.config ||
-      !this.config.radarrApiKey ||
-      !this.config.radarrBaseUrl
-    ) {
+    if (!this.config?.radarrApiKey || !this.config.radarrBaseUrl) {
       return {
         healthy: false,
         error: 'Radarr service not initialized',

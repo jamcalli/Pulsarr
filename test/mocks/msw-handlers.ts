@@ -80,7 +80,7 @@ export const authHandler = http.get(
   ({ request }) => {
     const authHeader = request.headers.get('Authorization')
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new HttpResponse(null, { status: 401 })
     }
 
