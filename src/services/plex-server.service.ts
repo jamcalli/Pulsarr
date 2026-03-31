@@ -1741,6 +1741,22 @@ export class PlexServerService {
         return { reachable: false, serverName: this.serverName }
       }
 
+      // /identity only confirms the HTTP server is up. During startup
+      // maintenance or DB migrations, Plex returns 503 on authenticated
+      // endpoints and library queries return empty results. Probe
+      // /library/sections to verify the library is actually queryable.
+      const token = this.config.plexTokens?.[0] || ''
+      const serverUri = reachable[0].uri
+      const libraryReady = await this.waitForLibraryReady(serverUri, token)
+
+      if (!libraryReady) {
+        this.log.warn(
+          { serverName: this.serverName },
+          'Plex server is reachable but library is not ready (maintenance or still starting)',
+        )
+        return { reachable: false, serverName: this.serverName }
+      }
+
       this.log.debug(
         { serverName: this.serverName, reachableCount: reachable.length },
         'Plex server health check passed',
@@ -1753,6 +1769,87 @@ export class PlexServerService {
       )
       return { reachable: false, serverName: this.serverName }
     }
+  }
+
+  /**
+   * Polls /library/sections until the library is queryable or the retry
+   * budget is exhausted. Plex returns 503 during startup maintenance and
+   * DB migrations - hitting the library in that state causes empty results
+   * that look like "content not found" and triggers false routing.
+   */
+  private async waitForLibraryReady(
+    serverUri: string,
+    token: string,
+    maxAttempts = 12,
+    intervalMs = 5000,
+  ): Promise<boolean> {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await fetch(`${serverUri}/library/sections`, {
+          headers: {
+            Accept: 'application/json',
+            'X-Plex-Token': token,
+            'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+          },
+          signal: AbortSignal.timeout(5000),
+        })
+
+        if (response.status === 503) {
+          this.log.info(
+            { attempt, maxAttempts, serverName: this.serverName },
+            'Plex server in maintenance mode, waiting for library to become ready',
+          )
+          await new Promise((resolve) => setTimeout(resolve, intervalMs))
+          continue
+        }
+
+        if (response.status === 401 || response.status === 403) {
+          this.log.error(
+            { status: response.status, serverName: this.serverName },
+            'Plex library probe failed due to invalid or unauthorized token',
+          )
+          return false
+        }
+
+        if (!response.ok) {
+          this.log.warn(
+            { status: response.status, attempt },
+            'Unexpected response from /library/sections',
+          )
+          await new Promise((resolve) => setTimeout(resolve, intervalMs))
+          continue
+        }
+
+        const data = (await response.json()) as {
+          MediaContainer?: { Directory?: Array<{ key: string }> }
+        }
+
+        const sections = data?.MediaContainer?.Directory ?? []
+        if (sections.length > 0) {
+          if (attempt > 1) {
+            this.log.info(
+              { attempt, sectionCount: sections.length },
+              'Plex library is now ready',
+            )
+          }
+          return true
+        }
+
+        this.log.info(
+          { attempt, maxAttempts },
+          'Plex returned no library sections, waiting for library to load',
+        )
+        await new Promise((resolve) => setTimeout(resolve, intervalMs))
+      } catch (error) {
+        this.log.debug(
+          { error, attempt, maxAttempts },
+          'Error probing /library/sections',
+        )
+        await new Promise((resolve) => setTimeout(resolve, intervalMs))
+      }
+    }
+
+    return false
   }
 
   /**
