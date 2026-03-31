@@ -84,7 +84,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice'], // Only alice remains
         ['pulsarr:alice'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -121,7 +121,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice', 'pulsarr:bob'],
         ['pulsarr:alice', 'pulsarr:bob'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -155,7 +155,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -191,7 +191,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -223,7 +223,7 @@ describe('label-reconciler', () => {
         [], // No desired labels
         [],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -259,7 +259,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -292,7 +292,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -341,7 +341,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice', 'pulsarr:bob'], // charlie not in desired
         ['pulsarr:alice', 'pulsarr:bob'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -382,7 +382,7 @@ describe('label-reconciler', () => {
         ['pulsarr:dave'],
         ['pulsarr:dave'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -419,7 +419,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -459,7 +459,7 @@ describe('label-reconciler', () => {
         [], // No desired labels
         [], // No user labels
         [], // No tag labels
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -492,7 +492,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -528,7 +528,7 @@ describe('label-reconciler', () => {
         ['pulsarr:action', 'pulsarr:hdr'], // Tag labels only
         [], // No user labels
         ['pulsarr:action', 'pulsarr:hdr'], // Tag labels
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -567,7 +567,7 @@ describe('label-reconciler', () => {
         [],
         [],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -606,7 +606,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice', 'pulsarr:bob', 'pulsarr:action', 'pulsarr:hdr'],
         ['pulsarr:alice', 'pulsarr:bob'],
         ['pulsarr:action', 'pulsarr:hdr'],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -642,7 +642,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice', 'pulsarr:action'],
         ['pulsarr:alice'],
         ['pulsarr:action'],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -676,7 +676,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice', 'pulsarr:new-tag'],
         ['pulsarr:alice'],
         ['pulsarr:new-tag'],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -710,7 +710,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -739,7 +739,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -766,7 +766,7 @@ describe('label-reconciler', () => {
         ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -800,7 +800,7 @@ describe('label-reconciler', () => {
         ['pulsarr:user-name_123'],
         ['pulsarr:user-name_123'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -838,7 +838,7 @@ describe('label-reconciler', () => {
         ['pulsarr:very-long-username-that-exceeds-normal-limits-for-testing'],
         ['pulsarr:very-long-username-that-exceeds-normal-limits-for-testing'],
         [],
-        content,
+        content.title,
         baseDeps,
       )
 
@@ -877,7 +877,7 @@ describe('label-reconciler', () => {
         desiredLabels,
         desiredLabels,
         [],
-        content,
+        content.title,
         baseDeps,
       )
 

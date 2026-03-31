@@ -70,6 +70,13 @@ export function isAppTagLabel(labelName: string, labelPrefix: string): boolean {
  * @param removedLabelPrefix - The configured removed label prefix
  * @returns True if this is a Pulsarr-managed label
  */
+export function isRemovedLabel(
+  label: string,
+  removedLabelPrefix: string,
+): boolean {
+  return label.toLowerCase().startsWith(removedLabelPrefix.toLowerCase())
+}
+
 export function isManagedLabel(
   label: string,
   labelPrefix: string,
@@ -77,7 +84,7 @@ export function isManagedLabel(
 ): boolean {
   return (
     isAppUserLabel(label, labelPrefix) ||
-    label.toLowerCase().startsWith(removedLabelPrefix.toLowerCase())
+    isRemovedLabel(label, removedLabelPrefix)
   )
 }
 
@@ -177,4 +184,129 @@ export function uniqueLabelsIgnoreCase(labels: string[]): string[] {
     }
   }
   return Array.from(seen.values())
+}
+
+/**
+ * Pure function that computes the final label set for a Plex item given the current
+ * labels and the complete desired state. Handles all three removal modes in one place.
+ *
+ * Callers must provide the COMPLETE desired state (all users + all tags). Partial
+ * updates in 'remove' or 'special-label' mode will incorrectly drop labels for
+ * users not included in the desired set.
+ */
+export function computeFinalLabels(params: {
+  currentLabels: string[]
+  desiredUserLabels: string[]
+  desiredTagLabels: string[]
+  mode: 'keep' | 'remove' | 'special-label'
+  labelPrefix: string
+  removedLabelPrefix: string
+}): { finalLabels: string[]; specialRemovedLabel: string | null } {
+  const {
+    currentLabels,
+    desiredUserLabels,
+    desiredTagLabels,
+    mode,
+    labelPrefix,
+    removedLabelPrefix,
+  } = params
+  const allDesiredLabels = [...desiredUserLabels, ...desiredTagLabels]
+
+  const currentAppLabels = currentLabels.filter((l) =>
+    isAppUserLabel(l, labelPrefix),
+  )
+  const nonAppLabels = currentLabels.filter(
+    (l) => !isAppUserLabel(l, labelPrefix),
+  )
+
+  let finalLabels: string[]
+  let specialRemovedLabel: string | null = null
+
+  if (mode === 'keep') {
+    // Keep all existing labels and add new ones
+    const labelsToAdd = allDesiredLabels.filter(
+      (l) => !includesLabelIgnoreCase(currentAppLabels, l),
+    )
+    finalLabels = uniqueLabelsIgnoreCase([...currentLabels, ...labelsToAdd])
+  } else if (mode === 'special-label') {
+    if (desiredUserLabels.length === 0) {
+      // No users want this content - mark for deletion
+      specialRemovedLabel = getRemovedLabel(removedLabelPrefix)
+      const nonAppWithoutRemoved = nonAppLabels.filter(
+        (l) => !isRemovedLabel(l, removedLabelPrefix),
+      )
+      finalLabels = uniqueLabelsIgnoreCase([
+        ...nonAppWithoutRemoved,
+        specialRemovedLabel,
+      ])
+    } else {
+      finalLabels = uniqueLabelsIgnoreCase([
+        ...nonAppLabels,
+        ...allDesiredLabels,
+      ])
+    }
+  } else {
+    // 'remove' mode - clean replacement of app-managed labels
+    finalLabels = uniqueLabelsIgnoreCase([...nonAppLabels, ...allDesiredLabels])
+  }
+
+  // Clean up removed-marker labels when users are re-adding content
+  if (desiredUserLabels.length > 0) {
+    const removedLabels = finalLabels.filter((l) =>
+      isRemovedLabel(l, removedLabelPrefix),
+    )
+    if (removedLabels.length > 0 && !specialRemovedLabel) {
+      finalLabels = finalLabels.filter((l) => !removedLabels.includes(l))
+    }
+  }
+
+  return { finalLabels, specialRemovedLabel }
+}
+
+/**
+ * Computes desired tag labels from webhook tags based on tag sync config.
+ * Centralizes the "should we sync tags for this content type?" decision.
+ */
+export function computeDesiredTagLabels(
+  webhookTags: string[],
+  contentType: string,
+  tagSyncConfig: {
+    enabled: boolean
+    syncRadarrTags: boolean
+    syncSonarrTags: boolean
+  },
+  tagPrefix: string,
+  removedTagPrefix: string,
+  labelPrefix: string,
+): string[] {
+  if (!tagSyncConfig.enabled || webhookTags.length === 0) {
+    return []
+  }
+
+  const isMovie = contentType === 'movie'
+  const isShow = contentType === 'show'
+  const shouldSyncTags =
+    (isMovie && tagSyncConfig.syncRadarrTags) ||
+    (isShow && tagSyncConfig.syncSonarrTags) ||
+    (!isMovie && !isShow)
+
+  if (!shouldSyncTags) {
+    return []
+  }
+
+  return filterAndFormatTagsAsLabels(
+    webhookTags,
+    tagPrefix,
+    removedTagPrefix,
+    labelPrefix,
+  )
+}
+
+/**
+ * Builds a content key for grouping tracking records by content identity.
+ * Consistent sort + serialization ensures the same content always produces the same key.
+ */
+export function buildContentKey(contentType: string, guids: string[]): string {
+  const sortedGuids = [...guids].sort()
+  return `${contentType}-${JSON.stringify(sortedGuids)}`
 }
