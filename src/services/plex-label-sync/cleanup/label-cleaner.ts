@@ -272,16 +272,10 @@ export async function cleanupLabelsForWatchlistItems(
       // Build the user label for this user
       const userLabel = `${deps.config.labelPrefix}:${userName}`
 
-      // Find the content key for this tracking record to check other users
-      const itemForThisTracking = watchlistItems.find(
-        (item) => item.user_id === userId,
+      const contentKey = buildContentKey(
+        tracking.content_type,
+        tracking.content_guids,
       )
-      if (!itemForThisTracking) continue
-
-      const itemData = itemDataMap.get(itemForThisTracking.id)
-      if (!itemData) continue
-
-      const contentKey = buildContentKey(itemData.contentType, itemData.guids)
 
       // Get all tracking records for this content
       const allTrackingForContent = allTrackingByContent.get(contentKey) || []
