@@ -11,7 +11,7 @@
  *   --skip-build   Skip tsc/vite build (reuse existing dist/)
  */
 
-import { execSync } from 'node:child_process'
+import { execFileSync, execSync } from 'node:child_process'
 import {
   chmodSync,
   cpSync,
@@ -92,6 +92,10 @@ const PLATFORMS: Platform[] = [
 
 function run(cmd: string, cwd?: string) {
   execSync(cmd, { stdio: 'inherit', cwd: cwd ?? PROJECT_ROOT })
+}
+
+function runFile(cmd: string, args: string[], cwd?: string) {
+  execFileSync(cmd, args, { stdio: 'inherit', cwd: cwd ?? PROJECT_ROOT })
 }
 
 function detectPlatform(): string {
@@ -545,11 +549,11 @@ for (const platform of PLATFORMS) {
   const checksumFile = resolve(BUILD_DIR, '_bun_checksums.txt')
 
   if (!existsSync(bunTmp)) {
-    run(`curl -fsSL "${bunUrl}" -o "${bunTmp}"`)
+    runFile('curl', ['-fsSL', bunUrl, '-o', bunTmp])
 
     // Verify checksum
     if (!existsSync(checksumFile)) {
-      run(`curl -fsSL "${checksumUrl}" -o "${checksumFile}"`)
+      runFile('curl', ['-fsSL', checksumUrl, '-o', checksumFile])
     }
     const checksums = readFileSync(checksumFile, 'utf8')
     const expectedLine = checksums
@@ -577,10 +581,22 @@ for (const platform of PLATFORMS) {
 
   // Extract just the binary
   try {
-    run(`unzip -qjo "${bunTmp}" "*/${platform.bunBinary}" -d "${platformDir}/"`)
+    runFile('unzip', [
+      '-qjo',
+      bunTmp,
+      `*/${platform.bunBinary}`,
+      '-d',
+      `${platformDir}/`,
+    ])
   } catch (_e1) {
     try {
-      run(`unzip -qjo "${bunTmp}" "${platform.bunBinary}" -d "${platformDir}/"`)
+      runFile('unzip', [
+        '-qjo',
+        bunTmp,
+        platform.bunBinary,
+        '-d',
+        `${platformDir}/`,
+      ])
     } catch (_e2) {
       throw new Error(
         `Failed to extract Bun binary from ${bunTmp}: tried nested and flat patterns`,
@@ -601,7 +617,7 @@ for (const platform of PLATFORMS) {
     // Bundle WinSW for Windows service support
     const winswTmp = resolve(BUILD_DIR, '_winsw.exe')
     if (!existsSync(winswTmp)) {
-      run(`curl -fsSL "${WINSW_URL}" -o "${winswTmp}"`)
+      runFile('curl', ['-fsSL', WINSW_URL, '-o', winswTmp])
     }
     cpSync(winswTmp, resolve(platformDir, 'pulsarr-service.exe'))
     writeFileSync(resolve(platformDir, 'pulsarr-service.xml'), WINSW_XML)
@@ -626,7 +642,7 @@ for (const platform of PLATFORMS) {
   )
 
   // Create zip
-  run(`zip -qr "${zipName}.zip" "${zipName}"`, BUILD_DIR)
+  runFile('zip', ['-qr', `${zipName}.zip`, zipName], BUILD_DIR)
 
   // Report size
   const zipSize = statSync(resolve(BUILD_DIR, `${zipName}.zip`)).size

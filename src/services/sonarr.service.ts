@@ -634,11 +634,7 @@ export class SonarrService {
    * @returns Promise resolving to HealthCheckResult
    */
   async isHealthy(): Promise<HealthCheckResult> {
-    if (
-      !this.config ||
-      !this.config.sonarrApiKey ||
-      !this.config.sonarrBaseUrl
-    ) {
+    if (!this.config?.sonarrApiKey || !this.config.sonarrBaseUrl) {
       return {
         healthy: false,
         error: 'Sonarr service not initialized',

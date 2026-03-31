@@ -206,7 +206,7 @@ export const toItemsSingle = async (
     }
 
     const json = (await response.json()) as PlexApiResponse
-    if (!json.MediaContainer || !json.MediaContainer.Metadata) {
+    if (!json.MediaContainer?.Metadata) {
       throw new Error('Invalid response structure')
     }
 

@@ -12,6 +12,7 @@ import type {
   UntrackPlexLabelOperation,
 } from '@services/database/methods/plex-label-tracking.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { includesLabelIgnoreCase } from '../label-operations/label-validator.js'
 
@@ -28,7 +29,6 @@ export interface ContentTrackerDeps {
  *
  * @param content - The content being processed
  * @param plexItems - The Plex items for this content
- * @param allFinalLabels - All final labels (user + tag)
  * @param finalUserLabels - The final set of user labels that should be tracked
  * @param finalTagLabels - The final set of tag labels that should be tracked
  * @param appliedRemovedLabels - Map of rating keys to removed labels applied
@@ -37,12 +37,12 @@ export interface ContentTrackerDeps {
 export async function updateTrackingForContent(
   content: ContentWithUsers,
   plexItems: Array<{ ratingKey: string; title: string }>,
-  allFinalLabels: string[],
   finalUserLabels: string[],
   finalTagLabels: string[],
   appliedRemovedLabels: Map<string, string>,
   deps: ContentTrackerDeps,
 ): Promise<void> {
+  const allFinalLabels = [...finalUserLabels, ...finalTagLabels]
   try {
     deps.logger.debug(
       {
@@ -313,5 +313,132 @@ export async function updateTrackingForContent(
       'Error updating tracking table for content',
     )
     // Don't throw - tracking failures shouldn't prevent label sync
+  }
+}
+
+/**
+ * Cleans up tracking records for a batch of watchlist items using pre-parsed GUID data.
+ * Used after label removal/cleanup operations to keep the tracking table in sync.
+ */
+export async function cleanupTrackingForItems(
+  watchlistItems: Array<{ id: number; user_id: number }>,
+  itemDataMap: Map<number, { guids: string[]; contentType: 'movie' | 'show' }>,
+  db: DatabaseService,
+): Promise<void> {
+  for (const item of watchlistItems) {
+    const itemData = itemDataMap.get(item.id)
+    if (itemData) {
+      await db.cleanupUserContentTracking(
+        itemData.guids,
+        itemData.contentType,
+        item.user_id,
+      )
+    }
+  }
+}
+
+/**
+ * Tracks labels in the database for each user after a successful Plex update.
+ * Accepts a guid resolver to handle different data sources (pre-loaded items vs DB fetch).
+ */
+export async function trackLabelsForUsers(params: {
+  ratingKey: string
+  users: Array<{ user_id: number; username: string; watchlist_id: number }>
+  getGuidsForUser: (user: {
+    user_id: number
+    watchlist_id: number
+  }) => Promise<string[]>
+  tagLabels: string[]
+  contentType: 'movie' | 'show'
+  labelPrefix: string
+  db: DatabaseService
+  logger: FastifyBaseLogger
+}): Promise<void> {
+  const {
+    ratingKey,
+    users,
+    getGuidsForUser,
+    tagLabels,
+    contentType,
+    labelPrefix,
+    db,
+    logger,
+  } = params
+
+  let trackingErrors = 0
+  for (const user of users) {
+    try {
+      const contentGuids = await getGuidsForUser(user)
+      const userLabel = `${labelPrefix}:${user.username}`
+      await db.trackPlexLabels(
+        contentGuids,
+        contentType,
+        user.user_id,
+        ratingKey,
+        [userLabel, ...tagLabels],
+      )
+    } catch (error) {
+      logger.error(
+        { error, userId: user.user_id, ratingKey },
+        'Failed to track labels in database',
+      )
+      trackingErrors++
+    }
+  }
+
+  if (trackingErrors > 0) {
+    logger.warn(
+      {
+        ratingKey,
+        successfulTracks: users.length - trackingErrors,
+        failedTracks: trackingErrors,
+      },
+      'Some label tracking records failed to save',
+    )
+  }
+}
+
+/**
+ * Creates a guid resolver that looks up guids from a pre-loaded watchlist items array.
+ * Falls back to the ratingKey if no matching item is found.
+ */
+export function createItemGuidResolver(
+  watchlistItems: Array<{
+    id: string | number
+    user_id: number
+    guids?: string | string[]
+  }>,
+  fallbackRatingKey: string,
+): (user: { user_id: number; watchlist_id: number }) => Promise<string[]> {
+  return async (user) => {
+    const item = watchlistItems.find((i) => i.user_id === user.user_id)
+    const guids = item?.guids ? parseGuids(item.guids) : []
+    if (guids.length === 0) {
+      throw new Error(
+        `Missing content GUIDs for user ${user.user_id} while tracking ${fallbackRatingKey}`,
+      )
+    }
+    return guids
+  }
+}
+
+export function createDbGuidResolver(
+  db: DatabaseService,
+  fallbackRatingKey: string,
+): (user: { user_id: number; watchlist_id: number }) => Promise<string[]> {
+  return async (user) => {
+    if (!user.watchlist_id) {
+      throw new Error(
+        `Missing watchlist_id for user ${user.user_id} while tracking ${fallbackRatingKey}`,
+      )
+    }
+    const watchlistItem = await db.getWatchlistItemById(user.watchlist_id)
+    const guids = watchlistItem ? parseGuids(watchlistItem.guids) : []
+    if (guids.length === 0) {
+      throw new Error(
+        `Missing content GUIDs for watchlist ${user.watchlist_id} while tracking ${fallbackRatingKey}`,
+      )
+    }
+    return guids
   }
 }

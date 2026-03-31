@@ -61,7 +61,7 @@ export async function getAdminUserFromDiscord(
   try {
     const user = await getUserByDiscordId(discordUserId, deps)
 
-    if (!user || !user.is_primary_token) {
+    if (!user?.is_primary_token) {
       return null
     }
 

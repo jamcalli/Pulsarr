@@ -6,7 +6,6 @@
  */
 
 import type {
-  ContentWithUsers,
   LabelReconciliationResult,
   PlexContentItems,
   RadarrMovieWithTags,
@@ -22,12 +21,9 @@ import {
 } from '../matching/index.js'
 import { updateTrackingForContent } from '../tracking/content-tracker.js'
 import {
+  computeFinalLabels,
   filterAndFormatTagsAsLabels,
-  getRemovedLabel,
-  includesLabelIgnoreCase,
-  isAppUserLabel,
   isManagedLabel,
-  uniqueLabelsIgnoreCase,
 } from './label-validator.js'
 
 export interface LabelReconcilerDeps {
@@ -39,6 +35,31 @@ export interface LabelReconcilerDeps {
   removedLabelPrefix: string
   tagPrefix: string
   removedTagPrefix: string
+}
+
+/**
+ * Projects caller deps into the narrower LabelReconcilerDeps interface.
+ */
+export function buildReconcilerDeps(deps: {
+  plexServer: PlexServerService
+  db: DatabaseService
+  logger: FastifyBaseLogger
+  config: PlexLabelSyncConfig
+  removedLabelMode: 'remove' | 'keep' | 'special-label'
+  removedLabelPrefix: string
+  tagPrefix: string
+  removedTagPrefix: string
+}): LabelReconcilerDeps {
+  return {
+    plexServer: deps.plexServer,
+    db: deps.db,
+    logger: deps.logger,
+    config: deps.config,
+    removedLabelMode: deps.removedLabelMode,
+    removedLabelPrefix: deps.removedLabelPrefix,
+    tagPrefix: deps.tagPrefix,
+    removedTagPrefix: deps.removedTagPrefix,
+  }
 }
 
 /**
@@ -114,9 +135,6 @@ export async function reconcileLabelsForContent(
       }
     }
 
-    // Combine all desired labels (user + tag labels)
-    const allDesiredLabels = [...desiredUserLabels, ...desiredTagLabels]
-
     deps.logger.debug(
       {
         primaryGuid: content.primaryGuid,
@@ -124,7 +142,6 @@ export async function reconcileLabelsForContent(
         userCount: content.users.length,
         desiredUserLabels,
         desiredTagLabels,
-        allDesiredLabels,
         tagInstanceName,
         plexItemCount: plexItems.length,
       },
@@ -138,10 +155,9 @@ export async function reconcileLabelsForContent(
     for (const plexItem of plexItems) {
       const result = await reconcileLabelsForSingleItem(
         plexItem.ratingKey,
-        allDesiredLabels,
         desiredUserLabels,
         desiredTagLabels,
-        content,
+        content.title,
         deps,
       )
 
@@ -172,7 +188,6 @@ export async function reconcileLabelsForContent(
       await updateTrackingForContent(
         content,
         plexItems,
-        allDesiredLabels,
         desiredUserLabels,
         desiredTagLabels,
         appliedRemovedLabels,
@@ -227,134 +242,48 @@ export async function reconcileLabelsForContent(
 
 /**
  * Reconciles labels for a single Plex item by comparing current vs desired state.
+ * Callers must provide the COMPLETE desired state (all users + all tags).
  *
- * @param ratingKey - The Plex rating key
- * @param allDesiredLabels - All labels that should exist (user + tag)
- * @param desiredUserLabels - Array of user labels that should exist
- * @param desiredTagLabels - Array of tag labels that should exist
- * @param content - The content being processed (for logging)
- * @param deps - Service dependencies
- * @returns Reconciliation result for this item
+ * Used by batch sync, webhook sync, and pending sync - the single implementation
+ * for all label reconciliation regardless of trigger source.
  */
 export async function reconcileLabelsForSingleItem(
   ratingKey: string,
-  allDesiredLabels: string[],
   desiredUserLabels: string[],
   desiredTagLabels: string[],
-  content: ContentWithUsers,
+  title: string,
   deps: LabelReconcilerDeps,
 ): Promise<LabelReconciliationResult> {
   try {
-    // Get current labels from Plex
     const metadata = await deps.plexServer.getMetadata(ratingKey)
     const currentLabels = metadata?.Label?.map((label) => label.tag) || []
 
-    // Separate app-managed labels (user + tag) from other labels
-    const currentAppLabels = currentLabels.filter((label) =>
-      isAppUserLabel(label, deps.config.labelPrefix),
-    )
-    const nonAppLabels = currentLabels.filter(
-      (label) => !isAppUserLabel(label, deps.config.labelPrefix),
-    )
-
-    // Calculate label changes needed for ALL app-managed labels (case-insensitive)
-    const labelsToAdd = allDesiredLabels.filter(
-      (label) => !includesLabelIgnoreCase(currentAppLabels, label),
-    )
-    const labelsToRemove = currentAppLabels.filter(
-      (label) => !includesLabelIgnoreCase(allDesiredLabels, label),
-    )
-
-    // Handle removed labels based on configuration
-    let finalLabels: string[]
-    let specialRemovedLabel: string | null = null
-
-    if (deps.removedLabelMode === 'keep') {
-      // Keep all existing labels and add new ones (case-insensitive dedup)
-      finalLabels = uniqueLabelsIgnoreCase([...currentLabels, ...labelsToAdd])
-    } else if (deps.removedLabelMode === 'special-label') {
-      // Handle special "removed" label logic:
-      // - Add removed label whenever NO user labels exist (safe for deletion),
-      //   regardless of tag presence.
-      // - If user labels exist, removed label should be cleaned up (content still wanted)
-      if (desiredUserLabels.length === 0) {
-        // No user labels exist, safe to add removed label for deletion
-        specialRemovedLabel = getRemovedLabel(deps.removedLabelPrefix)
-        deps.logger.debug(
-          {
-            contentTitle: content.title,
-            specialRemovedLabel,
-            desiredUserLabelsCount: desiredUserLabels.length,
-          },
-          'Generated special removed label',
-        )
-        const nonAppWithoutRemoved = nonAppLabels.filter(
-          (label) =>
-            !label
-              .toLowerCase()
-              .startsWith(deps.removedLabelPrefix.toLowerCase()),
-        )
-        finalLabels = uniqueLabelsIgnoreCase([
-          ...nonAppWithoutRemoved,
-          specialRemovedLabel,
-        ])
-        deps.logger.debug(
-          `Added removed label for "${content.title}" - no active users, safe for deletion`,
-        )
-      } else {
-        // User labels exist - preserve current user labels and add desired labels
-        // (Removed labels will be cleaned up in the subsequent cleanup step below)
-        finalLabels = uniqueLabelsIgnoreCase([
-          ...nonAppLabels,
-          ...allDesiredLabels,
-        ])
-      }
-    } else {
-      // Default 'remove' mode - clean removal of obsolete labels
-      finalLabels = uniqueLabelsIgnoreCase([
-        ...nonAppLabels,
-        ...allDesiredLabels,
-      ])
-    }
-
-    // Remove any existing "removed" labels when users are re-adding content
-    if (desiredUserLabels.length > 0) {
-      const removedLabels = finalLabels.filter((label) =>
-        label.toLowerCase().startsWith(deps.removedLabelPrefix.toLowerCase()),
-      )
-      if (removedLabels.length > 0 && !specialRemovedLabel) {
-        finalLabels = finalLabels.filter(
-          (label) => !removedLabels.includes(label),
-        )
-        deps.logger.debug(
-          `Cleaned up removed label for "${content.title}" - active users still want this content`,
-        )
-      }
-    }
+    const { finalLabels, specialRemovedLabel } = computeFinalLabels({
+      currentLabels,
+      desiredUserLabels,
+      desiredTagLabels,
+      mode: deps.removedLabelMode,
+      labelPrefix: deps.config.labelPrefix,
+      removedLabelPrefix: deps.removedLabelPrefix,
+    })
 
     deps.logger.debug(
       {
         ratingKey,
-        contentTitle: content.title,
+        contentTitle: title,
         currentLabels,
-        currentAppLabels,
         desiredUserLabels,
         desiredTagLabels,
-        allDesiredLabels,
-        labelsToAdd,
-        labelsToRemove,
         finalLabels,
         mode: deps.removedLabelMode,
         specialRemovedLabel,
       },
-      'Consolidated label reconciliation plan for Plex item',
+      'Label reconciliation plan for Plex item',
     )
 
-    // Apply the updated labels to Plex
     const success = await deps.plexServer.updateLabels(ratingKey, finalLabels)
 
     if (success) {
-      // Recompute deltas across all Pulsarr-managed labels, including the special "removed" marker
       const toLowerSet = (arr: string[]) =>
         new Set(arr.map((s) => s.toLowerCase()))
       const currentManaged = toLowerSet(
@@ -385,7 +314,7 @@ export async function reconcileLabelsForSingleItem(
       deps.logger.debug(
         {
           ratingKey,
-          contentTitle: content.title,
+          contentTitle: title,
           labelsAdded: addedCount,
           labelsRemoved: removedCount,
         },
@@ -401,10 +330,7 @@ export async function reconcileLabelsForSingleItem(
     }
 
     deps.logger.warn(
-      {
-        ratingKey,
-        contentTitle: content.title,
-      },
+      { ratingKey, contentTitle: title },
       'Failed to update labels for Plex item',
     )
 
@@ -416,11 +342,7 @@ export async function reconcileLabelsForSingleItem(
     }
   } catch (error) {
     deps.logger.error(
-      {
-        ratingKey,
-        contentTitle: content.title,
-        error,
-      },
+      { ratingKey, contentTitle: title, error },
       'Error reconciling labels for Plex item',
     )
 

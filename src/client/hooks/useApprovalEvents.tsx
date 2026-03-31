@@ -33,7 +33,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
   
   // Toast queueing refs
   const toastQueueRef = useRef<Map<string, QueuedToast[]>>(new Map())
-  const queueTimerRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  const queueTimerRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   
   // Use refs to store callback references to avoid dependency issues
   const optionsRef = useRef(options)

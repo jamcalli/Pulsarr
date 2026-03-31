@@ -9,7 +9,6 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..', '..')
 
-// Load environment variables
 dotenv.config({ path: resolve(projectRoot, '.env'), quiet: true })
 
 interface MigrationConfig {
@@ -72,9 +71,6 @@ class SQLiteToPostgresMigration {
     }
   }
 
-  /**
-   * Get all tables from the database, excluding system tables
-   */
   async getTables(): Promise<string[]> {
     const tables = await this.sourceDb('sqlite_master')
       .where('type', 'table')
@@ -88,28 +84,21 @@ class SQLiteToPostgresMigration {
     return tables
   }
 
-  /**
-   * Determine migration order based on foreign key dependencies
-   */
   async determineMigrationOrder(tables: string[]): Promise<string[]> {
-    // For SQLite, we need to parse foreign keys from the schema
     const dependencies = new Map<string, Set<string>>()
 
-    // Initialize all tables
     for (const table of tables) {
       dependencies.set(table, new Set())
     }
 
-    // Get foreign key dependencies
     for (const table of tables) {
       const [tableInfo] = await this.sourceDb.raw(
         `SELECT sql FROM sqlite_master WHERE type='table' AND name=?`,
         [table],
       )
       if (tableInfo?.sql) {
-        // Simple regex to find REFERENCES clauses
         const references = tableInfo.sql.matchAll(
-          /REFERENCES\s+["']?(\w+)["']?\s*\(/gi,
+          /REFERENCES\s+["`']?(\w+)["`']?\s*\(/gi,
         )
         for (const match of references) {
           const referencedTable = match[1]
@@ -120,7 +109,6 @@ class SQLiteToPostgresMigration {
       }
     }
 
-    // Topological sort
     const sorted: string[] = []
     const visited = new Set<string>()
 
@@ -128,7 +116,6 @@ class SQLiteToPostgresMigration {
       if (visited.has(table)) return
       visited.add(table)
 
-      // Visit dependencies first
       for (const dep of dependencies.get(table) || []) {
         if (!visited.has(dep)) {
           visit(dep)
@@ -145,13 +132,9 @@ class SQLiteToPostgresMigration {
     return sorted
   }
 
-  /**
-   * Get PostgreSQL sequences for auto-increment columns
-   */
   async getSequences(): Promise<Map<string, string>> {
     const sequences = new Map<string, string>()
 
-    // First, get tables that actually have an 'id' column
     const result = await this.targetDb.raw(`
       SELECT 
         t.tablename as table_name,
@@ -175,9 +158,6 @@ class SQLiteToPostgresMigration {
     return sequences
   }
 
-  /**
-   * Get boolean columns for a specific table from PostgreSQL schema
-   */
   private async getBooleanColumns(tableName: string): Promise<Set<string>> {
     const result = await this.targetDb.raw(
       `
@@ -195,18 +175,14 @@ class SQLiteToPostgresMigration {
     )
   }
 
-  /**
-   * Transform data from SQLite format to PostgreSQL format
-   */
   private transformRow(
     row: Record<string, unknown>,
     booleanColumns: Set<string>,
   ): Record<string, unknown> {
     const transformed = { ...row }
 
-    // Transform boolean values based on actual PostgreSQL schema
+    // SQLite stores booleans as 0/1, convert based on PG schema
     for (const [key, value] of Object.entries(transformed)) {
-      // Convert various boolean representations to PostgreSQL booleans
       if (booleanColumns.has(key)) {
         if (value === 0 || value === 1) {
           transformed[key] = value === 1
@@ -215,35 +191,16 @@ class SQLiteToPostgresMigration {
         } else if (value === 'true' || value === 'false') {
           transformed[key] = value === 'true'
         }
-        // Leave other values as-is (null, undefined, etc.)
-      }
-
-      // Ensure JSON fields are properly stringified
-      else if (value && typeof value === 'object') {
-        // Safety check: don't stringify special objects that shouldn't be JSON
+      } else if (value && typeof value === 'object') {
         if (
           value instanceof Date ||
           value instanceof Buffer ||
           value instanceof Uint8Array ||
           ArrayBuffer.isView(value)
         ) {
-          // Leave these as-is for proper handling by database driver
           transformed[key] = value
         } else {
-          // Safe to stringify plain objects and arrays
           transformed[key] = JSON.stringify(value)
-        }
-      }
-
-      // Handle JSON strings - ensure they're valid
-      else if (
-        typeof value === 'string' &&
-        (value.startsWith('{') || value.startsWith('['))
-      ) {
-        try {
-          JSON.parse(value) // Validate it's proper JSON
-        } catch {
-          // If not valid JSON, leave as is
         }
       }
     }
@@ -253,7 +210,7 @@ class SQLiteToPostgresMigration {
 
   async migrateTable(tableName: string): Promise<number> {
     try {
-      // Fail-fast: Verify target table is empty (should be for new PostgreSQL installs)
+      // Fail-fast: target must be empty (fresh PG install only)
       const [{ count: targetCount }] =
         await this.targetDb(tableName).count('* as count')
       if (Number(targetCount) > 0) {
@@ -264,7 +221,6 @@ class SQLiteToPostgresMigration {
         )
       }
 
-      // Get row count from source
       const [{ count }] = await this.sourceDb(tableName).count('* as count')
       const totalRows = Number(count)
 
@@ -272,7 +228,6 @@ class SQLiteToPostgresMigration {
         return 0
       }
 
-      // Get boolean columns for this table from PostgreSQL schema
       const booleanColumns = await this.getBooleanColumns(tableName)
 
       if (this.config.verbose && booleanColumns.size > 0) {
@@ -281,7 +236,6 @@ class SQLiteToPostgresMigration {
         )
       }
 
-      // Migrate in batches
       let migrated = 0
       let offset = 0
 
@@ -293,12 +247,10 @@ class SQLiteToPostgresMigration {
 
         if (batch.length === 0) break
 
-        // Transform data with schema-based boolean detection
         const transformedBatch = batch.map((row) =>
           this.transformRow(row, booleanColumns),
         )
 
-        // Insert into PostgreSQL
         await this.targetDb(tableName).insert(transformedBatch)
 
         migrated += batch.length
@@ -328,7 +280,6 @@ class SQLiteToPostgresMigration {
 
     await fs.mkdir(resolve(projectRoot, 'data/backups'), { recursive: true })
 
-    // Type guard for SQLite connection config
     const connection = this.config.source.connection
     const sourcePath =
       typeof connection === 'object' && connection && 'filename' in connection
@@ -344,23 +295,15 @@ class SQLiteToPostgresMigration {
     try {
       this.log('Starting SQLite to PostgreSQL migration...')
 
-      // Verify connections
       await this.verifyConnections()
 
-      // Get all tables
       const tables = await this.getTables()
       this.log(`Found ${tables.length} tables to migrate`)
 
-      // Determine migration order
       const orderedTables = await this.determineMigrationOrder(tables)
-
-      // Get sequences
       const sequences = await this.getSequences()
-
-      // Create backup
       const backupPath = await this.createBackup()
 
-      // Confirm migration
       const proceed = await this.prompt(
         `\nThis will migrate all data from SQLite to PostgreSQL.\nTables to migrate: ${orderedTables.length}\nBackup created at: ${backupPath}\nDo you want to proceed?`,
       )
@@ -370,12 +313,9 @@ class SQLiteToPostgresMigration {
         return
       }
 
-      // Track statistics
       const stats: { [table: string]: number } = {}
       let totalMigrated = 0
 
-      // Migrate each table in dependency order
-      // Using CASCADE on TRUNCATE and proper ordering should handle FK constraints
       for (const table of orderedTables) {
         this.log(`Migrating ${table}...`)
         const count = await this.migrateTable(table)
@@ -384,7 +324,7 @@ class SQLiteToPostgresMigration {
         this.log(`✓ ${table}: ${count} rows`)
       }
 
-      // Update sequences
+      // Reset PG sequences to match migrated max IDs
       for (const [table, sequence] of sequences) {
         const result = await this.targetDb(table).max('id as max_id')
         const maxId = result[0]?.max_id
@@ -394,7 +334,6 @@ class SQLiteToPostgresMigration {
         }
       }
 
-      // Verification
       this.log('\nVerifying migration...')
       let allMatch = true
 
@@ -415,7 +354,6 @@ class SQLiteToPostgresMigration {
         this.log('✓ All row counts match!')
       }
 
-      // Summary
       this.log(
         `\nMigration complete! Migrated ${totalMigrated} total rows across ${orderedTables.length} tables.`,
       )
@@ -440,11 +378,6 @@ class SQLiteToPostgresMigration {
   }
 }
 
-/**
- * Parses command-line arguments, builds migration configuration, and executes the SQLite to PostgreSQL migration process.
- *
- * Displays help information if requested, validates batch size, and loads environment variables for database connections. Handles errors and exits the process with an appropriate status code.
- */
 async function main() {
   const args = process.argv.slice(2)
   const verbose = args.includes('--verbose') || args.includes('-v')
@@ -477,7 +410,6 @@ Prerequisites:
     process.exit(0)
   }
 
-  // Build configuration
   const config: MigrationConfig = {
     source: {
       client: 'better-sqlite3',
@@ -512,7 +444,6 @@ Prerequisites:
   }
 }
 
-// Run if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   main()
 }

@@ -20,10 +20,13 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
 import {
+  buildContentKey,
   getRemovedLabel,
   includesLabelIgnoreCase,
   isAppUserLabel,
+  isRemovedLabel,
 } from '../label-operations/index.js'
+import { cleanupTrackingForItems } from '../tracking/content-tracker.js'
 
 /**
  * Helper function to check if two arrays contain the same elements (order-independent)
@@ -165,8 +168,7 @@ export async function cleanupLabelsForWatchlistItems(
         continue
       }
 
-      const sortedGuids = [...parsedGuids].sort()
-      const contentKey = `${item.contentType}-${JSON.stringify(sortedGuids)}`
+      const contentKey = buildContentKey(item.contentType, parsedGuids)
       itemDataMap.set(item.id, {
         guids: parsedGuids,
         contentType: item.contentType,
@@ -233,17 +235,7 @@ export async function cleanupLabelsForWatchlistItems(
       deps.logger.debug(
         'No tracked labels found for cleanup, skipping Plex API calls',
       )
-      // Still need to cleanup tracking records using parsed GUID arrays
-      for (const item of watchlistItems) {
-        const itemData = itemDataMap.get(item.id)
-        if (itemData) {
-          await deps.db.cleanupUserContentTracking(
-            itemData.guids,
-            itemData.contentType,
-            item.user_id,
-          )
-        }
-      }
+      await cleanupTrackingForItems(watchlistItems, itemDataMap, deps.db)
       return
     }
 
@@ -280,17 +272,10 @@ export async function cleanupLabelsForWatchlistItems(
       // Build the user label for this user
       const userLabel = `${deps.config.labelPrefix}:${userName}`
 
-      // Find the content key for this tracking record to check other users
-      const itemForThisTracking = watchlistItems.find(
-        (item) => item.user_id === userId,
+      const contentKey = buildContentKey(
+        tracking.content_type,
+        tracking.content_guids,
       )
-      if (!itemForThisTracking) continue
-
-      const itemData = itemDataMap.get(itemForThisTracking.id)
-      if (!itemData) continue
-
-      const sortedGuids = [...itemData.guids].sort()
-      const contentKey = `${itemData.contentType}-${JSON.stringify(sortedGuids)}`
 
       // Get all tracking records for this content
       const allTrackingForContent = allTrackingByContent.get(contentKey) || []
@@ -413,17 +398,7 @@ export async function cleanupLabelsForWatchlistItems(
       }
     }
 
-    // Clean up tracking records from database using parsed GUID arrays
-    for (const item of watchlistItems) {
-      const itemData = itemDataMap.get(item.id)
-      if (itemData) {
-        await deps.db.cleanupUserContentTracking(
-          itemData.guids,
-          itemData.contentType,
-          item.user_id,
-        )
-      }
-    }
+    await cleanupTrackingForItems(watchlistItems, itemDataMap, deps.db)
 
     const cleanupDuration = Date.now() - cleanupStartTime
 
@@ -491,7 +466,7 @@ async function handleSpecialLabelModeForDeletedItems(
     for (const item of watchlistItems) {
       // Get the full watchlist item to access the guids
       const fullItem = await deps.db.getWatchlistItemById(item.id)
-      if (!fullItem || !fullItem.guids) {
+      if (!fullItem?.guids) {
         deps.logger.debug(
           {
             itemId: item.id,
@@ -515,8 +490,6 @@ async function handleSpecialLabelModeForDeletedItems(
         continue
       }
 
-      const sortedGuids = [...parsedGuids].sort()
-      const _contentKey = `${fullItem.type}-${JSON.stringify(sortedGuids)}`
       itemDataMap.set(item.id, {
         guids: parsedGuids,
         contentType: fullItem.type === 'show' ? 'show' : 'movie',
@@ -531,17 +504,7 @@ async function handleSpecialLabelModeForDeletedItems(
     }
 
     if (trackedLabels.length === 0) {
-      // Clean up tracking records and return
-      for (const item of watchlistItems) {
-        const itemData = itemDataMap.get(item.id)
-        if (itemData) {
-          await deps.db.cleanupUserContentTracking(
-            itemData.guids,
-            itemData.contentType,
-            item.user_id,
-          )
-        }
-      }
+      await cleanupTrackingForItems(watchlistItems, itemDataMap, deps.db)
       return
     }
 
@@ -723,14 +686,15 @@ async function handleSpecialLabelModeForDeletedItems(
                 }
               } else {
                 // Other users still have this content, just remove specific user labels
-                const removedPrefix = deps.removedLabelPrefix.toLowerCase()
                 const remainingLabels = currentLabels.filter((label) => {
-                  const ll = label.toLowerCase()
                   const isUserLabelRemoved = userLabelsToRemove.some(
-                    (removeLabel) => removeLabel.toLowerCase() === ll,
+                    (removeLabel) =>
+                      removeLabel.toLowerCase() === label.toLowerCase(),
                   )
-                  const isRemovedMarker = ll.startsWith(removedPrefix)
-                  return !isUserLabelRemoved && !isRemovedMarker
+                  return (
+                    !isUserLabelRemoved &&
+                    !isRemovedLabel(label, deps.removedLabelPrefix)
+                  )
                 })
 
                 deps.logger.debug(
@@ -784,17 +748,7 @@ async function handleSpecialLabelModeForDeletedItems(
       }
     }
 
-    // Clean up tracking records from database using primary GUIDs
-    for (const item of watchlistItems) {
-      const itemData = itemDataMap.get(item.id)
-      if (itemData) {
-        await deps.db.cleanupUserContentTracking(
-          itemData.guids,
-          itemData.contentType,
-          item.user_id,
-        )
-      }
-    }
+    await cleanupTrackingForItems(watchlistItems, itemDataMap, deps.db)
 
     const specialLabelDuration = Date.now() - specialLabelStartTime
 
