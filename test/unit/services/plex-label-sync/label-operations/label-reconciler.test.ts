@@ -81,7 +81,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        ['pulsarr:alice'], // Only alice remains
         ['pulsarr:alice'],
         [],
         content.title,
@@ -119,7 +118,6 @@ describe('label-reconciler', () => {
       const result = await reconcileLabelsForSingleItem(
         '123',
         ['pulsarr:alice', 'pulsarr:bob'],
-        ['pulsarr:alice', 'pulsarr:bob'],
         [],
         content.title,
         baseDeps,
@@ -152,7 +150,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
         content.title,
@@ -189,7 +186,6 @@ describe('label-reconciler', () => {
       const result = await reconcileLabelsForSingleItem(
         '123',
         ['pulsarr:alice'],
-        ['pulsarr:alice'],
         [],
         content.title,
         baseDeps,
@@ -220,7 +216,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        [], // No desired labels
         [],
         [],
         content.title,
@@ -257,7 +252,6 @@ describe('label-reconciler', () => {
       const result = await reconcileLabelsForSingleItem(
         '123',
         ['pulsarr:alice'],
-        ['pulsarr:alice'],
         [],
         content.title,
         baseDeps,
@@ -289,7 +283,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
         content.title,
@@ -338,7 +331,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        ['pulsarr:alice', 'pulsarr:bob'], // charlie not in desired
         ['pulsarr:alice', 'pulsarr:bob'],
         [],
         content.title,
@@ -380,7 +372,6 @@ describe('label-reconciler', () => {
       const result = await reconcileLabelsForSingleItem(
         '123',
         ['pulsarr:dave'],
-        ['pulsarr:dave'],
         [],
         content.title,
         baseDeps,
@@ -416,7 +407,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
         content.title,
@@ -456,7 +446,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        [], // No desired labels
         [], // No user labels
         [], // No tag labels
         content.title,
@@ -489,7 +478,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
         content.title,
@@ -525,7 +513,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        ['pulsarr:action', 'pulsarr:hdr'], // Tag labels only
         [], // No user labels
         ['pulsarr:action', 'pulsarr:hdr'], // Tag labels
         content.title,
@@ -566,7 +553,6 @@ describe('label-reconciler', () => {
         '123',
         [],
         [],
-        [],
         content.title,
         baseDeps,
       )
@@ -603,7 +589,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        ['pulsarr:alice', 'pulsarr:bob', 'pulsarr:action', 'pulsarr:hdr'],
         ['pulsarr:alice', 'pulsarr:bob'],
         ['pulsarr:action', 'pulsarr:hdr'],
         content.title,
@@ -639,7 +624,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        ['pulsarr:alice', 'pulsarr:action'],
         ['pulsarr:alice'],
         ['pulsarr:action'],
         content.title,
@@ -673,7 +657,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        ['pulsarr:alice', 'pulsarr:new-tag'],
         ['pulsarr:alice'],
         ['pulsarr:new-tag'],
         content.title,
@@ -708,7 +691,6 @@ describe('label-reconciler', () => {
       const result = await reconcileLabelsForSingleItem(
         '123',
         ['pulsarr:alice'],
-        ['pulsarr:alice'],
         [],
         content.title,
         baseDeps,
@@ -737,7 +719,6 @@ describe('label-reconciler', () => {
       const result = await reconcileLabelsForSingleItem(
         '123',
         ['pulsarr:alice'],
-        ['pulsarr:alice'],
         [],
         content.title,
         baseDeps,
@@ -763,7 +744,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        ['pulsarr:alice'],
         ['pulsarr:alice'],
         [],
         content.title,
@@ -797,7 +777,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        ['pulsarr:user-name_123'],
         ['pulsarr:user-name_123'],
         [],
         content.title,
@@ -836,7 +815,6 @@ describe('label-reconciler', () => {
       const result = await reconcileLabelsForSingleItem(
         '123',
         ['pulsarr:very-long-username-that-exceeds-normal-limits-for-testing'],
-        ['pulsarr:very-long-username-that-exceeds-normal-limits-for-testing'],
         [],
         content.title,
         baseDeps,
@@ -874,7 +852,6 @@ describe('label-reconciler', () => {
 
       const result = await reconcileLabelsForSingleItem(
         '123',
-        desiredLabels,
         desiredLabels,
         [],
         content.title,

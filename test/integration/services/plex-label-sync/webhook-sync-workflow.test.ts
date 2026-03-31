@@ -346,6 +346,16 @@ describe('Webhook Sync → Workflow Integration', () => {
 
       // Content-centric: both users reconciled in a single Plex update
       expect(mockUpdateLabels).toHaveBeenCalledTimes(1)
+      expect(mockUpdateLabels).toHaveBeenCalledWith(
+        '12345',
+        expect.arrayContaining([
+          'pulsarr:test-user-primary',
+          'pulsarr:test-user-discord-apprise',
+          'pulsarr:action',
+        ]),
+      )
+      // Exactly 3 labels - both users + tag
+      expect(mockUpdateLabels.mock.calls[0][1]).toHaveLength(3)
 
       // Verify tracking records for both users
       const tracking = await knex('plex_label_tracking')

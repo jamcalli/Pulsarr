@@ -15,6 +15,7 @@ import {
   buildPlexGuid,
   extractTmdbId,
   extractTvdbId,
+  parseGuids,
 } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
@@ -208,8 +209,6 @@ export async function syncLabelsOnWebhook(
       deps.labelPrefix,
     )
 
-    const allDesiredLabels = [...desiredUserLabels, ...desiredTagLabels]
-
     // Resolve to Plex items using first item's key
     // itemsWithKey is filtered to items where key is truthy
     const firstItem = itemsWithKey[0]
@@ -249,7 +248,6 @@ export async function syncLabelsOnWebhook(
 
       const result = await reconcileLabelsForSingleItem(
         plexItem.ratingKey,
-        allDesiredLabels,
         desiredUserLabels,
         desiredTagLabels,
         firstItem.title,
@@ -310,6 +308,8 @@ export async function syncLabelForNewWatchlistItem(
   fetchTags: boolean,
   deps: WebhookSyncDeps,
 ): Promise<boolean> {
+  let tags: string[] = []
+
   try {
     const watchlistItem = await deps.db.getWatchlistItemById(watchlistItemId)
 
@@ -321,10 +321,8 @@ export async function syncLabelForNewWatchlistItem(
       return false
     }
 
-    // Fetch tags if requested and tag sync is enabled
-    let tags: string[] = []
     if (fetchTags && deps.config.tagSync.enabled) {
-      const guids = watchlistItem.guids as string[]
+      const guids = parseGuids(watchlistItem.guids)
       const tmdbId = extractTmdbId(guids) || undefined
       const tvdbId = extractTvdbId(guids) || undefined
 
@@ -373,7 +371,7 @@ export async function syncLabelForNewWatchlistItem(
       { error, watchlistItemId, title },
       'Error in immediate sync for new watchlist item',
     )
-    await deps.queuePendingLabelSyncByWatchlistId(watchlistItemId, title, [])
+    await deps.queuePendingLabelSyncByWatchlistId(watchlistItemId, title, tags)
     return false
   }
 }
@@ -462,14 +460,11 @@ async function syncContentForWatchlistItem(
     deps.labelPrefix,
   )
 
-  const allDesiredLabels = [...desiredUserLabels, ...desiredTagLabels]
-
   // Reconcile labels for each Plex item
   let allSuccessful = true
   for (const plexItem of plexItems) {
     const result = await reconcileLabelsForSingleItem(
       plexItem.ratingKey,
-      allDesiredLabels,
       desiredUserLabels,
       desiredTagLabels,
       watchlistItem.title,

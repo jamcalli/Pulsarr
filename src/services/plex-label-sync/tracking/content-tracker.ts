@@ -29,7 +29,6 @@ export interface ContentTrackerDeps {
  *
  * @param content - The content being processed
  * @param plexItems - The Plex items for this content
- * @param allFinalLabels - All final labels (user + tag)
  * @param finalUserLabels - The final set of user labels that should be tracked
  * @param finalTagLabels - The final set of tag labels that should be tracked
  * @param appliedRemovedLabels - Map of rating keys to removed labels applied
@@ -38,12 +37,12 @@ export interface ContentTrackerDeps {
 export async function updateTrackingForContent(
   content: ContentWithUsers,
   plexItems: Array<{ ratingKey: string; title: string }>,
-  allFinalLabels: string[],
   finalUserLabels: string[],
   finalTagLabels: string[],
   appliedRemovedLabels: Map<string, string>,
   deps: ContentTrackerDeps,
 ): Promise<void> {
+  const allFinalLabels = [...finalUserLabels, ...finalTagLabels]
   try {
     deps.logger.debug(
       {
@@ -413,21 +412,33 @@ export function createItemGuidResolver(
 ): (user: { user_id: number; watchlist_id: number }) => Promise<string[]> {
   return async (user) => {
     const item = watchlistItems.find((i) => i.user_id === user.user_id)
-    return item?.guids ? parseGuids(item.guids) : [fallbackRatingKey]
+    const guids = item?.guids ? parseGuids(item.guids) : []
+    if (guids.length === 0) {
+      throw new Error(
+        `Missing content GUIDs for user ${user.user_id} while tracking ${fallbackRatingKey}`,
+      )
+    }
+    return guids
   }
 }
 
-/**
- * Creates a guid resolver that fetches the watchlist item from the database.
- * Used when the caller doesn't have pre-loaded watchlist items (e.g., pending sync).
- */
 export function createDbGuidResolver(
   db: DatabaseService,
   fallbackRatingKey: string,
 ): (user: { user_id: number; watchlist_id: number }) => Promise<string[]> {
   return async (user) => {
-    if (!user.watchlist_id) return [fallbackRatingKey]
+    if (!user.watchlist_id) {
+      throw new Error(
+        `Missing watchlist_id for user ${user.user_id} while tracking ${fallbackRatingKey}`,
+      )
+    }
     const watchlistItem = await db.getWatchlistItemById(user.watchlist_id)
-    return watchlistItem ? parseGuids(watchlistItem.guids) : [fallbackRatingKey]
+    const guids = watchlistItem ? parseGuids(watchlistItem.guids) : []
+    if (guids.length === 0) {
+      throw new Error(
+        `Missing content GUIDs for watchlist ${user.watchlist_id} while tracking ${fallbackRatingKey}`,
+      )
+    }
+    return guids
   }
 }

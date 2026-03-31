@@ -135,9 +135,6 @@ export async function reconcileLabelsForContent(
       }
     }
 
-    // Combine all desired labels (user + tag labels)
-    const allDesiredLabels = [...desiredUserLabels, ...desiredTagLabels]
-
     deps.logger.debug(
       {
         primaryGuid: content.primaryGuid,
@@ -145,7 +142,6 @@ export async function reconcileLabelsForContent(
         userCount: content.users.length,
         desiredUserLabels,
         desiredTagLabels,
-        allDesiredLabels,
         tagInstanceName,
         plexItemCount: plexItems.length,
       },
@@ -159,7 +155,6 @@ export async function reconcileLabelsForContent(
     for (const plexItem of plexItems) {
       const result = await reconcileLabelsForSingleItem(
         plexItem.ratingKey,
-        allDesiredLabels,
         desiredUserLabels,
         desiredTagLabels,
         content.title,
@@ -193,7 +188,6 @@ export async function reconcileLabelsForContent(
       await updateTrackingForContent(
         content,
         plexItems,
-        allDesiredLabels,
         desiredUserLabels,
         desiredTagLabels,
         appliedRemovedLabels,
@@ -255,7 +249,6 @@ export async function reconcileLabelsForContent(
  */
 export async function reconcileLabelsForSingleItem(
   ratingKey: string,
-  allDesiredLabels: string[],
   desiredUserLabels: string[],
   desiredTagLabels: string[],
   title: string,
@@ -281,7 +274,6 @@ export async function reconcileLabelsForSingleItem(
         currentLabels,
         desiredUserLabels,
         desiredTagLabels,
-        allDesiredLabels,
         finalLabels,
         mode: deps.removedLabelMode,
         specialRemovedLabel,
