@@ -24,7 +24,10 @@ import {
   fetchRadarrTagsForItem,
   fetchSonarrTagsForItem,
 } from '../data-fetching/index.js'
-import { reconcileLabelsForContent as reconcileLabelsUtil } from '../label-operations/index.js'
+import {
+  buildReconcilerDeps,
+  reconcileLabelsForContent as reconcileLabelsUtil,
+} from '../label-operations/index.js'
 import { isUserTaggingSystemTag as isUserTaggingSystemTagUtil } from '../label-operations/label-validator.js'
 import {
   buildRadarrMatchingCache,
@@ -33,7 +36,6 @@ import {
   clearSonarrMatchingCache,
   resolveContentToPlexItems,
 } from '../matching/index.js'
-import { queueUnavailableContent } from '../tracking/queue-manager.js'
 import { groupWatchlistItemsByContent } from '../utils/content-grouper.js'
 
 /**
@@ -291,10 +293,28 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
 
     // Step 5: Queue unavailable content for pending sync
     if (unavailable.length > 0) {
-      await queueUnavailableContent(unavailable, {
-        db: deps.db,
-        logger: deps.logger,
-      })
+      let queuedCount = 0
+      for (const content of unavailable) {
+        for (const user of content.users) {
+          try {
+            await deps.db.createPendingLabelSync(
+              user.watchlist_id,
+              content.title,
+              10,
+            )
+            queuedCount++
+          } catch (error) {
+            deps.logger.error(
+              { watchlistId: user.watchlist_id, title: content.title, error },
+              'Failed to queue pending label sync',
+            )
+          }
+        }
+      }
+      deps.logger.info(
+        { contentCount: unavailable.length, queuedWatchlistItems: queuedCount },
+        'Queued unavailable content for pending sync',
+      )
       result.pending = unavailable.reduce(
         (sum, content) => sum + content.users.length,
         0,
@@ -359,16 +379,7 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
               contentItems,
               radarrMoviesWithTags,
               sonarrSeriesWithTags,
-              {
-                plexServer: deps.plexServer,
-                db: deps.db,
-                logger: deps.logger,
-                config: deps.config,
-                removedLabelMode: deps.removedLabelMode,
-                removedLabelPrefix: deps.removedLabelPrefix,
-                tagPrefix: deps.tagPrefix,
-                removedTagPrefix: deps.removedTagPrefix,
-              },
+              buildReconcilerDeps(deps),
             )
 
             const contentResult = {
