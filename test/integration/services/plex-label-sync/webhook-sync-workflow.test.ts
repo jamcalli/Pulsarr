@@ -9,7 +9,6 @@ import type { WebhookPayload } from '@schemas/notifications/webhook.schema.js'
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
 import {
   syncLabelForNewWatchlistItem,
-  syncLabelForWatchlistItem,
   syncLabelsOnWebhook,
 } from '@services/plex-label-sync/orchestration/webhook-sync.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
@@ -246,14 +245,14 @@ describe('Webhook Sync → Workflow Integration', () => {
     it('should handle multiple users with same content', async () => {
       const knex = getTestDatabase()
 
-      // Create watchlist items for both users
+      // Create watchlist items for both users (same content, same key)
       await knex('watchlist_items').insert([
         {
           user_id: SEED_USERS[0].id,
           guids: JSON.stringify(['imdb:tt0111161', 'tmdb:278']),
           type: 'movie',
           title: 'The Shawshank Redemption',
-          key: 'test-key-webhook-multi-1',
+          key: 'test-key-webhook-multi',
           status: 'grabbed',
         },
         {
@@ -261,7 +260,7 @@ describe('Webhook Sync → Workflow Integration', () => {
           guids: JSON.stringify(['imdb:tt0111161', 'tmdb:278']),
           type: 'movie',
           title: 'The Shawshank Redemption',
-          key: 'test-key-webhook-multi-2',
+          key: 'test-key-webhook-multi',
           status: 'grabbed',
         },
       ])
@@ -345,8 +344,18 @@ describe('Webhook Sync → Workflow Integration', () => {
       // Verify success
       expect(result).toBe(true)
 
-      // Verify both user labels applied
-      expect(mockUpdateLabels).toHaveBeenCalledTimes(2)
+      // Content-centric: both users reconciled in a single Plex update
+      expect(mockUpdateLabels).toHaveBeenCalledTimes(1)
+      expect(mockUpdateLabels).toHaveBeenCalledWith(
+        '12345',
+        expect.arrayContaining([
+          'pulsarr:test-user-primary',
+          'pulsarr:test-user-discord-apprise',
+          'pulsarr:action',
+        ]),
+      )
+      // Exactly 3 labels - both users + tag
+      expect(mockUpdateLabels.mock.calls[0][1]).toHaveLength(3)
 
       // Verify tracking records for both users
       const tracking = await knex('plex_label_tracking')
@@ -577,153 +586,6 @@ describe('Webhook Sync → Workflow Integration', () => {
         watchlistItem.title,
         ['action'], // Fetched tags should be included
       )
-    })
-  })
-
-  describe('syncLabelForWatchlistItem', () => {
-    it('should sync labels for single watchlist item', async () => {
-      const knex = getTestDatabase()
-
-      // Create watchlist item
-      const [watchlistItem] = await knex('watchlist_items')
-        .insert({
-          user_id: SEED_USERS[0].id,
-          guids: JSON.stringify(['imdb:tt0111161', 'tmdb:278']),
-          type: 'movie',
-          title: 'Test Movie',
-          key: 'test-key-single',
-          status: 'grabbed',
-        })
-        .returning('*')
-
-      // Mock PlexServer
-      const mockSearchByGuid = vi.fn().mockResolvedValue([
-        {
-          ratingKey: '12345',
-          title: 'Test Movie',
-          type: 'movie',
-        },
-      ])
-
-      const mockGetMetadata = vi.fn().mockResolvedValue({
-        ratingKey: '12345',
-        key: '/library/metadata/12345',
-        guid: 'plex://movie/test',
-        type: 'movie',
-        title: 'Test Movie',
-        Label: [],
-      })
-
-      const mockUpdateLabels = vi.fn().mockResolvedValue(true)
-
-      app.plexServerService.searchByGuid = mockSearchByGuid
-      app.plexServerService.getMetadata = mockGetMetadata
-      app.plexServerService.updateLabels = mockUpdateLabels
-
-      const mockQueuePendingLabelSyncByWatchlistId = vi
-        .fn()
-        .mockResolvedValue(undefined)
-
-      // Sync single watchlist item
-      const result = await syncLabelForWatchlistItem(
-        Number(watchlistItem.id),
-        watchlistItem.title,
-        ['action', 'drama'], // webhook tags
-        {
-          plexServer: app.plexServerService,
-          db: app.db,
-          logger: app.log,
-          config: {
-            ...app.config.plexLabelSync,
-            enabled: true,
-            tagSync: {
-              enabled: true,
-              syncRadarrTags: true,
-              syncSonarrTags: false,
-            },
-          } as PlexLabelSyncConfig,
-          radarrManager: {} as RadarrManagerService,
-          sonarrManager: {} as SonarrManagerService,
-          fastify: app,
-          labelPrefix: 'pulsarr',
-          removedLabelPrefix: 'pulsarr:removed',
-          removedLabelMode: 'remove',
-          tagPrefix: 'pulsarr:user',
-          removedTagPrefix: 'pulsarr:removed',
-          extractContentGuidFromWebhook: vi.fn(),
-          extractTagsFromWebhook: vi.fn(),
-          queuePendingLabelSyncByWatchlistId:
-            mockQueuePendingLabelSyncByWatchlistId,
-          fetchTagsForWatchlistItem: vi.fn(),
-        },
-      )
-
-      // Verify success
-      expect(result).toBe(true)
-
-      // Verify GUID resolution
-      expect(mockSearchByGuid).toHaveBeenCalledWith(
-        'plex://movie/test-key-single',
-      )
-
-      // Verify labels applied with webhook tags
-      expect(mockUpdateLabels).toHaveBeenCalledWith('12345', [
-        'pulsarr:test-user-primary',
-        'pulsarr:action',
-        'pulsarr:drama',
-      ])
-    })
-
-    it('should return false when watchlist item missing Plex key', async () => {
-      const knex = getTestDatabase()
-
-      // Create watchlist item without Plex key
-      const [watchlistItem] = await knex('watchlist_items')
-        .insert({
-          user_id: SEED_USERS[0].id,
-          guids: JSON.stringify(['imdb:tt0111161', 'tmdb:278']),
-          type: 'movie',
-          title: 'No Key Movie',
-          key: '', // Empty key (no Plex key available)
-          status: 'pending',
-        })
-        .returning('*')
-
-      const mockQueuePendingLabelSyncByWatchlistId = vi
-        .fn()
-        .mockResolvedValue(undefined)
-
-      // Sync single watchlist item
-      const result = await syncLabelForWatchlistItem(
-        Number(watchlistItem.id),
-        watchlistItem.title,
-        [],
-        {
-          plexServer: app.plexServerService,
-          db: app.db,
-          logger: app.log,
-          config: {
-            ...app.config.plexLabelSync,
-            enabled: true,
-          } as PlexLabelSyncConfig,
-          radarrManager: {} as RadarrManagerService,
-          sonarrManager: {} as SonarrManagerService,
-          fastify: app,
-          labelPrefix: 'pulsarr',
-          removedLabelPrefix: 'pulsarr:removed',
-          removedLabelMode: 'remove',
-          tagPrefix: 'pulsarr:user',
-          removedTagPrefix: 'pulsarr:removed',
-          extractContentGuidFromWebhook: vi.fn(),
-          extractTagsFromWebhook: vi.fn(),
-          queuePendingLabelSyncByWatchlistId:
-            mockQueuePendingLabelSyncByWatchlistId,
-          fetchTagsForWatchlistItem: vi.fn(),
-        },
-      )
-
-      // Should return false
-      expect(result).toBe(false)
     })
   })
 })

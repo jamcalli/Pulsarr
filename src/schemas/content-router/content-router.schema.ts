@@ -1,6 +1,8 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { SERIES_TYPES } from '@root/schemas/content-router/constants.js'
+import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
 import { z } from 'zod'
+
 export { SERIES_TYPES }
 
 /**
@@ -158,6 +160,17 @@ export const ConditionSchema = z
     },
     {
       message: 'Condition must have field, operator, and value',
+    },
+  )
+  .refine(
+    (cond) => {
+      if (cond.operator !== 'regex') return true
+      if (typeof cond.value !== 'string') return false
+      return isRegexPatternSafe(cond.value)
+    },
+    {
+      message:
+        'Invalid or unsafe regex pattern. Must be valid syntax without catastrophic backtracking.',
     },
   )
 

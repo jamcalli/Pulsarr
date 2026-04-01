@@ -44,7 +44,7 @@ const approvalPlugin: FastifyPluginAsync = async (fastify) => {
         const currentSchedule = await fastify.db.getScheduleByName(
           'approval-maintenance',
         )
-        if (!currentSchedule || !currentSchedule.enabled) {
+        if (!currentSchedule?.enabled) {
           return
         }
 

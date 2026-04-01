@@ -13,6 +13,7 @@ export enum SonarrMonitoringOption {
   // Custom rolling options for progressive monitoring
   PILOT_ROLLING = 'pilotRolling', // Monitor pilot only, expand as watched
   FIRST_SEASON_ROLLING = 'firstSeasonRolling', // Monitor S1 only, expand as watched
+  ALL_SEASON_PILOT_ROLLING = 'allSeasonPilotRolling', // Monitor E01 of every season, expand each on watch
 }
 
 export interface SonarrAddOptions {
@@ -169,6 +170,7 @@ export interface SonarrSeries {
     releaseGroups?: string[]
     percentOfEpisodes?: number
   }
+  addOptions?: SonarrAddOptions | null
   languageProfileId?: number
   id: number
   episodeFiles?: Array<{
@@ -243,6 +245,7 @@ export interface WebhookNotification {
   }>
 }
 
+import type { NotificationUser } from '@root/types/config.types.js'
 import type { ContentItem } from '@root/types/router.types.js'
 
 export interface Item extends ContentItem {
@@ -338,17 +341,6 @@ export interface MediaNotification {
 }
 
 export interface NotificationResult {
-  user: {
-    apprise: string | null
-    discord_id: string | null
-    notify_apprise: boolean
-    notify_discord: boolean
-    notify_discord_mention: boolean
-    notify_plex_mobile: boolean
-    name: string
-    id: number
-    alias: string | null
-    can_sync: boolean
-  }
+  user: NotificationUser
   notification: MediaNotification
 }

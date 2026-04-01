@@ -41,10 +41,14 @@ services:
     volumes:
       - ./data:/app/data
       - .env:/app/.env
+    environment:
+      - PUID=1000
+      - PGID=1000
     restart: unless-stopped
     env_file:
       - .env
 ```
+
 
 3. Pull the image and run Docker Compose to start the service:
 
@@ -74,6 +78,18 @@ Pulsarr is available in the Unraid Community Applications (CA) store:
 4. Click "Install"
 5. Configure the container settings as needed
 6. Start the container
+
+### Truenas Installation
+
+Pulsarr is also available in the Truenas community app catalog:
+
+1. Open the Truenas web UI and sign in
+2. Navigate to the "Apps" panel
+3. Click "Discover Apps" and search for "Pulsarr"
+4. Click "Install"
+5. Configure the container settings as needed
+6. Click "Install"
+7. After the app is installed, click "WebUI" to verify the app is reachable
 
 Alternatively, you can use the Docker installation method described above.
 

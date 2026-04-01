@@ -12,6 +12,7 @@ export const SONARR_MONITORING_OPTIONS: Record<SonarrMonitoringType, string> = {
   pilot: 'Pilot Only',
   pilotRolling: 'Pilot Rolling (Auto-expand)',
   firstSeasonRolling: 'First Season Rolling (Auto-expand)',
+  allSeasonPilotRolling: 'All Seasons Pilot Rolling (Auto-expand)',
   recent: 'Recent Episodes',
   monitorSpecials: 'Monitor Specials',
   unmonitorSpecials: 'Unmonitor Specials',

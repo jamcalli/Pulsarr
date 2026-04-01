@@ -46,6 +46,20 @@ export interface JunctionTableField {
   sonarr_instance_id?: number | null
 }
 
+export interface SonarrShowWithEnrollmentStatus {
+  watchlist_id: number
+  sonarr_instance_id: number
+  sonarr_series_id: number
+  title: string
+  guids: string[]
+  rolling_show_id: number | null
+  monitoring_type:
+    | 'pilotRolling'
+    | 'firstSeasonRolling'
+    | 'allSeasonPilotRolling'
+    | null
+}
+
 export type WatchlistItemUpdate = Partial<
   Omit<
     DatabaseWatchlistItem,
@@ -54,6 +68,7 @@ export type WatchlistItemUpdate = Partial<
 > & {
   radarr_instance_id?: number | null
   sonarr_instance_id?: number | null
+  sonarr_series_id?: number
   last_notified_at?: string | null
   syncing?: boolean | null
 }

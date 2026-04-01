@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.10-alpine@sha256:32f1fcccb1523960b254c4f80973bee1a910d60be000a45c20c9129a1efcffee AS base
+FROM oven/bun:1.3.11-alpine@sha256:7ed9f74c326d1c260abe247ac423ccbf5ac92af62bb442d515d1f92f21e8ea9b AS base
 WORKDIR /app
 
 # Install production dependencies in a temp directory (cached independently)
@@ -9,7 +9,10 @@ RUN mkdir -p /temp/prod && \
     cp package.json bun.lock /temp/prod/ && \
     cp -r packages /temp/prod/packages && \
     cd /temp/prod && \
-    bun install --frozen-lockfile --production --ignore-scripts
+    bun install --frozen-lockfile --production --ignore-scripts && \
+    rm -rf node_modules/vite node_modules/rollup node_modules/esbuild \
+           node_modules/@rollup node_modules/@esbuild \
+           node_modules/rolldown node_modules/@rolldown
 
 # Build stage: full install + compile
 FROM base AS builder
@@ -31,10 +34,16 @@ RUN --mount=type=cache,target=/app/node_modules/.vite \
 # Final runtime image
 FROM base
 
-# tini for proper PID 1 zombie reaping, wget for healthcheck
-RUN apk add --no-cache tini wget
+# tini for proper PID 1 zombie reaping, wget for healthcheck, su-exec for privilege drop
+RUN apk add --no-cache tini wget su-exec
 
 ENV CACHE_DIR=/app/build-cache
+
+# Remove bun user from base image (occupies UID 1000) and create pulsarr user
+RUN deluser --remove-home bun && \
+    delgroup bun; \
+    addgroup -g 1000 -S pulsarr && \
+    adduser -u 1000 -G pulsarr -D -H -s /sbin/nologin pulsarr
 
 # Copy package files
 COPY package.json bun.lock ./
@@ -42,10 +51,11 @@ COPY packages ./packages
 # Production-only dependencies from the install stage
 COPY --from=install /temp/prod/node_modules ./node_modules
 
-# Create necessary directories
+# Create necessary directories with correct ownership
 RUN mkdir -p /app/data/db && \
-    mkdir -p /app/data/log && \
-    mkdir -p ${CACHE_DIR}
+    mkdir -p /app/data/logs && \
+    mkdir -p ${CACHE_DIR} && \
+    chown -R pulsarr:pulsarr /app/data /app/build-cache
 
 # Copy build artifacts
 COPY --from=builder /app/dist ./dist

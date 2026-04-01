@@ -168,6 +168,11 @@ export default function QuotaSettingsPage() {
             <Button
               type="button"
               size="sm"
+              aria-label={
+                isScheduleEnabled
+                  ? 'Disable quota schedule'
+                  : 'Enable quota schedule'
+              }
               onClick={() => toggleQuotaSchedule(!isScheduleEnabled)}
               disabled={isTogglingQuota || !quotaMaintenanceJob}
               variant={isScheduleEnabled ? 'error' : 'noShadow'}
@@ -186,6 +191,7 @@ export default function QuotaSettingsPage() {
             <Button
               type="button"
               size="sm"
+              aria-label="Run quota now"
               onClick={runQuotaNow}
               disabled={!isScheduleEnabled || isRunningQuota}
               variant="noShadow"

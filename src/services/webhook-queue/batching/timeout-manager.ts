@@ -21,7 +21,7 @@ export function createQueueTimeout(
   tvdbId: string,
   seasonNumber: number,
   deps: TimeoutManagerDeps,
-): NodeJS.Timeout {
+): ReturnType<typeof setTimeout> {
   const { logger, queue, queueWaitTime, processQueuedWebhooks } = deps
 
   return setTimeout(() => {

@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Layers,
   Loader2,
   RotateCcw,
   Trash2,
@@ -124,7 +125,7 @@ export function RollingShowsSheet({
     React.useState<VisibilityState>({})
 
   // Persistent table pagination
-  const { pageSize, setPageSize } = useTablePagination('rolling-shows', 15)
+  const { pageSize, setPageSize } = useTablePagination('rolling-shows', 10)
 
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = React.useState<{
@@ -205,13 +206,19 @@ export function RollingShowsSheet({
       header: () => <div>Type</div>,
       cell: ({ row }) => {
         const type = row.getValue('monitoring_type') as string
-        const displayType = type === 'pilotRolling' ? 'Pilot' : 'First Season'
-        const icon =
-          type === 'pilotRolling' ? (
-            <Activity className="h-4 w-4" />
-          ) : (
-            <Clock className="h-4 w-4" />
-          )
+
+        let displayType: string
+        let icon: React.ReactNode
+        if (type === 'pilotRolling') {
+          displayType = 'Pilot'
+          icon = <Activity className="h-4 w-4" />
+        } else if (type === 'allSeasonPilotRolling') {
+          displayType = 'All Season Pilot'
+          icon = <Layers className="h-4 w-4" />
+        } else {
+          displayType = 'First Season'
+          icon = <Clock className="h-4 w-4" />
+        }
 
         return (
           <Badge variant="neutral" className="text-xs">
@@ -221,7 +228,7 @@ export function RollingShowsSheet({
         )
       },
       meta: {
-        className: 'w-[120px]',
+        className: 'w-[150px]',
       },
     },
     {
@@ -581,6 +588,7 @@ export function RollingShowsSheet({
             <Button
               variant="noShadow"
               size="sm"
+              aria-label="Previous page"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage() || isLoading}
             >
@@ -590,6 +598,7 @@ export function RollingShowsSheet({
             <Button
               variant="noShadow"
               size="sm"
+              aria-label="Next page"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage() || isLoading}
             >

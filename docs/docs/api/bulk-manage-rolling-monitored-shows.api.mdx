@@ -1,0 +1,71 @@
+---
+id: bulk-manage-rolling-monitored-shows
+title: "Bulk manage rolling monitored shows"
+description: "Enroll new shows into rolling monitoring and/or change the monitoring type of already-enrolled shows in bulk"
+sidebar_label: "Bulk manage rolling monitored shows"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9V9tu2zgQ/RVinnYBuXLaLIroLb08BNtgjbh7AQw/0NLYYk2RKi9xDMP/vhiSshRb2W2BonlJwsuZ4Znb0QF0i4Y7odVdBQWsvNzec8U3+KClFGpzr5Vw2mA1r/XOQgaObywUC5ijtUIrlg4ItYFlBhXa0oiW8KCAj8poKZnCHbN0nQnlNDMRmTWnm4yrKteGlTVXG2SuxuGm27fI9JpxaZBX+wkGVKxOmIy8hgwMfvVo3Ttd7aE4hH+FwQoKZzxmUGrlUDna4m0rRRmenX+x5OsBbFljw+kvMggF6NUXLB1k0BoiyQm04Vwgoj/GjeF7yEA4bOw3XNeKGzNHI9AS5afzQjncoIEM8KmU3opHvBdKNL7pHtDwp/jvzXT69urm5vVv12+vpzc3V8cswd4p67gq8QcCO+EkDtCsC7E+ZrDxovoWIrobxwxS6CmXoovKS8lXZCB6kq4o36zQxCunKC7OuRt5dedv5925ySVB9rn1OZg79zQDVMTGAlohtUuVABmshbFujtxq1S9yKePSbHh4GVy36Ab10RtaaS2Rq8sHpiI783B5PMaTttXKxjx6PZ3Sr+cF9wHX3EvHHtJJ+HFZ78sSrR17QwYNWss341nSVetgs4suvbMSa/HCpt2Kth3dO2ct+dY7MjA7MNJDLjPgVSWICS5ng4euubQY2b7+yQQ77rx9ryscJaN8vjHg1xhtRndejEoGjVCfUG1cDcXVBZu9I8lsZ6SH/H/+gn1XaxoqrbbhvZzsQf54lds4PCZ9nuepTrslrPLU1S2aRzQ0cw7gjYQCDq3RTpdaHos8P9TaumNxaLVxRzifQO+9dbph84ABGTxyI6jfBMo7GPq7q/jauRay8MvGgRYCDkW38xz/c42sg2HeYsWcZqVuGq8oEZDthKvDQIvPoLiQwzGzOmipSy7ryNIlPm0o3iDTht3NGK8qg9bSRCTcmZeWGzPAJyae47+ZTt+Mu66NY1qxXS3K+gQlLDNeqdi0j1lHe+CkyPO99mbSxrMTkXrvq1I3FyZmRjTc7Dv6vwOqGHX5gzBYugTHbkPVs18CxfSSX88sFHl+YnYc8FO3PQq2pOQrvRFuH7KPt+J33N96SuPFkmylPD4tDW7Mqe5jng3v9dMyLNK4JEdq5FVIUAo0FPDP5HZ2N4kHnrt8O7tjW9wz7l2NyqV2w7wlqXS6xhIgtdGhjy+YL7XeCuzNp5BcGE+ib7LilOqjLkQoS5Z3uKq13s6xNOi+8/kpFyfx8oUjf0focRe4d3qyQUXClmRigHjF5kEs5A+8oiRPzlnGDbJSq7XYeINVV7DCJgoDWsPJhJT7V2H4UG9/6MXmxyfetFEkJXG4uNR50zGNNj3pq743J1m16FaWF7JpSnl2LmLOtcqF+CCBdSS+1zrEIdntiv52djeaa5UufYPKRYLX2pzaxIRxNpP4xHbclbUU1rEgNU1/NFJO8p5F2qkFo7ER/q+r2K6sa3iYlSn677zcsiZ8hZx/LHSq/9zVQz+Gf/ZXR0poh08ubyUXQRGFJnRII28Bj1dwKsTB0OvlaT/2IAsfYRT2OCgWcDhQvf1p5PFIy189GmpIy36cxX7UlRGl3xb3NP4iKZOQInRc+lh8ZzqFelm8QX2wdf95djkY7bM/5p/J4/TJ1QSVAobv6Gl8BwVABjoEKbTCsHYAydXGB20CEZN+/gVwtxyx
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Bulk manage rolling monitored shows"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/session-monitoring/rolling-monitored/bulk"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Enroll new shows into rolling monitoring and/or change the monitoring type of already-enrolled shows in bulk
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"shows":{"type":"array","items":{"type":"object","properties":{"sonarrSeriesId":{"type":"integer","exclusiveMinimum":true,"maximum":9007199254740991},"sonarrInstanceId":{"type":"integer","exclusiveMinimum":true,"maximum":9007199254740991},"title":{"type":"string"},"guids":{"type":"array","items":{"type":"string"}},"rollingShowId":{"nullable":true,"type":"number"}},"required":["sonarrSeriesId","sonarrInstanceId","title","guids","rollingShowId"]}},"monitoringType":{"type":"string","enum":["pilotRolling","firstSeasonRolling","allSeasonPilotRolling"]},"resetMonitoring":{"type":"boolean"}},"required":["shows","monitoringType"]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"enrolled":{"type":"number"},"modified":{"type":"number"},"skipped":{"type":"number"}},"required":["success","message","enrolled","modified","skipped"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

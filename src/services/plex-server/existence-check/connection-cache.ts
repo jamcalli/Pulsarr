@@ -76,17 +76,19 @@ export function getCachedConnection(
 
 /**
  * Tests connections in parallel using lightweight /identity endpoint.
- * Returns working connections sorted by preference (non-local, non-relay first).
+ * Returns only reachable connections in their original order.
  *
  * @param connections - Array of connections to test
  * @param accessToken - Token for authentication
  * @param logger - Logger instance
- * @returns Array of working connections sorted by preference
+ * @param timeoutMs - Per-connection timeout in milliseconds (default 2000)
+ * @returns Array of reachable connections
  */
-async function testConnections(
+export async function testConnectionReachability(
   connections: ConnectionCandidate[],
   accessToken: string,
   logger: FastifyBaseLogger,
+  timeoutMs = 2000,
 ): Promise<ConnectionCandidate[]> {
   const connectionTests = connections.map(async (conn) => {
     try {
@@ -95,7 +97,7 @@ async function testConnections(
           'X-Plex-Token': accessToken,
           'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
         },
-        signal: AbortSignal.timeout(2000), // 2s timeout for connection test
+        signal: AbortSignal.timeout(timeoutMs),
       })
 
       if (response.ok) {
@@ -113,22 +115,41 @@ async function testConnections(
 
   const results = await Promise.allSettled(connectionTests)
 
-  // Filter successful connections and sort by preference
   return results
     .filter(
       (r): r is PromiseFulfilledResult<ConnectionCandidate> =>
         r.status === 'fulfilled' && r.value !== null,
     )
     .map((r) => r.value)
-    .sort((a, b) => {
-      // Prefer non-local over local (local = friend's LAN, unreachable)
-      if (!a.local && b.local) return -1
-      if (a.local && !b.local) return 1
-      // Then prefer non-relay over relay
-      if (!a.relay && b.relay) return -1
-      if (a.relay && !b.relay) return 1
-      return 0
-    })
+}
+
+/**
+ * Tests connections in parallel using lightweight /identity endpoint.
+ * Returns working connections sorted by preference (non-local, non-relay first).
+ *
+ * @param connections - Array of connections to test
+ * @param accessToken - Token for authentication
+ * @param logger - Logger instance
+ * @returns Array of working connections sorted by preference
+ */
+async function testConnections(
+  connections: ConnectionCandidate[],
+  accessToken: string,
+  logger: FastifyBaseLogger,
+): Promise<ConnectionCandidate[]> {
+  const reachable = await testConnectionReachability(
+    connections,
+    accessToken,
+    logger,
+  )
+
+  return reachable.sort((a, b) => {
+    if (!a.local && b.local) return -1
+    if (a.local && !b.local) return 1
+    if (!a.relay && b.relay) return -1
+    if (a.relay && !b.relay) return 1
+    return 0
+  })
 }
 
 /**

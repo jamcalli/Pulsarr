@@ -1621,8 +1621,7 @@ export class ContentRouterService {
     for (const evaluator of this.evaluators) {
       if (
         evaluator.evaluateCondition &&
-        evaluator.canEvaluateConditionField &&
-        evaluator.canEvaluateConditionField(field)
+        evaluator.canEvaluateConditionField?.(field)
       ) {
         try {
           const result = evaluator.evaluateCondition(condition, item, context)
@@ -2556,7 +2555,7 @@ export class ContentRouterService {
       const proposedRouting =
         approvedRequest.proposedRouterDecision?.approval?.proposedRouting
 
-      if (!proposedRouting || !proposedRouting.instanceId) {
+      if (!proposedRouting?.instanceId) {
         this.log.error(
           { approvedRequest },
           'Approved request has invalid routing decision',

@@ -1,6 +1,13 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
+// Reusable monitoring type enum
+export const MonitoringTypeEnum = z.enum([
+  'pilotRolling',
+  'firstSeasonRolling',
+  'allSeasonPilotRolling',
+])
+
 // Base rolling monitored show schema
 const RollingMonitoredShowSchema = z.object({
   id: z.number(),
@@ -8,7 +15,7 @@ const RollingMonitoredShowSchema = z.object({
   tvdb_id: z.string().nullish(),
   imdb_id: z.string().nullish(),
   show_title: z.string(),
-  monitoring_type: z.enum(['pilotRolling', 'firstSeasonRolling']),
+  monitoring_type: MonitoringTypeEnum,
   current_monitored_season: z.number(),
   last_watched_season: z.number(),
   last_watched_episode: z.number(),
@@ -154,8 +161,109 @@ export const getInactiveRollingMonitoredSchema = {
   },
 }
 
-// Export inferred types following established patterns
+// Schema for getting Sonarr shows with enrollment status
+export const getSonarrShowsSchema = {
+  summary: 'Get Sonarr shows with enrollment status',
+  operationId: 'getSonarrShows',
+  description:
+    'Retrieve all Pulsarr-tracked Sonarr shows with their rolling monitoring enrollment status',
+  tags: ['Session Monitoring'],
+  querystring: z.object({
+    instanceId: z.coerce.number().int().positive().optional(),
+  }),
+  response: {
+    200: z.object({
+      success: z.boolean(),
+      shows: z.array(
+        z.object({
+          watchlistId: z.number(),
+          sonarrInstanceId: z.number(),
+          sonarrSeriesId: z.number(),
+          title: z.string(),
+          guids: z.array(z.string()),
+          rollingShowId: z.number().nullable(),
+          monitoringType: MonitoringTypeEnum.nullable(),
+        }),
+      ),
+    }),
+    400: ErrorSchema,
+  },
+}
+
+// Schema for bulk managing rolling monitored shows (enroll and/or modify)
+export const bulkManageRollingMonitoredSchema = {
+  summary: 'Bulk manage rolling monitored shows',
+  operationId: 'bulkManageRollingMonitoredShows',
+  description:
+    'Enroll new shows into rolling monitoring and/or change the monitoring type of already-enrolled shows in bulk',
+  tags: ['Session Monitoring'],
+  body: z.object({
+    shows: z.array(
+      z.object({
+        sonarrSeriesId: z.number().int().positive(),
+        sonarrInstanceId: z.number().int().positive(),
+        title: z.string(),
+        guids: z.array(z.string()),
+        rollingShowId: z.number().nullable(),
+      }),
+    ),
+    monitoringType: MonitoringTypeEnum,
+    resetMonitoring: z.boolean().optional(),
+  }),
+  response: {
+    200: z.object({
+      success: z.boolean(),
+      message: z.string(),
+      enrolled: z.number(),
+      modified: z.number(),
+      skipped: z.number(),
+    }),
+    400: ErrorSchema,
+  },
+}
+
+// Standalone response schemas for client-side validation via apiClient
+export const RollingMonitoredListResponseSchema =
+  getRollingMonitoredSchema.response[200]
+export const InactiveRollingMonitoredResponseSchema =
+  getInactiveRollingMonitoredSchema.response[200]
+export const RunSessionMonitorResponseSchema =
+  runSessionMonitorSchema.response[200]
+export const ResetRollingMonitoredResponseSchema =
+  resetRollingMonitoredSchema.response[200]
+export const DeleteRollingMonitoredResponseSchema =
+  deleteRollingMonitoredSchema.response[200]
+export const ResetInactiveShowsResponseSchema =
+  resetInactiveShowsSchema.response[200]
+export const SonarrShowsResponseSchema = getSonarrShowsSchema.response[200]
+export const BulkManageResponseSchema =
+  bulkManageRollingMonitoredSchema.response[200]
+
 export type RollingMonitoredShow = z.infer<typeof RollingMonitoredShowSchema>
 export type SessionMonitoringResult = z.infer<
   typeof SessionMonitoringResultSchema
 >
+export type RollingMonitoredListResponse = z.infer<
+  typeof RollingMonitoredListResponseSchema
+>
+export type InactiveRollingMonitoredResponse = z.infer<
+  typeof InactiveRollingMonitoredResponseSchema
+>
+export type RunSessionMonitorResponse = z.infer<
+  typeof RunSessionMonitorResponseSchema
+>
+export type ResetRollingMonitoredResponse = z.infer<
+  typeof ResetRollingMonitoredResponseSchema
+>
+export type DeleteRollingMonitoredResponse = z.infer<
+  typeof DeleteRollingMonitoredResponseSchema
+>
+export type ResetInactiveShowsResponse = z.infer<
+  typeof ResetInactiveShowsResponseSchema
+>
+export type SonarrShowsResponse = z.infer<typeof SonarrShowsResponseSchema>
+export type BulkManageResponse = z.infer<typeof BulkManageResponseSchema>
+export type BulkManageBody = z.infer<
+  typeof bulkManageRollingMonitoredSchema.body
+>
+export type MonitoringType = z.infer<typeof MonitoringTypeEnum>

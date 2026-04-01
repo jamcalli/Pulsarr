@@ -47,6 +47,9 @@ services:
     volumes:
       - ./data:/app/data
       - .env:/app/.env
+    environment:
+      - PUID=1000
+      - PGID=1000
     restart: unless-stopped
     env_file:
       - .env

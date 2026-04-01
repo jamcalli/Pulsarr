@@ -1,8 +1,10 @@
 import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 import {
+  bulkManageRollingMonitoredSchema,
   deleteRollingMonitoredSchema,
   getInactiveRollingMonitoredSchema,
   getRollingMonitoredSchema,
+  getSonarrShowsSchema,
   resetInactiveShowsSchema,
   resetRollingMonitoredSchema,
   runSessionMonitorSchema,
@@ -12,11 +14,7 @@ import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 /**
- * Resets a rolling monitored show's monitoring state to its original configuration based on its monitoring type.
- *
- * If the monitoring type is 'pilotRolling', the show is reset to monitor only the pilot episode. If 'firstSeasonRolling', it is reset to monitor only the first season.
- *
- * @param show - The rolling monitored show to reset.
+ * Resets a rolling monitored show's Sonarr state to match its monitoring type.
  */
 async function resetShowMonitoring(
   show: RollingMonitoredShow,
@@ -30,6 +28,12 @@ async function resetShowMonitoring(
     )
   } else if (show.monitoring_type === 'firstSeasonRolling') {
     await plexSessionMonitor.resetToFirstSeasonOnly(
+      show.sonarr_series_id,
+      show.sonarr_instance_id,
+      show.show_title,
+    )
+  } else if (show.monitoring_type === 'allSeasonPilotRolling') {
+    await plexSessionMonitor.resetToAllSeasonPilots(
       show.sonarr_series_id,
       show.sonarr_instance_id,
       show.show_title,
@@ -270,6 +274,159 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
         })
         return reply.internalServerError(
           'Failed to reset inactive rolling monitored shows',
+        )
+      }
+    },
+  )
+
+  // Get all Pulsarr-tracked Sonarr shows with their enrollment status
+  fastify.get(
+    '/sonarr-shows',
+    {
+      schema: getSonarrShowsSchema,
+    },
+    async (request, reply) => {
+      try {
+        const { instanceId } = request.query
+
+        const rows =
+          await fastify.db.getSonarrShowsWithEnrollmentStatus(instanceId)
+
+        return reply.send({
+          success: true,
+          shows: rows.map((row) => ({
+            watchlistId: row.watchlist_id,
+            sonarrInstanceId: row.sonarr_instance_id,
+            sonarrSeriesId: row.sonarr_series_id,
+            title: row.title,
+            guids: row.guids,
+            rollingShowId: row.rolling_show_id,
+            monitoringType: row.monitoring_type,
+          })),
+        })
+      } catch (error) {
+        logRouteError(request.log, request, error, {
+          message: 'Failed to fetch Sonarr shows with enrollment status',
+        })
+        return reply.internalServerError(
+          'Failed to fetch Sonarr shows with enrollment status',
+        )
+      }
+    },
+  )
+
+  // Bulk enroll and/or modify rolling monitored shows
+  fastify.post(
+    '/rolling-monitored/bulk',
+    {
+      schema: bulkManageRollingMonitoredSchema,
+    },
+    async (request, reply) => {
+      try {
+        const { shows, monitoringType, resetMonitoring = false } = request.body
+
+        if (shows.length === 0) {
+          return reply.badRequest('No shows provided')
+        }
+
+        let enrolled = 0
+        let modified = 0
+        let skipped = 0
+
+        for (const show of shows) {
+          if (show.rollingShowId === null) {
+            // Enroll: extract tvdbId from guids
+            const tvdbGuid = show.guids.find((g) =>
+              g.toLowerCase().startsWith('tvdb:'),
+            )
+            const tvdbId = tvdbGuid ? tvdbGuid.replace(/^tvdb:/i, '') : ''
+
+            const newId =
+              await fastify.plexSessionMonitor.createRollingMonitoredShow(
+                show.sonarrSeriesId,
+                show.sonarrInstanceId,
+                tvdbId,
+                show.title,
+                monitoringType,
+              )
+
+            if (resetMonitoring) {
+              const newShow =
+                await fastify.db.getRollingMonitoredShowById(newId)
+              if (newShow) {
+                await resetShowMonitoring(newShow, fastify.plexSessionMonitor)
+              }
+            }
+
+            // For allSeasonPilotRolling, seed E01 of every season
+            if (monitoringType === 'allSeasonPilotRolling') {
+              await fastify.plexSessionMonitor.monitorAllSeasonPilots(
+                show.sonarrSeriesId,
+                show.sonarrInstanceId,
+              )
+            }
+
+            enrolled++
+          } else {
+            // Modify: check if type actually changed
+            const existing = await fastify.db.getRollingMonitoredShowById(
+              show.rollingShowId,
+            )
+
+            if (!existing) {
+              skipped++
+              continue
+            }
+
+            if (existing.monitoring_type === monitoringType) {
+              skipped++
+              continue
+            }
+
+            const initialSeason =
+              monitoringType === 'allSeasonPilotRolling' ? 0 : 1
+
+            await fastify.db.updateRollingShowMonitoringType(
+              show.rollingShowId,
+              monitoringType,
+              initialSeason,
+            )
+
+            // Reset Sonarr state to match the new type
+            const updatedShow = await fastify.db.getRollingMonitoredShowById(
+              show.rollingShowId,
+            )
+            if (updatedShow) {
+              await resetShowMonitoring(updatedShow, fastify.plexSessionMonitor)
+            }
+
+            // Reset master record progress and delete user entries
+            await fastify.db.resetRollingMonitoredShowToOriginal(
+              show.rollingShowId,
+            )
+
+            modified++
+          }
+        }
+
+        const parts: string[] = []
+        if (enrolled > 0) parts.push(`${enrolled} enrolled`)
+        if (modified > 0) parts.push(`${modified} modified`)
+        if (skipped > 0) parts.push(`${skipped} skipped`)
+
+        return reply.send({
+          success: true,
+          message: `Bulk manage complete: ${parts.join(', ')}`,
+          enrolled,
+          modified,
+          skipped,
+        })
+      } catch (error) {
+        logRouteError(request.log, request, error, {
+          message: 'Failed to bulk manage rolling monitored shows',
+        })
+        return reply.internalServerError(
+          'Failed to bulk manage rolling monitored shows',
         )
       }
     },

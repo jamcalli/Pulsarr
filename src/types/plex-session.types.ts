@@ -8,16 +8,35 @@
  * Minimal Plex session as returned by /status/sessions
  */
 export interface PlexSession {
-  type: string // Must be "episode" to be processed
-  grandparentTitle: string // Series name
-  grandparentKey: string // Series metadata key (e.g., "/library/metadata/1234")
-  index: number // Episode number
+  type: string // "episode", "movie", "track", etc.
+  sessionKey: string // Unique per playback session (e.g., "92")
+  ratingKey: string // Episode rating key (e.g., "106942")
+  key: string // Episode metadata path (e.g., "/library/metadata/106942")
+  guid: string // Plex GUID (e.g., "plex://episode/...")
+  title: string // Episode title
+  parentRatingKey: string // Season rating key
+  parentKey: string // Season metadata path
   parentIndex: number // Season number
+  parentTitle: string // Season title (e.g., "Season 1")
+  parentGuid: string // Season Plex GUID
+  grandparentRatingKey: string // Series rating key
+  grandparentKey: string // Series metadata path (e.g., "/library/metadata/106940")
+  grandparentTitle: string // Series name
+  grandparentGuid: string // Series Plex GUID
+  index: number // Episode number
+  viewOffset: number // Current playback position in ms
+  duration: number // Total duration in ms
   User: {
     id: string
     title: string // Username
   }
+  Session: {
+    id: string
+    bandwidth: number
+    location: string
+  }
   librarySectionTitle: string // Library name
+  librarySectionID: string // Library section ID
 }
 
 /**
@@ -230,7 +249,10 @@ export interface RollingMonitoredShow {
   tvdb_id?: string
   imdb_id?: string
   show_title: string
-  monitoring_type: 'pilotRolling' | 'firstSeasonRolling'
+  monitoring_type:
+    | 'pilotRolling'
+    | 'firstSeasonRolling'
+    | 'allSeasonPilotRolling'
   current_monitored_season: number
   last_watched_season: number
   last_watched_episode: number
@@ -241,6 +263,41 @@ export interface RollingMonitoredShow {
   created_at: string
   updated_at: string
   last_updated_at: string
+}
+
+// Plex SSE playing event payload from /:/eventsource/notifications
+export interface PlexPlaySessionNotification {
+  sessionKey: string
+  clientIdentifier: string
+  guid: string
+  ratingKey: string
+  url: string
+  key: string
+  viewOffset: number
+  playQueueItemID: number
+  state: 'playing' | 'paused' | 'stopped' | 'buffering' | 'error'
+}
+
+// Plex SSE timeline event payload from /:/eventsource/notifications
+// Note: Plex sends sectionID and itemID as strings in named SSE events
+export interface PlexTimelineEntry {
+  itemID: number | string
+  parentItemID?: number | string
+  rootItemID?: number | string
+  identifier: string
+  sectionID: number | string
+  type: number
+  state: number
+  title: string
+  metadataState?: string
+  mediaState?: string
+  queueSize?: number
+  updatedAt?: number
+}
+
+// Plex SSE reachability event payload from /:/eventsource/notifications
+export interface PlexReachabilityNotification {
+  reachability: boolean
 }
 
 /**

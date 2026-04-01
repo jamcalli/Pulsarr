@@ -31,9 +31,11 @@ import {
   buildUniqueServerList,
   type CachedConnection,
   type CachedContentAvailability,
+  type ConnectionCandidate,
   checkContentOnServer,
   clearContentCacheForReconciliation,
   getBestServerConnection,
+  testConnectionReachability,
 } from './plex-server/existence-check/index.js'
 import {
   getCurrentLabels,
@@ -53,6 +55,15 @@ import {
 } from './plex-server/playlists/index.js'
 import { getAllPlexResources } from './plex-server/resources/resource-operations.js'
 import { getActiveSessions } from './plex-server/sessions/session-operations.js'
+import {
+  PlexEventSource,
+  type PlexSSEEventMap,
+} from './plex-server/sse/plex-event-source.js'
+import { SessionTracker } from './plex-server/sse/session-tracker.js'
+import {
+  type ContentScannedHandler,
+  TimelineDebouncer,
+} from './plex-server/sse/timeline-debouncer.js'
 
 // HTTP timeout constants
 const PLEX_API_TIMEOUT = 30000 // 30 seconds for Plex API operations
@@ -113,6 +124,14 @@ export class PlexServerService {
   private readonly CONNECTION_CACHE_TTL = 30 * 60 * 1000 // 30 minutes
   private readonly DEAD_SERVER_BACKOFF = 5 * 60 * 1000 // 5 minutes
   // Note: No CONTENT_CACHE_TTL - content cache is reconciliation-scoped
+
+  // SSE connection and session tracking
+  private eventSource: PlexEventSource | null = null
+  private sessionTracker: SessionTracker | null = null
+  private timelineDebouncer: TimelineDebouncer | null = null
+  private staleSweepInterval: ReturnType<typeof setInterval> | null = null
+  private static readonly STALE_SESSION_MS = 5 * 60 * 1000 // 5 minutes
+  private static readonly STALE_SWEEP_INTERVAL_MS = 60 * 1000 // 60 seconds
 
   /**
    * Creates a new PlexServerService instance
@@ -256,6 +275,7 @@ export class PlexServerService {
 
       // Retrieve server resources from Plex.tv API
       const resourcesUrl = new URL('/api/v2/resources', plexTvUrl)
+      resourcesUrl.searchParams.append('includeHttps', '1')
       const resourcesResponse = await fetch(resourcesUrl.toString(), {
         headers: {
           'User-Agent': USER_AGENT,
@@ -291,17 +311,19 @@ export class PlexServerService {
       const defaultUrl = 'http://localhost:32400'
 
       let server: PlexResource | undefined
-      let configMatchFound = false
-
       if (configUrl && configUrl !== defaultUrl) {
         // Find the server whose connections include the configured URL
         for (const candidate of serverResources) {
-          const match = candidate.connections.some((conn) =>
-            isSameServerEndpoint(conn.uri, configUrl),
+          const match = candidate.connections.some(
+            (conn) =>
+              isSameServerEndpoint(conn.uri, configUrl) ||
+              isSameServerEndpoint(
+                `http://${conn.address}:${conn.port}`,
+                configUrl,
+              ),
           )
           if (match) {
             server = candidate
-            configMatchFound = true
             this.log.debug(
               `Matched configured URL to server "${candidate.name}" (${candidate.clientIdentifier})`,
             )
@@ -336,14 +358,41 @@ export class PlexServerService {
         })
       }
 
-      // Sort connections by priority: local first, then non-relay, then relay
+      // Sort connections by priority: non-relay first, then local first
       connections.sort((a, b) => {
-        if (a.local && !b.local) return -1
-        if (!a.local && b.local) return 1
         if (!a.relay && b.relay) return -1
         if (a.relay && !b.relay) return 1
+        if (a.local && !b.local) return -1
+        if (!a.local && b.local) return 1
         return 0
       })
+
+      if (!(configUrl && configUrl !== defaultUrl) && connections.length > 0) {
+        const candidates: ConnectionCandidate[] = connections.map((c) => ({
+          uri: c.url,
+          local: c.local,
+          relay: c.relay,
+        }))
+
+        const reachable = await testConnectionReachability(
+          candidates,
+          adminToken,
+          this.log,
+        )
+
+        if (reachable.length > 0) {
+          const reachableUris = new Set(reachable.map((r) => r.uri))
+          const filtered = connections.filter((c) => reachableUris.has(c.url))
+          connections.splice(0, connections.length, ...filtered)
+          this.log.info(
+            `Filtered to ${connections.length} reachable connections (${candidates.length - connections.length} unreachable)`,
+          )
+        } else {
+          this.log.warn(
+            'All connection tests failed - keeping full list as fallback',
+          )
+        }
+      }
 
       // Mark the first one as default
       if (connections.length > 0) {
@@ -364,7 +413,7 @@ export class PlexServerService {
           this.log.debug(
             'Manually configured URL matches a discovered connection - setting as default',
           )
-        } else if (!configMatchFound) {
+        } else {
           // URL didn't match any server — add as manual override
           connections.push({
             url: configUrl,
@@ -1106,11 +1155,16 @@ export class PlexServerService {
       // Get or create playlists for all users
       const userPlaylists = await this.getOrCreateProtectionPlaylists(true)
 
-      if (userPlaylists.size === 0) {
-        this.log.warn(
-          `No "${playlistName}" playlists found or created for any users`,
+      // Owner always succeeds (admin token). If shared users exist
+      // but none got through, Plex has revoked token access.
+      const sharedUserCount = (await this.getPlexUsers()).length
+      const nonOwnerPlaylists = [...userPlaylists.keys()].filter(
+        (u) => u !== 'owner',
+      )
+      if (sharedUserCount > 0 && nonOwnerPlaylists.length === 0) {
+        throw new Error(
+          'Plex has removed shared user access tokens - playlist protection cannot function. Delete sync aborted to prevent content loss. Disable playlist protection to resume delete sync.',
         )
-        return protectedGuids
       }
 
       // Process each user's playlist
@@ -1206,7 +1260,8 @@ export class PlexServerService {
         { error },
         'Error getting protected items from user playlists:',
       )
-      return protectedGuids
+      // Rethrow so delete sync aborts rather than proceeding unprotected
+      throw error
     }
   }
 
@@ -1409,6 +1464,146 @@ export class PlexServerService {
   }
 
   /**
+   * Connect to Plex SSE notification endpoint for real-time event delivery.
+   * Polling jobs remain as a safety net - SSE provides faster reaction times.
+   */
+  async connectSSE(): Promise<void> {
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+
+    if (!token) {
+      this.log.warn('No Plex token available, skipping SSE connection')
+      return
+    }
+
+    this.sessionTracker = new SessionTracker(this.log)
+    this.timelineDebouncer = new TimelineDebouncer()
+
+    this.eventSource = new PlexEventSource({
+      serverUrl,
+      token,
+      logger: this.log,
+    })
+
+    this.eventSource.on('timeline', (entries) => {
+      this.timelineDebouncer?.handleTimelineEntries(entries)
+    })
+
+    this.eventSource.on('connected', () => {
+      this.log.info('SSE connected - reconciling with live sessions')
+      void this.reconcileSessionsOnConnect()
+    })
+
+    this.eventSource.on('disconnected', () => {
+      this.log.warn('SSE disconnected - polling continues as fallback')
+    })
+
+    // Start stale session sweep
+    this.staleSweepInterval = setInterval(() => {
+      if (this.sessionTracker) {
+        const stale = this.sessionTracker.sweepStale(
+          PlexServerService.STALE_SESSION_MS,
+        )
+        if (stale.length > 0) {
+          this.log.info(
+            { count: stale.length },
+            'Swept stale sessions from SSE tracker',
+          )
+        }
+      }
+    }, PlexServerService.STALE_SWEEP_INTERVAL_MS)
+
+    await this.eventSource.connect()
+  }
+
+  /**
+   * Disconnect SSE and clean up all related resources.
+   */
+  disconnectSSE(): void {
+    if (this.staleSweepInterval) {
+      clearInterval(this.staleSweepInterval)
+      this.staleSweepInterval = null
+    }
+    if (this.timelineDebouncer) {
+      this.timelineDebouncer.destroy()
+      this.timelineDebouncer = null
+    }
+    if (this.eventSource) {
+      this.eventSource.disconnect()
+      this.eventSource.removeAllListeners()
+      this.eventSource = null
+    }
+    if (this.sessionTracker) {
+      this.sessionTracker.clear()
+      this.sessionTracker = null
+    }
+  }
+
+  /**
+   * Subscribe to SSE events emitted by the Plex connection.
+   */
+  onSSE<K extends keyof PlexSSEEventMap>(
+    event: K,
+    handler: (...args: PlexSSEEventMap[K]) => void,
+  ): void {
+    this.eventSource?.on(event, handler)
+  }
+
+  /**
+   * Check if the SSE connection to Plex is currently active.
+   * Used by polling jobs to skip redundant work when SSE delivers events in real time.
+   */
+  isSSEConnected(): boolean {
+    return this.eventSource?.isConnected() ?? false
+  }
+
+  /**
+   * Unsubscribe from SSE events.
+   */
+  offSSE<K extends keyof PlexSSEEventMap>(
+    event: K,
+    handler: (...args: PlexSSEEventMap[K]) => void,
+  ): void {
+    this.eventSource?.off(event, handler)
+  }
+
+  /**
+   * Get the session tracker instance for SSE playing event filtering.
+   */
+  getSessionTracker(): SessionTracker | null {
+    return this.sessionTracker
+  }
+
+  /**
+   * Subscribe to debounced "content scanned" events from Plex timeline SSE.
+   * Fires after a 2-second quiet period following state-5 timeline entries.
+   */
+  onContentScanned(handler: ContentScannedHandler): void {
+    this.timelineDebouncer?.onContentScanned(handler)
+  }
+
+  /**
+   * On SSE reconnect, hydrate the session tracker with any sessions that
+   * started while we were disconnected.
+   */
+  private async reconcileSessionsOnConnect(): Promise<void> {
+    try {
+      const liveSessions = await this.getActiveSessions()
+      if (liveSessions.length === 0) return
+
+      const added = this.sessionTracker?.hydrate(liveSessions) ?? 0
+      if (added > 0) {
+        this.log.info(
+          { total: liveSessions.length, added },
+          'Hydrated session tracker from live sessions on SSE connect',
+        )
+      }
+    } catch (error) {
+      this.log.warn({ error }, 'Failed to reconcile sessions on SSE connect')
+    }
+  }
+
+  /**
    * Clears only the workflow-specific caches
    * Should be called at the end of a delete sync workflow
    */
@@ -1504,6 +1699,157 @@ export class PlexServerService {
    */
   clearContentCacheForReconciliation(): void {
     clearContentCacheForReconciliation(this.contentAvailabilityCache, this.log)
+  }
+
+  /**
+   * Checks if the owner's Plex server is reachable via the /identity endpoint.
+   * Used as a pre-flight check before processing watchlist items when
+   * skipIfExistsOnPlex is enabled - if the primary server is down, we can't
+   * trust "not found" results and must abort to prevent mass-routing.
+   *
+   * @returns Promise resolving to health status with reachable flag
+   */
+  async checkPlexServerHealth(): Promise<{
+    reachable: boolean
+    serverName: string | null
+  }> {
+    try {
+      const ownerConnections = await this.getPlexServerConnectionInfo()
+
+      if (ownerConnections.length === 0) {
+        this.log.warn('No owner server connections available for health check')
+        return { reachable: false, serverName: this.serverName }
+      }
+
+      const candidates: ConnectionCandidate[] = ownerConnections.map((c) => ({
+        uri: c.url,
+        local: c.local,
+        relay: c.relay,
+      }))
+
+      const reachable = await testConnectionReachability(
+        candidates,
+        this.config.plexTokens?.[0] || '',
+        this.log,
+      )
+
+      if (reachable.length === 0) {
+        this.log.warn(
+          { serverName: this.serverName },
+          'Plex server health check failed - no connections reachable',
+        )
+        return { reachable: false, serverName: this.serverName }
+      }
+
+      // /identity only confirms the HTTP server is up. During startup
+      // maintenance or DB migrations, Plex returns 503 on authenticated
+      // endpoints and library queries return empty results. Probe
+      // /library/sections to verify the library is actually queryable.
+      const token = this.config.plexTokens?.[0] || ''
+      const serverUri = reachable[0].uri
+      const libraryReady = await this.waitForLibraryReady(serverUri, token)
+
+      if (!libraryReady) {
+        this.log.warn(
+          { serverName: this.serverName },
+          'Plex server is reachable but library is not ready (maintenance or still starting)',
+        )
+        return { reachable: false, serverName: this.serverName }
+      }
+
+      this.log.debug(
+        { serverName: this.serverName, reachableCount: reachable.length },
+        'Plex server health check passed',
+      )
+      return { reachable: true, serverName: this.serverName }
+    } catch (error) {
+      this.log.error(
+        { error, serverName: this.serverName },
+        'Error during Plex server health check',
+      )
+      return { reachable: false, serverName: this.serverName }
+    }
+  }
+
+  /**
+   * Polls /library/sections until the library is queryable or the retry
+   * budget is exhausted. Plex returns 503 during startup maintenance and
+   * DB migrations - hitting the library in that state causes empty results
+   * that look like "content not found" and triggers false routing.
+   */
+  private async waitForLibraryReady(
+    serverUri: string,
+    token: string,
+    maxAttempts = 12,
+    intervalMs = 5000,
+  ): Promise<boolean> {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await fetch(`${serverUri}/library/sections`, {
+          headers: {
+            Accept: 'application/json',
+            'X-Plex-Token': token,
+            'X-Plex-Client-Identifier': PLEX_CLIENT_IDENTIFIER,
+          },
+          signal: AbortSignal.timeout(5000),
+        })
+
+        if (response.status === 503) {
+          this.log.info(
+            { attempt, maxAttempts, serverName: this.serverName },
+            'Plex server in maintenance mode, waiting for library to become ready',
+          )
+          await new Promise((resolve) => setTimeout(resolve, intervalMs))
+          continue
+        }
+
+        if (response.status === 401 || response.status === 403) {
+          this.log.error(
+            { status: response.status, serverName: this.serverName },
+            'Plex library probe failed due to invalid or unauthorized token',
+          )
+          return false
+        }
+
+        if (!response.ok) {
+          this.log.warn(
+            { status: response.status, attempt },
+            'Unexpected response from /library/sections',
+          )
+          await new Promise((resolve) => setTimeout(resolve, intervalMs))
+          continue
+        }
+
+        const data = (await response.json()) as {
+          MediaContainer?: { Directory?: Array<{ key: string }> }
+        }
+
+        const sections = data?.MediaContainer?.Directory ?? []
+        if (sections.length > 0) {
+          if (attempt > 1) {
+            this.log.info(
+              { attempt, sectionCount: sections.length },
+              'Plex library is now ready',
+            )
+          }
+          return true
+        }
+
+        this.log.info(
+          { attempt, maxAttempts },
+          'Plex returned no library sections, waiting for library to load',
+        )
+        await new Promise((resolve) => setTimeout(resolve, intervalMs))
+      } catch (error) {
+        this.log.debug(
+          { error, attempt, maxAttempts },
+          'Error probing /library/sections',
+        )
+        await new Promise((resolve) => setTimeout(resolve, intervalMs))
+      }
+    }
+
+    return false
   }
 
   /**

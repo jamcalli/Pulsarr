@@ -11,8 +11,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
       try {
         const response = await fastify.plexWatchlist.generateAndSaveRssFeeds()
         return reply.send(response)
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to generate RSS feeds',
         })
         return reply.internalServerError('Unable to fetch watchlist URLs')

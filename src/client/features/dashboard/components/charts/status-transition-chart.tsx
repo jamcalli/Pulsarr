@@ -214,7 +214,7 @@ export function StatusTransitionsChart() {
           />
           <Tooltip
             content={(props: TooltipProps<number, string>) => {
-              if (!props.active || !props.payload || !props.payload.length) {
+              if (!props.active || !props.payload?.length) {
                 return null
               }
               const data = props.payload[0].payload as {

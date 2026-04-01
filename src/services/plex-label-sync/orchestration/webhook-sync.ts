@@ -19,11 +19,16 @@ import {
 } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
-import { applyLabelsToSingleItem as applyLabelsUtil } from '../label-operations/index.js'
+import {
+  buildReconcilerDeps,
+  reconcileLabelsForSingleItem,
+} from '../label-operations/index.js'
+import { computeDesiredTagLabels } from '../label-operations/label-validator.js'
+import {
+  createItemGuidResolver,
+  trackLabelsForUsers,
+} from '../tracking/content-tracker.js'
 
-/**
- * Dependencies required for webhook synchronization operations
- */
 export interface WebhookSyncDeps {
   plexServer: PlexServerService
   db: DatabaseService
@@ -59,11 +64,7 @@ export interface WebhookSyncDeps {
 
 /**
  * Synchronizes labels for content when a webhook is received.
- * This is the main entry point for real-time label updates.
- *
- * @param webhook - The webhook payload from Sonarr/Radarr
- * @param deps - Service dependencies
- * @returns Promise resolving to true if sync was successful, false otherwise
+ * Gathers all users for the content and reconciles labels in a single pass.
  */
 export async function syncLabelsOnWebhook(
   webhook: WebhookPayload,
@@ -85,7 +86,6 @@ export async function syncLabelsOnWebhook(
       'Processing webhook for label sync',
     )
 
-    // Extract content GUID and type from webhook
     const contentData = deps.extractContentGuidFromWebhook(webhook)
     if (!contentData) {
       deps.logger.warn(
@@ -108,8 +108,6 @@ export async function syncLabelsOnWebhook(
     }
 
     const { guids, contentType } = contentData
-
-    // Extract tag data from webhook if tag sync is enabled
     const webhookTags = deps.extractTagsFromWebhook(webhook)
 
     deps.logger.debug(
@@ -123,7 +121,7 @@ export async function syncLabelsOnWebhook(
       'Extracted content data from webhook',
     )
 
-    // Get watchlist items that match this GUID (use first GUID for database lookup)
+    // Get all watchlist items matching this content
     const watchlistItems = await deps.db.getWatchlistItemsByGuid(guids[0])
     if (watchlistItems.length === 0) {
       deps.logger.debug(
@@ -152,45 +150,133 @@ export async function syncLabelsOnWebhook(
       'Found watchlist items for webhook content',
     )
 
-    // Process each watchlist item directly using Plex keys
-    let allSuccessful = true
-    for (const item of watchlistItems) {
-      if (!item.key) {
-        deps.logger.warn(
-          {
-            itemId: item.id,
-            title: item.title,
-            webhookTags: webhookTags.length,
-          },
-          'Watchlist item missing Plex key, queuing for pending sync',
-        )
+    // Split items by whether they have a Plex key
+    const itemsWithKey = watchlistItems.filter((item) => item.key)
+    const itemsWithoutKey = watchlistItems.filter((item) => !item.key)
+
+    // Queue items without Plex keys for pending sync
+    for (const item of itemsWithoutKey) {
+      deps.logger.warn(
+        {
+          itemId: item.id,
+          title: item.title,
+          webhookTags: webhookTags.length,
+        },
+        'Watchlist item missing Plex key, queuing for pending sync',
+      )
+      await deps.queuePendingLabelSyncByWatchlistId(
+        Number(item.id),
+        item.title,
+        webhookTags,
+      )
+    }
+
+    if (itemsWithKey.length === 0) {
+      return true
+    }
+
+    // Gather all users for this content
+    const userIds = new Set(itemsWithKey.map((item) => item.user_id))
+    const allUsers = await deps.db.getAllUsers()
+    const relevantUsers = allUsers.filter((u) => userIds.has(u.id))
+
+    const users = relevantUsers
+      .map((u) => {
+        const matchingItem = itemsWithKey.find((item) => item.user_id === u.id)
+        if (!matchingItem) return null
+        return {
+          user_id: u.id,
+          username: u.name || `user_${u.id}`,
+          watchlist_id: Number(matchingItem.id),
+        }
+      })
+      .filter(
+        (u): u is { user_id: number; username: string; watchlist_id: number } =>
+          u !== null,
+      )
+
+    // Compute desired labels for all users
+    const desiredUserLabels = users.map(
+      (u) => `${deps.labelPrefix}:${u.username}`,
+    )
+
+    const desiredTagLabels = computeDesiredTagLabels(
+      webhookTags,
+      contentType,
+      deps.config.tagSync,
+      deps.tagPrefix,
+      deps.removedTagPrefix,
+      deps.labelPrefix,
+    )
+
+    // Resolve to Plex items using first item's key
+    // itemsWithKey is filtered to items where key is truthy
+    const firstItem = itemsWithKey[0]
+    const fullGuid = buildPlexGuid(
+      contentType === 'show' ? 'show' : 'movie',
+      firstItem.key as string,
+    )
+    const plexItems = await deps.plexServer.searchByGuid(fullGuid)
+
+    if (plexItems.length === 0) {
+      deps.logger.debug(
+        { guids, contentType, fullGuid },
+        'Content not found in Plex library',
+      )
+      for (const item of itemsWithKey) {
         await deps.queuePendingLabelSyncByWatchlistId(
           Number(item.id),
           item.title,
           webhookTags,
         )
+      }
+      return false
+    }
+
+    // Reconcile labels for each Plex item (handles multiple versions)
+    let allSuccessful = true
+    for (const plexItem of plexItems) {
+      deps.logger.debug(
+        {
+          ratingKey: plexItem.ratingKey,
+          title: firstItem.title,
+          userCount: users.length,
+          hasWebhookTags: desiredTagLabels.length > 0,
+        },
+        'Reconciling labels for Plex item',
+      )
+
+      const result = await reconcileLabelsForSingleItem(
+        plexItem.ratingKey,
+        desiredUserLabels,
+        desiredTagLabels,
+        firstItem.title,
+        buildReconcilerDeps(deps),
+      )
+
+      if (!result.success) {
+        allSuccessful = false
         continue
       }
 
-      const success = await syncLabelForWatchlistItem(
-        Number(item.id),
-        item.title,
-        webhookTags,
-        deps,
-      )
-      if (!success) {
-        allSuccessful = false
-      }
+      await trackLabelsForUsers({
+        ratingKey: plexItem.ratingKey,
+        users,
+        getGuidsForUser: createItemGuidResolver(
+          itemsWithKey,
+          plexItem.ratingKey,
+        ),
+        tagLabels: desiredTagLabels,
+        contentType: contentType === 'show' ? 'show' : 'movie',
+        labelPrefix: deps.labelPrefix,
+        db: deps.db,
+        logger: deps.logger,
+      })
     }
 
     if (allSuccessful) {
       deps.logger.info(
-        {
-          guids,
-          contentType,
-          itemCount: watchlistItems.length,
-          labelsApplied: true,
-        },
+        { guids, contentType, itemCount: watchlistItems.length },
         'Webhook label sync completed successfully',
       )
     } else {
@@ -199,10 +285,9 @@ export async function syncLabelsOnWebhook(
           guids,
           contentType,
           itemCount: watchlistItems.length,
-          labelsApplied: false,
-          note: 'Content not yet available in Plex, queued for pending sync',
+          note: 'Some Plex items failed to update',
         },
-        'Webhook label sync completed with some items queued for retry',
+        'Webhook label sync completed with some failures',
       )
     }
 
@@ -215,13 +300,7 @@ export async function syncLabelsOnWebhook(
 
 /**
  * Immediately syncs labels for a newly added watchlist item with tag fetching.
- * This method attempts to fetch tags from *arr instances and apply them immediately.
- *
- * @param watchlistItemId - The watchlist item ID
- * @param title - The content title
- * @param fetchTags - Whether to fetch tags from *arr instances
- * @param deps - Service dependencies
- * @returns Promise resolving to true if successful, false otherwise (queues for later if not found)
+ * Gathers all users who have this content and reconciles in one pass.
  */
 export async function syncLabelForNewWatchlistItem(
   watchlistItemId: number,
@@ -229,42 +308,31 @@ export async function syncLabelForNewWatchlistItem(
   fetchTags: boolean,
   deps: WebhookSyncDeps,
 ): Promise<boolean> {
+  let tags: string[] = []
+
   try {
-    // Get the watchlist item details including GUIDs for targeted lookup
-    const watchlistItem = await deps.db
-      .knex('watchlist_items')
-      .where('id', watchlistItemId)
-      .select('id', 'title', 'key', 'user_id', 'type', 'guids')
-      .first()
+    const watchlistItem = await deps.db.getWatchlistItemById(watchlistItemId)
 
     if (!watchlistItem) {
       deps.logger.warn(
-        {
-          watchlistItemId,
-          title,
-        },
+        { watchlistItemId, title },
         'Watchlist item not found for immediate sync',
       )
       return false
     }
 
-    // Fetch tags if requested and tag sync is enabled
-    let tags: string[] = []
     if (fetchTags && deps.config.tagSync.enabled) {
-      // Use existing GUID utility helpers to extract TMDB/TVDB IDs for targeted lookup
-      const tmdbId = extractTmdbId(watchlistItem.guids) || undefined
-      const tvdbId = extractTvdbId(watchlistItem.guids) || undefined
-      const parsedGuids = parseGuids(watchlistItem.guids)
+      const guids = parseGuids(watchlistItem.guids)
+      const tmdbId = extractTmdbId(guids) || undefined
+      const tvdbId = extractTvdbId(guids) || undefined
 
-      // Create enhanced watchlist item object for targeted tag fetching
-      const enhancedWatchlistItem = {
+      tags = await deps.fetchTagsForWatchlistItem({
         ...watchlistItem,
-        guids: parsedGuids,
+        id: watchlistItemId,
+        guids,
         tmdbId,
         tvdbId,
-      }
-
-      tags = await deps.fetchTagsForWatchlistItem(enhancedWatchlistItem)
+      })
       deps.logger.debug(
         {
           watchlistItemId,
@@ -274,31 +342,25 @@ export async function syncLabelForNewWatchlistItem(
           tagsFound: tags.length,
           tags,
         },
-        'Fetched tags for new watchlist item using targeted approach',
+        'Fetched tags for new watchlist item',
       )
     }
 
-    // Attempt immediate sync with fetched tags
-    const success = await syncLabelForWatchlistItem(
-      watchlistItemId,
-      title,
+    // Attempt content-centric sync
+    const success = await syncContentForWatchlistItem(
+      { ...watchlistItem, id: watchlistItemId },
       tags,
       deps,
     )
 
     if (!success) {
-      // If immediate sync failed, queue for later with the fetched tags
       await deps.queuePendingLabelSyncByWatchlistId(
         watchlistItemId,
         title,
         tags,
       )
       deps.logger.debug(
-        {
-          watchlistItemId,
-          title,
-          tagsQueued: tags.length,
-        },
+        { watchlistItemId, title, tagsQueued: tags.length },
         'Queued watchlist item with fetched tags for later sync',
       )
     }
@@ -306,190 +368,140 @@ export async function syncLabelForNewWatchlistItem(
     return success
   } catch (error) {
     deps.logger.error(
-      {
-        error,
-        watchlistItemId,
-        title,
-      },
+      { error, watchlistItemId, title },
       'Error in immediate sync for new watchlist item',
     )
-
-    // Fallback to queuing without tags
-    await deps.queuePendingLabelSyncByWatchlistId(watchlistItemId, title, [])
+    await deps.queuePendingLabelSyncByWatchlistId(watchlistItemId, title, tags)
     return false
   }
 }
 
 /**
- * Syncs labels for a single watchlist item by resolving GUID to rating key.
- *
- * @param watchlistItemId - The watchlist item ID
- * @param title - The content title
- * @param webhookTags - Optional tags from webhook for immediate tag sync
- * @param deps - Service dependencies
- * @returns Promise resolving to true if successful, false otherwise
+ * Content-centric sync for a single watchlist item. Gathers all users who have
+ * the same content and reconciles labels for all of them in one pass.
  */
-export async function syncLabelForWatchlistItem(
-  watchlistItemId: number,
-  title: string,
-  webhookTags: string[] | undefined,
+async function syncContentForWatchlistItem(
+  watchlistItem: {
+    id: string | number
+    title: string
+    key: string | null
+    user_id: number
+    type?: string
+    guids?: string | string[]
+  },
+  webhookTags: string[],
   deps: WebhookSyncDeps,
 ): Promise<boolean> {
-  try {
-    // Get the full watchlist item details
-    const watchlistItem = await deps.db
-      .knex('watchlist_items')
-      .where('id', watchlistItemId)
-      .select('id', 'title', 'key', 'user_id', 'type')
-      .first()
-
-    if (!watchlistItem) {
-      deps.logger.warn(
-        {
-          watchlistItemId,
-          title,
-        },
-        'Watchlist item not found',
-      )
-      return false
-    }
-
-    if (!watchlistItem.key) {
-      deps.logger.warn(
-        {
-          itemId: watchlistItem.id,
-          title: watchlistItem.title,
-        },
-        'Watchlist item missing Plex key',
-      )
-      return false
-    }
-
-    // Get user information
-    const user = await deps.db
-      .knex('users')
-      .where('id', watchlistItem.user_id)
-      .select('id', 'name')
-      .first()
-
-    if (!user) {
-      deps.logger.warn(
-        {
-          itemId: watchlistItem.id,
-          userId: watchlistItem.user_id,
-        },
-        'User not found for watchlist item',
-      )
-      return false
-    }
-
-    const username = user.name || `user_${user.id}`
-
-    // Resolve GUID part to Plex rating key
-    const contentType = watchlistItem.type || 'movie'
-
-    const fullGuid = buildPlexGuid(
-      contentType === 'show' ? 'show' : 'movie',
-      watchlistItem.key,
+  if (!watchlistItem.key) {
+    deps.logger.warn(
+      { itemId: watchlistItem.id, title: watchlistItem.title },
+      'Watchlist item missing Plex key',
     )
+    return false
+  }
 
+  const contentType = watchlistItem.type || 'movie'
+
+  // Find Plex items
+  const fullGuid = buildPlexGuid(
+    contentType === 'show' ? 'show' : 'movie',
+    watchlistItem.key,
+  )
+  const plexItems = await deps.plexServer.searchByGuid(fullGuid)
+
+  if (plexItems.length === 0) {
     deps.logger.debug(
       {
         itemId: watchlistItem.id,
         title: watchlistItem.title,
-        guidPart: watchlistItem.key,
         fullGuid,
         contentType,
       },
-      'Resolving GUID to rating key for label sync',
+      'Content not found in Plex library',
     )
-
-    // Search for the content in Plex using the full GUID
-    const plexItems = await deps.plexServer.searchByGuid(fullGuid)
-
-    if (plexItems.length === 0) {
-      deps.logger.debug(
-        {
-          itemId: watchlistItem.id,
-          title: watchlistItem.title,
-          guidPart: watchlistItem.key,
-          fullGuid,
-          contentType,
-        },
-        'Content not found in Plex library',
-      )
-
-      // Queue for pending sync since content might be added to Plex later
-      await deps.queuePendingLabelSyncByWatchlistId(
-        Number(watchlistItem.id),
-        watchlistItem.title,
-        webhookTags || [],
-      )
-
-      return false
-    }
-
-    // Apply labels to all found items (handles multiple versions)
-    let allSuccessful = true
-    for (const plexItem of plexItems) {
-      deps.logger.debug(
-        {
-          itemId: watchlistItem.id,
-          title: watchlistItem.title,
-          ratingKey: plexItem.ratingKey,
-          plexTitle: plexItem.title,
-          hasWebhookTags: webhookTags && webhookTags.length > 0,
-          webhookTagCount: webhookTags?.length || 0,
-        },
-        'Applying labels to Plex item',
-      )
-
-      // Apply combined user and webhook tag labels in a single API call
-      const success = await applyLabelsUtil(
-        plexItem.ratingKey,
-        [
-          {
-            user_id: watchlistItem.user_id,
-            username,
-            watchlist_id: Number(watchlistItem.id),
-          },
-        ],
-        {
-          plexServer: deps.plexServer,
-          db: deps.db,
-          logger: deps.logger,
-          config: deps.config,
-          removedLabelMode: deps.removedLabelMode,
-          removedLabelPrefix: deps.removedLabelPrefix,
-          tagPrefix: deps.tagPrefix,
-          removedTagPrefix: deps.removedTagPrefix,
-        },
-        webhookTags,
-        watchlistItem.type || 'movie',
-      )
-
-      if (!success) {
-        allSuccessful = false
-      }
-    }
-
-    deps.logger.debug(
-      {
-        itemId: watchlistItem.id,
-        title: watchlistItem.title,
-        guidPart: watchlistItem.key,
-        fullGuid,
-        plexItemsFound: plexItems.length,
-        ratingKeys: plexItems.map((item) => item.ratingKey),
-        username,
-        allSuccessful,
-      },
-      'GUID-resolved label sync completed',
-    )
-
-    return allSuccessful
-  } catch (error) {
-    deps.logger.error({ error }, 'Error syncing label for watchlist item:')
     return false
   }
+
+  // Gather ALL users who have this content (same plex key)
+  const allItemsForContent = await deps.db.getWatchlistItemsByKeys([
+    watchlistItem.key,
+  ])
+
+  const userIds = new Set(allItemsForContent.map((i) => i.user_id))
+  const allUsers = await deps.db.getAllUsers()
+  const relevantUsers = allUsers.filter((u) => userIds.has(u.id))
+
+  const users = relevantUsers
+    .map((u) => {
+      const matchingItem = allItemsForContent.find((i) => i.user_id === u.id)
+      if (!matchingItem) return null
+      return {
+        user_id: u.id,
+        username: u.name || `user_${u.id}`,
+        watchlist_id: Number(matchingItem.id),
+      }
+    })
+    .filter(
+      (u): u is { user_id: number; username: string; watchlist_id: number } =>
+        u !== null,
+    )
+
+  // Compute desired labels
+  const desiredUserLabels = users.map(
+    (u) => `${deps.labelPrefix}:${u.username}`,
+  )
+
+  const desiredTagLabels = computeDesiredTagLabels(
+    webhookTags,
+    contentType,
+    deps.config.tagSync,
+    deps.tagPrefix,
+    deps.removedTagPrefix,
+    deps.labelPrefix,
+  )
+
+  // Reconcile labels for each Plex item
+  let allSuccessful = true
+  for (const plexItem of plexItems) {
+    const result = await reconcileLabelsForSingleItem(
+      plexItem.ratingKey,
+      desiredUserLabels,
+      desiredTagLabels,
+      watchlistItem.title,
+      buildReconcilerDeps(deps),
+    )
+
+    if (!result.success) {
+      allSuccessful = false
+      continue
+    }
+
+    await trackLabelsForUsers({
+      ratingKey: plexItem.ratingKey,
+      users,
+      getGuidsForUser: createItemGuidResolver(
+        allItemsForContent,
+        plexItem.ratingKey,
+      ),
+      tagLabels: desiredTagLabels,
+      contentType: contentType === 'show' ? 'show' : 'movie',
+      labelPrefix: deps.labelPrefix,
+      db: deps.db,
+      logger: deps.logger,
+    })
+  }
+
+  deps.logger.debug(
+    {
+      itemId: watchlistItem.id,
+      title: watchlistItem.title,
+      fullGuid,
+      plexItemsFound: plexItems.length,
+      userCount: users.length,
+      allSuccessful,
+    },
+    'Content-centric label sync completed',
+  )
+
+  return allSuccessful
 }

@@ -3,6 +3,10 @@ import {
   PlexServerResponseSchema,
   PlexTokenSchema,
 } from '@schemas/plex/discover-servers.schema.js'
+import {
+  type ConnectionCandidate,
+  testConnectionReachability,
+} from '@services/plex-server/existence-check/index.js'
 import { logRouteError } from '@utils/route-errors.js'
 import {
   PLEX_CLIENT_IDENTIFIER,
@@ -109,14 +113,39 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             r.owned,
         )
 
+        const candidates: ConnectionCandidate[] = serverResources.flatMap(
+          (server) =>
+            (server.connections || [])
+              .filter((c) => c.uri)
+              .map((c) => ({
+                uri: c.uri,
+                local: c.local || false,
+                relay: false,
+              })),
+        )
+
+        const reachable = await testConnectionReachability(
+          candidates,
+          plexToken,
+          fastify.log,
+          3000,
+        )
+        const reachableUris = new Set(reachable.map((r) => r.uri))
+        const hasReachable = reachableUris.size > 0
+
+        if (!hasReachable && candidates.length > 0) {
+          fastify.log.warn(
+            'No Plex connections passed reachability test - returning all as fallback',
+          )
+        }
+
         for (const server of serverResources) {
-          // For each server, add all viable connection options
           for (const connection of server.connections || []) {
             if (!connection.uri) continue
+            if (hasReachable && !reachableUris.has(connection.uri)) continue
 
             try {
               const url = new URL(connection.uri)
-              const _isSecure = url.protocol === 'https:'
 
               // Add option with direct Plex URL (secure)
               if (url.hostname) {
@@ -158,13 +187,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           servers: serverOptions,
           message: `Found ${serverOptions.length} Plex servers`,
         }
-      } catch (err: unknown) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to discover Plex servers',
         })
 
         // Handle timeout/abort errors
-        if (err instanceof Error && err.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           return reply.gatewayTimeout(
             'Request to Plex API timed out after 10 seconds',
           )
@@ -172,46 +201,46 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         // Handle Fastify-specific errors
         if (
-          typeof err === 'object' &&
-          err !== null &&
-          'statusCode' in err &&
-          'error' in err
+          typeof error === 'object' &&
+          error !== null &&
+          'statusCode' in error &&
+          'error' in error
         ) {
-          throw err
+          throw error
         }
 
-        // Handle our PlexApiError
-        if (err instanceof PlexApiError) {
+        // Handle PlexApiError
+        if (error instanceof PlexApiError) {
           // Map HTTP status codes to appropriate Fastify replies
-          const status = err.status
+          const status = error.status
 
           if (status === 400) {
-            return reply.badRequest(err.message)
+            return reply.badRequest(error.message)
           }
 
           if (status === 401) {
-            return reply.unauthorized(err.message)
+            return reply.unauthorized(error.message)
           }
 
           if (status === 403) {
-            return reply.forbidden(err.message)
+            return reply.forbidden(error.message)
           }
 
           if (status === 404) {
-            return reply.notFound(err.message)
+            return reply.notFound(error.message)
           }
 
           if (status >= 500) {
-            return reply.internalServerError(err.message)
+            return reply.internalServerError(error.message)
           }
 
           // For any other client errors (default case)
-          return reply.badRequest(err.message)
+          return reply.badRequest(error.message)
         }
 
         // Default error handling for unexpected errors
-        if (err instanceof Error) {
-          return reply.internalServerError(err.message)
+        if (error instanceof Error) {
+          return reply.internalServerError(error.message)
         }
 
         return reply.internalServerError('Failed to discover Plex servers')

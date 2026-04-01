@@ -107,8 +107,9 @@ export async function handleRemovedItems(
 }
 
 /**
- * Handles items that were just linked to users by queuing them for label sync.
- * Groups items by content key to avoid duplicate pending syncs.
+ * Handles items that were just linked to users by immediately syncing labels.
+ * Groups items by content key so each unique content is synced once.
+ * Falls back to pending queue if immediate sync fails.
  *
  * @param linkItems - The items that were linked to users
  * @param deps - Dependencies for database and label sync
@@ -124,12 +125,10 @@ export async function handleLinkedItemsForLabelSync(
   }
 
   try {
-    // Get the database items with IDs after linking
     const keys = linkItems.map((item) => item.key)
-
     const dbItems = await db.getWatchlistItemsByKeys(keys)
 
-    // Create composite key index for O(1) lookups instead of O(n) Array.find
+    // Create composite key index for O(1) lookups
     const byKeyUser = new Map<string, { id: number; title: string }>()
     for (const item of dbItems) {
       if (
@@ -144,8 +143,7 @@ export async function handleLinkedItemsForLabelSync(
       }
     }
 
-    // Group by unique content key to avoid duplicate pending syncs
-    // This mimics the content-centric approach used in full sync
+    // Group by unique content key so each content is synced once
     const contentMap = new Map<
       string,
       { title: string; watchlistIds: number[] }
@@ -153,11 +151,9 @@ export async function handleLinkedItemsForLabelSync(
     const userCounts = new Map<number, number>()
 
     for (const linkItem of linkItems) {
-      // O(1) lookup using composite key instead of O(n) Array.find
       const dbItem = byKeyUser.get(`${linkItem.key}:${linkItem.user_id}`)
 
       if (dbItem?.id && linkItem.key && typeof dbItem.id === 'number') {
-        // Group by content key
         if (!contentMap.has(linkItem.key)) {
           contentMap.set(linkItem.key, {
             title: linkItem.title,
@@ -170,33 +166,42 @@ export async function handleLinkedItemsForLabelSync(
           contentEntry.watchlistIds.push(dbItem.id)
         }
 
-        // Count per user for logging
         const count = userCounts.get(linkItem.user_id) || 0
         userCounts.set(linkItem.user_id, count + 1)
       }
     }
 
-    // Queue one pending sync per unique content (not per watchlist item)
-    // This ensures all users for the same content are processed together
-    let totalQueued = 0
-    for (const [_contentKey, content] of contentMap.entries()) {
-      // Queue using the first watchlist ID as representative
-      // The processing will find ALL users with this content when processing
-      await plexLabelSyncService.queuePendingLabelSyncByWatchlistId(
-        content.watchlistIds[0],
-        content.title,
-      )
-      totalQueued++
-    }
-
-    // Log per user
     for (const [userId, count] of userCounts.entries()) {
-      logger.debug(`Detected ${count} re-added items for user ${userId}`)
+      logger.debug(`Detected ${count} linked items for user ${userId}`)
     }
 
-    if (totalQueued > 0) {
+    // Attempt immediate sync per unique content, queue on failure
+    let synced = 0
+    let queued = 0
+    for (const [_contentKey, content] of contentMap.entries()) {
+      const representativeId = content.watchlistIds[0]
+      const success = await plexLabelSyncService.syncLabelForNewWatchlistItem(
+        representativeId,
+        content.title,
+        true,
+      )
+
+      if (success) {
+        synced++
+      } else {
+        queued++
+      }
+    }
+
+    if (synced > 0 || queued > 0) {
       logger.debug(
-        `Queued ${totalQueued} unique content items for label synchronization (grouped from ${linkItems.length} re-added items)`,
+        {
+          synced,
+          queued,
+          totalContent: contentMap.size,
+          linkedItems: linkItems.length,
+        },
+        'Linked items label sync complete',
       )
     }
   } catch (error) {
@@ -212,9 +217,9 @@ export async function handleLinkedItemsForLabelSync(
           user_id: item.user_id,
         })),
       },
-      'Failed to queue re-added items for label sync:',
+      'Failed to sync labels for linked items:',
     )
-    throw error // Re-throw to see the full error chain
+    throw error
   }
 }
 

@@ -26,7 +26,7 @@ export interface SeasonQueue {
   firstReceived: Date
   lastUpdated: Date
   notifiedSeasons: Set<number>
-  timeoutId?: NodeJS.Timeout
+  timeoutId?: ReturnType<typeof setTimeout>
   instanceId?: number | null
   expectedEpisodeCount?: number
 }
@@ -38,5 +38,6 @@ export interface WebhookQueue {
     }
     title: string
     sonarrSeriesId?: number
+    isPilotRolling?: boolean
   }
 }

@@ -54,6 +54,8 @@ export async function handleStaggeredPollResult(
   const health = await checkInstanceHealth({
     sonarrManager: deps.sonarrManager,
     radarrManager: deps.radarrManager,
+    plexServerService: deps.fastify.plexServerService,
+    skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
     deferredRoutingQueue: deps.deferredRoutingQueue,
     logger: deps.logger,
   })
@@ -76,6 +78,9 @@ export async function handleStaggeredPollResult(
       {
         userId: result.userId,
         itemCount: tokenItems.length,
+        sonarrUnavailable: health.sonarrUnavailable,
+        radarrUnavailable: health.radarrUnavailable,
+        plexServerUnreachable: health.plexServerUnreachable,
       },
       'Instances unavailable, queuing items for deferred routing',
     )
@@ -164,6 +169,8 @@ export async function refreshFriendsForStaggeredPolling(
         ? await checkInstanceHealth({
             sonarrManager: deps.sonarrManager,
             radarrManager: deps.radarrManager,
+            plexServerService: deps.fastify.plexServerService,
+            skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
             deferredRoutingQueue: deps.deferredRoutingQueue,
             logger: deps.logger,
           })
@@ -197,6 +204,7 @@ export async function refreshFriendsForStaggeredPolling(
                 itemCount: allItemsToRoute.length,
                 sonarrUnavailable: health?.sonarrUnavailable,
                 radarrUnavailable: health?.radarrUnavailable,
+                plexServerUnreachable: health?.plexServerUnreachable,
               },
               'Some instances unavailable, queuing new friend items for deferred routing',
             )

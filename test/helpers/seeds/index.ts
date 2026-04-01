@@ -10,22 +10,22 @@ import { SEED_ADMIN_USERS, SEED_USERS, seedUsers } from './users.js'
 import { SEED_WATCHLIST_ITEMS, seedWatchlist } from './watchlist.js'
 
 /**
- * Export all seed data for direct access in tests
+ * Export seed data and individual seed functions for direct access in tests
  */
 export {
-  SEED_USERS,
   SEED_ADMIN_USERS,
-  SEED_SONARR_INSTANCES,
-  SEED_RADARR_INSTANCES,
   SEED_CONFIGS,
-  SEED_WATCHLIST_ITEMS,
+  SEED_RADARR_INSTANCES,
   SEED_ROUTER_RULES,
+  SEED_SONARR_INSTANCES,
+  SEED_USERS,
+  SEED_WATCHLIST_ITEMS,
+  seedConfig,
+  seedInstances,
+  seedRouterRules,
+  seedUsers,
+  seedWatchlist,
 }
-
-/**
- * Export individual seed functions
- */
-export { seedUsers, seedInstances, seedConfig, seedWatchlist, seedRouterRules }
 
 /**
  * Seeds all tables with baseline test data

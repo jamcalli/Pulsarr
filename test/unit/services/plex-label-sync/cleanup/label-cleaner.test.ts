@@ -20,6 +20,7 @@ import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import type { FastifyInstance } from 'fastify'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
+import { createMockUser } from '../../../../mocks/user.js'
 
 describe('label-cleaner', () => {
   let mockLogger: ReturnType<typeof createMockLogger>
@@ -51,34 +52,8 @@ describe('label-cleaner', () => {
 
     // Mock getAllUsers to return test users (needed for label-cleaner)
     vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-      {
-        id: 1,
-        name: 'alice',
-        can_sync: true,
-        discord_id: null,
-        notify_discord: false,
-        notify_discord_mention: true,
-        notify_apprise: false,
-        apprise: null,
-        alias: null,
-        notify_plex_mobile: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        name: 'bob',
-        can_sync: true,
-        discord_id: null,
-        notify_discord: false,
-        notify_discord_mention: true,
-        notify_apprise: false,
-        apprise: null,
-        alias: null,
-        notify_plex_mobile: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
+      createMockUser(1, 'alice'),
+      createMockUser(2, 'bob'),
     ])
 
     mockRadarrManager = {
@@ -329,34 +304,8 @@ describe('label-cleaner', () => {
 
       it('should preserve tag labels when user removes content but other users still have it', async () => {
         vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-          {
-            id: 1,
-            name: 'alice',
-            can_sync: true,
-            discord_id: null,
-            notify_discord: false,
-            notify_discord_mention: true,
-            notify_apprise: false,
-            apprise: null,
-            alias: null,
-            notify_plex_mobile: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-          {
-            id: 2,
-            name: 'bob',
-            can_sync: true,
-            discord_id: null,
-            notify_discord: false,
-            notify_discord_mention: true,
-            notify_apprise: false,
-            apprise: null,
-            alias: null,
-            notify_plex_mobile: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
+          createMockUser(1, 'alice'),
+          createMockUser(2, 'bob'),
         ])
 
         const watchlistItems = [
@@ -430,20 +379,7 @@ describe('label-cleaner', () => {
 
       it('should remove tag labels when last user removes content', async () => {
         vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-          {
-            id: 1,
-            name: 'alice',
-            can_sync: true,
-            discord_id: null,
-            notify_discord: false,
-            notify_discord_mention: true,
-            notify_apprise: false,
-            apprise: null,
-            alias: null,
-            notify_plex_mobile: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
+          createMockUser(1, 'alice'),
         ])
 
         const watchlistItems = [
@@ -616,20 +552,7 @@ describe('label-cleaner', () => {
         ]
 
         vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-          {
-            id: 1,
-            name: 'alice',
-            can_sync: true,
-            discord_id: null,
-            notify_discord: false,
-            notify_discord_mention: true,
-            notify_apprise: false,
-            apprise: null,
-            alias: null,
-            notify_plex_mobile: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
+          createMockUser(1, 'alice'),
         ])
 
         vi.mocked(mockDb.getWatchlistItemById).mockResolvedValue({
@@ -706,34 +629,8 @@ describe('label-cleaner', () => {
         ]
 
         vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-          {
-            id: 1,
-            name: 'alice',
-            can_sync: true,
-            discord_id: null,
-            notify_discord: false,
-            notify_discord_mention: true,
-            notify_apprise: false,
-            apprise: null,
-            alias: null,
-            notify_plex_mobile: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-          {
-            id: 2,
-            name: 'bob',
-            can_sync: true,
-            discord_id: null,
-            notify_discord: false,
-            notify_discord_mention: true,
-            notify_apprise: false,
-            apprise: null,
-            alias: null,
-            notify_plex_mobile: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
+          createMockUser(1, 'alice'),
+          createMockUser(2, 'bob'),
         ])
 
         vi.mocked(mockDb.getWatchlistItemById).mockResolvedValue({
@@ -919,20 +816,7 @@ describe('label-cleaner', () => {
 
     it('should skip when no sync-enabled users', async () => {
       vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-        {
-          id: 1,
-          name: 'alice',
-          can_sync: false, // Not sync enabled
-          discord_id: null,
-          notify_discord: false,
-          notify_discord_mention: true,
-          notify_apprise: false,
-          apprise: null,
-          alias: null,
-          notify_plex_mobile: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
+        createMockUser(1, 'alice', { can_sync: false }),
       ])
 
       const result = await cleanupOrphanedPlexLabels(
@@ -947,20 +831,7 @@ describe('label-cleaner', () => {
 
     it('should skip when no orphaned labels found', async () => {
       vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-        {
-          id: 1,
-          name: 'alice',
-          can_sync: true,
-          discord_id: null,
-          notify_discord: false,
-          notify_discord_mention: true,
-          notify_apprise: false,
-          apprise: null,
-          alias: null,
-          notify_plex_mobile: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
+        createMockUser(1, 'alice'),
       ])
 
       vi.mocked(mockDb.getOrphanedLabelTracking).mockResolvedValue([])
@@ -977,20 +848,7 @@ describe('label-cleaner', () => {
 
     it('should remove orphaned labels successfully', async () => {
       vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-        {
-          id: 1,
-          name: 'alice',
-          can_sync: true,
-          discord_id: null,
-          notify_discord: false,
-          notify_discord_mention: true,
-          notify_apprise: false,
-          apprise: null,
-          alias: null,
-          notify_plex_mobile: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
+        createMockUser(1, 'alice'),
       ])
 
       vi.mocked(mockDb.getOrphanedLabelTracking).mockResolvedValue([
@@ -1053,20 +911,7 @@ describe('label-cleaner', () => {
       }
 
       vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-        {
-          id: 1,
-          name: 'alice',
-          can_sync: true,
-          discord_id: null,
-          notify_discord: false,
-          notify_discord_mention: true,
-          notify_apprise: false,
-          apprise: null,
-          alias: null,
-          notify_plex_mobile: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
+        createMockUser(1, 'alice'),
       ])
 
       const radarrMoviesWithTags = [
@@ -1114,20 +959,7 @@ describe('label-cleaner', () => {
       }
 
       vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-        {
-          id: 1,
-          name: 'alice',
-          can_sync: true,
-          discord_id: null,
-          notify_discord: false,
-          notify_discord_mention: true,
-          notify_apprise: false,
-          apprise: null,
-          alias: null,
-          notify_plex_mobile: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
+        createMockUser(1, 'alice'),
       ])
 
       vi.mocked(mockRadarrManager.getAllInstances).mockResolvedValue([
@@ -1167,20 +999,7 @@ describe('label-cleaner', () => {
 
     it('should handle Plex update failures', async () => {
       vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-        {
-          id: 1,
-          name: 'alice',
-          can_sync: true,
-          discord_id: null,
-          notify_discord: false,
-          notify_discord_mention: true,
-          notify_apprise: false,
-          apprise: null,
-          alias: null,
-          notify_plex_mobile: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
+        createMockUser(1, 'alice'),
       ])
 
       vi.mocked(mockDb.getOrphanedLabelTracking).mockResolvedValue([
@@ -1227,20 +1046,7 @@ describe('label-cleaner', () => {
 
     it('should handle content with no labels', async () => {
       vi.mocked(mockDb.getAllUsers).mockResolvedValue([
-        {
-          id: 1,
-          name: 'alice',
-          can_sync: true,
-          discord_id: null,
-          notify_discord: false,
-          notify_discord_mention: true,
-          notify_apprise: false,
-          apprise: null,
-          alias: null,
-          notify_plex_mobile: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
+        createMockUser(1, 'alice'),
       ])
 
       vi.mocked(mockDb.getOrphanedLabelTracking).mockResolvedValue([

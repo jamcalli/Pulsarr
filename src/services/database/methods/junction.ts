@@ -1,6 +1,10 @@
 import type { User } from '@root/types/config.types.js'
-import type { WatchlistInstanceStatus } from '@root/types/watchlist-status.types.js'
+import type {
+  SonarrShowWithEnrollmentStatus,
+  WatchlistInstanceStatus,
+} from '@root/types/watchlist-status.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseGuids } from '@utils/guid-handler.js'
 import type { Knex } from 'knex'
 import { mapRowToUser } from './users.js'
 
@@ -463,6 +467,7 @@ export async function addWatchlistToSonarrInstance(
   isPrimary = false,
   syncing = false,
   trx?: Knex.Transaction,
+  sonarrSeriesId?: number,
 ): Promise<void> {
   try {
     const query = trx || this.knex
@@ -473,11 +478,22 @@ export async function addWatchlistToSonarrInstance(
         status,
         is_primary: isPrimary,
         syncing,
+        ...(sonarrSeriesId !== undefined && {
+          sonarr_series_id: sonarrSeriesId,
+        }),
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
       .onConflict(['watchlist_id', 'sonarr_instance_id'])
-      .merge(['status', 'is_primary', 'syncing', 'updated_at'])
+      .merge({
+        status,
+        is_primary: isPrimary,
+        syncing,
+        ...(sonarrSeriesId !== undefined && {
+          sonarr_series_id: sonarrSeriesId,
+        }),
+        updated_at: this.timestamp,
+      })
 
     this.log.debug(
       `Added watchlist ${watchlistId} to Sonarr instance ${instanceId}`,
@@ -1069,6 +1085,70 @@ export async function getUsersWithSonarrItems(
     this.log.error(
       { error, instanceId },
       'Error getting users with Sonarr items',
+    )
+    return []
+  }
+}
+
+/**
+ * Returns all Pulsarr-tracked Sonarr shows with their rolling enrollment status.
+ *
+ * Joins the junction table with watchlist_items for metadata and left joins
+ * rolling_monitored_shows (master records only) to indicate enrollment.
+ * Only returns rows where sonarr_series_id is populated.
+ *
+ * @param instanceId - Optional filter by Sonarr instance
+ * @returns Array of shows with enrollment status
+ */
+export async function getSonarrShowsWithEnrollmentStatus(
+  this: DatabaseService,
+  instanceId?: number,
+): Promise<SonarrShowWithEnrollmentStatus[]> {
+  try {
+    let query = this.knex('watchlist_sonarr_instances as wsi')
+      .join('watchlist_items as wi', 'wi.id', 'wsi.watchlist_id')
+      .leftJoin('rolling_monitored_shows as rms', function () {
+        this.on('rms.sonarr_series_id', 'wsi.sonarr_series_id')
+          .andOn('rms.sonarr_instance_id', 'wsi.sonarr_instance_id')
+          .andOnNull('rms.plex_user_id')
+      })
+      .whereNotNull('wsi.sonarr_series_id')
+      .andWhere('wi.type', 'show')
+      // Multiple users can watchlist the same show, producing duplicate
+      // junction rows for the same series+instance. Group to deduplicate.
+      .groupBy('wsi.sonarr_instance_id', 'wsi.sonarr_series_id')
+      .min({
+        watchlist_id: 'wsi.watchlist_id',
+        sonarr_instance_id: 'wsi.sonarr_instance_id',
+        sonarr_series_id: 'wsi.sonarr_series_id',
+        title: 'wi.title',
+        // jsonb doesn't support min() in Postgres
+        guids: this.isPostgres
+          ? this.knex.raw('"wi"."guids"::text')
+          : 'wi.guids',
+        rolling_show_id: 'rms.id',
+        monitoring_type: 'rms.monitoring_type',
+      })
+
+    if (instanceId) {
+      query = query.andWhere('wsi.sonarr_instance_id', instanceId)
+    }
+
+    const rows = await query
+
+    return rows.map((row) => ({
+      watchlist_id: row.watchlist_id,
+      sonarr_instance_id: row.sonarr_instance_id,
+      sonarr_series_id: row.sonarr_series_id,
+      title: row.title,
+      guids: parseGuids(row.guids),
+      rolling_show_id: row.rolling_show_id ?? null,
+      monitoring_type: row.monitoring_type ?? null,
+    }))
+  } catch (error) {
+    this.log.error(
+      { error, instanceId },
+      'Error getting Sonarr shows with enrollment status',
     )
     return []
   }

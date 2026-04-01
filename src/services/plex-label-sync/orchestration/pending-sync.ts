@@ -2,7 +2,8 @@
  * Pending Synchronization Orchestration
  *
  * Handles processing of pending label syncs for content that wasn't available in Plex
- * when the initial sync attempt was made. Retries syncs with exponential backoff.
+ * when the initial sync attempt was made. Groups by content to avoid race conditions
+ * when multiple users queue the same content.
  */
 
 import type { SyncResult } from '@root/types/plex-label-sync.types.js'
@@ -14,11 +15,16 @@ import { buildPlexGuid } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 import pLimit from 'p-limit'
 
-import { applyLabelsToSingleItem as applyLabelsUtil } from '../label-operations/index.js'
+import {
+  buildReconcilerDeps,
+  reconcileLabelsForSingleItem,
+} from '../label-operations/index.js'
+import { computeDesiredTagLabels } from '../label-operations/label-validator.js'
+import {
+  createDbGuidResolver,
+  trackLabelsForUsers,
+} from '../tracking/content-tracker.js'
 
-/**
- * Dependencies required for pending synchronization operations
- */
 export interface PendingSyncDeps {
   plexServer: PlexServerService
   db: DatabaseService
@@ -31,13 +37,75 @@ export interface PendingSyncDeps {
 }
 
 /**
- * Processes pending label syncs for content that wasn't available in Plex
- * during the initial sync attempt. Uses content-centric approach to ensure
- * all users are included when content becomes available.
- *
- * @param deps - Service dependencies
- * @returns Promise resolving to sync results
+ * Groups pending syncs by content identity (type + plex_key) so each unique
+ * content is processed exactly once with the full set of pending users.
+ * Prevents race conditions where concurrent processing of the same content
+ * causes last-writer-wins label loss.
  */
+function groupPendingSyncsByContent(
+  pendingSyncs: PendingLabelSyncWithPlexKeys[],
+): Map<
+  string,
+  {
+    contentType: string
+    plexKey: string
+    title: string
+    webhookTags: string[]
+    rows: PendingLabelSyncWithPlexKeys[]
+  }
+> {
+  const groups = new Map<
+    string,
+    {
+      contentType: string
+      plexKey: string
+      title: string
+      webhookTags: string[]
+      rows: PendingLabelSyncWithPlexKeys[]
+    }
+  >()
+
+  for (const sync of pendingSyncs) {
+    if (!sync.plex_key) {
+      // No key yet - these get handled individually below
+      const soloKey = `no-key-${sync.id}`
+      groups.set(soloKey, {
+        contentType: sync.type || 'movie',
+        plexKey: '',
+        title: sync.content_title,
+        webhookTags: sync.webhook_tags || [],
+        rows: [sync],
+      })
+      continue
+    }
+
+    const groupKey = `${sync.type || 'movie'}:${sync.plex_key}`
+    const existing = groups.get(groupKey)
+
+    if (existing) {
+      existing.rows.push(sync)
+      // Merge tags from all rows for this content
+      if (sync.webhook_tags?.length) {
+        for (const tag of sync.webhook_tags) {
+          if (!existing.webhookTags.includes(tag)) {
+            existing.webhookTags.push(tag)
+          }
+        }
+      }
+    } else {
+      groups.set(groupKey, {
+        contentType: sync.type || 'movie',
+        plexKey: sync.plex_key,
+        title: sync.content_title,
+        webhookTags: [...(sync.webhook_tags || [])],
+        rows: [sync],
+      })
+    }
+  }
+
+  return groups
+}
+
 export async function processPendingLabelSyncs(
   deps: PendingSyncDeps,
 ): Promise<SyncResult> {
@@ -53,23 +121,19 @@ export async function processPendingLabelSyncs(
   }
 
   try {
-    // Get pending syncs with their watchlist items and Plex keys
     const pendingSyncs: PendingLabelSyncWithPlexKeys[] =
       await deps.db.getPendingLabelSyncsWithPlexKeys()
 
-    // Fetch all users once before processing (performance optimization)
-    // Instead of querying inside the loop, we build a map here and reuse it
     const allUsers = await deps.db.getAllUsers()
     const userMap = new Map(allUsers.map((user) => [user.id, user]))
 
-    // Process silently - completion will be logged by the processor service if items were updated
+    const contentGroups = groupPendingSyncsByContent(pendingSyncs)
 
-    // Process pending syncs in parallel with configurable concurrency limit
     const concurrencyLimit = deps.config.concurrencyLimit || 5
     const limit = pLimit(concurrencyLimit)
 
-    const pendingProcessingResults = await Promise.allSettled(
-      pendingSyncs.map((pendingSync) =>
+    const groupResults = await Promise.allSettled(
+      Array.from(contentGroups.values()).map((group) =>
         limit(async () => {
           const syncResult = {
             processed: 0,
@@ -81,195 +145,216 @@ export async function processPendingLabelSyncs(
           try {
             syncResult.processed++
 
-            // Check if watchlist item has GUID part now
-            if (!pendingSync.plex_key) {
-              // Update retry count
-              await deps.db.updatePendingLabelSyncRetry(pendingSync.id)
+            // No plex key yet - retry all rows in this group
+            if (!group.plexKey) {
+              for (const row of group.rows) {
+                await deps.db.updatePendingLabelSyncRetry(row.id)
+              }
               syncResult.pending++
               deps.logger.debug(
                 {
-                  watchlistItemId: pendingSync.watchlist_item_id,
-                  title: pendingSync.content_title,
+                  title: group.title,
+                  rowCount: group.rows.length,
                 },
                 'Pending sync still missing GUID part',
               )
               return syncResult
             }
 
-            // Get user information from pre-fetched map
-            const user = userMap.get(pendingSync.user_id)
+            // Validate all users in the group still exist
+            const validRows = group.rows.filter((row) => {
+              const user = userMap.get(row.user_id)
+              if (!user) {
+                void deps.db.deletePendingLabelSync(row.id)
+                deps.logger.debug(
+                  { userId: row.user_id, title: row.content_title },
+                  'User not found for pending sync, removing from queue',
+                )
+                return false
+              }
+              return true
+            })
 
-            if (!user) {
-              // Remove from pending queue if user doesn't exist
-              await deps.db.deletePendingLabelSync(pendingSync.id)
-              deps.logger.debug(
-                {
-                  userId: pendingSync.user_id,
-                  title: pendingSync.content_title,
-                },
-                'User not found for pending sync, removing from queue',
-              )
+            if (validRows.length === 0) {
               return syncResult
             }
 
-            const _username = user.name || `user_${user.id}`
-
-            // Resolve GUID part to Plex rating key
-            const contentType = pendingSync.type || 'movie'
-
+            const contentType = group.contentType
             const fullGuid = buildPlexGuid(
               contentType === 'show' ? 'show' : 'movie',
-              pendingSync.plex_key,
+              group.plexKey,
             )
 
             deps.logger.debug(
               {
-                watchlistItemId: pendingSync.watchlist_item_id,
-                title: pendingSync.content_title,
-                guidPart: pendingSync.plex_key,
+                title: group.title,
+                guidPart: group.plexKey,
                 fullGuid,
                 contentType,
+                pendingUsers: validRows.length,
               },
-              'Resolving GUID to rating key for pending sync',
+              'Resolving GUID to rating key for pending sync group',
             )
 
-            // Search for the content in Plex using the full GUID
             const plexItems = await deps.plexServer.searchByGuid(fullGuid)
 
             if (plexItems.length === 0) {
-              // Content not found yet, update retry count and keep pending
-              await deps.db.updatePendingLabelSyncRetry(pendingSync.id)
+              for (const row of validRows) {
+                await deps.db.updatePendingLabelSyncRetry(row.id)
+              }
               syncResult.pending++
               deps.logger.debug(
-                {
-                  watchlistItemId: pendingSync.watchlist_item_id,
-                  title: pendingSync.content_title,
-                  guid: fullGuid,
-                },
+                { title: group.title, guid: fullGuid },
                 'Content still not found in Plex library for pending sync',
               )
               return syncResult
             }
 
-            // Use tracking table as source of truth for all users who should have labels
-            // This ensures consistency with "keep" and "special-label" removal modes
+            // Gather all users: tracked (existing) + all pending rows in this group
             const primaryRatingKey = plexItems[0].ratingKey
-
-            // Get all tracked labels for this content from the tracking table
             const trackedLabels =
               await deps.db.getTrackedLabelsForRatingKey(primaryRatingKey)
 
-            // Build user list from tracking records (existing labels)
-            const trackedUsers = new Map<
+            const allContentUsers = new Map<
               number,
               { user_id: number; username: string; watchlist_id: number }
             >()
 
-            // Add users from existing tracking records
+            const trackedGuids = new Map<number, string[]>()
+
             for (const tracking of trackedLabels) {
-              // Skip system tracking records (null user_id)
               if (
                 tracking.user_id !== null &&
-                !trackedUsers.has(tracking.user_id)
+                !allContentUsers.has(tracking.user_id)
               ) {
                 const trackedUser = userMap.get(tracking.user_id)
                 if (trackedUser) {
-                  trackedUsers.set(tracking.user_id, {
+                  allContentUsers.set(tracking.user_id, {
                     user_id: trackedUser.id,
                     username: trackedUser.name || `user_${trackedUser.id}`,
-                    watchlist_id: 0, // Not used in content-based tracking
+                    watchlist_id: 0,
+                  })
+                  if (tracking.content_guids.length > 0) {
+                    trackedGuids.set(tracking.user_id, tracking.content_guids)
+                  }
+                }
+              }
+            }
+
+            // Add all pending users from this group
+            for (const row of validRows) {
+              if (!allContentUsers.has(row.user_id)) {
+                const pendingUser = userMap.get(row.user_id)
+                if (pendingUser) {
+                  allContentUsers.set(row.user_id, {
+                    user_id: pendingUser.id,
+                    username: pendingUser.name || `user_${pendingUser.id}`,
+                    watchlist_id: row.watchlist_item_id,
                   })
                 }
               }
             }
 
-            // Add the new user from the pending sync if not already tracked
-            if (!trackedUsers.has(pendingSync.user_id)) {
-              const newUser = userMap.get(pendingSync.user_id)
-              if (newUser) {
-                trackedUsers.set(pendingSync.user_id, {
-                  user_id: newUser.id,
-                  username: newUser.name || `user_${newUser.id}`,
-                  watchlist_id: pendingSync.watchlist_item_id,
-                })
-              }
-            }
+            const usersForContent = Array.from(allContentUsers.values())
 
-            const allUsersForContent = Array.from(trackedUsers.values())
+            const desiredUserLabels = usersForContent.map(
+              (u) => `${deps.config.labelPrefix}:${u.username}`,
+            )
+
+            const desiredTagLabels = computeDesiredTagLabels(
+              group.webhookTags,
+              contentType,
+              deps.config.tagSync,
+              deps.tagPrefix,
+              deps.removedTagPrefix,
+              deps.config.labelPrefix,
+            )
 
             deps.logger.debug(
               {
                 ratingKey: primaryRatingKey,
-                contentKey: pendingSync.plex_key,
-                title: pendingSync.content_title,
-                existingTrackedLabels: trackedLabels.length,
-                totalUsers: allUsersForContent.length,
-                usernames: allUsersForContent.map((u) => u.username),
-                approach: 'tracking-table-based',
+                title: group.title,
+                totalUsers: usersForContent.length,
+                usernames: usersForContent.map((u) => u.username),
               },
-              'Found all users for pending sync using tracking table',
+              'Found all users for pending sync group',
             )
 
-            // Apply labels to all found items for ALL users (content-centric approach)
+            const reconcilerDeps = buildReconcilerDeps(deps)
+            const contentTypeToUse: 'movie' | 'show' =
+              contentType === 'show' ? 'show' : 'movie'
+
             let allSuccessful = true
             for (const plexItem of plexItems) {
-              const success = await applyLabelsUtil(
+              const reconcileResult = await reconcileLabelsForSingleItem(
                 plexItem.ratingKey,
-                allUsersForContent, // Pass ALL users instead of just one
-                {
-                  plexServer: deps.plexServer,
-                  db: deps.db,
-                  logger: deps.logger,
-                  config: deps.config,
-                  removedLabelMode: deps.removedLabelMode,
-                  removedLabelPrefix: deps.removedLabelPrefix,
-                  tagPrefix: deps.tagPrefix,
-                  removedTagPrefix: deps.removedTagPrefix,
-                },
-                pendingSync.webhook_tags,
-                contentType,
+                desiredUserLabels,
+                desiredTagLabels,
+                group.title,
+                reconcilerDeps,
               )
 
-              if (!success) {
+              if (!reconcileResult.success) {
                 allSuccessful = false
+                continue
               }
+
+              const dbResolver = createDbGuidResolver(
+                deps.db,
+                plexItem.ratingKey,
+              )
+
+              await trackLabelsForUsers({
+                ratingKey: plexItem.ratingKey,
+                users: usersForContent,
+                getGuidsForUser: async (user) => {
+                  const existing = trackedGuids.get(user.user_id)
+                  if (existing) return existing
+                  return dbResolver(user)
+                },
+                tagLabels: desiredTagLabels,
+                contentType: contentTypeToUse,
+                labelPrefix: deps.config.labelPrefix,
+                db: deps.db,
+                logger: deps.logger,
+              })
             }
 
-            const success = allSuccessful
-
-            if (success) {
-              // Remove from pending queue
-              await deps.db.deletePendingLabelSync(pendingSync.id)
-
+            if (allSuccessful) {
+              for (const row of validRows) {
+                await deps.db.deletePendingLabelSync(row.id)
+              }
               syncResult.updated++
               deps.logger.debug(
                 {
-                  watchlistItemId: pendingSync.watchlist_item_id,
-                  title: pendingSync.content_title,
-                  guidPart: pendingSync.plex_key,
+                  title: group.title,
+                  guidPart: group.plexKey,
                   fullGuid,
                   plexItemsFound: plexItems.length,
                   ratingKeys: plexItems.map((item) => item.ratingKey),
-                  usernames: allUsersForContent.map((u) => u.username),
+                  usernames: usersForContent.map((u) => u.username),
+                  rowsCleared: validRows.length,
                 },
-                'Successfully processed pending sync',
+                'Successfully processed pending sync group',
               )
             } else {
-              // Update retry count for failed attempts
-              await deps.db.updatePendingLabelSyncRetry(pendingSync.id)
+              for (const row of validRows) {
+                await deps.db.updatePendingLabelSyncRetry(row.id)
+              }
               syncResult.failed++
             }
           } catch (error) {
             deps.logger.error(
               {
                 error,
-                watchlistItemId: pendingSync.watchlist_item_id,
-                title: pendingSync.content_title,
+                title: group.title,
+                rowCount: group.rows.length,
               },
-              `Error processing pending sync for watchlist item ${pendingSync.watchlist_item_id} (${pendingSync.content_title})`,
+              `Error processing pending sync group for "${group.title}"`,
             )
-            // Update retry count for errors
-            await deps.db.updatePendingLabelSyncRetry(pendingSync.id)
+            for (const row of group.rows) {
+              await deps.db.updatePendingLabelSyncRetry(row.id)
+            }
             syncResult.failed++
           }
 
@@ -278,8 +363,7 @@ export async function processPendingLabelSyncs(
       ),
     )
 
-    // Aggregate results
-    for (const promiseResult of pendingProcessingResults) {
+    for (const promiseResult of groupResults) {
       if (promiseResult.status === 'fulfilled') {
         const syncResult = promiseResult.value
         result.processed += syncResult.processed
@@ -289,20 +373,18 @@ export async function processPendingLabelSyncs(
       } else {
         deps.logger.error(
           { error: promiseResult.reason },
-          'Error processing pending sync:',
+          'Error processing pending sync group:',
         )
         result.failed++
       }
     }
 
-    // Clean up expired pending syncs
     const expiredCount = await deps.db.expirePendingLabelSyncs()
 
     if (expiredCount > 0) {
       deps.logger.info(`Cleaned up ${expiredCount} expired pending syncs`)
     }
 
-    // Completion will be logged by the processor service with more details
     return result
   } catch (error) {
     deps.logger.error({ error }, 'Error processing pending label syncs:')

@@ -17,20 +17,20 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Set up Bun
-        uses: oven-sh/setup-bun@ecf28ddc73e819eb6fa29df6b34ef8921c743461 # v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version-file: ".bun-version"
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Cache Vitest
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: node_modules/.vite
           key: vitest-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: |
             vitest-${{ runner.os }}-
       - name: Setup Biome
-        uses: biomejs/setup-biome@29711cbb52afee00eb13aeb30636592f9edc0088 # v2
+        uses: biomejs/setup-biome@4c91541eaada48f67d7dbd7833600ce162b68f51 # v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run Biome

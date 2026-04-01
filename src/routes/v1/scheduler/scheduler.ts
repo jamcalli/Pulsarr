@@ -31,8 +31,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const schedules = await fastify.db.getAllSchedules()
         return schedules
-      } catch (err) {
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch schedules',
         })
         return reply.internalServerError('Unable to fetch schedules')
@@ -70,12 +70,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         return schedule
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch schedule',
           scheduleName: request.params.name,
         })
@@ -148,12 +144,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             `Failed to create schedule "${scheduleData.name}"`,
           )
         }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to process schedule request',
         })
         return reply.internalServerError('Unable to process schedule request')
@@ -210,12 +202,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         return { success: true, message: `Schedule "${name}" updated` }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to update schedule',
           scheduleName: request.params.name,
         })
@@ -267,12 +255,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         return { success: true, message: `Schedule "${name}" deleted` }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to delete schedule',
           scheduleName: request.params.name,
         })
@@ -318,12 +302,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         return { success: true, message: `Job "${name}" executed successfully` }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to run job',
           jobName: request.params.name,
         })
@@ -382,12 +362,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           success: true,
           message: `Schedule "${name}" ${enabled ? 'enabled' : 'disabled'}`,
         }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to toggle schedule status',
           scheduleName: request.params.name,
           enabled: request.body.enabled,
@@ -444,12 +420,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message,
           results,
         }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-
-        logRouteError(fastify.log, request, err, {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
           message: 'Failed to run delete sync dry run',
         })
         return reply.internalServerError('Failed to run delete sync dry run')

@@ -329,15 +329,37 @@ export class WebhookQueueService {
       'Processing Sonarr webhook',
     )
 
+    // Check if this is a pilot-based rolling show so the queue can
+    // fast-path E01 and adjust expected episode counts accordingly.
+    let isPilotRolling = false
+    if (this.fastify.config.plexSessionMonitoring?.enabled) {
+      const rollingShow = await this.fastify.db.getRollingMonitoredShow(tvdbId)
+      isPilotRolling =
+        rollingShow?.monitoring_type === 'pilotRolling' ||
+        rollingShow?.monitoring_type === 'allSeasonPilotRolling'
+    }
+
     // Single episode path
     if ('episodeFile' in body && !('episodeFiles' in body)) {
-      await this.handleSingleEpisode(body, tvdbId, seasonNumber, instance)
+      await this.handleSingleEpisode(
+        body,
+        tvdbId,
+        seasonNumber,
+        instance,
+        isPilotRolling,
+      )
       return
     }
 
     // Bulk episode path
     if ('episodeFiles' in body) {
-      await this.handleBulkEpisodes(body, tvdbId, seasonNumber, instance)
+      await this.handleBulkEpisodes(
+        body,
+        tvdbId,
+        seasonNumber,
+        instance,
+        isPilotRolling,
+      )
     }
   }
 
@@ -373,6 +395,7 @@ export class WebhookQueueService {
     tvdbId: string,
     seasonNumber: number,
     instance: SonarrInstance | null,
+    isPilotRolling: boolean,
   ): Promise<void> {
     const episode = body.episodes[0]
     const episodeNumber = episode.episodeNumber
@@ -397,6 +420,25 @@ export class WebhookQueueService {
       this.log,
       body.series.id,
     )
+    this._queue[tvdbId].isPilotRolling = isPilotRolling
+
+    // Pilot-based rolling E01 - notify immediately, skip queue.
+    // Only the pilot arrives for these grabs so the queue would time out
+    // waiting for a full season that never comes.
+    if (isPilotRolling && episodeNumber === 1) {
+      this.log.debug(
+        { tvdbId, season: seasonNumber },
+        'Pilot rolling E01 - notifying immediately',
+      )
+      await notifyOrQueueShow(
+        tvdbId,
+        body.series.title,
+        [episode],
+        instance,
+        this.notificationHandlerDeps,
+      )
+      return
+    }
 
     // Recent episode - notify immediately
     if (this.isRecentEpisode(episode.airDateUtc)) {
@@ -425,6 +467,7 @@ export class WebhookQueueService {
     tvdbId: string,
     seasonNumber: number,
     instance: SonarrInstance | null,
+    isPilotRolling: boolean,
   ): Promise<void> {
     ensureShowQueue(
       tvdbId,
@@ -433,6 +476,7 @@ export class WebhookQueueService {
       this.log,
       body.series.id,
     )
+    this._queue[tvdbId].isPilotRolling = isPilotRolling
 
     // Split recent vs non-recent
     const recentEpisodes = body.episodes.filter((ep) =>

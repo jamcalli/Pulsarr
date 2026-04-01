@@ -220,7 +220,7 @@ export async function down(knex: Knex): Promise<void> {
             ? JSON.parse(rule.criteria)
             : rule.criteria
 
-        if (!criteria || !criteria.condition) continue
+        if (!criteria?.condition) continue
 
         // Create a new criteria object based on rule type and condition
         const originalCriteria: Record<string, unknown> = {}
