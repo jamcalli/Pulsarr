@@ -409,7 +409,7 @@ export async function getAdminUserByUsername(
 ): Promise<AdminUser | undefined> {
   return await this.knex('admin_users')
     .select('id', 'username', 'email', 'password', 'role')
-    .where({ username })
+    .whereRaw('LOWER(username) = LOWER(?)', [username])
     .first()
 }
 

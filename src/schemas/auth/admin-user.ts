@@ -1,3 +1,8 @@
+import {
+  EmailSchema,
+  PasswordSchema,
+  UsernameSchema,
+} from '@root/schemas/common/auth-fields.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
@@ -9,14 +14,9 @@ export const CreateAdminResponseSchema = z.object({
 export { ErrorSchema as CreateAdminErrorSchema }
 
 export const CreateAdminSchema = z.object({
-  email: z.email({ error: 'Please enter a valid email address' }),
-  username: z
-    .string()
-    .min(3, { error: 'Username must be at least 3 characters' })
-    .max(255, { error: 'Username must be less than 255 characters' }),
-  password: z
-    .string()
-    .min(8, { error: 'Password must be at least 8 characters' }),
+  email: EmailSchema,
+  username: UsernameSchema,
+  password: PasswordSchema,
 })
 
 // For forms that need password confirmation

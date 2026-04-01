@@ -12,7 +12,7 @@ import { LoginErrorMessage } from '@/features/auth/components/login-error'
 import { useLoginForm } from '@/features/auth/hooks/useLoginForm'
 
 export function LoginForm() {
-  const { form, status, backendError, emailInputRef, handleSubmit } =
+  const { form, status, backendError, loginInputRef, handleSubmit } =
     useLoginForm()
 
   return (
@@ -24,7 +24,7 @@ export function LoginForm() {
       >
         <FormField
           control={form.control}
-          name="email"
+          name="login"
           render={({ field }) => (
             <FormItem>
               <FormControl>
@@ -32,11 +32,11 @@ export function LoginForm() {
                   {...field}
                   ref={(el) => {
                     field.ref(el)
-                    emailInputRef.current = el
+                    loginInputRef.current = el
                   }}
-                  type="email"
-                  placeholder="Email"
-                  autoComplete="email"
+                  type="text"
+                  placeholder="Email or Username"
+                  autoComplete="username"
                 />
               </FormControl>
               <FormMessage />

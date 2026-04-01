@@ -1,8 +1,5 @@
+import { PasswordSchema } from '@root/schemas/common/auth-fields.schema.js'
 import { z } from 'zod'
-
-const PasswordSchema = z
-  .string()
-  .min(8, { error: 'Password must be at least 8 characters' })
 
 export const UpdateCredentialsSchema = z.object({
   currentPassword: PasswordSchema,
