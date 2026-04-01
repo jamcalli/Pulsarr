@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { type Credentials, loginFormSchema } from '@root/schemas/auth/auth'
+import { type Credentials, CredentialsSchema } from '@root/schemas/auth/login'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
@@ -25,7 +25,7 @@ export function useLoginForm() {
   }, [])
 
   const form = useForm<Credentials>({
-    resolver: zodResolver(loginFormSchema),
+    resolver: zodResolver(CredentialsSchema),
     mode: 'onSubmit',
     reValidateMode: 'onBlur',
     defaultValues: {

@@ -59,7 +59,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           redirectTo,
         }
       } catch (error) {
-        fastify.log.error({ err: error, login }, 'Login failed')
+        fastify.log.error({ err: error }, 'Login failed')
         return reply.internalServerError('Login failed.')
       }
     },

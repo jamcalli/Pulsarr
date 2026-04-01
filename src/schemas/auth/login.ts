@@ -15,7 +15,7 @@ export const PasswordSchema = z
   .min(8, { error: 'Password must be at least 8 characters' })
 
 export const CredentialsSchema = z.object({
-  login: z.string().trim().toLowerCase().min(1).max(255),
+  login: z.string().trim().min(1).max(255),
   password: PasswordSchema,
 })
 
