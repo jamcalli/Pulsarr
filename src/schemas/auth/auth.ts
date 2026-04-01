@@ -1,3 +1,7 @@
+import {
+  EmailSchema,
+  UsernameSchema,
+} from '@root/schemas/common/auth-fields.schema.js'
 import { z } from 'zod'
 
 export interface AdminUser {
@@ -10,8 +14,8 @@ export interface AdminUser {
 
 export const AuthSchema = z.object({
   id: z.number(),
-  email: z.string(),
-  username: z.string().min(1).max(255),
+  email: EmailSchema,
+  username: UsernameSchema,
   role: z.string(),
 })
 
