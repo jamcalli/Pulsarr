@@ -10,7 +10,7 @@ if [ "$(id -u)" -ne 0 ]; then
     echo "ERROR: /app/data is not writable by uid=$(id -u). Fix volume permissions on the host." >&2
     exit 1
   fi
-  mkdir -p /app/data/db /app/data/logs /app/build-cache
+  mkdir -p /app/data/db /app/data/logs
   echo "Running database migrations..."
   ./node_modules/.bin/tsx migrations/migrate.ts
   echo "Starting application..."
@@ -41,8 +41,8 @@ else
 fi
 
 # Ensure writable directories exist and fix ownership (only files with wrong owner)
-mkdir -p /app/data/db /app/data/logs /app/build-cache
-find /app/data /app/build-cache ! \( -user "$PUID" -group "$PGID" \) -exec chown "$APP_USER:$APP_GROUP" {} + 2>/dev/null || true
+mkdir -p /app/data/db /app/data/logs
+find /app/data ! \( -user "$PUID" -group "$PGID" \) -exec chown "$APP_USER:$APP_GROUP" {} + 2>/dev/null || true
 
 echo "Starting Pulsarr as uid=$PUID, gid=$PGID"
 
