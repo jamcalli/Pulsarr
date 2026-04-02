@@ -7,66 +7,18 @@ import type {
   RoutingContext,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
+import {
+  isNumber,
+  isNumberArray,
+  isNumericRange,
+  type NumericRange,
+} from '@utils/type-guards.js'
 import type { FastifyInstance } from 'fastify'
 
-/**
- * Determines whether the provided value is an array consisting exclusively of numbers.
- *
- * @returns True if the value is an array where every element is a number; otherwise, false.
- */
-function isNumberArray(value: unknown): value is number[] {
-  return (
-    Array.isArray(value) &&
-    value.every((item) => typeof item === 'number' && Number.isFinite(item))
-  )
-}
-
-/**
- * Determines whether the provided value is a number.
- *
- * @returns `true` if the value is of type number; otherwise, `false`.
- */
-function isNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value)
-}
-
-// Type guard for year range object
-interface YearRange {
-  min?: number
-  max?: number
-}
-
-/**
- * Checks if the input is a {@link YearRange} object with optional numeric `min` and/or `max` properties.
- *
- * @param value - The value to check.
- * @returns `true` if the value is an object with at least one of `min` or `max` as a number or undefined; otherwise, `false`.
- */
-function isYearRange(value: unknown): value is YearRange {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    ('min' in value || 'max' in value) &&
-    (!('min' in value) ||
-      typeof value.min === 'number' ||
-      value.min === undefined) &&
-    (!('max' in value) ||
-      typeof value.max === 'number' ||
-      value.max === undefined)
-  )
-}
-
-/**
- * Determines whether the input is a valid year value for routing evaluation.
- *
- * Accepts a single number, an array of numbers, or a {@link YearRange} object with optional `min` and/or `max` properties.
- *
- * @returns `true` if the input is a number, an array of numbers, or a {@link YearRange}; otherwise, `false`.
- */
 function isValidYearValue(
   value: unknown,
-): value is number | number[] | YearRange {
-  return isNumber(value) || isNumberArray(value) || isYearRange(value)
+): value is number | number[] | NumericRange {
+  return isNumber(value) || isNumberArray(value) || isNumericRange(value)
 }
 
 /**
@@ -171,9 +123,7 @@ export default function createYearEvaluator(
         return false
       }
 
-      const { operator, value, negate: _ = false } = condition
-
-      // Early exit on invalid value type
+      const { operator, value } = condition
       if (!isValidYearValue(value)) return false
 
       let result = false
@@ -191,14 +141,12 @@ export default function createYearEvaluator(
         result = value.includes(year)
       } else if (operator === 'notIn' && isNumberArray(value)) {
         result = !value.includes(year)
-      } else if (operator === 'between' && isYearRange(value)) {
+      } else if (operator === 'between' && isNumericRange(value)) {
         const min = value.min ?? Number.NEGATIVE_INFINITY
         const max = value.max ?? Number.POSITIVE_INFINITY
         result = year >= min && year <= max
       }
 
-      // Do not apply negation here - the content router service handles negation at a higher level.
-      // This prevents double-negation issues when condition.negate is true.
       return result
     },
 

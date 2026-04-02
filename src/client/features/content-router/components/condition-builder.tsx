@@ -36,6 +36,8 @@ const FIELD_LABELS: Record<string, string> = {
   tmdbRating: 'TMDb Rating',
   streamingServices: 'Streaming Services',
   originalLanguage: 'Original Language',
+  seriesStatus: 'Series Status',
+  movieStatus: 'Movie Status',
 }
 
 function formatFieldName(name: string): string {
@@ -151,6 +153,8 @@ const ConditionBuilder = ({
     if (value.operator === 'in' || value.operator === 'notIn') {
       if (value.field === 'certification') return true
       if (value.field === 'genre' || value.field === 'genres') return true
+      if (value.field === 'seriesStatus' || value.field === 'movieStatus')
+        return true
       if (
         value.field === 'user' ||
         value.field === 'userId' ||

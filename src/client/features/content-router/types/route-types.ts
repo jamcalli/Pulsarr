@@ -227,3 +227,23 @@ export const AllCertifications: CertificationOption[] = Object.values(
   ...(region.tv || []),
   ...(region.all || []),
 ])
+
+interface StatusOption {
+  value: string
+  label: string
+}
+
+export const SeriesStatusOptions: StatusOption[] = [
+  { value: 'continuing', label: 'Continuing' },
+  { value: 'ended', label: 'Ended' },
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'deleted', label: 'Deleted' },
+]
+
+export const MovieStatusOptions: StatusOption[] = [
+  { value: 'tba', label: 'TBA' },
+  { value: 'announced', label: 'Announced' },
+  { value: 'inCinemas', label: 'In Cinemas' },
+  { value: 'released', label: 'Released' },
+  { value: 'deleted', label: 'Deleted' },
+]
