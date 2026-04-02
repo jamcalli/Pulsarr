@@ -26,7 +26,6 @@ import type { FastifyInstance } from 'fastify'
 export default function createLanguageEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
-  // Define metadata with only one clean field name
   const supportedFields: FieldInfo[] = [
     {
       name: 'language',
@@ -120,7 +119,6 @@ export default function createLanguageEvaluator(
     supportedFields,
     supportedOperators,
 
-    // Allow these helper methods to be accessed - they're part of the evaluator
     hasLanguageData,
     extractLanguage,
 
@@ -136,7 +134,6 @@ export default function createLanguageEvaluator(
       item: ContentItem,
       _context: RoutingContext,
     ): boolean {
-      // Only support the 'language' field
       if (!('field' in condition) || condition.field !== 'language') {
         return false
       }
@@ -150,9 +147,7 @@ export default function createLanguageEvaluator(
         return false
       }
 
-      const { operator, value, negate: _ = false } = condition
-
-      // Normalize for comparison
+      const { operator, value } = condition
       const normalizedLanguage = language.toLowerCase()
       let result = false
 
@@ -207,13 +202,10 @@ export default function createLanguageEvaluator(
           break
       }
 
-      // Do not apply negation here - the content router service handles negation at a higher level.
-      // This prevents double-negation issues when condition.negate is true.
       return result
     },
 
     canEvaluateConditionField(field: string): boolean {
-      // Only support the 'language' field
       return field === 'language'
     },
   }

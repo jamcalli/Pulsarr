@@ -7,35 +7,11 @@ import type {
   RoutingEvaluator,
 } from '@root/types/router.types.js'
 import { evaluateRegexSafelyMultiple } from '@utils/regex-safety.js'
+import { isString, isStringArray } from '@utils/type-guards.js'
 import type { FastifyInstance } from 'fastify'
 
-/**
- * Normalizes a string by converting it to lowercase and trimming whitespace.
- *
- * @param str - The string to normalize.
- * @returns The normalized string.
- */
 function normalizeString(str: string): string {
   return str.toLowerCase().trim()
-}
-
-/**
- * Determines whether the provided value is an array containing only strings.
- *
- * @param value - The value to check.
- * @returns True if {@link value} is an array where every element is a string; otherwise, false.
- */
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string')
-}
-
-/**
- * Checks if a value is a string.
- *
- * @returns `true` if the value is a string; otherwise, `false`.
- */
-function isString(value: unknown): value is string {
-  return typeof value === 'string'
 }
 
 /**
@@ -51,7 +27,6 @@ function isString(value: unknown): value is string {
 export default function createGenreEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
-  // Define metadata with only one clean field name
   const supportedFields: FieldInfo[] = [
     {
       name: 'genres',
@@ -119,7 +94,6 @@ export default function createGenreEvaluator(
       item: ContentItem,
       _context: RoutingContext,
     ): boolean {
-      // Only support the 'genres' field
       if (!('field' in condition) || condition.field !== 'genres') {
         return false
       }
@@ -135,7 +109,7 @@ export default function createGenreEvaluator(
       // Create a set of normalized genres for case-insensitive comparison
       const itemGenres = new Set(item.genres.map(normalizeString))
 
-      const { operator, value, negate: _ = false } = condition
+      const { operator, value } = condition
       let matched = false
 
       switch (operator) {
@@ -184,13 +158,10 @@ export default function createGenreEvaluator(
           break
       }
 
-      // Do not apply negation here - the content router service handles negation at a higher level.
-      // This prevents double-negation issues when condition.negate is true.
       return matched
     },
 
     canEvaluateConditionField(field: string): boolean {
-      // Only support the 'genres' field
       return field === 'genres'
     },
   }

@@ -26,7 +26,6 @@ import type { FastifyInstance } from 'fastify'
 export default function createCertificationEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
-  // Define metadata with only one clean field name
   const supportedFields: FieldInfo[] = [
     {
       name: 'certification',
@@ -117,7 +116,6 @@ export default function createCertificationEvaluator(
     supportedFields,
     supportedOperators,
 
-    // Allow these helper methods to be accessed - they're part of the evaluator
     hasCertificationData,
     extractCertification,
 
@@ -133,7 +131,6 @@ export default function createCertificationEvaluator(
       item: ContentItem,
       _context: RoutingContext,
     ): boolean {
-      // Only support the 'certification' field
       if (!('field' in condition) || condition.field !== 'certification') {
         return false
       }
@@ -147,9 +144,7 @@ export default function createCertificationEvaluator(
         return false
       }
 
-      const { operator, value, negate: _ = false } = condition
-
-      // Normalize for comparison
+      const { operator, value } = condition
       const normalizedCertification = certification.toUpperCase()
       let result = false
 
@@ -204,13 +199,10 @@ export default function createCertificationEvaluator(
           break
       }
 
-      // Do not apply negation here - the content router service handles negation at a higher level.
-      // This prevents double-negation issues when condition.negate is true.
       return result
     },
 
     canEvaluateConditionField(field: string): boolean {
-      // Only support the 'certification' field
       return field === 'certification'
     },
   }

@@ -11,13 +11,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import StatusMultiSelect from '@/components/ui/status-multi-select'
 import StreamingProviderMultiSelect from '@/components/ui/streaming-provider-multi-select'
 import { TmdbRegionSelector } from '@/components/ui/tmdb-region-selector'
 import UserMultiSelect from '@/components/ui/user-multi-select'
 import ImdbRatingInput from '@/features/content-router/components/imdb-rating-input'
 import RatingInput from '@/features/content-router/components/rating-input'
 import { StableNumberInput } from '@/features/content-router/components/stable-number-input'
-import { ContentCertifications } from '@/features/content-router/types/route-types'
+import {
+  ContentCertifications,
+  MovieStatusOptions,
+  SeriesStatusOptions,
+} from '@/features/content-router/types/route-types'
 import { useUserOptions } from '@/hooks/useUserOptions'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -297,7 +302,6 @@ function ConditionInput({
       value === undefined ||
       value === null
 
-    // Convert all values to strings
     const stringValue = Array.isArray(value)
       ? value.map((item) => String(item))
       : [String(value || '')]
@@ -306,7 +310,38 @@ function ConditionInput({
       name: 'certification',
       value: isEmpty ? [] : stringValue,
       onChange: (newValue: unknown) => {
-        // Handle conversion for onChange callback
+        if (Array.isArray(newValue)) {
+          onChangeRef.current(newValue.map((item) => String(item)))
+        } else {
+          onChangeRef.current([String(newValue || '')])
+        }
+      },
+      onBlur: () => {},
+      ref: (instance: HTMLInputElement | null) => {
+        if (inputRef.current !== instance) {
+          inputRef.current = instance
+        }
+      },
+    }
+  }
+
+  const createStatusFormField = (
+    fieldName: 'seriesStatus' | 'movieStatus',
+  ): ControllerRenderProps<Record<string, unknown>, typeof fieldName> => {
+    const isEmpty =
+      (Array.isArray(value) && value.length === 0) ||
+      value === '' ||
+      value === undefined ||
+      value === null
+
+    const stringValue = Array.isArray(value)
+      ? value.map((item) => String(item))
+      : [String(value || '')]
+
+    return {
+      name: fieldName,
+      value: isEmpty ? [] : stringValue,
+      onChange: (newValue: unknown) => {
         if (Array.isArray(newValue)) {
           onChangeRef.current(newValue.map((item) => String(item)))
         } else {
@@ -708,6 +743,51 @@ function ConditionInput({
         placeholder="Enter certification or part of certification"
       />
     )
+  }
+
+  if (field === 'seriesStatus' || field === 'movieStatus') {
+    const statusOptions =
+      field === 'seriesStatus' ? SeriesStatusOptions : MovieStatusOptions
+
+    if (operator === 'in' || operator === 'notIn') {
+      const statusField = createStatusFormField(
+        field as 'seriesStatus' | 'movieStatus',
+      )
+
+      return (
+        <div className="flex-1">
+          <StatusMultiSelect
+            field={statusField}
+            options={statusOptions}
+            placeholder={`Select ${field === 'seriesStatus' ? 'series' : 'movie'} status(es)`}
+          />
+        </div>
+      )
+    }
+
+    if (operator === 'equals' || operator === 'notEquals') {
+      return (
+        <div className="flex-1">
+          <Select
+            value={typeof value === 'string' ? value : ''}
+            onValueChange={(val) => onChangeRef.current(val)}
+          >
+            <SelectTrigger>
+              <SelectValue
+                placeholder={`Select ${field === 'seriesStatus' ? 'series' : 'movie'} status`}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )
+    }
   }
 
   // Special handling for language field

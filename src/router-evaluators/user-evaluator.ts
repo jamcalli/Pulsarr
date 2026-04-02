@@ -20,7 +20,6 @@ import type { FastifyInstance } from 'fastify'
 export default function createUserEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
-  // Define metadata with only one clean field name
   const supportedFields: FieldInfo[] = [
     {
       name: 'user',
@@ -178,7 +177,6 @@ export default function createUserEvaluator(
         return false
       }
 
-      // Only support the 'user' field
       if (condition.field !== 'user') {
         return false
       }
@@ -188,7 +186,7 @@ export default function createUserEvaluator(
         return false
       }
 
-      const { operator, value, negate: _ = false } = condition
+      const { operator, value } = condition
       let result = false
 
       switch (operator) {
@@ -217,13 +215,10 @@ export default function createUserEvaluator(
           break
       }
 
-      // Do not apply negation here - the content router service handles negation at a higher level.
-      // This prevents double-negation issues when condition.negate is true.
       return result
     },
 
     canEvaluateConditionField(field: string): boolean {
-      // Only support the 'user' field
       return field === 'user'
     },
   }

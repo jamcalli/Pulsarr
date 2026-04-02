@@ -1,10 +1,3 @@
-/**
- * Content Enrichment Helpers
- *
- * Helper functions for enriching content items with external metadata
- * from Radarr, Sonarr, IMDB, TMDB, and anime detection services.
- */
-
 import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
@@ -73,7 +66,9 @@ export function determineEnrichmentNeeds(
           criteriaString.includes('certification') ||
           criteriaString.includes('language') ||
           criteriaString.includes('season') ||
-          criteriaString.includes('year')
+          criteriaString.includes('year') ||
+          criteriaString.includes('seriesStatus') ||
+          criteriaString.includes('movieStatus')
         ) {
           needsMetadata = true
         }
@@ -188,7 +183,6 @@ export async function enrichItemMetadata(
   try {
     // Fetch metadata from appropriate API based on content type
     if (isMovie) {
-      // Variables to accumulate enrichment data
       let movieMetadata: RadarrMovieLookupResponse | undefined
       let imdbData:
         | { rating?: number | null; votes?: number | null }
@@ -317,7 +311,6 @@ export async function enrichItemMetadata(
         ...(enrichedGenres && { genres: enrichedGenres }),
       }
     } else {
-      // TV Shows - Variables to accumulate enrichment data
       let seriesMetadata: SonarrSeriesLookupResponse | undefined
       let imdbData:
         | { rating?: number | null; votes?: number | null }

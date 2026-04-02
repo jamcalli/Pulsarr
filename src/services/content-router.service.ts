@@ -33,22 +33,12 @@ import { enrichItemMetadata } from './content-router/enrichment.js'
  * which instances should receive the content based on priority-weighted decisions.
  */
 export class ContentRouterService {
-  /**
-   * Collection of loaded routing evaluators that will be applied to content
-   */
   private evaluators: RoutingEvaluator[] = []
 
-  /**
-   * Cache for router rules to avoid repeated database queries
-   * Cleared explicitly when rules are modified via API endpoints
-   */
   private rulesCache: Awaited<
     ReturnType<FastifyInstance['db']['getAllRouterRules']>
   > | null = null
 
-  /**
-   * In-flight promise for router rules fetch to prevent concurrent duplicate queries
-   */
   private rulesCachePromise: Promise<
     Awaited<ReturnType<FastifyInstance['db']['getAllRouterRules']>>
   > | null = null
@@ -61,11 +51,7 @@ export class ContentRouterService {
     this.log = createServiceLogger(baseLog, 'CONTENT_ROUTER')
   }
 
-  /**
-   * Checks if a user's watchlist exceeds their configured cap for the content type.
-   * Returns true if capped (routing should be halted), false if clear.
-   * Bypass users are always uncapped.
-   */
+  /** Bypass users are always uncapped. */
   private async isWatchlistCapped(
     userId: number,
     contentType: 'movie' | 'show',
@@ -96,14 +82,8 @@ export class ContentRouterService {
     return capped
   }
 
-  /**
-   * Initialize the router service by loading all evaluators from the router-evaluators directory.
-   * Each evaluator is loaded, validated, and stored for later use. Evaluators are sorted by
-   * priority so higher priority evaluators are executed first.
-   */
   async initialize(): Promise<void> {
     try {
-      // Dynamically load all evaluators from the evaluators directory
       const __filename = fileURLToPath(import.meta.url)
       const __dirname = dirname(__filename)
       const projectRoot = resolve(__dirname, '..')
@@ -1056,43 +1036,41 @@ export class ContentRouterService {
           // Store the approval request with the highest priority routing decision
           const primaryDecision = allDecisions[0] // Already sorted by priority
 
-          const _approvalRequest =
-            await this.fastify.approvalService.createApprovalRequest(
-              {
-                id: context.userId,
-                name: context.userName || `User ${context.userId}`,
+          await this.fastify.approvalService.createApprovalRequest(
+            {
+              id: context.userId,
+              name: context.userName || `User ${context.userId}`,
+            },
+            enrichedItem,
+            {
+              action: 'require_approval',
+              approval: {
+                reason: approvalResult.reason || 'Approval required',
+                triggeredBy: approvalResult.trigger || 'manual_flag',
+                data: approvalResult.data || {},
+                proposedRouting: primaryDecision
+                  ? {
+                      instanceId: primaryDecision.instanceId,
+                      instanceType:
+                        enrichedItem.type === 'movie' ? 'radarr' : 'sonarr',
+                      qualityProfile: primaryDecision.qualityProfile,
+                      rootFolder: primaryDecision.rootFolder,
+                      tags: primaryDecision.tags,
+                      priority: primaryDecision.priority,
+                      searchOnAdd: primaryDecision.searchOnAdd,
+                      seasonMonitoring: primaryDecision.seasonMonitoring,
+                      seriesType: primaryDecision.seriesType,
+                      minimumAvailability: primaryDecision.minimumAvailability,
+                      monitor: primaryDecision.monitor,
+                    }
+                  : undefined,
               },
-              enrichedItem,
-              {
-                action: 'require_approval',
-                approval: {
-                  reason: approvalResult.reason || 'Approval required',
-                  triggeredBy: approvalResult.trigger || 'manual_flag',
-                  data: approvalResult.data || {},
-                  proposedRouting: primaryDecision
-                    ? {
-                        instanceId: primaryDecision.instanceId,
-                        instanceType:
-                          enrichedItem.type === 'movie' ? 'radarr' : 'sonarr',
-                        qualityProfile: primaryDecision.qualityProfile,
-                        rootFolder: primaryDecision.rootFolder,
-                        tags: primaryDecision.tags,
-                        priority: primaryDecision.priority,
-                        searchOnAdd: primaryDecision.searchOnAdd,
-                        seasonMonitoring: primaryDecision.seasonMonitoring,
-                        seriesType: primaryDecision.seriesType,
-                        minimumAvailability:
-                          primaryDecision.minimumAvailability,
-                        monitor: primaryDecision.monitor,
-                      }
-                    : undefined,
-                },
-              },
-              approvalResult.trigger || 'manual_flag',
-              approvalResult.reason,
-              undefined,
-              context.itemKey,
-            )
+            },
+            approvalResult.trigger || 'manual_flag',
+            approvalResult.reason,
+            undefined,
+            context.itemKey,
+          )
 
           // Return empty - content will not be routed until approved
           return { routedInstances: [], routingDetails: [] }
