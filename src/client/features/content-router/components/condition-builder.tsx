@@ -38,6 +38,7 @@ const FIELD_LABELS: Record<string, string> = {
   originalLanguage: 'Original Language',
   seriesStatus: 'Series Status',
   movieStatus: 'Movie Status',
+  plexList: 'Plex List',
 }
 
 function formatFieldName(name: string): string {

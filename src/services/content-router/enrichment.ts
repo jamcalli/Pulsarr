@@ -5,12 +5,30 @@ import type {
 import type { ContentItem, RoutingContext } from '@root/types/router.types.js'
 import type { TmdbWatchProviderData } from '@root/types/tmdb.types.js'
 import {
+  fetchListItemsBySlug,
+  fetchUserListMetadata,
+} from '@services/plex-watchlist/api/graphql.js'
+import {
   extractImdbId,
   extractTmdbId,
   extractTvdbId,
   parseGenres,
 } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+
+const LIST_CACHE_TTL_MS = 10_000
+
+interface CachedListData {
+  lists: Map<string, Set<string>>
+  fetchedFor: Set<string>
+  timestamp: number
+}
+
+const userListCache = new Map<number, CachedListData>()
+const userListInflight = new Map<
+  number,
+  Promise<Map<string, Set<string>> | null>
+>()
 
 /**
  * Determines which types of enrichment are needed based on active router rules.
@@ -26,9 +44,10 @@ export function determineEnrichmentNeeds(
   contentType: 'movie' | 'show',
 ): {
   needsMetadata: boolean
-  needsImdb: boolean
   needsProviders: boolean
   needsAnimeCheck: boolean
+  needsListCheck: boolean
+  listNames: Set<string>
 } {
   try {
     // Filter to enabled rules matching the current content type
@@ -43,56 +62,59 @@ export function determineEnrichmentNeeds(
     if (enabledRules.length === 0) {
       return {
         needsMetadata: false,
-        needsImdb: false,
         needsProviders: false,
         needsAnimeCheck: false,
+        needsListCheck: false,
+        listNames: new Set(),
       }
     }
 
     // All rules are stored as 'conditional' type, so we need to check the criteria
     // to determine what enrichment data is needed
     let needsMetadata = false
-    let needsImdb = false
     let needsProviders = false
     let needsAnimeCheck = false
+    let needsListCheck = false
+    const listNames = new Set<string>()
+
+    const metadataFields = new Set([
+      'certification',
+      'language',
+      'season',
+      'year',
+      'seriesStatus',
+      'movieStatus',
+    ])
 
     for (const rule of enabledRules) {
       if (rule.type === 'conditional' && rule.criteria) {
-        const criteriaString = JSON.stringify(rule.criteria)
-        const criteriaLower = criteriaString.toLowerCase()
+        walkCriteriaFields(rule.criteria, (field, value) => {
+          if (metadataFields.has(field)) needsMetadata = true
+          if (field === 'streamingServices') needsProviders = true
+          if (
+            field === 'genres' &&
+            typeof value === 'string' &&
+            value.toLowerCase().includes('anime')
+          ) {
+            needsAnimeCheck = true
+          }
+          if (field === 'plexList') {
+            needsListCheck = true
+            if (typeof value === 'string') {
+              listNames.add(value.toLowerCase().trim())
+            }
+          }
+        })
 
-        // Check for fields that require metadata enrichment
+        // Short-circuit only when list rules aren't involved.
+        // When needsListCheck is true we must scan all rules to
+        // collect every referenced list name.
         if (
-          criteriaString.includes('certification') ||
-          criteriaString.includes('language') ||
-          criteriaString.includes('season') ||
-          criteriaString.includes('year') ||
-          criteriaString.includes('seriesStatus') ||
-          criteriaString.includes('movieStatus')
+          !needsListCheck &&
+          needsMetadata &&
+          needsProviders &&
+          needsAnimeCheck
         ) {
-          needsMetadata = true
-        }
-
-        // Check for IMDB fields (rating or votes)
-        if (
-          criteriaString.includes('imdbRating') ||
-          criteriaString.includes('imdbVotes')
-        ) {
-          needsImdb = true
-        }
-
-        // Check for streaming services field
-        if (criteriaString.includes('streamingServices')) {
-          needsProviders = true
-        }
-
-        // Check for anime genre
-        if (criteriaLower.includes('anime')) {
-          needsAnimeCheck = true
-        }
-
-        // Short-circuit if we've found all needs
-        if (needsMetadata && needsImdb && needsProviders && needsAnimeCheck) {
           break
         }
       }
@@ -100,17 +122,18 @@ export function determineEnrichmentNeeds(
 
     return {
       needsMetadata,
-      needsImdb,
       needsProviders,
       needsAnimeCheck,
+      needsListCheck,
+      listNames,
     }
   } catch (_error) {
-    // On error, be conservative and fetch everything
     return {
       needsMetadata: true,
-      needsImdb: true,
       needsProviders: true,
       needsAnimeCheck: true,
+      needsListCheck: true,
+      listNames: new Set(),
     }
   }
 }
@@ -136,11 +159,6 @@ export async function enrichItemMetadata(
 ): Promise<ContentItem> {
   const isMovie = context.contentType === 'movie'
 
-  // Skip if we can't extract an ID from the item
-  if (!Array.isArray(item.guids) || item.guids.length === 0) {
-    return item
-  }
-
   // Determine which enrichment types are actually needed
   const enrichmentNeeds = determineEnrichmentNeeds(
     allRules,
@@ -150,14 +168,38 @@ export async function enrichItemMetadata(
   // Skip all enrichment if nothing is needed
   if (
     !enrichmentNeeds.needsMetadata &&
-    !enrichmentNeeds.needsImdb &&
     !enrichmentNeeds.needsProviders &&
-    !enrichmentNeeds.needsAnimeCheck
+    !enrichmentNeeds.needsAnimeCheck &&
+    !enrichmentNeeds.needsListCheck
   ) {
     log.debug(
       `No enrichment needed for "${item.title}" (no matching rule types)`,
     )
     return item
+  }
+
+  // List membership only needs userId and itemKey, not GUIDs
+  let listMemberships: Set<string> | undefined
+  if (
+    enrichmentNeeds.needsListCheck &&
+    context.userId &&
+    context.itemKey &&
+    enrichmentNeeds.listNames.size > 0
+  ) {
+    try {
+      listMemberships = await enrichListMemberships(
+        fastify,
+        log,
+        context.userId,
+        context.itemKey,
+        enrichmentNeeds.listNames,
+      )
+    } catch (error) {
+      log.debug(
+        { error },
+        `Failed to fetch list memberships for "${item.title}"`,
+      )
+    }
   }
 
   // Extract appropriate ID based on content type (tmdb for movies, tvdb for shows)
@@ -184,9 +226,6 @@ export async function enrichItemMetadata(
     // Fetch metadata from appropriate API based on content type
     if (isMovie) {
       let movieMetadata: RadarrMovieLookupResponse | undefined
-      let imdbData:
-        | { rating?: number | null; votes?: number | null }
-        | undefined
       let watchProviders: TmdbWatchProviderData | undefined
       let enrichedGenres: string[] | undefined
 
@@ -229,18 +268,7 @@ export async function enrichItemMetadata(
         }
       }
 
-      // 2. Use IMDB rating from DB if available (for imdb rules)
-      if (enrichmentNeeds.needsImdb && item.imdb?.rating !== undefined) {
-        imdbData = {
-          rating: item.imdb.rating,
-          votes: item.imdb.votes ?? null,
-        }
-        log.debug(
-          `Using pre-loaded IMDB rating for "${item.title}": ${item.imdb.rating}`,
-        )
-      }
-
-      // 3. Fetch TMDB watch providers if needed (for streaming rules)
+      // 2. Fetch TMDB watch providers if needed (for streaming rules)
       if (enrichmentNeeds.needsProviders && fastify.tmdb) {
         try {
           const tmdbId = extractTmdbId(item.guids)
@@ -306,15 +334,12 @@ export async function enrichItemMetadata(
       return {
         ...item,
         ...(movieMetadata && { metadata: movieMetadata }),
-        ...(imdbData && { imdb: imdbData }),
         ...(watchProviders && { watchProviders }),
         ...(enrichedGenres && { genres: enrichedGenres }),
+        ...(listMemberships && { listMemberships }),
       }
     } else {
       let seriesMetadata: SonarrSeriesLookupResponse | undefined
-      let imdbData:
-        | { rating?: number | null; votes?: number | null }
-        | undefined
       let watchProviders: TmdbWatchProviderData | undefined
       let enrichedGenres: string[] | undefined
 
@@ -357,18 +382,7 @@ export async function enrichItemMetadata(
         }
       }
 
-      // 2. Use IMDB rating from DB if available (for imdb rules)
-      if (enrichmentNeeds.needsImdb && item.imdb?.rating !== undefined) {
-        imdbData = {
-          rating: item.imdb.rating,
-          votes: item.imdb.votes ?? null,
-        }
-        log.debug(
-          `Using pre-loaded IMDB rating for TV show "${item.title}": ${item.imdb.rating}`,
-        )
-      }
-
-      // 3. Fetch TMDB watch providers if needed (for streaming rules)
+      // 2. Fetch TMDB watch providers if needed (for streaming rules)
       if (enrichmentNeeds.needsProviders && fastify.tmdb) {
         try {
           const tmdbId = extractTmdbId(item.guids)
@@ -433,9 +447,9 @@ export async function enrichItemMetadata(
       return {
         ...item,
         ...(seriesMetadata && { metadata: seriesMetadata }),
-        ...(imdbData && { imdb: imdbData }),
         ...(watchProviders && { watchProviders }),
         ...(enrichedGenres && { genres: enrichedGenres }),
+        ...(listMemberships && { listMemberships }),
       }
     }
   } catch (error) {
@@ -444,4 +458,123 @@ export async function enrichItemMetadata(
 
   // Return original item if enrichment failed
   return item
+}
+
+async function enrichListMemberships(
+  fastify: FastifyInstance,
+  log: FastifyBaseLogger,
+  userId: number,
+  itemKey: string,
+  ruleListNames: Set<string>,
+): Promise<Set<string> | undefined> {
+  const adminToken = fastify.config.plexTokens?.[0]
+  if (!adminToken) return undefined
+
+  const now = Date.now()
+  for (const [cachedUserId, entry] of userListCache) {
+    if (now - entry.timestamp >= LIST_CACHE_TTL_MS) {
+      userListCache.delete(cachedUserId)
+    }
+  }
+
+  const cached = userListCache.get(userId)
+  if (cached && [...ruleListNames].every((n) => cached.fetchedFor.has(n))) {
+    return buildMemberships(cached.lists, itemKey)
+  }
+
+  // Coalesce concurrent fetches for the same user so parallel
+  // item enrichment doesn't fan out into duplicate GraphQL calls
+  let inflight = userListInflight.get(userId)
+  if (!inflight) {
+    inflight = (async () => {
+      const user = await fastify.db.getUser(userId)
+      if (!user?.plex_uuid) return null
+
+      const listMeta = await fetchUserListMetadata(
+        adminToken,
+        log,
+        user.plex_uuid,
+      )
+      if (!listMeta) return null
+
+      const relevantLists = listMeta.filter((list) => {
+        const normalized = list.name.toLowerCase().trim()
+        for (const ruleName of ruleListNames) {
+          if (
+            normalized === ruleName ||
+            normalized.includes(ruleName) ||
+            ruleName.includes(normalized)
+          )
+            return true
+        }
+        return false
+      })
+
+      const result = new Map<string, Set<string>>()
+      for (const list of relevantLists) {
+        const keys = await fetchListItemsBySlug(
+          adminToken,
+          log,
+          list.slug,
+          user.name,
+        )
+        result.set(list.name.toLowerCase().trim(), keys)
+      }
+
+      return result
+    })()
+    userListInflight.set(userId, inflight)
+  }
+
+  let result: Map<string, Set<string>> | null
+  try {
+    result = await inflight
+  } finally {
+    userListInflight.delete(userId)
+  }
+
+  if (!result) return undefined
+
+  userListCache.set(userId, {
+    lists: result,
+    fetchedFor: new Set(ruleListNames),
+    timestamp: Date.now(),
+  })
+  return buildMemberships(result, itemKey)
+}
+
+function buildMemberships(
+  lists: Map<string, Set<string>>,
+  itemKey: string,
+): Set<string> {
+  const memberships = new Set<string>()
+  for (const [name, keys] of lists) {
+    if (keys.has(itemKey)) {
+      memberships.add(name)
+    }
+  }
+  return memberships
+}
+
+function walkCriteriaFields(
+  obj: unknown,
+  visitor: (field: string, value: unknown) => void,
+): void {
+  if (!obj || typeof obj !== 'object') return
+
+  const record = obj as Record<string, unknown>
+
+  if (typeof record.field === 'string') {
+    visitor(record.field, record.value)
+  }
+
+  if (record.condition) {
+    walkCriteriaFields(record.condition, visitor)
+  }
+
+  if (Array.isArray(record.conditions)) {
+    for (const child of record.conditions) {
+      walkCriteriaFields(child, visitor)
+    }
+  }
 }
