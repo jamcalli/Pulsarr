@@ -3,7 +3,13 @@
 // Client functions (ping)
 export { pingPlex } from './client.js'
 // GraphQL/REST API functions
-export { getWatchlist, getWatchlistForUser } from './graphql.js'
+export {
+  fetchListItemsBySlug,
+  fetchUserListMetadata,
+  getWatchlist,
+  getWatchlistForUser,
+  type PlexCustomListMeta,
+} from './graphql.js'
 // Helper functions and types
 export {
   hasValidPlexTokens,
