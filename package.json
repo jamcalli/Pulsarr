@@ -78,7 +78,7 @@
     "@fastify/sensible": "^6.0.3",
     "@fastify/session": "^11.1.0",
     "@fastify/swagger": "^9.5.1",
-    "@fastify/vite": "^8.4.1",
+    "@fastify/vite": "^9.0.0",
     "@scalar/fastify-api-reference": "^1.34.2",
     "better-sqlite3": "file:packages/better-sqlite3-bun",
     "close-with-grace": "^2.2.0",
