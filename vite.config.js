@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { viteFastify } from '@fastify/vite/plugin'
 import viteReact from '@vitejs/plugin-react'
+import { compression } from 'vite-plugin-compression2'
 
 const packageJson = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
@@ -11,7 +12,11 @@ const packageJson = JSON.parse(
 export default {
   base: './',
   root: resolve(import.meta.dirname, 'src/client'),
-  plugins: [viteReact(), viteFastify({ spa: true, useRelativePaths: true })],
+  plugins: [
+    viteReact(),
+    viteFastify({ spa: true }),
+    compression({ algorithms: ['gzip', 'brotliCompress'], threshold: 1024 }),
+  ],
   build: {
     outDir: resolve(import.meta.dirname, 'dist'),
     emptyOutDir: false,

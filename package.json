@@ -168,6 +168,7 @@
     "typescript": "^6.0.0",
     "vaul": "^1.1.2",
     "vite": "^8.0.0",
+    "vite-plugin-compression2": "^2.5.3",
     "vitest": "^4.0.0",
     "zustand": "^5.0.3"
   }
