@@ -1,9 +1,5 @@
-import dotenv from 'dotenv'
 import knex from 'knex'
 import config from './knexfile.js'
-
-// Load environment variables from .env file
-dotenv.config({ quiet: true })
 
 /**
  * Applies all pending database migrations using the development configuration.

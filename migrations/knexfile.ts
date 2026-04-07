@@ -1,8 +1,8 @@
 import fs from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseEnv } from 'node:util'
 import Database from 'better-sqlite3'
-import dotenv from 'dotenv'
 import type { Knex } from 'knex'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -39,10 +39,13 @@ function resolveEnvPath(root: string): string {
 const dataDir = resolveDataDir()
 
 // Load environment variables before anything else
-dotenv.config({
-  path: resolveEnvPath(projectRoot),
-  quiet: true,
-})
+const envFilePath = resolveEnvPath(projectRoot)
+if (fs.existsSync(envFilePath)) {
+  const parsed = parseEnv(fs.readFileSync(envFilePath, 'utf-8'))
+  for (const [key, value] of Object.entries(parsed)) {
+    process.env[key] ??= value
+  }
+}
 
 // SQLite file suffixes that must be moved together
 const SQLITE_SUFFIXES = ['', '-wal', '-shm', '-journal']

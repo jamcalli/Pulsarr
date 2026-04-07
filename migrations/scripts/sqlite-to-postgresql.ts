@@ -1,15 +1,22 @@
+import { existsSync, readFileSync } from 'node:fs'
 import fs from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
-import dotenv from 'dotenv'
+import { parseEnv } from 'node:util'
 import knex, { type Knex } from 'knex'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..', '..')
 
-dotenv.config({ path: resolve(projectRoot, '.env'), quiet: true })
+const envFilePath = resolve(projectRoot, '.env')
+if (existsSync(envFilePath)) {
+  const parsed = parseEnv(readFileSync(envFilePath, 'utf-8'))
+  for (const [key, value] of Object.entries(parsed)) {
+    process.env[key] ??= value
+  }
+}
 
 interface MigrationConfig {
   source: Knex.Config

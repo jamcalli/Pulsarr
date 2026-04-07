@@ -517,8 +517,6 @@ export default fp(
       schema,
       dotenv: {
         path: dataDir ? resolve(dataDir, '.env') : './.env',
-        debug: process.env.NODE_ENV === 'development',
-        quiet: true,
       },
       data: process.env,
     })
