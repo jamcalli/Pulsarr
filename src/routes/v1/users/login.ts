@@ -26,10 +26,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       const { login, password } = request.body
       try {
-        const isEmail = login.includes('@')
-        const user = isEmail
-          ? await fastify.db.getAdminUser(login)
-          : await fastify.db.getAdminUserByUsername(login)
+        const user =
+          (await fastify.db.getAdminUser(login)) ||
+          (await fastify.db.getAdminUserByUsername(login))
         if (!user || !(await fastify.compare(password, user.password))) {
           return reply.unauthorized('Invalid credentials.')
         }

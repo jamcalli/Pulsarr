@@ -14,6 +14,7 @@ import {
   extractTvdbId,
   parseGenres,
 } from '@utils/guid-handler.js'
+import { isString, isStringArray } from '@utils/type-guards.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 const LIST_CACHE_TTL_MS = 10_000
@@ -26,7 +27,7 @@ interface CachedListData {
 
 const userListCache = new Map<number, CachedListData>()
 const userListInflight = new Map<
-  number,
+  string,
   Promise<Map<string, Set<string>> | null>
 >()
 
@@ -91,12 +92,15 @@ export function determineEnrichmentNeeds(
         walkCriteriaFields(rule.criteria, (field, value) => {
           if (metadataFields.has(field)) needsMetadata = true
           if (field === 'streamingServices') needsProviders = true
-          if (
-            field === 'genres' &&
-            typeof value === 'string' &&
-            value.toLowerCase().includes('anime')
-          ) {
-            needsAnimeCheck = true
+          if (field === 'genres') {
+            if (isString(value) && value.toLowerCase().includes('anime')) {
+              needsAnimeCheck = true
+            } else if (
+              isStringArray(value) &&
+              value.some((v) => v.toLowerCase().includes('anime'))
+            ) {
+              needsAnimeCheck = true
+            }
           }
           if (field === 'plexList') {
             needsListCheck = true
@@ -484,7 +488,8 @@ async function enrichListMemberships(
 
   // Coalesce concurrent fetches for the same user so parallel
   // item enrichment doesn't fan out into duplicate GraphQL calls
-  let inflight = userListInflight.get(userId)
+  const inflightKey = `${userId}:${[...ruleListNames].sort().join('\0')}`
+  let inflight = userListInflight.get(inflightKey)
   if (!inflight) {
     inflight = (async () => {
       const user = await fastify.db.getUser(userId)
@@ -523,21 +528,24 @@ async function enrichListMemberships(
 
       return result
     })()
-    userListInflight.set(userId, inflight)
+    userListInflight.set(inflightKey, inflight)
   }
 
   let result: Map<string, Set<string>> | null
   try {
     result = await inflight
   } finally {
-    userListInflight.delete(userId)
+    userListInflight.delete(inflightKey)
   }
 
   if (!result) return undefined
 
+  const existing = userListCache.get(userId)
   userListCache.set(userId, {
-    lists: result,
-    fetchedFor: new Set(ruleListNames),
+    lists: existing ? new Map([...existing.lists, ...result]) : result,
+    fetchedFor: existing
+      ? new Set([...existing.fetchedFor, ...ruleListNames])
+      : new Set(ruleListNames),
     timestamp: Date.now(),
   })
   return buildMemberships(result, itemKey)

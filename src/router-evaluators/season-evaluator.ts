@@ -7,12 +7,7 @@ import type {
   RoutingContext,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
-import {
-  isNumber,
-  isNumberArray,
-  isNumericRange,
-  type NumericRange,
-} from '@utils/type-guards.js'
+import { isNumber, isNumberArray, isNumericRange } from '@utils/type-guards.js'
 import type { FastifyInstance } from 'fastify'
 
 /**
@@ -162,9 +157,8 @@ export default function createSeasonEvaluator(
 
     if (isNumericRange(value) && operator === 'between') {
       // Only treat finite numeric bounds; undefined-only ranges should not match
-      const seasonRange = value as NumericRange
-      const rawMin = seasonRange.min
-      const rawMax = seasonRange.max
+      const rawMin = value.min
+      const rawMax = value.max
       const hasMin = typeof rawMin === 'number' && Number.isFinite(rawMin)
       const hasMax = typeof rawMax === 'number' && Number.isFinite(rawMax)
       if (!hasMin && !hasMax) {

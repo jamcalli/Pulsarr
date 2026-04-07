@@ -107,7 +107,8 @@ export async function cleanupLabelsForWatchlistItems(
     const userNameMap = new Map(
       allUsers.map((user) => [
         user.id,
-        resolveTagName(user, deps.config.labelNamingSource),
+        resolveTagName(user, deps.config.labelNamingSource) ||
+          `user_${user.id}`,
       ]),
     )
     await handleSpecialLabelModeForDeletedItems(
@@ -136,7 +137,8 @@ export async function cleanupLabelsForWatchlistItems(
     const userNameMap = new Map(
       allUsers.map((user) => [
         user.id,
-        resolveTagName(user, deps.config.labelNamingSource),
+        resolveTagName(user, deps.config.labelNamingSource) ||
+          `user_${user.id}`,
       ]),
     )
 
@@ -869,7 +871,9 @@ export async function cleanupOrphanedPlexLabels(
 
     // Add user labels for sync-enabled users
     for (const user of syncEnabledUsers) {
-      const userLabel = `${deps.config.labelPrefix}:${resolveTagName(user, deps.config.labelNamingSource)}`
+      const resolvedName =
+        resolveTagName(user, deps.config.labelNamingSource) || `user_${user.id}`
+      const userLabel = `${deps.config.labelPrefix}:${resolvedName}`
       validLabels.add(userLabel.toLowerCase())
     }
 

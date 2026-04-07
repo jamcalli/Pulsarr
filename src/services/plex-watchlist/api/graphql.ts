@@ -521,16 +521,31 @@ const paginatedGraphQLFetch = async <
   while (hasMore) {
     await rateLimiter.waitIfLimited(options.log)
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'User-Agent': USER_AGENT,
-        'Content-Type': 'application/json',
-        'X-Plex-Token': options.token,
-      },
-      body: JSON.stringify(options.buildQuery(cursor)),
-      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
-    })
+    let response: Response
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'User-Agent': USER_AGENT,
+          'Content-Type': 'application/json',
+          'X-Plex-Token': options.token,
+        },
+        body: JSON.stringify(options.buildQuery(cursor)),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
+      })
+    } catch (networkError) {
+      if (retryCount < maxRetries) {
+        retryCount++
+        const retryDelay = Math.min(1000 * 2 ** retryCount, 10000)
+        options.log.warn(
+          { error: networkError, attempt: retryCount },
+          `Network error fetching ${options.label}, retrying in ${retryDelay}ms`,
+        )
+        await new Promise((resolve) => setTimeout(resolve, retryDelay))
+        continue
+      }
+      throw networkError
+    }
 
     if (!response.ok) {
       if (response.status === 429) {

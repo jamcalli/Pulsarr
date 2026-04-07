@@ -1859,16 +1859,20 @@ export class UserTagService {
   private getUserTagLabel(user: User): string {
     // Sanitize the username to match Radarr v6 validation: ^[a-z0-9-]+$
     // Uses shared normalization utility (same logic as tag migration and database migration 064)
-    const sanitizedName = normalizeTagLabel(
-      resolveTagName(user, this.fastify.config.tagNamingSource),
-    )
+    const tagSource = resolveTagName(user, this.fastify.config.tagNamingSource)
+    const sanitizedName = normalizeTagLabel(tagSource)
 
-    // Handle degenerate usernames that sanitize to empty string
-    // (e.g., usernames with only special characters like "@@@" or unicode)
+    // Handle degenerate names that sanitize to empty string
+    // (e.g., names with only special characters like "@@@" or unicode)
     if (sanitizedName === '') {
       this.log.warn(
-        { userId: user.id, userName: user.name },
-        `Username "${user.name}" sanitized to empty string, using fallback tag: ${this.tagPrefix}-id-${user.id}`,
+        {
+          userId: user.id,
+          userName: user.name,
+          tagNamingSource: this.fastify.config.tagNamingSource,
+          tagSource,
+        },
+        `Tag source "${tagSource}" sanitized to empty string, using fallback tag: ${this.tagPrefix}-id-${user.id}`,
       )
       return `${this.tagPrefix}-id-${user.id}`
     }
