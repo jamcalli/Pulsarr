@@ -8,7 +8,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -30,6 +30,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { AliasReadinessCredenza } from '@/features/utilities/components/alias-readiness-credenza'
 import { UserTagsDeleteConfirmationModal } from '@/features/utilities/components/user-tags/user-tags-delete-confirmation-modal'
 import { useTaggingProgress } from '@/features/utilities/hooks/useTaggingProgress'
 import {
@@ -104,6 +105,33 @@ export function UserTagsPage() {
   // Determine if tag settings can be edited
   const canEditTagSettings = isTagDeletionComplete && tagDefinitionsDeleted
 
+  // Alias readiness credenza state
+  const [showAliasCredenza, setShowAliasCredenza] = useState(false)
+
+  const handleNamingSourceChange = useCallback(
+    (value: string) => {
+      if (value === 'alias') {
+        setShowAliasCredenza(true)
+      } else {
+        form.setValue('tagNamingSource', 'username', {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true,
+        })
+      }
+    },
+    [form],
+  )
+
+  const handleAliasConfirm = useCallback(() => {
+    form.setValue('tagNamingSource', 'alias', {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    })
+    setShowAliasCredenza(false)
+  }, [form])
+
   if (isInitializing || isLoading || !config) {
     return <UserTagsPageSkeleton />
   }
@@ -115,6 +143,13 @@ export function UserTagsPage() {
         onOpenChange={setShowDeleteConfirmation}
         onConfirm={handleRemoveTags}
         isSubmitting={isRemovingTags}
+      />
+      <AliasReadinessCredenza
+        open={showAliasCredenza}
+        onOpenChange={(open) => {
+          setShowAliasCredenza(open)
+        }}
+        onConfirm={handleAliasConfirm}
       />
 
       <div>
@@ -738,7 +773,7 @@ export function UserTagsPage() {
                                   final tag format will be:
                                 </p>
                                 <code className="bg-slate-700 text-white px-1 py-0.5 rounded-xs block text-center">
-                                  {`${form.watch('tagPrefix') || 'pulsarr-user'}-username`}
+                                  {`${form.watch('tagPrefix') || 'pulsarr-user'}-${form.watch('tagNamingSource') === 'alias' ? 'alias' : 'username'}`}
                                 </code>
 
                                 <p className="text-xs">
@@ -784,10 +819,53 @@ export function UserTagsPage() {
                         <p className="text-xs text-gray-500 mt-1">
                           Final format:{' '}
                           <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
-                            {`${form.watch('tagPrefix') || 'pulsarr-user'}-username`}
+                            {`${form.watch('tagPrefix') || 'pulsarr-user'}-${form.watch('tagNamingSource') === 'alias' ? 'alias' : 'username'}`}
                           </code>
                         </p>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tagNamingSource"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground">
+                            Naming Source
+                          </FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  Controls whether tags use the Plex username or
+                                  user alias for the name portion of the tag.
+                                </p>
+                                <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                  <strong>Note:</strong> Changing this requires
+                                  removing existing tags first. Users without an
+                                  alias will fall back to their Plex username.
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <FormControl>
+                          <Select
+                            value={field.value}
+                            onValueChange={handleNamingSourceChange}
+                            disabled={!canEditTagSettings}
+                            options={[
+                              { label: 'Username', value: 'username' },
+                              { label: 'Alias', value: 'alias' },
+                            ]}
+                          />
+                        </FormControl>
                       </FormItem>
                     )}
                   />

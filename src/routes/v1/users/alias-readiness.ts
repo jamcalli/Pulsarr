@@ -3,6 +3,7 @@ import {
   AliasReadinessResponseSchema,
 } from '@schemas/users/alias-readiness.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import { normalizeTagLabel } from '@utils/tag-normalization.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -30,12 +31,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           (u) => !u.alias?.trim(),
         ).length
 
-        // Check for duplicates after lowercasing (Plex labels are case-insensitive,
-        // arr tags normalize further but lowercase catches the same collisions)
+        // Normalize through the same path as tag creation so collisions like
+        // "John Doe" and "John_Doe" (both become "john-doe") are caught
         const aliasCounts = new Map<string, number>()
         for (const user of syncEnabled) {
           const resolved = user.alias?.trim() || user.name.trim()
-          const key = resolved.toLowerCase()
+          const key = normalizeTagLabel(resolved)
           aliasCounts.set(key, (aliasCounts.get(key) || 0) + 1)
         }
 

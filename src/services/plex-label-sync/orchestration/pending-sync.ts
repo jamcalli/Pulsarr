@@ -223,6 +223,14 @@ export async function processPendingLabelSyncs(
 
             const trackedGuids = new Map<number, string[]>()
 
+            const resolveUsername = (user: {
+              id: number
+              name: string
+              alias: string | null
+            }) =>
+              resolveTagName(user, deps.config.labelNamingSource) ||
+              `user_${user.id}`
+
             for (const tracking of trackedLabels) {
               if (
                 tracking.user_id !== null &&
@@ -232,11 +240,7 @@ export async function processPendingLabelSyncs(
                 if (trackedUser) {
                   allContentUsers.set(tracking.user_id, {
                     user_id: trackedUser.id,
-                    username:
-                      resolveTagName(
-                        trackedUser,
-                        deps.config.labelNamingSource,
-                      ) || `user_${trackedUser.id}`,
+                    username: resolveUsername(trackedUser),
                     watchlist_id: 0,
                   })
                   if (tracking.content_guids.length > 0) {
@@ -253,11 +257,7 @@ export async function processPendingLabelSyncs(
                 if (pendingUser) {
                   allContentUsers.set(row.user_id, {
                     user_id: pendingUser.id,
-                    username:
-                      resolveTagName(
-                        pendingUser,
-                        deps.config.labelNamingSource,
-                      ) || `user_${pendingUser.id}`,
+                    username: resolveUsername(pendingUser),
                     watchlist_id: row.watchlist_item_id,
                   })
                 }

@@ -140,6 +140,7 @@ export function useUserTags() {
       removedTagMode: 'remove',
       removedTagPrefix: 'pulsarr-removed',
       tagPrefix: 'pulsarr-user',
+      tagNamingSource: 'username',
     },
   })
 
@@ -153,6 +154,7 @@ export function useUserTags() {
         removedTagMode: config.removedTagMode || 'remove',
         removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
         tagPrefix: config.tagPrefix || 'pulsarr-user',
+        tagNamingSource: config.tagNamingSource || 'username',
       })
     }
   }, [form, config])
@@ -226,6 +228,7 @@ export function useUserTags() {
           removedTagMode: formDataCopy.removedTagMode,
           removedTagPrefix: formDataCopy.removedTagPrefix,
           tagPrefix: formDataCopy.tagPrefix,
+          tagNamingSource: formDataCopy.tagNamingSource,
         })
 
         // Wait for both processes to complete (exactly like DeleteSyncForm)
