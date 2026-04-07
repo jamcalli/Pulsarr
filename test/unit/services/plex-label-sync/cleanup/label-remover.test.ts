@@ -55,6 +55,7 @@ describe('label-remover', () => {
     const config: PlexLabelSyncConfig = {
       enabled: true,
       labelPrefix: 'pulsarr',
+      labelNamingSource: 'username' as const,
       concurrencyLimit: 5,
       cleanupOrphanedLabels: true,
       removedLabelMode: 'remove',

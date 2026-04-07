@@ -47,6 +47,7 @@ export class PlexLabelSyncService {
       this.fastify.config.plexLabelSync || {
         enabled: false,
         labelPrefix: 'pulsarr',
+        labelNamingSource: 'username' as const,
         concurrencyLimit: 5,
         cleanupOrphanedLabels: false,
         removedLabelMode: 'remove' as const,

@@ -16,6 +16,7 @@ export const TaggingConfigSchema = z
     removedTagPrefix:
       RemovedTagPrefixSchema.optional().default('pulsarr-removed'),
     tagPrefix: TagPrefixSchema,
+    tagNamingSource: z.enum(['username', 'alias']).default('username'),
   })
   .refine((v) => v.removedTagMode !== 'special-tag' || v.removedTagPrefix, {
     message: 'removedTagPrefix required when removedTagMode is "special-tag"',

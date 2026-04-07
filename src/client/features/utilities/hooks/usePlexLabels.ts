@@ -142,6 +142,7 @@ export function usePlexLabels() {
     defaultValues: {
       enabled: false,
       labelPrefix: 'pulsarr',
+      labelNamingSource: 'username',
       concurrencyLimit: 5,
       cleanupOrphanedLabels: false,
       removedLabelMode: 'remove',
@@ -163,6 +164,7 @@ export function usePlexLabels() {
       form.reset({
         enabled: plexLabelSyncConfig.enabled,
         labelPrefix: plexLabelSyncConfig.labelPrefix,
+        labelNamingSource: plexLabelSyncConfig.labelNamingSource || 'username',
         concurrencyLimit: plexLabelSyncConfig.concurrencyLimit || 5,
         cleanupOrphanedLabels:
           plexLabelSyncConfig.cleanupOrphanedLabels || false,

@@ -9,7 +9,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -38,6 +38,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { AliasReadinessCredenza } from '@/features/utilities/components/alias-readiness-credenza'
 import { PlexLabelsDeleteConfirmationModal } from '@/features/utilities/components/plex-labels/plex-labels-delete-confirmation-modal'
 import { useLabelingProgress } from '@/features/utilities/hooks/useLabelingProgress'
 import {
@@ -119,6 +120,33 @@ export function PlexLabelsPage() {
     (isLabelDeletionComplete && labelDefinitionsDeleted) ||
     !lastResults?.config?.enabled
 
+  // Alias readiness credenza state
+  const [showAliasCredenza, setShowAliasCredenza] = useState(false)
+
+  const handleNamingSourceChange = useCallback(
+    (value: string) => {
+      if (value === 'alias') {
+        setShowAliasCredenza(true)
+      } else {
+        form.setValue('labelNamingSource', 'username', {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true,
+        })
+      }
+    },
+    [form],
+  )
+
+  const handleAliasConfirm = useCallback(() => {
+    form.setValue('labelNamingSource', 'alias', {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    })
+    setShowAliasCredenza(false)
+  }, [form])
+
   // Helper function to get current schedule display (form state takes precedence)
   const getCurrentScheduleDisplay = () => {
     const currentTime =
@@ -145,6 +173,13 @@ export function PlexLabelsPage() {
         onOpenChange={setShowDeleteConfirmation}
         onConfirm={handleRemoveLabels}
         isSubmitting={isRemovingLabels}
+      />
+      <AliasReadinessCredenza
+        open={showAliasCredenza}
+        onOpenChange={(open) => {
+          setShowAliasCredenza(open)
+        }}
+        onConfirm={handleAliasConfirm}
       />
 
       <div>
@@ -567,8 +602,10 @@ export function PlexLabelsPage() {
                                   Username will be appended after a colon.
                                 </p>
                                 <code className="bg-slate-700 text-white px-1 py-0.5 rounded-xs block text-center">
-                                  {form.watch('labelPrefix') || 'pulsarr'}
-                                  :username
+                                  {form.watch('labelPrefix') || 'pulsarr'}:
+                                  {form.watch('labelNamingSource') === 'alias'
+                                    ? 'alias'
+                                    : 'username'}
                                 </code>
 
                                 <p className="text-xs">
@@ -611,10 +648,62 @@ export function PlexLabelsPage() {
                         <p className="text-xs text-gray-500 mt-1">
                           Final format:{' '}
                           <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
-                            {form.watch('labelPrefix') || 'pulsarr'}:username
+                            {form.watch('labelPrefix') || 'pulsarr'}:
+                            {form.watch('labelNamingSource') === 'alias'
+                              ? 'alias'
+                              : 'username'}
                           </code>
                         </p>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="labelNamingSource"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground">
+                            Naming Source
+                          </FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  Controls whether labels use the Plex username
+                                  or user alias for the name portion of the
+                                  label.
+                                </p>
+                                <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                  <strong>Note:</strong> Changing this requires
+                                  removing existing labels first. Users without
+                                  an alias will fall back to their Plex
+                                  username.
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <FormControl>
+                          <Select
+                            value={field.value || 'username'}
+                            onValueChange={handleNamingSourceChange}
+                            disabled={!canEditLabelSettings}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select naming source..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="username">Username</SelectItem>
+                              <SelectItem value="alias">Alias</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
                       </FormItem>
                     )}
                   />
