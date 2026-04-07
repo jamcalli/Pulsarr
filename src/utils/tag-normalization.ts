@@ -29,3 +29,19 @@ export function normalizeTagLabel(label: string): string {
     .replace(/-+/g, '-') // Collapse multiple hyphens
     .replace(/^-+|-+$/g, '') // Trim leading/trailing hyphens
 }
+
+export type NamingSource = 'username' | 'alias'
+
+/**
+ * Resolves the display name for tag/label generation based on the naming source setting.
+ * Falls back to username when alias mode is selected but the user has no alias set.
+ */
+export function resolveTagName(
+  user: { name: string; alias: string | null },
+  namingSource: NamingSource,
+): string {
+  if (namingSource === 'alias' && user.alias?.trim()) {
+    return user.alias.trim()
+  }
+  return user.name.trim()
+}

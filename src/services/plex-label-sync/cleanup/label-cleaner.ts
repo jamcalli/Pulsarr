@@ -16,6 +16,7 @@ import type { PlexServerService } from '@services/plex-server.service.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
+import { resolveTagName } from '@utils/tag-normalization.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -103,7 +104,12 @@ export async function cleanupLabelsForWatchlistItems(
     )
     // Create user name mapping for efficiency
     const allUsers = await deps.db.getAllUsers()
-    const userNameMap = new Map(allUsers.map((user) => [user.id, user.name]))
+    const userNameMap = new Map(
+      allUsers.map((user) => [
+        user.id,
+        resolveTagName(user, deps.config.labelNamingSource),
+      ]),
+    )
     await handleSpecialLabelModeForDeletedItems(
       watchlistItems,
       userNameMap,
@@ -127,7 +133,12 @@ export async function cleanupLabelsForWatchlistItems(
   try {
     // Get all users to map labels to usernames
     const allUsers = await deps.db.getAllUsers()
-    const userNameMap = new Map(allUsers.map((user) => [user.id, user.name]))
+    const userNameMap = new Map(
+      allUsers.map((user) => [
+        user.id,
+        resolveTagName(user, deps.config.labelNamingSource),
+      ]),
+    )
 
     // Store parsed data for cleanup operations
     const itemDataMap = new Map<
@@ -858,7 +869,7 @@ export async function cleanupOrphanedPlexLabels(
 
     // Add user labels for sync-enabled users
     for (const user of syncEnabledUsers) {
-      const userLabel = `${deps.config.labelPrefix}:${user.name}`
+      const userLabel = `${deps.config.labelPrefix}:${resolveTagName(user, deps.config.labelNamingSource)}`
       validLabels.add(userLabel.toLowerCase())
     }
 

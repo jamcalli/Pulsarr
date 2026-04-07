@@ -8,7 +8,7 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { normalizeTagLabel } from '@utils/tag-normalization.js'
+import { normalizeTagLabel, resolveTagName } from '@utils/tag-normalization.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import { TagMigrationService } from './tag-migration.service.js'
 
@@ -1859,7 +1859,9 @@ export class UserTagService {
   private getUserTagLabel(user: User): string {
     // Sanitize the username to match Radarr v6 validation: ^[a-z0-9-]+$
     // Uses shared normalization utility (same logic as tag migration and database migration 064)
-    const sanitizedName = normalizeTagLabel(user.name.trim())
+    const sanitizedName = normalizeTagLabel(
+      resolveTagName(user, this.fastify.config.tagNamingSource),
+    )
 
     // Handle degenerate usernames that sanitize to empty string
     // (e.g., usernames with only special characters like "@@@" or unicode)

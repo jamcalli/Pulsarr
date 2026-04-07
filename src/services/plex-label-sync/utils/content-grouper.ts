@@ -7,6 +7,7 @@
 import type { ContentWithUsers } from '@root/types/plex-label-sync.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
+import { type NamingSource, resolveTagName } from '@utils/tag-normalization.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 /**
@@ -28,6 +29,7 @@ export async function groupWatchlistItemsByContent(
   }>,
   db: DatabaseService,
   logger: FastifyBaseLogger,
+  namingSource: NamingSource = 'username',
 ): Promise<ContentWithUsers[]> {
   const contentMap = new Map<string, ContentWithUsers>()
 
@@ -36,7 +38,10 @@ export async function groupWatchlistItemsByContent(
   const users = await db.getUsersByIds(userIds)
 
   const userMap = new Map(
-    users.map((user) => [user.id, user.name || `user_${user.id}`]),
+    users.map((user) => [
+      user.id,
+      resolveTagName(user, namingSource) || `user_${user.id}`,
+    ]),
   )
 
   for (const item of watchlistItems) {

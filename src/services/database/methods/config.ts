@@ -179,6 +179,7 @@ export async function getConfig(
         ? this.safeJsonParse<{
             enabled?: boolean
             labelPrefix?: string
+            labelNamingSource?: 'username' | 'alias'
             concurrencyLimit?: number
             cleanupOrphanedLabels?: boolean
             removedLabelMode?: 'remove' | 'keep' | 'special-label'
@@ -196,6 +197,7 @@ export async function getConfig(
       return {
         enabled: false,
         labelPrefix: 'pulsarr',
+        labelNamingSource: 'username' as const,
         concurrencyLimit: 5,
         cleanupOrphanedLabels: false,
         removedLabelMode: 'remove' as const,
@@ -220,6 +222,7 @@ export async function getConfig(
     // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
     // persistHistoricalTags: Boolean(config.persistHistoricalTags),
     tagPrefix: config.tagPrefix || 'pulsarr-user',
+    tagNamingSource: config.tagNamingSource || 'username',
     removedTagMode: config.removedTagMode || 'remove',
     removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
     deletionMode: config.deletionMode || 'watchlist',
@@ -324,6 +327,7 @@ export async function createConfig(
       tagUsersInRadarr: config.tagUsersInRadarr ?? false,
       cleanupOrphanedTags: config.cleanupOrphanedTags ?? true,
       tagPrefix: config.tagPrefix || 'pulsarr-user',
+      tagNamingSource: config.tagNamingSource || 'username',
       removedTagMode: config.removedTagMode || 'remove',
       removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
       deletionMode: config.deletionMode || 'watchlist',
@@ -336,6 +340,8 @@ export async function createConfig(
         ? JSON.stringify({
             enabled: config.plexLabelSync.enabled ?? false,
             labelPrefix: config.plexLabelSync.labelPrefix || 'pulsarr',
+            labelNamingSource:
+              config.plexLabelSync.labelNamingSource || 'username',
             concurrencyLimit: config.plexLabelSync.concurrencyLimit ?? 5,
             cleanupOrphanedLabels:
               config.plexLabelSync.cleanupOrphanedLabels ?? false,
@@ -515,6 +521,7 @@ const ALLOWED_COLUMNS = new Set([
   'tagUsersInRadarr',
   'cleanupOrphanedTags',
   'tagPrefix',
+  'tagNamingSource',
   'removedTagMode',
   'removedTagPrefix',
   'tagMigration',
