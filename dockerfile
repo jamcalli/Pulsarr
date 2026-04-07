@@ -37,8 +37,6 @@ FROM base
 # tini for proper PID 1 zombie reaping, wget for healthcheck, su-exec for privilege drop
 RUN apk add --no-cache tini wget su-exec
 
-ENV CACHE_DIR=/app/build-cache
-
 # Remove bun user from base image (occupies UID 1000) and create pulsarr user
 RUN deluser --remove-home bun && \
     delgroup bun; \
@@ -54,8 +52,7 @@ COPY --from=install /temp/prod/node_modules ./node_modules
 # Create necessary directories with correct ownership
 RUN mkdir -p /app/data/db && \
     mkdir -p /app/data/logs && \
-    mkdir -p ${CACHE_DIR} && \
-    chown -R pulsarr:pulsarr /app/data /app/build-cache
+    chown -R pulsarr:pulsarr /app/data
 
 # Copy build artifacts
 COPY --from=builder /app/dist ./dist
@@ -77,7 +74,6 @@ ENV NODE_ENV=production
 ENV tmdbApiKey=${TMDBAPIKEY}
 
 # Make volumes
-VOLUME ["/app/build-cache"]
 VOLUME ["/app/data"]
 EXPOSE 3003
 

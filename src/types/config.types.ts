@@ -209,6 +209,7 @@ export interface Config {
   tagUsersInRadarr: boolean
   cleanupOrphanedTags: boolean
   tagPrefix: string
+  tagNamingSource: 'username' | 'alias'
   // Special tag for removed content
   removedTagMode: RemovedTagMode
   removedTagPrefix: string

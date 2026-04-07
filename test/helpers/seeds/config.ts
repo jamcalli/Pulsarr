@@ -177,6 +177,7 @@ export const SEED_CONFIGS = [
     plexLabelSync: JSON.stringify({
       enabled: false,
       labelPrefix: 'pulsarr',
+      labelNamingSource: 'username',
       concurrencyLimit: 5,
       cleanupOrphanedLabels: false,
       removedLabelMode: 'keep',

@@ -11,6 +11,7 @@ export const PlexLabelSyncConfigSchema = z
     enabled: z.boolean(),
     // Prefix for label naming (e.g., "pulsarr" results in "pulsarr:username")
     labelPrefix: TagPrefixSchema,
+    labelNamingSource: z.enum(['username', 'alias']).default('username'),
     // Maximum number of concurrent operations during processing
     concurrencyLimit: z
       .number()

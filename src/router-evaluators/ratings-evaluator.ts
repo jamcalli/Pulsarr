@@ -7,60 +7,24 @@ import type {
   RoutingEvaluator,
 } from '@root/types/router.types.js'
 import { extractTypedGuid } from '@utils/guid-handler.js'
+import {
+  isNumber,
+  isNumberArray,
+  isNumericRange,
+  type NumericRange,
+} from '@utils/type-guards.js'
 import type { FastifyInstance } from 'fastify'
 
-/**
- * Determines whether the provided value is an array consisting exclusively of numbers.
- */
-function isNumberArray(value: unknown): value is number[] {
-  return (
-    Array.isArray(value) &&
-    value.every((item) => typeof item === 'number' && Number.isFinite(item))
-  )
-}
-
-/**
- * Determines whether the provided value is a number.
- */
-function isNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value)
-}
-
-interface RatingRange {
-  min?: number
-  max?: number
-}
-
-/**
- * Checks if the input is a RatingRange object with optional numeric min/max properties.
- */
-function isRatingRange(value: unknown): value is RatingRange {
-  if (typeof value !== 'object' || value === null) return false
-  const obj = value as Record<string, unknown>
-  const hasMin = 'min' in obj
-  const hasMax = 'max' in obj
-  if (!hasMin && !hasMax) return false
-  const minOk = !hasMin || typeof obj.min === 'number' || obj.min === undefined
-  const maxOk = !hasMax || typeof obj.max === 'number' || obj.max === undefined
-  return minOk && maxOk
-}
-
-/**
- * Determines whether the input is a valid rating value for routing evaluation.
- */
 function isValidRatingValue(
   value: unknown,
-): value is number | number[] | RatingRange {
-  return isNumber(value) || isNumberArray(value) || isRatingRange(value)
+): value is number | number[] | NumericRange {
+  return isNumber(value) || isNumberArray(value) || isNumericRange(value)
 }
 
-/**
- * Evaluates a rating condition against a value using the specified operator.
- */
 function evaluateRatingCondition(
   actualValue: number,
   operator: string,
-  criteriaValue: number | number[] | RatingRange,
+  criteriaValue: number | number[] | NumericRange,
 ): boolean {
   if (isNumber(criteriaValue)) {
     switch (operator) {
@@ -88,7 +52,7 @@ function evaluateRatingCondition(
     }
   }
 
-  if (isRatingRange(criteriaValue) && operator === 'between') {
+  if (isNumericRange(criteriaValue) && operator === 'between') {
     const min = criteriaValue.min ?? Number.NEGATIVE_INFINITY
     const max = criteriaValue.max ?? Number.POSITIVE_INFINITY
     return actualValue >= min && actualValue <= max
@@ -134,9 +98,9 @@ type RatingFieldName = keyof typeof RATING_FIELDS
  * For RT fields (userScale: 100), divides by 10. For others, returns as-is.
  */
 function convertToInternalScale(
-  value: number | number[] | RatingRange,
+  value: number | number[] | NumericRange,
   userScale: number,
-): number | number[] | RatingRange {
+): number | number[] | NumericRange {
   if (userScale === 10) {
     return value
   }
@@ -151,7 +115,7 @@ function convertToInternalScale(
     return value.map((v) => v * scaleFactor)
   }
 
-  if (isRatingRange(value)) {
+  if (isNumericRange(value)) {
     return {
       min: value.min !== undefined ? value.min * scaleFactor : undefined,
       max: value.max !== undefined ? value.max * scaleFactor : undefined,
@@ -280,8 +244,8 @@ export default function createRatingsEvaluator(
         ('rating' in value || 'votes' in value)
       ) {
         const compound = value as {
-          rating?: number | number[] | RatingRange
-          votes?: number | number[] | RatingRange
+          rating?: number | number[] | NumericRange
+          votes?: number | number[] | NumericRange
         }
 
         if (compound.rating !== undefined) {

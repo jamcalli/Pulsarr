@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { type Credentials, loginFormSchema } from '@root/schemas/auth/auth'
+import { type Credentials, CredentialsSchema } from '@root/schemas/auth/login'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
@@ -9,41 +9,41 @@ import { api } from '@/lib/api'
 /**
  * React hook that manages state, validation, and submission logic for a login form.
  *
- * Handles form validation with a Zod schema, tracks submission status and backend errors, and automatically focuses the email input on mount. On successful login, displays a welcome toast and redirects the user to a dashboard or a specified route.
+ * Handles form validation with a Zod schema, tracks submission status and backend errors, and automatically focuses the login input on mount. On successful login, displays a welcome toast and redirects the user to a dashboard or a specified route.
  *
- * @returns An object containing the form instance, current status, backend error message, email input reference, and the submit handler function.
+ * @returns An object containing the form instance, current status, backend error message, login input reference, and the submit handler function.
  */
 export function useLoginForm() {
   const navigate = useNavigate()
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [backendError, setBackendError] = useState<string | null>(null)
-  const emailInputRef = useRef<HTMLInputElement>(null)
+  const loginInputRef = useRef<HTMLInputElement>(null)
 
-  // Add useEffect to focus email input on mount
+  // Add useEffect to focus login input on mount
   useEffect(() => {
-    emailInputRef.current?.focus()
+    loginInputRef.current?.focus()
   }, [])
 
   const form = useForm<Credentials>({
-    resolver: zodResolver(loginFormSchema),
+    resolver: zodResolver(CredentialsSchema),
     mode: 'onSubmit',
     reValidateMode: 'onBlur',
     defaultValues: {
-      email: '',
+      login: '',
       password: '',
     },
   })
 
   const handleSubmit = useCallback(
     async (data: Credentials) => {
-      const { email, password } = data
+      const { login, password } = data
       setStatus('loading')
       setBackendError(null)
       try {
         const response = await fetch(api('/v1/users/login'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ login, password }),
         })
         const responseData = response.ok
           ? await response.json()
@@ -75,7 +75,7 @@ export function useLoginForm() {
     form,
     status,
     backendError,
-    emailInputRef,
+    loginInputRef,
     handleSubmit,
   }
 }

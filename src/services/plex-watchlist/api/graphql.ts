@@ -474,3 +474,231 @@ export const getWatchlistForUser = async (
 
   return allItems
 }
+
+export interface PlexCustomListMeta {
+  id: string
+  name: string
+  slug: string
+  itemCount: number
+}
+
+interface PageInfo {
+  hasNextPage: boolean
+  endCursor: string | null
+}
+
+interface GraphQLPageResponse {
+  errors?: Array<{ message: string }>
+}
+
+interface PaginatedGraphQLOptions<TResponse extends GraphQLPageResponse> {
+  token: string
+  log: FastifyBaseLogger
+  label: string
+  maxRetries?: number
+  buildQuery: (cursor: string | null) => GraphQLQuery
+  castResponse: (json: unknown) => TResponse
+  getPage: (
+    response: TResponse,
+  ) => { nodes: unknown[]; pageInfo: PageInfo } | undefined
+}
+
+// Shared paginated fetch loop for Plex community GraphQL endpoints
+const paginatedGraphQLFetch = async <
+  TResponse extends GraphQLPageResponse,
+  TNode,
+>(
+  options: PaginatedGraphQLOptions<TResponse>,
+): Promise<TNode[]> => {
+  const url = 'https://community.plex.tv/api'
+  const rateLimiter = PlexRateLimiter.getInstance()
+  const maxRetries = options.maxRetries ?? 3
+  const allNodes: TNode[] = []
+  let cursor: string | null = null
+  let hasMore = true
+  let retryCount = 0
+
+  while (hasMore) {
+    await rateLimiter.waitIfLimited(options.log)
+
+    let response: Response
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'User-Agent': USER_AGENT,
+          'Content-Type': 'application/json',
+          'X-Plex-Token': options.token,
+        },
+        body: JSON.stringify(options.buildQuery(cursor)),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
+      })
+    } catch (networkError) {
+      if (retryCount < maxRetries) {
+        retryCount++
+        const retryDelay = Math.min(1000 * 2 ** retryCount, 10000)
+        options.log.warn(
+          { error: networkError, attempt: retryCount },
+          `Network error fetching ${options.label}, retrying in ${retryDelay}ms`,
+        )
+        await new Promise((resolve) => setTimeout(resolve, retryDelay))
+        continue
+      }
+      throw networkError
+    }
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        const retryAfterHeader = response.headers.get('Retry-After')
+        let retryAfterSec: number | undefined
+        if (retryAfterHeader) {
+          const asSeconds = Number.parseInt(retryAfterHeader, 10)
+          if (!Number.isNaN(asSeconds)) {
+            retryAfterSec = asSeconds
+          } else {
+            const asDateMs = Date.parse(retryAfterHeader)
+            if (!Number.isNaN(asDateMs)) {
+              const deltaMs = Math.max(0, asDateMs - Date.now())
+              retryAfterSec = Math.ceil(deltaMs / 1000)
+            }
+          }
+        }
+
+        rateLimiter.setRateLimited(retryAfterSec, options.log)
+
+        if (retryCount < maxRetries) {
+          retryCount++
+          continue
+        }
+
+        const err = new Error(
+          `Rate limit exceeded: Maximum retries (${maxRetries}) reached when fetching ${options.label}`,
+        ) as RateLimitError
+        err.isRateLimitExhausted = true
+        throw err
+      }
+      throw new Error(
+        `Plex API error fetching ${options.label}: HTTP ${response.status} - ${response.statusText}`,
+      )
+    }
+
+    // Successful response resets the per-page retry counter
+    retryCount = 0
+
+    const json = options.castResponse(await response.json())
+
+    if (json.errors?.length) {
+      throw new Error(
+        `GraphQL errors fetching ${options.label}: ${JSON.stringify(json.errors)}`,
+      )
+    }
+
+    const page = options.getPage(json)
+    if (!page) break
+
+    for (const node of page.nodes as TNode[]) {
+      allNodes.push(node)
+    }
+
+    if (page.pageInfo.hasNextPage && page.pageInfo.endCursor) {
+      cursor = page.pageInfo.endCursor
+      // Delay between pagination requests per Plex developer request
+      await new Promise((resolve) =>
+        setTimeout(resolve, 5_000 + Math.ceil(Math.random() * 10_000)),
+      )
+    } else {
+      hasMore = false
+    }
+  }
+
+  return allNodes
+}
+
+interface CustomListsResponse extends GraphQLPageResponse {
+  data?: {
+    userV2?: {
+      customLists?: {
+        nodes: PlexCustomListMeta[]
+        pageInfo: PageInfo
+      }
+    }
+  }
+}
+
+interface ListItemsPageResponse extends GraphQLPageResponse {
+  data?: {
+    customListBySlug?: {
+      metadataItems: {
+        nodes: Array<{ id: string }>
+        pageInfo: PageInfo
+      }
+    }
+  }
+}
+
+export const fetchUserListMetadata = async (
+  token: string,
+  log: FastifyBaseLogger,
+  userUuid: string,
+): Promise<PlexCustomListMeta[]> => {
+  return paginatedGraphQLFetch<CustomListsResponse, PlexCustomListMeta>({
+    token,
+    log,
+    label: `custom lists for user ${userUuid}`,
+    buildQuery: (cursor) => ({
+      query: `query GetCustomLists($user: UserInput!, $first: PaginationInt!, $after: String) {
+        userV2(user: $user) {
+          ... on User {
+            customLists(first: $first, after: $after) {
+              nodes {
+                id
+                name
+                slug
+                itemCount
+              }
+              pageInfo { hasNextPage endCursor }
+            }
+          }
+        }
+      }`,
+      variables: {
+        user: { id: userUuid },
+        first: 100,
+        after: cursor,
+      },
+    }),
+    castResponse: (json) => json as CustomListsResponse,
+    getPage: (res) => res.data?.userV2?.customLists,
+  })
+}
+
+export async function fetchListItemsBySlug(
+  token: string,
+  log: FastifyBaseLogger,
+  slug: string,
+  username: string,
+): Promise<Set<string>> {
+  const nodes = await paginatedGraphQLFetch<
+    ListItemsPageResponse,
+    { id: string }
+  >({
+    token,
+    log,
+    label: `list items for slug ${slug}`,
+    buildQuery: (cursor) => ({
+      query: `query GetListItems($slug: String!, $username: String!, $first: PaginationInt!, $after: String) {
+        customListBySlug(slug: $slug, username: $username) {
+          metadataItems(first: $first, after: $after) {
+            nodes { id }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+      }`,
+      variables: { slug, username, first: 100, after: cursor },
+    }),
+    castResponse: (json) => json as ListItemsPageResponse,
+    getPage: (res) => res.data?.customListBySlug?.metadataItems,
+  })
+
+  return new Set(nodes.map((n) => n.id))
+}

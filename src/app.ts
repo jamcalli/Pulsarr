@@ -59,6 +59,11 @@ async function serviceApp(
       spa: true,
       distDir: 'dist',
       prefix: opts.prefix || '/',
+      fastifyStaticOptions: {
+        preCompressed: true,
+        maxAge: '1y',
+        immutable: true,
+      },
     })
 
     await fastify.vite.ready()

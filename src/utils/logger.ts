@@ -1,6 +1,6 @@
 import fs from 'node:fs'
+import { parseEnv } from 'node:util'
 import { resolveEnvPath, resolveLogPath } from '@utils/data-dir.js'
-import { config } from 'dotenv'
 import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
 import type { DestinationStream, LevelWithSilent, LoggerOptions } from 'pino'
 import pino from 'pino'
@@ -65,7 +65,13 @@ export function parseModuleFromMsg(msg: string): {
 // Load .env file early for logger configuration
 // Resolve data directory deterministically from platform (Windows/macOS)
 // or fall back to project-relative paths (Linux/Docker)
-config({ path: resolveEnvPath(), quiet: true })
+const envPath = resolveEnvPath()
+if (fs.existsSync(envPath)) {
+  const parsed = parseEnv(fs.readFileSync(envPath, 'utf-8'))
+  for (const [key, value] of Object.entries(parsed)) {
+    process.env[key] ??= value
+  }
+}
 
 /**
  * Creates a custom error serializer that handles both standard errors and custom HttpError objects.

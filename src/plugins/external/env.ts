@@ -58,6 +58,7 @@ const DEFAULT_APPROVAL_EXPIRATION = {
 const DEFAULT_PLEX_LABEL_SYNC = {
   enabled: false,
   labelPrefix: 'pulsarr',
+  labelNamingSource: 'username',
   concurrencyLimit: 5,
   cleanupOrphanedLabels: false,
   removedLabelMode: 'remove' as const,
@@ -412,6 +413,11 @@ const schema = {
       type: 'string',
       default: 'pulsarr-user',
     },
+    tagNamingSource: {
+      type: 'string',
+      enum: ['username', 'alias'],
+      default: 'username',
+    },
     removedTagMode: {
       type: 'string',
       enum: ['remove', 'keep', 'special-tag'],
@@ -517,8 +523,6 @@ export default fp(
       schema,
       dotenv: {
         path: dataDir ? resolve(dataDir, '.env') : './.env',
-        debug: process.env.NODE_ENV === 'development',
-        quiet: true,
       },
       data: process.env,
     })

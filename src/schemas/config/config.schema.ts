@@ -202,6 +202,7 @@ export const ConfigFullSchema = z.object({
   // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
   // persistHistoricalTags: z.boolean(),
   tagPrefix: z.string(),
+  tagNamingSource: z.enum(['username', 'alias']),
   removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
   removedTagPrefix: z.string(),
   // Tag Migration Configuration
@@ -468,6 +469,7 @@ export const ConfigUpdateSchema = z
     tagUsersInRadarr: z.boolean().optional(),
     cleanupOrphanedTags: z.boolean().optional(),
     tagPrefix: TagPrefixSchema.optional(),
+    tagNamingSource: z.enum(['username', 'alias']).optional(),
     // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
     tagMigration: TagMigrationSchema,
   })

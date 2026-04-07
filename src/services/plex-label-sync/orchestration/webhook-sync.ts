@@ -17,6 +17,7 @@ import {
   extractTvdbId,
   parseGuids,
 } from '@utils/guid-handler.js'
+import { resolveTagName } from '@utils/tag-normalization.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 import {
@@ -186,7 +187,8 @@ export async function syncLabelsOnWebhook(
         if (!matchingItem) return null
         return {
           user_id: u.id,
-          username: u.name || `user_${u.id}`,
+          username:
+            resolveTagName(u, deps.config.labelNamingSource) || `user_${u.id}`,
           watchlist_id: Number(matchingItem.id),
         }
       })
@@ -437,7 +439,8 @@ async function syncContentForWatchlistItem(
       if (!matchingItem) return null
       return {
         user_id: u.id,
-        username: u.name || `user_${u.id}`,
+        username:
+          resolveTagName(u, deps.config.labelNamingSource) || `user_${u.id}`,
         watchlist_id: Number(matchingItem.id),
       }
     })

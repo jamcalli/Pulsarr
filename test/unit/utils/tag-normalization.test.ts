@@ -1,7 +1,44 @@
-import { normalizeTagLabel } from '@utils/tag-normalization.js'
+import { normalizeTagLabel, resolveTagName } from '@utils/tag-normalization.js'
 import { describe, expect, it } from 'vitest'
 
 describe('tag-normalization', () => {
+  describe('resolveTagName', () => {
+    it('should return username when namingSource is username', () => {
+      const user = { name: 'JohnDoe', alias: 'Johnny' }
+      expect(resolveTagName(user, 'username')).toBe('JohnDoe')
+    })
+
+    it('should return alias when namingSource is alias and alias exists', () => {
+      const user = { name: 'JohnDoe', alias: 'Johnny' }
+      expect(resolveTagName(user, 'alias')).toBe('Johnny')
+    })
+
+    it('should fall back to username when namingSource is alias but alias is null', () => {
+      const user = { name: 'JohnDoe', alias: null }
+      expect(resolveTagName(user, 'alias')).toBe('JohnDoe')
+    })
+
+    it('should fall back to username when namingSource is alias but alias is empty', () => {
+      const user = { name: 'JohnDoe', alias: '' }
+      expect(resolveTagName(user, 'alias')).toBe('JohnDoe')
+    })
+
+    it('should fall back to username when namingSource is alias but alias is whitespace', () => {
+      const user = { name: 'JohnDoe', alias: '   ' }
+      expect(resolveTagName(user, 'alias')).toBe('JohnDoe')
+    })
+
+    it('should trim whitespace from alias', () => {
+      const user = { name: 'JohnDoe', alias: '  Johnny  ' }
+      expect(resolveTagName(user, 'alias')).toBe('Johnny')
+    })
+
+    it('should trim whitespace from username', () => {
+      const user = { name: '  JohnDoe  ', alias: null }
+      expect(resolveTagName(user, 'username')).toBe('JohnDoe')
+    })
+  })
+
   describe('normalizeTagLabel', () => {
     describe('lowercase conversion', () => {
       it('should convert uppercase to lowercase', () => {

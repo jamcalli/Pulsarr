@@ -12,6 +12,7 @@ import type { PendingLabelSyncWithPlexKeys } from '@services/database/methods/pl
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
 import { buildPlexGuid } from '@utils/guid-handler.js'
+import { resolveTagName } from '@utils/tag-normalization.js'
 import type { FastifyBaseLogger } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -222,6 +223,14 @@ export async function processPendingLabelSyncs(
 
             const trackedGuids = new Map<number, string[]>()
 
+            const resolveUsername = (user: {
+              id: number
+              name: string
+              alias: string | null
+            }) =>
+              resolveTagName(user, deps.config.labelNamingSource) ||
+              `user_${user.id}`
+
             for (const tracking of trackedLabels) {
               if (
                 tracking.user_id !== null &&
@@ -231,7 +240,7 @@ export async function processPendingLabelSyncs(
                 if (trackedUser) {
                   allContentUsers.set(tracking.user_id, {
                     user_id: trackedUser.id,
-                    username: trackedUser.name || `user_${trackedUser.id}`,
+                    username: resolveUsername(trackedUser),
                     watchlist_id: 0,
                   })
                   if (tracking.content_guids.length > 0) {
@@ -248,7 +257,7 @@ export async function processPendingLabelSyncs(
                 if (pendingUser) {
                   allContentUsers.set(row.user_id, {
                     user_id: pendingUser.id,
-                    username: pendingUser.name || `user_${pendingUser.id}`,
+                    username: resolveUsername(pendingUser),
                     watchlist_id: row.watchlist_item_id,
                   })
                 }

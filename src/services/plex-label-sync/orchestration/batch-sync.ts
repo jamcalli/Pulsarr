@@ -258,6 +258,7 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
       watchlistItems,
       deps.db,
       deps.logger,
+      deps.config.labelNamingSource,
     )
 
     if (contentItems.length === 0) {

@@ -7,66 +7,8 @@ import type {
   RoutingContext,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
+import { isNumber, isNumberArray, isNumericRange } from '@utils/type-guards.js'
 import type { FastifyInstance } from 'fastify'
-
-/**
- * Determines whether a value is an array consisting exclusively of numbers.
- *
- * @param value - The value to check.
- * @returns True if {@link value} is an array where every element is a number; otherwise, false.
- */
-function isNumberArray(value: unknown): value is number[] {
-  return Array.isArray(value) && value.every((item) => typeof item === 'number')
-}
-
-/**
- * Determines whether the given value is a number.
- *
- * @returns True if the value is a number; otherwise, false.
- */
-function isNumber(value: unknown): value is number {
-  return typeof value === 'number'
-}
-
-// Type guard for season range object
-interface SeasonRange {
-  min?: number
-  max?: number
-}
-
-/**
- * Determines whether the given value is a {@link SeasonRange} object with optional numeric `min` and/or `max` properties.
- *
- * @param value - The value to check.
- * @returns `true` if the value is an object containing at least one of `min` or `max`, and each is either a number or undefined; otherwise, `false`.
- */
-function isSeasonRange(value: unknown): value is SeasonRange {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    ('min' in value || 'max' in value) &&
-    (() => {
-      const v = value as Record<string, unknown>
-      return (
-        (!('min' in v) || typeof v.min === 'number' || v.min === undefined) &&
-        (!('max' in v) || typeof v.max === 'number' || v.max === undefined)
-      )
-    })()
-  )
-}
-
-/**
- * Determines whether the input is a valid season value for routing rules.
- *
- * A valid season value is a number, an array of numbers, or an object with optional `min` and/or `max` properties representing a season range.
- *
- * @returns `true` if the input is a number, an array of numbers, or a season range object; otherwise, `false`.
- */
-function _isValidSeasonValue(
-  value: unknown,
-): value is number | number[] | SeasonRange {
-  return isNumber(value) || isNumberArray(value) || isSeasonRange(value)
-}
 
 /**
  * Creates a routing evaluator for TV shows that applies season-based routing rules using season numbers from Sonarr metadata.
@@ -213,11 +155,10 @@ export default function createSeasonEvaluator(
       }
     }
 
-    if (isSeasonRange(value) && operator === 'between') {
+    if (isNumericRange(value) && operator === 'between') {
       // Only treat finite numeric bounds; undefined-only ranges should not match
-      const seasonRange = value as SeasonRange
-      const rawMin = seasonRange.min
-      const rawMax = seasonRange.max
+      const rawMin = value.min
+      const rawMax = value.max
       const hasMin = typeof rawMin === 'number' && Number.isFinite(rawMin)
       const hasMax = typeof rawMax === 'number' && Number.isFinite(rawMax)
       if (!hasMin && !hasMax) {
@@ -245,13 +186,12 @@ export default function createSeasonEvaluator(
     ruleType: 'season',
     supportedFields,
     supportedOperators,
-    contentType: 'sonarr', // Specify that this evaluator is only for Sonarr/TV shows
+    contentType: 'sonarr',
 
     async canEvaluate(
       item: ContentItem,
       context: RoutingContext,
     ): Promise<boolean> {
-      // Only evaluate for TV shows with season data
       return context.contentType === 'show' && hasSeasonData(item)
     },
 
@@ -260,12 +200,10 @@ export default function createSeasonEvaluator(
       item: ContentItem,
       context: RoutingContext,
     ): boolean {
-      // Only support the 'season' field
       if (!('field' in condition) || condition.field !== 'season') {
         return false
       }
 
-      // Skip if not a TV show or no season data
       if (context.contentType !== 'show' || !hasSeasonData(item)) {
         return false
       }
@@ -277,16 +215,10 @@ export default function createSeasonEvaluator(
 
       const { operator, value } = condition
 
-      // Use the shared helper function to match seasons
-      const result = matchesSeason(operator, value, seasons)
-
-      // Do not apply negation here - the content router service handles negation at a higher level.
-      // This prevents double-negation issues when condition.negate is true.
-      return result
+      return matchesSeason(operator, value, seasons)
     },
 
     canEvaluateConditionField(field: string): boolean {
-      // Only support the 'season' field
       return field === 'season'
     },
   }

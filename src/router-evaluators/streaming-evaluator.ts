@@ -6,29 +6,9 @@ import type {
   RoutingContext,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
+import { isNumber, isNumberArray } from '@utils/type-guards.js'
 import type { FastifyInstance } from 'fastify'
 
-/**
- * Type guard to check if a value is an array of numbers
- */
-function isNumberArray(value: unknown): value is number[] {
-  return (
-    Array.isArray(value) &&
-    value.every((item) => typeof item === 'number' && Number.isFinite(item))
-  )
-}
-
-/**
- * Type guard to check if a value is a number
- */
-function isNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value)
-}
-
-/**
- * Validates that a value is suitable for streaming services evaluation
- * @returns true if value is a number or array of numbers, false otherwise
- */
 function isValidStreamingServicesValue(
   value: unknown,
 ): value is number | number[] {
@@ -124,7 +104,6 @@ export default function createStreamingEvaluator(
       item: ContentItem,
       _context: RoutingContext,
     ): Promise<boolean> {
-      // Can only evaluate if we have watch provider data
       return !!item.watchProviders
     },
 
@@ -133,17 +112,15 @@ export default function createStreamingEvaluator(
       item: ContentItem,
       _context: RoutingContext,
     ): boolean {
-      // Only support the 'streamingServices' field
       if (!('field' in condition) || condition.field !== 'streamingServices') {
         return false
       }
 
-      // Skip if no watch provider data
       if (!item.watchProviders) {
         return false
       }
 
-      const { operator, value, negate: _ = false } = condition
+      const { operator, value } = condition
 
       // Validate the value is a valid type (number or number array)
       if (!isValidStreamingServicesValue(value)) {
@@ -166,7 +143,6 @@ export default function createStreamingEvaluator(
 
       let result = false
 
-      // Apply operator logic
       switch (operator) {
         case 'in':
           result = isAvailableOnServices(item, providerIds)
@@ -183,13 +159,10 @@ export default function createStreamingEvaluator(
           return false
       }
 
-      // Do not apply negation here - the content router service handles negation at a higher level.
-      // This prevents double-negation issues when condition.negate is true.
       return result
     },
 
     canEvaluateConditionField(field: string): boolean {
-      // Only support the 'streamingServices' field
       return field === 'streamingServices'
     },
   }

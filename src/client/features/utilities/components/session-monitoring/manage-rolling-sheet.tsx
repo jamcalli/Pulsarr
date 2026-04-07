@@ -366,7 +366,7 @@ export function ManageRollingSheet({
           </div>
         </div>
         <div className="rounded-md">
-          <Table className="table-fixed">
+          <Table>
             <TableHeader className="font-heading">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>

@@ -13,7 +13,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         security: [],
         summary: 'User login',
         operationId: 'loginUser',
-        description: 'Authenticate user by email and password',
+        description: 'Authenticate user by email/username and password',
         body: CredentialsSchema,
         response: {
           200: LoginResponseSchema,
@@ -24,11 +24,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const { email, password } = request.body
+      const { login, password } = request.body
       try {
-        const user = await fastify.db.getAdminUser(email)
+        const user =
+          (await fastify.db.getAdminUser(login)) ||
+          (await fastify.db.getAdminUserByUsername(login))
         if (!user || !(await fastify.compare(password, user.password))) {
-          return reply.unauthorized('Invalid email or password.')
+          return reply.unauthorized('Invalid credentials.')
         }
 
         request.session.user = {
@@ -56,7 +58,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           redirectTo,
         }
       } catch (error) {
-        fastify.log.error({ err: error, email }, 'Login failed')
+        fastify.log.error({ err: error }, 'Login failed')
         return reply.internalServerError('Login failed.')
       }
     },

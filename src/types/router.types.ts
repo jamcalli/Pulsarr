@@ -22,6 +22,7 @@ export interface ContentItem {
   tmdb?: number | null
   // TMDB watch providers for streaming availability routing
   watchProviders?: TmdbWatchProviderData
+  listMemberships?: Set<string>
 }
 
 export interface RouterRule {
