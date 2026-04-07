@@ -84,7 +84,6 @@
     "close-with-grace": "^2.2.0",
     "cron-parser": "^5.3.1",
     "discord.js": "^14.19.2",
-    "dotenv": "^17.2.1",
     "eventsource": "^4.1.0",
     "fast-xml-parser": "^5.2.2",
     "fastify": "^5.6.1",

@@ -3,9 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../mocks/logger.js'
 
 // Mock dependencies before importing the module
-vi.mock('dotenv', () => ({
-  config: vi.fn(),
-}))
+vi.mock('node:util', async () => {
+  const actual = await vi.importActual<typeof import('node:util')>('node:util')
+  return {
+    ...actual,
+    parseEnv: vi.fn(() => ({})),
+  }
+})
 
 vi.mock('rotating-file-stream', () => ({
   createStream: vi.fn(() => ({
