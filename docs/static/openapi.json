@@ -14302,6 +14302,14 @@
                               "minLength": 1,
                               "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                             },
+                            "labelNamingSource": {
+                              "default": "username",
+                              "type": "string",
+                              "enum": [
+                                "username",
+                                "alias"
+                              ]
+                            },
                             "concurrencyLimit": {
                               "type": "integer",
                               "minimum": 1,
@@ -14360,6 +14368,7 @@
                           "required": [
                             "enabled",
                             "labelPrefix",
+                            "labelNamingSource",
                             "concurrencyLimit",
                             "cleanupOrphanedLabels",
                             "removedLabelMode",
@@ -14386,6 +14395,13 @@
                         },
                         "tagPrefix": {
                           "type": "string"
+                        },
+                        "tagNamingSource": {
+                          "type": "string",
+                          "enum": [
+                            "username",
+                            "alias"
+                          ]
                         },
                         "removedTagMode": {
                           "type": "string",
@@ -14698,6 +14714,7 @@
                         "tagUsersInRadarr",
                         "cleanupOrphanedTags",
                         "tagPrefix",
+                        "tagNamingSource",
                         "removedTagMode",
                         "removedTagPrefix",
                         "newUserDefaultCanSync",
@@ -15100,6 +15117,14 @@
                         "minLength": 1,
                         "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                       },
+                      "labelNamingSource": {
+                        "default": "username",
+                        "type": "string",
+                        "enum": [
+                          "username",
+                          "alias"
+                        ]
+                      },
                       "concurrencyLimit": {
                         "type": "integer",
                         "minimum": 1,
@@ -15389,6 +15414,13 @@
                     "type": "string",
                     "minLength": 1,
                     "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+                  },
+                  "tagNamingSource": {
+                    "type": "string",
+                    "enum": [
+                      "username",
+                      "alias"
+                    ]
                   },
                   "tagMigration": {
                     "type": "object",
@@ -15721,6 +15753,14 @@
                               "minLength": 1,
                               "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                             },
+                            "labelNamingSource": {
+                              "default": "username",
+                              "type": "string",
+                              "enum": [
+                                "username",
+                                "alias"
+                              ]
+                            },
                             "concurrencyLimit": {
                               "type": "integer",
                               "minimum": 1,
@@ -15779,6 +15819,7 @@
                           "required": [
                             "enabled",
                             "labelPrefix",
+                            "labelNamingSource",
                             "concurrencyLimit",
                             "cleanupOrphanedLabels",
                             "removedLabelMode",
@@ -15805,6 +15846,13 @@
                         },
                         "tagPrefix": {
                           "type": "string"
+                        },
+                        "tagNamingSource": {
+                          "type": "string",
+                          "enum": [
+                            "username",
+                            "alias"
+                          ]
                         },
                         "removedTagMode": {
                           "type": "string",
@@ -16117,6 +16165,7 @@
                         "tagUsersInRadarr",
                         "cleanupOrphanedTags",
                         "tagPrefix",
+                        "tagNamingSource",
                         "removedTagMode",
                         "removedTagPrefix",
                         "newUserDefaultCanSync",
@@ -20449,7 +20498,7 @@
         "tags": [
           "Authentication"
         ],
-        "description": "Authenticate user by email and password",
+        "description": "Authenticate user by email/username and password",
         "requestBody": {
           "required": true,
           "content": {
@@ -20457,11 +20506,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": {
+                  "login": {
                     "type": "string",
-                    "maxLength": 255,
-                    "format": "email",
-                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    "minLength": 1,
+                    "maxLength": 255
                   },
                   "password": {
                     "type": "string",
@@ -20469,7 +20517,7 @@
                   }
                 },
                 "required": [
-                  "email",
+                  "login",
                   "password"
                 ]
               }
@@ -21498,6 +21546,81 @@
                     "code",
                     "error",
                     "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/alias-readiness": {
+      "get": {
+        "operationId": "getAliasReadiness",
+        "summary": "Check alias readiness for tag/label naming",
+        "tags": [
+          "Users"
+        ],
+        "description": "Checks sync-enabled users for missing or duplicate aliases before switching to alias-based naming",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "missingAliasCount": {
+                      "type": "number"
+                    },
+                    "duplicateAliasCount": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "missingAliasCount",
+                    "duplicateAliasCount"
                   ],
                   "additionalProperties": false
                 }

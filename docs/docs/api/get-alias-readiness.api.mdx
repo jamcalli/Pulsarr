@@ -1,0 +1,63 @@
+---
+id: get-alias-readiness
+title: "Check alias readiness for tag/label naming"
+description: "Checks sync-enabled users for missing or duplicate aliases before switching to alias-based naming"
+sidebar_label: "Check alias readiness for tag/label naming"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vk2P2zYQ/SvEnFpAXu026EU3Y1MUi+ZgrJO2wMIHmhpbjClS4ZC7MQT992JIyR+7SoNccpJADt88Ps7jsAfXoZdBO/tQQwV7DEujJT2irLVFIiggyD1B9QSfCD3BpoAaSXnd8SKo4L5BdSBBR6sWaOXWYC0ih4qd86LVRNruhfOijp3RSgYUklMgiS3unEdBLzqohqOCy3OLrSSshZWttnsowCN1zhISVD38dnvLn2sW73EnownicYyEApSzAW3gWNnl1NrZ8jPxgh5INdhK/gvHDqECt/2MKkABnWdRgs7pKCrFQpwDt84ZlBaGAlokknu8mKTgmTPP5a0nPe9dzEzGKBvbLXqOOqnyv3EDa/Alao81H8XE6UxgLt08+KYAWdeatZBmdbHVnTSEw8C5fv/JEgcZIt27GmclUtcTZ4XRe+fntf/WubBO9gPafWigunuj65nImHZKcob8vn4pf2jcaCjeruR0UD7flckaZa5yf+EyQv/M/qqeeojeQAV9511wypmhKsu+cRSGqu+cDwO88WCk4FqxThhQwLP0mp2Y1J1g+B9tbHmjTQgdFOkzWjqdLVTTzDX+xwbFBMPmrtmpyrVttNnRLzo0IjQo8jb4CJhwLqIJ2jglTRqew+cJK1vkq+JhJWRdeyQSbpdwV9GQ9P4Cn5W4xn93e/tunrrzQTgrXhqtmhOUJuGjtalihqGYZE+aVGV5dNEvuhy70JaCtApvlGvfpFh53Up/nOT/AahqlvJ77VGFEU4sk9XFL0li3smvrzJUZXlSdh7wwzQ9C7bh4lPR63BM1Sc7/Rcel5FL9mnDuQiJtLOnoYsVa7Z4rrPLdSfb5UEoQDORBmWdCpQPGir4d7FcPSxywDXl5epBHPAoZAwN2jDeLCKmZnJaJkbAobjm+I30yrmDxnP68UjeJF9nrLELzVLIUMSZX3DbOHdYo/IYfnD7Yy0u8uI3RP7J0PMUZAxusUfL/RtrQQniRqydld6Xj7LmIh/JkZAehXJ2p/fRYz0ZVtMoYUJrJacw5niTOo62O5f2ooNhupNxlquH2fOqnYot2pBJcvefViyEFCuDX8WLDKoxmoLQNuDen0MzbSFtLTJ1vsbQU4b/+y5bnkIrU2sZFUyPj/xmEKfbNOEFuS+N3KI5vyKuGPfn5vVTnjBjQQT8GsrOSJ2eD8nE/dgenuD5DgpIiaGA1y1iM12pT9D3DP7Jm2Hg4S8RPVt3c774s3OngmNXH/DIx6QUdiF1CBNzgb5q22zuU/f684+PMAz/Ad/ikCI=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Check alias readiness for tag/label naming"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/users/alias-readiness"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Checks sync-enabled users for missing or duplicate aliases before switching to alias-based naming
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"missingAliasCount":{"type":"number"},"duplicateAliasCount":{"type":"number"}},"required":["success","message","missingAliasCount","duplicateAliasCount"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
