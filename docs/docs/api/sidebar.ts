@@ -1064,6 +1064,12 @@ const sidebar: SidebarsConfig = {
           label: "Bulk update users",
           className: "api-method patch",
         },
+        {
+          type: "doc",
+          id: "api/get-alias-readiness",
+          label: "Check alias readiness for tag/label naming",
+          className: "api-method get",
+        },
       ],
     },
     {
