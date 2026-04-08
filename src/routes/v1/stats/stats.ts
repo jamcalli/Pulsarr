@@ -337,7 +337,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // NEW ENDPOINT: Get grabbed to notified time stats
   fastify.get(
     '/grabbed-to-notified',
     {
@@ -371,7 +370,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // NEW ENDPOINT: Get detailed status transition metrics
   fastify.get(
     '/status-transitions',
     {
@@ -405,7 +403,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // NEW ENDPOINT: Get status flow data for visualization
   fastify.get(
     '/status-flow',
     {

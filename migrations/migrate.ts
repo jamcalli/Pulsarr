@@ -1,11 +1,6 @@
 import knex from 'knex'
 import config from './knexfile.js'
 
-/**
- * Applies all pending database migrations using the development configuration.
- *
- * Terminates the process with exit code 1 if migration fails. Ensures the database connection is closed after completion.
- */
 async function migrate() {
   const db = knex(config.development)
 

@@ -14,7 +14,6 @@ import type { Knex } from 'knex'
  * - Episode/season notifications match watchlist_items.type = 'show'
  */
 export async function up(knex: Knex): Promise<void> {
-  // Delete orphaned movie notifications
   const movieResult = await knex('notifications')
     .where({
       user_id: null,
@@ -28,7 +27,6 @@ export async function up(knex: Knex): Promise<void> {
     )
     .del()
 
-  // Delete orphaned show notifications (episode/season)
   const showResult = await knex('notifications')
     .where({
       user_id: null,

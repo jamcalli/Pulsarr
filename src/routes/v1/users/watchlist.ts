@@ -30,17 +30,14 @@ const watchlistRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const { userId } = request.params
 
-        // Check if user exists
         const user = await fastify.db.getUser(userId)
         if (!user) {
           return reply.notFound('User not found')
         }
 
-        // Get watchlist items using the database service method
         const watchlistItems =
           await fastify.db.getAllWatchlistItemsForUser(userId)
 
-        // Transform the watchlist items to match our schema
         const transformedItems = watchlistItems.map((item) => ({
           title: item.title,
           key: item.key,

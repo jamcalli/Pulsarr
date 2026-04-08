@@ -11,7 +11,6 @@ import {
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-// Local type for evaluator metadata with contentType
 interface EvaluatorMetadataWithContentType {
   name: string
   description: string
@@ -55,14 +54,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  /**
-   * GET /v1/content-router/plugins/metadata
-   *
-   * Returns detailed metadata about all evaluators loaded in the content router,
-   * including supported fields and operators for each evaluator.
-   * This information can be used to build dynamic UI elements for
-   * creating and editing router rules.
-   */
   fastify.get(
     '/plugins/metadata',
     {
@@ -83,7 +74,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const metadata =
           fastify.contentRouter.getEvaluatorsMetadata() as EvaluatorMetadataWithContentType[]
 
-        // Normalize the data to match the schema
         const normalizedMetadata = metadata.map((evaluator) => ({
           name: evaluator.name,
           description: evaluator.description,
