@@ -54,7 +54,6 @@ export default async function spaRoute(fastify: FastifyInstance) {
         const isCreateUserPage = rawPath === createUserPath
         const isLoginPage = rawPath === loginPath
 
-        // Use the in-memory config to check if Plex tokens are configured
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
         // CASE 1: Auth disabled or local IP bypass — create temp session

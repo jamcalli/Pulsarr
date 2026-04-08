@@ -12,8 +12,6 @@ import { isPostgreSQL } from '../utils/clientDetection.js'
  */
 export async function up(knex: Knex): Promise<void> {
   if (isPostgreSQL(knex)) {
-    // Add new enum values (PostgreSQL only)
-    // Using IF NOT EXISTS pattern via exception handling
     await knex.raw(`
       DO $$
       BEGIN

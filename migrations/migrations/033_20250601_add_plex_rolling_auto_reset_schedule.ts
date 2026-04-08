@@ -4,13 +4,6 @@ import {
   shouldSkipForPostgreSQL,
 } from '../utils/clientDetection.js'
 
-/**
- * Adds a disabled 'plex-rolling-auto-reset' schedule to the 'schedules' table if it does not already exist.
- *
- * The schedule is set as an interval type with a 24-hour interval and current timestamps for creation and update.
- *
- * @remark Skips execution for PostgreSQL databases.
- */
 export async function up(knex: Knex): Promise<void> {
   if (
     shouldSkipForPostgreSQL(
@@ -20,7 +13,6 @@ export async function up(knex: Knex): Promise<void> {
   ) {
     return
   }
-  // Add the new schedule for automatic rolling monitor reset
   const existing = await knex('schedules')
     .where('name', 'plex-rolling-auto-reset')
     .first()
@@ -37,16 +29,9 @@ export async function up(knex: Knex): Promise<void> {
   }
 }
 
-/**
- * Removes the 'plex-rolling-auto-reset' schedule entry from the 'schedules' table if it exists.
- *
- * @remark
- * This operation is skipped for PostgreSQL databases.
- */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
     return
   }
-  // Remove the schedule
   await knex('schedules').where('name', 'plex-rolling-auto-reset').delete()
 }

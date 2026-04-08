@@ -9,7 +9,6 @@ import type {
 import fp from 'fastify-plugin'
 import { serializerCompiler, validatorCompiler } from 'fastify-zod-openapi'
 
-// Mock service declarations for OpenAPI generation
 declare module 'fastify' {
   interface FastifyInstance {
     db: Record<string, unknown>
@@ -34,106 +33,84 @@ declare module 'fastify' {
   }
 }
 
-/**
- * Sets up a Fastify application instance configured specifically for OpenAPI (Swagger) schema generation.
- *
- * Registers only the minimal set of plugins and routes required for documentation, decorates the Fastify instance with mock service implementations, and defines basic error and not-found handlers. This configuration omits authentication, database connections, and other runtime dependencies to ensure compatibility with OpenAPI tooling.
- *
- * @remark
- * Intended solely for OpenAPI schema generation and not for use as a production or runtime application.
- */
 export default async function openapiApp(
   fastify: FastifyInstance,
   opts: FastifyPluginOptions,
 ) {
-  // Set Zod compilers for validation and fast-json-stringify serialization
-  // Must be set before any routes are registered
   fastify.setValidatorCompiler(validatorCompiler)
   fastify.setSerializerCompiler(serializerCompiler)
 
-  // Basic form body parsing
   fastify.register(FastifyFormBody)
 
-  // Only load external plugins needed for swagger
   await fastify.register(fastifyAutoload, {
     dir: path.join(import.meta.dirname, '../src/plugins/external'),
     options: {
       ...opts,
       timeout: 30000,
     },
-    // Only load specific plugins we need for OpenAPI
     ignorePattern: /^(?!.*(?:swagger|env|sensible)\.ts$).*\.ts$/,
   })
 
-  // Register mock services for OpenAPI generation (after env plugin loads)
+  // Must run after env plugin loads
   await fastify.register(
     fp(async (fastify: FastifyInstance) => {
-      // Mock database service
       fastify.decorate('db', {})
-
-      // Mock approval service
       fastify.decorate('approvalService', {})
-
-      // Mock quota service
       fastify.decorate('quotaService', {})
-
-      // Mock manager services
       fastify.decorate('radarrManager', {})
       fastify.decorate('sonarrManager', {})
 
-      // Mock other services (only add those that don't already exist)
       try {
         fastify.decorate('discord', {})
-      } catch {} // May already exist
+      } catch {}
       try {
         fastify.decorate('contentRouter', {})
-      } catch {} // May already exist
+      } catch {}
       try {
         fastify.decorate('plexWatchlist', {})
-      } catch {} // May already exist
+      } catch {}
       try {
         fastify.decorate('progress', {})
-      } catch {} // May already exist
+      } catch {}
       try {
         fastify.decorate('notifications', {})
-      } catch {} // May already exist
+      } catch {}
       try {
         fastify.decorate('deleteSync', {})
-      } catch {} // May already exist
+      } catch {}
       try {
         fastify.decorate('scheduler', {})
-      } catch {} // May already exist
+      } catch {}
       try {
         fastify.decorate('plexSessionMonitor', {})
-      } catch {} // May already exist
+      } catch {}
       try {
         fastify.decorate('sync', {})
-      } catch {} // May already exist
+      } catch {}
       try {
         fastify.decorate('userTags', {})
-      } catch {} // May already exist
+      } catch {}
       try {
         // @ts-expect-error Stub for OpenAPI generation
         fastify.decorate('updateConfig', () => {})
-      } catch {} // May already exist
+      } catch {}
       try {
         // @ts-expect-error Stub for OpenAPI generation
         fastify.decorate('compare', () => {})
-      } catch {} // May already exist
+      } catch {}
       try {
         // @ts-expect-error Stub for OpenAPI generation
         fastify.decorate('hash', () => {})
-      } catch {} // May already exist
+      } catch {}
       try {
         fastify.decorate('watchlistWorkflow', {})
-      } catch {} // May already exist
+      } catch {}
     }),
   )
 
-  // Load routes (they should work without database if we mock the services)
   fastify.register(fastifyAutoload, {
     dir: path.join(import.meta.dirname, '../src/routes'),
-    autoHooks: false, // Disable hooks that might depend on auth/db
+    autoHooks: false, // Hooks depend on auth/db which aren't loaded here
     cascadeHooks: false,
     options: {
       ...opts,
@@ -141,20 +118,17 @@ export default async function openapiApp(
     },
   })
 
-  // Simple error handler for OpenAPI generation
   fastify.setErrorHandler((err: FastifyError, _request, reply) => {
     const statusCode = err.statusCode ?? 500
     reply.code(statusCode)
 
-    // For OpenAPI generation, we want to see errors to fix schema issues
-    // but still protect against exposing sensitive server errors
+    // Don't expose internal error details in 5xx responses
     const message =
       statusCode >= 500 ? 'Internal Server Error' : err.message || 'Bad Request'
 
     return { message }
   })
 
-  // Simple 404 handler
   fastify.setNotFoundHandler((_request, reply) => {
     reply.code(404)
     return { message: 'Not Found' }

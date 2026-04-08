@@ -1,21 +1,14 @@
 import type { Knex } from 'knex'
 
-/**
- * Migrates the database to add a `triggered_by_user_ids` JSON column to the `notifications` table, tracking user IDs whose watchlist items trigger public notifications.
- *
- * Populates this column for existing public notifications and creates database triggers to automatically update the array when watchlist items are added or removed. Deletes notifications when no users remain associated. Supports both PostgreSQL and SQLite.
- */
 export async function up(knex: Knex): Promise<void> {
   const isPostgres = knex.client.config.client === 'pg'
 
   await knex.schema.alterTable('notifications', (table) => {
-    // Add JSON column to store array of user IDs who have this item in their watchlist
     table.jsonb('triggered_by_user_ids').nullable()
   })
 
-  // Populate existing public notification records with associated user IDs in a single set-based operation
+  // Backfill existing public notifications with their associated user IDs
   if (isPostgres) {
-    // PostgreSQL: Use UPDATE ... FROM with jsonb aggregation
     await knex.raw(`
       UPDATE notifications 
       SET triggered_by_user_ids = user_aggregates.user_ids
@@ -34,7 +27,6 @@ export async function up(knex: Knex): Promise<void> {
         AND user_aggregates.user_ids != '[]'::jsonb
     `)
   } else {
-    // SQLite: Use correlated subquery with json_group_array
     await knex.raw(`
       UPDATE notifications 
       SET triggered_by_user_ids = (
@@ -53,15 +45,11 @@ export async function up(knex: Knex): Promise<void> {
   }
 
   if (isPostgres) {
-    // PostgreSQL specific implementation
-
-    // Create trigger function to handle watchlist item additions
     await knex.raw(`
       CREATE OR REPLACE FUNCTION update_public_notifications_on_watchlist_add()
       RETURNS TRIGGER AS $$
       BEGIN
-          -- Update existing public notifications for this title
-          -- Add the user to triggered_by_user_ids array if not already present
+          -- Add the user to triggered_by_user_ids if not already present
           UPDATE notifications 
           SET triggered_by_user_ids = CASE 
               WHEN triggered_by_user_ids IS NULL THEN 
@@ -78,22 +66,19 @@ export async function up(knex: Knex): Promise<void> {
 
           RETURN NEW;
       EXCEPTION WHEN OTHERS THEN
-          -- Log error but don't fail the transaction
           RAISE WARNING 'Error in watchlist_add_trigger: %', SQLERRM;
           RETURN NEW;
       END;
       $$ LANGUAGE plpgsql;
     `)
 
-    // Create trigger function to handle watchlist item removals
     await knex.raw(`
       CREATE OR REPLACE FUNCTION update_public_notifications_on_watchlist_remove()
       RETURNS TRIGGER AS $$
       DECLARE
           updated_user_ids jsonb;
       BEGIN
-          -- Update existing public notifications for this title
-          -- Remove the user from triggered_by_user_ids array
+          -- Remove the user from triggered_by_user_ids
           UPDATE notifications 
           SET triggered_by_user_ids = (
               SELECT CASE 
@@ -121,14 +106,12 @@ export async function up(knex: Knex): Promise<void> {
 
           RETURN OLD;
       EXCEPTION WHEN OTHERS THEN
-          -- Log error but don't fail the transaction
           RAISE WARNING 'Error in watchlist_remove_trigger: %', SQLERRM;
           RETURN OLD;
       END;
       $$ LANGUAGE plpgsql;
     `)
 
-    // Create triggers on watchlist_items table
     await knex.raw(`
       CREATE TRIGGER watchlist_add_trigger
           AFTER INSERT ON watchlist_items
@@ -143,9 +126,6 @@ export async function up(knex: Knex): Promise<void> {
           EXECUTE FUNCTION update_public_notifications_on_watchlist_remove();
     `)
   } else {
-    // SQLite specific implementation
-
-    // SQLite trigger for watchlist item additions
     await knex.raw(`
       CREATE TRIGGER IF NOT EXISTS watchlist_add_trigger
       AFTER INSERT ON watchlist_items
@@ -177,7 +157,6 @@ export async function up(knex: Knex): Promise<void> {
       END;
     `)
 
-    // SQLite trigger for watchlist item removals
     await knex.raw(`
       CREATE TRIGGER IF NOT EXISTS watchlist_remove_trigger
       AFTER DELETE ON watchlist_items
@@ -195,7 +174,7 @@ export async function up(knex: Knex): Promise<void> {
             )
       )
       BEGIN
-          -- Update notifications by removing the user from the array
+          -- Remove the user from the array
           UPDATE notifications
           SET triggered_by_user_ids = (
               SELECT CASE 
@@ -225,16 +204,10 @@ export async function up(knex: Knex): Promise<void> {
   }
 }
 
-/**
- * Reverts the migration by removing the `triggered_by_user_ids` column and associated triggers and functions from the database.
- *
- * Drops the triggers and trigger functions for PostgreSQL or triggers for SQLite, and removes the `triggered_by_user_ids` column from the `notifications` table.
- */
 export async function down(knex: Knex): Promise<void> {
   const isPostgres = knex.client.config.client === 'pg'
 
   if (isPostgres) {
-    // PostgreSQL cleanup
     await knex.raw(
       'DROP TRIGGER IF EXISTS watchlist_add_trigger ON watchlist_items',
     )
@@ -247,15 +220,11 @@ export async function down(knex: Knex): Promise<void> {
     await knex.raw(
       'DROP FUNCTION IF EXISTS update_public_notifications_on_watchlist_remove()',
     )
-    // No indexes created for either database
   } else {
-    // SQLite cleanup
     await knex.raw('DROP TRIGGER IF EXISTS watchlist_add_trigger')
     await knex.raw('DROP TRIGGER IF EXISTS watchlist_remove_trigger')
-    // No indexes created for either database
   }
 
-  // Drop column (works for both databases)
   await knex.schema.alterTable('notifications', (table) => {
     table.dropColumn('triggered_by_user_ids')
   })

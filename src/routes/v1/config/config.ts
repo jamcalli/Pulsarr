@@ -210,7 +210,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
-        // Merge saved DB config with runtime Apprise settings
         const mergedConfig: z.infer<typeof ConfigFullSchema> = {
           ...savedConfig,
           enableApprise: fastify.config.enableApprise,

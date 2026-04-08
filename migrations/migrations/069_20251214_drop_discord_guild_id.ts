@@ -12,9 +12,6 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
-/**
- * Restores the discordGuildId column for rollback.
- */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
     table.string('discordGuildId')

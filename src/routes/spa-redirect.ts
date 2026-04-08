@@ -13,7 +13,6 @@ export default async function rootRoute(fastify: FastifyInstance) {
 
   fastify.get('/', async (request, reply) => {
     if (request.session.user) {
-      // Use the in-memory config instead of querying the database
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
       return reply.redirect(
         buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),

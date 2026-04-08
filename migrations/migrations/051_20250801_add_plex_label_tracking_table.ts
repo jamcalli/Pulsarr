@@ -1,15 +1,8 @@
 import type { Knex } from 'knex'
 
-/**
- * Runs the migration to create the `plex_label_tracking` table for tracking label synchronization between users and Plex content.
- *
- * Adapts schema definitions and constraints for PostgreSQL and SQLite, including enum types, JSON column handling, and unique constraints. The table enables persistent association of users with Plex content items and their applied labels, supporting label tracking even after content is removed from a user's watchlist.
- */
 export async function up(knex: Knex): Promise<void> {
-  // Check if we're using PostgreSQL or SQLite
   const isPostgres = knex.client.config.client === 'pg'
 
-  // Create content_type enum for PostgreSQL if it doesn't exist
   if (isPostgres) {
     await knex.raw(`
       DO $$
@@ -24,14 +17,13 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('plex_label_tracking', (table) => {
     table.increments('id').primary()
 
-    // Track by content GUIDs + user instead of watchlist_id to avoid FK constraints
+    // Track by content GUIDs + user instead of watchlist_id to avoid FK constraints on a volatile table
     if (isPostgres) {
       table.specificType('content_guids', 'jsonb').notNullable()
     } else {
       table.json('content_guids').notNullable()
     }
 
-    // Constrain content_type to only allow 'movie' or 'show'
     if (isPostgres) {
       table.specificType('content_type', 'plex_content_type').notNullable()
     } else {
@@ -42,7 +34,7 @@ export async function up(knex: Knex): Promise<void> {
       .notNullable()
       .references('id')
       .inTable('users')
-      .onDelete('CASCADE') // When user deleted, remove their label tracking
+      .onDelete('CASCADE')
 
     table.string('plex_rating_key', 50).notNullable()
 
@@ -57,41 +49,29 @@ export async function up(knex: Knex): Promise<void> {
 
     table.timestamp('synced_at').defaultTo(knex.fn.now())
 
-    // Indexes for efficient lookups
     table.index(['user_id'])
     table.index(['plex_rating_key'])
     table.index(['synced_at'])
     table.index(['content_type'])
   })
 
-  // Handle unique constraint - PostgreSQL cannot create unique constraints on JSON columns directly
+  // PostgreSQL can't create unique constraints on JSON columns directly, so use an MD5 functional index
   if (isPostgres) {
-    // PostgreSQL: Use functional index with MD5 hash of JSON content
-    // Include content_type to distinguish between movies and shows with same GUIDs
     await knex.raw(`
       CREATE UNIQUE INDEX plex_label_tracking_content_unique 
       ON plex_label_tracking(md5(content_guids::text), user_id, content_type)
     `)
   } else {
-    // SQLite: Can handle unique constraint on JSON columns directly
-    // Include content_type to distinguish between movies and shows with same GUIDs
     await knex.schema.alterTable('plex_label_tracking', (table) => {
       table.unique(['content_guids', 'user_id', 'content_type'])
     })
   }
 }
 
-/**
- * Reverts the migration by removing the `plex_label_tracking` table and related database objects.
- *
- * For PostgreSQL, also drops the unique functional index and the custom enum type associated with the table.
- */
 export async function down(knex: Knex): Promise<void> {
-  // Check if we're using PostgreSQL or SQLite
   const isPostgres = knex.client.config.client === 'pg'
 
   if (isPostgres) {
-    // PostgreSQL: Drop the functional index first
     await knex.raw(`
       DROP INDEX IF EXISTS plex_label_tracking_content_unique
     `)
@@ -99,7 +79,6 @@ export async function down(knex: Knex): Promise<void> {
 
   await knex.schema.dropTableIfExists('plex_label_tracking')
 
-  // Clean up the enum type for PostgreSQL
   if (isPostgres) {
     await knex.raw(`
       DROP TYPE IF EXISTS plex_content_type CASCADE;
