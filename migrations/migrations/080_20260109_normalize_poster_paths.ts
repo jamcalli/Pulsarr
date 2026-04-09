@@ -22,8 +22,6 @@ export async function up(knex: Knex): Promise<void> {
   }
 
   if (isPostgreSQL(knex)) {
-    // PostgreSQL: Use efficient regex_replace in a single UPDATE
-    // Pattern extracts the path portion after /t/p/{size}/
     await knex.raw(`
       UPDATE watchlist_items
       SET thumb = regexp_replace(thumb, '^https?://image\\.tmdb\\.org/t/p/[^/]+', '')
@@ -31,8 +29,7 @@ export async function up(knex: Knex): Promise<void> {
          OR thumb LIKE 'http://image.tmdb.org/t/p/%'
     `)
   } else {
-    // SQLite: Fetch all matching IDs first, then batch process
-    // SQLite lacks regex_replace so we must process in application code
+    // SQLite lacks regex_replace, so we process in application code
     const tmdbPattern = /^https?:\/\/image\.tmdb\.org\/t\/p\/[^/]+(\/.+)$/
 
     const items = await knex('watchlist_items')
@@ -40,7 +37,6 @@ export async function up(knex: Knex): Promise<void> {
       .where('thumb', 'like', 'https://image.tmdb.org/t/p/%')
       .orWhere('thumb', 'like', 'http://image.tmdb.org/t/p/%')
 
-    // Build update map
     const updates: Array<{ id: number; newThumb: string }> = []
     for (const item of items) {
       const match = item.thumb?.match(tmdbPattern)
@@ -49,7 +45,6 @@ export async function up(knex: Knex): Promise<void> {
       }
     }
 
-    // Batch update in chunks (matches established pattern)
     const chunkSize = 50
     for (let i = 0; i < updates.length; i += chunkSize) {
       const chunk = updates.slice(i, i + chunkSize)
@@ -77,7 +72,6 @@ export async function down(knex: Knex): Promise<void> {
   }
 
   if (isPostgreSQL(knex)) {
-    // PostgreSQL: Single UPDATE with concat
     await knex.raw(`
       UPDATE watchlist_items
       SET thumb = 'https://image.tmdb.org/t/p/original' || thumb
@@ -85,13 +79,11 @@ export async function down(knex: Knex): Promise<void> {
         AND thumb NOT LIKE 'http%'
     `)
   } else {
-    // SQLite: Fetch all matching IDs first, then batch process
     const items = await knex('watchlist_items')
       .select('id', 'thumb')
       .where('thumb', 'like', '/%')
       .whereNot('thumb', 'like', 'http%')
 
-    // Build update list
     const updates: Array<{ id: number; newThumb: string }> = []
     for (const item of items) {
       if (item.thumb?.startsWith('/')) {
@@ -102,7 +94,6 @@ export async function down(knex: Knex): Promise<void> {
       }
     }
 
-    // Batch update in chunks
     const chunkSize = 50
     for (let i = 0; i < updates.length; i += chunkSize) {
       const chunk = updates.slice(i, i + chunkSize)

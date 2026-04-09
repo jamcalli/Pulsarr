@@ -46,7 +46,6 @@ services:
       - "3003:3003"
     volumes:
       - ./data:/app/data
-      - .env:/app/.env
     environment:
       - PUID=1000
       - PGID=1000
@@ -115,7 +114,7 @@ For Gmail, you'll need an [App Password](https://myaccount.google.com/apppasswor
 | Gotify | `gotifys://{hostname}/{token}` |
 | Email | `mailtos://{user}:{app_password}@gmail.com` |
 
-For the full list, see the [Apprise Wiki](https://github.com/caronc/apprise/wiki).
+For the full list, see the [Apprise documentation](https://appriseit.com/).
 
 ## Troubleshooting
 
@@ -129,7 +128,7 @@ For the full list, see the [Apprise Wiki](https://github.com/caronc/apprise/wiki
 
 1. Test your Apprise URL directly using the **Test** button in the UI
 2. Check Pulsarr logs for Apprise-related errors
-3. Verify the Apprise URL format matches the [Apprise Wiki](https://github.com/caronc/apprise/wiki) examples
+3. Verify the Apprise URL format matches the [Apprise documentation](https://appriseit.com/) examples
 
 ### Email Not Working
 

@@ -17,7 +17,6 @@ export async function up(knex: Knex): Promise<void> {
   const isPostgres = knex.client.config.client === 'pg'
 
   if (isPostgres) {
-    // PostgreSQL: Drop the old functional index and create a new one with plex_rating_key
     await knex.raw(`
       DROP INDEX IF EXISTS plex_label_tracking_content_unique
     `)
@@ -27,8 +26,7 @@ export async function up(knex: Knex): Promise<void> {
       ON plex_label_tracking(md5(content_guids::text), user_id, content_type, plex_rating_key)
     `)
   } else {
-    // SQLite: Drop the old unique constraint and create a new one with plex_rating_key
-    // SQLite doesn't support ALTER TABLE DROP CONSTRAINT, so we need to recreate the table
+    // SQLite doesn't support ALTER TABLE DROP CONSTRAINT, so we recreate the table
     await knex.raw(`
       CREATE TABLE plex_label_tracking_new (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,7 +40,6 @@ export async function up(knex: Knex): Promise<void> {
       )
     `)
 
-    // Copy data from old table to new table
     await knex.raw(`
       INSERT INTO plex_label_tracking_new
         (id, content_guids, content_type, user_id, plex_rating_key, labels_applied, synced_at)
@@ -50,13 +47,11 @@ export async function up(knex: Knex): Promise<void> {
       FROM plex_label_tracking
     `)
 
-    // Drop old table and rename new table
     await knex.raw(`DROP TABLE plex_label_tracking`)
     await knex.raw(
       `ALTER TABLE plex_label_tracking_new RENAME TO plex_label_tracking`,
     )
 
-    // Recreate indexes
     await knex.raw(
       `CREATE INDEX idx_plex_label_tracking_user_id ON plex_label_tracking(user_id)`,
     )
@@ -72,18 +67,13 @@ export async function up(knex: Knex): Promise<void> {
   }
 }
 
-/**
- * Reverts the unique constraint to its original form without plex_rating_key.
- *
- * Note: This migration down could cause data loss if there are multiple records
- * with the same (content_guids, user_id, content_type) but different plex_rating_keys.
- * The first record for each combination will be kept, and duplicates will be removed.
- */
+// Rollback may cause data loss if multiple records share the same
+// (content_guids, user_id, content_type) but differ by plex_rating_key.
+// The first record per combination is kept, duplicates are removed.
 export async function down(knex: Knex): Promise<void> {
   const isPostgres = knex.client.config.client === 'pg'
 
   if (isPostgres) {
-    // Remove duplicates before applying the old constraint
     await knex.raw(`
       DELETE FROM plex_label_tracking
       WHERE id NOT IN (
@@ -93,7 +83,6 @@ export async function down(knex: Knex): Promise<void> {
       )
     `)
 
-    // Drop the new index and restore the old one
     await knex.raw(`
       DROP INDEX IF EXISTS plex_label_tracking_content_unique
     `)
@@ -103,7 +92,6 @@ export async function down(knex: Knex): Promise<void> {
       ON plex_label_tracking(md5(content_guids::text), user_id, content_type)
     `)
   } else {
-    // Remove duplicates before applying the old constraint
     await knex.raw(`
       DELETE FROM plex_label_tracking
       WHERE id NOT IN (
@@ -113,7 +101,6 @@ export async function down(knex: Knex): Promise<void> {
       )
     `)
 
-    // Recreate table with old constraint
     await knex.raw(`
       CREATE TABLE plex_label_tracking_new (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -127,7 +114,6 @@ export async function down(knex: Knex): Promise<void> {
       )
     `)
 
-    // Copy data from old table to new table
     await knex.raw(`
       INSERT INTO plex_label_tracking_new
         (id, content_guids, content_type, user_id, plex_rating_key, labels_applied, synced_at)
@@ -135,13 +121,11 @@ export async function down(knex: Knex): Promise<void> {
       FROM plex_label_tracking
     `)
 
-    // Drop old table and rename new table
     await knex.raw(`DROP TABLE plex_label_tracking`)
     await knex.raw(
       `ALTER TABLE plex_label_tracking_new RENAME TO plex_label_tracking`,
     )
 
-    // Recreate indexes
     await knex.raw(
       `CREATE INDEX idx_plex_label_tracking_user_id ON plex_label_tracking(user_id)`,
     )

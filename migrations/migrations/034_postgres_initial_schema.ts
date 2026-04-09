@@ -1,17 +1,8 @@
 import type { Knex } from 'knex'
 import { isPostgreSQL } from '../utils/clientDetection.js'
 
-/**
- * Creates the initial PostgreSQL schema for the application.
- *
- * This migration consolidates all previous migrations into a single setup, creating all required tables, ENUM types, indexes, triggers, and seeding default data. It only runs on PostgreSQL databases and applies PostgreSQL-specific optimizations.
- *
- * @remark
- * This migration is a no-op on non-PostgreSQL databases.
- */
 export async function up(knex: Knex): Promise<void> {
   await knex.transaction(async (knex) => {
-    // Only run on PostgreSQL
     if (!isPostgreSQL(knex)) {
       console.log(
         'Skipping PostgreSQL initial schema on non-PostgreSQL database',
@@ -21,7 +12,6 @@ export async function up(knex: Knex): Promise<void> {
 
     console.log('Creating PostgreSQL initial schema...')
 
-    // Create ENUM types for PostgreSQL
     await knex.raw(`
     CREATE TYPE watchlist_status AS ENUM ('pending', 'requested', 'grabbed', 'notified');
     CREATE TYPE series_status AS ENUM ('continuing', 'ended');
@@ -38,7 +28,6 @@ export async function up(knex: Knex): Promise<void> {
     CREATE TYPE series_type AS ENUM ('standard', 'anime', 'daily');
   `)
 
-    // Create users table
     await knex.schema.createTable('users', (table) => {
       table.increments('id').primary()
       table.string('name').notNullable()
@@ -57,14 +46,13 @@ export async function up(knex: Knex): Promise<void> {
       table.index(['notify_discord', 'discord_id'])
     })
 
-    // Create partial unique index to allow exactly one primary token across all users
+    // Partial unique index ensures only one user can be the primary token holder
     await knex.raw(`
     CREATE UNIQUE INDEX users_is_primary_token_unique 
     ON users(is_primary_token) 
     WHERE is_primary_token = true
   `)
 
-    // Create admin_users table
     await knex.schema.createTable('admin_users', (table) => {
       table.increments('id').primary()
       table.string('username').notNullable().unique()
@@ -76,7 +64,6 @@ export async function up(knex: Knex): Promise<void> {
       table.index(['email', 'username'])
     })
 
-    // Create sonarr_instances table
     await knex.schema.createTable('sonarr_instances', (table) => {
       table.increments('id').primary()
       table.string('name').notNullable().unique()
@@ -99,7 +86,6 @@ export async function up(knex: Knex): Promise<void> {
       table.timestamp('updated_at').defaultTo(knex.fn.now())
     })
 
-    // Create radarr_instances table
     await knex.schema.createTable('radarr_instances', (table) => {
       table.increments('id').primary()
       table.string('name').notNullable().unique()
@@ -120,10 +106,8 @@ export async function up(knex: Knex): Promise<void> {
       table.timestamp('updated_at').defaultTo(knex.fn.now())
     })
 
-    // Create configs table
     await knex.schema.createTable('configs', (table) => {
       table.increments('id').primary()
-      // App configuration
       table.integer('port')
       table.string('dbPath')
       table.string('baseUrl')
@@ -136,28 +120,23 @@ export async function up(knex: Knex): Promise<void> {
       table.integer('syncIntervalSeconds').defaultTo(10)
       table.integer('queueProcessDelaySeconds').defaultTo(60)
 
-      // Discord configuration
       table.string('discordWebhookUrl')
       table.string('discordBotToken')
       table.string('discordClientId')
       table.string('discordGuildId')
 
-      // Notification configuration
       table.integer('queueWaitTime').defaultTo(120000)
       table.integer('newEpisodeThreshold').defaultTo(172800000)
       table.integer('upgradeBufferTime').defaultTo(2000)
 
-      // Apprise configuration
       table.boolean('enableApprise').defaultTo(false)
       table.string('appriseUrl').defaultTo('')
       table.string('systemAppriseUrl')
 
-      // Tautulli configuration
       table.boolean('tautulliEnabled').defaultTo(false)
       table.string('tautulliUrl').nullable()
       table.string('tautulliApiKey').nullable()
 
-      // Plex configuration
       table.jsonb('plexTokens')
       table.boolean('skipFriendSync')
       table.string('plexServerUrl').defaultTo('http://localhost:32400')
@@ -165,7 +144,6 @@ export async function up(knex: Knex): Promise<void> {
       table.string('plexProtectionPlaylistName').defaultTo('Do Not Delete')
       table.jsonb('plexSessionMonitoring').nullable()
 
-      // Delete sync configuration
       table.boolean('deleteMovie')
       table.boolean('deleteEndedShow')
       table.boolean('deleteContinuingShow')
@@ -177,7 +155,6 @@ export async function up(knex: Knex): Promise<void> {
       table.boolean('deleteSyncNotifyOnlyOnDeletion').defaultTo(false)
       table.integer('maxDeletionPrevention').defaultTo(10)
 
-      // User tagging configuration
       table.boolean('tagUsersInSonarr').defaultTo(false)
       table.boolean('tagUsersInRadarr').defaultTo(false)
       table.boolean('cleanupOrphanedTags').defaultTo(true)
@@ -189,25 +166,20 @@ export async function up(knex: Knex): Promise<void> {
       table.string('removedTagPrefix').defaultTo('pulsarr:removed')
       table.specificType('deletionMode', 'deletion_mode').defaultTo('watchlist')
 
-      // Pending webhook configuration
       table.integer('pendingWebhookRetryInterval').defaultTo(20)
       table.integer('pendingWebhookMaxAge').defaultTo(10)
       table.integer('pendingWebhookCleanupInterval').defaultTo(60)
 
-      // New user defaults
       table.boolean('newUserDefaultCanSync').defaultTo(true)
 
-      // RSS configuration
       table.string('selfRss')
       table.string('friendsRss')
 
-      // Ready state
       table.boolean('_isReady').defaultTo(false)
       table.timestamp('created_at').defaultTo(knex.fn.now())
       table.timestamp('updated_at').defaultTo(knex.fn.now())
     })
 
-    // Create watchlist_items table
     await knex.schema.createTable('watchlist_items', (table) => {
       table.increments('id').primary()
       table
@@ -252,7 +224,6 @@ export async function up(knex: Knex): Promise<void> {
       table.index('type')
     })
 
-    // Create watchlist_status_history table
     await knex.schema.createTable('watchlist_status_history', (table) => {
       table.increments('id').primary()
       table
@@ -267,7 +238,6 @@ export async function up(knex: Knex): Promise<void> {
       table.index('timestamp')
     })
 
-    // Create notifications table
     await knex.schema.createTable('notifications', (table) => {
       table.increments('id').primary()
       table
@@ -300,7 +270,6 @@ export async function up(knex: Knex): Promise<void> {
       table.index(['watchlist_item_id', 'type', 'notification_status'])
     })
 
-    // Create junction tables
     await knex.schema.createTable('watchlist_radarr_instances', (table) => {
       table.increments('id').primary()
       table
@@ -361,7 +330,6 @@ export async function up(knex: Knex): Promise<void> {
       table.index(['syncing'])
     })
 
-    // Create genres table
     await knex.schema.createTable('genres', (table) => {
       table.increments('id').primary()
       table.string('name').notNullable().unique()
@@ -371,7 +339,6 @@ export async function up(knex: Knex): Promise<void> {
       table.index('name')
     })
 
-    // Create temp_rss_items table
     await knex.schema.createTable('temp_rss_items', (table) => {
       table.increments('id').primary()
       table.string('title').notNullable()
@@ -384,7 +351,6 @@ export async function up(knex: Knex): Promise<void> {
       table.index('guids', undefined, 'gin')
     })
 
-    // Create schedules table
     await knex.schema.createTable('schedules', (table) => {
       table.increments('id').primary()
       table.string('name').notNullable().unique()
@@ -400,7 +366,6 @@ export async function up(knex: Knex): Promise<void> {
       table.index(['enabled', 'type'])
     })
 
-    // Create router_rules table
     await knex.schema.createTable('router_rules', (table) => {
       table.increments('id').primary()
       table.string('name').notNullable()
@@ -424,7 +389,6 @@ export async function up(knex: Knex): Promise<void> {
       table.index('target_instance_id')
     })
 
-    // Create pending_webhooks table
     await knex.schema.createTable('pending_webhooks', (table) => {
       table.increments('id').primary()
       table.string('instance_type', 10).notNullable()
@@ -441,7 +405,6 @@ export async function up(knex: Knex): Promise<void> {
       table.check("media_type IN ('movie', 'show')")
     })
 
-    // Create rolling_monitored_shows table
     await knex.schema.createTable('rolling_monitored_shows', (table) => {
       table.increments('id').primary()
       table.integer('sonarr_series_id').notNullable()
@@ -470,7 +433,10 @@ export async function up(knex: Knex): Promise<void> {
       table.index('last_updated_at')
     })
 
-    // Create PostgreSQL trigger functions for cascading router rule deletions
+    // router_rules can't use FK CASCADE because target_instance_id points to
+    // either sonarr_instances or radarr_instances depending on target_type,
+    // so we use triggers to simulate cascading deletes
+
     await knex.raw(`
     CREATE OR REPLACE FUNCTION cascade_delete_router_rules_sonarr()
     RETURNS TRIGGER AS $$
@@ -501,7 +467,6 @@ export async function up(knex: Knex): Promise<void> {
     EXECUTE FUNCTION cascade_delete_router_rules_radarr();
   `)
 
-    // Seed default genres
     const defaultGenres = [
       'Action',
       'Action/Adventure',
@@ -553,7 +518,6 @@ export async function up(knex: Knex): Promise<void> {
 
     await knex('genres').insert(defaultGenres)
 
-    // Seed default schedules
     const defaultSchedules = [
       {
         name: 'delete-sync',
@@ -583,22 +547,14 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
-/**
- * Reverts the initial PostgreSQL schema by dropping all tables, indexes, triggers, functions, and ENUM types created by the corresponding migration.
- *
- * @remark
- * This operation only executes if the database client is PostgreSQL. All schema elements are dropped in reverse dependency order to ensure a clean rollback.
- */
 export async function down(knex: Knex): Promise<void> {
   await knex.transaction(async (knex) => {
-    // Only run on PostgreSQL
     if (!isPostgreSQL(knex)) {
       return
     }
 
     console.log('Dropping PostgreSQL schema...')
 
-    // Drop triggers and indexes first
     await knex.raw(`
     DROP TRIGGER IF EXISTS fk_router_rules_sonarr_delete ON sonarr_instances;
     DROP TRIGGER IF EXISTS fk_router_rules_radarr_delete ON radarr_instances;
@@ -607,7 +563,7 @@ export async function down(knex: Knex): Promise<void> {
     DROP INDEX IF EXISTS users_is_primary_token_unique;
   `)
 
-    // Drop tables in reverse dependency order
+    // Reverse dependency order to avoid FK violations
     await knex.schema.dropTableIfExists('rolling_monitored_shows')
     await knex.schema.dropTableIfExists('pending_webhooks')
     await knex.schema.dropTableIfExists('router_rules')
@@ -625,7 +581,6 @@ export async function down(knex: Knex): Promise<void> {
     await knex.schema.dropTableIfExists('admin_users')
     await knex.schema.dropTableIfExists('users')
 
-    // Drop ENUM types
     await knex.raw(`
     DROP TYPE IF EXISTS series_type;
     DROP TYPE IF EXISTS minimum_availability;

@@ -4,13 +4,6 @@ import {
   shouldSkipForPostgreSQL,
 } from '../utils/clientDetection.js'
 
-/**
- * Creates the `pending_webhooks` table to store incoming webhook events.
- *
- * The table includes columns for webhook source type, instance association, unique identifiers, payload data, and timestamps. It enforces allowed values for `instance_type` and `media_type`, and adds indexes for efficient querying.
- *
- * @remark This migration is skipped when running against PostgreSQL databases.
- */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '026_20250515_add_pending_webhooks')) {
     return
@@ -37,11 +30,6 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
-/**
- * Drops the `pending_webhooks` table if it exists.
- *
- * @remark This operation is skipped when running against PostgreSQL databases.
- */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
     return

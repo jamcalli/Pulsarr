@@ -4,26 +4,18 @@ import {
   shouldSkipForPostgreSQL,
 } from '../utils/clientDetection.js'
 
-/**
- * Creates the `schedules` table and inserts a default disabled cron schedule.
- *
- * The table includes columns for schedule metadata, configuration, status, and timestamps, with indexes on `name` and `enabled`. A default schedule named 'delete-sync' is added to run every Sunday at 1:00 AM.
- *
- * @remark
- * This migration is skipped when running against PostgreSQL.
- */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '008_20250320_add_schedules')) {
     return
   }
   await knex.schema.createTable('schedules', (table) => {
     table.increments('id').primary()
-    table.string('name').notNullable().unique() // Unique name for the scheduled job
-    table.string('type').notNullable() // 'interval' or 'cron'
-    table.json('config').notNullable() // Configuration for the schedule
+    table.string('name').notNullable().unique()
+    table.string('type').notNullable()
+    table.json('config').notNullable()
     table.boolean('enabled').defaultTo(true)
-    table.json('last_run').nullable() // Info about last execution
-    table.json('next_run').nullable() // Expected next run time
+    table.json('last_run').nullable()
+    table.json('next_run').nullable()
     table.timestamp('created_at').defaultTo(knex.fn.now())
     table.timestamp('updated_at').defaultTo(knex.fn.now())
 
@@ -31,7 +23,6 @@ export async function up(knex: Knex): Promise<void> {
     table.index('enabled')
   })
 
-  // Add default delete-sync schedule
   await knex('schedules').insert([
     {
       name: 'delete-sync',
@@ -46,12 +37,6 @@ export async function up(knex: Knex): Promise<void> {
   ])
 }
 
-/**
- * Reverts the migration by dropping the `schedules` table, unless running on PostgreSQL.
- *
- * @remark
- * The operation is skipped on PostgreSQL databases.
- */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
     return

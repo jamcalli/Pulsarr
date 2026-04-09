@@ -127,13 +127,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const { webhookUrls } = request.body
 
-        // Trim and handle whitespace-only input
         const trimmedInput = webhookUrls.trim()
         if (trimmedInput.length === 0) {
           return reply.badRequest('No webhook URLs provided')
         }
 
-        // Split, trim, filter empty and deduplicate
         const allUrls = trimmedInput
           .split(',')
           .map((url) => url.trim())
@@ -142,7 +140,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const uniqueUrls = [...new Set(allUrls)]
         const duplicateCount = allUrls.length - uniqueUrls.length
 
-        // Check for empty URL list after filtering
         if (uniqueUrls.length === 0) {
           return reply.badRequest('No valid webhook URLs provided')
         }
@@ -155,7 +152,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
-        // Validate each URL
         const results = await Promise.all(
           uniqueUrls.map(async (url) => {
             const result =
@@ -164,22 +160,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }),
         )
 
-        // Check if all webhooks are valid
         const allValid = results.every((result) => result.valid)
 
-        /**
-         * Formats a count and word with correct pluralization.
-         *
-         * Returns a string combining the given count and the singular or plural form of the specified word, adding "s" if the count is not 1.
-         *
-         * @param count - The quantity to display.
-         * @param word - The word to pluralize.
-         * @returns A string with the count and the appropriately pluralized word.
-         *
-         * @example
-         * plural(1, "apple") // "1 apple"
-         * plural(3, "apple") // "3 apples"
-         */
         function plural(count: number, word: string): string {
           return `${count} ${word}${count === 1 ? '' : 's'}`
         }

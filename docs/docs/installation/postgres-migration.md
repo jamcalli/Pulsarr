@@ -33,7 +33,6 @@ services:
     container_name: pulsarr-migrate-sqlite
     volumes:
       - ./data:/app/data
-      - .env:/app/.env
     env_file:
       - .env
     profiles:
@@ -45,7 +44,6 @@ services:
     container_name: pulsarr-migrate-postgres-setup
     volumes:
       - ./data:/app/data
-      - .env:/app/.env
     env_file:
       - .env
     profiles:
@@ -57,7 +55,6 @@ services:
     container_name: pulsarr-migrate-data
     volumes:
       - ./data:/app/data
-      - .env:/app/.env
     env_file:
       - .env
     profiles:
