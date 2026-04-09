@@ -65,7 +65,6 @@ services:
       - "3003:3003"
     volumes:
       - ./data:/app/data
-      - .env:/app/.env
     environment:
       - PUID=1000
       - PGID=1000
