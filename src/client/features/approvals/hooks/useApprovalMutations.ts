@@ -22,6 +22,8 @@ import { approvalKeys } from './useApprovals'
 function invalidateApprovalCaches() {
   queryClient.invalidateQueries({ queryKey: approvalKeys.all })
   queryClient.invalidateQueries({ queryKey: approvalStatsKeys.all })
+  queryClient.invalidateQueries({ queryKey: ['recent-requests'] })
+  queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
 }
 
 // ============================================================================
