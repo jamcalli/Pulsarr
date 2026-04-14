@@ -1033,10 +1033,15 @@ export class ApprovalService {
       const requestToDelete =
         await this.fastify.db.getApprovalRequest(requestId)
 
+      if (requestToDelete?.status === 'pending') {
+        await this.fastify.db.deleteWatchlistItems(requestToDelete.userId, [
+          requestToDelete.contentKey,
+        ])
+      }
+
       const deleted = await this.fastify.db.deleteApprovalRequest(requestId)
 
       if (deleted && requestToDelete) {
-        // Emit SSE event for deleted request
         this.emitApprovalEvent(
           'deleted',
           requestToDelete,

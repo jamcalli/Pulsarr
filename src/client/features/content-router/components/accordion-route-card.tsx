@@ -381,6 +381,10 @@ const AccordionRouteCard = ({
     mode: 'all',
   })
 
+  // RHF proxy only subscribes to properties read during render - avoids
+  // stale isValid from short-circuit evaluation in disabled props
+  const { isDirty, isValid } = form.formState
+
   const initializationRef = useRef(false)
 
   // Subscribe to form value changes and store the latest values
@@ -752,7 +756,7 @@ const AccordionRouteCard = ({
 
   return (
     <div className="relative" ref={cardRef}>
-      {(form.formState.isDirty || isNew) && (
+      {(isDirty || isNew) && (
         <div
           className={cn(
             'absolute -inset-0.5 rounded-lg border-2 z-50',
@@ -906,11 +910,7 @@ const AccordionRouteCard = ({
                         variant="blue"
                         onClick={form.handleSubmit(handleSubmit)}
                         className="flex items-center gap-2 h-8"
-                        disabled={
-                          !form.formState.isDirty ||
-                          !form.formState.isValid ||
-                          isSaving
-                        }
+                        disabled={!isDirty || !isValid || isSaving}
                       >
                         {isSaving ? (
                           <>
@@ -925,7 +925,7 @@ const AccordionRouteCard = ({
                         )}
                       </Button>
 
-                      {(isNew || form.formState.isDirty) && (
+                      {(isNew || isDirty) && (
                         <Button
                           variant="cancel"
                           onClick={handleCancel}
