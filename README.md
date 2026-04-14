@@ -13,10 +13,6 @@
   ![GitHub Stars](https://img.shields.io/github/stars/jamcalli/pulsarr?style=flat-square)
 </div>
 
-<div align="center">
-  <sub><a href="#transparency">AI Transparency</a></sub>
-</div>
-
 ---
 
 Pulsarr bridges Plex watchlists with Sonarr and Radarr for real-time media monitoring and automated content acquisition, **all from within the Plex app, no extra logins required.**
