@@ -373,16 +373,21 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
               initialSeason,
             )
 
-            const updatedShow = await fastify.db.getRollingMonitoredShowById(
-              show.rollingShowId,
-            )
-            if (updatedShow) {
-              await resetShowMonitoring(updatedShow, fastify.plexSessionMonitor)
-            }
+            if (resetMonitoring) {
+              const updatedShow = await fastify.db.getRollingMonitoredShowById(
+                show.rollingShowId,
+              )
+              if (updatedShow) {
+                await resetShowMonitoring(
+                  updatedShow,
+                  fastify.plexSessionMonitor,
+                )
+              }
 
-            await fastify.db.resetRollingMonitoredShowToOriginal(
-              show.rollingShowId,
-            )
+              await fastify.db.resetRollingMonitoredShowToOriginal(
+                show.rollingShowId,
+              )
+            }
 
             modified++
           }
