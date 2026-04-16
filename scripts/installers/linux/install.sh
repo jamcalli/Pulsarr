@@ -64,7 +64,11 @@ detect_arch() {
     arch=$(uname -m)
     case "$arch" in
         x86_64|amd64)
-            echo "x64"
+            if ! grep -q avx2 /proc/cpuinfo 2>/dev/null; then
+                echo "x64-baseline"
+            else
+                echo "x64"
+            fi
             ;;
         aarch64|arm64)
             echo "arm64"

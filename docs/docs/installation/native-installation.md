@@ -15,7 +15,7 @@ curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/ins
 ```
 
 This script:
-- Detects your architecture (x64 or arm64)
+- Detects your architecture (x64 or arm64) and automatically selects the baseline variant for CPUs without AVX2
 - Downloads the latest release from GitHub
 - Installs to `/opt/pulsarr/`
 - Creates a `pulsarr` system user
@@ -223,6 +223,7 @@ For users who prefer full control, standalone zip files are available for each p
 
 1. Download the zip for your platform from the [latest release](https://github.com/jamcalli/Pulsarr/releases/latest):
    - `pulsarr-vX.X.X-linux-x64.zip`
+   - `pulsarr-vX.X.X-linux-x64-baseline.zip` (older CPUs without AVX2)
    - `pulsarr-vX.X.X-linux-arm64.zip`
    - `pulsarr-vX.X.X-macos-x64.zip`
    - `pulsarr-vX.X.X-macos-arm64.zip`

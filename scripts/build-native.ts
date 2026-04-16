@@ -75,6 +75,12 @@ const PLATFORMS: Platform[] = [
     zipSuffix: 'macos-x64',
   },
   {
+    detectName: 'linux-x64-baseline',
+    bunArchive: 'bun-linux-x64-baseline',
+    bunBinary: 'bun',
+    zipSuffix: 'linux-x64-baseline',
+  },
+  {
     detectName: 'windows-x64',
     bunArchive: 'bun-windows-x64',
     bunBinary: 'bun.exe',
@@ -109,6 +115,14 @@ function detectPlatform(): string {
     process.arch === 'arm64' ? 'arm64' : process.arch === 'x64' ? 'x64' : null
   if (!os || !arch) {
     throw new Error(`Unsupported platform: ${process.platform} ${process.arch}`)
+  }
+  if (os === 'linux' && arch === 'x64') {
+    try {
+      const cpuInfo = readFileSync('/proc/cpuinfo', 'utf8').toLowerCase()
+      return cpuInfo.includes('avx2') ? 'linux-x64' : 'linux-x64-baseline'
+    } catch {
+      return 'linux-x64-baseline'
+    }
   }
   return `${os}-${arch}`
 }
