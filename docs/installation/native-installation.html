@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">Native Installation | Pulsarr</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://jamcalli.github.io/Pulsarr/img/pulsarr-social-card.png"><meta data-rh="true" name="twitter:image" content="https://jamcalli.github.io/Pulsarr/img/pulsarr-social-card.png"><meta data-rh="true" property="og:url" content="https://jamcalli.github.io/Pulsarr/docs/installation/native-installation"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Native Installation | Pulsarr"><meta data-rh="true" name="description" content="Pulsarr provides native builds for Linux, macOS, and Windows. No Docker or runtime installation required. Each platform has an easy installer method (recommended) and a manual option for advanced users."><meta data-rh="true" property="og:description" content="Pulsarr provides native builds for Linux, macOS, and Windows. No Docker or runtime installation required. Each platform has an easy installer method (recommended) and a manual option for advanced users."><link data-rh="true" rel="icon" href="/Pulsarr/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://jamcalli.github.io/Pulsarr/docs/installation/native-installation"><link data-rh="true" rel="alternate" href="https://jamcalli.github.io/Pulsarr/docs/installation/native-installation" hreflang="en"><link data-rh="true" rel="alternate" href="https://jamcalli.github.io/Pulsarr/docs/installation/native-installation" hreflang="x-default"><link data-rh="true" rel="preconnect" href="https://W6AJSESFCJ-dsn.algolia.net" crossorigin="anonymous"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Native Installation","item":"https://jamcalli.github.io/Pulsarr/docs/installation/native-installation"}]}</script><link rel="search" type="application/opensearchdescription+xml" title="Pulsarr" href="/Pulsarr/opensearch.xml"><link rel="stylesheet" href="/Pulsarr/assets/css/styles.f43b4e9e.css">
-<script src="/Pulsarr/assets/js/runtime~main.da034ec6.js" defer="defer"></script>
-<script src="/Pulsarr/assets/js/main.646447b2.js" defer="defer"></script>
+<script src="/Pulsarr/assets/js/runtime~main.1d542e0a.js" defer="defer"></script>
+<script src="/Pulsarr/assets/js/main.77528dc4.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -18,7 +18,7 @@
 <div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#F8F8F2;--prism-background-color:#282A36"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#F8F8F2;background-color:#282A36"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#F8F8F2"><span class="token plain">curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh | sudo bash</span><br></span></code></pre></div></div>
 <p>This script:</p>
 <ul>
-<li class="">Detects your architecture (x64 or arm64)</li>
+<li class="">Detects your architecture (x64 or arm64) and automatically selects the baseline variant for CPUs without AVX2</li>
 <li class="">Downloads the latest release from GitHub</li>
 <li class="">Installs to <code>/opt/pulsarr/</code></li>
 <li class="">Creates a <code>pulsarr</code> system user</li>
@@ -128,6 +128,7 @@
 <p>Download the zip for your platform from the <a href="https://github.com/jamcalli/Pulsarr/releases/latest" target="_blank" rel="noopener noreferrer" class="">latest release</a>:</p>
 <ul>
 <li class=""><code>pulsarr-vX.X.X-linux-x64.zip</code></li>
+<li class=""><code>pulsarr-vX.X.X-linux-x64-baseline.zip</code> (older CPUs without AVX2)</li>
 <li class=""><code>pulsarr-vX.X.X-linux-arm64.zip</code></li>
 <li class=""><code>pulsarr-vX.X.X-macos-x64.zip</code></li>
 <li class=""><code>pulsarr-vX.X.X-macos-arm64.zip</code></li>
