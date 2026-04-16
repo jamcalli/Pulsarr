@@ -75,6 +75,12 @@ const PLATFORMS: Platform[] = [
     zipSuffix: 'macos-x64',
   },
   {
+    detectName: 'linux-x64-baseline',
+    bunArchive: 'bun-linux-x64-baseline',
+    bunBinary: 'bun',
+    zipSuffix: 'linux-x64-baseline',
+  },
+  {
     detectName: 'windows-x64',
     bunArchive: 'bun-windows-x64',
     bunBinary: 'bun.exe',
