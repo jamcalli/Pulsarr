@@ -116,6 +116,14 @@ function detectPlatform(): string {
   if (!os || !arch) {
     throw new Error(`Unsupported platform: ${process.platform} ${process.arch}`)
   }
+  if (os === 'linux' && arch === 'x64') {
+    try {
+      const cpuInfo = readFileSync('/proc/cpuinfo', 'utf8').toLowerCase()
+      return cpuInfo.includes('avx2') ? 'linux-x64' : 'linux-x64-baseline'
+    } catch {
+      return 'linux-x64-baseline'
+    }
+  }
   return `${os}-${arch}`
 }
 
