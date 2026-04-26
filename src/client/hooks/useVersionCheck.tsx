@@ -6,6 +6,9 @@ import { useAppQuery } from '@/lib/useAppQuery'
 interface GitHubRelease {
   tag_name: string
   html_url: string
+  body?: string | null
+  published_at?: string | null
+  name?: string | null
 }
 
 export interface VersionCheckResult {
@@ -13,6 +16,9 @@ export interface VersionCheckResult {
   latestVersion: string | null
   currentVersion: string
   releaseUrl: string | null
+  releaseNotes: string | null
+  releaseName: string | null
+  publishedAt: string | null
   isLoading: boolean
   isError: boolean
 }
@@ -57,6 +63,9 @@ function checkVersionUpdate(release: GitHubRelease | undefined): {
   latestVersion: string | null
   currentVersion: string
   releaseUrl: string | null
+  releaseNotes: string | null
+  releaseName: string | null
+  publishedAt: string | null
 } {
   const currentVersion =
     semver.clean(__APP_VERSION__) ?? __APP_VERSION__.replace(/^v/, '')
@@ -67,6 +76,9 @@ function checkVersionUpdate(release: GitHubRelease | undefined): {
       latestVersion: null,
       currentVersion,
       releaseUrl: null,
+      releaseNotes: null,
+      releaseName: null,
+      publishedAt: null,
     }
   }
 
@@ -83,6 +95,9 @@ function checkVersionUpdate(release: GitHubRelease | undefined): {
     latestVersion,
     currentVersion,
     releaseUrl: release.html_url,
+    releaseNotes: release.body ?? null,
+    releaseName: release.name ?? null,
+    publishedAt: release.published_at ?? null,
   }
 }
 
