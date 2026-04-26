@@ -205,6 +205,9 @@ export const ConfigFullSchema = z.object({
   tagNamingSource: z.enum(['username', 'alias']),
   removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
   removedTagPrefix: z.string(),
+  // Update notifications
+  notifyOnUpdate: z.boolean(),
+  lastNotifiedVersion: z.string().nullable().optional(),
   // Tag Migration Configuration
   tagMigration: TagMigrationSchema,
   // Plex Session Monitoring
@@ -470,6 +473,9 @@ export const ConfigUpdateSchema = z
     cleanupOrphanedTags: z.boolean().optional(),
     tagPrefix: TagPrefixSchema.optional(),
     tagNamingSource: z.enum(['username', 'alias']).optional(),
+    // Update notifications
+    notifyOnUpdate: z.boolean().optional(),
+    lastNotifiedVersion: z.string().nullable().optional(),
     // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
     tagMigration: TagMigrationSchema,
   })

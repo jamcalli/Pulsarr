@@ -297,6 +297,9 @@ export interface Config {
   }
   // Security Config
   allowIframes: boolean
+  // Update notifications
+  notifyOnUpdate: boolean
+  lastNotifiedVersion?: string | null
   // Ready state
   _isReady: boolean
 }

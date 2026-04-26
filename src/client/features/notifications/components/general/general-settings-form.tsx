@@ -16,6 +16,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
@@ -39,6 +40,7 @@ const generalFormSchema = z.object({
       error: 'New episode threshold cannot exceed 720 hours (1 month)',
     })
     .optional(),
+  notifyOnUpdate: z.boolean().optional(),
 })
 
 interface GeneralSettingsFormProps {
@@ -88,6 +90,7 @@ export function GeneralSettingsForm({
         (configData.newEpisodeThreshold ?? DEFAULT_NEW_EPISODE_THRESHOLD) /
           (60 * 60 * 1000),
       ),
+      notifyOnUpdate: Boolean(configData.notifyOnUpdate),
     }
   }, [])
 
@@ -126,6 +129,7 @@ export function GeneralSettingsForm({
           transformedData.newEpisodeThreshold !== undefined
             ? transformedData.newEpisodeThreshold * 60 * 60 * 1000
             : DEFAULT_NEW_EPISODE_THRESHOLD,
+        notifyOnUpdate: transformedData.notifyOnUpdate ?? false,
       }
 
       await Promise.all([updateConfig(updatedConfig), minimumLoadingTime])
@@ -244,6 +248,46 @@ export function GeneralSettingsForm({
                     className="w-full"
                   />
                 </FormControl>
+                <FormMessage className="text-xs mt-1" />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={generalForm.control}
+            name="notifyOnUpdate"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start gap-3 rounded-base border-2 border-border p-3">
+                <FormControl>
+                  <Switch
+                    checked={field.value ?? false}
+                    onCheckedChange={field.onChange}
+                    disabled={generalStatus === 'loading'}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <div className="flex items-center gap-1">
+                    <FormLabel className="text-foreground">
+                      Notify me about new Pulsarr releases
+                    </FormLabel>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Once per day, check GitHub for a newer Pulsarr release
+                        and (if your Discord webhook and/or Apprise system URL
+                        are configured) send a one-shot notification with the
+                        release notes. Each version is announced at most once.
+                        Off by default.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <p className="text-xs opacity-70">
+                    Uses your existing Discord webhook and Apprise system
+                    endpoint — no new channels required.
+                  </p>
+                </div>
                 <FormMessage className="text-xs mt-1" />
               </FormItem>
             )}

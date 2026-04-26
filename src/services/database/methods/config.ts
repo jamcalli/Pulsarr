@@ -226,6 +226,9 @@ export async function getConfig(
     removedTagMode: config.removedTagMode || 'remove',
     removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
     deletionMode: config.deletionMode || 'watchlist',
+    // Update notifications
+    notifyOnUpdate: Boolean(config.notifyOnUpdate),
+    lastNotifiedVersion: config.lastNotifiedVersion ?? null,
     // Tag Migration Configuration
     tagMigration: config.tagMigration
       ? this.safeJsonParse(
@@ -331,6 +334,9 @@ export async function createConfig(
       removedTagMode: config.removedTagMode || 'remove',
       removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
       deletionMode: config.deletionMode || 'watchlist',
+      // Update notifications
+      notifyOnUpdate: config.notifyOnUpdate ?? false,
+      lastNotifiedVersion: config.lastNotifiedVersion ?? null,
       // Tag Migration Configuration
       tagMigration: config.tagMigration
         ? JSON.stringify(config.tagMigration)
@@ -525,6 +531,10 @@ const ALLOWED_COLUMNS = new Set([
   'removedTagMode',
   'removedTagPrefix',
   'tagMigration',
+
+  // Update notifications
+  'notifyOnUpdate',
+  'lastNotifiedVersion',
 
   // Plex label sync configuration (JSON column)
   'plexLabelSync',
