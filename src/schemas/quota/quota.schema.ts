@@ -38,7 +38,7 @@ export const UpdateSpecificQuotaSchema = QuotaFieldsSchema.extend({
 export const UpdateSeparateQuotasSchema = z.object({
   movieQuota: EnabledQuotaSchema.optional(),
   showQuota: EnabledQuotaSchema.optional(),
-  autoApproveHeld: z.boolean().optional().default(false),
+  autoApproveHeld: z.boolean().optional(),
 })
 
 export const UserQuotaResponseSchema = z.object({

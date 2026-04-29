@@ -300,8 +300,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           search_on_add: ruleData.search_on_add,
           season_monitoring: ruleData.season_monitoring,
           series_type: ruleData.series_type,
-          always_require_approval: ruleData.always_require_approval,
-          bypass_user_quotas: ruleData.bypass_user_quotas,
+          always_require_approval: ruleData.always_require_approval ?? false,
+          bypass_user_quotas: ruleData.bypass_user_quotas ?? false,
           approval_reason: ruleData.approval_reason,
         })
 
@@ -323,8 +323,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           search_on_add: ruleData.search_on_add,
           season_monitoring: ruleData.season_monitoring,
           series_type: ruleData.series_type,
-          always_require_approval: ruleData.always_require_approval,
-          bypass_user_quotas: ruleData.bypass_user_quotas,
+          always_require_approval: ruleData.always_require_approval ?? false,
+          bypass_user_quotas: ruleData.bypass_user_quotas ?? false,
           approval_reason: ruleData.approval_reason,
         }
 

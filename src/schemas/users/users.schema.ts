@@ -7,12 +7,12 @@ export const CreateUserSchema = z.object({
   apprise: z.string().nullable(),
   alias: z.string().min(3).max(255).nullable(),
   discord_id: z.string().nullable(),
-  notify_apprise: z.boolean().default(false),
-  notify_discord: z.boolean().default(false),
-  notify_discord_mention: z.boolean().default(true),
-  notify_plex_mobile: z.boolean().default(false),
-  can_sync: z.boolean().default(true),
-  requires_approval: z.boolean().default(false),
+  notify_apprise: z.boolean(),
+  notify_discord: z.boolean(),
+  notify_discord_mention: z.boolean(),
+  notify_plex_mobile: z.boolean(),
+  can_sync: z.boolean(),
+  requires_approval: z.boolean(),
 })
 
 export const UserResponseSchema = z.object({

@@ -35,6 +35,14 @@ export default defineConfig({
       // Clear with: npx vitest --clearCache
       fsModuleCache: true,
     },
+    // Zod 4's `import * as z; export { z }` index resolves the named `z`
+    // export to undefined under Vitest's SSR fast-path; inlining runs the
+    // full Vite transform.
+    server: {
+      deps: {
+        inline: ['zod'],
+      },
+    },
   },
   resolve: {
     alias: [

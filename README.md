@@ -100,7 +100,7 @@ See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/in
 
 ## Hosted Deployment Options
 
-[ElfHosted](https://store.elfhosted.com/elf/jamcalli/) offers managed Pulsarr hosting with pre-configured media server bundles.
+[ElfHosted](https://store.elfhosted.com/product/pulsarr/elf/jamcalli/?utm_source=github&utm_medium=readme&utm_campaign=pulsarr-readme) offers managed Pulsarr hosting with pre-configured media server bundles. 33% of every Pulsarr subscription supports the project.
 
 ## ✨ Key Features
 
