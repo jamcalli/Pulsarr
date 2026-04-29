@@ -259,9 +259,9 @@ export const BaseRouterRuleSchema = z.object({
   condition: z.union([ConditionSchema, ConditionGroupSchema]).optional(),
   root_folder: z.string().optional(),
   quality_profile: z.union([z.number(), z.string()]).optional(),
-  tags: z.array(z.string()).optional().default([]),
+  tags: z.array(z.string()).optional(),
   order: z.number().optional(),
-  enabled: z.boolean().optional().default(true),
+  enabled: z.boolean().optional(),
   search_on_add: z.boolean().nullable().optional(),
   // For Sonarr only - sending this with Radarr rules will be rejected by the API
   // Additional validation happens in the route handlers
@@ -272,9 +272,8 @@ export const BaseRouterRuleSchema = z.object({
     .enum(['movieOnly', 'movieAndCollection', 'none'])
     .nullable()
     .optional(),
-  // Actions - approval behavior
-  always_require_approval: z.boolean().optional().default(false),
-  bypass_user_quotas: z.boolean().optional().default(false),
+  always_require_approval: z.boolean().optional(),
+  bypass_user_quotas: z.boolean().optional(),
   approval_reason: z.string().optional(),
 })
 
