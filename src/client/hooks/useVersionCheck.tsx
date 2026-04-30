@@ -1,135 +1,84 @@
-import { useEffect, useRef } from 'react'
-import semver from 'semver'
+import {
+  type UpdateStatusResponse,
+  UpdateStatusResponseSchema,
+} from '@root/schemas/system/update-status.schema'
+import { useEffect } from 'react'
 import { toast } from 'sonner'
+import { apiClient } from '@/lib/apiClient'
 import { useAppQuery } from '@/lib/useAppQuery'
-
-interface GitHubRelease {
-  tag_name: string
-  html_url: string
-}
 
 export interface VersionCheckResult {
   updateAvailable: boolean
   latestVersion: string | null
   currentVersion: string
   releaseUrl: string | null
+  releaseName: string | null
+  releaseBody: string | null
+  publishedAt: string | null
   isLoading: boolean
   isError: boolean
 }
 
 const VERSION_TOAST_KEY = 'version-toast-notified'
-const THIRTY_MINUTES = 30 * 60 * 1000
+// Server runs the GitHub fetch on a 1-hour cron, so polling more often than
+// every 15 minutes is wasted work. We still poll occasionally so a user with
+// a long-lived tab eventually sees the new state without a hard reload.
+const FIFTEEN_MINUTES = 15 * 60 * 1000
 
 /**
  * Query key factory for version check
  */
 export const versionCheckKeys = {
   all: ['version-check'] as const,
-  latest: (owner: string, repo: string) =>
-    [...versionCheckKeys.all, owner, repo] as const,
+  status: () => [...versionCheckKeys.all, 'status'] as const,
+}
+
+async function fetchUpdateStatus(): Promise<UpdateStatusResponse> {
+  return apiClient.get('/v1/system/update-status', UpdateStatusResponseSchema)
 }
 
 /**
- * Fetches the latest release from GitHub API
- */
-async function fetchLatestRelease(
-  repoOwner: string,
-  repoName: string,
-  signal?: AbortSignal,
-): Promise<GitHubRelease> {
-  const response = await fetch(
-    `https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`,
-    { signal },
-  )
-
-  if (!response.ok) {
-    throw new Error(`GitHub API error: ${response.status}`)
-  }
-
-  return await response.json()
-}
-
-/**
- * Compares versions and returns update availability info
- */
-function checkVersionUpdate(release: GitHubRelease | undefined): {
-  updateAvailable: boolean
-  latestVersion: string | null
-  currentVersion: string
-  releaseUrl: string | null
-} {
-  const currentVersion =
-    semver.clean(__APP_VERSION__) ?? __APP_VERSION__.replace(/^v/, '')
-
-  if (!release) {
-    return {
-      updateAvailable: false,
-      latestVersion: null,
-      currentVersion,
-      releaseUrl: null,
-    }
-  }
-
-  const latestVersion =
-    semver.clean(release.tag_name) ?? release.tag_name.replace(/^v/, '')
-
-  const updateAvailable =
-    semver.valid(latestVersion) &&
-    semver.valid(currentVersion) &&
-    semver.gt(latestVersion, currentVersion)
-
-  return {
-    updateAvailable: !!updateAvailable,
-    latestVersion,
-    currentVersion,
-    releaseUrl: release.html_url,
-  }
-}
-
-/**
- * Hook to check for application updates via GitHub releases.
+ * Hook to check for application updates via the server-side cached
+ * `/v1/system/update-status` endpoint.
  *
- * Uses React Query for:
- * - Automatic deduplication across component mounts
- * - 30-minute stale time (won't re-fetch on navigation)
- * - 30-minute refetch interval (periodic checks for long sessions)
+ * The server polls GitHub hourly and caches the result, so this hook
+ * only needs to read that cache. Browsers no longer hit GitHub directly,
+ * which avoids per-user rate limiting.
  *
- * Shows a toast notification once per session when update is detected.
+ * Shows a toast notification once per version when an update is detected.
  * Returns version info for use in persistent UI indicators.
- *
- * @param repoOwner - GitHub repository owner
- * @param repoName - GitHub repository name
- * @returns Version check result with update availability and version info
  */
-export function useVersionCheck(
-  repoOwner: string,
-  repoName: string,
-): VersionCheckResult {
-  const toastShownRef = useRef(false)
-
-  const { data: release, isLoading, isError } = useAppQuery({
-    queryKey: versionCheckKeys.latest(repoOwner, repoName),
-    queryFn: ({ signal }) => fetchLatestRelease(repoOwner, repoName, signal),
-    enabled: Boolean(repoOwner) && Boolean(repoName),
-    staleTime: THIRTY_MINUTES,
-    refetchInterval: THIRTY_MINUTES,
+export function useVersionCheck(): VersionCheckResult {
+  const {
+    data: status,
+    isLoading,
+    isError,
+  } = useAppQuery({
+    queryKey: versionCheckKeys.status(),
+    queryFn: fetchUpdateStatus,
+    staleTime: FIFTEEN_MINUTES,
+    refetchInterval: FIFTEEN_MINUTES,
     refetchOnWindowFocus: false,
     retry: false,
   })
 
-  const versionInfo = checkVersionUpdate(release)
+  const versionInfo = {
+    updateAvailable: status?.updateAvailable ?? false,
+    latestVersion: status?.latestVersion ?? null,
+    currentVersion: status?.currentVersion ?? __APP_VERSION__.replace(/^v/, ''),
+    releaseUrl: status?.releaseUrl ?? null,
+    releaseName: status?.releaseName ?? null,
+    releaseBody: status?.releaseBody ?? null,
+    publishedAt: status?.publishedAt ?? null,
+  }
 
-  // Show toast once per version when update is detected (with 3s delay for UI to settle)
-  // Stores the notified version so newer releases during long sessions still trigger a toast
   useEffect(() => {
     const notifiedVersion = sessionStorage.getItem(VERSION_TOAST_KEY)
     if (
       versionInfo.updateAvailable &&
       versionInfo.latestVersion &&
-      !toastShownRef.current &&
       notifiedVersion !== versionInfo.latestVersion
     ) {
-      toastShownRef.current = true
       sessionStorage.setItem(VERSION_TOAST_KEY, versionInfo.latestVersion)
 
       const url = versionInfo.releaseUrl
@@ -153,7 +102,12 @@ export function useVersionCheck(
 
       return () => clearTimeout(timeoutId)
     }
-  }, [versionInfo.updateAvailable, versionInfo.latestVersion, versionInfo.currentVersion, versionInfo.releaseUrl])
+  }, [
+    versionInfo.updateAvailable,
+    versionInfo.latestVersion,
+    versionInfo.currentVersion,
+    versionInfo.releaseUrl,
+  ])
 
   return {
     ...versionInfo,

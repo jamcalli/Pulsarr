@@ -152,6 +152,9 @@ export interface Config {
   // General Notifications
   queueWaitTime: number
   newEpisodeThreshold: number
+  // Out-of-app notifications when a new Pulsarr release is available
+  // (delivered via Discord webhook + Apprise system endpoint).
+  notifyOnUpdate: boolean
   // Pending Webhooks Config
   pendingWebhookRetryInterval: number
   pendingWebhookMaxAge: number

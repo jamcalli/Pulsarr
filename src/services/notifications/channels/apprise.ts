@@ -26,6 +26,7 @@ import {
   createMediaNotificationHtml,
   createSystemNotificationHtml,
   createTestNotificationHtml,
+  createUpdateAvailableNotificationHtml,
   createWatchlistAdditionHtml,
   createWatchlistCapNotificationHtml,
   PULSARR_ICON_URL,
@@ -426,6 +427,66 @@ export async function sendSystemNotification(
     log.error(
       { error: error instanceof Error ? error : new Error(String(error)) },
       'Error sending system notification',
+    )
+    return false
+  }
+}
+
+/**
+ * Send an "update available" notification to the admin system endpoint.
+ *
+ * Mirrors `sendDeleteSyncNotification`: builds a dedicated text + HTML body
+ * via the matching helper, then posts as `format: 'text'` with `body_html`.
+ * Crucially does NOT route through `sendSystemNotification`, which would
+ * apply the approval-card template.
+ */
+export async function sendUpdateAvailableNotification(
+  release: {
+    currentVersion: string
+    latestVersion: string
+    releaseUrl: string
+    releaseName: string | null
+    releaseBody: string | null
+    publishedAt: string | null
+  },
+  deps: AppriseDeps,
+): Promise<boolean> {
+  const { log, config } = deps
+
+  if (!isAppriseEnabled(deps)) {
+    return false
+  }
+
+  try {
+    const systemUrl = resolveAppriseUrls(
+      config.systemAppriseUrl || '',
+      config.appriseEmailSender,
+    )
+    if (!systemUrl) {
+      log.debug(
+        'System Apprise URL not configured or could not be resolved, skipping update-available notification',
+      )
+      return false
+    }
+
+    const { htmlBody, textBody, title } =
+      createUpdateAvailableNotificationHtml(release)
+
+    const appriseNotification: AppriseNotification = {
+      title,
+      body: textBody,
+      type: 'info',
+      format: 'text',
+      tag: 'update-available',
+      body_html: htmlBody,
+      attach_url: PULSARR_ICON_URL,
+    }
+
+    return await sendAppriseNotification(systemUrl, appriseNotification, deps)
+  } catch (error) {
+    log.error(
+      { error: error instanceof Error ? error : new Error(String(error)) },
+      'Error sending update-available Apprise notification',
     )
     return false
   }

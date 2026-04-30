@@ -163,6 +163,8 @@ export const ConfigFullSchema = z.object({
   // General Notifications (stored in milliseconds)
   queueWaitTime: z.number(),
   newEpisodeThreshold: z.number(),
+  // Out-of-app notification toggle for new Pulsarr releases
+  notifyOnUpdate: z.boolean(),
   // Pending Webhooks Config
   pendingWebhookRetryInterval: z.number(),
   pendingWebhookMaxAge: z.number(),
@@ -324,6 +326,9 @@ export const ConfigUpdateSchema = z
         error: `New episode threshold cannot exceed ${NEW_EPISODE_THRESHOLD_MAX_MS} milliseconds (720 hours)`,
       })
       .optional(), // 0-720 hours in ms
+    // Out-of-app notification toggle for new Pulsarr releases
+    // (lastNotifiedVersion is intentionally NOT exposed here - internal-only)
+    notifyOnUpdate: z.boolean().optional(),
     // Pending Webhooks Config
     // How often to retry processing pending webhooks (in seconds)
     pendingWebhookRetryInterval: z.number().optional(),

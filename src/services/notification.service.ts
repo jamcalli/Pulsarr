@@ -36,8 +36,10 @@ import {
   sendApprovalBatch,
   sendDeleteSyncCompleted,
   sendMediaAvailable,
+  sendUpdateAvailable,
   sendWatchlistAdded,
   sendWatchlistCapNotification,
+  type UpdateAvailableRelease,
   type WatchlistCapEvent,
   type WatchlistItemInfo,
 } from './notifications/orchestration/index.js'
@@ -199,6 +201,27 @@ export class NotificationService {
       },
       results,
       dryRun,
+    )
+  }
+
+  /**
+   * Sends an out-of-app "update available" notification via webhook + Apprise.
+   * Used by the update-check plugin when the cron detects a new Pulsarr release
+   * and the user has opted in. Returns true when at least one channel delivered.
+   */
+  async sendUpdateAvailableNotification(
+    release: UpdateAvailableRelease,
+  ): Promise<boolean> {
+    return sendUpdateAvailable(
+      {
+        logger: this.log,
+        discordWebhook: this._discordWebhook,
+        apprise: this._apprise,
+        config: {
+          discordWebhookUrl: this.fastify.config.discordWebhookUrl,
+        },
+      },
+      release,
     )
   }
 
