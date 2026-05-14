@@ -97,13 +97,13 @@
     "rotating-file-stream": "^3.2.6",
     "safe-regex2": "^5.0.0",
     "semver": "^7.7.1",
-    "toad-scheduler": "^3.0.1",
+    "toad-scheduler": "^4.0.0",
     "zod": "^4.0.17"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.13",
-    "@commitlint/cli": "^20.0.0",
-    "@commitlint/config-conventional": "^20.0.0",
+    "@biomejs/biome": "^2.4.15",
+    "@commitlint/cli": "^21.0.0",
+    "@commitlint/config-conventional": "^21.0.0",
     "@epic-web/invariant": "^1.0.0",
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-accordion": "^1.2.8",
