@@ -97,7 +97,7 @@
     "rotating-file-stream": "^3.2.6",
     "safe-regex2": "^5.0.0",
     "semver": "^7.7.1",
-    "toad-scheduler": "^3.0.1",
+    "toad-scheduler": "^4.0.0",
     "zod": "^4.0.17"
   },
   "devDependencies": {
