@@ -532,21 +532,25 @@
                             "properties": {
                               "days": {
                                 "type": "integer",
+                                "minimum": 0,
                                 "exclusiveMinimum": true,
                                 "maximum": 365
                               },
                               "hours": {
                                 "type": "integer",
+                                "minimum": 0,
                                 "exclusiveMinimum": true,
                                 "maximum": 8760
                               },
                               "minutes": {
                                 "type": "integer",
+                                "minimum": 0,
                                 "exclusiveMinimum": true,
                                 "maximum": 525600
                               },
                               "seconds": {
                                 "type": "integer",
+                                "minimum": 0,
                                 "exclusiveMinimum": true,
                                 "maximum": 31536000
                               },
@@ -813,21 +817,25 @@
                         "properties": {
                           "days": {
                             "type": "integer",
+                            "minimum": 0,
                             "exclusiveMinimum": true,
                             "maximum": 365
                           },
                           "hours": {
                             "type": "integer",
+                            "minimum": 0,
                             "exclusiveMinimum": true,
                             "maximum": 8760
                           },
                           "minutes": {
                             "type": "integer",
+                            "minimum": 0,
                             "exclusiveMinimum": true,
                             "maximum": 525600
                           },
                           "seconds": {
                             "type": "integer",
+                            "minimum": 0,
                             "exclusiveMinimum": true,
                             "maximum": 31536000
                           },
@@ -993,21 +1001,25 @@
                           "properties": {
                             "days": {
                               "type": "integer",
+                              "minimum": 0,
                               "exclusiveMinimum": true,
                               "maximum": 365
                             },
                             "hours": {
                               "type": "integer",
+                              "minimum": 0,
                               "exclusiveMinimum": true,
                               "maximum": 8760
                             },
                             "minutes": {
                               "type": "integer",
+                              "minimum": 0,
                               "exclusiveMinimum": true,
                               "maximum": 525600
                             },
                             "seconds": {
                               "type": "integer",
+                              "minimum": 0,
                               "exclusiveMinimum": true,
                               "maximum": 31536000
                             },
@@ -1301,21 +1313,25 @@
                         "properties": {
                           "days": {
                             "type": "integer",
+                            "minimum": 0,
                             "exclusiveMinimum": true,
                             "maximum": 365
                           },
                           "hours": {
                             "type": "integer",
+                            "minimum": 0,
                             "exclusiveMinimum": true,
                             "maximum": 8760
                           },
                           "minutes": {
                             "type": "integer",
+                            "minimum": 0,
                             "exclusiveMinimum": true,
                             "maximum": 525600
                           },
                           "seconds": {
                             "type": "integer",
+                            "minimum": 0,
                             "exclusiveMinimum": true,
                             "maximum": 31536000
                           },
@@ -2783,6 +2799,7 @@
           {
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -2917,11 +2934,13 @@
                       "properties": {
                         "sonarrSeriesId": {
                           "type": "integer",
+                          "minimum": 0,
                           "exclusiveMinimum": true,
                           "maximum": 9007199254740991
                         },
                         "sonarrInstanceId": {
                           "type": "integer",
+                          "minimum": 0,
                           "exclusiveMinimum": true,
                           "maximum": 9007199254740991
                         },
@@ -20252,6 +20271,7 @@
           {
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -20477,6 +20497,7 @@
           {
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -27773,6 +27794,7 @@
                   "plexPort": {
                     "default": 32400,
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
                     "maximum": 9007199254740991
                   },
@@ -29516,6 +29538,7 @@
                 "properties": {
                   "instanceId": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
                     "maximum": 9007199254740991
                   },
@@ -29544,6 +29567,7 @@
                   "properties": {
                     "id": {
                       "type": "integer",
+                      "minimum": 0,
                       "exclusiveMinimum": true,
                       "maximum": 9007199254740991
                     },
@@ -29671,6 +29695,7 @@
           {
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -29695,6 +29720,7 @@
                       "properties": {
                         "id": {
                           "type": "integer",
+                          "minimum": 0,
                           "exclusiveMinimum": true,
                           "maximum": 9007199254740991
                         },
@@ -30042,6 +30068,7 @@
                   "properties": {
                     "id": {
                       "type": "integer",
+                      "minimum": 0,
                       "exclusiveMinimum": true,
                       "maximum": 9007199254740991
                     }
@@ -30481,6 +30508,7 @@
           {
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -30661,6 +30689,7 @@
           {
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -30949,6 +30978,7 @@
             "schema": {
               "default": 10,
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -31703,6 +31733,7 @@
             "schema": {
               "default": 10,
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -31817,6 +31848,7 @@
             "schema": {
               "default": 10,
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -31975,6 +32007,7 @@
             "schema": {
               "default": 10,
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -32133,6 +32166,7 @@
             "schema": {
               "default": 10,
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -33275,6 +33309,7 @@
                 "properties": {
                   "instanceId": {
                     "type": "integer",
+                    "minimum": 0,
                     "exclusiveMinimum": true,
                     "maximum": 9007199254740991
                   },
@@ -33303,6 +33338,7 @@
                   "properties": {
                     "id": {
                       "type": "integer",
+                      "minimum": 0,
                       "exclusiveMinimum": true,
                       "maximum": 9007199254740991
                     },
@@ -33430,6 +33466,7 @@
           {
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -33454,6 +33491,7 @@
                       "properties": {
                         "id": {
                           "type": "integer",
+                          "minimum": 0,
                           "exclusiveMinimum": true,
                           "maximum": 9007199254740991
                         },
@@ -33597,6 +33635,7 @@
           {
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -33777,6 +33816,7 @@
           {
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
@@ -34252,6 +34292,7 @@
                   "properties": {
                     "id": {
                       "type": "integer",
+                      "minimum": 0,
                       "exclusiveMinimum": true,
                       "maximum": 9007199254740991
                     }
@@ -34853,6 +34894,7 @@
           {
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "exclusiveMinimum": true,
               "maximum": 9007199254740991
             },
