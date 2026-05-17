@@ -1522,6 +1522,7 @@ export class ContentRouterService {
         return { routedInstances: [], routingDetails: [] }
 
       case 'approved':
+      case 'auto_approved':
         this.log.info(
           `Using previously approved routing for "${item.title}" by user ${context.userName || context.userId}`,
         )
