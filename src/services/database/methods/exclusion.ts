@@ -35,32 +35,6 @@ export async function excludeWatchlistItem(
 }
 
 /**
- * Returns the subset of the given keys that the user currently has excluded.
- *
- * Used by the real-time watchlist path to detect "re-add" events: if a key
- * appearing in a fresh watchlist update has a matching exclusion, that key
- * is the user's signal to re-request the item.
- *
- * @param userId - The user ID to check
- * @param keys - Candidate watchlist item keys
- * @returns Keys that have an exclusion for this user (subset of input)
- */
-export async function findExcludedKeys(
-  this: DatabaseService,
-  userId: number,
-  keys: string[],
-): Promise<string[]> {
-  if (keys.length === 0) return []
-
-  const rows = await this.knex('watchlist_exclusions')
-    .where('user_id', userId)
-    .whereIn('key', keys)
-    .select('key')
-
-  return rows.map((r) => r.key)
-}
-
-/**
  * Removes exclusion records for the specified user and watchlist item keys.
  *
  * Called during watchlist item cleanup when a user removes content from their
@@ -96,8 +70,7 @@ export async function clearExclusions(
 export async function getExclusionMap(
   this: DatabaseService,
 ): Promise<Map<string, Set<number>>> {
-  const rows = await this.knex('watchlist_exclusions')
-    .select('key', 'user_id')
+  const rows = await this.knex('watchlist_exclusions').select('key', 'user_id')
 
   const map = new Map<string, Set<number>>()
 
@@ -111,6 +84,32 @@ export async function getExclusionMap(
   }
 
   return map
+}
+
+/**
+ * Returns the subset of the given keys that the user currently has excluded.
+ *
+ * Used by the real-time watchlist path to detect "re-add" events: if a key
+ * appearing in a fresh watchlist update has a matching exclusion, that key
+ * is the user's signal to re-request the item.
+ *
+ * @param userId - The user ID to check
+ * @param keys - Candidate watchlist item keys
+ * @returns Keys that have an exclusion for this user (subset of input)
+ */
+export async function findExcludedKeys(
+  this: DatabaseService,
+  userId: number,
+  keys: string[],
+): Promise<string[]> {
+  if (keys.length === 0) return []
+
+  const rows = await this.knex('watchlist_exclusions')
+    .where('user_id', userId)
+    .whereIn('key', keys)
+    .select('key')
+
+  return rows.map((r) => r.key)
 }
 
 /**

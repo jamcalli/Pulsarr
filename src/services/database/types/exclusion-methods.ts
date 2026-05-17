@@ -15,15 +15,6 @@ declare module '@services/database.service.js' {
     excludeWatchlistItem(key: string, userIds: number[]): Promise<number>
 
     /**
-     * Returns the subset of the given keys that the user currently has excluded.
-     *
-     * @param userId - The user ID to check
-     * @param keys - Candidate watchlist item keys
-     * @returns Keys that have an exclusion for this user (subset of input)
-     */
-    findExcludedKeys(userId: number, keys: string[]): Promise<string[]>
-
-    /**
      * Removes exclusion records for the specified user and watchlist item keys.
      *
      * Called during watchlist item cleanup when a user removes content from
@@ -41,6 +32,15 @@ declare module '@services/database.service.js' {
      * @returns Map of item key to set of excluded user IDs
      */
     getExclusionMap(): Promise<Map<string, Set<number>>>
+
+    /**
+     * Returns the subset of the given keys that the user currently has excluded.
+     *
+     * @param userId - The user ID to check
+     * @param keys - Candidate watchlist item keys
+     * @returns Keys that have an exclusion for this user (subset of input)
+     */
+    findExcludedKeys(userId: number, keys: string[]): Promise<string[]>
 
     /**
      * Retrieves all exclusions for a specific user.

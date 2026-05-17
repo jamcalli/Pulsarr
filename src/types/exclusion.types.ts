@@ -4,8 +4,3 @@ export interface WatchlistExclusion {
   key: string
   excluded_at: string
 }
-
-export interface CreateExclusionData {
-  key: string
-  userIds: number[]
-}
