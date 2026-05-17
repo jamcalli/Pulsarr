@@ -351,7 +351,25 @@ export function ExclusionsPage() {
     },
     {
       id: 'actions',
-      header: () => <div className="text-center">Excluded</div>,
+      accessorFn: (row) => row.isExcluded,
+      header: ({ column }) => (
+        <div className="flex justify-center">
+          <Button
+            variant="noShadow"
+            size="sm"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="whitespace-nowrap"
+          >
+            Excluded
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      ),
+      sortingFn: (rowA, rowB) => {
+        const a = rowA.original.isExcluded ? 1 : 0
+        const b = rowB.original.isExcluded ? 1 : 0
+        return a - b
+      },
       enableHiding: false,
       cell: ({ row }) => {
         const itemKey = `${row.original.userId}-${row.original.key}`
