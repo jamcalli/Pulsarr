@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
+import { DataTableFacetedFilter } from '@/components/table/data-table-faceted-filter'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -52,14 +53,17 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
-import { DataTableFacetedFilter } from '@/components/table/data-table-faceted-filter'
 import { ExclusionsDeleteConfirmationModal } from '@/features/utilities/components/exclusions/exclusions-delete-confirmation-modal'
 import { ExclusionsSkeleton } from '@/features/utilities/components/exclusions/exclusions-skeleton'
+import {
+  useCreateExclusion,
+  useRemoveExclusion,
+} from '@/features/utilities/hooks/useExclusionMutations'
 import { useExclusions } from '@/features/utilities/hooks/useExclusions'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useTablePagination } from '@/hooks/use-table-pagination'
-import { useConfigStore } from '@/stores/configStore'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { api } from '@/lib/api'
+import { useConfigStore } from '@/stores/configStore'
 
 interface ColumnMetaType {
   className?: string
@@ -87,23 +91,21 @@ export function ExclusionsPage() {
   const users = useConfigStore((state) => state.users)
   const isInitializing = useInitializeWithMinDuration(initialize)
 
-  const {
-    exclusions,
-    isRemoving,
-    createExclusion,
-    removeExclusion,
-    fetchExclusions,
-    hasLoadedExclusions,
-  } = useExclusions()
+  const { data: exclusionsData, refetch: refetchExclusions } = useExclusions()
+  const exclusions = exclusionsData?.exclusions ?? []
+  const hasLoadedExclusions = exclusionsData !== undefined
+
+  const createExclusionMutation = useCreateExclusion()
+  const removeExclusionMutation = useRemoveExclusion()
 
   const [watchlistItems, setWatchlistItems] = React.useState<
     WatchlistItemWithUser[]
   >([])
   const [hasLoadedWatchlists, setHasLoadedWatchlists] = React.useState(false)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
-  const [excludingItems, setExcludingItems] = React.useState<
-    Record<string, boolean>
-  >({})
+  const [activeExcludeRowId, setActiveExcludeRowId] = React.useState<
+    string | null
+  >(null)
   const [pendingUnexclude, setPendingUnexclude] = React.useState<{
     exclusionId: number
     key: string
@@ -156,7 +158,7 @@ export function ExclusionsPage() {
     if (isInitialized && !hasLoadedWatchlists) {
       fetchAllWatchlistItems()
     }
-  }, [isInitialized, users, hasLoadedWatchlists, fetchAllWatchlistItems])
+  }, [isInitialized, hasLoadedWatchlists, fetchAllWatchlistItems])
 
   const tableData = React.useMemo<ExclusionTableRow[]>(() => {
     return watchlistItems.map((item) => {
@@ -174,11 +176,19 @@ export function ExclusionsPage() {
 
   const handleExclude = async (row: ExclusionTableRow) => {
     const itemKey = `${row.userId}-${row.key}`
-    setExcludingItems((prev) => ({ ...prev, [itemKey]: true }))
+    setActiveExcludeRowId(itemKey)
     try {
-      await createExclusion(row.key, [row.userId])
+      await createExclusionMutation.mutateAsync({
+        key: row.key,
+        userIds: [row.userId],
+      })
+      toast.success('Exclusion created successfully')
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to create exclusion'
+      toast.error(errorMessage)
     } finally {
-      setExcludingItems((prev) => ({ ...prev, [itemKey]: false }))
+      setActiveExcludeRowId(null)
     }
   }
 
@@ -192,10 +202,22 @@ export function ExclusionsPage() {
     }
   }
 
+  const handleConfirmUnexclude = async () => {
+    if (!pendingUnexclude) return
+    try {
+      await removeExclusionMutation.mutateAsync(pendingUnexclude.exclusionId)
+      toast.success('Exclusion removed successfully')
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to remove exclusion'
+      toast.error(errorMessage)
+    }
+  }
+
   const handleRefresh = async () => {
     setIsRefreshing(true)
     try {
-      await Promise.all([fetchAllWatchlistItems(), fetchExclusions(true)])
+      await Promise.all([fetchAllWatchlistItems(), refetchExclusions()])
     } catch {
       toast.error('Failed to refresh data')
     } finally {
@@ -242,9 +264,7 @@ export function ExclusionsPage() {
       accessorKey: 'username',
       header: () => <div>User</div>,
       cell: ({ row }) => (
-        <div className="truncate max-w-[150px]">
-          {row.getValue('username')}
-        </div>
+        <div className="truncate max-w-[150px]">{row.getValue('username')}</div>
       ),
       filterFn: (row, id, filterValue: string[]) => {
         if (!filterValue?.length) return true
@@ -373,10 +393,12 @@ export function ExclusionsPage() {
       enableHiding: false,
       cell: ({ row }) => {
         const itemKey = `${row.original.userId}-${row.original.key}`
-        const isExcluding = excludingItems[itemKey] || false
-        const isUnexcluding = row.original.exclusionId
-          ? isRemoving[row.original.exclusionId] || false
-          : false
+        const isExcluding =
+          activeExcludeRowId === itemKey && createExclusionMutation.isPending
+        const isUnexcluding =
+          row.original.exclusionId !== null &&
+          removeExclusionMutation.variables === row.original.exclusionId &&
+          removeExclusionMutation.isPending
 
         if (row.original.isExcluded) {
           return (
@@ -456,7 +478,10 @@ export function ExclusionsPage() {
   }, [pageSize, table])
 
   const isInitialLoad =
-    isInitializing || !isInitialized || !hasLoadedWatchlists || !hasLoadedExclusions
+    isInitializing ||
+    !isInitialized ||
+    !hasLoadedWatchlists ||
+    !hasLoadedExclusions
 
   if (isInitialLoad) {
     return <ExclusionsSkeleton />
@@ -467,17 +492,12 @@ export function ExclusionsPage() {
       <ExclusionsDeleteConfirmationModal
         open={pendingUnexclude !== null}
         onOpenChange={(open) => !open && setPendingUnexclude(null)}
-        onConfirm={async () => {
-          if (pendingUnexclude) {
-            await removeExclusion(pendingUnexclude.exclusionId)
-          }
-        }}
+        onConfirm={handleConfirmUnexclude}
         isSubmitting={
-          pendingUnexclude
-            ? isRemoving[pendingUnexclude.exclusionId] || false
-            : false
+          pendingUnexclude !== null &&
+          removeExclusionMutation.variables === pendingUnexclude.exclusionId &&
+          removeExclusionMutation.isPending
         }
-        itemKey={pendingUnexclude?.key || ''}
         username={pendingUnexclude?.username || ''}
       />
 

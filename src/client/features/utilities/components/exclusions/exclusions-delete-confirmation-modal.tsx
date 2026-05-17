@@ -14,7 +14,6 @@ interface ExclusionsDeleteConfirmationModalProps {
   onOpenChange: (open: boolean) => void
   onConfirm: () => Promise<void>
   isSubmitting: boolean
-  itemKey: string
   username: string
 }
 
@@ -28,7 +27,6 @@ export function ExclusionsDeleteConfirmationModal({
   onOpenChange,
   onConfirm,
   isSubmitting,
-  itemKey,
   username,
 }: ExclusionsDeleteConfirmationModalProps) {
   return (
@@ -40,8 +38,8 @@ export function ExclusionsDeleteConfirmationModal({
           </CredenzaTitle>
           <CredenzaDescription>
             Are you sure you want to remove this exclusion for {username}? If
-            this item is still on their watchlist, it will be re-requested during
-            the next sync cycle.
+            this item is still on their watchlist, it will be re-requested
+            during the next sync cycle.
           </CredenzaDescription>
         </CredenzaHeader>
         <CredenzaFooter>
