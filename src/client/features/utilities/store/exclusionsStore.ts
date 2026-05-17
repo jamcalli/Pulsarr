@@ -123,7 +123,7 @@ export const useExclusionsStore = create<ExclusionsState>()(
             ? new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
             : Promise.resolve()
 
-        const responsePromise = fetch(api('/v1/exclusions/exclusions'))
+        const responsePromise = fetch(api('/v1/exclusions'))
 
         const [response] = await Promise.all([
           responsePromise,
@@ -172,7 +172,7 @@ export const useExclusionsStore = create<ExclusionsState>()(
       }))
 
       try {
-        const response = await fetch(api('/v1/exclusions/exclusions'), {
+        const response = await fetch(api('/v1/exclusions'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, userIds }),
@@ -227,7 +227,7 @@ export const useExclusionsStore = create<ExclusionsState>()(
         )
 
         const [response] = await Promise.all([
-          fetch(api(`/v1/exclusions/exclusions/${id}`), { method: 'DELETE' }),
+          fetch(api(`/v1/exclusions/${id}`), { method: 'DELETE' }),
           minimumLoadingTime,
         ])
 

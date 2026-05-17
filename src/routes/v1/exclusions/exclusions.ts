@@ -13,7 +13,7 @@ import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Create Exclusion
   fastify.post(
-    '/exclusions',
+    '/',
     {
       schema: {
         summary: 'Create exclusion',
@@ -51,7 +51,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // Get All Exclusions
   fastify.get(
-    '/exclusions',
+    '/',
     {
       schema: {
         summary: 'Get all exclusions',
@@ -84,7 +84,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // Get Exclusions for User
   fastify.get(
-    '/exclusions/user/:userId',
+    '/user/:userId',
     {
       schema: {
         summary: 'Get user exclusions',
@@ -120,7 +120,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // Remove Exclusion
   fastify.delete(
-    '/exclusions/:id',
+    '/:id',
     {
       schema: {
         summary: 'Remove exclusion',
