@@ -153,7 +153,7 @@ export function ExclusionsPage() {
   }, [users])
 
   React.useEffect(() => {
-    if (isInitialized && users?.length && !hasLoadedWatchlists) {
+    if (isInitialized && !hasLoadedWatchlists) {
       fetchAllWatchlistItems()
     }
   }, [isInitialized, users, hasLoadedWatchlists, fetchAllWatchlistItems])
