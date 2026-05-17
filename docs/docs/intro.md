@@ -38,6 +38,7 @@ Real-time RSS monitoring requires Plex Pass. Without it, Pulsarr polls every 5 m
 | **User Management** | Granular controls, tag-based tracking, automatic multi-user monitoring |
 | **Plex Label Sync** | Sync user labels to Plex content, import Radarr/Sonarr tags as Plex labels |
 | **Delete Sync** | Automatically remove content when users remove from watchlists |
+| **Watchlist Exclusions** | Prevent re-request loops by excluding items from sync with auto-cleanup |
 | **Session Monitoring** | Auto-search next seasons when users near end of current season |
 | **Plex Library Refresh** | Auto-configure webhooks in Sonarr/Radarr to refresh Plex libraries instantly |
 | **Playlist Protection** | Preserve important content from automatic deletion |

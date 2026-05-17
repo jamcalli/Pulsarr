@@ -30,6 +30,9 @@ const PlexLabelsPage = lazy(
   () => import('@/features/utilities/pages/plex-labels'),
 )
 const ApiKeysPage = lazy(() => import('@/features/utilities/pages/api-keys'))
+const ExclusionsPage = lazy(
+  () => import('@/features/utilities/pages/exclusions'),
+)
 const LogViewerPage = lazy(
   () => import('@/features/utilities/pages/log-viewer'),
 )
@@ -261,6 +264,16 @@ export const router = createBrowserRouter(
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
                     <ApiKeysPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'exclusions',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <ExclusionsPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),

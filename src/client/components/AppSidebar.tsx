@@ -177,6 +177,10 @@ const data = {
           url: '/utilities/delete-sync',
         },
         {
+          title: 'Exclusions',
+          url: '/utilities/exclusions',
+        },
+        {
           title: 'Log Viewer',
           url: '/utilities/log-viewer',
         },

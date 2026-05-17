@@ -34,6 +34,7 @@ export interface SyncResult {
   skippedDueToUserSetting: number
   skippedDueToMissingIds: number
   skippedDueToWatchlistCap: number
+  skippedDueToExclusion: number
 }
 
 /**
@@ -81,6 +82,7 @@ export async function syncWatchlistItems(
         skippedDueToUserSetting: 0,
         skippedDueToMissingIds: 0,
         skippedDueToWatchlistCap: 0,
+        skippedDueToExclusion: 0,
       }
     }
 
@@ -101,6 +103,7 @@ export async function syncWatchlistItems(
         skippedDueToUserSetting: 0,
         skippedDueToMissingIds: 0,
         skippedDueToWatchlistCap: 0,
+        skippedDueToExclusion: 0,
       }
     }
 
@@ -122,6 +125,7 @@ export async function syncWatchlistItems(
           skippedDueToUserSetting: 0,
           skippedDueToMissingIds: 0,
           skippedDueToWatchlistCap: 0,
+          skippedDueToExclusion: 0,
         }
       }
     }
@@ -157,6 +161,9 @@ export async function syncWatchlistItems(
       allWatchlistItems,
     )
 
+    // --- Exclusion gate ---
+    const exclusionMap = await deps.db.getExclusionMap()
+
     // Fire cap notifications (debounced by notification service)
     for (const entry of cappedEntries) {
       const user = userById.get(entry.userId)
@@ -184,6 +191,7 @@ export async function syncWatchlistItems(
     let skippedDueToUserSetting = 0
     let skippedDueToMissingIds = 0
     let skippedDueToWatchlistCap = 0
+    let skippedDueToExclusion = 0
     const skippedItems: { shows: string[]; movies: string[] } = {
       shows: [],
       movies: [],
@@ -258,6 +266,15 @@ export async function syncWatchlistItems(
             // Check watchlist cap gate
             if (skipIds.has(item.id)) {
               return { type: 'skipped', reason: 'watchlist_cap' }
+            }
+
+            // Check exclusion gate
+            const excludedUsers = exclusionMap.get(item.key)
+            if (excludedUsers?.has(numericUserId)) {
+              deps.logger.debug(
+                `Skipping item "${item.title}" for user ${numericUserId} due to exclusion`,
+              )
+              return { type: 'skipped', reason: 'exclusion' }
             }
 
             // Parse GUIDs and genres once for reuse
@@ -380,6 +397,8 @@ export async function syncWatchlistItems(
             skippedDueToUserSetting++
           } else if (value.reason === 'watchlist_cap') {
             skippedDueToWatchlistCap++
+          } else if (value.reason === 'exclusion') {
+            skippedDueToExclusion++
           } else if (value.reason === 'missing_id') {
             skippedDueToMissingIds++
             if (value.contentType === 'show') {
@@ -421,6 +440,7 @@ export async function syncWatchlistItems(
       skippedDueToUserSetting,
       skippedDueToMissingIds,
       skippedDueToWatchlistCap,
+      skippedDueToExclusion,
     }
 
     deps.logger.info(
@@ -430,6 +450,7 @@ export async function syncWatchlistItems(
         skippedDueToUserSetting: summary.skippedDueToUserSetting,
         skippedDueToMissingIds: summary.skippedDueToMissingIds,
         skippedDueToWatchlistCap: summary.skippedDueToWatchlistCap,
+        skippedDueToExclusion: summary.skippedDueToExclusion,
       },
       'Watchlist sync completed',
     )

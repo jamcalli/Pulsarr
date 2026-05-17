@@ -21,6 +21,7 @@ The API is organized into the following categories:
 - **[Authentication](./api/authentication)** - Login, logout, and session management
 - **[Config](./api/config)** - Application settings and configuration
 - **[Content Router](./api/content-router)** - Routing rules and content distribution
+- **[Exclusions](./api/exclusions)** - Watchlist exclusion management
 - **[Labels](./api/labels)** - Plex label synchronization and management
 - **[Logs](./api/logs)** - Stream application logs
 - **[Metadata](./api/metadata)** - Refresh and manage content metadata
