@@ -150,6 +150,7 @@ export const useExclusionsStore = create<ExclusionsState>()(
         console.error('Error fetching exclusions:', err)
         set((state) => ({
           ...state,
+          hasLoadedExclusions: true,
           loading: { ...state.loading, fetch: false },
           error: {
             ...state.error,

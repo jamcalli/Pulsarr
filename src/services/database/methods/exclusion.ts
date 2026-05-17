@@ -25,13 +25,13 @@ export async function excludeWatchlistItem(
     excluded_at: this.timestamp,
   }))
 
-  const result = await this.knex('watchlist_exclusions')
+  const insertedRows = await this.knex('watchlist_exclusions')
     .insert(rows)
     .onConflict(['user_id', 'key'])
     .ignore()
+    .returning('id')
 
-  const inserted = this.isPostgres ? (result as unknown as { rowCount: number }).rowCount : (result as unknown as number[])[0]
-  return Number(inserted) || 0
+  return insertedRows.length
 }
 
 /**

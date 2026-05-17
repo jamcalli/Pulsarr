@@ -121,7 +121,11 @@ export function ExclusionsPage() {
   const { pageSize, setPageSize } = useTablePagination('exclusions', 10)
 
   const fetchAllWatchlistItems = React.useCallback(async () => {
-    if (!users?.length) return
+    if (!users?.length) {
+      setWatchlistItems([])
+      setHasLoadedWatchlists(true)
+      return
+    }
 
     const usersWithItems = users.filter((u) => u.watchlist_count > 0)
     const results = await Promise.all(
@@ -498,6 +502,7 @@ export function ExclusionsPage() {
               <Button
                 variant="noShadow"
                 size="sm"
+                aria-label="Refresh exclusions"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
                 className="h-8 w-8 p-0"
