@@ -15,6 +15,15 @@ declare module '@services/database.service.js' {
     excludeWatchlistItem(key: string, userIds: number[]): Promise<number>
 
     /**
+     * Returns the subset of the given keys that the user currently has excluded.
+     *
+     * @param userId - The user ID to check
+     * @param keys - Candidate watchlist item keys
+     * @returns Keys that have an exclusion for this user (subset of input)
+     */
+    findExcludedKeys(userId: number, keys: string[]): Promise<string[]>
+
+    /**
      * Removes exclusion records for the specified user and watchlist item keys.
      *
      * Called during watchlist item cleanup when a user removes content from
@@ -22,8 +31,9 @@ declare module '@services/database.service.js' {
      *
      * @param userId - The user ID whose exclusions should be cleared
      * @param keys - Array of watchlist item keys to clear exclusions for
+     * @returns The number of exclusion rows deleted
      */
-    clearExclusions(userId: number, keys: string[]): Promise<void>
+    clearExclusions(userId: number, keys: string[]): Promise<number>
 
     /**
      * Retrieves all exclusions as a map for efficient lookup during sync.

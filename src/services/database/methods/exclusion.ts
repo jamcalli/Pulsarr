@@ -35,6 +35,32 @@ export async function excludeWatchlistItem(
 }
 
 /**
+ * Returns the subset of the given keys that the user currently has excluded.
+ *
+ * Used by the real-time watchlist path to detect "re-add" events: if a key
+ * appearing in a fresh watchlist update has a matching exclusion, that key
+ * is the user's signal to re-request the item.
+ *
+ * @param userId - The user ID to check
+ * @param keys - Candidate watchlist item keys
+ * @returns Keys that have an exclusion for this user (subset of input)
+ */
+export async function findExcludedKeys(
+  this: DatabaseService,
+  userId: number,
+  keys: string[],
+): Promise<string[]> {
+  if (keys.length === 0) return []
+
+  const rows = await this.knex('watchlist_exclusions')
+    .where('user_id', userId)
+    .whereIn('key', keys)
+    .select('key')
+
+  return rows.map((r) => r.key)
+}
+
+/**
  * Removes exclusion records for the specified user and watchlist item keys.
  *
  * Called during watchlist item cleanup when a user removes content from their
@@ -43,15 +69,16 @@ export async function excludeWatchlistItem(
  *
  * @param userId - The user ID whose exclusions should be cleared
  * @param keys - Array of watchlist item keys to clear exclusions for
+ * @returns The number of exclusion rows deleted
  */
 export async function clearExclusions(
   this: DatabaseService,
   userId: number,
   keys: string[],
-): Promise<void> {
-  if (keys.length === 0) return
+): Promise<number> {
+  if (keys.length === 0) return 0
 
-  await this.knex('watchlist_exclusions')
+  return await this.knex('watchlist_exclusions')
     .where('user_id', userId)
     .whereIn('key', keys)
     .delete()

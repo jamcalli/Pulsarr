@@ -129,6 +129,30 @@ export async function processItemsForUser(
     }
   }
 
+  // Step 1b: Clear exclusions for any items appearing via this real-time path.
+  // Real-time channels (RSS feed, ETag poll) only surface items when the user
+  // has just acted on their watchlist. If an item shows up here AND has a
+  // matching exclusion, that's the user's "re-add" signal — clear the
+  // exclusion so the routing path below can request the item again. This is
+  // the fast equivalent of the cleanup that happens during the 2-hour
+  // reconciliation when a watchlist row is deleted. We capture which keys
+  // were unblocked so we can force-route them below, since otherwise the
+  // categorizer would silently drop "already linked" items and routing would
+  // never fire for them.
+  const reAddedKeys = await db.findExcludedKeys(user.userId, allKeys)
+
+  if (reAddedKeys.length > 0) {
+    await db.clearExclusions(user.userId, reAddedKeys)
+    logger.info(
+      {
+        userId: user.userId,
+        username: user.username,
+        count: reAddedKeys.length,
+      },
+      'Cleared exclusions for items re-added via real-time watchlist update',
+    )
+  }
+
   // Step 2: Look up existing items in DB by keys
   const existingItems = await db.getWatchlistItemsByKeys(allKeys)
 
@@ -190,12 +214,40 @@ export async function processItemsForUser(
     linkedItems = Array.from(linkedItemsSet ?? [])
   }
 
+  // Step 6b: Force-route re-added items whose exclusion we just cleared.
+  // The categorizer drops items that are already linked to this user, so
+  // without this step a re-added item never reaches the router. Pull each
+  // re-added item's existing row out of the DB lookup we already did and
+  // append it to linkedItems (de-duped against rows the categorizer
+  // already surfaced).
+  if (reAddedKeys.length > 0) {
+    const alreadyQueuedKeys = new Set(linkedItems.map((i) => i.key))
+    const reAddedSet = new Set(reAddedKeys)
+    const forceRoutedItems = existingItems.filter(
+      (item) =>
+        item.user_id === user.userId &&
+        reAddedSet.has(item.key) &&
+        !alreadyQueuedKeys.has(item.key),
+    )
+    if (forceRoutedItems.length > 0) {
+      linkedItems.push(...forceRoutedItems)
+      logger.info(
+        {
+          userId: user.userId,
+          username: user.username,
+          count: forceRoutedItems.length,
+        },
+        'Force-routing re-added items past already-linked dedup',
+      )
+    }
+  }
+
   logger.debug(
     {
       userId: user.userId,
       username: user.username,
       brandNew: brandNewCount,
-      linked: linkedCount,
+      linked: linkedItems.length,
     },
     'Items processed for user',
   )
