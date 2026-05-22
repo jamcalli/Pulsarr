@@ -122,11 +122,7 @@ export function ApprovalSonarrRoutingCard({
   const targetInstance = instances.find((i) => i.id === instanceId)
   const instanceName = targetInstance?.name || `Sonarr Instance ${instanceId}`
 
-  // Determine if this is the default instance
-  // Check both the instance property and if the routing has syncedInstances (only default instances can have these)
-  const isDefaultInstance =
-    targetInstance?.isDefault ||
-    (routing.syncedInstances && routing.syncedInstances.length > 0)
+  const isDefaultInstance = Boolean(targetInstance?.isDefault)
 
   const form = useForm<ApprovalRoutingFormData>({
     resolver: zodResolver(approvalRoutingSchema),
