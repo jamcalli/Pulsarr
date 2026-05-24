@@ -3,78 +3,53 @@ import type { WatchlistExclusion } from '@root/types/exclusion.types.js'
 declare module '@services/database.service.js' {
   interface DatabaseService {
     /**
-     * Creates exclusion records for the given watchlist item key and user IDs.
+     * Inserts an exclusion row for each user, skipping duplicates.
      *
-     * Prevents the sync engine from re-routing a watchlist item that was
-     * previously fulfilled and cleaned up.
-     *
-     * @param key - The watchlist item key to exclude
-     * @param userIds - Array of user IDs to exclude the item for
-     * @returns The number of exclusion records created (excludes duplicates)
+     * @returns Number of rows inserted
      */
     excludeWatchlistItem(key: string, userIds: number[]): Promise<number>
 
     /**
-     * Removes exclusion records for the specified user and watchlist item keys.
+     * Removes exclusion rows for the user across the given keys.
      *
-     * Called during watchlist item cleanup when a user removes content from
-     * their Plex watchlist, allowing re-request on re-add.
-     *
-     * @param userId - The user ID whose exclusions should be cleared
-     * @param keys - Array of watchlist item keys to clear exclusions for
-     * @returns The number of exclusion rows deleted
+     * @returns Number of rows deleted
      */
     clearExclusions(userId: number, keys: string[]): Promise<number>
 
     /**
-     * Retrieves all exclusions as a map for efficient lookup during sync.
-     *
-     * @returns Map of item key to set of excluded user IDs
+     * Returns a map of key → set of user ids that have excluded that key.
      */
     getExclusionMap(): Promise<Map<string, Set<number>>>
 
     /**
-     * Returns the subset of the given keys that the user currently has excluded.
-     *
-     * @param userId - The user ID to check
-     * @param keys - Candidate watchlist item keys
-     * @returns Keys that have an exclusion for this user (subset of input)
+     * Returns the subset of given keys that the user currently has excluded.
      */
     findExcludedKeys(userId: number, keys: string[]): Promise<string[]>
 
     /**
-     * Retrieves all exclusions for a specific user.
-     *
-     * @param userId - The user ID to retrieve exclusions for
-     * @returns Array of exclusion records for the user
+     * Returns all exclusions for a user, most recent first.
      */
     getExclusionsForUser(userId: number): Promise<WatchlistExclusion[]>
 
     /**
-     * Retrieves all exclusion records with associated user names.
-     *
-     * @returns Array of all exclusion records with user information
+     * Returns all exclusions joined with the owning user's name.
      */
     getAllExclusions(): Promise<
       Array<WatchlistExclusion & { username: string }>
     >
 
     /**
-     * Removes a single exclusion record by its ID.
+     * Removes a single exclusion by id.
      *
-     * @param id - The exclusion record ID to remove
-     * @returns True if the exclusion was found and removed, false otherwise
+     * @returns True if a row was deleted
      */
     removeExclusion(id: number): Promise<boolean>
 
     /**
-     * Deletes watchlist_items rows for routed content the user has excluded.
+     * Deletes routed watchlist_items rows whose key is excluded for the same
+     * user or globally. Exclusion rows themselves are preserved.
      *
-     * Targets rows where a matching exclusion exists and the row has
-     * progressed past 'pending'. Pending rows are left alone (already vetoed
-     * at the routing gate). Exclusion rows themselves are preserved.
-     *
-     * @returns The number of watchlist_items rows deleted
+     * @returns Number of watchlist_items rows deleted
      */
     cleanupExcludedWatchlistItems(): Promise<number>
   }

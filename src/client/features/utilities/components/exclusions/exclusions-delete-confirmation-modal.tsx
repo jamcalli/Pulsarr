@@ -46,17 +46,7 @@ export function ExclusionsDeleteConfirmationModal({
           <CredenzaClose asChild>
             <Button variant="neutral">Cancel</Button>
           </CredenzaClose>
-          <Button
-            variant="clear"
-            onClick={async () => {
-              try {
-                await onConfirm()
-              } finally {
-                onOpenChange(false)
-              }
-            }}
-            disabled={isSubmitting}
-          >
+          <Button variant="clear" onClick={onConfirm} disabled={isSubmitting}>
             {isSubmitting ? 'Removing...' : 'Remove'}
           </Button>
         </CredenzaFooter>

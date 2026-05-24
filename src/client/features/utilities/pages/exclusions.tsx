@@ -103,9 +103,6 @@ export function ExclusionsPage() {
   >([])
   const [hasLoadedWatchlists, setHasLoadedWatchlists] = React.useState(false)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
-  const [activeExcludeRowId, setActiveExcludeRowId] = React.useState<
-    string | null
-  >(null)
   const [pendingUnexclude, setPendingUnexclude] = React.useState<{
     exclusionId: number
     key: string
@@ -175,8 +172,6 @@ export function ExclusionsPage() {
   }, [watchlistItems, exclusions])
 
   const handleExclude = async (row: ExclusionTableRow) => {
-    const itemKey = `${row.userId}-${row.key}`
-    setActiveExcludeRowId(itemKey)
     try {
       await createExclusionMutation.mutateAsync({
         key: row.key,
@@ -187,8 +182,6 @@ export function ExclusionsPage() {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to create exclusion'
       toast.error(errorMessage)
-    } finally {
-      setActiveExcludeRowId(null)
     }
   }
 
@@ -207,6 +200,7 @@ export function ExclusionsPage() {
     try {
       await removeExclusionMutation.mutateAsync(pendingUnexclude.exclusionId)
       toast.success('Exclusion removed successfully')
+      setPendingUnexclude(null)
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to remove exclusion'
@@ -392,9 +386,12 @@ export function ExclusionsPage() {
       },
       enableHiding: false,
       cell: ({ row }) => {
-        const itemKey = `${row.original.userId}-${row.original.key}`
         const isExcluding =
-          activeExcludeRowId === itemKey && createExclusionMutation.isPending
+          createExclusionMutation.isPending &&
+          createExclusionMutation.variables?.key === row.original.key &&
+          createExclusionMutation.variables?.userIds.includes(
+            row.original.userId,
+          )
         const isUnexcluding =
           row.original.exclusionId !== null &&
           removeExclusionMutation.variables === row.original.exclusionId &&

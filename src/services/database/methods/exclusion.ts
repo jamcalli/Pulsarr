@@ -2,23 +2,15 @@ import type { WatchlistExclusion } from '@root/types/exclusion.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
- * Sentinel user id representing a global (system-wide) exclusion. An exclusion
- * row with this user_id vetoes routing for the matching key for all users, not
- * just the one who created it. Used by automated content-lifecycle integrations
- * (e.g. maintainerr) that decide content should not exist in the library at all.
+ * Sentinel user id representing a global exclusion that vetoes routing for the
+ * matching key for all users.
  */
 export const SYSTEM_USER_ID = 0
 
 /**
- * Creates exclusion records for the given watchlist item key and user IDs.
+ * Inserts an exclusion row for each user, skipping duplicates.
  *
- * Inserts one exclusion per user, skipping duplicates via ON CONFLICT. This prevents
- * the sync engine from re-routing a watchlist item that was previously fulfilled and
- * cleaned up, even though the item remains on the user's Plex watchlist.
- *
- * @param key - The watchlist item key to exclude
- * @param userIds - Array of user IDs to exclude the item for
- * @returns The number of exclusion records created (excludes duplicates)
+ * @returns Number of rows inserted (excludes duplicates)
  */
 export async function excludeWatchlistItem(
   this: DatabaseService,
@@ -43,15 +35,9 @@ export async function excludeWatchlistItem(
 }
 
 /**
- * Removes exclusion records for the specified user and watchlist item keys.
+ * Removes exclusion rows for the user across the given keys.
  *
- * Called during watchlist item cleanup when a user removes content from their
- * Plex watchlist. Clearing the exclusion allows the item to be re-requested
- * if the user adds it back to their watchlist.
- *
- * @param userId - The user ID whose exclusions should be cleared
- * @param keys - Array of watchlist item keys to clear exclusions for
- * @returns The number of exclusion rows deleted
+ * @returns Number of rows deleted
  */
 export async function clearExclusions(
   this: DatabaseService,
@@ -67,13 +53,7 @@ export async function clearExclusions(
 }
 
 /**
- * Retrieves all exclusions as a map for efficient lookup during sync.
- *
- * Returns a map keyed by watchlist item key, where each value is the set of
- * user IDs that have excluded that item. This structure allows O(1) exclusion
- * checks in the sync engine's hot loop.
- *
- * @returns Map of item key to set of excluded user IDs
+ * Returns a map of key → set of user ids that have excluded that key.
  */
 export async function getExclusionMap(
   this: DatabaseService,
@@ -95,15 +75,7 @@ export async function getExclusionMap(
 }
 
 /**
- * Returns the subset of the given keys that the user currently has excluded.
- *
- * Used by the real-time watchlist path to detect "re-add" events: if a key
- * appearing in a fresh watchlist update has a matching exclusion, that key
- * is the user's signal to re-request the item.
- *
- * @param userId - The user ID to check
- * @param keys - Candidate watchlist item keys
- * @returns Keys that have an exclusion for this user (subset of input)
+ * Returns the subset of given keys that the user currently has excluded.
  */
 export async function findExcludedKeys(
   this: DatabaseService,
@@ -121,10 +93,7 @@ export async function findExcludedKeys(
 }
 
 /**
- * Retrieves all exclusions for a specific user, ordered by most recent first.
- *
- * @param userId - The user ID to retrieve exclusions for
- * @returns Array of exclusion records for the user
+ * Returns all exclusions for a user, most recent first.
  */
 export async function getExclusionsForUser(
   this: DatabaseService,
@@ -137,9 +106,7 @@ export async function getExclusionsForUser(
 }
 
 /**
- * Retrieves all exclusion records, optionally joined with user information.
- *
- * @returns Array of all exclusion records with user names
+ * Returns all exclusions joined with the owning user's name.
  */
 export async function getAllExclusions(
   this: DatabaseService,
@@ -157,10 +124,9 @@ export async function getAllExclusions(
 }
 
 /**
- * Removes a single exclusion record by its ID.
+ * Removes a single exclusion by id.
  *
- * @param id - The exclusion record ID to remove
- * @returns True if the exclusion was found and removed, false otherwise
+ * @returns True if a row was deleted
  */
 export async function removeExclusion(
   this: DatabaseService,
@@ -173,20 +139,12 @@ export async function removeExclusion(
 }
 
 /**
- * Deletes watchlist_items rows for routed content the user has excluded.
+ * Deletes routed (status != 'pending') watchlist_items rows whose key is
+ * excluded for the same user or globally. Pending rows are already vetoed at
+ * the routing gate and left in place to avoid RSS-recreate churn. Exclusion
+ * rows themselves are preserved.
  *
- * Targets rows where a matching exclusion exists for the same (user_id, key)
- * and the row has progressed past 'pending' (i.e., was actually routed to an
- * *arr instance). Cascades to junction and history rows via foreign keys.
- *
- * Pending rows are intentionally left in place: the exclusion already vetoes
- * them at the routing gate, so deleting them would just churn (RSS/ETag would
- * re-create them on the next poll).
- *
- * The exclusion records themselves are preserved — they are the user's
- * persistent rejection signal and must keep blocking future routes.
- *
- * @returns The number of watchlist_items rows deleted
+ * @returns Number of watchlist_items rows deleted
  */
 export async function cleanupExcludedWatchlistItems(
   this: DatabaseService,
