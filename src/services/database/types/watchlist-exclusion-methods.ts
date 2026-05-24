@@ -1,4 +1,4 @@
-import type { WatchlistExclusion } from '@root/types/exclusion.types.js'
+import type { WatchlistExclusion } from '@root/types/watchlist-exclusion.types.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {

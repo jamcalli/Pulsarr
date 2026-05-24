@@ -53,13 +53,13 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
-import { ExclusionsDeleteConfirmationModal } from '@/features/utilities/components/exclusions/exclusions-delete-confirmation-modal'
-import { ExclusionsSkeleton } from '@/features/utilities/components/exclusions/exclusions-skeleton'
+import { WatchlistExclusionsDeleteConfirmationModal } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-delete-confirmation-modal'
+import { WatchlistExclusionsSkeleton } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-skeleton'
 import {
-  useCreateExclusion,
-  useRemoveExclusion,
-} from '@/features/utilities/hooks/useExclusionMutations'
-import { useExclusions } from '@/features/utilities/hooks/useExclusions'
+  useCreateWatchlistExclusion,
+  useRemoveWatchlistExclusion,
+} from '@/features/utilities/hooks/useWatchlistExclusionMutations'
+import { useWatchlistExclusions } from '@/features/utilities/hooks/useWatchlistExclusions'
 import { useTablePagination } from '@/hooks/use-table-pagination'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { api } from '@/lib/api'
@@ -80,23 +80,24 @@ interface WatchlistItemWithUser {
   username: string
 }
 
-interface ExclusionTableRow extends WatchlistItemWithUser {
+interface WatchlistExclusionTableRow extends WatchlistItemWithUser {
   id: string
   isExcluded: boolean
   exclusionId: number | null
 }
 
-export function ExclusionsPage() {
+export function WatchlistExclusionsPage() {
   const { isInitialized, initialize } = useConfigStore()
   const users = useConfigStore((state) => state.users)
   const isInitializing = useInitializeWithMinDuration(initialize)
 
-  const { data: exclusionsData, refetch: refetchExclusions } = useExclusions()
+  const { data: exclusionsData, refetch: refetchExclusions } =
+    useWatchlistExclusions()
   const exclusions = exclusionsData?.exclusions ?? []
   const hasLoadedExclusions = exclusionsData !== undefined
 
-  const createExclusionMutation = useCreateExclusion()
-  const removeExclusionMutation = useRemoveExclusion()
+  const createExclusionMutation = useCreateWatchlistExclusion()
+  const removeExclusionMutation = useRemoveWatchlistExclusion()
 
   const [watchlistItems, setWatchlistItems] = React.useState<
     WatchlistItemWithUser[]
@@ -117,7 +118,10 @@ export function ExclusionsPage() {
   )
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
-  const { pageSize, setPageSize } = useTablePagination('exclusions', 10)
+  const { pageSize, setPageSize } = useTablePagination(
+    'watchlist-exclusions',
+    10,
+  )
 
   const fetchAllWatchlistItems = React.useCallback(async () => {
     if (!users?.length) {
@@ -157,7 +161,7 @@ export function ExclusionsPage() {
     }
   }, [isInitialized, hasLoadedWatchlists, fetchAllWatchlistItems])
 
-  const tableData = React.useMemo<ExclusionTableRow[]>(() => {
+  const tableData = React.useMemo<WatchlistExclusionTableRow[]>(() => {
     return watchlistItems.map((item) => {
       const exclusion = exclusions.find(
         (e) => e.key === item.key && e.user_id === item.userId,
@@ -171,7 +175,7 @@ export function ExclusionsPage() {
     })
   }, [watchlistItems, exclusions])
 
-  const handleExclude = async (row: ExclusionTableRow) => {
+  const handleExclude = async (row: WatchlistExclusionTableRow) => {
     try {
       await createExclusionMutation.mutateAsync({
         key: row.key,
@@ -185,7 +189,7 @@ export function ExclusionsPage() {
     }
   }
 
-  const handleUnexclude = (row: ExclusionTableRow) => {
+  const handleUnexclude = (row: WatchlistExclusionTableRow) => {
     if (row.exclusionId) {
       setPendingUnexclude({
         exclusionId: row.exclusionId,
@@ -234,7 +238,7 @@ export function ExclusionsPage() {
     { label: 'Show', value: 'show', icon: Tv },
   ]
 
-  const columns: ColumnDef<ExclusionTableRow>[] = [
+  const columns: ColumnDef<WatchlistExclusionTableRow>[] = [
     {
       accessorKey: 'title',
       header: ({ column }) => (
@@ -481,12 +485,12 @@ export function ExclusionsPage() {
     !hasLoadedExclusions
 
   if (isInitialLoad) {
-    return <ExclusionsSkeleton />
+    return <WatchlistExclusionsSkeleton />
   }
 
   return (
     <>
-      <ExclusionsDeleteConfirmationModal
+      <WatchlistExclusionsDeleteConfirmationModal
         open={pendingUnexclude !== null}
         onOpenChange={(open) => !open && setPendingUnexclude(null)}
         onConfirm={handleConfirmUnexclude}
@@ -749,4 +753,4 @@ export function ExclusionsPage() {
   )
 }
 
-export default ExclusionsPage
+export default WatchlistExclusionsPage

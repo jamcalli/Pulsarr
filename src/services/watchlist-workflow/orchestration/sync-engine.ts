@@ -8,7 +8,7 @@
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import { SYSTEM_USER_ID } from '@services/database/methods/exclusion.js'
+import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import {
   extractTmdbId,
   extractTvdbId,

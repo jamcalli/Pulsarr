@@ -9,7 +9,7 @@ import {
   CredenzaTitle,
 } from '@/components/ui/credenza'
 
-interface ExclusionsDeleteConfirmationModalProps {
+interface WatchlistExclusionsDeleteConfirmationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => Promise<void>
@@ -22,13 +22,13 @@ interface ExclusionsDeleteConfirmationModalProps {
  *
  * Explains that removing the exclusion will allow the item to be re-requested during the next sync cycle if it remains on the user's watchlist.
  */
-export function ExclusionsDeleteConfirmationModal({
+export function WatchlistExclusionsDeleteConfirmationModal({
   open,
   onOpenChange,
   onConfirm,
   isSubmitting,
   username,
-}: ExclusionsDeleteConfirmationModalProps) {
+}: WatchlistExclusionsDeleteConfirmationModalProps) {
   return (
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>

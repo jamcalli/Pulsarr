@@ -127,7 +127,7 @@ const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
           description: 'Content routing and rule management endpoints',
         },
         {
-          name: 'Exclusions',
+          name: 'Watchlist Exclusions',
           description: 'Watchlist exclusion management endpoints',
         },
         {

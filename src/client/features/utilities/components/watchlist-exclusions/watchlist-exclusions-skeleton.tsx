@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
-export function ExclusionsSkeleton() {
+export function WatchlistExclusionsSkeleton() {
   return (
     <div>
       <UtilitySectionHeader

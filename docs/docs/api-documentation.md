@@ -21,7 +21,6 @@ The API is organized into the following categories:
 - **[Authentication](./api/authentication)** - Login, logout, and session management
 - **[Config](./api/config)** - Application settings and configuration
 - **[Content Router](./api/content-router)** - Routing rules and content distribution
-- **[Exclusions](./api/exclusions)** - Watchlist exclusion management
 - **[Labels](./api/labels)** - Plex label synchronization and management
 - **[Logs](./api/logs)** - Stream application logs
 - **[Metadata](./api/metadata)** - Refresh and manage content metadata
@@ -38,6 +37,7 @@ The API is organized into the following categories:
 - **[Tags](./api/tags)** - User tagging configuration and synchronization
 - **[TMDB](./api/tmdb)** - TMDB metadata and streaming provider data
 - **[Users](./api/users)** - User management and watchlist access
+- **[Watchlist Exclusions](./api/watchlist-exclusions)** - Watchlist exclusion management
 - **[Watchlist Workflow](./api/watchlist-workflow)** - Start, stop, and monitor the main workflow
 
 **Benefits:**

@@ -178,7 +178,7 @@ const data = {
         },
         {
           title: 'Watchlist Exclusions',
-          url: '/utilities/exclusions',
+          url: '/utilities/watchlist-exclusions',
         },
         {
           title: 'Log Viewer',

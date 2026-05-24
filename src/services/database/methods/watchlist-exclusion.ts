@@ -1,4 +1,4 @@
-import type { WatchlistExclusion } from '@root/types/exclusion.types.js'
+import type { WatchlistExclusion } from '@root/types/watchlist-exclusion.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**

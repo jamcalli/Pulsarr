@@ -1,32 +1,32 @@
 import {
-  CreateExclusionResponseSchema,
-  CreateExclusionSchema,
-  ExclusionErrorSchema,
-  GetExclusionsResponseSchema,
-  GetUserExclusionsParamsSchema,
-  GetUserExclusionsResponseSchema,
-  RemoveExclusionParamsSchema,
-} from '@schemas/exclusions/exclusions.schema.js'
+  CreateWatchlistExclusionResponseSchema,
+  CreateWatchlistExclusionSchema,
+  GetUserWatchlistExclusionsParamsSchema,
+  GetUserWatchlistExclusionsResponseSchema,
+  GetWatchlistExclusionsResponseSchema,
+  RemoveWatchlistExclusionParamsSchema,
+  WatchlistExclusionErrorSchema,
+} from '@schemas/watchlist-exclusions/watchlist-exclusions.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
-  // Create Exclusion
+  // Create Watchlist Exclusion
   fastify.post(
     '/',
     {
       schema: {
-        summary: 'Create exclusion',
-        operationId: 'createExclusion',
+        summary: 'Create watchlist exclusion',
+        operationId: 'createWatchlistExclusion',
         description:
           'Create watchlist exclusion records for a key and set of users',
-        body: CreateExclusionSchema,
+        body: CreateWatchlistExclusionSchema,
         response: {
-          201: CreateExclusionResponseSchema,
-          400: ExclusionErrorSchema,
-          500: ExclusionErrorSchema,
+          201: CreateWatchlistExclusionResponseSchema,
+          400: WatchlistExclusionErrorSchema,
+          500: WatchlistExclusionErrorSchema,
         },
-        tags: ['Exclusions'],
+        tags: ['Watchlist Exclusions'],
       },
     },
     async (request, reply) => {
@@ -49,19 +49,19 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Get All Exclusions
+  // Get All Watchlist Exclusions
   fastify.get(
     '/',
     {
       schema: {
-        summary: 'Get all exclusions',
-        operationId: 'getAllExclusions',
+        summary: 'Get all watchlist exclusions',
+        operationId: 'getAllWatchlistExclusions',
         description: 'Retrieve all watchlist exclusions with user information',
         response: {
-          200: GetExclusionsResponseSchema,
-          500: ExclusionErrorSchema,
+          200: GetWatchlistExclusionsResponseSchema,
+          500: WatchlistExclusionErrorSchema,
         },
-        tags: ['Exclusions'],
+        tags: ['Watchlist Exclusions'],
       },
     },
     async (request, reply) => {
@@ -82,20 +82,20 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Get Exclusions for User
+  // Get Watchlist Exclusions for User
   fastify.get(
     '/user/:userId',
     {
       schema: {
-        summary: 'Get user exclusions',
-        operationId: 'getUserExclusions',
+        summary: 'Get user watchlist exclusions',
+        operationId: 'getUserWatchlistExclusions',
         description: 'Retrieve all watchlist exclusions for a specific user',
-        params: GetUserExclusionsParamsSchema,
+        params: GetUserWatchlistExclusionsParamsSchema,
         response: {
-          200: GetUserExclusionsResponseSchema,
-          500: ExclusionErrorSchema,
+          200: GetUserWatchlistExclusionsResponseSchema,
+          500: WatchlistExclusionErrorSchema,
         },
-        tags: ['Exclusions'],
+        tags: ['Watchlist Exclusions'],
       },
     },
     async (request, reply) => {
@@ -118,21 +118,21 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
 
-  // Remove Exclusion
+  // Remove Watchlist Exclusion
   fastify.delete(
     '/:id',
     {
       schema: {
-        summary: 'Remove exclusion',
-        operationId: 'removeExclusion',
+        summary: 'Remove watchlist exclusion',
+        operationId: 'removeWatchlistExclusion',
         description: 'Remove a watchlist exclusion by ID',
-        params: RemoveExclusionParamsSchema,
+        params: RemoveWatchlistExclusionParamsSchema,
         response: {
           204: { type: 'null', description: 'No Content' },
-          404: ExclusionErrorSchema,
-          500: ExclusionErrorSchema,
+          404: WatchlistExclusionErrorSchema,
+          500: WatchlistExclusionErrorSchema,
         },
-        tags: ['Exclusions'],
+        tags: ['Watchlist Exclusions'],
       },
     },
     async (request, reply) => {

@@ -46,4 +46,4 @@ The Watchlist Exclusions page shows all users' watchlist items in a sortable, fi
 
 ## API Reference
 
-See the [Watchlist Exclusions API documentation](/docs/api/exclusions) for detailed endpoint information.
+See the [Watchlist Exclusions API documentation](/docs/api/watchlist-exclusions) for detailed endpoint information.

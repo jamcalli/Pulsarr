@@ -76,14 +76,13 @@ import './database/types/webhook-methods.js'
 import './database/types/webhook-endpoint-methods.js'
 import './database/types/api-key-methods.js'
 import './database/types/dashboard-methods.js'
-import './database/types/exclusion-methods.js'
+import './database/types/watchlist-exclusion-methods.js'
 import * as analyticsMethods from './database/methods/analytics.js'
 import * as animeMethods from './database/methods/anime.js'
 import * as apiKeyMethods from './database/methods/api-keys.js'
 import * as approvalMethods from './database/methods/approval.js'
 import * as configMethods from './database/methods/config.js'
 import * as dashboardMethods from './database/methods/dashboard.js'
-import * as exclusionMethods from './database/methods/exclusion.js'
 import * as junctionMethods from './database/methods/junction.js'
 import * as notificationMethods from './database/methods/notification.js'
 import * as plexLabelSyncMethods from './database/methods/plex-label-sync.js'
@@ -96,6 +95,7 @@ import * as sessionMethods from './database/methods/session.js'
 import * as sonarrInstanceMethods from './database/methods/sonarr-instance.js'
 import * as userMethods from './database/methods/users.js'
 import * as watchlistMethods from './database/methods/watchlist.js'
+import * as watchlistExclusionMethods from './database/methods/watchlist-exclusion.js'
 import * as webhookMethods from './database/methods/webhook.js'
 import * as webhookEndpointMethods from './database/methods/webhook-endpoints.js'
 
@@ -215,7 +215,7 @@ export class DatabaseService {
       approvalMethods,
       configMethods,
       dashboardMethods,
-      exclusionMethods,
+      watchlistExclusionMethods,
       junctionMethods,
       notificationMethods,
       plexLabelSyncMethods,
