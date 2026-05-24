@@ -4,7 +4,7 @@ Exclude specific items from watchlist sync to prevent re-request loops when Dele
 
 ## Quick Setup
 
-1. Navigate to **Utilities → Exclusions**
+1. Navigate to **Utilities → Watchlist Exclusions**
 2. Find the item you want to exclude using search or filters
 3. Click **Exclude** to skip the item during sync
 4. Click **Unexclude** to restore normal sync behavior
@@ -16,9 +16,13 @@ Exclude specific items from watchlist sync to prevent re-request loops when Dele
 3. **With exclusions**, the sync engine skips excluded items entirely
 4. **Automatic cleanup** — exclusions clear when the user removes the item from their Plex watchlist, so re-adding it later works normally
 
+:::info Interaction with Delete Sync
+Excluded items are treated as unwatchlisted by Delete Sync. If you exclude something that's already in Sonarr/Radarr, the next Delete Sync run will remove it from your library.
+:::
+
 ## Configuration
 
-The Exclusions page shows all users' watchlist items in a sortable, filterable table:
+The Watchlist Exclusions page shows all users' watchlist items in a sortable, filterable table:
 
 | Feature | Description |
 |---------|-------------|
@@ -42,4 +46,4 @@ The Exclusions page shows all users' watchlist items in a sortable, filterable t
 
 ## API Reference
 
-See the [Exclusions API documentation](/docs/api/exclusions) for detailed endpoint information.
+See the [Watchlist Exclusions API documentation](/docs/api/exclusions) for detailed endpoint information.
