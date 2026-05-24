@@ -505,234 +505,242 @@ export function ExclusionsPage() {
           showStatus={false}
         />
 
-        <div className="w-full font-base text-main-foreground overflow-x-auto">
-          <div className="space-y-2 py-4">
-            {/* First row - Search input */}
-            <div className="flex items-center space-x-2">
-              <Input
-                placeholder="Filter by title..."
-                value={
-                  (table.getColumn('title')?.getFilterValue() as string) ?? ''
-                }
-                onChange={(event) =>
-                  table.getColumn('title')?.setFilterValue(event.target.value)
-                }
-                className="w-full max-w-sm min-w-0"
-              />
-            </div>
-
-            {/* Second row - Filters and action buttons */}
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2 flex-wrap">
-                {userFilterOptions.length > 0 && (
-                  <DataTableFacetedFilter
-                    column={table.getColumn('username')}
-                    title="User"
-                    icon={Users}
-                    options={userFilterOptions}
-                    showSearch={userFilterOptions.length > 5}
-                  />
-                )}
-                <DataTableFacetedFilter
-                  column={table.getColumn('type')}
-                  title="Type"
-                  options={typeFilterOptions}
+        <div className="grid gap-4">
+          <div className="w-full min-w-0 font-base text-main-foreground overflow-x-auto">
+            <div className="space-y-2 py-4">
+              {/* First row - Search input */}
+              <div className="flex items-center space-x-2">
+                <Input
+                  placeholder="Filter by title..."
+                  value={
+                    (table.getColumn('title')?.getFilterValue() as string) ?? ''
+                  }
+                  onChange={(event) =>
+                    table.getColumn('title')?.setFilterValue(event.target.value)
+                  }
+                  className="w-full max-w-sm min-w-0"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="noShadow"
-                  size="sm"
-                  aria-label="Refresh exclusions"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  className="h-8 w-8 p-0"
-                >
-                  {isRefreshing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
+
+              {/* Second row - Filters and action buttons */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {userFilterOptions.length > 0 && (
+                    <DataTableFacetedFilter
+                      column={table.getColumn('username')}
+                      title="User"
+                      icon={Users}
+                      options={userFilterOptions}
+                      showSearch={userFilterOptions.length > 5}
+                    />
                   )}
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="noShadow">
-                      Columns <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {table
-                      .getAllColumns()
-                      .filter((column) => column.getCanHide())
-                      .map((column) => (
-                        <DropdownMenuCheckboxItem
-                          key={column.id}
-                          className="capitalize"
-                          checked={column.getIsVisible()}
-                          onCheckedChange={(value) =>
-                            column.toggleVisibility(!!value)
-                          }
-                        >
-                          {column.id}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  <DataTableFacetedFilter
+                    column={table.getColumn('type')}
+                    title="Type"
+                    options={typeFilterOptions}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="noShadow"
+                    size="sm"
+                    aria-label="Refresh exclusions"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="h-8 w-8 p-0"
+                  >
+                    {isRefreshing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="noShadow">
+                        Columns <ChevronDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {table
+                        .getAllColumns()
+                        .filter((column) => column.getCanHide())
+                        .map((column) => (
+                          <DropdownMenuCheckboxItem
+                            key={column.id}
+                            className="capitalize"
+                            checked={column.getIsVisible()}
+                            onCheckedChange={(value) =>
+                              column.toggleVisibility(!!value)
+                            }
+                          >
+                            {column.id}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="text-sm text-foreground font-medium pb-2">
-            {table.getFilteredRowModel().rows.length} of {tableData.length}{' '}
-            items
-          </div>
+            <div className="text-sm text-foreground font-medium pb-2">
+              {table.getFilteredRowModel().rows.length} of {tableData.length}{' '}
+              items
+            </div>
 
-          <div className="rounded-md">
-            <Table>
-              <TableHeader className="font-heading">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      const headerClassName = `px-2 py-2 ${
-                        (header.column.columnDef.meta as ColumnMetaType)
-                          ?.headerClassName || ''
-                      }`
-                      return (
-                        <TableHead key={header.id} className={headerClassName}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                        </TableHead>
-                      )
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && 'selected'}
-                    >
-                      {row.getVisibleCells().map((cell) => {
-                        const cellClassName = `px-2 py-2 ${
-                          (cell.column.columnDef.meta as ColumnMetaType)
-                            ?.className || ''
+            <div className="rounded-md">
+              <Table>
+                <TableHeader className="font-heading">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => {
+                        const headerClassName = `px-2 py-2 ${
+                          (header.column.columnDef.meta as ColumnMetaType)
+                            ?.headerClassName || ''
                         }`
                         return (
-                          <TableCell key={cell.id} className={cellClassName}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </TableCell>
+                          <TableHead
+                            key={header.id}
+                            className={headerClassName}
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
+                          </TableHead>
                         )
                       })}
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      {watchlistItems.length === 0 ? (
-                        <div className="py-8 text-foreground">
-                          <ListX className="h-8 w-8 mx-auto mb-2 opacity-50 text-foreground" />
-                          <p>No watchlist items found</p>
-                          <p className="text-sm">
-                            Watchlist items from configured users will appear
-                            here
-                          </p>
-                        </div>
-                      ) : (
-                        'No results.'
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="flex items-center justify-between px-2 pt-4">
-            <div className="flex items-center space-x-2">
-              <Select
-                value={`${table.getState().pagination.pageSize}`}
-                onValueChange={(value) => {
-                  const newPageSize = Number(value)
-                  setPageSize(newPageSize)
-                  table.setPageSize(newPageSize)
-                }}
-              >
-                <SelectTrigger className="h-8 w-[70px]">
-                  <SelectValue
-                    placeholder={table.getState().pagination.pageSize}
-                  />
-                </SelectTrigger>
-                <SelectContent side="top">
-                  {[10, 20, 30, 40, 50].map((pageSize) => (
-                    <SelectItem key={pageSize} value={`${pageSize}`}>
-                      {pageSize}
-                    </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-foreground font-medium hidden xs:block">
-                per page
-              </p>
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && 'selected'}
+                      >
+                        {row.getVisibleCells().map((cell) => {
+                          const cellClassName = `px-2 py-2 ${
+                            (cell.column.columnDef.meta as ColumnMetaType)
+                              ?.className || ''
+                          }`
+                          return (
+                            <TableCell key={cell.id} className={cellClassName}>
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </TableCell>
+                          )
+                        })}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                      >
+                        {watchlistItems.length === 0 ? (
+                          <div className="py-8 text-foreground">
+                            <ListX className="h-8 w-8 mx-auto mb-2 opacity-50 text-foreground" />
+                            <p>No watchlist items found</p>
+                            <p className="text-sm">
+                              Watchlist items from configured users will appear
+                              here
+                            </p>
+                          </div>
+                        ) : (
+                          'No results.'
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
 
-            <div className="flex items-center justify-center text-sm font-medium text-foreground">
-              {(() => {
-                const filteredCount = table.getFilteredRowModel().rows.length
-                const pageIndex = table.getState().pagination.pageIndex
-                const pageSize = table.getState().pagination.pageSize
-                const pageCount = table.getPageCount()
-                const start = pageIndex * pageSize + 1
-                const end = Math.min((pageIndex + 1) * pageSize, filteredCount)
-                return (
-                  <>
-                    <span className="hidden sm:inline">
-                      {filteredCount > 0
-                        ? `Showing ${start}-${end} of ${filteredCount}`
-                        : 'No results'}
-                    </span>
-                    <span className="sm:hidden">
-                      {filteredCount > 0
-                        ? `Page ${pageIndex + 1} of ${pageCount}`
-                        : 'No results'}
-                    </span>
-                  </>
-                )
-              })()}
-            </div>
+            <div className="flex items-center justify-between px-2 pt-4">
+              <div className="flex items-center space-x-2">
+                <Select
+                  value={`${table.getState().pagination.pageSize}`}
+                  onValueChange={(value) => {
+                    const newPageSize = Number(value)
+                    setPageSize(newPageSize)
+                    table.setPageSize(newPageSize)
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[70px]">
+                    <SelectValue
+                      placeholder={table.getState().pagination.pageSize}
+                    />
+                  </SelectTrigger>
+                  <SelectContent side="top">
+                    {[10, 20, 30, 40, 50].map((pageSize) => (
+                      <SelectItem key={pageSize} value={`${pageSize}`}>
+                        {pageSize}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-foreground font-medium hidden xs:block">
+                  per page
+                </p>
+              </div>
 
-            <div className="space-x-2">
-              <Button
-                variant="noShadow"
-                size="sm"
-                aria-label="Previous page"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <ChevronLeft className="h-4 w-4 xs:hidden" />
-                <span className="hidden xs:inline">Previous</span>
-              </Button>
-              <Button
-                variant="noShadow"
-                size="sm"
-                aria-label="Next page"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                <ChevronRight className="h-4 w-4 xs:hidden" />
-                <span className="hidden xs:inline">Next</span>
-              </Button>
+              <div className="flex items-center justify-center text-sm font-medium text-foreground">
+                {(() => {
+                  const filteredCount = table.getFilteredRowModel().rows.length
+                  const pageIndex = table.getState().pagination.pageIndex
+                  const pageSize = table.getState().pagination.pageSize
+                  const pageCount = table.getPageCount()
+                  const start = pageIndex * pageSize + 1
+                  const end = Math.min(
+                    (pageIndex + 1) * pageSize,
+                    filteredCount,
+                  )
+                  return (
+                    <>
+                      <span className="hidden sm:inline">
+                        {filteredCount > 0
+                          ? `Showing ${start}-${end} of ${filteredCount}`
+                          : 'No results'}
+                      </span>
+                      <span className="sm:hidden">
+                        {filteredCount > 0
+                          ? `Page ${pageIndex + 1} of ${pageCount}`
+                          : 'No results'}
+                      </span>
+                    </>
+                  )
+                })()}
+              </div>
+
+              <div className="space-x-2">
+                <Button
+                  variant="noShadow"
+                  size="sm"
+                  aria-label="Previous page"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                >
+                  <ChevronLeft className="h-4 w-4 xs:hidden" />
+                  <span className="hidden xs:inline">Previous</span>
+                </Button>
+                <Button
+                  variant="noShadow"
+                  size="sm"
+                  aria-label="Next page"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                >
+                  <ChevronRight className="h-4 w-4 xs:hidden" />
+                  <span className="hidden xs:inline">Next</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
