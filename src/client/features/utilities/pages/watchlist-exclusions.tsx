@@ -117,7 +117,7 @@ export function WatchlistExclusionsPage() {
     [],
   )
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>({ added: false })
   const { pageSize, setPageSize } = useTablePagination(
     'watchlist-exclusions',
     10,
@@ -335,7 +335,7 @@ export function WatchlistExclusionsPage() {
           variant="noShadow"
           size="sm"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          className="whitespace-nowrap hidden sm:flex"
+          className="whitespace-nowrap"
         >
           Added
           <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -363,10 +363,6 @@ export function WatchlistExclusionsPage() {
         if (!dateA) return 1
         if (!dateB) return -1
         return new Date(dateA).getTime() - new Date(dateB).getTime()
-      },
-      meta: {
-        className: 'hidden sm:table-cell',
-        headerClassName: 'hidden sm:table-cell',
       },
     },
     {
