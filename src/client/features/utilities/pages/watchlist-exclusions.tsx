@@ -587,11 +587,6 @@ export function WatchlistExclusionsPage() {
               </div>
             </div>
 
-            <div className="text-sm text-foreground font-medium pb-2">
-              {table.getFilteredRowModel().rows.length} of {tableData.length}{' '}
-              items
-            </div>
-
             <div className="rounded-md">
               <Table>
                 <TableHeader className="font-heading">
