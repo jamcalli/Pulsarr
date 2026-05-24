@@ -54,6 +54,7 @@ import {
 } from '@/components/ui/table'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { WatchlistExclusionsDeleteConfirmationModal } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-delete-confirmation-modal'
+import { WatchlistExclusionsExcludeConfirmationModal } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-exclude-confirmation-modal'
 import { WatchlistExclusionsSkeleton } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-skeleton'
 import {
   useCreateWatchlistExclusion,
@@ -108,6 +109,13 @@ export function WatchlistExclusionsPage() {
     exclusionId: number
     key: string
     username: string
+  } | null>(null)
+  const [pendingExclude, setPendingExclude] = React.useState<{
+    key: string
+    userId: number
+    title: string
+    username: string
+    status: string
   } | null>(null)
 
   const [sorting, setSorting] = React.useState<SortingState>([
@@ -175,13 +183,25 @@ export function WatchlistExclusionsPage() {
     })
   }, [watchlistItems, exclusions])
 
-  const handleExclude = async (row: WatchlistExclusionTableRow) => {
+  const handleExclude = (row: WatchlistExclusionTableRow) => {
+    setPendingExclude({
+      key: row.key,
+      userId: row.userId,
+      title: row.title,
+      username: row.username,
+      status: row.status,
+    })
+  }
+
+  const handleConfirmExclude = async () => {
+    if (!pendingExclude) return
     try {
       await createExclusionMutation.mutateAsync({
-        key: row.key,
-        userIds: [row.userId],
+        key: pendingExclude.key,
+        userIds: [pendingExclude.userId],
       })
       toast.success('Exclusion created successfully')
+      setPendingExclude(null)
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to create exclusion'
@@ -506,6 +526,23 @@ export function WatchlistExclusionsPage() {
           removeExclusionMutation.isPending
         }
         username={pendingUnexclude?.username || ''}
+      />
+
+      <WatchlistExclusionsExcludeConfirmationModal
+        open={pendingExclude !== null}
+        onOpenChange={(open) => !open && setPendingExclude(null)}
+        onConfirm={handleConfirmExclude}
+        isSubmitting={
+          pendingExclude !== null &&
+          createExclusionMutation.isPending &&
+          createExclusionMutation.variables?.key === pendingExclude.key &&
+          createExclusionMutation.variables?.userIds.includes(
+            pendingExclude.userId,
+          )
+        }
+        title={pendingExclude?.title || ''}
+        username={pendingExclude?.username || ''}
+        status={pendingExclude?.status || ''}
       />
 
       <div>
