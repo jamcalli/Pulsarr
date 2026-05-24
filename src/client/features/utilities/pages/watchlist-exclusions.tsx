@@ -252,11 +252,23 @@ export function WatchlistExclusionsPage() {
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: ({ row }) => (
-        <div className="font-medium truncate max-w-xs">
-          {row.getValue('title')}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const type = row.original.type
+        const Icon = type === 'movie' ? Film : Tv
+        return (
+          <div className="flex items-center gap-2 max-w-xs">
+            <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div className="truncate">
+              <div className="font-medium truncate">
+                {row.getValue('title')}
+              </div>
+              <div className="text-sm text-muted-foreground capitalize">
+                {type}
+              </div>
+            </div>
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'username',
@@ -270,29 +282,19 @@ export function WatchlistExclusionsPage() {
       },
     },
     {
+      // Hidden column used only for type filtering - not displayed in UI
       accessorKey: 'type',
-      header: () => <div>Type</div>,
-      cell: ({ row }) => {
-        const type = row.getValue('type') as string
-        const icon =
-          type === 'movie' ? (
-            <Film className="h-4 w-4" />
-          ) : (
-            <Tv className="h-4 w-4" />
-          )
-        return (
-          <Badge variant="neutral" className="capitalize">
-            {icon}
-            <span className="ml-1">{type}</span>
-          </Badge>
-        )
-      },
+      id: 'type',
+      header: () => null,
+      cell: () => null,
+      enableSorting: false,
+      enableHiding: false,
+      size: 0,
+      minSize: 0,
+      maxSize: 0,
       filterFn: (row, id, filterValue: string[]) => {
         if (!filterValue?.length) return true
         return filterValue.includes(row.getValue(id) as string)
-      },
-      meta: {
-        className: 'w-[100px]',
       },
     },
     {
