@@ -2,6 +2,14 @@ import type { WatchlistExclusion } from '@root/types/exclusion.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
+ * Sentinel user id representing a global (system-wide) exclusion. An exclusion
+ * row with this user_id vetoes routing for the matching key for all users, not
+ * just the one who created it. Used by automated content-lifecycle integrations
+ * (e.g. maintainerr) that decide content should not exist in the library at all.
+ */
+export const SYSTEM_USER_ID = 0
+
+/**
  * Creates exclusion records for the given watchlist item key and user IDs.
  *
  * Inserts one exclusion per user, skipping duplicates via ON CONFLICT. This prevents
@@ -187,7 +195,10 @@ export async function cleanupExcludedWatchlistItems(
     .whereExists(function () {
       this.select(1)
         .from('watchlist_exclusions')
-        .whereRaw('watchlist_exclusions.user_id = watchlist_items.user_id')
+        .whereRaw(
+          '(watchlist_exclusions.user_id = watchlist_items.user_id OR watchlist_exclusions.user_id = ?)',
+          [SYSTEM_USER_ID],
+        )
         .whereRaw('watchlist_exclusions.key = watchlist_items.key')
     })
     .whereNot('status', 'pending')

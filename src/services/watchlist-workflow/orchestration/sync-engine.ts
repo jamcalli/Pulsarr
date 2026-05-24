@@ -8,6 +8,7 @@
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import { SYSTEM_USER_ID } from '@services/database/methods/exclusion.js'
 import {
   extractTmdbId,
   extractTvdbId,
@@ -268,9 +269,12 @@ export async function syncWatchlistItems(
               return { type: 'skipped', reason: 'watchlist_cap' }
             }
 
-            // Check exclusion gate
+            // Check exclusion gate (per-user or global SYSTEM_USER_ID veto)
             const excludedUsers = exclusionMap.get(item.key)
-            if (excludedUsers?.has(numericUserId)) {
+            if (
+              excludedUsers?.has(numericUserId) ||
+              excludedUsers?.has(SYSTEM_USER_ID)
+            ) {
               deps.logger.debug(
                 `Skipping item "${item.title}" for user ${numericUserId} due to exclusion`,
               )
