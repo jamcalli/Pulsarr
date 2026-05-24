@@ -1524,7 +1524,7 @@ export async function deleteWatchlistItems(
       }
     }
 
-    // Clear exclusions so re-adding the item to a watchlist allows re-request
+    // Clear exclusions so re-adding the item to a watchlist allows routing again
     await trx('watchlist_exclusions')
       .where('user_id', numericUserId)
       .whereIn('key', keys)

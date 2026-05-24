@@ -20,7 +20,7 @@ interface WatchlistExclusionsDeleteConfirmationModalProps {
 /**
  * Renders a modal dialog that prompts the user to confirm removal of a watchlist exclusion.
  *
- * Explains that removing the exclusion will allow the item to be re-requested during the next sync cycle if it remains on the user's watchlist.
+ * Explains that removing the exclusion will allow the item to be routed to Sonarr/Radarr during the next sync cycle if it remains on the user's watchlist.
  */
 export function WatchlistExclusionsDeleteConfirmationModal({
   open,
@@ -38,8 +38,8 @@ export function WatchlistExclusionsDeleteConfirmationModal({
           </CredenzaTitle>
           <CredenzaDescription>
             Are you sure you want to remove this exclusion for {username}? If
-            this item is still on their watchlist, it will be re-requested
-            during the next sync cycle.
+            this item is still on their watchlist, it will be routed to
+            Sonarr/Radarr during the next sync cycle.
           </CredenzaDescription>
         </CredenzaHeader>
         <CredenzaFooter>

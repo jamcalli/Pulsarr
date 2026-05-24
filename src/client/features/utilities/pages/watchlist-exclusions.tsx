@@ -505,7 +505,7 @@ export function WatchlistExclusionsPage() {
       <div>
         <UtilitySectionHeader
           title="Watchlist Exclusions"
-          description="Manage items excluded from watchlist sync to prevent re-request loops"
+          description="Prevent specific watchlist items from being routed to Sonarr and Radarr"
           showStatus={false}
         />
 
