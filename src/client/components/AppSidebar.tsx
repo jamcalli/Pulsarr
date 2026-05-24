@@ -177,10 +177,6 @@ const data = {
           url: '/utilities/delete-sync',
         },
         {
-          title: 'Watchlist Exclusions',
-          url: '/utilities/watchlist-exclusions',
-        },
-        {
           title: 'Log Viewer',
           url: '/utilities/log-viewer',
         },
@@ -203,6 +199,10 @@ const data = {
         {
           title: 'User Tags',
           url: '/utilities/user-tags',
+        },
+        {
+          title: 'Watchlist Exclusions',
+          url: '/utilities/watchlist-exclusions',
         },
       ],
     },
