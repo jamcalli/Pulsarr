@@ -460,6 +460,7 @@ export function WatchlistExclusionsPage() {
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
+    autoResetPageIndex: false,
     initialState: {
       pagination: {
         pageSize,
@@ -475,6 +476,13 @@ export function WatchlistExclusionsPage() {
   React.useEffect(() => {
     table.setPageSize(pageSize)
   }, [pageSize, table])
+
+  // Reset to first page when sorting or filters change, but not when row data
+  // updates (so excluding/unexcluding keeps you on the current page)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sorting and columnFilters are intentional re-run triggers
+  React.useEffect(() => {
+    table.setPageIndex(0)
+  }, [sorting, columnFilters, table])
 
   const isInitialLoad =
     isInitializing ||
