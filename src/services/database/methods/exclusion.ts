@@ -163,3 +163,33 @@ export async function removeExclusion(
     .delete()
   return deleted > 0
 }
+
+/**
+ * Deletes watchlist_items rows for routed content the user has excluded.
+ *
+ * Targets rows where a matching exclusion exists for the same (user_id, key)
+ * and the row has progressed past 'pending' (i.e., was actually routed to an
+ * *arr instance). Cascades to junction and history rows via foreign keys.
+ *
+ * Pending rows are intentionally left in place: the exclusion already vetoes
+ * them at the routing gate, so deleting them would just churn (RSS/ETag would
+ * re-create them on the next poll).
+ *
+ * The exclusion records themselves are preserved — they are the user's
+ * persistent rejection signal and must keep blocking future routes.
+ *
+ * @returns The number of watchlist_items rows deleted
+ */
+export async function cleanupExcludedWatchlistItems(
+  this: DatabaseService,
+): Promise<number> {
+  return await this.knex('watchlist_items')
+    .whereExists(function () {
+      this.select(1)
+        .from('watchlist_exclusions')
+        .whereRaw('watchlist_exclusions.user_id = watchlist_items.user_id')
+        .whereRaw('watchlist_exclusions.key = watchlist_items.key')
+    })
+    .whereNot('status', 'pending')
+    .delete()
+}

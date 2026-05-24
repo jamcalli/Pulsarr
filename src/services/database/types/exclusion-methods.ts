@@ -66,5 +66,16 @@ declare module '@services/database.service.js' {
      * @returns True if the exclusion was found and removed, false otherwise
      */
     removeExclusion(id: number): Promise<boolean>
+
+    /**
+     * Deletes watchlist_items rows for routed content the user has excluded.
+     *
+     * Targets rows where a matching exclusion exists and the row has
+     * progressed past 'pending'. Pending rows are left alone (already vetoed
+     * at the routing gate). Exclusion rows themselves are preserved.
+     *
+     * @returns The number of watchlist_items rows deleted
+     */
+    cleanupExcludedWatchlistItems(): Promise<number>
   }
 }

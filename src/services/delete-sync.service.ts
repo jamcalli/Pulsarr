@@ -283,6 +283,20 @@ export class DeleteSyncService {
           )
         }
 
+        // Step 4.5: Drop watchlist_items rows for routed content the user has
+        // excluded. Removing them here ensures their GUIDs don't appear in the
+        // protected set built below, so the standard *arr deletion pass prunes
+        // the content naturally. Exclusion rows themselves are preserved.
+        if (!dryRun) {
+          const cleanedExcluded =
+            await this.dbService.cleanupExcludedWatchlistItems()
+          if (cleanedExcluded > 0) {
+            this.log.info(
+              `Removed ${cleanedExcluded} routed watchlist item(s) for excluded content`,
+            )
+          }
+        }
+
         // Step 5: Get all watchlisted content GUIDs
         const allWatchlistItems = await this.getAllWatchlistItems(
           this.config.respectUserSyncSetting,

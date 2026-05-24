@@ -103,6 +103,7 @@ export async function handleRemovedItems(
     }
 
     await db.deleteWatchlistItems(userId, removedKeys)
+    await db.clearExclusions(userId, removedKeys)
   }
 }
 
