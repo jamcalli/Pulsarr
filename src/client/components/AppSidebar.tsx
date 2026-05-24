@@ -177,7 +177,7 @@ const data = {
           url: '/utilities/delete-sync',
         },
         {
-          title: 'Exclusions',
+          title: 'Watchlist Exclusions',
           url: '/utilities/exclusions',
         },
         {
