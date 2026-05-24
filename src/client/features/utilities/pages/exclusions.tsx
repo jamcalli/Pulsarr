@@ -505,9 +505,10 @@ export function ExclusionsPage() {
           showStatus={false}
         />
 
-        <div className="w-full font-base text-main-foreground">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="w-full font-base text-main-foreground overflow-x-auto">
+          <div className="space-y-2 py-4">
+            {/* First row - Search input */}
+            <div className="flex items-center space-x-2">
               <Input
                 placeholder="Filter by title..."
                 value={
@@ -518,60 +519,66 @@ export function ExclusionsPage() {
                 }
                 className="w-full max-w-sm min-w-0"
               />
-              {userFilterOptions.length > 0 && (
-                <DataTableFacetedFilter
-                  column={table.getColumn('username')}
-                  title="User"
-                  icon={Users}
-                  options={userFilterOptions}
-                  showSearch={userFilterOptions.length > 5}
-                />
-              )}
-              <DataTableFacetedFilter
-                column={table.getColumn('type')}
-                title="Type"
-                options={typeFilterOptions}
-              />
             </div>
-            <div className="flex items-center gap-2 ml-4">
-              <Button
-                variant="noShadow"
-                size="sm"
-                aria-label="Refresh exclusions"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="h-8 w-8 p-0"
-              >
-                {isRefreshing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
+
+            {/* Second row - Filters and action buttons */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                {userFilterOptions.length > 0 && (
+                  <DataTableFacetedFilter
+                    column={table.getColumn('username')}
+                    title="User"
+                    icon={Users}
+                    options={userFilterOptions}
+                    showSearch={userFilterOptions.length > 5}
+                  />
                 )}
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="noShadow">
-                    Columns <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {table
-                    .getAllColumns()
-                    .filter((column) => column.getCanHide())
-                    .map((column) => (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
-                      >
-                        {column.id}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                <DataTableFacetedFilter
+                  column={table.getColumn('type')}
+                  title="Type"
+                  options={typeFilterOptions}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="noShadow"
+                  size="sm"
+                  aria-label="Refresh exclusions"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="h-8 w-8 p-0"
+                >
+                  {isRefreshing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="noShadow">
+                      Columns <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {table
+                      .getAllColumns()
+                      .filter((column) => column.getCanHide())
+                      .map((column) => (
+                        <DropdownMenuCheckboxItem
+                          key={column.id}
+                          className="capitalize"
+                          checked={column.getIsVisible()}
+                          onCheckedChange={(value) =>
+                            column.toggleVisibility(!!value)
+                          }
+                        >
+                          {column.id}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
 
@@ -681,8 +688,28 @@ export function ExclusionsPage() {
             </div>
 
             <div className="flex items-center justify-center text-sm font-medium text-foreground">
-              Page {table.getState().pagination.pageIndex + 1} of{' '}
-              {table.getPageCount()}
+              {(() => {
+                const filteredCount = table.getFilteredRowModel().rows.length
+                const pageIndex = table.getState().pagination.pageIndex
+                const pageSize = table.getState().pagination.pageSize
+                const pageCount = table.getPageCount()
+                const start = pageIndex * pageSize + 1
+                const end = Math.min((pageIndex + 1) * pageSize, filteredCount)
+                return (
+                  <>
+                    <span className="hidden sm:inline">
+                      {filteredCount > 0
+                        ? `Showing ${start}-${end} of ${filteredCount}`
+                        : 'No results'}
+                    </span>
+                    <span className="sm:hidden">
+                      {filteredCount > 0
+                        ? `Page ${pageIndex + 1} of ${pageCount}`
+                        : 'No results'}
+                    </span>
+                  </>
+                )
+              })()}
             </div>
 
             <div className="space-x-2">
