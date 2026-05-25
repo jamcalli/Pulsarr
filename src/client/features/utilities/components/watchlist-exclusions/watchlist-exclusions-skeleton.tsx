@@ -29,10 +29,10 @@ export function WatchlistExclusionsSkeleton() {
         <TableSkeleton
           rows={10}
           columns={[
-            { type: 'text', width: 'w-full max-w-[300px]' },
+            { type: 'text', width: 'w-full max-w-75' },
             { type: 'text', width: 'w-24' },
-            { type: 'badge', className: 'w-[100px]' },
-            { type: 'badge', className: 'w-[100px]' },
+            { type: 'badge', className: 'w-25' },
+            { type: 'badge', className: 'w-25' },
             { type: 'text', width: 'w-20', hideOnMobile: true },
             { type: 'button', width: 'w-24' },
           ]}
