@@ -2,10 +2,23 @@ import type { GetUserWatchlistResponse } from '@root/schemas/users/watchlist.sch
 import * as React from 'react'
 import { toast } from 'sonner'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import {
+  WatchlistExclusionsActiveTable,
+  type WatchlistExclusionsActiveTableRef,
+} from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-active-table'
+import {
+  type BulkExclusionScope,
+  type BulkExclusionStatus,
+  WatchlistExclusionsBulkModal,
+} from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-bulk-modal'
+import { WatchlistExclusionsBulkRemoveModal } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-bulk-remove-modal'
 import { WatchlistExclusionsDeleteConfirmationModal } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-delete-confirmation-modal'
 import { WatchlistExclusionsExcludeConfirmationModal } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-exclude-confirmation-modal'
 import { WatchlistExclusionsSkeleton } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-skeleton'
-import { WatchlistExclusionsTable } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-table'
+import {
+  WatchlistExclusionsTable,
+  type WatchlistExclusionsTableRef,
+} from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-table'
 import type { WatchlistExclusionTableRow } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-table-columns'
 import {
   useCreateWatchlistExclusion,
@@ -56,6 +69,20 @@ export function WatchlistExclusionsPage() {
     username: string
     status: string
   } | null>(null)
+  const tableRef = React.useRef<WatchlistExclusionsTableRef>(null)
+  const activeTableRef = React.useRef<WatchlistExclusionsActiveTableRef | null>(
+    null,
+  )
+  const [pendingBulk, setPendingBulk] = React.useState<
+    WatchlistExclusionTableRow[] | null
+  >(null)
+  const [bulkStatus, setBulkStatus] =
+    React.useState<BulkExclusionStatus>('idle')
+  const [pendingBulkRemove, setPendingBulkRemove] = React.useState<
+    number[] | null
+  >(null)
+  const [bulkRemoveStatus, setBulkRemoveStatus] =
+    React.useState<BulkExclusionStatus>('idle')
 
   const fetchAllWatchlistItems = React.useCallback(async () => {
     if (!users?.length) {
@@ -119,6 +146,16 @@ export function WatchlistExclusionsPage() {
     }))
   }, [watchlistItems])
 
+  const globallyBlockedKeys = React.useMemo(
+    () => new Set(exclusions.filter((e) => e.user_id === 0).map((e) => e.key)),
+    [exclusions],
+  )
+
+  const keyToTitleMap = React.useMemo(
+    () => new Map(watchlistItems.map((item) => [item.key, item.title])),
+    [watchlistItems],
+  )
+
   const handleExclude = (row: WatchlistExclusionTableRow) => {
     setPendingExclude({
       key: row.key,
@@ -145,16 +182,6 @@ export function WatchlistExclusionsPage() {
     }
   }
 
-  const handleUnexclude = (row: WatchlistExclusionTableRow) => {
-    if (row.exclusionId) {
-      setPendingUnexclude({
-        exclusionId: row.exclusionId,
-        key: row.key,
-        username: row.username,
-      })
-    }
-  }
-
   const handleConfirmUnexclude = async () => {
     if (!pendingUnexclude) return
     try {
@@ -176,6 +203,75 @@ export function WatchlistExclusionsPage() {
       toast.error('Failed to refresh data')
     } finally {
       setIsRefreshing(false)
+    }
+  }
+
+  const handleBulkActions = (rows: WatchlistExclusionTableRow[]) => {
+    setPendingBulk(rows)
+    setBulkStatus('idle')
+  }
+
+  const handleBulkExclude = async (
+    rows: WatchlistExclusionTableRow[],
+    scope: BulkExclusionScope,
+  ) => {
+    if (rows.length === 0) return
+    setBulkStatus('loading')
+
+    const byKey = new Map<string, Set<number>>()
+    for (const row of rows) {
+      const userId = scope === 'global' ? 0 : row.userId
+      const users = byKey.get(row.key) ?? new Set<number>()
+      users.add(userId)
+      byKey.set(row.key, users)
+    }
+
+    const results = await Promise.allSettled(
+      Array.from(byKey.entries()).map(([key, userIds]) =>
+        createExclusionMutation.mutateAsync({
+          key,
+          userIds: Array.from(userIds),
+        }),
+      ),
+    )
+    const failures = results.filter((r) => r.status === 'rejected').length
+    setBulkStatus(failures === 0 ? 'success' : 'error')
+    await refetchExclusions()
+    tableRef.current?.clearSelection()
+    setTimeout(() => {
+      setPendingBulk(null)
+      setBulkStatus('idle')
+    }, 600)
+    if (failures === 0) {
+      toast.success('Bulk exclude complete')
+    } else {
+      toast.error(`Bulk exclude completed with ${failures} failure(s)`)
+    }
+  }
+
+  const handleBulkRemove = (ids: number[]) => {
+    if (ids.length === 0) return
+    setPendingBulkRemove(ids)
+    setBulkRemoveStatus('idle')
+  }
+
+  const handleConfirmBulkRemove = async () => {
+    if (!pendingBulkRemove || pendingBulkRemove.length === 0) return
+    setBulkRemoveStatus('loading')
+
+    const results = await Promise.allSettled(
+      pendingBulkRemove.map((id) => removeExclusionMutation.mutateAsync(id)),
+    )
+    const failures = results.filter((r) => r.status === 'rejected').length
+    setBulkRemoveStatus(failures === 0 ? 'success' : 'error')
+    await refetchExclusions()
+    activeTableRef.current?.clearSelection()
+    setPendingBulkRemove(null)
+    setBulkRemoveStatus('idle')
+    if (failures === 0) {
+      toast.success('Bulk remove complete')
+    } else {
+      toast.error(`Bulk remove completed with ${failures} failure(s)`)
     }
   }
 
@@ -220,6 +316,28 @@ export function WatchlistExclusionsPage() {
         status={pendingExclude?.status || ''}
       />
 
+      <WatchlistExclusionsBulkModal
+        open={pendingBulk !== null}
+        onOpenChange={(open) => {
+          if (!open && bulkStatus !== 'loading') setPendingBulk(null)
+        }}
+        selectedRows={pendingBulk ?? []}
+        onBulkExclude={handleBulkExclude}
+        actionStatus={bulkStatus}
+      />
+
+      <WatchlistExclusionsBulkRemoveModal
+        open={pendingBulkRemove !== null}
+        onOpenChange={(open) => {
+          if (!open && bulkRemoveStatus !== 'loading') {
+            setPendingBulkRemove(null)
+          }
+        }}
+        onConfirm={handleConfirmBulkRemove}
+        isSubmitting={bulkRemoveStatus === 'loading'}
+        count={pendingBulkRemove?.length ?? 0}
+      />
+
       <div>
         <UtilitySectionHeader
           title="Watchlist Exclusions"
@@ -227,17 +345,35 @@ export function WatchlistExclusionsPage() {
           showStatus={false}
         />
 
-        <div className="grid gap-4">
-          <WatchlistExclusionsTable
-            data={tableData}
-            userFilterOptions={userFilterOptions}
-            isRefreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            onExclude={handleExclude}
-            onUnexclude={handleUnexclude}
-            createMutation={createExclusionMutation}
-            removeMutation={removeExclusionMutation}
-          />
+        <div className="mt-6 space-y-6">
+          <div>
+            <h3 className="font-medium text-foreground mb-2">Watchlists</h3>
+            <WatchlistExclusionsTable
+              ref={tableRef}
+              data={tableData}
+              userFilterOptions={userFilterOptions}
+              isRefreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              onExclude={handleExclude}
+              createMutation={createExclusionMutation}
+              onBulkActions={handleBulkActions}
+              globallyBlockedKeys={globallyBlockedKeys}
+            />
+          </div>
+
+          <div>
+            <h3 className="font-medium text-foreground mb-2">
+              Active Exclusions
+            </h3>
+            <WatchlistExclusionsActiveTable
+              exclusions={exclusions}
+              keyToTitleMap={keyToTitleMap}
+              onRemove={(entry) => setPendingUnexclude(entry)}
+              onBulkRemove={handleBulkRemove}
+              removeMutation={removeExclusionMutation}
+              selectionRef={activeTableRef}
+            />
+          </div>
         </div>
       </div>
     </>

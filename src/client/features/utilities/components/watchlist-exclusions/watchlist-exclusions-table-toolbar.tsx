@@ -1,6 +1,7 @@
 import type { Table } from '@tanstack/react-table'
 import {
   ChevronDown,
+  Edit,
   Film,
   Loader2,
   RefreshCw,
@@ -26,6 +27,7 @@ interface WatchlistExclusionsTableToolbarProps {
   onResetFilters: () => void
   isRefreshing: boolean
   onRefresh: () => void
+  onBulkActions?: (selectedRows: WatchlistExclusionTableRow[]) => void
 }
 
 const typeFilterOptions = [
@@ -40,7 +42,10 @@ export function WatchlistExclusionsTableToolbar({
   onResetFilters,
   isRefreshing,
   onRefresh,
+  onBulkActions,
 }: WatchlistExclusionsTableToolbarProps) {
+  const selectedCount = table.getSelectedRowModel().rows.length
+
   return (
     <div className="space-y-2 py-4">
       <div className="flex items-center space-x-2">
@@ -53,6 +58,24 @@ export function WatchlistExclusionsTableToolbar({
           className="w-full max-w-sm min-w-0"
         />
       </div>
+
+      {selectedCount > 0 && onBulkActions && (
+        <div className="flex items-center justify-start gap-2">
+          <Button
+            variant="blue"
+            size="sm"
+            className="flex items-center gap-2 h-10"
+            onClick={() =>
+              onBulkActions(
+                table.getSelectedRowModel().rows.map((r) => r.original),
+              )
+            }
+          >
+            <Edit className="h-4 w-4" />
+            Bulk Actions ({selectedCount})
+          </Button>
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">

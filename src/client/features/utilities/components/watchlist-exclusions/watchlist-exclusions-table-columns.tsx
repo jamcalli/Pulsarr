@@ -1,11 +1,9 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Ban, Film, Loader2, Tv, Undo2 } from 'lucide-react'
+import { ArrowUpDown, Ban, CheckCircle, Film, Loader2, Tv } from 'lucide-react'
+import { createSelectColumn } from '@/components/table/data-table-select-column'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type {
-  useCreateWatchlistExclusion,
-  useRemoveWatchlistExclusion,
-} from '@/features/utilities/hooks/useWatchlistExclusionMutations'
+import type { useCreateWatchlistExclusion } from '@/features/utilities/hooks/useWatchlistExclusionMutations'
 
 export interface WatchlistExclusionTableRow {
   title: string
@@ -22,18 +20,19 @@ export interface WatchlistExclusionTableRow {
 
 interface WatchlistExclusionColumnsProps {
   onExclude: (row: WatchlistExclusionTableRow) => void
-  onUnexclude: (row: WatchlistExclusionTableRow) => void
   createMutation: ReturnType<typeof useCreateWatchlistExclusion>
-  removeMutation: ReturnType<typeof useRemoveWatchlistExclusion>
+  globallyBlockedKeys: Set<string>
 }
 
 export function createWatchlistExclusionColumns({
   onExclude,
-  onUnexclude,
   createMutation,
-  removeMutation,
+  globallyBlockedKeys,
 }: WatchlistExclusionColumnsProps): ColumnDef<WatchlistExclusionTableRow>[] {
   return [
+    createSelectColumn<WatchlistExclusionTableRow>({
+      meta: { className: 'w-10', headerClassName: 'w-10' },
+    }),
     {
       accessorKey: 'title',
       header: ({ column }) => (
@@ -107,10 +106,18 @@ export function createWatchlistExclusionColumns({
       ),
       cell: ({ row }) => {
         const status = row.getValue('status') as string
+        const isGloballyBlocked = globallyBlockedKeys.has(row.original.key)
         return (
-          <Badge variant={status === 'pending' ? 'neutral' : 'default'}>
-            {status}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-1">
+            <Badge variant={status === 'pending' ? 'neutral' : 'default'}>
+              {status}
+            </Badge>
+            {isGloballyBlocked && (
+              <Badge variant="warn" title="Globally blocked for all users">
+                Global
+              </Badge>
+            )}
+          </div>
         )
       },
       sortingFn: (rowA, rowB) => {
@@ -183,37 +190,24 @@ export function createWatchlistExclusionColumns({
       },
       enableHiding: false,
       cell: ({ row }) => {
+        if (row.original.isExcluded) {
+          return (
+            <div
+              className="flex justify-center"
+              title="Manage in Active Exclusions below"
+            >
+              <Badge variant="default" className="h-8 px-3">
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Excluded
+              </Badge>
+            </div>
+          )
+        }
+
         const isExcluding =
           createMutation.isPending &&
           createMutation.variables?.key === row.original.key &&
           createMutation.variables?.userIds.includes(row.original.userId)
-        const isUnexcluding =
-          row.original.exclusionId !== null &&
-          removeMutation.variables === row.original.exclusionId &&
-          removeMutation.isPending
-
-        if (row.original.isExcluded) {
-          return (
-            <div className="flex justify-center">
-              <Button
-                variant="noShadow"
-                size="sm"
-                className="h-8"
-                onClick={() => onUnexclude(row.original)}
-                disabled={isUnexcluding}
-              >
-                {isUnexcluding ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Undo2 className="h-4 w-4" />
-                )}
-                <span className="ml-1">
-                  {isUnexcluding ? 'Removing...' : 'Unexclude'}
-                </span>
-              </Button>
-            </div>
-          )
-        }
 
         return (
           <div className="flex justify-center">

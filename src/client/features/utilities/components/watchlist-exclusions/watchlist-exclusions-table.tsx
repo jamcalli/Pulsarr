@@ -32,10 +32,7 @@ import {
   type WatchlistExclusionTableRow,
 } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-table-columns'
 import { WatchlistExclusionsTableToolbar } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-table-toolbar'
-import type {
-  useCreateWatchlistExclusion,
-  useRemoveWatchlistExclusion,
-} from '@/features/utilities/hooks/useWatchlistExclusionMutations'
+import type { useCreateWatchlistExclusion } from '@/features/utilities/hooks/useWatchlistExclusionMutations'
 import { useTablePagination } from '@/hooks/use-table-pagination'
 
 interface ColumnMetaType {
@@ -49,21 +46,31 @@ interface WatchlistExclusionsTableProps {
   isRefreshing: boolean
   onRefresh: () => void
   onExclude: (row: WatchlistExclusionTableRow) => void
-  onUnexclude: (row: WatchlistExclusionTableRow) => void
   createMutation: ReturnType<typeof useCreateWatchlistExclusion>
-  removeMutation: ReturnType<typeof useRemoveWatchlistExclusion>
+  onBulkActions?: (selectedRows: WatchlistExclusionTableRow[]) => void
+  globallyBlockedKeys: Set<string>
 }
 
-export function WatchlistExclusionsTable({
-  data,
-  userFilterOptions,
-  isRefreshing,
-  onRefresh,
-  onExclude,
-  onUnexclude,
-  createMutation,
-  removeMutation,
-}: WatchlistExclusionsTableProps) {
+export interface WatchlistExclusionsTableRef {
+  clearSelection: () => void
+}
+
+export const WatchlistExclusionsTable = React.forwardRef<
+  WatchlistExclusionsTableRef,
+  WatchlistExclusionsTableProps
+>(function WatchlistExclusionsTable(
+  {
+    data,
+    userFilterOptions,
+    isRefreshing,
+    onRefresh,
+    onExclude,
+    createMutation,
+    onBulkActions,
+    globallyBlockedKeys,
+  },
+  ref,
+) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'added', desc: true },
   ])
@@ -72,24 +79,30 @@ export function WatchlistExclusionsTable({
   )
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({ added: false })
+  const [rowSelection, setRowSelection] = React.useState({})
   const { pageSize, setPageSize } = useTablePagination(
     'watchlist-exclusions',
     10,
   )
 
+  React.useImperativeHandle(ref, () => ({
+    clearSelection: () => setRowSelection({}),
+  }))
+
   const columns = createWatchlistExclusionColumns({
     onExclude,
-    onUnexclude,
     createMutation,
-    removeMutation,
+    globallyBlockedKeys,
   })
 
   const table = useReactTable({
     data,
     columns,
     getRowId: (row) => row.id,
+    enableRowSelection: true,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -105,6 +118,7 @@ export function WatchlistExclusionsTable({
       sorting,
       columnFilters,
       columnVisibility,
+      rowSelection,
     },
   })
 
@@ -128,6 +142,7 @@ export function WatchlistExclusionsTable({
         onResetFilters={() => setColumnFilters([])}
         isRefreshing={isRefreshing}
         onRefresh={onRefresh}
+        onBulkActions={onBulkActions}
       />
 
       <div className="rounded-md">
@@ -280,4 +295,4 @@ export function WatchlistExclusionsTable({
       </div>
     </div>
   )
-}
+})
