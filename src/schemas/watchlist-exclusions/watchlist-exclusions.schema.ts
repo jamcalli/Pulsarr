@@ -6,6 +6,9 @@ const WatchlistExclusionSchema = z.object({
   id: z.number(),
   user_id: z.number(),
   key: z.string(),
+  title: z.string(),
+  type: z.string(),
+  guids: z.array(z.string()),
   excluded_at: z.string(),
 })
 
@@ -19,6 +22,9 @@ export const CreateWatchlistExclusionSchema = z.object({
   userIds: z
     .array(z.number())
     .min(1, { error: 'At least one user ID is required' }),
+  title: z.string().trim().min(1, { error: 'Title is required' }),
+  type: z.string().trim().min(1, { error: 'Type is required' }),
+  guids: z.array(z.string()).default([]),
 })
 
 export const CreateWatchlistExclusionResponseSchema = z.object({

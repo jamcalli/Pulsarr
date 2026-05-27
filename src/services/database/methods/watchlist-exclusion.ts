@@ -1,5 +1,6 @@
 import type { WatchlistExclusion } from '@root/types/watchlist-exclusion.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { parseGuids } from '@utils/guid-handler.js'
 
 /**
  * Sentinel user id representing a global exclusion that vetoes routing for the
@@ -16,12 +17,20 @@ export async function excludeWatchlistItem(
   this: DatabaseService,
   key: string,
   userIds: number[],
+  title: string,
+  type: string,
+  guids: string[],
 ): Promise<number> {
   if (userIds.length === 0) return 0
+
+  const guidsJson = JSON.stringify(guids)
 
   const rows = userIds.map((userId) => ({
     user_id: userId,
     key,
+    title,
+    type,
+    guids: guidsJson,
     excluded_at: this.timestamp,
   }))
 
@@ -99,10 +108,12 @@ export async function getExclusionsForUser(
   this: DatabaseService,
   userId: number,
 ): Promise<WatchlistExclusion[]> {
-  return await this.knex('watchlist_exclusions')
+  const rows = await this.knex('watchlist_exclusions')
     .where('user_id', userId)
     .orderBy('excluded_at', 'desc')
     .select('*')
+
+  return rows.map((row) => ({ ...row, guids: parseGuids(row.guids) }))
 }
 
 /**
@@ -111,16 +122,21 @@ export async function getExclusionsForUser(
 export async function getAllExclusions(
   this: DatabaseService,
 ): Promise<Array<WatchlistExclusion & { username: string }>> {
-  return await this.knex('watchlist_exclusions as we')
+  const rows = await this.knex('watchlist_exclusions as we')
     .join('users as u', 'we.user_id', 'u.id')
     .select(
       'we.id',
       'we.user_id',
       'we.key',
+      'we.title',
+      'we.type',
+      'we.guids',
       'we.excluded_at',
       'u.name as username',
     )
     .orderBy('we.excluded_at', 'desc')
+
+  return rows.map((row) => ({ ...row, guids: parseGuids(row.guids) }))
 }
 
 /**

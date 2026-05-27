@@ -1,61 +1,104 @@
+import { AlertTriangle, Ban, Check, Loader2 } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Credenza,
-  CredenzaClose,
+  CredenzaBody,
   CredenzaContent,
   CredenzaDescription,
-  CredenzaFooter,
   CredenzaHeader,
   CredenzaTitle,
 } from '@/components/ui/credenza'
+import type { BulkExclusionStatus } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-bulk-modal'
 
 interface WatchlistExclusionsExcludeConfirmationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => Promise<void>
-  isSubmitting: boolean
+  actionStatus: BulkExclusionStatus
   title: string
   username: string
   status: string
 }
 
-/**
- * Renders a modal dialog that prompts the user to confirm creating a watchlist exclusion.
- *
- * Warns when the item is already in the library that the next Delete Sync run will remove it.
- */
 export function WatchlistExclusionsExcludeConfirmationModal({
   open,
   onOpenChange,
   onConfirm,
-  isSubmitting,
+  actionStatus,
   title,
   username,
   status,
 }: WatchlistExclusionsExcludeConfirmationModalProps) {
   const isInLibrary = status === 'grabbed' || status === 'notified'
+  const isLoading = actionStatus === 'loading'
+  const isBusy = actionStatus !== 'idle'
+
+  const handleOpenChange = (next: boolean) => {
+    if (isLoading) return
+    onOpenChange(next)
+  }
 
   return (
-    <Credenza open={open} onOpenChange={onOpenChange}>
-      <CredenzaContent>
+    <Credenza open={open} onOpenChange={handleOpenChange}>
+      <CredenzaContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <CredenzaHeader>
           <CredenzaTitle className="text-foreground">
-            Exclude this item?
+            Exclude Watchlist Item
           </CredenzaTitle>
           <CredenzaDescription>
-            {isInLibrary
-              ? `This will block "${title}" from being routed for ${username}. "${title}" is already in your library, so the next Delete Sync run will remove it.`
-              : `This will block "${title}" from being routed for ${username} on future sync cycles.`}
+            Excluding "{title}" for {username}
           </CredenzaDescription>
         </CredenzaHeader>
-        <CredenzaFooter>
-          <CredenzaClose asChild>
-            <Button variant="neutral">Cancel</Button>
-          </CredenzaClose>
-          <Button variant="clear" onClick={onConfirm} disabled={isSubmitting}>
-            {isSubmitting ? 'Excluding...' : 'Exclude'}
-          </Button>
-        </CredenzaFooter>
+
+        <CredenzaBody className="space-y-4">
+          <Alert variant="error" className="break-words">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <AlertTitle>Warning</AlertTitle>
+            <AlertDescription className="text-sm">
+              {isInLibrary
+                ? `This will block "${title}" from being routed for ${username}. "${title}" is already in your library, so the next Delete Sync run will remove it.`
+                : `This will block "${title}" from being routed for ${username} on future sync cycles.`}
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                onClick={onConfirm}
+                disabled={isBusy}
+                className="min-w-[100px] flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Excluding...
+                  </>
+                ) : actionStatus === 'success' ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Excluded
+                  </>
+                ) : (
+                  <>
+                    <Ban className="h-4 w-4" />
+                    Exclude
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div className="flex justify-end">
+              <Button
+                onClick={() => handleOpenChange(false)}
+                disabled={isBusy}
+                variant="neutral"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </CredenzaBody>
       </CredenzaContent>
     </Credenza>
   )

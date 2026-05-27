@@ -49,7 +49,7 @@ export function WatchlistExclusionsBulkModal({
           alreadyExcluded++
         } else {
           excludable.push(row)
-          if (IN_LIBRARY_STATUSES.has(row.status)) inLibrary++
+          if (row.status && IN_LIBRARY_STATUSES.has(row.status)) inLibrary++
         }
       }
       return {
@@ -61,6 +61,7 @@ export function WatchlistExclusionsBulkModal({
 
   const canExclude = excludableRows.length > 0
   const isLoading = actionStatus === 'loading'
+  const isBusy = actionStatus !== 'idle'
 
   const handleOpenChange = (next: boolean) => {
     if (isLoading) return
@@ -88,8 +89,9 @@ export function WatchlistExclusionsBulkModal({
             <AlertTitle>Warning</AlertTitle>
             <AlertDescription className="text-sm">
               You are about to exclude {excludableRows.length} watchlist{' '}
-              {excludableRows.length === 1 ? 'item' : 'items'}. Excluded items
-              are removed in the Active Exclusions section below.
+              {excludableRows.length === 1 ? 'item' : 'items'}. Future sync
+              cycles will skip routing for{' '}
+              {excludableRows.length === 1 ? 'it' : 'them'}.
             </AlertDescription>
           </Alert>
 
@@ -125,7 +127,7 @@ export function WatchlistExclusionsBulkModal({
                   onCheckedChange={(checked) =>
                     setScope(checked ? 'global' : 'per-user')
                   }
-                  disabled={isLoading}
+                  disabled={isBusy}
                 />
                 <label
                   htmlFor={globalScopeId}
@@ -147,7 +149,7 @@ export function WatchlistExclusionsBulkModal({
               {canExclude && (
                 <Button
                   onClick={handleExclude}
-                  disabled={isLoading}
+                  disabled={isBusy}
                   className="min-w-[100px] flex items-center justify-center gap-2"
                 >
                   {isLoading ? (
@@ -173,7 +175,7 @@ export function WatchlistExclusionsBulkModal({
             <div className="flex justify-end">
               <Button
                 onClick={() => handleOpenChange(false)}
-                disabled={isLoading}
+                disabled={isBusy}
                 variant="neutral"
               >
                 Cancel

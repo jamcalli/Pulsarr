@@ -3,10 +3,6 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import {
-  WatchlistExclusionsActiveTable,
-  type WatchlistExclusionsActiveTableRef,
-} from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-active-table'
-import {
   type BulkExclusionScope,
   type BulkExclusionStatus,
   WatchlistExclusionsBulkModal,
@@ -19,13 +15,17 @@ import {
   WatchlistExclusionsTable,
   type WatchlistExclusionsTableRef,
 } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-table'
-import type { WatchlistExclusionTableRow } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-table-columns'
+import {
+  GLOBAL_USER_LABEL,
+  type WatchlistExclusionTableRow,
+} from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-table-columns'
 import {
   useCreateWatchlistExclusion,
   useRemoveWatchlistExclusion,
 } from '@/features/utilities/hooks/useWatchlistExclusionMutations'
 import { useWatchlistExclusions } from '@/features/utilities/hooks/useWatchlistExclusions'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useUserOptions } from '@/hooks/useUserOptions'
 import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -35,6 +35,7 @@ interface WatchlistItemWithUser {
   type: string
   status: string
   added: string | null
+  guids: string[]
   userId: number
   username: string
 }
@@ -42,6 +43,7 @@ interface WatchlistItemWithUser {
 export function WatchlistExclusionsPage() {
   const { isInitialized, initialize } = useConfigStore()
   const users = useConfigStore((state) => state.users)
+  const { options: realUserOptions } = useUserOptions()
   const isInitializing = useInitializeWithMinDuration(initialize)
 
   const {
@@ -68,13 +70,12 @@ export function WatchlistExclusionsPage() {
     key: string
     userId: number
     title: string
+    type: string
+    guids: string[]
     username: string
     status: string
   } | null>(null)
   const tableRef = React.useRef<WatchlistExclusionsTableRef>(null)
-  const activeTableRef = React.useRef<WatchlistExclusionsActiveTableRef | null>(
-    null,
-  )
   const [pendingBulk, setPendingBulk] = React.useState<
     WatchlistExclusionTableRow[] | null
   >(null)
@@ -84,6 +85,10 @@ export function WatchlistExclusionsPage() {
     number[] | null
   >(null)
   const [bulkRemoveStatus, setBulkRemoveStatus] =
+    React.useState<BulkExclusionStatus>('idle')
+  const [unexcludeStatus, setUnexcludeStatus] =
+    React.useState<BulkExclusionStatus>('idle')
+  const [excludeStatus, setExcludeStatus] =
     React.useState<BulkExclusionStatus>('idle')
 
   const fetchAllWatchlistItems = React.useCallback(async () => {
@@ -106,6 +111,7 @@ export function WatchlistExclusionsPage() {
             type: item.type,
             status: item.status,
             added: item.added,
+            guids: item.guids,
             userId: user.id,
             username: user.name,
           }))
@@ -124,79 +130,163 @@ export function WatchlistExclusionsPage() {
     }
   }, [isInitialized, hasLoadedWatchlists, fetchAllWatchlistItems])
 
-  const exclusionByUserAndKey = React.useMemo(
-    () => new Map(exclusions.map((e) => [`${e.user_id}:${e.key}`, e] as const)),
-    [exclusions],
-  )
-
   const tableData = React.useMemo<WatchlistExclusionTableRow[]>(() => {
-    return watchlistItems.map((item) => {
-      const exclusion = exclusionByUserAndKey.get(`${item.userId}:${item.key}`)
-      return {
-        ...item,
-        id: `${item.userId}-${item.key}`,
-        isExcluded: !!exclusion,
-        exclusionId: exclusion?.id ?? null,
+    const perUserExclusionByUserAndKey = new Map<
+      string,
+      (typeof exclusions)[number]
+    >()
+    const globalKeys = new Set<string>()
+    for (const exclusion of exclusions) {
+      if (exclusion.user_id === 0) {
+        globalKeys.add(exclusion.key)
+      } else {
+        perUserExclusionByUserAndKey.set(
+          `${exclusion.user_id}:${exclusion.key}`,
+          exclusion,
+        )
       }
-    })
-  }, [watchlistItems, exclusionByUserAndKey])
+    }
+
+    const watchlistRows: WatchlistExclusionTableRow[] = watchlistItems.map(
+      (item) => {
+        const exclusion = perUserExclusionByUserAndKey.get(
+          `${item.userId}:${item.key}`,
+        )
+        return {
+          id: `wl-${item.userId}:${item.key}`,
+          rowKind: 'watchlist',
+          title: item.title,
+          key: item.key,
+          type: item.type,
+          status: item.status,
+          added: item.added,
+          excluded_at: exclusion?.excluded_at ?? null,
+          guids: item.guids,
+          userId: item.userId,
+          username: item.username,
+          isExcluded: !!exclusion,
+          exclusionId: exclusion?.id ?? null,
+          isGloballyBlocked: globalKeys.has(item.key),
+        }
+      },
+    )
+
+    const matchedPerUserExclusionIds = new Set(
+      watchlistRows
+        .map((r) => r.exclusionId)
+        .filter((id): id is number => id !== null),
+    )
+
+    const orphanRows: WatchlistExclusionTableRow[] = []
+    for (const exclusion of exclusions) {
+      if (exclusion.user_id === 0) {
+        orphanRows.push({
+          id: `excl-${exclusion.id}`,
+          rowKind: 'global',
+          title: exclusion.title,
+          key: exclusion.key,
+          type: exclusion.type,
+          status: null,
+          added: null,
+          excluded_at: exclusion.excluded_at,
+          guids: exclusion.guids,
+          userId: 0,
+          username: GLOBAL_USER_LABEL,
+          isExcluded: true,
+          exclusionId: exclusion.id,
+          isGloballyBlocked: true,
+        })
+      } else if (!matchedPerUserExclusionIds.has(exclusion.id)) {
+        orphanRows.push({
+          id: `excl-${exclusion.id}`,
+          rowKind: 'orphan-user',
+          title: exclusion.title,
+          key: exclusion.key,
+          type: exclusion.type,
+          status: null,
+          added: null,
+          excluded_at: exclusion.excluded_at,
+          guids: exclusion.guids,
+          userId: exclusion.user_id,
+          username: exclusion.username,
+          isExcluded: true,
+          exclusionId: exclusion.id,
+          isGloballyBlocked: globalKeys.has(exclusion.key),
+        })
+      }
+    }
+
+    return [...watchlistRows, ...orphanRows]
+  }, [watchlistItems, exclusions])
 
   const userFilterOptions = React.useMemo(() => {
-    const uniqueUsers = new Map(
-      watchlistItems.map((item) => [item.userId, item.username]),
-    )
-    return Array.from(uniqueUsers.values()).map((name) => ({
-      label: name,
-      value: name,
-    }))
-  }, [watchlistItems])
-
-  const globallyBlockedKeys = React.useMemo(
-    () => new Set(exclusions.filter((e) => e.user_id === 0).map((e) => e.key)),
-    [exclusions],
-  )
-
-  const keyToTitleMap = React.useMemo(
-    () => new Map(watchlistItems.map((item) => [item.key, item.title])),
-    [watchlistItems],
-  )
+    const nonSystem = realUserOptions.filter((o) => o.value !== '0')
+    return [...nonSystem, { label: GLOBAL_USER_LABEL, value: '0' }]
+  }, [realUserOptions])
 
   const handleExclude = (row: WatchlistExclusionTableRow) => {
+    if (row.rowKind !== 'watchlist' || row.isExcluded) return
     setPendingExclude({
       key: row.key,
       userId: row.userId,
       title: row.title,
+      type: row.type,
+      guids: row.guids,
       username: row.username,
-      status: row.status,
+      status: row.status ?? '',
+    })
+  }
+
+  const handleRemove = (row: WatchlistExclusionTableRow) => {
+    if (!row.isExcluded || row.exclusionId === null) return
+    setPendingUnexclude({
+      exclusionId: row.exclusionId,
+      key: row.key,
+      username: row.username,
     })
   }
 
   const handleConfirmExclude = async () => {
     if (!pendingExclude) return
+    setExcludeStatus('loading')
     try {
       await createExclusionMutation.mutateAsync({
         key: pendingExclude.key,
         userIds: [pendingExclude.userId],
+        title: pendingExclude.title,
+        type: pendingExclude.type,
+        guids: pendingExclude.guids,
       })
+      setExcludeStatus('success')
       toast.success('Exclusion created successfully')
-      setPendingExclude(null)
+      setTimeout(() => {
+        setPendingExclude(null)
+        setExcludeStatus('idle')
+      }, 1000)
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to create exclusion'
       toast.error(errorMessage)
+      setExcludeStatus('idle')
     }
   }
 
   const handleConfirmUnexclude = async () => {
     if (!pendingUnexclude) return
+    setUnexcludeStatus('loading')
     try {
       await removeExclusionMutation.mutateAsync(pendingUnexclude.exclusionId)
+      setUnexcludeStatus('success')
       toast.success('Exclusion removed successfully')
-      setPendingUnexclude(null)
+      setTimeout(() => {
+        setPendingUnexclude(null)
+        setUnexcludeStatus('idle')
+      }, 1000)
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to remove exclusion'
       toast.error(errorMessage)
+      setUnexcludeStatus('idle')
     }
   }
 
@@ -211,7 +301,7 @@ export function WatchlistExclusionsPage() {
     }
   }
 
-  const handleBulkActions = (rows: WatchlistExclusionTableRow[]) => {
+  const handleBulkExcludeStart = (rows: WatchlistExclusionTableRow[]) => {
     setPendingBulk(rows)
     setBulkStatus('idle')
   }
@@ -223,20 +313,37 @@ export function WatchlistExclusionsPage() {
     if (rows.length === 0) return
     setBulkStatus('loading')
 
-    const byKey = new Map<string, Set<number>>()
+    const byKey = new Map<
+      string,
+      {
+        title: string
+        type: string
+        guids: string[]
+        userIds: Set<number>
+      }
+    >()
     for (const row of rows) {
       const userId = scope === 'global' ? 0 : row.userId
-      const users = byKey.get(row.key) ?? new Set<number>()
-      users.add(userId)
-      byKey.set(row.key, users)
+      const entry = byKey.get(row.key) ?? {
+        title: row.title,
+        type: row.type,
+        guids: row.guids,
+        userIds: new Set<number>(),
+      }
+      entry.userIds.add(userId)
+      byKey.set(row.key, entry)
     }
 
     const results = await Promise.allSettled(
-      Array.from(byKey.entries()).map(([key, userIds]) =>
-        createExclusionMutation.mutateAsync({
-          key,
-          userIds: Array.from(userIds),
-        }),
+      Array.from(byKey.entries()).map(
+        ([key, { title, type, guids, userIds }]) =>
+          createExclusionMutation.mutateAsync({
+            key,
+            userIds: Array.from(userIds),
+            title,
+            type,
+            guids,
+          }),
       ),
     )
     const failures = results.filter((r) => r.status === 'rejected').length
@@ -246,7 +353,7 @@ export function WatchlistExclusionsPage() {
     setTimeout(() => {
       setPendingBulk(null)
       setBulkStatus('idle')
-    }, 600)
+    }, 1000)
     if (failures === 0) {
       toast.success('Bulk exclude complete')
     } else {
@@ -254,7 +361,10 @@ export function WatchlistExclusionsPage() {
     }
   }
 
-  const handleBulkRemove = (ids: number[]) => {
+  const handleBulkRemoveStart = (rows: WatchlistExclusionTableRow[]) => {
+    const ids = rows
+      .map((r) => r.exclusionId)
+      .filter((id): id is number => id !== null)
     if (ids.length === 0) return
     setPendingBulkRemove(ids)
     setBulkRemoveStatus('idle')
@@ -270,9 +380,11 @@ export function WatchlistExclusionsPage() {
     const failures = results.filter((r) => r.status === 'rejected').length
     setBulkRemoveStatus(failures === 0 ? 'success' : 'error')
     await refetchExclusions()
-    activeTableRef.current?.clearSelection()
-    setPendingBulkRemove(null)
-    setBulkRemoveStatus('idle')
+    tableRef.current?.clearSelection()
+    setTimeout(() => {
+      setPendingBulkRemove(null)
+      setBulkRemoveStatus('idle')
+    }, 1000)
     if (failures === 0) {
       toast.success('Bulk remove complete')
     } else {
@@ -294,28 +406,25 @@ export function WatchlistExclusionsPage() {
     <>
       <WatchlistExclusionsDeleteConfirmationModal
         open={pendingUnexclude !== null}
-        onOpenChange={(open) => !open && setPendingUnexclude(null)}
+        onOpenChange={(open) => {
+          if (!open && unexcludeStatus !== 'loading') {
+            setPendingUnexclude(null)
+          }
+        }}
         onConfirm={handleConfirmUnexclude}
-        isSubmitting={
-          pendingUnexclude !== null &&
-          removeExclusionMutation.variables === pendingUnexclude.exclusionId &&
-          removeExclusionMutation.isPending
-        }
+        actionStatus={unexcludeStatus}
         username={pendingUnexclude?.username || ''}
       />
 
       <WatchlistExclusionsExcludeConfirmationModal
         open={pendingExclude !== null}
-        onOpenChange={(open) => !open && setPendingExclude(null)}
+        onOpenChange={(open) => {
+          if (!open && excludeStatus !== 'loading') {
+            setPendingExclude(null)
+          }
+        }}
         onConfirm={handleConfirmExclude}
-        isSubmitting={
-          pendingExclude !== null &&
-          createExclusionMutation.isPending &&
-          createExclusionMutation.variables?.key === pendingExclude.key &&
-          createExclusionMutation.variables?.userIds.includes(
-            pendingExclude.userId,
-          )
-        }
+        actionStatus={excludeStatus}
         title={pendingExclude?.title || ''}
         username={pendingExclude?.username || ''}
         status={pendingExclude?.status || ''}
@@ -339,7 +448,7 @@ export function WatchlistExclusionsPage() {
           }
         }}
         onConfirm={handleConfirmBulkRemove}
-        isSubmitting={bulkRemoveStatus === 'loading'}
+        actionStatus={bulkRemoveStatus}
         count={pendingBulkRemove?.length ?? 0}
       />
 
@@ -350,35 +459,20 @@ export function WatchlistExclusionsPage() {
           showStatus={false}
         />
 
-        <div className="mt-6 space-y-6">
-          <div>
-            <h3 className="font-medium text-foreground mb-2">Watchlists</h3>
-            <WatchlistExclusionsTable
-              ref={tableRef}
-              data={tableData}
-              userFilterOptions={userFilterOptions}
-              isRefreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              onExclude={handleExclude}
-              createMutation={createExclusionMutation}
-              onBulkActions={handleBulkActions}
-              globallyBlockedKeys={globallyBlockedKeys}
-            />
-          </div>
-
-          <div>
-            <h3 className="font-medium text-foreground mb-2">
-              Active Exclusions
-            </h3>
-            <WatchlistExclusionsActiveTable
-              exclusions={exclusions}
-              keyToTitleMap={keyToTitleMap}
-              onRemove={(entry) => setPendingUnexclude(entry)}
-              onBulkRemove={handleBulkRemove}
-              removeMutation={removeExclusionMutation}
-              selectionRef={activeTableRef}
-            />
-          </div>
+        <div className="mt-6">
+          <WatchlistExclusionsTable
+            ref={tableRef}
+            data={tableData}
+            userFilterOptions={userFilterOptions}
+            isRefreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            onExclude={handleExclude}
+            onRemove={handleRemove}
+            createMutation={createExclusionMutation}
+            removeMutation={removeExclusionMutation}
+            onBulkExclude={handleBulkExcludeStart}
+            onBulkRemove={handleBulkRemoveStart}
+          />
         </div>
       </div>
     </>

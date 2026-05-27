@@ -31,8 +31,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { key, userIds } = request.body
-        const created = await fastify.db.excludeWatchlistItem(key, userIds)
+        const { key, userIds, title, type, guids } = request.body
+        const created = await fastify.db.excludeWatchlistItem(
+          key,
+          userIds,
+          title,
+          type,
+          guids,
+        )
 
         reply.status(201)
         return {

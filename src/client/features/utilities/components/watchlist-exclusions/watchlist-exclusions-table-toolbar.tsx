@@ -5,6 +5,7 @@ import {
   Film,
   Loader2,
   RefreshCw,
+  Trash2,
   Tv,
   Users,
   X,
@@ -27,7 +28,8 @@ interface WatchlistExclusionsTableToolbarProps {
   onResetFilters: () => void
   isRefreshing: boolean
   onRefresh: () => void
-  onBulkActions?: (selectedRows: WatchlistExclusionTableRow[]) => void
+  onBulkExclude?: (selectedRows: WatchlistExclusionTableRow[]) => void
+  onBulkRemove?: (selectedRows: WatchlistExclusionTableRow[]) => void
 }
 
 const typeFilterOptions = [
@@ -42,9 +44,16 @@ export function WatchlistExclusionsTableToolbar({
   onResetFilters,
   isRefreshing,
   onRefresh,
-  onBulkActions,
+  onBulkExclude,
+  onBulkRemove,
 }: WatchlistExclusionsTableToolbarProps) {
-  const selectedCount = table.getFilteredSelectedRowModel().rows.length
+  const selectedRows = table
+    .getFilteredSelectedRowModel()
+    .rows.map((r) => r.original)
+  const excludableSelected = selectedRows.filter(
+    (r) => r.rowKind === 'watchlist' && !r.isExcluded,
+  )
+  const removableSelected = selectedRows.filter((r) => r.isExcluded)
 
   return (
     <div className="space-y-2 py-4">
@@ -59,21 +68,30 @@ export function WatchlistExclusionsTableToolbar({
         />
       </div>
 
-      {selectedCount > 0 && onBulkActions && (
-        <div className="flex items-center justify-start gap-2">
-          <Button
-            variant="blue"
-            size="sm"
-            className="flex items-center gap-2 h-10"
-            onClick={() =>
-              onBulkActions(
-                table.getFilteredSelectedRowModel().rows.map((r) => r.original),
-              )
-            }
-          >
-            <Edit className="h-4 w-4" />
-            Bulk Actions ({selectedCount})
-          </Button>
+      {(excludableSelected.length > 0 || removableSelected.length > 0) && (
+        <div className="flex items-center justify-start gap-2 flex-wrap">
+          {onBulkExclude && excludableSelected.length > 0 && (
+            <Button
+              variant="blue"
+              size="sm"
+              className="flex items-center gap-2 h-10"
+              onClick={() => onBulkExclude(excludableSelected)}
+            >
+              <Edit className="h-4 w-4" />
+              Bulk Exclude ({excludableSelected.length})
+            </Button>
+          )}
+          {onBulkRemove && removableSelected.length > 0 && (
+            <Button
+              variant="error"
+              size="sm"
+              className="flex items-center gap-2 h-10"
+              onClick={() => onBulkRemove(removableSelected)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Bulk Remove ({removableSelected.length})
+            </Button>
+          )}
         </div>
       )}
 
@@ -81,7 +99,7 @@ export function WatchlistExclusionsTableToolbar({
         <div className="flex items-center gap-2 flex-wrap">
           {userFilterOptions.length > 0 && (
             <DataTableFacetedFilter
-              column={table.getColumn('username')}
+              column={table.getColumn('userId')}
               title="User"
               icon={Users}
               options={userFilterOptions}

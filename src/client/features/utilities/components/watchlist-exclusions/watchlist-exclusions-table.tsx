@@ -32,7 +32,10 @@ import {
   type WatchlistExclusionTableRow,
 } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-table-columns'
 import { WatchlistExclusionsTableToolbar } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-table-toolbar'
-import type { useCreateWatchlistExclusion } from '@/features/utilities/hooks/useWatchlistExclusionMutations'
+import type {
+  useCreateWatchlistExclusion,
+  useRemoveWatchlistExclusion,
+} from '@/features/utilities/hooks/useWatchlistExclusionMutations'
 import { useTablePagination } from '@/hooks/use-table-pagination'
 
 interface ColumnMetaType {
@@ -46,9 +49,11 @@ interface WatchlistExclusionsTableProps {
   isRefreshing: boolean
   onRefresh: () => void
   onExclude: (row: WatchlistExclusionTableRow) => void
+  onRemove: (row: WatchlistExclusionTableRow) => void
   createMutation: ReturnType<typeof useCreateWatchlistExclusion>
-  onBulkActions?: (selectedRows: WatchlistExclusionTableRow[]) => void
-  globallyBlockedKeys: Set<string>
+  removeMutation: ReturnType<typeof useRemoveWatchlistExclusion>
+  onBulkExclude?: (selectedRows: WatchlistExclusionTableRow[]) => void
+  onBulkRemove?: (selectedRows: WatchlistExclusionTableRow[]) => void
 }
 
 export interface WatchlistExclusionsTableRef {
@@ -65,14 +70,16 @@ export const WatchlistExclusionsTable = React.forwardRef<
     isRefreshing,
     onRefresh,
     onExclude,
+    onRemove,
     createMutation,
-    onBulkActions,
-    globallyBlockedKeys,
+    removeMutation,
+    onBulkExclude,
+    onBulkRemove,
   },
   ref,
 ) {
   const [sorting, setSorting] = React.useState<SortingState>([
-    { id: 'added', desc: true },
+    { id: 'excluded_at', desc: true },
   ])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
@@ -91,8 +98,9 @@ export const WatchlistExclusionsTable = React.forwardRef<
 
   const columns = createWatchlistExclusionColumns({
     onExclude,
+    onRemove,
     createMutation,
-    globallyBlockedKeys,
+    removeMutation,
   })
 
   const table = useReactTable({
@@ -142,7 +150,8 @@ export const WatchlistExclusionsTable = React.forwardRef<
         onResetFilters={() => setColumnFilters([])}
         isRefreshing={isRefreshing}
         onRefresh={onRefresh}
-        onBulkActions={onBulkActions}
+        onBulkExclude={onBulkExclude}
+        onBulkRemove={onBulkRemove}
       />
 
       <div className="rounded-md">

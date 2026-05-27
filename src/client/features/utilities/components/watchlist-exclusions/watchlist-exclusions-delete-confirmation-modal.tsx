@@ -1,55 +1,99 @@
+import { AlertTriangle, Check, Loader2, Trash2 } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Credenza,
-  CredenzaClose,
+  CredenzaBody,
   CredenzaContent,
   CredenzaDescription,
-  CredenzaFooter,
   CredenzaHeader,
   CredenzaTitle,
 } from '@/components/ui/credenza'
+import type { BulkExclusionStatus } from '@/features/utilities/components/watchlist-exclusions/watchlist-exclusions-bulk-modal'
 
 interface WatchlistExclusionsDeleteConfirmationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => Promise<void>
-  isSubmitting: boolean
+  actionStatus: BulkExclusionStatus
   username: string
 }
 
-/**
- * Renders a modal dialog that prompts the user to confirm removal of a watchlist exclusion.
- *
- * Explains that removing the exclusion will allow the item to be routed to Sonarr/Radarr during the next sync cycle if it remains on the user's watchlist.
- */
 export function WatchlistExclusionsDeleteConfirmationModal({
   open,
   onOpenChange,
   onConfirm,
-  isSubmitting,
+  actionStatus,
   username,
 }: WatchlistExclusionsDeleteConfirmationModalProps) {
+  const isLoading = actionStatus === 'loading'
+  const isBusy = actionStatus !== 'idle'
+
+  const handleOpenChange = (next: boolean) => {
+    if (isLoading) return
+    onOpenChange(next)
+  }
+
   return (
-    <Credenza open={open} onOpenChange={onOpenChange}>
-      <CredenzaContent>
+    <Credenza open={open} onOpenChange={handleOpenChange}>
+      <CredenzaContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <CredenzaHeader>
           <CredenzaTitle className="text-foreground">
-            Remove Exclusion?
+            Remove Exclusion
           </CredenzaTitle>
           <CredenzaDescription>
-            Are you sure you want to remove this exclusion for {username}? If
-            this item is still on their watchlist, it will be routed to
-            Sonarr/Radarr during the next sync cycle.
+            Removing exclusion for {username}
           </CredenzaDescription>
         </CredenzaHeader>
-        <CredenzaFooter>
-          <CredenzaClose asChild>
-            <Button variant="neutral">Cancel</Button>
-          </CredenzaClose>
-          <Button variant="clear" onClick={onConfirm} disabled={isSubmitting}>
-            {isSubmitting ? 'Removing...' : 'Remove'}
-          </Button>
-        </CredenzaFooter>
+
+        <CredenzaBody className="space-y-4">
+          <Alert variant="error" className="break-words">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <AlertTitle>Warning</AlertTitle>
+            <AlertDescription className="text-sm">
+              Are you sure you want to remove this exclusion for {username}? If
+              this item is still on their watchlist, it will be routed to
+              Sonarr/Radarr during the next sync cycle.
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                onClick={onConfirm}
+                disabled={isBusy}
+                className="min-w-[100px] flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Removing...
+                  </>
+                ) : actionStatus === 'success' ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Removed
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    Remove
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div className="flex justify-end">
+              <Button
+                onClick={() => handleOpenChange(false)}
+                disabled={isBusy}
+                variant="neutral"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </CredenzaBody>
       </CredenzaContent>
     </Credenza>
   )

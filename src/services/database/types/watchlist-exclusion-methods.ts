@@ -7,7 +7,13 @@ declare module '@services/database.service.js' {
      *
      * @returns Number of rows inserted
      */
-    excludeWatchlistItem(key: string, userIds: number[]): Promise<number>
+    excludeWatchlistItem(
+      key: string,
+      userIds: number[],
+      title: string,
+      type: string,
+      guids: string[],
+    ): Promise<number>
 
     /**
      * Removes exclusion rows for the user across the given keys.

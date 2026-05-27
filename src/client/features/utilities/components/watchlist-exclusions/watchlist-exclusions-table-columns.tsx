@@ -1,33 +1,65 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Ban, CheckCircle, Film, Loader2, Tv } from 'lucide-react'
+import {
+  ArrowUpDown,
+  Ban,
+  CheckCircle,
+  Film,
+  Loader2,
+  Trash2,
+  Tv,
+} from 'lucide-react'
 import { createSelectColumn } from '@/components/table/data-table-select-column'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type { useCreateWatchlistExclusion } from '@/features/utilities/hooks/useWatchlistExclusionMutations'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import type {
+  useCreateWatchlistExclusion,
+  useRemoveWatchlistExclusion,
+} from '@/features/utilities/hooks/useWatchlistExclusionMutations'
+
+export type WatchlistExclusionRowKind = 'watchlist' | 'global' | 'orphan-user'
+
+export const GLOBAL_USER_LABEL = 'Global'
 
 export interface WatchlistExclusionTableRow {
+  id: string
+  rowKind: WatchlistExclusionRowKind
   title: string
   key: string
   type: string
-  status: string
+  status: string | null
   added: string | null
+  excluded_at: string | null
+  guids: string[]
   userId: number
   username: string
-  id: string
   isExcluded: boolean
   exclusionId: number | null
+  isGloballyBlocked: boolean
 }
 
 interface WatchlistExclusionColumnsProps {
   onExclude: (row: WatchlistExclusionTableRow) => void
+  onRemove: (row: WatchlistExclusionTableRow) => void
   createMutation: ReturnType<typeof useCreateWatchlistExclusion>
-  globallyBlockedKeys: Set<string>
+  removeMutation: ReturnType<typeof useRemoveWatchlistExclusion>
+}
+
+const statusBadgeOrder = ['pending', 'requested', 'grabbed', 'notified']
+
+function dateTimeOrNegInfinity(value: string | null): number {
+  return value ? new Date(value).getTime() : Number.NEGATIVE_INFINITY
 }
 
 export function createWatchlistExclusionColumns({
   onExclude,
+  onRemove,
   createMutation,
-  globallyBlockedKeys,
+  removeMutation,
 }: WatchlistExclusionColumnsProps): ColumnDef<WatchlistExclusionTableRow>[] {
   return [
     createSelectColumn<WatchlistExclusionTableRow>({
@@ -67,16 +99,36 @@ export function createWatchlistExclusionColumns({
     {
       accessorKey: 'username',
       header: () => <div>User</div>,
-      cell: ({ row }) => (
-        <div className="truncate max-w-37.5">{row.getValue('username')}</div>
-      ),
+      cell: ({ row }) => {
+        if (row.original.rowKind === 'global') {
+          return (
+            <Badge variant="warn" title="Globally blocked for all users">
+              Global
+            </Badge>
+          )
+        }
+        return (
+          <div className="truncate max-w-37.5">{row.getValue('username')}</div>
+        )
+      },
+      enableColumnFilter: false,
+    },
+    {
+      id: 'userId',
+      accessorFn: (row) => String(row.userId),
+      header: () => null,
+      cell: () => null,
+      enableSorting: false,
+      enableHiding: false,
+      size: 0,
+      minSize: 0,
+      maxSize: 0,
       filterFn: (row, id, filterValue: string[]) => {
         if (!filterValue?.length) return true
         return filterValue.includes(row.getValue(id) as string)
       },
     },
     {
-      // Hidden column used only for type filtering - not displayed in UI
       accessorKey: 'type',
       id: 'type',
       header: () => null,
@@ -105,14 +157,19 @@ export function createWatchlistExclusionColumns({
         </Button>
       ),
       cell: ({ row }) => {
-        const status = row.getValue('status') as string
-        const isGloballyBlocked = globallyBlockedKeys.has(row.original.key)
+        const status = row.original.status
+        const showGlobalBadge =
+          row.original.rowKind === 'watchlist' && row.original.isGloballyBlocked
         return (
           <div className="flex flex-wrap items-center gap-1">
-            <Badge variant={status === 'pending' ? 'neutral' : 'default'}>
-              {status}
-            </Badge>
-            {isGloballyBlocked && (
+            {status ? (
+              <Badge variant={status === 'pending' ? 'neutral' : 'default'}>
+                {status}
+              </Badge>
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            )}
+            {showGlobalBadge && (
               <Badge variant="warn" title="Globally blocked for all users">
                 Global
               </Badge>
@@ -121,10 +178,11 @@ export function createWatchlistExclusionColumns({
         )
       },
       sortingFn: (rowA, rowB) => {
-        const statusOrder = ['pending', 'requested', 'grabbed', 'notified']
-        const statusA = rowA.getValue('status') as string
-        const statusB = rowB.getValue('status') as string
-        return statusOrder.indexOf(statusA) - statusOrder.indexOf(statusB)
+        const a = rowA.original.status
+        const b = rowB.original.status
+        const ia = a ? statusBadgeOrder.indexOf(a) : -1
+        const ib = b ? statusBadgeOrder.indexOf(b) : -1
+        return ia - ib
       },
       meta: {
         className: 'w-25',
@@ -158,48 +216,79 @@ export function createWatchlistExclusionColumns({
           </span>
         )
       },
-      sortingFn: (rowA, rowB) => {
-        const dateA = rowA.getValue('added') as string | null
-        const dateB = rowB.getValue('added') as string | null
-        if (!dateA && !dateB) return 0
-        if (!dateA) return 1
-        if (!dateB) return -1
-        return new Date(dateA).getTime() - new Date(dateB).getTime()
+      sortingFn: (rowA, rowB) =>
+        dateTimeOrNegInfinity(rowA.getValue('added') as string | null) -
+        dateTimeOrNegInfinity(rowB.getValue('added') as string | null),
+    },
+    {
+      accessorKey: 'excluded_at',
+      header: ({ column }) => (
+        <Button
+          variant="noShadow"
+          size="sm"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          className="whitespace-nowrap"
+        >
+          Excluded
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => {
+        const excludedAt = row.getValue('excluded_at') as string | null
+        if (!excludedAt) return <span className="text-muted-foreground">-</span>
+
+        const date = new Date(excludedAt)
+        return (
+          <span className="text-sm text-muted-foreground">
+            {date.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </span>
+        )
       },
+      sortingFn: (rowA, rowB) =>
+        dateTimeOrNegInfinity(rowA.getValue('excluded_at') as string | null) -
+        dateTimeOrNegInfinity(rowB.getValue('excluded_at') as string | null),
     },
     {
       id: 'actions',
-      accessorFn: (row) => row.isExcluded,
-      header: ({ column }) => (
-        <div className="flex justify-center">
-          <Button
-            variant="noShadow"
-            size="sm"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="whitespace-nowrap"
-          >
-            Excluded
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-      ),
-      sortingFn: (rowA, rowB) => {
-        const a = rowA.original.isExcluded ? 1 : 0
-        const b = rowB.original.isExcluded ? 1 : 0
-        return a - b
-      },
+      enableSorting: false,
       enableHiding: false,
+      header: () => <div className="flex justify-center">Actions</div>,
       cell: ({ row }) => {
         if (row.original.isExcluded) {
+          const isRemoving =
+            removeMutation.isPending &&
+            removeMutation.variables === row.original.exclusionId
           return (
-            <div
-              className="flex justify-center"
-              title="Manage in Active Exclusions below"
-            >
+            <div className="flex justify-center items-center gap-1">
               <Badge variant="default" className="h-8 px-3">
                 <CheckCircle className="h-4 w-4 mr-1" />
                 Excluded
               </Badge>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="error"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => onRemove(row.original)}
+                    disabled={isRemoving || row.original.exclusionId === null}
+                    aria-label="Remove exclusion"
+                  >
+                    {isRemoving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Remove exclusion</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           )
         }
@@ -231,7 +320,7 @@ export function createWatchlistExclusionColumns({
         )
       },
       meta: {
-        className: 'w-35',
+        className: 'w-44',
       },
     },
   ]
