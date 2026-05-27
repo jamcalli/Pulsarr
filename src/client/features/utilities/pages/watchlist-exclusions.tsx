@@ -44,10 +44,12 @@ export function WatchlistExclusionsPage() {
   const users = useConfigStore((state) => state.users)
   const isInitializing = useInitializeWithMinDuration(initialize)
 
-  const { data: exclusionsData, refetch: refetchExclusions } =
-    useWatchlistExclusions()
+  const {
+    data: exclusionsData,
+    refetch: refetchExclusions,
+    isLoading: exclusionsLoading,
+  } = useWatchlistExclusions()
   const exclusions = exclusionsData?.exclusions ?? []
-  const hasLoadedExclusions = exclusionsData !== undefined
 
   const createExclusionMutation = useCreateWatchlistExclusion()
   const removeExclusionMutation = useRemoveWatchlistExclusion()
@@ -122,11 +124,14 @@ export function WatchlistExclusionsPage() {
     }
   }, [isInitialized, hasLoadedWatchlists, fetchAllWatchlistItems])
 
+  const exclusionByUserAndKey = React.useMemo(
+    () => new Map(exclusions.map((e) => [`${e.user_id}:${e.key}`, e] as const)),
+    [exclusions],
+  )
+
   const tableData = React.useMemo<WatchlistExclusionTableRow[]>(() => {
     return watchlistItems.map((item) => {
-      const exclusion = exclusions.find(
-        (e) => e.key === item.key && e.user_id === item.userId,
-      )
+      const exclusion = exclusionByUserAndKey.get(`${item.userId}:${item.key}`)
       return {
         ...item,
         id: `${item.userId}-${item.key}`,
@@ -134,7 +139,7 @@ export function WatchlistExclusionsPage() {
         exclusionId: exclusion?.id ?? null,
       }
     })
-  }, [watchlistItems, exclusions])
+  }, [watchlistItems, exclusionByUserAndKey])
 
   const userFilterOptions = React.useMemo(() => {
     const uniqueUsers = new Map(
@@ -279,7 +284,7 @@ export function WatchlistExclusionsPage() {
     isInitializing ||
     !isInitialized ||
     !hasLoadedWatchlists ||
-    !hasLoadedExclusions
+    exclusionsLoading
 
   if (isInitialLoad) {
     return <WatchlistExclusionsSkeleton />

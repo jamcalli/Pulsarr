@@ -35,3 +35,10 @@ export function parseArrErrorMessage(errorData: unknown): string {
 
   return ''
 }
+
+// Sonarr/Radarr return 400 with "This series/movie has already been added"
+// when the item already exists.
+export function isArrAlreadyAddedError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  return error.message.toLowerCase().includes('already been added')
+}

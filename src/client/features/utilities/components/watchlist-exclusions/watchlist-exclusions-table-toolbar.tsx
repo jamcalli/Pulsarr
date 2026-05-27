@@ -44,7 +44,7 @@ export function WatchlistExclusionsTableToolbar({
   onRefresh,
   onBulkActions,
 }: WatchlistExclusionsTableToolbarProps) {
-  const selectedCount = table.getSelectedRowModel().rows.length
+  const selectedCount = table.getFilteredSelectedRowModel().rows.length
 
   return (
     <div className="space-y-2 py-4">
@@ -67,7 +67,7 @@ export function WatchlistExclusionsTableToolbar({
             className="flex items-center gap-2 h-10"
             onClick={() =>
               onBulkActions(
-                table.getSelectedRowModel().rows.map((r) => r.original),
+                table.getFilteredSelectedRowModel().rows.map((r) => r.original),
               )
             }
           >

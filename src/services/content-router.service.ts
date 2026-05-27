@@ -19,6 +19,7 @@ import type {
   RoutingEvaluator,
 } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
+import { isArrAlreadyAddedError } from '@utils/arr-error.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -2557,14 +2558,16 @@ export class ContentRouterService {
 
       const routedInstances: number[] = []
       const instanceId = proposedRouting.instanceId
+      const syncedInstanceIds = proposedRouting.syncedInstances ?? []
       const contentType = approvedRequest.contentType
+      const userId = approvedRequest.userId ?? 0
 
       if (contentType === 'movie') {
         try {
           await this.fastify.radarrManager.routeItemToRadarr(
             item as RadarrItem,
             context.itemKey,
-            approvedRequest.userId ?? 0,
+            userId,
             instanceId,
             context.syncing,
             proposedRouting.rootFolder || undefined,
@@ -2578,17 +2581,52 @@ export class ContentRouterService {
             `Successfully routed approved content "${item.title}" to Radarr instance ${instanceId}`,
           )
         } catch (error) {
-          this.log.error(
-            { error },
-            `Failed to route approved content "${item.title}" to Radarr instance ${instanceId}`,
-          )
+          if (isArrAlreadyAddedError(error)) {
+            this.log.info(
+              `Approved content "${item.title}" already exists in Radarr instance ${instanceId}, treating as routed`,
+            )
+            routedInstances.push(instanceId)
+          } else {
+            this.log.error(
+              { error },
+              `Failed to route approved content "${item.title}" to Radarr instance ${instanceId}`,
+            )
+          }
+        }
+
+        for (const syncedId of syncedInstanceIds) {
+          try {
+            await this.fastify.radarrManager.routeItemToRadarr(
+              item as RadarrItem,
+              context.itemKey,
+              userId,
+              syncedId,
+              true,
+            )
+            routedInstances.push(syncedId)
+            this.log.info(
+              `Successfully routed approved content "${item.title}" to synced Radarr instance ${syncedId}`,
+            )
+          } catch (error) {
+            if (isArrAlreadyAddedError(error)) {
+              this.log.info(
+                `Approved content "${item.title}" already exists in synced Radarr instance ${syncedId}, treating as routed`,
+              )
+              routedInstances.push(syncedId)
+            } else {
+              this.log.error(
+                { error },
+                `Failed to route approved content "${item.title}" to synced Radarr instance ${syncedId}`,
+              )
+            }
+          }
         }
       } else {
         try {
           await this.fastify.sonarrManager.routeItemToSonarr(
             item as SonarrItem,
             context.itemKey,
-            approvedRequest.userId ?? 0,
+            userId,
             instanceId,
             context.syncing,
             proposedRouting.rootFolder || undefined,
@@ -2603,10 +2641,45 @@ export class ContentRouterService {
             `Successfully routed approved content "${item.title}" to Sonarr instance ${instanceId}`,
           )
         } catch (error) {
-          this.log.error(
-            { error },
-            `Failed to route approved content "${item.title}" to Sonarr instance ${instanceId}`,
-          )
+          if (isArrAlreadyAddedError(error)) {
+            this.log.info(
+              `Approved content "${item.title}" already exists in Sonarr instance ${instanceId}, treating as routed`,
+            )
+            routedInstances.push(instanceId)
+          } else {
+            this.log.error(
+              { error },
+              `Failed to route approved content "${item.title}" to Sonarr instance ${instanceId}`,
+            )
+          }
+        }
+
+        for (const syncedId of syncedInstanceIds) {
+          try {
+            await this.fastify.sonarrManager.routeItemToSonarr(
+              item as SonarrItem,
+              context.itemKey,
+              userId,
+              syncedId,
+              true,
+            )
+            routedInstances.push(syncedId)
+            this.log.info(
+              `Successfully routed approved content "${item.title}" to synced Sonarr instance ${syncedId}`,
+            )
+          } catch (error) {
+            if (isArrAlreadyAddedError(error)) {
+              this.log.info(
+                `Approved content "${item.title}" already exists in synced Sonarr instance ${syncedId}, treating as routed`,
+              )
+              routedInstances.push(syncedId)
+            } else {
+              this.log.error(
+                { error },
+                `Failed to route approved content "${item.title}" to synced Sonarr instance ${syncedId}`,
+              )
+            }
+          }
         }
       }
 

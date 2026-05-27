@@ -28,7 +28,7 @@ export function createSelectColumn<T>(
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
         aria-label="Select row"
-        disabled={options.disabled?.(row) ?? !row.getCanSelect()}
+        disabled={!row.getCanSelect() || (options.disabled?.(row) ?? false)}
       />
     ),
     enableSorting: false,
