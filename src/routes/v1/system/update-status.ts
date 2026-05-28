@@ -1,11 +1,3 @@
-/**
- * GET /v1/system/update-status
- *
- * Returns the cached "Pulsarr update available" status maintained by the
- * `update-check` plugin. Cheap read-only call - the GitHub fetch happens
- * server-side on an hourly cron, not on this request.
- */
-
 import {
   UpdateStatusErrorSchema,
   UpdateStatusResponseSchema,

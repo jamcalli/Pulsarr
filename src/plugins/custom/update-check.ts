@@ -16,29 +16,25 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   const service = new UpdateCheckService(fastify.log, fastify)
   fastify.decorate('updateCheck', service)
 
-  const handleNotification = async (): Promise<void> => {
+  const dispatchNotification = async (): Promise<void> => {
     const status = service.getStatus()
     if (status.status !== 'ok' || !status.latestVersion) return
-    if (!fastify.config.notifyOnUpdate) return
+    if (fastify.config.notifyOnUpdate === 'none') return
 
-    const lastNotified = await fastify.db.getLastNotifiedVersion()
-
-    if (!lastNotified) {
-      await fastify.db.setLastNotifiedVersion(status.latestVersion)
-      return
-    }
+    const storedLastNotified = await fastify.db.getLastNotifiedVersion()
+    // Fresh install (no watermark) dedupes against the running version.
+    const effectiveLastNotified = storedLastNotified ?? status.currentVersion
 
     if (
-      !semver.valid(lastNotified) ||
+      !semver.valid(effectiveLastNotified) ||
       !semver.valid(status.latestVersion) ||
-      !semver.gt(status.latestVersion, lastNotified) ||
+      !semver.gt(status.latestVersion, effectiveLastNotified) ||
       !status.updateAvailable
     ) {
       return
     }
 
     const targetVersion = status.latestVersion
-    await fastify.db.setLastNotifiedVersion(targetVersion)
 
     try {
       const sent = await fastify.notifications.sendUpdateAvailableNotification({
@@ -51,6 +47,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         publishedAt: status.publishedAt,
       })
       if (sent) {
+        // Advance only after delivery so a failed send retries next run.
+        await fastify.db.setLastNotifiedVersion(targetVersion)
         fastify.log.info(
           { latestVersion: targetVersion },
           'Update-available notification dispatched',
@@ -67,6 +65,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         'Failed to dispatch update-available notification',
       )
     }
+  }
+
+  // Serialize so boot and cron can't dispatch concurrently and double-notify.
+  let notifyInFlight: Promise<void> | null = null
+  const handleNotification = (): Promise<void> => {
+    if (notifyInFlight) return notifyInFlight
+    notifyInFlight = dispatchNotification().finally(() => {
+      notifyInFlight = null
+    })
+    return notifyInFlight
   }
 
   fastify.addHook('onReady', async () => {

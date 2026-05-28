@@ -313,9 +313,9 @@ export function createUpdateAvailableNotificationHtml(release: {
   `
     : ''
 
-  const linkCard = `
+  const linkHtml = `
     <div style="text-align: center; margin-bottom: 20px;">
-      <a href="${escapeHtml(release.releaseUrl)}" style="display: inline-block; padding: 10px 20px; background-color: #212121; color: #48a9a6; font-weight: 700; text-decoration: none; border: 2px solid #000000; border-radius: 5px; box-shadow: 2px 2px 0px 0px #000000;">View release on GitHub →</a>
+      <a href="${escapeHtml(release.releaseUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View release on GitHub →</a>
     </div>
   `
 
@@ -330,8 +330,8 @@ export function createUpdateAvailableNotificationHtml(release: {
   const content = `
     <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Pulsarr update available</h2>
     ${versionsCard}
+    ${linkHtml}
     ${notesCard}
-    ${linkCard}
   `
 
   return { htmlBody: htmlWrapper(content), textBody, title }

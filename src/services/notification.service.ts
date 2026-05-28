@@ -152,9 +152,12 @@ export class NotificationService {
     return sendUpdateAvailable(
       {
         logger: this.log,
+        db: this.fastify.db,
         discordWebhook: this._discordWebhook,
+        discordBot: this._discordBot,
         apprise: this._apprise,
         config: {
+          notifyOnUpdate: this.fastify.config.notifyOnUpdate,
           discordWebhookUrl: this.fastify.config.discordWebhookUrl,
         },
       },

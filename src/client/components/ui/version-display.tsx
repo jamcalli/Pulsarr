@@ -8,31 +8,13 @@ interface VersionDisplayProps {
   style?: React.CSSProperties
 }
 
-const MAX_RELEASE_NOTES_LENGTH = 600
-
-function truncateBody(body: string | null): string | null {
-  if (!body) return null
-  const trimmed = body.trim()
-  if (trimmed.length <= MAX_RELEASE_NOTES_LENGTH) return trimmed
-  return `${trimmed.slice(0, MAX_RELEASE_NOTES_LENGTH).trimEnd()}…`
-}
-
-/**
- * Displays the current app version with an update indicator when a newer
- * version is available.
- *
- * The update check is served by the server-side cron + cache - the client just
- * reads the cached status. When an update is detected, hovering or focusing
- * the version reveals a popover with the release name and (truncated) release
- * notes plus a "View on GitHub" link.
- */
 export function VersionDisplay({ className = '', style }: VersionDisplayProps) {
   const {
     updateAvailable,
     latestVersion,
     releaseUrl,
     releaseName,
-    releaseBody,
+    releaseBodyHtml,
     publishedAt,
     isLoading,
     isError,
@@ -47,7 +29,6 @@ export function VersionDisplay({ className = '', style }: VersionDisplayProps) {
   }
 
   if (updateAvailable && latestVersion && releaseUrl) {
-    const truncatedBody = truncateBody(releaseBody)
     const publishedLabel = publishedAt
       ? new Date(publishedAt).toLocaleDateString()
       : null
@@ -65,27 +46,32 @@ export function VersionDisplay({ className = '', style }: VersionDisplayProps) {
             <span className="md:hidden"> (new)</span>
           </button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-96 max-w-[90vw]">
+        <PopoverContent
+          align="end"
+          className="w-[clamp(20rem,40vw,32rem)] max-w-[90vw]"
+        >
           <div className="space-y-3">
             <div>
-              <div className="text-sm font-bold text-foreground">
+              <div className="text-sm font-bold text-main-foreground">
                 {releaseName ?? `v${latestVersion}`} available
               </div>
-              <div className="text-xs text-foreground/70">
+              <div className="text-xs text-main-foreground/80">
                 You&apos;re running v{__APP_VERSION__}
                 {publishedLabel ? ` · Released ${publishedLabel}` : ''}
               </div>
             </div>
-            {truncatedBody ? (
-              <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap break-words rounded-base border-2 border-border bg-background p-2 text-xs font-base text-foreground">
-                {truncatedBody}
-              </pre>
+            {releaseBodyHtml ? (
+              <div
+                className="max-h-[clamp(12rem,45vh,30rem)] overflow-y-auto rounded-base border-2 border-border bg-secondary-background px-3 py-2 text-xs text-foreground [&_a]:text-foreground [&_a]:underline [&_code]:rounded-xs [&_code]:bg-slate-200 [&_code]:px-1 [&_code]:font-mono [&_code]:dark:bg-slate-800 [&_h1]:my-1 [&_h1]:text-sm [&_h1]:font-bold [&_h2]:my-1 [&_h2]:text-sm [&_h2]:font-bold [&_h3]:my-1 [&_h3]:text-xs [&_h3]:font-bold [&_li]:ml-4 [&_li]:list-disc [&_p]:my-1 [&_pre]:overflow-x-auto [&_pre]:rounded-xs [&_pre]:bg-slate-100 [&_pre]:p-2 [&_pre]:font-mono [&_pre]:dark:bg-slate-800 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_ul]:my-1"
+                // HTML comes from GitHub /markdown applied to first-party release notes
+                dangerouslySetInnerHTML={{ __html: releaseBodyHtml }}
+              />
             ) : null}
             <a
               href={releaseUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block text-sm font-bold text-foreground underline hover:no-underline"
+              className="inline-block text-sm font-bold text-main-foreground underline hover:no-underline"
             >
               View release on GitHub →
             </a>

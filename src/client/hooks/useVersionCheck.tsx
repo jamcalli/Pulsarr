@@ -14,20 +14,16 @@ export interface VersionCheckResult {
   releaseUrl: string | null
   releaseName: string | null
   releaseBody: string | null
+  releaseBodyHtml: string | null
   publishedAt: string | null
   isLoading: boolean
   isError: boolean
 }
 
 const VERSION_TOAST_KEY = 'version-toast-notified'
-// Server runs the GitHub fetch on a 1-hour cron, so polling more often than
-// every 15 minutes is wasted work. We still poll occasionally so a user with
-// a long-lived tab eventually sees the new state without a hard reload.
+// Server runs the GitHub fetch hourly; polling more often is wasted work.
 const FIFTEEN_MINUTES = 15 * 60 * 1000
 
-/**
- * Query key factory for version check
- */
 export const versionCheckKeys = {
   all: ['version-check'] as const,
   status: () => [...versionCheckKeys.all, 'status'] as const,
@@ -37,17 +33,6 @@ async function fetchUpdateStatus(): Promise<UpdateStatusResponse> {
   return apiClient.get('/v1/system/update-status', UpdateStatusResponseSchema)
 }
 
-/**
- * Hook to check for application updates via the server-side cached
- * `/v1/system/update-status` endpoint.
- *
- * The server polls GitHub hourly and caches the result, so this hook
- * only needs to read that cache. Browsers no longer hit GitHub directly,
- * which avoids per-user rate limiting.
- *
- * Shows a toast notification once per version when an update is detected.
- * Returns version info for use in persistent UI indicators.
- */
 export function useVersionCheck(): VersionCheckResult {
   const {
     data: status,
@@ -69,6 +54,7 @@ export function useVersionCheck(): VersionCheckResult {
     releaseUrl: status?.releaseUrl ?? null,
     releaseName: status?.releaseName ?? null,
     releaseBody: status?.releaseBody ?? null,
+    releaseBodyHtml: status?.releaseBodyHtml ?? null,
     publishedAt: status?.publishedAt ?? null,
   }
 

@@ -71,6 +71,15 @@ const NotifyOptionEnum = z.enum([
   'discord-both', // Both Discord webhook and DMs but no Apprise
 ])
 
+const UpdateNotifyEnum = z.enum([
+  'none',
+  'all',
+  'discord-only',
+  'apprise-only',
+  'webhook-only',
+  'dm-only',
+])
+
 // Legacy enum for backward compatibility
 const DeleteSyncNotifyOptionEnum = z.enum([
   'none', // No notifications
@@ -163,8 +172,8 @@ export const ConfigFullSchema = z.object({
   // General Notifications (stored in milliseconds)
   queueWaitTime: z.number(),
   newEpisodeThreshold: z.number(),
-  // Out-of-app notification toggle for new Pulsarr releases
-  notifyOnUpdate: z.boolean(),
+  // Out-of-app notification channels for new Pulsarr releases
+  notifyOnUpdate: UpdateNotifyEnum,
   // Pending Webhooks Config
   pendingWebhookRetryInterval: z.number(),
   pendingWebhookMaxAge: z.number(),
@@ -326,9 +335,8 @@ export const ConfigUpdateSchema = z
         error: `New episode threshold cannot exceed ${NEW_EPISODE_THRESHOLD_MAX_MS} milliseconds (720 hours)`,
       })
       .optional(), // 0-720 hours in ms
-    // Out-of-app notification toggle for new Pulsarr releases
-    // (lastNotifiedVersion is intentionally NOT exposed here - internal-only)
-    notifyOnUpdate: z.boolean().optional(),
+    // lastNotifiedVersion is internal-only; only the user-facing setting here.
+    notifyOnUpdate: UpdateNotifyEnum.optional(),
     // Pending Webhooks Config
     // How often to retry processing pending webhooks (in seconds)
     pendingWebhookRetryInterval: z.number().optional(),

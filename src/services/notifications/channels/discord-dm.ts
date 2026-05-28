@@ -29,17 +29,19 @@ export interface DiscordDmDeps {
 }
 
 /**
- * Sends a direct message to a Discord user.
+ * Sends a pre-built embed as a direct message to a Discord user.
  *
  * @param discordId - The Discord user ID to message
- * @param notification - The notification payload (media or system)
+ * @param embed - The embed to send
  * @param deps - Dependencies (bot client, logger)
+ * @param components - Optional action-row components (e.g. buttons)
  * @returns true if the message was sent successfully
  */
-export async function sendDirectMessage(
+export async function sendDirectMessageEmbed(
   discordId: string,
-  notification: MediaNotification | SystemNotification,
+  embed: DiscordEmbed,
   deps: DiscordDmDeps,
+  components?: ActionRowBuilder<ButtonBuilder>[],
 ): Promise<boolean> {
   const { log, botClient, botStatus } = deps
 
@@ -49,19 +51,6 @@ export async function sendDirectMessage(
   }
 
   try {
-    let embed: DiscordEmbed
-
-    if (notification.type === 'system') {
-      embed = createSystemEmbed(
-        notification.title,
-        notification.embedFields,
-        notification.safetyTriggered,
-        notification.tmdbUrl,
-      )
-    } else {
-      embed = createMediaNotificationEmbed(notification)
-    }
-
     const user = await botClient.users.fetch(discordId)
     if (!user) {
       log.warn({ discordId }, 'Could not find Discord user')
@@ -77,24 +66,14 @@ export async function sendDirectMessage(
       embeds: [embed],
     }
 
-    // Add action button if present (only for system notifications)
-    if (notification.type === 'system' && notification.actionButton) {
-      const button = new ButtonBuilder()
-        .setCustomId(notification.actionButton.customId)
-        .setLabel(notification.actionButton.label)
-        .setStyle(ButtonStyle[notification.actionButton.style])
-
-      const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        button,
-      )
-
-      messagePayload.components = [actionRow]
+    if (components) {
+      messagePayload.components = components
     }
 
     await user.send(messagePayload)
 
     log.info(
-      `Discord notification sent successfully to ${user.username} for "${notification.title}"`,
+      `Discord notification sent successfully to ${user.username} for "${embed.title ?? 'notification'}"`,
     )
 
     return true
@@ -102,4 +81,43 @@ export async function sendDirectMessage(
     log.error({ error, discordId }, 'Failed to send direct message')
     return false
   }
+}
+
+/**
+ * Sends a direct message to a Discord user.
+ *
+ * @param discordId - The Discord user ID to message
+ * @param notification - The notification payload (media or system)
+ * @param deps - Dependencies (bot client, logger)
+ * @returns true if the message was sent successfully
+ */
+export async function sendDirectMessage(
+  discordId: string,
+  notification: MediaNotification | SystemNotification,
+  deps: DiscordDmDeps,
+): Promise<boolean> {
+  let embed: DiscordEmbed
+  let components: ActionRowBuilder<ButtonBuilder>[] | undefined
+
+  if (notification.type === 'system') {
+    embed = createSystemEmbed(
+      notification.title,
+      notification.embedFields,
+      notification.safetyTriggered,
+      notification.tmdbUrl,
+    )
+
+    if (notification.actionButton) {
+      const button = new ButtonBuilder()
+        .setCustomId(notification.actionButton.customId)
+        .setLabel(notification.actionButton.label)
+        .setStyle(ButtonStyle[notification.actionButton.style])
+
+      components = [new ActionRowBuilder<ButtonBuilder>().addComponents(button)]
+    }
+  } else {
+    embed = createMediaNotificationEmbed(notification)
+  }
+
+  return sendDirectMessageEmbed(discordId, embed, deps, components)
 }

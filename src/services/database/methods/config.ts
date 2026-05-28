@@ -138,7 +138,7 @@ export async function getConfig(
     queueWaitTime: config.queueWaitTime ?? 120000,
     newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
     // Out-of-app update notifications
-    notifyOnUpdate: Boolean(config.notifyOnUpdate ?? false),
+    notifyOnUpdate: config.notifyOnUpdate || 'none',
     // Handle pending webhook configuration
     pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
     pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -282,7 +282,7 @@ export async function createConfig(
       queueWaitTime: config.queueWaitTime ?? 120000,
       newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
       // Out-of-app update notifications
-      notifyOnUpdate: config.notifyOnUpdate ?? false,
+      notifyOnUpdate: config.notifyOnUpdate ?? 'none',
       // Pending webhook configuration
       pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
       pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,

@@ -1,6 +1,7 @@
 // src/client/features/notifications/components/general/general-settings-form.tsx
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ConfigUpdateSchema } from '@root/schemas/config/config.schema'
 import { InfoIcon, Loader2, Save, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -16,7 +17,13 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Tooltip,
   TooltipContent,
@@ -40,7 +47,7 @@ const generalFormSchema = z.object({
       error: 'New episode threshold cannot exceed 720 hours (1 month)',
     })
     .optional(),
-  notifyOnUpdate: z.boolean().optional(),
+  notifyOnUpdate: ConfigUpdateSchema.shape.notifyOnUpdate,
 })
 
 interface GeneralSettingsFormProps {
@@ -90,7 +97,7 @@ export function GeneralSettingsForm({
         (configData.newEpisodeThreshold ?? DEFAULT_NEW_EPISODE_THRESHOLD) /
           (60 * 60 * 1000),
       ),
-      notifyOnUpdate: Boolean(configData.notifyOnUpdate ?? false),
+      notifyOnUpdate: configData.notifyOnUpdate ?? 'none',
     }
   }, [])
 
@@ -129,7 +136,7 @@ export function GeneralSettingsForm({
           transformedData.newEpisodeThreshold !== undefined
             ? transformedData.newEpisodeThreshold * 60 * 60 * 1000
             : DEFAULT_NEW_EPISODE_THRESHOLD,
-        notifyOnUpdate: transformedData.notifyOnUpdate ?? false,
+        notifyOnUpdate: transformedData.notifyOnUpdate ?? 'none',
       }
 
       await Promise.all([updateConfig(updatedConfig), minimumLoadingTime])
@@ -257,33 +264,67 @@ export function GeneralSettingsForm({
             control={generalForm.control}
             name="notifyOnUpdate"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-base border-2 border-border bg-background p-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1">
-                    <FormLabel className="text-foreground">
-                      Notify me when a Pulsarr update is available
-                    </FormLabel>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        Sends a one-time message to your configured Discord
-                        webhook and Apprise system endpoint each time a new
-                        Pulsarr release is detected on GitHub. Pulsarr is not
-                        upgraded automatically.
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <FormMessage className="text-xs mt-1" />
+              <FormItem>
+                <div className="flex items-center gap-1">
+                  <FormLabel className="text-foreground">
+                    Update Notifications
+                  </FormLabel>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="max-w-xs">
+                        <p>
+                          Controls how Pulsarr release notifications are sent
+                          when a new version is detected on GitHub. Pulsarr is
+                          not upgraded automatically.
+                        </p>
+                        <ul className="list-disc pl-4 text-sm mt-1">
+                          <li>
+                            All Channels: Send to all notification methods
+                          </li>
+                          <li>Apprise Only: Only use Apprise</li>
+                          <li>
+                            Discord (Webhook + DM): Send to both Discord webhook
+                            and admin DM
+                          </li>
+                          <li>
+                            Discord (DM Only): Send only to admin Discord DM
+                          </li>
+                          <li>
+                            Discord (Webhook Only): Send only to Discord webhook
+                          </li>
+                          <li>None: No notifications</li>
+                        </ul>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-                <FormControl>
-                  <Switch
-                    checked={!!field.value}
-                    onCheckedChange={field.onChange}
-                    disabled={generalStatus === 'loading'}
-                  />
-                </FormControl>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={generalStatus === 'loading'}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select notification type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="all">All Channels</SelectItem>
+                    <SelectItem value="apprise-only">Apprise Only</SelectItem>
+                    <SelectItem value="discord-only">
+                      Discord (Webhook + DM)
+                    </SelectItem>
+                    <SelectItem value="dm-only">Discord (DM Only)</SelectItem>
+                    <SelectItem value="webhook-only">
+                      Discord (Webhook Only)
+                    </SelectItem>
+                    <SelectItem value="none">None</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
               </FormItem>
             )}
           />

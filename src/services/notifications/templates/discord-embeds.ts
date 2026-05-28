@@ -328,13 +328,9 @@ export function createDeleteSyncEmbed(
   }
 }
 
-/**
- * Creates an "update available" embed for the Discord webhook channel.
- *
- * Used when a server-side update check finds a newer Pulsarr release.
- * Description holds the (truncated) release body to fit within the 4096
- * character Discord embed limit; we leave headroom for the version line.
- */
+// Discord embed description max length.
+const DISCORD_DESCRIPTION_MAX = 4096
+
 export function createUpdateAvailableEmbed(release: {
   currentVersion: string
   latestVersion: string
@@ -346,10 +342,8 @@ export function createUpdateAvailableEmbed(release: {
   const displayName = release.releaseName?.trim() || `v${release.latestVersion}`
   const body = release.releaseBody?.trim() ?? ''
 
-  // Discord embed description is capped at 4096; reserve room for the
-  // version line + spacing.
   const versionLine = `**Current:** v${release.currentVersion} → **Latest:** v${release.latestVersion}\n\n`
-  const maxBody = 4096 - versionLine.length - 32
+  const maxBody = DISCORD_DESCRIPTION_MAX - versionLine.length
   const truncatedBody =
     body.length > maxBody ? `${body.slice(0, Math.max(0, maxBody - 1))}…` : body
 

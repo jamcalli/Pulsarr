@@ -1,5 +1,8 @@
+import type { UpdateNotifyOption } from '@root/types/config.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
+import type { DiscordBotService } from '@services/notifications/discord-bot/index.js'
 import { createUpdateAvailableEmbed } from '@services/notifications/templates/discord-embeds.js'
 import type { FastifyBaseLogger } from 'fastify'
 
@@ -15,11 +18,29 @@ export interface UpdateAvailableRelease {
 
 export interface UpdateAvailableDeps {
   logger: FastifyBaseLogger
+  db: DatabaseService
   discordWebhook: DiscordWebhookService
+  discordBot: DiscordBotService
   apprise: AppriseService
   config: {
+    notifyOnUpdate: UpdateNotifyOption
     discordWebhookUrl?: string
   }
+}
+
+interface UpdateNotificationChannels {
+  sendWebhook: boolean
+  sendDM: boolean
+  sendApprise: boolean
+}
+
+function getUpdateNotificationChannels(
+  setting: UpdateNotifyOption,
+): UpdateNotificationChannels {
+  const sendWebhook = ['all', 'discord-only', 'webhook-only'].includes(setting)
+  const sendDM = ['all', 'discord-only', 'dm-only'].includes(setting)
+  const sendApprise = ['all', 'apprise-only'].includes(setting)
+  return { sendWebhook, sendDM, sendApprise }
 }
 
 async function sendDiscordWebhook(
@@ -63,6 +84,47 @@ async function sendDiscordWebhook(
   }
 }
 
+async function sendDiscordDM(
+  deps: UpdateAvailableDeps,
+  release: UpdateAvailableRelease,
+): Promise<boolean> {
+  if (deps.discordBot.getBotStatus() !== 'running') {
+    deps.logger.debug('Discord bot not running, skipping update-available DM')
+    return false
+  }
+
+  const primaryUser = await deps.db.getPrimaryUser()
+  if (!primaryUser?.discord_id) {
+    deps.logger.debug(
+      'Primary user has no Discord ID, skipping update-available DM',
+    )
+    return false
+  }
+
+  try {
+    const embed = createUpdateAvailableEmbed(release)
+    const sent = await deps.discordBot.sendDirectMessageEmbed(
+      primaryUser.discord_id,
+      embed,
+    )
+    if (sent) {
+      deps.logger.info(
+        { latestVersion: release.latestVersion },
+        'Update-available DM notification sent',
+      )
+    } else {
+      deps.logger.warn('Failed to send update-available DM notification')
+    }
+    return sent
+  } catch (error) {
+    deps.logger.error(
+      { error },
+      'Error sending update-available DM notification',
+    )
+    return false
+  }
+}
+
 async function sendApprise(
   deps: UpdateAvailableDeps,
   release: UpdateAvailableRelease,
@@ -96,16 +158,19 @@ export async function sendUpdateAvailable(
   deps: UpdateAvailableDeps,
   release: UpdateAvailableRelease,
 ): Promise<boolean> {
-  const results = await Promise.all([
-    sendDiscordWebhook(deps, release),
-    sendApprise(deps, release),
-  ])
+  const channels = getUpdateNotificationChannels(deps.config.notifyOnUpdate)
+  const tasks: Array<Promise<boolean>> = []
+  if (channels.sendWebhook) tasks.push(sendDiscordWebhook(deps, release))
+  if (channels.sendDM) tasks.push(sendDiscordDM(deps, release))
+  if (channels.sendApprise) tasks.push(sendApprise(deps, release))
 
+  if (tasks.length === 0) return false
+
+  const results = await Promise.all(tasks)
   const successCount = results.filter(Boolean).length
   deps.logger.info(
     { successCount, latestVersion: release.latestVersion },
     'Update-available notification dispatch complete',
   )
-
   return successCount > 0
 }
