@@ -1,10 +1,3 @@
-/**
- * Notification Service
- *
- * Thin orchestrator that owns notification channels.
- * Owns Discord (bot + webhook), Plex Mobile, Apprise, and future channels.
- */
-
 import {
   buildRoutingPayload,
   type WebhookPayloadMap,
@@ -42,12 +35,6 @@ import {
   type WatchlistItemInfo,
 } from './notifications/orchestration/index.js'
 
-/**
- * Notification Service
- *
- * Owns all notification channels and provides lifecycle management.
- * Single decoration point: fastify.notifications
- */
 export class NotificationService {
   private readonly log: FastifyBaseLogger
   private readonly _discordBot: DiscordBotService
@@ -62,67 +49,38 @@ export class NotificationService {
     this.log = createServiceLogger(baseLog, 'NOTIFICATIONS')
     this.log.debug('Initializing notification service')
 
-    // Create Discord services
     this._discordBot = new DiscordBotService(this.log, this.fastify)
     this._discordWebhook = new DiscordWebhookService(this.log, this.fastify)
-
-    // Create Plex Mobile service
     this._plexMobile = new PlexMobileService(this.log, this.fastify)
-
-    // Create Apprise service
     this._apprise = new AppriseService(this.log, this.fastify)
   }
 
-  /**
-   * Discord bot accessor for bot lifecycle and DMs.
-   */
   get discordBot(): DiscordBotService {
     return this._discordBot
   }
 
-  /**
-   * Discord webhook accessor for stateless webhook operations.
-   */
   get discordWebhook(): DiscordWebhookService {
     return this._discordWebhook
   }
 
-  /**
-   * Plex Mobile service accessor for mobile push notifications.
-   */
   get plexMobile(): PlexMobileService {
     return this._plexMobile
   }
 
-  /**
-   * Apprise service accessor for Apprise notifications.
-   */
   get apprise(): AppriseService {
     return this._apprise
   }
 
-  /**
-   * Get Discord bot status.
-   * Convenience method for status emission.
-   */
   getBotStatus(): BotStatus {
     return this._discordBot.getBotStatus()
   }
 
-  /**
-   * Check if Discord bot config is present.
-   */
   get hasBotConfig(): boolean {
     const required = ['discordBotToken', 'discordClientId'] as const
     return required.every((key) => Boolean(this.fastify.config[key]))
   }
 
-  /**
-   * Initialize all notification channels.
-   * Called from plugin onReady hook.
-   */
   async initialize(): Promise<void> {
-    // Initialize Discord bot if configured
     if (this.hasBotConfig) {
       this.log.info('Discord bot configuration found, attempting auto-start')
       try {
@@ -139,44 +97,28 @@ export class NotificationService {
       )
     }
 
-    // Initialize Plex Mobile if configured
     try {
       await this._plexMobile.initialize()
     } catch (error) {
       this.log.error({ error }, 'Failed to initialize Plex Mobile service')
     }
 
-    // Initialize Apprise (fire-and-forget to avoid blocking startup)
-    // The initialization includes a 5-second delay to allow Apprise container to fully start
+    // Fire-and-forget to avoid blocking startup; callers fired during boot
+    // should await fastify.notifications.apprise.whenReady().
     this._apprise.initialize().catch((error) => {
       this.log.error({ error }, 'Unexpected error in Apprise initialization')
     })
   }
 
-  /**
-   * Shutdown all notification channels.
-   * Called from plugin onClose hook.
-   */
   async shutdown(): Promise<void> {
-    // Shutdown Discord bot
     if (this._discordBot.getBotStatus() === 'running') {
       this.log.info('Stopping Discord bot during shutdown')
       await this._discordBot.stopBot()
     }
 
-    // Shutdown Plex Mobile
     this._plexMobile.shutdown()
   }
 
-  /**
-   * Sends a delete sync notification via webhook, DM, and/or Apprise.
-   * Orchestration method that coordinates all channels based on configuration.
-   *
-   * @param results - Delete sync operation results
-   * @param dryRun - Whether this was a dry run
-   * @param notifyOption - Override for notification setting (uses config default if not provided)
-   * @returns Promise resolving to boolean indicating if any notifications were sent
-   */
   async sendDeleteSyncNotification(
     results: DeleteSyncResult,
     dryRun: boolean,
@@ -202,15 +144,6 @@ export class NotificationService {
     )
   }
 
-  /**
-   * Sends watchlist addition notifications to admin channels.
-   * Notifies admins via Discord webhook and/or Apprise when a user adds content.
-   *
-   * @param user - User who added the item
-   * @param item - Watchlist item details
-   * @param routingDetails - Optional routing information from the content router
-   * @returns Promise resolving to boolean indicating if any notifications were sent
-   */
   async sendWatchlistAdded(
     user: Friend & { userId: number },
     item: WatchlistItemInfo,
@@ -242,14 +175,6 @@ export class NotificationService {
     )
   }
 
-  /**
-   * Sends approval batch notifications to configured channels.
-   * Called by ApprovalService after its debounce timer fires.
-   *
-   * @param queuedRequests - Approval requests to notify about
-   * @param totalPending - Total pending approval count
-   * @returns Promise resolving to number of channels that sent successfully
-   */
   async sendApprovalBatch(
     queuedRequests: ApprovalRequestNotification[],
     totalPending: number,
@@ -270,12 +195,7 @@ export class NotificationService {
     )
   }
 
-  /**
-   * Queues a watchlist cap notification with trailing-edge debounce.
-   * Each call resets the timer; notification fires after quiet period.
-   *
-   * @param event - The watchlist cap event details
-   */
+  // Trailing-edge debounce: each call resets the timer; fires after quiet period.
   sendWatchlistCapReached(event: WatchlistCapEvent): void {
     sendWatchlistCapNotification(
       {
@@ -294,20 +214,6 @@ export class NotificationService {
     )
   }
 
-  /**
-   * Sends media available notifications to all relevant users and public channels.
-   *
-   * Orchestration method that:
-   * 1. Looks up all users who watchlisted this content
-   * 2. Checks each user's notification preferences
-   * 3. Creates notification records in the database
-   * 4. Dispatches to all enabled channels (Discord, Apprise, Plex Mobile)
-   * 5. Handles public channel notifications if configured
-   *
-   * @param mediaInfo - Information about the available media
-   * @param options - Processing options
-   * @returns Promise resolving to matched count
-   */
   async sendMediaAvailable(
     mediaInfo: {
       type: 'movie' | 'show'
@@ -337,17 +243,6 @@ export class NotificationService {
     )
   }
 
-  /**
-   * Dispatches a native webhook event to all configured endpoints.
-   *
-   * This is a fire-and-forget method - errors are logged but not thrown.
-   * Use this for events that should trigger external webhooks without
-   * blocking the main operation.
-   *
-   * @param eventType - The type of event being dispatched
-   * @param data - The event payload data (must match WebhookPayloadMap[eventType])
-   * @returns Promise resolving to dispatch result with statistics
-   */
   async sendNativeWebhook<T extends WebhookEventType>(
     eventType: T,
     data: WebhookPayloadMap[T],
@@ -358,19 +253,6 @@ export class NotificationService {
     })
   }
 
-  // ==========================================================================
-  // New Event Methods (Native Webhook Only for Now)
-  // ==========================================================================
-
-  /**
-   * Sends approval resolved notification when an admin approves or rejects a request.
-   *
-   * @param request - The approval request that was resolved
-   * @param resolution - Whether it was approved or denied
-   * @param resolvedBy - User ID of the admin who resolved it
-   * @param notes - Optional notes from the admin
-   * @returns Promise resolving to boolean indicating if notification was sent
-   */
   async sendApprovalResolved(
     request: ApprovalRequest,
     resolution: 'approved' | 'denied',
@@ -387,7 +269,6 @@ export class NotificationService {
     const status =
       resolution === 'denied' ? ('rejected' as const) : ('approved' as const)
 
-    // Build routing with discriminated union based on instanceType
     const routing = proposedRouting
       ? buildRoutingPayload(proposedRouting)
       : undefined
@@ -420,7 +301,6 @@ export class NotificationService {
       log: this.log,
     })
 
-    // Create notification record
     if (result.succeeded > 0) {
       try {
         await this.fastify.db.createNotificationRecord({
@@ -444,15 +324,6 @@ export class NotificationService {
     return result.succeeded > 0
   }
 
-  /**
-   * Sends auto-approval notification when content is auto-approved.
-   * Called from ContentRouterService.createAutoApprovalRecord() with full routing context.
-   *
-   * @param request - The approval request that was auto-approved
-   * @param routing - The routing configuration that was applied
-   * @param reason - Reason for auto-approval
-   * @returns Promise resolving to boolean indicating if notification was sent
-   */
   async sendApprovalAuto(
     request: ApprovalRequest,
     routing: {
@@ -491,7 +362,6 @@ export class NotificationService {
       log: this.log,
     })
 
-    // Create notification record
     if (result.succeeded > 0) {
       try {
         await this.fastify.db.createNotificationRecord({
@@ -515,14 +385,6 @@ export class NotificationService {
     return result.succeeded > 0
   }
 
-  /**
-   * Sends watchlist removed notification when a user removes content from their watchlist.
-   *
-   * @param userId - The user who removed the item
-   * @param username - The username of the user
-   * @param item - The watchlist item that was removed
-   * @returns Promise resolving to boolean indicating if notification was sent
-   */
   async sendWatchlistRemoved(
     userId: number,
     username: string,
@@ -554,7 +416,6 @@ export class NotificationService {
       log: this.log,
     })
 
-    // Create notification record
     if (result.succeeded > 0) {
       try {
         await this.fastify.db.createNotificationRecord({
@@ -578,12 +439,6 @@ export class NotificationService {
     return result.succeeded > 0
   }
 
-  /**
-   * Sends user created notification when a new user is added.
-   *
-   * @param user - The user that was created
-   * @returns Promise resolving to boolean indicating if notification was sent
-   */
   async sendUserCreated(user: User): Promise<boolean> {
     const payload = {
       user: {
@@ -601,7 +456,6 @@ export class NotificationService {
       log: this.log,
     })
 
-    // Create notification record
     if (result.succeeded > 0) {
       try {
         await this.fastify.db.createNotificationRecord({
