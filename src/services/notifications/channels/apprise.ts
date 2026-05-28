@@ -29,7 +29,6 @@ import {
   createUpdateAvailableNotificationHtml,
   createWatchlistAdditionHtml,
   createWatchlistCapNotificationHtml,
-  PULSARR_ICON_URL,
 } from '../templates/apprise-html.js'
 import {
   analyzeAppriseUrls,
@@ -54,17 +53,10 @@ export interface AppriseDeps {
   lookupUserAlias?: (username: string) => Promise<string | undefined>
 }
 
-/**
- * Checks if Apprise is enabled in configuration.
- */
 export function isAppriseEnabled(deps: AppriseDeps): boolean {
   return Boolean(deps.config.enableApprise)
 }
 
-/**
- * Low-level function to send a single notification batch to Apprise.
- * Takes explicit body content, format, and attachment inclusion flag.
- */
 async function sendAppriseNotificationBatch(
   targetUrls: string,
   body: string,
@@ -93,7 +85,6 @@ async function sendAppriseNotificationBatch(
       ...notificationFields,
       body,
       format,
-      input: format,
     }
 
     log.debug(
@@ -137,9 +128,8 @@ async function sendAppriseNotificationBatch(
 }
 
 /**
- * Sends a notification through the Apprise container with format-aware batching.
- * Analyzes target URLs to determine native format, groups by format, and sends
- * appropriate body (HTML or text) to each group in parallel.
+ * Analyzes target URLs to determine native format, groups by format,
+ * and sends appropriate body (HTML or text) to each group in parallel.
  */
 export async function sendAppriseNotification(
   targetUrl: string,
@@ -162,7 +152,6 @@ export async function sendAppriseNotification(
     const htmlBody = notification.body_html || notification.body
     const textBody = notification.body
 
-    // Extract common notification fields (excluding body variants and format)
     const {
       body: _,
       body_html: __,
@@ -187,7 +176,6 @@ export async function sendAppriseNotification(
       )
     }
 
-    // Analyze URLs and create format-appropriate batches
     const urlInfos = analyzeAppriseUrls(targetUrl, schemaFormatCache)
     const batches = createNotificationBatches(urlInfos, htmlBody, textBody)
 
@@ -196,7 +184,6 @@ export async function sendAppriseNotification(
       return false
     }
 
-    // Send all batches in parallel
     const results = await Promise.all(
       batches.map((batch) =>
         sendAppriseNotificationBatch(
@@ -238,9 +225,6 @@ export async function sendAppriseNotification(
   }
 }
 
-/**
- * Send public content notification to shared Apprise endpoints.
- */
 export async function sendPublicNotification(
   notification: MediaNotification,
   deps: AppriseDeps,
@@ -291,11 +275,8 @@ export async function sendPublicNotification(
 }
 
 /**
- * Sends a media notification to a user via their configured Apprise URL.
- *
- * Supports plain email addresses (e.g., user@example.com) when admin has
- * configured an email sender URL. Plain emails are resolved to full Apprise
- * URLs using the admin's sender with ?to= parameter.
+ * Plain email values in `user.apprise` are resolved against the admin's
+ * email sender URL with `?to=` so users can enter just an address.
  */
 export async function sendMediaNotification(
   user: NotificationUser,
@@ -315,8 +296,6 @@ export async function sendMediaNotification(
     return false
   }
 
-  // Resolve user's apprise value to full URL(s)
-  // This handles plain email addresses by appending ?to= to admin's sender URL
   const targetUrl = resolveAppriseUrls(user.apprise, config.appriseEmailSender)
   if (!targetUrl) {
     log.debug(
@@ -335,9 +314,7 @@ export async function sendMediaNotification(
       body: textBody,
       type: 'info',
       format: 'text',
-      tag: notification.type,
       body_html: htmlBody,
-      attach_url: PULSARR_ICON_URL,
     }
 
     if (notification.posterUrl) {
@@ -366,9 +343,6 @@ export async function sendMediaNotification(
   }
 }
 
-/**
- * Send a system notification to the configured system endpoint.
- */
 export async function sendSystemNotification(
   notification: SystemNotification,
   deps: AppriseDeps,
@@ -392,7 +366,6 @@ export async function sendSystemNotification(
       return false
     }
 
-    // Determine notification type
     let type: AppriseMessageType = 'info'
 
     const hasSafetyField = notification.embedFields.some(
@@ -413,9 +386,7 @@ export async function sendSystemNotification(
       body: textBody,
       type,
       format: 'text',
-      tag: 'system',
       body_html: htmlBody,
-      attach_url: PULSARR_ICON_URL,
     }
 
     if (notification.posterUrl) {
@@ -432,14 +403,6 @@ export async function sendSystemNotification(
   }
 }
 
-/**
- * Send an "update available" notification to the admin system endpoint.
- *
- * Mirrors `sendDeleteSyncNotification`: builds a dedicated text + HTML body
- * via the matching helper, then posts as `format: 'text'` with `body_html`.
- * Crucially does NOT route through `sendSystemNotification`, which would
- * apply the approval-card template.
- */
 export async function sendUpdateAvailableNotification(
   release: {
     currentVersion: string
@@ -477,9 +440,7 @@ export async function sendUpdateAvailableNotification(
       body: textBody,
       type: 'info',
       format: 'text',
-      tag: 'update-available',
       body_html: htmlBody,
-      attach_url: PULSARR_ICON_URL,
     }
 
     return await sendAppriseNotification(systemUrl, appriseNotification, deps)
@@ -492,9 +453,6 @@ export async function sendUpdateAvailableNotification(
   }
 }
 
-/**
- * Send a delete sync result notification to the admin.
- */
 export async function sendDeleteSyncNotification(
   results: DeleteSyncResult,
   dryRun: boolean,
@@ -536,9 +494,7 @@ export async function sendDeleteSyncNotification(
       body: textBody,
       type,
       format: 'text',
-      tag: 'delete-sync',
       body_html: htmlBody,
-      attach_url: PULSARR_ICON_URL,
     }
 
     return await sendAppriseNotification(systemUrl, appriseNotification, deps)
@@ -551,9 +507,6 @@ export async function sendDeleteSyncNotification(
   }
 }
 
-/**
- * Send a watchlist cap notification to the admin system endpoint.
- */
 export async function sendWatchlistCapNotification(
   event: {
     userName: string
@@ -588,9 +541,7 @@ export async function sendWatchlistCapNotification(
       body: textBody,
       type: 'warning',
       format: 'text',
-      tag: 'watchlist-cap',
       body_html: htmlBody,
-      attach_url: PULSARR_ICON_URL,
     }
 
     return await sendAppriseNotification(systemUrl, appriseNotification, deps)
@@ -603,9 +554,6 @@ export async function sendWatchlistCapNotification(
   }
 }
 
-/**
- * Send a watchlist cap notification to a specific user's Apprise URL.
- */
 export async function sendUserWatchlistCapNotification(
   user: NotificationUser,
   event: {
@@ -646,9 +594,7 @@ export async function sendUserWatchlistCapNotification(
       body: textBody,
       type: 'warning',
       format: 'text',
-      tag: 'watchlist-cap',
       body_html: htmlBody,
-      attach_url: PULSARR_ICON_URL,
     }
 
     const success = await sendAppriseNotification(
@@ -673,9 +619,6 @@ export async function sendUserWatchlistCapNotification(
   }
 }
 
-/**
- * Send a watchlist addition notification.
- */
 export async function sendWatchlistAdditionNotification(
   item: {
     title: string
@@ -708,7 +651,6 @@ export async function sendWatchlistAdditionNotification(
       return false
     }
 
-    // User display name logic
     let displayName = item.addedBy.name
     if (item.addedBy.alias) {
       displayName = item.addedBy.alias
@@ -739,9 +681,7 @@ export async function sendWatchlistAdditionNotification(
       body: textBody,
       type: 'info',
       format: 'text',
-      tag: 'watchlist-add',
       body_html: htmlBody,
-      attach_url: PULSARR_ICON_URL,
     }
 
     if (item.posterUrl) {
@@ -758,9 +698,6 @@ export async function sendWatchlistAdditionNotification(
   }
 }
 
-/**
- * Send a test notification to verify Apprise configuration.
- */
 export async function sendTestNotification(
   targetUrl: string,
   deps: AppriseDeps,
@@ -785,9 +722,7 @@ export async function sendTestNotification(
       body: textBody,
       type: 'info',
       format: 'text',
-      tag: 'test',
       body_html: htmlBody,
-      attach_url: PULSARR_ICON_URL,
     }
 
     return await sendAppriseNotification(resolvedUrl, notification, deps)
@@ -800,15 +735,6 @@ export async function sendTestNotification(
   }
 }
 
-/**
- * Checks whether the Apprise server at the given URL is reachable.
- *
- * Attempts an HTTP GET to the server root and returns true if the response has a successful status.
- * If `url` is empty/whitespace, the request times out (5 seconds), or any network/error occurs, returns false.
- *
- * @param url - The Apprise server base URL to ping
- * @returns True if the server responds with a successful HTTP status; otherwise false
- */
 export async function pingAppriseServer(url: string): Promise<boolean> {
   if (!url || url.trim() === '') {
     return false

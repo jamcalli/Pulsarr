@@ -11,10 +11,6 @@ import type {
   SystemNotification,
 } from '@root/types/discord.types.js'
 
-/** Pulsarr icon URL for notification attachments */
-export const PULSARR_ICON_URL =
-  'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/assets/icons/pulsarr-lg.png'
-
 /**
  * Sanitizes HTML content to prevent XSS attacks.
  */
@@ -31,9 +27,6 @@ export function escapeHtml(str: string): string {
   return str.replace(/[&<>'"`]/g, (c) => escapeMap[c] || c)
 }
 
-/**
- * Common HTML wrapper for notifications with Pulsarr styling.
- */
 export function htmlWrapper(content: string): string {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
@@ -44,9 +37,6 @@ export function htmlWrapper(content: string): string {
     `
 }
 
-/**
- * Creates poster HTML block if poster URL is available.
- */
 function createPosterHtml(
   posterUrl: string | undefined,
   title: string,
@@ -57,9 +47,6 @@ function createPosterHtml(
      </div>`
 }
 
-/**
- * Creates HTML content for a media notification.
- */
 export function createMediaNotificationHtml(notification: MediaNotification): {
   htmlBody: string
   textBody: string
@@ -83,7 +70,6 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
       episodeDetails.seasonNumber !== undefined &&
       episodeDetails.episodeNumber !== undefined
     ) {
-      // Single episode release
       const seasonNum = episodeDetails.seasonNumber.toString().padStart(2, '0')
       const episodeNum = episodeDetails.episodeNumber
         .toString()
@@ -127,7 +113,6 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
         textBody += `\nAir Date: ${airDate}`
       }
     } else if (episodeDetails.seasonNumber !== undefined) {
-      // Bulk season release
       const seasonContent = `
         ${posterHtml}
         <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
@@ -144,7 +129,6 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
       htmlBody = htmlWrapper(seasonContent)
       textBody = `New Season Available\n\n${notification.title}\nSeason Added: Season ${episodeDetails.seasonNumber}`
     } else {
-      // Fallback
       const fallbackContent = `
         ${posterHtml}
         <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
@@ -162,7 +146,6 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
       textBody = `New Content Available\n\n${notification.title}\nNew content is now available to watch!`
     }
   } else {
-    // Movie notification
     const movieContent = `
       ${posterHtml}
       <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
@@ -180,7 +163,6 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
     textBody = `Movie Available\n\n${notification.title}\nMovie available to watch!`
   }
 
-  // Add TMDB link if available
   if (notification.tmdbUrl) {
     textBody += `\nTMDB: ${notification.tmdbUrl}`
   }
@@ -190,9 +172,6 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
   return { htmlBody, textBody, title }
 }
 
-/**
- * Creates HTML content for a system notification (approvals).
- */
 export function createSystemNotificationHtml(
   notification: SystemNotification,
 ): { htmlBody: string; textBody: string } {
@@ -200,7 +179,6 @@ export function createSystemNotificationHtml(
     notification.embedFields.map((field) => [field.name, field.value]),
   )
 
-  // Main Content Card
   const posterHtml = notification.posterUrl
     ? `<div style="text-align: center; margin-bottom: 15px;">
          <img src="${notification.posterUrl}" alt="${escapeHtml(fields.Content || notification.title)} poster" style="max-width: 150px; border-radius: 5px; border: 2px solid #000000; box-shadow: 2px 2px 0px 0px #000000;">
@@ -220,7 +198,6 @@ export function createSystemNotificationHtml(
     </div>
   `
 
-  // Request Details Card
   const requestCard = `
     <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
       <h4 style="margin-top: 0; color: #ffffff; font-weight: 700; border-bottom: 1px solid #343746; padding-bottom: 5px;">Request Details</h4>
@@ -247,7 +224,6 @@ export function createSystemNotificationHtml(
     </div>
   `
 
-  // Action Card
   const actionCard = fields['Action Required']
     ? `
     <div style="margin-bottom: 20px; padding: 15px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
@@ -256,7 +232,6 @@ export function createSystemNotificationHtml(
   `
     : ''
 
-  // TMDB Link (if available)
   const tmdbLinkHtml = notification.tmdbUrl
     ? `
     <div style="text-align: center; margin-bottom: 20px;">
@@ -265,7 +240,6 @@ export function createSystemNotificationHtml(
   `
     : ''
 
-  // Build text body
   let textBody = 'Content Approval Required\n\n'
   textBody += `${fields.Content || 'Unknown Content'}\n`
   textBody += `Type: ${fields.Type || 'Unknown'}\n\n`
@@ -276,7 +250,6 @@ export function createSystemNotificationHtml(
   if (fields['Action Required']) textBody += `\n${fields['Action Required']}\n`
   textBody += '\n- Pulsarr'
 
-  // Create complete HTML content
   const systemContent = `
     <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Content Approval Required</h2>
     ${contentCard}
@@ -299,6 +272,7 @@ export function createSystemNotificationHtml(
  * common markdown fences so the email/HTML output stays readable without
  * pulling in a markdown renderer.
  */
+
 export function createUpdateAvailableNotificationHtml(release: {
   currentVersion: string
   latestVersion: string
@@ -485,9 +459,6 @@ export function createWatchlistCapNotificationHtml(event: {
   return { htmlBody, textBody }
 }
 
-/**
- * Creates HTML content for a delete sync notification.
- */
 export function createDeleteSyncNotificationHtml(
   results: DeleteSyncResult,
   dryRun: boolean,
@@ -504,7 +475,6 @@ export function createDeleteSyncNotificationHtml(
 
   let textBody = ''
 
-  // Create a summary
   let summaryText = dryRun
     ? 'This was a dry run - no content was actually deleted.'
     : results.safetyTriggered
@@ -560,7 +530,6 @@ export function createDeleteSyncNotificationHtml(
   }
   textBody += '\n'
 
-  // Safety section
   let safetySection = ''
   if (results.safetyTriggered && results.safetyMessage) {
     safetySection = `
@@ -572,10 +541,8 @@ export function createDeleteSyncNotificationHtml(
     textBody += `Safety Reason: ${results.safetyMessage}\n\n`
   }
 
-  // Content sections
   let contentSections = ''
 
-  // Movies section
   if (results.movies.deleted > 0) {
     const movieList = results.movies.items
       .slice(0, 10)
@@ -631,7 +598,6 @@ export function createDeleteSyncNotificationHtml(
     textBody += `Movies: No movies deleted${protectedInfo}\n\n`
   }
 
-  // TV Shows section
   if (results.shows.deleted > 0) {
     const showList = results.shows.items
       .slice(0, 10)
@@ -687,7 +653,6 @@ export function createDeleteSyncNotificationHtml(
     textBody += `TV Shows: No TV shows deleted${protectedInfo}\n\n`
   }
 
-  // Timestamp
   const timestamp = new Date().toLocaleString()
   const timestampSection = `
   <div style="text-align: center; margin-top: 15px; font-style: italic; font-weight: 500; color: #ffffff; background-color: #212121; padding: 10px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
@@ -710,9 +675,6 @@ export function createDeleteSyncNotificationHtml(
   return { htmlBody, textBody, title }
 }
 
-/**
- * Creates HTML content for a watchlist addition notification.
- */
 export function createWatchlistAdditionHtml(item: {
   title: string
   type: string
@@ -776,9 +738,6 @@ export function createWatchlistAdditionHtml(item: {
   return { htmlBody, textBody, title }
 }
 
-/**
- * Creates HTML content for a test notification.
- */
 export function createTestNotificationHtml(): {
   htmlBody: string
   textBody: string

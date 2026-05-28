@@ -1,10 +1,3 @@
-/**
- * Webhook Queue Service
- *
- * Orchestrates webhook batching and processing for Sonarr/Radarr notifications.
- * Consolidates queue state management, episode detection, and pending webhook handling.
- */
-
 import type {
   RadarrPayload,
   SonarrPayload,
@@ -77,10 +70,6 @@ export class WebhookQueueService {
     }
   }
 
-  // ============================================================================
-  // Getters
-  // ============================================================================
-
   get queue(): WebhookQueue {
     return this._queue
   }
@@ -88,10 +77,6 @@ export class WebhookQueueService {
   get config(): WebhookQueueConfig {
     return this._config
   }
-
-  // ============================================================================
-  // Dependencies
-  // ============================================================================
 
   private get queueManagerDeps(): QueueManagerDeps {
     return { logger: this.log }
@@ -196,10 +181,6 @@ export class WebhookQueueService {
     }
   }
 
-  // ============================================================================
-  // Public Methods - Delegating to Submodules
-  // ============================================================================
-
   isEpisodeAlreadyQueued(
     tvdbId: string,
     seasonNumber: number,
@@ -243,10 +224,6 @@ export class WebhookQueueService {
     return isSeasonComplete(tvdbId, seasonNumber, this.seasonCompletionDeps)
   }
 
-  // ============================================================================
-  // Webhook Handlers
-  // ============================================================================
-
   async handleMovieWebhook(
     body: RadarrPayload,
     instance: RadarrInstance | null,
@@ -255,7 +232,6 @@ export class WebhookQueueService {
     const matchingItems =
       await this.fastify.db.getWatchlistItemsByGuid(tmdbGuid)
 
-    // No matches - queue for later
     if (matchingItems.length === 0) {
       this.log.info(
         {
@@ -276,7 +252,6 @@ export class WebhookQueueService {
       return
     }
 
-    // Check sync status suppression
     if (instance) {
       const suppressed = await shouldSuppressRadarrNotification(
         matchingItems,
@@ -339,7 +314,6 @@ export class WebhookQueueService {
         rollingShow?.monitoring_type === 'allSeasonPilotRolling'
     }
 
-    // Single episode path
     if ('episodeFile' in body && !('episodeFiles' in body)) {
       await this.handleSingleEpisode(
         body,
@@ -351,7 +325,6 @@ export class WebhookQueueService {
       return
     }
 
-    // Bulk episode path
     if ('episodeFiles' in body) {
       await this.handleBulkEpisodes(
         body,
@@ -385,10 +358,6 @@ export class WebhookQueueService {
       })
     })
   }
-
-  // ============================================================================
-  // Private Handlers
-  // ============================================================================
 
   private async handleSingleEpisode(
     body: SonarrPayload,
@@ -440,7 +409,6 @@ export class WebhookQueueService {
       return
     }
 
-    // Recent episode - notify immediately
     if (this.isRecentEpisode(episode.airDateUtc)) {
       await notifyOrQueueShow(
         tvdbId,
@@ -452,7 +420,6 @@ export class WebhookQueueService {
       return
     }
 
-    // Non-recent - add to queue for batching
     await addEpisodeToQueue(
       tvdbId,
       seasonNumber,
@@ -478,7 +445,6 @@ export class WebhookQueueService {
     )
     this._queue[tvdbId].isPilotRolling = isPilotRolling
 
-    // Split recent vs non-recent
     const recentEpisodes = body.episodes.filter((ep) =>
       this.isRecentEpisode(ep.airDateUtc),
     )
@@ -486,7 +452,6 @@ export class WebhookQueueService {
       (ep) => !this.isRecentEpisode(ep.airDateUtc),
     )
 
-    // Recent episodes - notify immediately
     if (recentEpisodes.length > 0) {
       this.log.debug(
         {
@@ -506,7 +471,6 @@ export class WebhookQueueService {
       )
     }
 
-    // Non-recent - add to queue
     if (nonRecentEpisodes.length > 0) {
       this.log.debug(
         {
@@ -526,10 +490,6 @@ export class WebhookQueueService {
       )
     }
   }
-
-  // ============================================================================
-  // Lifecycle
-  // ============================================================================
 
   async initialize(): Promise<void> {
     await this.fastify.scheduler.scheduleJob(
@@ -566,7 +526,12 @@ export class WebhookQueueService {
 
     this._isRunning = true
 
-    await this.processRetryWebhooks()
+    void this.fastify.notifications.apprise
+      .whenReady()
+      .then(() => this.processRetryWebhooks())
+      .catch((error) => {
+        this.log.error({ error }, 'Boot-time pending webhook retry failed')
+      })
   }
 
   private async processRetryWebhooks(): Promise<number> {

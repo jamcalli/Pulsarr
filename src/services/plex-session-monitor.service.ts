@@ -13,6 +13,10 @@ import type {
 } from '@root/types/plex-session.types.js'
 import type { SonarrSeries } from '@root/types/sonarr.types.js'
 import {
+  collectSeasonsEligibleForCleanup,
+  userNeedsSeason,
+} from '@services/plex-session-monitor/cleanup-predicates.js'
+import {
   extractPlexKey,
   extractTvdbId,
   normalizeGuid,
@@ -255,6 +259,11 @@ export class PlexSessionMonitorService {
     const currentSeason = session.parentIndex
     const currentEpisode = session.index
 
+    // rollingShow was read pre-write, so last_watched_* are the prior values.
+    const positionUnchanged =
+      rollingShow.last_watched_season === currentSeason &&
+      rollingShow.last_watched_episode === currentEpisode
+
     // Always update progress tracking (regardless of user filtering)
     await this.updateRollingShowProgress(
       rollingShow.id,
@@ -271,7 +280,7 @@ export class PlexSessionMonitorService {
       return
     }
 
-    // allSeasonPilotRolling: watching any season's pilot expands that season
+    // Above the positionUnchanged gate so a transient failure retries on repeated E01.
     if (
       rollingShow.monitoring_type === 'allSeasonPilotRolling' &&
       currentEpisode === 1
@@ -297,6 +306,10 @@ export class PlexSessionMonitorService {
 
     // allSeasonPilotRolling only expands via pilot watch, not end-of-season threshold
     if (rollingShow.monitoring_type === 'allSeasonPilotRolling') return
+
+    // The next-season check below hits Sonarr getAllSeries (uncached full
+    // library dump), so skip it on no-progress events.
+    if (positionUnchanged) return
 
     // Check if we need to expand monitoring using Sonarr data
     const currentSeasonData = await this.getSonarrSeriesData(session)
@@ -577,9 +590,8 @@ export class PlexSessionMonitorService {
     }
   }
 
-  /**
-   * Update rolling show progress
-   */
+  // Cleanup is gated on season advancement because Plex emits 'playing'
+  // every ~10s plus extras on each scrub/pause/resume.
   private async updateRollingShowProgress(
     showId: number,
     season: number,
@@ -587,14 +599,17 @@ export class PlexSessionMonitorService {
     canTriggerActions = true,
   ): Promise<void> {
     try {
+      const priorRow = await this.db.getRollingMonitoredShowById(showId)
+      const priorSeason = priorRow?.last_watched_season ?? 0
+
       await this.db.updateRollingShowProgress(showId, season, episode)
 
-      // Check if progressive cleanup is enabled and trigger cleanup if needed
-      // Only trigger for users allowed to perform monitoring actions
-      if (
+      const shouldRunCleanup =
         this.config.plexSessionMonitoring?.enableProgressiveCleanup &&
-        canTriggerActions
-      ) {
+        canTriggerActions &&
+        season > priorSeason
+
+      if (shouldRunCleanup) {
         const rollingShow = await this.db.getRollingMonitoredShowById(showId)
         if (rollingShow) {
           await this.checkAndPerformProgressiveCleanup(rollingShow, season)
@@ -1081,29 +1096,6 @@ export class PlexSessionMonitorService {
   }
 
   /**
-   * Collect seasons eligible for progressive cleanup by checking user activity.
-   * A season is safe to clean only if no active filtered user is still watching it.
-   */
-  private collectSeasonsEligibleForCleanup(
-    startSeason: number,
-    maxSeasonExclusive: number,
-    activeUsers: RollingMonitoredShow[],
-  ): number[] {
-    const seasons: number[] = []
-    for (let season = startSeason; season < maxSeasonExclusive; season++) {
-      const anyUserWatchingSeason = activeUsers.some((show) => {
-        const last = show.last_watched_season ?? 0
-        const monitored = show.current_monitored_season ?? 0
-        return last <= season && monitored >= season
-      })
-      if (!anyUserWatchingSeason) {
-        seasons.push(season)
-      }
-    }
-    return seasons
-  }
-
-  /**
    * Progressive cleanup for rolling monitored shows
    * Removes previous seasons when a user progresses to the next season,
    * but only if no filtered users (including current user) have watched those
@@ -1148,6 +1140,13 @@ export class PlexSessionMonitorService {
       )
 
       this.log.debug(
+        {
+          users: allUsersWatchingShow.map((u) => ({
+            user: u.plex_username,
+            last_watched_season: u.last_watched_season,
+            last_watched_episode: u.last_watched_episode,
+          })),
+        },
         `Progressive cleanup safety check: found ${allUsersWatchingShow.length} active filtered users for ${rollingShow.show_title}`,
       )
 
@@ -1170,7 +1169,7 @@ export class PlexSessionMonitorService {
       )
 
       seasonsToCleanup.push(
-        ...this.collectSeasonsEligibleForCleanup(
+        ...collectSeasonsEligibleForCleanup(
           startSeason,
           maxSeasonToCheck,
           allUsersWatchingShow,
@@ -1179,9 +1178,8 @@ export class PlexSessionMonitorService {
 
       // pilotRolling: also check if Season 1 needs reset back to pilot-only (when watching S2+)
       if (rollingShow.monitoring_type === 'pilotRolling' && currentSeason > 1) {
-        const anyUserWatchingSeason1 = allUsersWatchingShow.some(
-          (show) =>
-            show.last_watched_season <= 1 && show.current_monitored_season >= 1,
+        const anyUserWatchingSeason1 = allUsersWatchingShow.some((show) =>
+          userNeedsSeason(show, 1),
         )
         this.log.debug(
           `Season 1 pilot reset check - any filtered user watching S1: ${anyUserWatchingSeason1}, currentSeason: ${currentSeason}`,

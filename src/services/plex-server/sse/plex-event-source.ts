@@ -44,6 +44,16 @@ const MAX_BACKOFF_MS = 30_000
 const INITIAL_BACKOFF_MS = 1_000
 const STABLE_CONNECTION_MS = 60_000
 
+// Plex emits 'buffering' between 'playing' frames during scrubs and hiccups.
+export function normalizePlayingNotification(
+  notification: PlexPlaySessionNotification,
+): PlexPlaySessionNotification {
+  if (notification.state !== 'buffering') {
+    return notification
+  }
+  return { ...notification, state: 'playing' }
+}
+
 export interface PlexEventSourceConfig {
   serverUrl: string
   token: string
@@ -283,7 +293,9 @@ export class PlexEventSource {
       const data = JSON.parse(String(evt.data)) as {
         PlaySessionStateNotification: PlexPlaySessionNotification
       }
-      this.emitter.emit('playing', [data.PlaySessionStateNotification])
+      this.emitter.emit('playing', [
+        normalizePlayingNotification(data.PlaySessionStateNotification),
+      ])
     } catch {
       this.log.debug('Failed to parse SSE playing event data')
     }
@@ -303,7 +315,12 @@ export class PlexEventSource {
     container: NotificationContainer['NotificationContainer'],
   ): void {
     if (container.PlaySessionStateNotification) {
-      this.emitter.emit('playing', container.PlaySessionStateNotification)
+      this.emitter.emit(
+        'playing',
+        container.PlaySessionStateNotification.map(
+          normalizePlayingNotification,
+        ),
+      )
     }
     if (container.TimelineEntry) {
       this.emitter.emit('timeline', container.TimelineEntry)

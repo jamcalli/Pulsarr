@@ -13927,7 +13927,6 @@
                             ]
                           },
                           "tags": {
-                            "default": [],
                             "type": "array",
                             "items": {
                               "type": "string"
@@ -13937,7 +13936,6 @@
                             "type": "number"
                           },
                           "enabled": {
-                            "default": true,
                             "type": "boolean"
                           },
                           "search_on_add": {
@@ -13967,11 +13965,9 @@
                             ]
                           },
                           "always_require_approval": {
-                            "default": false,
                             "type": "boolean"
                           },
                           "bypass_user_quotas": {
-                            "default": false,
                             "type": "boolean"
                           },
                           "approval_reason": {
@@ -13991,10 +13987,6 @@
                           "name",
                           "target_type",
                           "target_instance_id",
-                          "tags",
-                          "enabled",
-                          "always_require_approval",
-                          "bypass_user_quotas",
                           "id",
                           "created_at",
                           "updated_at"
@@ -14533,7 +14525,6 @@
                     ]
                   },
                   "tags": {
-                    "default": [],
                     "type": "array",
                     "items": {
                       "type": "string"
@@ -14543,7 +14534,6 @@
                     "type": "number"
                   },
                   "enabled": {
-                    "default": true,
                     "type": "boolean"
                   },
                   "search_on_add": {
@@ -14573,11 +14563,9 @@
                     ]
                   },
                   "always_require_approval": {
-                    "default": false,
                     "type": "boolean"
                   },
                   "bypass_user_quotas": {
-                    "default": false,
                     "type": "boolean"
                   },
                   "approval_reason": {
@@ -15102,7 +15090,6 @@
                           ]
                         },
                         "tags": {
-                          "default": [],
                           "type": "array",
                           "items": {
                             "type": "string"
@@ -15112,7 +15099,6 @@
                           "type": "number"
                         },
                         "enabled": {
-                          "default": true,
                           "type": "boolean"
                         },
                         "search_on_add": {
@@ -15142,11 +15128,9 @@
                           ]
                         },
                         "always_require_approval": {
-                          "default": false,
                           "type": "boolean"
                         },
                         "bypass_user_quotas": {
-                          "default": false,
                           "type": "boolean"
                         },
                         "approval_reason": {
@@ -15166,10 +15150,6 @@
                         "name",
                         "target_type",
                         "target_instance_id",
-                        "tags",
-                        "enabled",
-                        "always_require_approval",
-                        "bypass_user_quotas",
                         "id",
                         "created_at",
                         "updated_at"
@@ -15790,7 +15770,6 @@
                             ]
                           },
                           "tags": {
-                            "default": [],
                             "type": "array",
                             "items": {
                               "type": "string"
@@ -15800,7 +15779,6 @@
                             "type": "number"
                           },
                           "enabled": {
-                            "default": true,
                             "type": "boolean"
                           },
                           "search_on_add": {
@@ -15830,11 +15808,9 @@
                             ]
                           },
                           "always_require_approval": {
-                            "default": false,
                             "type": "boolean"
                           },
                           "bypass_user_quotas": {
-                            "default": false,
                             "type": "boolean"
                           },
                           "approval_reason": {
@@ -15854,10 +15830,6 @@
                           "name",
                           "target_type",
                           "target_instance_id",
-                          "tags",
-                          "enabled",
-                          "always_require_approval",
-                          "bypass_user_quotas",
                           "id",
                           "created_at",
                           "updated_at"
@@ -16452,7 +16424,6 @@
                             ]
                           },
                           "tags": {
-                            "default": [],
                             "type": "array",
                             "items": {
                               "type": "string"
@@ -16462,7 +16433,6 @@
                             "type": "number"
                           },
                           "enabled": {
-                            "default": true,
                             "type": "boolean"
                           },
                           "search_on_add": {
@@ -16492,11 +16462,9 @@
                             ]
                           },
                           "always_require_approval": {
-                            "default": false,
                             "type": "boolean"
                           },
                           "bypass_user_quotas": {
-                            "default": false,
                             "type": "boolean"
                           },
                           "approval_reason": {
@@ -16516,10 +16484,6 @@
                           "name",
                           "target_type",
                           "target_instance_id",
-                          "tags",
-                          "enabled",
-                          "always_require_approval",
-                          "bypass_user_quotas",
                           "id",
                           "created_at",
                           "updated_at"
@@ -17100,7 +17064,6 @@
                           ]
                         },
                         "tags": {
-                          "default": [],
                           "type": "array",
                           "items": {
                             "type": "string"
@@ -17110,7 +17073,6 @@
                           "type": "number"
                         },
                         "enabled": {
-                          "default": true,
                           "type": "boolean"
                         },
                         "search_on_add": {
@@ -17140,11 +17102,9 @@
                           ]
                         },
                         "always_require_approval": {
-                          "default": false,
                           "type": "boolean"
                         },
                         "bypass_user_quotas": {
-                          "default": false,
                           "type": "boolean"
                         },
                         "approval_reason": {
@@ -17164,10 +17124,6 @@
                         "name",
                         "target_type",
                         "target_instance_id",
-                        "tags",
-                        "enabled",
-                        "always_require_approval",
-                        "bypass_user_quotas",
                         "id",
                         "created_at",
                         "updated_at"
@@ -17737,7 +17693,6 @@
                     ]
                   },
                   "tags": {
-                    "default": [],
                     "type": "array",
                     "items": {
                       "type": "string"
@@ -17747,7 +17702,6 @@
                     "type": "number"
                   },
                   "enabled": {
-                    "default": true,
                     "type": "boolean"
                   },
                   "search_on_add": {
@@ -17777,11 +17731,9 @@
                     ]
                   },
                   "always_require_approval": {
-                    "default": false,
                     "type": "boolean"
                   },
                   "bypass_user_quotas": {
-                    "default": false,
                     "type": "boolean"
                   },
                   "approval_reason": {
@@ -18311,7 +18263,6 @@
                           ]
                         },
                         "tags": {
-                          "default": [],
                           "type": "array",
                           "items": {
                             "type": "string"
@@ -18321,7 +18272,6 @@
                           "type": "number"
                         },
                         "enabled": {
-                          "default": true,
                           "type": "boolean"
                         },
                         "search_on_add": {
@@ -18351,11 +18301,9 @@
                           ]
                         },
                         "always_require_approval": {
-                          "default": false,
                           "type": "boolean"
                         },
                         "bypass_user_quotas": {
-                          "default": false,
                           "type": "boolean"
                         },
                         "approval_reason": {
@@ -18375,10 +18323,6 @@
                         "name",
                         "target_type",
                         "target_instance_id",
-                        "tags",
-                        "enabled",
-                        "always_require_approval",
-                        "bypass_user_quotas",
                         "id",
                         "created_at",
                         "updated_at"
@@ -19103,7 +19047,6 @@
                             ]
                           },
                           "tags": {
-                            "default": [],
                             "type": "array",
                             "items": {
                               "type": "string"
@@ -19113,7 +19056,6 @@
                             "type": "number"
                           },
                           "enabled": {
-                            "default": true,
                             "type": "boolean"
                           },
                           "search_on_add": {
@@ -19143,11 +19085,9 @@
                             ]
                           },
                           "always_require_approval": {
-                            "default": false,
                             "type": "boolean"
                           },
                           "bypass_user_quotas": {
-                            "default": false,
                             "type": "boolean"
                           },
                           "approval_reason": {
@@ -19167,10 +19107,6 @@
                           "name",
                           "target_type",
                           "target_instance_id",
-                          "tags",
-                          "enabled",
-                          "always_require_approval",
-                          "bypass_user_quotas",
                           "id",
                           "created_at",
                           "updated_at"
@@ -19783,27 +19719,21 @@
                         "type": "string"
                       },
                       "notify_apprise": {
-                        "default": false,
                         "type": "boolean"
                       },
                       "notify_discord": {
-                        "default": false,
                         "type": "boolean"
                       },
                       "notify_discord_mention": {
-                        "default": true,
                         "type": "boolean"
                       },
                       "notify_plex_mobile": {
-                        "default": false,
                         "type": "boolean"
                       },
                       "can_sync": {
-                        "default": true,
                         "type": "boolean"
                       },
                       "requires_approval": {
-                        "default": false,
                         "type": "boolean"
                       }
                     }
@@ -20052,27 +19982,21 @@
                     "type": "string"
                   },
                   "notify_apprise": {
-                    "default": false,
                     "type": "boolean"
                   },
                   "notify_discord": {
-                    "default": false,
                     "type": "boolean"
                   },
                   "notify_discord_mention": {
-                    "default": true,
                     "type": "boolean"
                   },
                   "notify_plex_mobile": {
-                    "default": false,
                     "type": "boolean"
                   },
                   "can_sync": {
-                    "default": true,
                     "type": "boolean"
                   },
                   "requires_approval": {
-                    "default": false,
                     "type": "boolean"
                   }
                 },
@@ -20080,7 +20004,13 @@
                   "name",
                   "apprise",
                   "alias",
-                  "discord_id"
+                  "discord_id",
+                  "notify_apprise",
+                  "notify_discord",
+                  "notify_discord_mention",
+                  "notify_plex_mobile",
+                  "can_sync",
+                  "requires_approval"
                 ]
               }
             }
@@ -20296,27 +20226,21 @@
                     "type": "string"
                   },
                   "notify_apprise": {
-                    "default": false,
                     "type": "boolean"
                   },
                   "notify_discord": {
-                    "default": false,
                     "type": "boolean"
                   },
                   "notify_discord_mention": {
-                    "default": true,
                     "type": "boolean"
                   },
                   "notify_plex_mobile": {
-                    "default": false,
                     "type": "boolean"
                   },
                   "can_sync": {
-                    "default": true,
                     "type": "boolean"
                   },
                   "requires_approval": {
-                    "default": false,
                     "type": "boolean"
                   }
                 }
@@ -22804,7 +22728,6 @@
                     ]
                   },
                   "autoApproveHeld": {
-                    "default": false,
                     "type": "boolean"
                   }
                 }
