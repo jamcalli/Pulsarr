@@ -603,20 +603,6 @@ export async function updateConfig(
       }
     }
 
-    // Detect a false → true transition on `notifyOnUpdate` and reset the
-    // dedupe watermark so the next cron baselines against the *current* latest
-    // release. Without this, re-enabling the toggle could cause an immediate
-    // notification for an already-known release.
-    if (config.notifyOnUpdate === true) {
-      const previous = await this.knex('configs')
-        .where({ id: 1 })
-        .first('notifyOnUpdate')
-      const wasEnabled = Boolean(previous?.notifyOnUpdate)
-      if (!wasEnabled) {
-        updateData.lastNotifiedVersion = null
-      }
-    }
-
     const updated = await this.knex('configs')
       .where({ id: 1 })
       .update(updateData)
