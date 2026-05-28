@@ -410,6 +410,7 @@ export async function sendUpdateAvailableNotification(
     releaseUrl: string
     releaseName: string | null
     releaseBody: string | null
+    releaseBodyHtml: string | null
     publishedAt: string | null
   },
   deps: AppriseDeps,

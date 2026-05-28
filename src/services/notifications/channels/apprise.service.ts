@@ -91,6 +91,7 @@ export class AppriseService {
     releaseUrl: string
     releaseName: string | null
     releaseBody: string | null
+    releaseBodyHtml: string | null
     publishedAt: string | null
   }): Promise<boolean> {
     return sendUpdateAvailable(release, this.appriseDeps)

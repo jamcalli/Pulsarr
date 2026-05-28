@@ -1,20 +1,3 @@
-/**
- * Update Check Service
- *
- * Single source of truth for the latest Pulsarr release status. The plugin
- * (`src/plugins/custom/update-check.ts`) instantiates this once, refreshes it
- * on a server-side cron, and exposes the cached state via the
- * `/v1/system/update-status` route.
- *
- * Holds three pieces of state:
- *   - `result`: last successful comparison vs the running version
- *   - `lastCheckedAt`: when we last reached GitHub (success OR rate-limit)
- *   - `lastError`: short message describing the last failure, if any
- *
- * Concurrent calls share a single in-flight `refresh()` promise so cron + API
- * triggers cannot race into duplicate GitHub requests.
- */
-
 import { createServiceLogger } from '@utils/logger.js'
 import { APP_VERSION, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -22,36 +5,26 @@ import semver from 'semver'
 
 const RELEASE_URL =
   'https://api.github.com/repos/jamcalli/Pulsarr/releases/latest'
+const MARKDOWN_URL = 'https://api.github.com/markdown'
+const MARKDOWN_CONTEXT = 'jamcalli/Pulsarr'
 const FETCH_TIMEOUT_MS = 15000
 
 export type UpdateCheckStatus = 'ok' | 'pending' | 'rate_limited' | 'error'
 
 export interface UpdateCheckResult {
-  /** Cleaned current version (e.g. "1.42.0"). */
   currentVersion: string
-  /** Cleaned latest version, or null when GitHub has not been reached yet. */
   latestVersion: string | null
-  /** True only when both versions are valid semver and latest > current. */
   updateAvailable: boolean
-  /** GitHub release URL (`html_url`) when known. */
   releaseUrl: string | null
-  /** Display name from the release (often equal to tag), null when unknown. */
   releaseName: string | null
-  /** Markdown release notes from GitHub, null when unknown. */
   releaseBody: string | null
-  /** ISO timestamp when the release was published, null when unknown. */
+  releaseBodyHtml: string | null
   publishedAt: string | null
 }
 
-/**
- * Public, serialisable status returned to the API and persisted in cache.
- */
 export interface UpdateCheckStatusPayload extends UpdateCheckResult {
-  /** ISO timestamp of the most recent refresh attempt. */
   lastCheckedAt: string | null
-  /** Short message describing the last failure, null on success. */
   lastError: string | null
-  /** Coarse-grained status for clients that want to differentiate states. */
   status: UpdateCheckStatus
 }
 
@@ -65,16 +38,11 @@ interface GitHubRelease {
   prerelease?: boolean
 }
 
-/**
- * Normalises a tag to a clean semver string (strips an optional leading `v`).
- * Returns null when the input cannot be coerced to valid semver.
- */
 function normaliseVersion(input: string | null | undefined): string | null {
   if (!input) return null
   const direct = semver.clean(input)
   if (direct) return direct
-  const stripped = semver.clean(input.replace(/^v/i, ''))
-  return stripped
+  return semver.clean(input.replace(/^v/i, ''))
 }
 
 const PENDING_STATUS = (currentVersion: string): UpdateCheckStatusPayload => ({
@@ -84,6 +52,7 @@ const PENDING_STATUS = (currentVersion: string): UpdateCheckStatusPayload => ({
   releaseUrl: null,
   releaseName: null,
   releaseBody: null,
+  releaseBodyHtml: null,
   publishedAt: null,
   lastCheckedAt: null,
   lastError: null,
@@ -102,18 +71,10 @@ export class UpdateCheckService {
     this.cached = PENDING_STATUS(this.currentVersion)
   }
 
-  /**
-   * Returns the most recent cached status without triggering a refresh.
-   * The plugin's GET route uses this directly so reads stay cheap.
-   */
   getStatus(): UpdateCheckStatusPayload {
     return this.cached
   }
 
-  /**
-   * Refreshes the cached status by fetching the latest release from GitHub.
-   * Concurrent callers receive the same in-flight promise.
-   */
   async refresh(): Promise<UpdateCheckStatusPayload> {
     if (this.refreshInFlight) {
       return this.refreshInFlight
@@ -141,6 +102,36 @@ export class UpdateCheckService {
 
     this.refreshInFlight = promise
     return promise
+  }
+
+  private async renderReleaseBody(text: string): Promise<string | null> {
+    if (!text.trim()) return null
+    try {
+      const response = await fetch(MARKDOWN_URL, {
+        method: 'POST',
+        headers: {
+          'User-Agent': USER_AGENT,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text, mode: 'gfm', context: MARKDOWN_CONTEXT }),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      })
+      if (!response.ok) {
+        this.log.debug(
+          { status: response.status },
+          'GitHub /markdown render failed',
+        )
+        return null
+      }
+      return await response.text()
+    } catch (error) {
+      this.log.debug(
+        { error: error instanceof Error ? error.message : String(error) },
+        'GitHub /markdown render errored',
+      )
+      return null
+    }
   }
 
   private async runRefresh(): Promise<UpdateCheckStatusPayload> {
@@ -217,10 +208,6 @@ export class UpdateCheckService {
     }
 
     if (release.draft || release.prerelease) {
-      this.log.debug(
-        { tag: release.tag_name },
-        'Latest GitHub release is a draft/prerelease, skipping',
-      )
       const next: UpdateCheckStatusPayload = {
         ...this.cached,
         lastCheckedAt: checkedAt,
@@ -239,6 +226,15 @@ export class UpdateCheckService {
         semver.gt(latestVersion, this.currentVersion),
     )
 
+    // Reuse cached HTML across cron ticks to avoid the rate budget.
+    const reuseRenderedHtml =
+      latestVersion &&
+      this.cached.latestVersion === latestVersion &&
+      this.cached.releaseBody === (release.body ?? null)
+    const releaseBodyHtml = reuseRenderedHtml
+      ? this.cached.releaseBodyHtml
+      : await this.renderReleaseBody(release.body ?? '')
+
     const next: UpdateCheckStatusPayload = {
       currentVersion: this.currentVersion,
       latestVersion,
@@ -246,6 +242,7 @@ export class UpdateCheckService {
       releaseUrl: release.html_url ?? null,
       releaseName: release.name ?? release.tag_name ?? null,
       releaseBody: release.body ?? null,
+      releaseBodyHtml,
       publishedAt: release.published_at ?? null,
       lastCheckedAt: checkedAt,
       lastError: null,

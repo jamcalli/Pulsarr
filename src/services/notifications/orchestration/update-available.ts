@@ -1,15 +1,3 @@
-/**
- * Update-Available Notification Orchestration
- *
- * Sends out-of-app notifications when the server-side update check finds a
- * newer Pulsarr release. Mirrors the shape of `delete-sync.ts` orchestration:
- * Discord webhook + Apprise system endpoint, each via its own dedicated
- * helper (NOT via `sendSystemNotification`, which is the approval template).
- *
- * The plugin owns dedup against `lastNotifiedVersion`; this layer only
- * decides whether the notification was actually delivered.
- */
-
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
 import { createUpdateAvailableEmbed } from '@services/notifications/templates/discord-embeds.js'
@@ -21,6 +9,7 @@ export interface UpdateAvailableRelease {
   releaseUrl: string
   releaseName: string | null
   releaseBody: string | null
+  releaseBodyHtml: string | null
   publishedAt: string | null
 }
 
@@ -51,9 +40,7 @@ async function sendDiscordWebhook(
       username: 'Pulsarr Updates',
       avatar_url:
         'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
-      // GitHub release notes are user-authored and could contain @everyone,
-      // @here, or user/role mention strings that would ping the admin
-      // channel. Suppress all mentions on this admin-channel webhook.
+      // Suppress @everyone/@here that may appear in release notes.
       allowed_mentions: { parse: [] as Array<'roles' | 'users' | 'everyone'> },
     }
 
@@ -105,12 +92,6 @@ async function sendApprise(
   }
 }
 
-/**
- * Sends an "update available" notification through every configured channel.
- *
- * Returns true when at least one channel delivered successfully so the caller
- * can persist `lastNotifiedVersion` and avoid retry storms next cron tick.
- */
 export async function sendUpdateAvailable(
   deps: UpdateAvailableDeps,
   release: UpdateAvailableRelease,

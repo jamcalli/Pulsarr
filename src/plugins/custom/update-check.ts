@@ -47,6 +47,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         releaseUrl: status.releaseUrl ?? '',
         releaseName: status.releaseName,
         releaseBody: status.releaseBody,
+        releaseBodyHtml: status.releaseBodyHtml,
         publishedAt: status.publishedAt,
       })
       if (sent) {

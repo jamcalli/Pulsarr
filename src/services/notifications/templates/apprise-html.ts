@@ -263,22 +263,13 @@ export function createSystemNotificationHtml(
   return { htmlBody, textBody }
 }
 
-/**
- * Creates HTML content for an "update available" notification.
- *
- * Renders a Pulsarr-themed card with current/new version, release name, an
- * (optional) release-notes excerpt, and a button-style link to the GitHub
- * release page. Markdown release bodies are rendered as plain text - we strip
- * common markdown fences so the email/HTML output stays readable without
- * pulling in a markdown renderer.
- */
-
 export function createUpdateAvailableNotificationHtml(release: {
   currentVersion: string
   latestVersion: string
   releaseUrl: string
   releaseName: string | null
   releaseBody: string | null
+  releaseBodyHtml: string | null
   publishedAt: string | null
 }): { htmlBody: string; textBody: string; title: string } {
   const title = `🚀 Pulsarr ${release.latestVersion} is available`
@@ -286,9 +277,6 @@ export function createUpdateAvailableNotificationHtml(release: {
   const publishedAt = release.publishedAt
     ? new Date(release.publishedAt).toLocaleDateString()
     : null
-
-  const plainBody = stripMarkdown(release.releaseBody)
-  const truncatedBody = truncate(plainBody, 1200)
 
   const versionsCard = `
     <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
@@ -316,11 +304,11 @@ export function createUpdateAvailableNotificationHtml(release: {
     </div>
   `
 
-  const notesCard = truncatedBody
+  const notesCard = release.releaseBodyHtml
     ? `
     <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
       <h4 style="margin-top: 0; color: #ffffff; font-weight: 700; border-bottom: 1px solid #343746; padding-bottom: 5px;">Release Notes</h4>
-      <pre style="margin: 15px 0 0; color: #ffffff; font-weight: 500; font-family: inherit; white-space: pre-wrap; word-break: break-word;">${escapeHtml(truncatedBody)}</pre>
+      <div style="margin-top: 15px; color: #ffffff; font-weight: 500;">${release.releaseBodyHtml}</div>
     </div>
   `
     : ''
@@ -336,9 +324,6 @@ export function createUpdateAvailableNotificationHtml(release: {
   textBody += `Current: v${release.currentVersion}\n`
   textBody += `Latest: v${release.latestVersion}\n`
   if (publishedAt) textBody += `Published: ${publishedAt}\n`
-  if (truncatedBody) {
-    textBody += `\nRelease notes:\n${truncatedBody}\n`
-  }
   textBody += `\nView release: ${release.releaseUrl}\n`
   textBody += '\n- Pulsarr'
 
@@ -349,61 +334,7 @@ export function createUpdateAvailableNotificationHtml(release: {
     ${linkCard}
   `
 
-  // Inline the htmlWrapper styling but omit the trailing <hr>, which Telegram's
-  // HTML parser rejects with "Unsupported start tag 'hr'" (Bot API only allows
-  // a small tag whitelist; <div>, <h2>, <p>, etc. are silently tolerated by
-  // Apprise's pre-processor, but <hr> is not). All other Apprise destinations
-  // (email, Slack, etc.) still receive the same rich content.
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      ${content}
-      <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
-    </div>
-    `
-
-  return { htmlBody, textBody, title }
-}
-
-/**
- * Strips common Markdown syntax (headings, bold/italic markers, fenced code,
- * inline code, link syntax, list bullets) so a release body can be rendered
- * as plain text without pulling in a Markdown renderer.
- */
-function stripMarkdown(body: string | null | undefined): string {
-  if (!body) return ''
-  return (
-    body
-      // Fenced code blocks → keep contents
-      .replace(/```[\w-]*\n?([\s\S]*?)```/g, '$1')
-      // Inline code → unwrap
-      .replace(/`([^`]+)`/g, '$1')
-      // Images ![alt](url) → alt
-      .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
-      // Links [text](url) → text (url)
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
-      // Headings: leading #s
-      .replace(/^#{1,6}\s+/gm, '')
-      // List bullets: convert before single-marker emphasis so a leading "* "
-      // bullet line isn't consumed by the single-asterisk emphasis rule.
-      .replace(/^\s*[-*+]\s+/gm, '• ')
-      // Bold/italic markers. Keep single-marker rules line-scoped and
-      // boundary-aware so we don't mangle bullet lists or snake_case
-      // identifiers (e.g. "notify_on_update" must NOT become "notifyonupdate").
-      .replace(/\*\*([^\n*]+)\*\*/g, '$1')
-      .replace(/(^|[^\w])\*([^\n*]+)\*(?=[^\w]|$)/gm, '$1$2')
-      .replace(/__([^\n_]+)__/g, '$1')
-      .replace(/(^|[^\w])_([^\n_]+)_(?=[^\w]|$)/gm, '$1$2')
-      // Blockquote markers
-      .replace(/^\s*>\s?/gm, '')
-      // Collapse 3+ newlines
-      .replace(/\n{3,}/g, '\n\n')
-      .trim()
-  )
-}
-
-function truncate(text: string, max: number): string {
-  if (text.length <= max) return text
-  return `${text.slice(0, Math.max(0, max - 1)).trimEnd()}…`
+  return { htmlBody: htmlWrapper(content), textBody, title }
 }
 
 export function createWatchlistCapNotificationHtml(event: {
