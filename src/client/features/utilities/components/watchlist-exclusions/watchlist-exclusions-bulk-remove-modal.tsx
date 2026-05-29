@@ -6,6 +6,7 @@ import {
   CredenzaBody,
   CredenzaContent,
   CredenzaDescription,
+  CredenzaFooter,
   CredenzaHeader,
   CredenzaTitle,
 } from '@/components/ui/credenza'
@@ -47,7 +48,7 @@ export function WatchlistExclusionsBulkRemoveModal({
         </CredenzaHeader>
 
         <CredenzaBody className="space-y-4">
-          <Alert variant="error" className="break-words">
+          <Alert variant="warn" className="break-words">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <AlertTitle>Warning</AlertTitle>
             <AlertDescription className="text-sm">
@@ -57,44 +58,40 @@ export function WatchlistExclusionsBulkRemoveModal({
               next sync cycle.
             </AlertDescription>
           </Alert>
-
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                onClick={onConfirm}
-                disabled={isBusy}
-                className="min-w-[100px] flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Removing...
-                  </>
-                ) : actionStatus === 'success' ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Removed
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4" />
-                    Bulk Remove ({count})
-                  </>
-                )}
-              </Button>
-            </div>
-
-            <div className="flex justify-end">
-              <Button
-                onClick={() => handleOpenChange(false)}
-                disabled={isBusy}
-                variant="neutral"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
         </CredenzaBody>
+
+        <CredenzaFooter>
+          <Button
+            onClick={() => handleOpenChange(false)}
+            disabled={isBusy}
+            variant="neutral"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={onConfirm}
+            disabled={isBusy}
+            variant="clear"
+            className="min-w-[100px] flex items-center justify-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Removing...
+              </>
+            ) : actionStatus === 'success' ? (
+              <>
+                <Check className="h-4 w-4" />
+                Removed
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4" />
+                Bulk Remove ({count})
+              </>
+            )}
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )

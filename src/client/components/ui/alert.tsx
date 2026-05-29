@@ -12,6 +12,7 @@ const alertVariants = cva(
         default: 'bg-main text-main-foreground',
         destructive: 'bg-black text-white',
         error: 'bg-error text-black',
+        warn: 'bg-fun text-main-foreground',
       },
     },
     defaultVariants: {

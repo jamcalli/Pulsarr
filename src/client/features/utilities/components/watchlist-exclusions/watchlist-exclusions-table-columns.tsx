@@ -95,6 +95,9 @@ export function createWatchlistExclusionColumns({
           </div>
         )
       },
+      meta: {
+        displayName: 'Title',
+      },
     },
     {
       accessorKey: 'username',
@@ -112,6 +115,9 @@ export function createWatchlistExclusionColumns({
         )
       },
       enableColumnFilter: false,
+      meta: {
+        displayName: 'User',
+      },
     },
     {
       id: 'userId',
@@ -159,7 +165,9 @@ export function createWatchlistExclusionColumns({
       cell: ({ row }) => {
         const status = row.original.status
         const showGlobalBadge =
-          row.original.rowKind === 'watchlist' && row.original.isGloballyBlocked
+          row.original.rowKind === 'watchlist' &&
+          row.original.isGloballyBlocked &&
+          row.original.isExcluded
         return (
           <div className="flex flex-wrap items-center gap-1">
             {status ? (
@@ -184,8 +192,14 @@ export function createWatchlistExclusionColumns({
         const ib = b ? statusBadgeOrder.indexOf(b) : -1
         return ia - ib
       },
+      filterFn: (row, id, filterValue: string[]) => {
+        if (!filterValue?.length) return true
+        const status = row.getValue(id) as string | null
+        return status !== null && filterValue.includes(status)
+      },
       meta: {
         className: 'w-25',
+        displayName: 'Status',
       },
     },
     {
@@ -219,6 +233,9 @@ export function createWatchlistExclusionColumns({
       sortingFn: (rowA, rowB) =>
         dateTimeOrNegInfinity(rowA.getValue('added') as string | null) -
         dateTimeOrNegInfinity(rowB.getValue('added') as string | null),
+      meta: {
+        displayName: 'Added',
+      },
     },
     {
       accessorKey: 'excluded_at',
@@ -251,6 +268,9 @@ export function createWatchlistExclusionColumns({
       sortingFn: (rowA, rowB) =>
         dateTimeOrNegInfinity(rowA.getValue('excluded_at') as string | null) -
         dateTimeOrNegInfinity(rowB.getValue('excluded_at') as string | null),
+      meta: {
+        displayName: 'Excluded',
+      },
     },
     {
       id: 'actions',
@@ -289,6 +309,24 @@ export function createWatchlistExclusionColumns({
                   <p>Remove exclusion</p>
                 </TooltipContent>
               </Tooltip>
+            </div>
+          )
+        }
+
+        if (
+          row.original.rowKind === 'watchlist' &&
+          row.original.isGloballyBlocked
+        ) {
+          return (
+            <div className="flex justify-center">
+              <Badge
+                variant="warn"
+                className="h-8 px-3"
+                title="Blocked by a global exclusion. Remove it from the Global row."
+              >
+                <Ban className="h-4 w-4 mr-1" />
+                Excluded globally
+              </Badge>
             </div>
           )
         }

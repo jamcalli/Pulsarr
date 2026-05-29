@@ -37,6 +37,13 @@ const typeFilterOptions = [
   { label: 'Show', value: 'show', icon: Tv },
 ]
 
+const statusFilterOptions = [
+  { label: 'Pending', value: 'pending' },
+  { label: 'Requested', value: 'requested' },
+  { label: 'Grabbed', value: 'grabbed' },
+  { label: 'Notified', value: 'notified' },
+]
+
 export function WatchlistExclusionsTableToolbar({
   table,
   userFilterOptions,
@@ -51,7 +58,7 @@ export function WatchlistExclusionsTableToolbar({
     .getFilteredSelectedRowModel()
     .rows.map((r) => r.original)
   const excludableSelected = selectedRows.filter(
-    (r) => r.rowKind === 'watchlist' && !r.isExcluded,
+    (r) => r.rowKind === 'watchlist' && !r.isExcluded && !r.isGloballyBlocked,
   )
   const removableSelected = selectedRows.filter((r) => r.isExcluded)
 
@@ -111,6 +118,11 @@ export function WatchlistExclusionsTableToolbar({
             title="Type"
             options={typeFilterOptions}
           />
+          <DataTableFacetedFilter
+            column={table.getColumn('status')}
+            title="Status"
+            options={statusFilterOptions}
+          />
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -155,7 +167,8 @@ export function WatchlistExclusionsTableToolbar({
                       column.toggleVisibility(!!value)
                     }
                   >
-                    {column.id}
+                    {(column.columnDef.meta as { displayName?: string })
+                      ?.displayName || column.id}
                   </DropdownMenuCheckboxItem>
                 ))}
             </DropdownMenuContent>
