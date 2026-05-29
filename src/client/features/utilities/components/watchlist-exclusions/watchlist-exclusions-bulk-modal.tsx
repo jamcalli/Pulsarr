@@ -93,6 +93,14 @@ export function WatchlistExclusionsBulkModal({
               {excludableRows.length === 1 ? 'item' : 'items'}. Future sync
               cycles will skip routing for{' '}
               {excludableRows.length === 1 ? 'it' : 'them'}.
+              {canExclude && inLibraryCount > 0 && (
+                <div className="mt-2">
+                  {inLibraryCount}{' '}
+                  {inLibraryCount === 1 ? 'of them is' : 'of them are'} already
+                  in your library, so the next Delete Sync run will remove{' '}
+                  {inLibraryCount === 1 ? 'it' : 'them'}.
+                </div>
+              )}
             </AlertDescription>
           </Alert>
 
@@ -103,18 +111,6 @@ export function WatchlistExclusionsBulkModal({
                 {alreadyExcludedCount}{' '}
                 {alreadyExcludedCount === 1 ? 'item is' : 'items are'} already
                 excluded and will be skipped.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {canExclude && inLibraryCount > 0 && (
-            <Alert variant="default" className="break-words">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              <AlertDescription className="text-sm">
-                {inLibraryCount}{' '}
-                {inLibraryCount === 1 ? 'item is' : 'items are'} already in your
-                library. The next Delete Sync run will remove{' '}
-                {inLibraryCount === 1 ? 'it' : 'them'}.
               </AlertDescription>
             </Alert>
           )}
