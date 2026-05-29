@@ -221,7 +221,7 @@ export function WatchlistExclusionsPage() {
 
   const userFilterOptions = React.useMemo(() => {
     const nonSystem = realUserOptions.filter((o) => o.value !== '0')
-    return [...nonSystem, { label: GLOBAL_USER_LABEL, value: '0' }]
+    return [{ label: GLOBAL_USER_LABEL, value: '0' }, ...nonSystem]
   }, [realUserOptions])
 
   const handleExclude = (row: WatchlistExclusionTableRow) => {
