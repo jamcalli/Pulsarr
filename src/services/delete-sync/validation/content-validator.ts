@@ -35,6 +35,12 @@ export interface ValidationConfig {
   enablePlexPlaylistProtection: boolean
   /** Set of GUIDs in watchlists (for watchlist mode) */
   watchlistGuids?: Set<string>
+  /**
+   * GUIDs that exclusions designate for deletion in tag-based mode. A key
+   * lands here when every watchlister for it is covered by an exclusion
+   * (per-user or global); see DatabaseService.getExclusionDrivenDeletionGuids.
+   */
+  exclusionDrivenGuids?: Set<string>
 }
 
 /**
@@ -93,26 +99,38 @@ export async function validateTagBasedDeletion(
     logger,
   )
 
-  if (!hasRemoval) {
+  // Exclusions are a parallel deletion signal in tag-based mode. A GUID lands
+  // in exclusionDrivenGuids when every watchlister for its key is covered by
+  // an exclusion (per-user or global) — same semantic as watchlist mode's
+  // cleanupExcludedWatchlistItems, expressed as a read instead of a mutation.
+  const isExclusionDriven = config.exclusionDrivenGuids
+    ? itemGuids.some((g) => config.exclusionDrivenGuids?.has(g))
+    : false
+
+  if (!hasRemoval && !isExclusionDriven) {
     return { skip: true, protected: false, reason: 'no-removal-tag' }
   }
 
-  // Check if the item has a tag matching the required regex pattern (if configured)
-  const hasRequired = await hasTagMatchingRegex(
-    instanceId,
-    service,
-    itemTags,
-    instanceType,
-    config.deleteSyncRequiredTagRegex,
-    tagCache,
-    logger,
-  )
-
-  if (!hasRequired) {
-    logger.debug(
-      `Skipping deletion of "${itemTitle}" as it doesn't have a tag matching the required regex pattern`,
+  // The required-regex filter scopes tag-based candidates; bypass for
+  // exclusion-driven candidates since exclusions are the admin's / users'
+  // explicit deletion decision and shouldn't be gated by tag-pattern filters.
+  if (!isExclusionDriven) {
+    const hasRequired = await hasTagMatchingRegex(
+      instanceId,
+      service,
+      itemTags,
+      instanceType,
+      config.deleteSyncRequiredTagRegex,
+      tagCache,
+      logger,
     )
-    return { skip: true, protected: false, reason: 'no-required-tag' }
+
+    if (!hasRequired) {
+      logger.debug(
+        `Skipping deletion of "${itemTitle}" as it doesn't have a tag matching the required regex pattern`,
+      )
+      return { skip: true, protected: false, reason: 'no-required-tag' }
+    }
   }
 
   // Check tracked-only deletion

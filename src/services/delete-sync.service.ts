@@ -811,6 +811,19 @@ export class DeleteSyncService {
       return protectionLoadResult.result
     }
 
+    // Exclusions drive deletion in tag-based mode the same way they do in
+    // watchlist mode: a key qualifies when every user still watchlisting it is
+    // also covered by an exclusion (per-user or global). Globals alone are
+    // sufficient. The DB returns the union of GUIDs across qualifying keys;
+    // delete-sync treats them as parallel candidates to tagged items.
+    const exclusionDrivenGuids =
+      await this.dbService.getExclusionDrivenDeletionGuids()
+    if (exclusionDrivenGuids.size > 0) {
+      this.log.debug(
+        `Loaded ${exclusionDrivenGuids.size} exclusion-driven deletion GUID(s) for tag-based delete sync`,
+      )
+    }
+
     return executeTagBasedDeletion(
       existingSeries,
       existingMovies,
@@ -832,6 +845,8 @@ export class DeleteSyncService {
         tagCache: this.tagCache,
         protectedGuids: this.protectedGuids,
         trackedGuids: this.trackedGuids,
+        exclusionDrivenGuids:
+          exclusionDrivenGuids.size > 0 ? exclusionDrivenGuids : null,
         deletedMovieGuids: this.deletedMovieGuids,
         deletedShowGuids: this.deletedShowGuids,
         logger: this.log,

@@ -155,6 +155,55 @@ export async function removeExclusion(
 }
 
 /**
+ * Returns the union of GUIDs across keys that exclusions say should be deleted
+ * right now. A key qualifies when, after subtracting per-user excluders from
+ * the set of users currently watchlisting it (status != 'pending'), no
+ * non-excluded user remains — i.e., every watchlister is also an excluder for
+ * that key. A global exclusion (user_id = SYSTEM_USER_ID) covers every user
+ * and short-circuits the check, so any item with a global exclusion qualifies.
+ *
+ * This mirrors how watchlist-mode handles exclusions
+ * (cleanupExcludedWatchlistItems removes per-user rows and the standard prune
+ * deletes items with zero remaining wanters), but expressed as a single read
+ * so tag-based delete sync can consult it without mutating watchlist_items.
+ *
+ * @returns Set of GUIDs covered by exclusion-driven deletion candidates
+ */
+export async function getExclusionDrivenDeletionGuids(
+  this: DatabaseService,
+): Promise<Set<string>> {
+  // Per-exclusion-row: keep the row iff no watchlister exists for this key
+  // who isn't covered by either a per-user exclusion (matching user_id) or a
+  // global exclusion. Expressed as raw SQL because the doubly-nested
+  // correlated subquery doesn't fit knex's nested-`this` typing cleanly.
+  const result = await this.knex.raw<Array<{ guids: string }>>(
+    `SELECT DISTINCT we.key AS key, we.guids AS guids
+     FROM watchlist_exclusions we
+     WHERE NOT EXISTS (
+       SELECT 1 FROM watchlist_items wi
+       WHERE wi.key = we.key
+         AND wi.status != 'pending'
+         AND NOT EXISTS (
+           SELECT 1 FROM watchlist_exclusions we2
+           WHERE we2.key = we.key
+             AND (we2.user_id = wi.user_id OR we2.user_id = ?)
+         )
+     )`,
+    [SYSTEM_USER_ID],
+  )
+
+  const rows = this.extractRawQueryRows<{ guids: string }>(result)
+
+  const guids = new Set<string>()
+  for (const row of rows) {
+    for (const guid of parseGuids(row.guids)) {
+      guids.add(guid)
+    }
+  }
+  return guids
+}
+
+/**
  * Deletes routed (status != 'pending') watchlist_items rows whose key is
  * excluded for the same user or globally. Pending rows are already vetoed at
  * the routing gate and left in place to avoid RSS-recreate churn. Exclusion

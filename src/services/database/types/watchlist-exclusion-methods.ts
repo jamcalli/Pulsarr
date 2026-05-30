@@ -52,6 +52,15 @@ declare module '@services/database.service.js' {
     removeExclusion(id: number): Promise<boolean>
 
     /**
+     * Returns the union of GUIDs across keys that exclusions say should be
+     * deleted right now. A key qualifies when every watchlister for it is
+     * also covered by either a per-user or global exclusion; a global
+     * exclusion alone is sufficient. Used by tag-based delete sync to honor
+     * exclusions without mutating watchlist_items.
+     */
+    getExclusionDrivenDeletionGuids(): Promise<Set<string>>
+
+    /**
      * Deletes routed watchlist_items rows whose key is excluded for the same
      * user or globally. Exclusion rows themselves are preserved.
      *

@@ -658,6 +658,184 @@ describe('tag-counter', () => {
 
       expect(count).toBe(2) // Both movies counted even though only one is tracked
     })
+
+    describe('exclusion-driven counting', () => {
+      it('counts a movie with an exclusion-driven GUID match even without the removal tag', async () => {
+        const movies: RadarrItem[] = [
+          {
+            id: 1,
+            title: 'Excluded movie, no tag',
+            tags: [2],
+            radarr_instance_id: 1,
+            guids: 'tmdb://exclude',
+          } as unknown as RadarrItem,
+        ]
+
+        const tagMap = new Map([
+          [1, 'removed'],
+          [2, 'hd'],
+        ])
+        vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+        const config: TagCountConfig = {
+          deleteMovie: true,
+          deleteEndedShow: false,
+          deleteContinuingShow: false,
+          enablePlexPlaylistProtection: false,
+          deleteSyncTrackedOnly: false,
+          removedTagPrefix: 'removed',
+          exclusionDrivenGuids: new Set(['tmdb:exclude']),
+        }
+
+        const count = await countTaggedMovies(
+          movies,
+          config,
+          mockRadarrManager,
+          mockTagCache,
+          null,
+          mockIsAnyGuidProtected,
+          null,
+          mockIsAnyGuidTracked,
+          mockLogger,
+        )
+
+        expect(count).toBe(1)
+      })
+
+      it('still walks items when removedTagPrefix is blank but exclusions exist', async () => {
+        const movies: RadarrItem[] = [
+          {
+            id: 1,
+            title: 'Excluded movie',
+            tags: [],
+            radarr_instance_id: 1,
+            guids: 'tmdb://exclude',
+          } as unknown as RadarrItem,
+        ]
+
+        vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(new Map())
+
+        const config: TagCountConfig = {
+          deleteMovie: true,
+          deleteEndedShow: false,
+          deleteContinuingShow: false,
+          enablePlexPlaylistProtection: false,
+          deleteSyncTrackedOnly: false,
+          removedTagPrefix: '',
+          exclusionDrivenGuids: new Set(['tmdb:exclude']),
+        }
+
+        const count = await countTaggedMovies(
+          movies,
+          config,
+          mockRadarrManager,
+          mockTagCache,
+          null,
+          mockIsAnyGuidProtected,
+          null,
+          mockIsAnyGuidTracked,
+          mockLogger,
+        )
+
+        // Without exclusions the blank prefix short-circuits to 0; with
+        // exclusions present we still walk and count exclusion-driven hits.
+        expect(count).toBe(1)
+      })
+
+      it('bypasses the required-regex filter for exclusion-driven items', async () => {
+        const movies: RadarrItem[] = [
+          {
+            id: 1,
+            title: 'Excluded movie',
+            tags: [1],
+            radarr_instance_id: 1,
+            guids: 'tmdb://exclude',
+          } as unknown as RadarrItem,
+          {
+            id: 2,
+            title: 'Tag-only candidate',
+            tags: [1],
+            radarr_instance_id: 1,
+            guids: 'tmdb://other',
+          } as unknown as RadarrItem,
+        ]
+
+        const tagMap = new Map([[1, 'removed']])
+        vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+        const config: TagCountConfig = {
+          deleteMovie: true,
+          deleteEndedShow: false,
+          deleteContinuingShow: false,
+          enablePlexPlaylistProtection: false,
+          deleteSyncTrackedOnly: false,
+          removedTagPrefix: 'removed',
+          deleteSyncRequiredTagRegex: 'user-.*',
+          exclusionDrivenGuids: new Set(['tmdb:exclude']),
+        }
+
+        // Neither movie has a 'user-*' tag, so the tag-based path alone would
+        // count zero. Movie 1 still gets counted because it's exclusion-driven
+        // and the regex filter is bypassed; movie 2 is not exclusion-driven
+        // and is rejected by the regex.
+        const count = await countTaggedMovies(
+          movies,
+          config,
+          mockRadarrManager,
+          mockTagCache,
+          null,
+          mockIsAnyGuidProtected,
+          null,
+          mockIsAnyGuidTracked,
+          mockLogger,
+        )
+
+        expect(count).toBe(1)
+      })
+
+      it('still excludes protected exclusion-driven items', async () => {
+        const movies: RadarrItem[] = [
+          {
+            id: 1,
+            title: 'Protected, excluded',
+            tags: [],
+            radarr_instance_id: 1,
+            guids: 'tmdb://protected',
+          } as unknown as RadarrItem,
+        ]
+
+        vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(new Map())
+
+        const protectedGuids = new Set(['tmdb:protected'])
+        mockIsAnyGuidProtected = vi.fn((guids) =>
+          guids.some((g: string) => protectedGuids.has(g)),
+        )
+
+        const config: TagCountConfig = {
+          deleteMovie: true,
+          deleteEndedShow: false,
+          deleteContinuingShow: false,
+          enablePlexPlaylistProtection: true,
+          deleteSyncTrackedOnly: false,
+          removedTagPrefix: 'removed',
+          exclusionDrivenGuids: new Set(['tmdb:protected']),
+        }
+
+        const count = await countTaggedMovies(
+          movies,
+          config,
+          mockRadarrManager,
+          mockTagCache,
+          protectedGuids,
+          mockIsAnyGuidProtected,
+          null,
+          mockIsAnyGuidTracked,
+          mockLogger,
+        )
+
+        expect(count).toBe(0)
+      })
+    })
   })
 
   describe('countTaggedSeries', () => {
@@ -1235,6 +1413,51 @@ describe('tag-counter', () => {
       )
 
       expect(count).toBe(2) // Both shows counted even though only one is tracked
+    })
+
+    describe('exclusion-driven counting', () => {
+      it('counts a series with an exclusion-driven GUID match even without the removal tag', async () => {
+        const series: SonarrItem[] = [
+          {
+            id: 1,
+            title: 'Excluded show, no tag',
+            tags: [2],
+            sonarr_instance_id: 1,
+            guids: 'tvdb://exclude',
+            series_status: 'ended',
+          } as unknown as SonarrItem,
+        ]
+
+        const tagMap = new Map([
+          [1, 'removed'],
+          [2, 'hd'],
+        ])
+        vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+        const config: TagCountConfig = {
+          deleteMovie: false,
+          deleteEndedShow: true,
+          deleteContinuingShow: true,
+          enablePlexPlaylistProtection: false,
+          deleteSyncTrackedOnly: false,
+          removedTagPrefix: 'removed',
+          exclusionDrivenGuids: new Set(['tvdb:exclude']),
+        }
+
+        const count = await countTaggedSeries(
+          series,
+          config,
+          mockSonarrManager,
+          mockTagCache,
+          null,
+          mockIsAnyGuidProtected,
+          null,
+          mockIsAnyGuidTracked,
+          mockLogger,
+        )
+
+        expect(count).toBe(1)
+      })
     })
   })
 })
