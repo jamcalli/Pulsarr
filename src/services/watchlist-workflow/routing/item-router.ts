@@ -13,6 +13,7 @@ import type {
 } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import { processItemsForUser } from '@services/plex-watchlist/orchestration/unified-processor.js'
 import {
   extractTmdbId,
@@ -191,12 +192,24 @@ export async function routeEnrichedItemsForUser(
 
   const primaryUser = await deps.db.getPrimaryUser()
 
+  // Exclusion gate (per-user or global SYSTEM_USER_ID veto), same as full sync
+  const exclusionMap = await deps.db.getExclusionMap()
+
   deps.logger.debug(
     { userId, username: user.name, itemCount: items.length },
     'Routing enriched items for user',
   )
 
   for (const item of items) {
+    const excludedUsers = exclusionMap.get(item.key)
+    if (excludedUsers?.has(userId) || excludedUsers?.has(SYSTEM_USER_ID)) {
+      deps.logger.debug(
+        { userId, title: item.title },
+        'Skipping enriched item due to exclusion',
+      )
+      continue
+    }
+
     try {
       await routeSingleItem(
         {

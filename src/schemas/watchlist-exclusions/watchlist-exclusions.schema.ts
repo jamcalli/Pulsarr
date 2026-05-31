@@ -56,11 +56,6 @@ export const RemoveWatchlistExclusionParamsSchema = z.object({
   id: z.coerce.number(),
 })
 
-export const RemoveWatchlistExclusionResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-})
-
 // Exported inferred types
 export type CreateWatchlistExclusion = z.infer<
   typeof CreateWatchlistExclusionSchema
@@ -79,9 +74,6 @@ export type GetUserWatchlistExclusionsResponse = z.infer<
 >
 export type RemoveWatchlistExclusionParams = z.infer<
   typeof RemoveWatchlistExclusionParamsSchema
->
-export type RemoveWatchlistExclusionResponse = z.infer<
-  typeof RemoveWatchlistExclusionResponseSchema
 >
 
 // Re-export shared error schema with domain-specific alias
