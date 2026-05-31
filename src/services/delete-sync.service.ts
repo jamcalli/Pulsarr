@@ -36,6 +36,7 @@ import {
 import {
   extractGuidsFromWatchlistItems,
   fetchWatchlistItems,
+  filterExcludedRoutedItems,
 } from '@services/delete-sync/data-fetching/index.js'
 import {
   executeTagBasedDeletion,
@@ -283,22 +284,8 @@ export class DeleteSyncService {
           )
         }
 
-        // Step 4.5: Drop watchlist_items rows for routed content the user has
-        // excluded. Removing them here ensures their GUIDs don't appear in the
-        // protected set built below, so the standard *arr deletion pass prunes
-        // the content naturally. Exclusion rows themselves are preserved.
-        if (!dryRun) {
-          const cleanedExcluded =
-            await this.dbService.cleanupExcludedWatchlistItems()
-          if (cleanedExcluded > 0) {
-            this.log.info(
-              `Removed ${cleanedExcluded} routed watchlist item(s) for excluded content`,
-            )
-          }
-        }
-
-        // Step 5: Get all watchlisted content GUIDs
-        const allWatchlistItems = await this.getAllWatchlistItems(
+        // Step 5: Get watchlisted GUIDs with excluded routed items dropped
+        const allWatchlistItems = await this.getWatchlistGuids(
           this.config.respectUserSyncSetting,
         )
 
@@ -310,6 +297,18 @@ export class DeleteSyncService {
             existingSeries.length,
             existingMovies.length,
           )
+        }
+
+        // Step 6.5: Persist the row removal on real runs. The protected set
+        // above already reflects exclusions, so this is just DB cleanup.
+        if (!dryRun) {
+          const cleanedExcluded =
+            await this.dbService.cleanupExcludedWatchlistItems()
+          if (cleanedExcluded > 0) {
+            this.log.info(
+              `Removed ${cleanedExcluded} routed watchlist item(s) for excluded content`,
+            )
+          }
         }
 
         this.log.info(
@@ -879,14 +878,10 @@ export class DeleteSyncService {
   }
 
   /**
-   * Retrieves all watchlist items from the database and extracts their GUIDs
-   *
-   * This method builds a comprehensive set of GUIDs from all watchlisted content
-   * across all users. This set is used to determine what content should be kept.
-   *
-   * @returns Promise resolving to Set of all GUIDs currently on any watchlist
+   * Builds the protected GUID set, dropping excluded routed items in memory so
+   * dry and real runs protect the same content.
    */
-  private async getAllWatchlistItems(
+  private async getWatchlistGuids(
     respectUserSyncSetting = false,
   ): Promise<Set<string>> {
     try {
@@ -894,9 +889,11 @@ export class DeleteSyncService {
         db: this.dbService,
         logger: this.log,
       })
-      return extractGuidsFromWatchlistItems(watchlistItems, this.log)
+      const exclusionMap = await this.dbService.getExclusionMap()
+      const survivors = filterExcludedRoutedItems(watchlistItems, exclusionMap)
+      return extractGuidsFromWatchlistItems(survivors, this.log)
     } catch (error) {
-      this.log.error({ error }, 'Error in getAllWatchlistItems:')
+      this.log.error({ error }, 'Error in getWatchlistGuids:')
       throw error
     }
   }

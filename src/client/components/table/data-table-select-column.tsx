@@ -33,6 +33,6 @@ export function createSelectColumn<T>(
     ),
     enableSorting: false,
     enableHiding: false,
-    ...(options.meta !== undefined && { meta: options.meta }),
+    ...(options.meta !== undefined ? { meta: options.meta } : {}),
   }
 }
