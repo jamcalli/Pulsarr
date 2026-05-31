@@ -417,7 +417,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       },
 
       runDryDeleteSync: async () => {
-        return apiRequest<{ results: DeleteSyncResult }>({
+        await apiRequest<{ results: DeleteSyncResult }>({
           url: '/v1/scheduler/schedules/delete-sync/dry-run',
           method: 'POST',
           loadingKey: 'deleteSyncDryRun',

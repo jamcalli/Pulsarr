@@ -298,6 +298,10 @@ export async function syncWatchlistItems(
                 genres: parsedGenres,
                 status: 'pending',
                 series_status: 'continuing',
+                imdb: item.ratings?.imdb,
+                rtCritic: item.ratings?.rtCritic,
+                rtAudience: item.ratings?.rtAudience,
+                tmdb: item.ratings?.tmdb,
               }
 
               const result = await routeShow(
@@ -335,6 +339,10 @@ export async function syncWatchlistItems(
                 guids: parsedGuids,
                 type: 'movie',
                 genres: parsedGenres,
+                imdb: item.ratings?.imdb,
+                rtCritic: item.ratings?.rtCritic,
+                rtAudience: item.ratings?.rtAudience,
+                tmdb: item.ratings?.tmdb,
               }
 
               const result = await routeMovie(
