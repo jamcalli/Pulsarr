@@ -29,8 +29,10 @@ import {
   sendApprovalBatch,
   sendDeleteSyncCompleted,
   sendMediaAvailable,
+  sendUpdateAvailable,
   sendWatchlistAdded,
   sendWatchlistCapNotification,
+  type UpdateAvailableRelease,
   type WatchlistCapEvent,
   type WatchlistItemInfo,
 } from './notifications/orchestration/index.js'
@@ -141,6 +143,25 @@ export class NotificationService {
       },
       results,
       dryRun,
+    )
+  }
+
+  async sendUpdateAvailableNotification(
+    release: UpdateAvailableRelease,
+  ): Promise<boolean> {
+    return sendUpdateAvailable(
+      {
+        logger: this.log,
+        db: this.fastify.db,
+        discordWebhook: this._discordWebhook,
+        discordBot: this._discordBot,
+        apprise: this._apprise,
+        config: {
+          notifyOnUpdate: this.fastify.config.notifyOnUpdate,
+          discordWebhookUrl: this.fastify.config.discordWebhookUrl,
+        },
+      },
+      release,
     )
   }
 

@@ -26,6 +26,7 @@ import {
   createMediaNotificationHtml,
   createSystemNotificationHtml,
   createTestNotificationHtml,
+  createUpdateAvailableNotificationHtml,
   createWatchlistAdditionHtml,
   createWatchlistCapNotificationHtml,
 } from '../templates/apprise-html.js'
@@ -397,6 +398,57 @@ export async function sendSystemNotification(
     log.error(
       { error: error instanceof Error ? error : new Error(String(error)) },
       'Error sending system notification',
+    )
+    return false
+  }
+}
+
+export async function sendUpdateAvailableNotification(
+  release: {
+    currentVersion: string
+    latestVersion: string
+    releaseUrl: string
+    releaseName: string | null
+    releaseBody: string | null
+    releaseBodyHtml: string | null
+    publishedAt: string | null
+  },
+  deps: AppriseDeps,
+): Promise<boolean> {
+  const { log, config } = deps
+
+  if (!isAppriseEnabled(deps)) {
+    return false
+  }
+
+  try {
+    const systemUrl = resolveAppriseUrls(
+      config.systemAppriseUrl || '',
+      config.appriseEmailSender,
+    )
+    if (!systemUrl) {
+      log.debug(
+        'System Apprise URL not configured or could not be resolved, skipping update-available notification',
+      )
+      return false
+    }
+
+    const { htmlBody, textBody, title } =
+      createUpdateAvailableNotificationHtml(release)
+
+    const appriseNotification: AppriseNotification = {
+      title,
+      body: textBody,
+      type: 'info',
+      format: 'text',
+      body_html: htmlBody,
+    }
+
+    return await sendAppriseNotification(systemUrl, appriseNotification, deps)
+  } catch (error) {
+    log.error(
+      { error: error instanceof Error ? error : new Error(String(error)) },
+      'Error sending update-available Apprise notification',
     )
     return false
   }
