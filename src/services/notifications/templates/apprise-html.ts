@@ -304,6 +304,8 @@ export function createUpdateAvailableNotificationHtml(release: {
     </div>
   `
 
+  // releaseBodyHtml is GitHub's /markdown API output, sanitized server-side, so
+  // it is injected unescaped. If that render source changes, sanitize first.
   const notesCard = release.releaseBodyHtml
     ? `
     <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">

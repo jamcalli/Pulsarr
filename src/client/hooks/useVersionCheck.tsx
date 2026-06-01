@@ -23,6 +23,9 @@ export interface VersionCheckResult {
 const VERSION_TOAST_KEY = 'version-toast-notified'
 // Server runs the GitHub fetch hourly; polling more often is wasted work.
 const FIFTEEN_MINUTES = 15 * 60 * 1000
+// Boot refresh runs detached server-side, so the first read can be 'pending'.
+// Poll quickly until it resolves, then settle into the normal cadence.
+const PENDING_POLL = 5 * 1000
 
 export const versionCheckKeys = {
   all: ['version-check'] as const,
@@ -42,7 +45,8 @@ export function useVersionCheck(): VersionCheckResult {
     queryKey: versionCheckKeys.status(),
     queryFn: fetchUpdateStatus,
     staleTime: FIFTEEN_MINUTES,
-    refetchInterval: FIFTEEN_MINUTES,
+    refetchInterval: (query) =>
+      query.state.data?.status === 'pending' ? PENDING_POLL : FIFTEEN_MINUTES,
     refetchOnWindowFocus: false,
     retry: false,
   })
