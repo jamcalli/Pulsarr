@@ -48,7 +48,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       })
       if (sent) {
         // Advance only after delivery so a failed send retries next run.
-        await fastify.db.setLastNotifiedVersion(targetVersion)
+        const persisted = await fastify.db.setLastNotifiedVersion(targetVersion)
+        if (!persisted) {
+          fastify.log.error(
+            { latestVersion: targetVersion },
+            'Update-available notification sent but watermark could not be persisted',
+          )
+          return
+        }
         fastify.log.info(
           { latestVersion: targetVersion },
           'Update-available notification dispatched',

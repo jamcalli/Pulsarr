@@ -93,15 +93,15 @@ async function sendDiscordDM(
     return false
   }
 
-  const primaryUser = await deps.db.getPrimaryUser()
-  if (!primaryUser?.discord_id) {
-    deps.logger.debug(
-      'Primary user has no Discord ID, skipping update-available DM',
-    )
-    return false
-  }
-
   try {
+    const primaryUser = await deps.db.getPrimaryUser()
+    if (!primaryUser?.discord_id) {
+      deps.logger.debug(
+        'Primary user has no Discord ID, skipping update-available DM',
+      )
+      return false
+    }
+
     const embed = createUpdateAvailableEmbed(release)
     const sent = await deps.discordBot.sendDirectMessageEmbed(
       primaryUser.discord_id,

@@ -69,12 +69,12 @@ export function useVersionCheck(): VersionCheckResult {
       versionInfo.latestVersion &&
       notifiedVersion !== versionInfo.latestVersion
     ) {
-      sessionStorage.setItem(VERSION_TOAST_KEY, versionInfo.latestVersion)
-
       const url = versionInfo.releaseUrl
+      const latestVersion = versionInfo.latestVersion
       const timeoutId = setTimeout(() => {
+        sessionStorage.setItem(VERSION_TOAST_KEY, latestVersion)
         toast(
-          `A new version (v${versionInfo.latestVersion}) is available. You're running v${versionInfo.currentVersion}.`,
+          `A new version (v${latestVersion}) is available. You're running v${versionInfo.currentVersion}.`,
           {
             id: 'version-update-notification',
             duration: 8000,

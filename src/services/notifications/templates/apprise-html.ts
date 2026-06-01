@@ -321,11 +321,21 @@ export function createUpdateAvailableNotificationHtml(release: {
     </div>
   `
 
+  // Cap notes so the text fallback stays within strict per-service limits
+  // (e.g. Telegram's 4096-char messages); HTML targets get the full card above.
+  const MAX_TEXT_NOTES = 1500
+  const notes = release.releaseBody?.trim()
+  const truncatedNotes =
+    notes && notes.length > MAX_TEXT_NOTES
+      ? `${notes.slice(0, MAX_TEXT_NOTES)}...`
+      : notes
+
   let textBody = 'Pulsarr update available\n\n'
   textBody += `${displayName}\n`
   textBody += `Current: v${release.currentVersion}\n`
   textBody += `Latest: v${release.latestVersion}\n`
   if (publishedAt) textBody += `Published: ${publishedAt}\n`
+  if (truncatedNotes) textBody += `\nRelease Notes:\n${truncatedNotes}\n`
   textBody += `\nView release: ${release.releaseUrl}\n`
   textBody += '\n- Pulsarr'
 
