@@ -45,6 +45,14 @@ export type LogLevel =
   | 'trace'
   | 'silent'
 
+export type UpdateNotifyOption =
+  | 'none'
+  | 'all'
+  | 'discord-only'
+  | 'apprise-only'
+  | 'webhook-only'
+  | 'dm-only'
+
 export type NotifyOption =
   | 'none' // No notifications
   | 'all' // All available notification channels
@@ -152,6 +160,8 @@ export interface Config {
   // General Notifications
   queueWaitTime: number
   newEpisodeThreshold: number
+  // Out-of-app update notifications
+  notifyOnUpdate: UpdateNotifyOption
   // Pending Webhooks Config
   pendingWebhookRetryInterval: number
   pendingWebhookMaxAge: number

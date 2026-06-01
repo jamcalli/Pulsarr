@@ -15,6 +15,7 @@ import {
   sendPublicNotification as sendPublic,
   sendSystemNotification as sendSystem,
   sendTestNotification as sendTest,
+  sendUpdateAvailableNotification as sendUpdateAvailable,
   sendUserWatchlistCapNotification as sendUserWatchlistCap,
   sendWatchlistAdditionNotification as sendWatchlistAddition,
   sendWatchlistCapNotification as sendWatchlistCap,
@@ -82,6 +83,18 @@ export class AppriseService {
     dryRun: boolean,
   ): Promise<boolean> {
     return sendDeleteSync(results, dryRun, this.appriseDeps)
+  }
+
+  async sendUpdateAvailableNotification(release: {
+    currentVersion: string
+    latestVersion: string
+    releaseUrl: string
+    releaseName: string | null
+    releaseBody: string | null
+    releaseBodyHtml: string | null
+    publishedAt: string | null
+  }): Promise<boolean> {
+    return sendUpdateAvailable(release, this.appriseDeps)
   }
 
   async sendWatchlistAdditionNotification(item: {

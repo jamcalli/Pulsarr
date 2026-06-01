@@ -7,13 +7,17 @@
  */
 
 import type {
+  DiscordEmbed,
   MediaNotification,
   SystemNotification,
 } from '@root/types/discord.types.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { Client, GatewayIntentBits } from 'discord.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { sendDirectMessage } from '../channels/discord-dm.js'
+import {
+  sendDirectMessage,
+  sendDirectMessageEmbed,
+} from '../channels/discord-dm.js'
 import {
   type Command,
   createCommandRegistry,
@@ -199,6 +203,21 @@ export class DiscordBotService {
     notification: MediaNotification | SystemNotification,
   ): Promise<boolean> {
     return sendDirectMessage(discordId, notification, {
+      log: this.log,
+      botClient: this.botClient,
+      botStatus: this.botStatus,
+    })
+  }
+
+  /**
+   * Sends a pre-built embed as a direct message to a Discord user.
+   * Requires the bot to be running.
+   */
+  async sendDirectMessageEmbed(
+    discordId: string,
+    embed: DiscordEmbed,
+  ): Promise<boolean> {
+    return sendDirectMessageEmbed(discordId, embed, {
       log: this.log,
       botClient: this.botClient,
       botStatus: this.botStatus,

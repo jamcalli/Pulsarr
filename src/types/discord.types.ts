@@ -46,11 +46,19 @@ export interface DiscordEmbed {
   }>
 }
 
+export interface DiscordAllowedMentions {
+  parse?: Array<'roles' | 'users' | 'everyone'>
+  roles?: string[]
+  users?: string[]
+  replied_user?: boolean
+}
+
 export interface DiscordWebhookPayload {
   content?: string
   username?: string
   avatar_url?: string
   embeds?: DiscordEmbed[]
+  allowed_mentions?: DiscordAllowedMentions
 }
 
 export interface SystemNotification {

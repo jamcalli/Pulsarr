@@ -328,6 +328,61 @@ export function createDeleteSyncEmbed(
   }
 }
 
+// Discord embed description max length.
+const DISCORD_DESCRIPTION_MAX = 4096
+
+export function createUpdateAvailableEmbed(release: {
+  currentVersion: string
+  latestVersion: string
+  releaseUrl: string
+  releaseName: string | null
+  releaseBody: string | null
+  publishedAt: string | null
+}): DiscordEmbed {
+  const displayName = release.releaseName?.trim() || `v${release.latestVersion}`
+  const body = release.releaseBody?.trim() ?? ''
+
+  const versionLine = `**Current:** v${release.currentVersion} → **Latest:** v${release.latestVersion}\n\n`
+  const maxBody = DISCORD_DESCRIPTION_MAX - versionLine.length
+  const truncatedBody =
+    body.length > maxBody ? `${body.slice(0, Math.max(0, maxBody - 1))}…` : body
+
+  const description = truncatedBody
+    ? `${versionLine}${truncatedBody}`
+    : `${versionLine}_No release notes provided._`
+
+  const fields: Array<{ name: string; value: string; inline?: boolean }> = []
+
+  if (release.publishedAt) {
+    fields.push({
+      name: 'Published',
+      value: new Date(release.publishedAt).toLocaleDateString(),
+      inline: true,
+    })
+  }
+
+  fields.push({
+    name: 'Release',
+    value: `[View on GitHub](${release.releaseUrl})`,
+    inline: true,
+  })
+
+  const title =
+    displayName.length > 256 ? `${displayName.slice(0, 253)}...` : displayName
+
+  return {
+    title,
+    url: release.releaseUrl,
+    description,
+    color: EMBED_COLOR,
+    timestamp: new Date().toISOString(),
+    fields,
+    footer: {
+      text: 'Pulsarr update notification',
+    },
+  }
+}
+
 /**
  * Creates a system notification embed (for DMs).
  */

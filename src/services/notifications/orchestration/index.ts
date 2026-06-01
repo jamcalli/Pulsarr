@@ -32,6 +32,12 @@ export {
 } from './media-available.js'
 
 export {
+  sendUpdateAvailable,
+  type UpdateAvailableDeps,
+  type UpdateAvailableRelease,
+} from './update-available.js'
+
+export {
   sendWatchlistAdded,
   type WatchlistAddedDeps,
   type WatchlistItemInfo,

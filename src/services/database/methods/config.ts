@@ -137,6 +137,8 @@ export async function getConfig(
     // Handle notification timing defaults
     queueWaitTime: config.queueWaitTime ?? 120000,
     newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
+    // Out-of-app update notifications
+    notifyOnUpdate: config.notifyOnUpdate || 'none',
     // Handle pending webhook configuration
     pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
     pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -279,6 +281,8 @@ export async function createConfig(
       // Notification timing fields
       queueWaitTime: config.queueWaitTime ?? 120000,
       newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
+      // Out-of-app update notifications
+      notifyOnUpdate: config.notifyOnUpdate ?? 'none',
       // Pending webhook configuration
       pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
       pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -464,6 +468,10 @@ const ALLOWED_COLUMNS = new Set([
   // Notification timing
   'queueWaitTime',
   'newEpisodeThreshold',
+  // Out-of-app update notifications
+  // NOTE: lastNotifiedVersion is intentionally omitted - it is internal
+  // bookkeeping written exclusively via setLastNotifiedVersion().
+  'notifyOnUpdate',
 
   // Pending webhooks
   'pendingWebhookRetryInterval',
@@ -601,6 +609,49 @@ export async function updateConfig(
     return updated > 0
   } catch (error) {
     this.log.error({ error }, 'Error updating config:')
+    return false
+  }
+}
+
+/**
+ * Reads the last Pulsarr release version that produced an out-of-app update
+ * notification, used by the update-check plugin to dedupe notifications.
+ *
+ * Returns null when no notification has ever been sent (or when the configs
+ * row does not yet exist). This column is intentionally not exposed via
+ * the public config API.
+ */
+export async function getLastNotifiedVersion(
+  this: DatabaseService,
+): Promise<string | null> {
+  try {
+    const row = await this.knex('configs')
+      .where({ id: 1 })
+      .first('lastNotifiedVersion')
+    return (row?.lastNotifiedVersion as string | null) ?? null
+  } catch (error) {
+    this.log.error({ error }, 'Error reading lastNotifiedVersion')
+    return null
+  }
+}
+
+/**
+ * Persists the version that produced the last out-of-app update notification.
+ * Bypasses ALLOWED_COLUMNS so this internal field cannot be set through the
+ * public config update API.
+ */
+export async function setLastNotifiedVersion(
+  this: DatabaseService,
+  version: string,
+): Promise<boolean> {
+  try {
+    const updated = await this.knex('configs').where({ id: 1 }).update({
+      lastNotifiedVersion: version,
+      updated_at: this.timestamp,
+    })
+    return updated > 0
+  } catch (error) {
+    this.log.error({ error, version }, 'Error setting lastNotifiedVersion')
     return false
   }
 }
