@@ -1,6 +1,6 @@
 import { createServiceLogger } from '@utils/logger.js'
 import { APP_VERSION, USER_AGENT } from '@utils/version.js'
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { FastifyBaseLogger } from 'fastify'
 import semver from 'semver'
 
 const RELEASE_URL =
@@ -65,7 +65,7 @@ export class UpdateCheckService {
   private cached: UpdateCheckStatusPayload
   private refreshInFlight: Promise<UpdateCheckStatusPayload> | null = null
 
-  constructor(baseLog: FastifyBaseLogger, _fastify: FastifyInstance) {
+  constructor(baseLog: FastifyBaseLogger) {
     this.log = createServiceLogger(baseLog, 'UPDATE_CHECK')
     this.currentVersion = normaliseVersion(APP_VERSION) ?? APP_VERSION
     this.cached = PENDING_STATUS(this.currentVersion)

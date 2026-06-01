@@ -636,17 +636,13 @@ export async function getLastNotifiedVersion(
 }
 
 /**
- * Persists the last Pulsarr release version that produced an out-of-app update
- * notification. Bypasses ALLOWED_COLUMNS so this internal field cannot be
- * written through the public config update API.
- *
- * @param version - Cleaned semver string (e.g. "1.42.0"), or null to reset
- *   the baseline (used when notifyOnUpdate is freshly enabled).
- * @returns true when the row was updated, false otherwise.
+ * Persists the version that produced the last out-of-app update notification.
+ * Bypasses ALLOWED_COLUMNS so this internal field cannot be set through the
+ * public config update API.
  */
 export async function setLastNotifiedVersion(
   this: DatabaseService,
-  version: string | null,
+  version: string,
 ): Promise<boolean> {
   try {
     const updated = await this.knex('configs').where({ id: 1 }).update({

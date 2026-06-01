@@ -13,7 +13,7 @@ const JOB_NAME = 'update-check'
 const CRON_EXPRESSION = '0 * * * *'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
-  const service = new UpdateCheckService(fastify.log, fastify)
+  const service = new UpdateCheckService(fastify.log)
   fastify.decorate('updateCheck', service)
 
   const dispatchNotification = async (): Promise<void> => {

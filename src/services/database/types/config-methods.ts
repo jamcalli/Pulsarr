@@ -15,6 +15,6 @@ declare module '@services/database.service.js' {
 
     getLastNotifiedVersion(): Promise<string | null>
 
-    setLastNotifiedVersion(version: string | null): Promise<boolean>
+    setLastNotifiedVersion(version: string): Promise<boolean>
   }
 }
