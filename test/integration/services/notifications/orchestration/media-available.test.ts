@@ -233,5 +233,89 @@ describe('sendMediaAvailable Integration Tests', () => {
       expect(junctionRecord.status).toBe('notified')
       expect(Boolean(junctionRecord.is_primary)).toBe(true)
     })
+
+    it('skips per-user availability notifications when notifyOnAvailability is off', async () => {
+      const sendDirectMessageSpy = vi.fn().mockResolvedValue(undefined)
+      if (app.notifications?.discordBot) {
+        app.notifications.discordBot.sendDirectMessage = sendDirectMessageSpy
+      }
+
+      await app.updateConfig({ notifyOnAvailability: false })
+      try {
+        await app.notifications.sendMediaAvailable(
+          {
+            type: 'movie',
+            guid: 'imdb:tt0063350',
+            title: 'Night of the Living Dead',
+          },
+          {
+            isBulkRelease: false,
+          },
+        )
+
+        expect(sendDirectMessageSpy).not.toHaveBeenCalled()
+
+        const knex = getTestDatabase()
+        const notifications = await knex('notifications')
+          .where({ watchlist_item_id: 1, type: 'movie' })
+          .select('*')
+        expect(notifications.length).toBe(0)
+
+        const item = await knex('watchlist_items').where({ id: 1 }).first()
+        expect(item.status).not.toBe('notified')
+      } finally {
+        await app.updateConfig({ notifyOnAvailability: true })
+      }
+    })
+
+    it('still sends public availability notifications when notifyOnAvailability is off', async () => {
+      const sendDirectMessageSpy = vi.fn().mockResolvedValue(undefined)
+      const sendPublicNotificationSpy = vi.fn().mockResolvedValue(undefined)
+      if (app.notifications?.discordBot) {
+        app.notifications.discordBot.sendDirectMessage = sendDirectMessageSpy
+      }
+      if (app.notifications?.discordWebhook) {
+        app.notifications.discordWebhook.sendPublicNotification =
+          sendPublicNotificationSpy
+      }
+
+      await app.updateConfig({
+        notifyOnAvailability: false,
+        publicContentNotifications: {
+          enabled: true,
+          discordWebhookUrls:
+            'https://discord.com/api/webhooks/123456789/test-token',
+        },
+      })
+      try {
+        await app.notifications.sendMediaAvailable(
+          {
+            type: 'movie',
+            guid: 'imdb:tt0063350',
+            title: 'Night of the Living Dead',
+          },
+          {
+            isBulkRelease: false,
+          },
+        )
+
+        // Per-user availability is suppressed, but the independent public path
+        // still builds and dispatches its notification.
+        expect(sendDirectMessageSpy).not.toHaveBeenCalled()
+        expect(sendPublicNotificationSpy).toHaveBeenCalled()
+
+        const knex = getTestDatabase()
+        const publicRecord = await knex('notifications')
+          .whereNull('user_id')
+          .where({ type: 'movie' })
+          .first()
+        expect(publicRecord).toBeDefined()
+      } finally {
+        await app.updateConfig({
+          notifyOnAvailability: true,
+          publicContentNotifications: { enabled: false },
+        })
+      }
+    })
   })
 })

@@ -131,12 +131,13 @@ export function createMediaNotificationEmbed(
 }
 
 /**
- * Creates a media webhook embed payload (for admin "user added X" notifications).
+ * Creates the "New X Added" embed for admin "user added X" notifications.
+ * Shared by the admin webhook and the admin DM so both render identically.
  */
-export function createMediaWebhookPayload(
+export function createMediaAddedEmbed(
   notification: MediaNotification,
   displayName: string,
-): DiscordWebhookPayload {
+): DiscordEmbed {
   const emoji = notification.type === 'movie' ? '🎬' : '📺'
   const mediaType =
     notification.type.charAt(0).toUpperCase() + notification.type.slice(1)
@@ -176,8 +177,18 @@ export function createMediaWebhookPayload(
     }
   }
 
+  return embed
+}
+
+/**
+ * Creates a media webhook embed payload (for admin "user added X" notifications).
+ */
+export function createMediaWebhookPayload(
+  notification: MediaNotification,
+  displayName: string,
+): DiscordWebhookPayload {
   return {
-    embeds: [embed],
+    embeds: [createMediaAddedEmbed(notification, displayName)],
     username: 'Pulsarr',
     avatar_url:
       'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',

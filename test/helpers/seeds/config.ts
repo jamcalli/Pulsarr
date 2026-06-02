@@ -60,6 +60,9 @@ import type { Knex } from 'knex'
  * - quotaSettings: json
  * - approvalExpiration: json
  * - approvalNotify: text (default: 'none')
+ * - notifyOnUpdate: enum (default: 'none')
+ * - notifyOnAvailability: boolean (default: true)
+ * - watchlistAddNotify: enum (default: 'all')
  * - newUserDefaultRequiresApproval: boolean (default: false)
  * - newUserDefaultMovieQuotaEnabled: boolean (default: false)
  * - newUserDefaultMovieQuotaType: string (default: 'monthly')
@@ -164,6 +167,9 @@ export const SEED_CONFIGS = [
       cleanupExpiredDays: 30,
     }),
     approvalNotify: 'none',
+    notifyOnUpdate: 'none',
+    notifyOnAvailability: true,
+    watchlistAddNotify: 'all',
     newUserDefaultRequiresApproval: false,
     newUserDefaultMovieQuotaEnabled: false,
     newUserDefaultMovieQuotaType: 'monthly',

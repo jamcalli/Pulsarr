@@ -139,6 +139,7 @@ export async function getConfig(
     newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
     // Out-of-app update notifications
     notifyOnUpdate: config.notifyOnUpdate || 'none',
+    notifyOnAvailability: Boolean(config.notifyOnAvailability ?? true),
     // Handle pending webhook configuration
     pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
     pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -169,6 +170,7 @@ export async function getConfig(
     approvalNotify: config.approvalNotify || 'none',
     watchlistCapNotify: config.watchlistCapNotify || 'none',
     watchlistCapNotifyUser: Boolean(config.watchlistCapNotifyUser ?? false),
+    watchlistAddNotify: config.watchlistAddNotify || 'all',
     // Plex playlist protection
     enablePlexPlaylistProtection: Boolean(config.enablePlexPlaylistProtection),
     plexProtectionPlaylistName:
@@ -283,6 +285,7 @@ export async function createConfig(
       newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
       // Out-of-app update notifications
       notifyOnUpdate: config.notifyOnUpdate ?? 'none',
+      notifyOnAvailability: config.notifyOnAvailability ?? true,
       // Pending webhook configuration
       pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
       pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -311,6 +314,7 @@ export async function createConfig(
       approvalNotify: config.approvalNotify || 'none',
       watchlistCapNotify: config.watchlistCapNotify || 'none',
       watchlistCapNotifyUser: config.watchlistCapNotifyUser ?? false,
+      watchlistAddNotify: config.watchlistAddNotify || 'all',
       maxDeletionPrevention: config.maxDeletionPrevention ?? 10,
       // Plex playlist protection
       enablePlexPlaylistProtection:
@@ -472,6 +476,7 @@ const ALLOWED_COLUMNS = new Set([
   // NOTE: lastNotifiedVersion is intentionally omitted - it is internal
   // bookkeeping written exclusively via setLastNotifiedVersion().
   'notifyOnUpdate',
+  'notifyOnAvailability',
 
   // Pending webhooks
   'pendingWebhookRetryInterval',
@@ -520,6 +525,7 @@ const ALLOWED_COLUMNS = new Set([
   'approvalNotify',
   'watchlistCapNotify',
   'watchlistCapNotifyUser',
+  'watchlistAddNotify',
   'maxDeletionPrevention',
   'enablePlexPlaylistProtection',
   'plexProtectionPlaylistName',
