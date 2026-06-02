@@ -187,8 +187,12 @@ export class NotificationService {
       {
         db: this.fastify.db,
         logger: this.log,
+        discordBot: this._discordBot,
         discordWebhook: this._discordWebhook,
         apprise: this._apprise,
+        config: {
+          watchlistAddNotify: this.fastify.config.watchlistAddNotify || 'all',
+        },
       },
       user,
       item,

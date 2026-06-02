@@ -162,6 +162,7 @@ export interface Config {
   newEpisodeThreshold: number
   // Out-of-app update notifications
   notifyOnUpdate: UpdateNotifyOption
+  notifyOnAvailability: boolean
   // Pending Webhooks Config
   pendingWebhookRetryInterval: number
   pendingWebhookMaxAge: number
@@ -200,6 +201,7 @@ export interface Config {
   approvalNotify: NotifyOption
   watchlistCapNotify: NotifyOption
   watchlistCapNotifyUser: boolean
+  watchlistAddNotify: NotifyOption
   deleteSyncNotifyOnlyOnDeletion: boolean
   maxDeletionPrevention: number
   deleteSyncTrackedOnly: boolean // Only delete content tracked in approval_requests
