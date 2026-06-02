@@ -42,6 +42,13 @@ export interface TagBasedDeletionDeps {
   tagCache: TagCache
   protectedGuids: Set<string> | null
   trackedGuids: Set<string> | null
+  /**
+   * GUIDs that exclusions designate for deletion right now (per-user or
+   * global; see DatabaseService.getExclusionDrivenDeletionGuids). Treated as a
+   * deletion signal in tag-based mode alongside the removal tag. null when
+   * there are no exclusions in scope.
+   */
+  exclusionDrivenGuids: Set<string> | null
   deletedMovieGuids: Set<string>
   deletedShowGuids: Set<string>
   logger: FastifyBaseLogger
@@ -75,6 +82,7 @@ async function performTagBasedDeletionSafetyCheck(
             deleteSyncTrackedOnly: config.deleteSyncTrackedOnly,
             removedTagPrefix: config.removedTagPrefix,
             deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
+            exclusionDrivenGuids: deps.exclusionDrivenGuids ?? undefined,
           },
           sonarrManager,
           tagCache,
@@ -104,6 +112,7 @@ async function performTagBasedDeletionSafetyCheck(
             deleteSyncTrackedOnly: config.deleteSyncTrackedOnly,
             removedTagPrefix: config.removedTagPrefix,
             deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
+            exclusionDrivenGuids: deps.exclusionDrivenGuids ?? undefined,
           },
           radarrManager,
           tagCache,
@@ -246,6 +255,7 @@ export async function executeTagBasedDeletion(
         enablePlexPlaylistProtection: config.enablePlexPlaylistProtection,
         deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
         removedTagPrefix: config.removedTagPrefix,
+        exclusionDrivenGuids: deps.exclusionDrivenGuids ?? undefined,
       },
       validators: {
         isAnyGuidTracked: (guids, onHit) =>
@@ -287,6 +297,7 @@ export async function executeTagBasedDeletion(
         enablePlexPlaylistProtection: config.enablePlexPlaylistProtection,
         deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
         removedTagPrefix: config.removedTagPrefix,
+        exclusionDrivenGuids: deps.exclusionDrivenGuids ?? undefined,
       },
       validators: {
         isAnyGuidTracked: (guids, onHit) =>

@@ -37,6 +37,7 @@ The API is organized into the following categories:
 - **[Tags](./api/tags)** - User tagging configuration and synchronization
 - **[TMDB](./api/tmdb)** - TMDB metadata and streaming provider data
 - **[Users](./api/users)** - User management and watchlist access
+- **[Watchlist Exclusions](./api/watchlist-exclusions)** - Watchlist exclusion management
 - **[Watchlist Workflow](./api/watchlist-workflow)** - Start, stop, and monitor the main workflow
 
 **Benefits:**

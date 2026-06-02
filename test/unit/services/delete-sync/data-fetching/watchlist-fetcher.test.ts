@@ -6,10 +6,13 @@
  * various formats, and deduplication of GUIDs across items.
  */
 
+import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import type { DatabaseService } from '@services/database.service.js'
 import {
+  type DeleteSyncWatchlistItem,
   extractGuidsFromWatchlistItems,
   fetchWatchlistItems,
+  filterExcludedRoutedItems,
 } from '@services/delete-sync/data-fetching/watchlist-fetcher.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
@@ -301,6 +304,108 @@ describe('Watchlist Fetcher', () => {
       ]
 
       extractGuidsFromWatchlistItems(items, mockLogger)
+    })
+  })
+
+  describe('filterExcludedRoutedItems', () => {
+    const item = (
+      overrides: Partial<DeleteSyncWatchlistItem> = {},
+    ): DeleteSyncWatchlistItem => ({
+      title: 'Item',
+      key: 'k1',
+      guids: 'tmdb:1',
+      status: 'requested',
+      user_id: 1,
+      ...overrides,
+    })
+
+    it('drops routed rows excluded for the owning user', () => {
+      const items = [item({ status: 'grabbed', user_id: 1 })]
+      const exclusionMap = new Map([['k1', new Set([1])]])
+
+      expect(filterExcludedRoutedItems(items, exclusionMap)).toHaveLength(0)
+    })
+
+    it('keeps pending rows even when excluded', () => {
+      const items = [item({ status: 'pending', user_id: 1 })]
+      const exclusionMap = new Map([['k1', new Set([1])]])
+
+      expect(filterExcludedRoutedItems(items, exclusionMap)).toHaveLength(1)
+    })
+
+    it('keeps routed rows that are not excluded', () => {
+      const items = [item({ status: 'requested', user_id: 1 })]
+      const exclusionMap = new Map([['k1', new Set([2])]])
+
+      expect(filterExcludedRoutedItems(items, exclusionMap)).toHaveLength(1)
+    })
+
+    it('drops routed rows under a global exclusion regardless of user', () => {
+      const items = [item({ status: 'grabbed', user_id: 5 })]
+      const exclusionMap = new Map([['k1', new Set([SYSTEM_USER_ID])]])
+
+      expect(filterExcludedRoutedItems(items, exclusionMap)).toHaveLength(0)
+    })
+
+    it('normalizes object-form user_id when matching exclusions', () => {
+      const items = [item({ status: 'grabbed', user_id: { id: 1 } })]
+      const exclusionMap = new Map([['k1', new Set([1])]])
+
+      expect(filterExcludedRoutedItems(items, exclusionMap)).toHaveLength(0)
+    })
+  })
+
+  describe('dry-run / real-run parity', () => {
+    it('produces the same protected GUID set before and after the cleanup mutation', () => {
+      // Routed + excluded: a real run deletes this row before re-reading
+      const routedExcluded: DeleteSyncWatchlistItem = {
+        title: 'A',
+        key: 'kA',
+        guids: 'plex:movie/1',
+        status: 'grabbed',
+        user_id: 1,
+      }
+      // Pending + globally excluded: never reached *arr, kept in both runs
+      const pendingExcluded: DeleteSyncWatchlistItem = {
+        title: 'B',
+        key: 'kB',
+        guids: 'plex:movie/2',
+        status: 'pending',
+        user_id: 2,
+      }
+      // Routed + not excluded: kept in both runs
+      const routedKept: DeleteSyncWatchlistItem = {
+        title: 'C',
+        key: 'kC',
+        guids: 'plex:movie/3',
+        status: 'requested',
+        user_id: 3,
+      }
+
+      const exclusionMap = new Map<string, Set<number>>([
+        ['kA', new Set([1])],
+        ['kB', new Set([SYSTEM_USER_ID])],
+      ])
+
+      // Dry run: nothing deleted from the DB, exclusions applied in memory
+      const drySet = extractGuidsFromWatchlistItems(
+        filterExcludedRoutedItems(
+          [routedExcluded, pendingExcluded, routedKept],
+          exclusionMap,
+        ),
+        mockLogger,
+      )
+
+      // Real run: cleanup already removed routed + excluded rows from the DB
+      const realSet = extractGuidsFromWatchlistItems(
+        filterExcludedRoutedItems([pendingExcluded, routedKept], exclusionMap),
+        mockLogger,
+      )
+
+      expect([...drySet].sort()).toEqual([...realSet].sort())
+      expect(drySet.has('plex:movie/1')).toBe(false)
+      expect(drySet.has('plex:movie/2')).toBe(true)
+      expect(drySet.has('plex:movie/3')).toBe(true)
     })
   })
 })

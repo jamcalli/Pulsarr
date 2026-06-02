@@ -24,9 +24,9 @@ import {
 import * as React from 'react'
 import { useId } from 'react'
 import { toast } from 'sonner'
+import { createSelectColumn } from '@/components/table/data-table-select-column'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -143,30 +143,10 @@ export default function UserTable({
   } = useUserWatchlist()
 
   const columns: ColumnDef<UserWithQuotaInfo>[] = [
-    {
-      id: 'select',
-      header: ({ table }) => (
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate')
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-          disabled={isLoading}
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-          disabled={isLoading || !row.getCanSelect()}
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-    },
+    createSelectColumn<UserWithQuotaInfo>({
+      disabled: (row) => isLoading || !row.getCanSelect(),
+      headerDisabled: () => isLoading,
+    }),
     {
       accessorKey: 'name',
       meta: {

@@ -10,6 +10,7 @@ import type { ApprovalMetadata } from '@root/types/progress.types.js'
 import type { RadarrItem } from '@root/types/radarr.types.js'
 import type { ContentItem } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
+import { isArrAlreadyAddedError } from '@utils/arr-error.js'
 import { getGuidMatchScore } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -328,15 +329,6 @@ export class ApprovalService {
   }
 
   /**
-   * Checks if an error indicates the content already exists in Sonarr/Radarr.
-   * Sonarr/Radarr return 400 with "This series/movie has already been added".
-   */
-  private isAlreadyAddedError(error: unknown): boolean {
-    if (!(error instanceof Error)) return false
-    return error.message.toLowerCase().includes('already been added')
-  }
-
-  /**
    * Processes an approved request by executing the stored router decision.
    * This is an internal method - external callers should use approveAndRoute().
    */
@@ -404,7 +396,7 @@ export class ApprovalService {
               )
               routingResults.succeeded.push(targetInstanceId)
             } catch (error) {
-              if (this.isAlreadyAddedError(error)) {
+              if (isArrAlreadyAddedError(error)) {
                 this.log.info(
                   { instanceId: targetInstanceId, title: request.contentTitle },
                   'Movie already exists in Radarr instance, treating as successful routing',
@@ -452,7 +444,7 @@ export class ApprovalService {
               )
               routingResults.succeeded.push(targetInstanceId)
             } catch (error) {
-              if (this.isAlreadyAddedError(error)) {
+              if (isArrAlreadyAddedError(error)) {
                 this.log.info(
                   { instanceId: targetInstanceId, title: request.contentTitle },
                   'Series already exists in Sonarr instance, treating as successful routing',

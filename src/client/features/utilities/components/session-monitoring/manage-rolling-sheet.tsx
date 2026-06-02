@@ -24,9 +24,9 @@ import {
   X,
 } from 'lucide-react'
 import * as React from 'react'
+import { createSelectColumn } from '@/components/table/data-table-select-column'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Drawer,
   DrawerContent,
@@ -124,32 +124,12 @@ export function ManageRollingSheet({
   }, [isMultiInstance])
 
   const columns: ColumnDef<SonarrShow>[] = [
-    {
-      id: 'select',
-      header: ({ table }) => (
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate')
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
+    createSelectColumn<SonarrShow>({
       meta: {
         className: 'w-10',
         headerClassName: 'w-10',
       },
-    },
+    }),
     {
       accessorKey: 'title',
       header: ({ column }) => {

@@ -546,5 +546,163 @@ describe('content-validator', () => {
       expect(result.notTracked).toBe(true)
       expect(mockValidators.isAnyGuidProtected).not.toHaveBeenCalled()
     })
+
+    describe('exclusion-driven deletion', () => {
+      it('should allow deletion for an exclusion-driven item that lacks the removal tag', async () => {
+        vi.mocked(hasRemovalTag).mockResolvedValue(false)
+        vi.mocked(hasTagMatchingRegex).mockResolvedValue(true)
+
+        const config: ValidationConfig = {
+          deletionMode: 'tag-based',
+          removedTagPrefix: 'removed',
+          deleteSyncTrackedOnly: false,
+          enablePlexPlaylistProtection: false,
+          exclusionDrivenGuids: new Set(['tmdb://12345']),
+        }
+
+        const result = await validateTagBasedDeletion(
+          1,
+          mockService,
+          [1, 2, 3],
+          ['tmdb://12345'],
+          'Test Movie',
+          'radarr',
+          config,
+          mockValidators,
+          mockTagCache,
+          mockLogger,
+          null,
+        )
+
+        expect(result.skip).toBe(false)
+        expect(result.protected).toBe(false)
+      })
+
+      it('should still skip when the item lacks both the removal tag and any exclusion-driven GUID match', async () => {
+        vi.mocked(hasRemovalTag).mockResolvedValue(false)
+
+        const config: ValidationConfig = {
+          deletionMode: 'tag-based',
+          removedTagPrefix: 'removed',
+          deleteSyncTrackedOnly: false,
+          enablePlexPlaylistProtection: false,
+          exclusionDrivenGuids: new Set(['tmdb://99999']),
+        }
+
+        const result = await validateTagBasedDeletion(
+          1,
+          mockService,
+          [1, 2, 3],
+          ['tmdb://12345'],
+          'Test Movie',
+          'radarr',
+          config,
+          mockValidators,
+          mockTagCache,
+          mockLogger,
+          null,
+        )
+
+        expect(result.skip).toBe(true)
+        expect(result.reason).toBe('no-removal-tag')
+      })
+
+      it('should bypass the required-regex filter for exclusion-driven items', async () => {
+        // Even if the regex would reject the item, an exclusion-driven hit
+        // should override that filter — exclusions are explicit deletion
+        // decisions that shouldn't be gated by tag-pattern constraints.
+        vi.mocked(hasRemovalTag).mockResolvedValue(false)
+        vi.mocked(hasTagMatchingRegex).mockResolvedValue(false)
+
+        const config: ValidationConfig = {
+          deletionMode: 'tag-based',
+          removedTagPrefix: 'removed',
+          deleteSyncRequiredTagRegex: 'user-.*',
+          deleteSyncTrackedOnly: false,
+          enablePlexPlaylistProtection: false,
+          exclusionDrivenGuids: new Set(['tmdb://12345']),
+        }
+
+        const result = await validateTagBasedDeletion(
+          1,
+          mockService,
+          [1, 2, 3],
+          ['tmdb://12345'],
+          'Test Movie',
+          'radarr',
+          config,
+          mockValidators,
+          mockTagCache,
+          mockLogger,
+          null,
+        )
+
+        expect(result.skip).toBe(false)
+        // hasTagMatchingRegex should not have been consulted at all
+        expect(hasTagMatchingRegex).not.toHaveBeenCalled()
+      })
+
+      it('should still apply Plex playlist protection to exclusion-driven items', async () => {
+        vi.mocked(hasRemovalTag).mockResolvedValue(false)
+
+        const config: ValidationConfig = {
+          deletionMode: 'tag-based',
+          removedTagPrefix: 'removed',
+          deleteSyncTrackedOnly: false,
+          enablePlexPlaylistProtection: true,
+          exclusionDrivenGuids: new Set(['tmdb://12345']),
+        }
+
+        mockValidators.isAnyGuidProtected = vi.fn(() => true)
+
+        const result = await validateTagBasedDeletion(
+          1,
+          mockService,
+          [1, 2, 3],
+          ['tmdb://12345'],
+          'Test Movie',
+          'radarr',
+          config,
+          mockValidators,
+          mockTagCache,
+          mockLogger,
+          null,
+        )
+
+        expect(result.skip).toBe(false)
+        expect(result.protected).toBe(true)
+      })
+
+      it('should still apply tracked-only filter to exclusion-driven items', async () => {
+        vi.mocked(hasRemovalTag).mockResolvedValue(false)
+
+        const config: ValidationConfig = {
+          deletionMode: 'tag-based',
+          removedTagPrefix: 'removed',
+          deleteSyncTrackedOnly: true,
+          enablePlexPlaylistProtection: false,
+          exclusionDrivenGuids: new Set(['tmdb://12345']),
+        }
+
+        mockValidators.isAnyGuidTracked = vi.fn(() => false)
+
+        const result = await validateTagBasedDeletion(
+          1,
+          mockService,
+          [1, 2, 3],
+          ['tmdb://12345'],
+          'Test Movie',
+          'radarr',
+          config,
+          mockValidators,
+          mockTagCache,
+          mockLogger,
+          null,
+        )
+
+        expect(result.skip).toBe(true)
+        expect(result.notTracked).toBe(true)
+      })
+    })
   })
 })

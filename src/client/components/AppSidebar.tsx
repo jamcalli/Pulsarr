@@ -200,6 +200,10 @@ const data = {
           title: 'User Tags',
           url: '/utilities/user-tags',
         },
+        {
+          title: 'Watchlist Exclusions',
+          url: '/utilities/watchlist-exclusions',
+        },
       ],
     },
   ],
