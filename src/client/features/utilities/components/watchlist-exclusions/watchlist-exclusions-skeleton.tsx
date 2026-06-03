@@ -39,20 +39,6 @@ export function WatchlistExclusionsSkeleton() {
             showHeader={true}
           />
         </div>
-
-        <div>
-          <Skeleton className="h-5 w-36 mb-2" />
-          <TableSkeleton
-            rows={4}
-            columns={[
-              { type: 'text', width: 'w-full max-w-75' },
-              { type: 'text', width: 'w-24' },
-              { type: 'text', width: 'w-20' },
-              { type: 'button', width: 'w-24' },
-            ]}
-            showHeader={true}
-          />
-        </div>
       </div>
     </div>
   )
