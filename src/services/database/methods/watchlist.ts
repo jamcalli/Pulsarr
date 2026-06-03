@@ -1524,6 +1524,12 @@ export async function deleteWatchlistItems(
       }
     }
 
+    // Clear exclusions so re-adding the item to a watchlist allows routing again
+    await trx('watchlist_exclusions')
+      .where('user_id', numericUserId)
+      .whereIn('key', keys)
+      .delete()
+
     // Delete watchlist items (CASCADE will handle notifications with non-NULL watchlist_item_id)
     await trx('watchlist_items')
       .where('user_id', numericUserId)

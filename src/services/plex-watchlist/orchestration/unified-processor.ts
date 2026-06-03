@@ -195,7 +195,7 @@ export async function processItemsForUser(
       userId: user.userId,
       username: user.username,
       brandNew: brandNewCount,
-      linked: linkedCount,
+      linked: linkedItems.length,
     },
     'Items processed for user',
   )

@@ -60,6 +60,7 @@ const sidebars: SidebarsConfig = {
         'utilities/public-content-notifications',
         'utilities/session-monitoring',
         'utilities/user-tagging',
+        'utilities/watchlist-exclusions',
       ],
     },
     {

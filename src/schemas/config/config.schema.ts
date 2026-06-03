@@ -71,6 +71,15 @@ const NotifyOptionEnum = z.enum([
   'discord-both', // Both Discord webhook and DMs but no Apprise
 ])
 
+const UpdateNotifyEnum = z.enum([
+  'none',
+  'all',
+  'discord-only',
+  'apprise-only',
+  'webhook-only',
+  'dm-only',
+])
+
 // Legacy enum for backward compatibility
 const DeleteSyncNotifyOptionEnum = z.enum([
   'none', // No notifications
@@ -163,6 +172,9 @@ export const ConfigFullSchema = z.object({
   // General Notifications (stored in milliseconds)
   queueWaitTime: z.number(),
   newEpisodeThreshold: z.number(),
+  // Out-of-app notification channels for new Pulsarr releases
+  notifyOnUpdate: UpdateNotifyEnum,
+  notifyOnAvailability: z.boolean(),
   // Pending Webhooks Config
   pendingWebhookRetryInterval: z.number(),
   pendingWebhookMaxAge: z.number(),
@@ -183,6 +195,7 @@ export const ConfigFullSchema = z.object({
   approvalNotify: NotifyOptionEnum,
   watchlistCapNotify: NotifyOptionEnum,
   watchlistCapNotifyUser: z.boolean(),
+  watchlistAddNotify: NotifyOptionEnum,
   deleteSyncNotifyOnlyOnDeletion: z.boolean(),
   maxDeletionPrevention: z.number().optional(),
   deleteSyncTrackedOnly: z.boolean(),
@@ -324,6 +337,9 @@ export const ConfigUpdateSchema = z
         error: `New episode threshold cannot exceed ${NEW_EPISODE_THRESHOLD_MAX_MS} milliseconds (720 hours)`,
       })
       .optional(), // 0-720 hours in ms
+    // lastNotifiedVersion is internal-only; only the user-facing setting here.
+    notifyOnUpdate: UpdateNotifyEnum.optional(),
+    notifyOnAvailability: z.boolean().optional(),
     // Pending Webhooks Config
     // How often to retry processing pending webhooks (in seconds)
     pendingWebhookRetryInterval: z.number().optional(),
@@ -343,6 +359,7 @@ export const ConfigUpdateSchema = z
     approvalNotify: NotifyOptionEnum.optional(),
     watchlistCapNotify: NotifyOptionEnum.optional(),
     watchlistCapNotifyUser: z.boolean().optional(),
+    watchlistAddNotify: NotifyOptionEnum.optional(),
     deleteSyncNotifyOnlyOnDeletion: z.boolean().optional(),
     maxDeletionPrevention: z.number().min(1).max(100).optional(),
     // Deletion mode

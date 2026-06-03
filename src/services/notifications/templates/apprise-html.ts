@@ -263,6 +263,92 @@ export function createSystemNotificationHtml(
   return { htmlBody, textBody }
 }
 
+export function createUpdateAvailableNotificationHtml(release: {
+  currentVersion: string
+  latestVersion: string
+  releaseUrl: string
+  releaseName: string | null
+  releaseBody: string | null
+  releaseBodyHtml: string | null
+  publishedAt: string | null
+}): { htmlBody: string; textBody: string; title: string } {
+  const title = `🚀 Pulsarr ${release.latestVersion} is available`
+  const displayName = release.releaseName?.trim() || `v${release.latestVersion}`
+  const publishedAt = release.publishedAt
+    ? new Date(release.publishedAt).toLocaleDateString()
+    : null
+
+  const versionsCard = `
+    <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+      <h3 style="margin-top: 0; color: #ffffff; font-weight: 700; text-align: center;">${escapeHtml(displayName)}</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+        <div>
+          <div style="color: #ffffff; font-weight: 700; font-size: 14px;">CURRENT</div>
+          <div style="color: #ffffff; font-weight: 500;">v${escapeHtml(release.currentVersion)}</div>
+        </div>
+        <div>
+          <div style="color: #ffffff; font-weight: 700; font-size: 14px;">LATEST</div>
+          <div style="color: #ffffff; font-weight: 500;">v${escapeHtml(release.latestVersion)}</div>
+        </div>
+      </div>
+      ${
+        publishedAt
+          ? `
+      <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #343746;">
+        <div style="color: #ffffff; font-weight: 700; font-size: 14px;">PUBLISHED</div>
+        <div style="color: #ffffff; font-weight: 500; margin-top: 5px;">${escapeHtml(publishedAt)}</div>
+      </div>
+      `
+          : ''
+      }
+    </div>
+  `
+
+  // releaseBodyHtml is GitHub's /markdown API output, sanitized server-side, so
+  // it is injected unescaped. If that render source changes, sanitize first.
+  const notesCard = release.releaseBodyHtml
+    ? `
+    <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+      <h4 style="margin-top: 0; color: #ffffff; font-weight: 700; border-bottom: 1px solid #343746; padding-bottom: 5px;">Release Notes</h4>
+      <div style="margin-top: 15px; color: #ffffff; font-weight: 500;">${release.releaseBodyHtml}</div>
+    </div>
+  `
+    : ''
+
+  const linkHtml = `
+    <div style="text-align: center; margin-bottom: 20px;">
+      <a href="${escapeHtml(release.releaseUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View release on GitHub →</a>
+    </div>
+  `
+
+  // Cap notes so the text fallback stays within strict per-service limits
+  // (e.g. Telegram's 4096-char messages); HTML targets get the full card above.
+  const MAX_TEXT_NOTES = 1500
+  const notes = release.releaseBody?.trim()
+  const truncatedNotes =
+    notes && notes.length > MAX_TEXT_NOTES
+      ? `${notes.slice(0, MAX_TEXT_NOTES)}...`
+      : notes
+
+  let textBody = 'Pulsarr update available\n\n'
+  textBody += `${displayName}\n`
+  textBody += `Current: v${release.currentVersion}\n`
+  textBody += `Latest: v${release.latestVersion}\n`
+  if (publishedAt) textBody += `Published: ${publishedAt}\n`
+  if (truncatedNotes) textBody += `\nRelease Notes:\n${truncatedNotes}\n`
+  textBody += `\nView release: ${release.releaseUrl}\n`
+  textBody += '\n- Pulsarr'
+
+  const content = `
+    <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Pulsarr update available</h2>
+    ${versionsCard}
+    ${linkHtml}
+    ${notesCard}
+  `
+
+  return { htmlBody: htmlWrapper(content), textBody, title }
+}
+
 export function createWatchlistCapNotificationHtml(event: {
   userName: string
   contentType: string

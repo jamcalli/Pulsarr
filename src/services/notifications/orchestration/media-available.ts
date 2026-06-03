@@ -617,15 +617,20 @@ async function buildNotificationResults(
     return { notifications: [], watchlistItems, hasNativeWebhooks, enrichment }
   }
 
-  const userNotifications = await buildUserNotifications(
-    deps,
-    mediaInfo,
-    options,
-    watchlistItems,
-    enrichment,
-    notificationTypeInfo,
-    hasNativeWebhooks,
-  )
+  // Skip per-user availability notifications when off (public + native webhook
+  // are built independently below). Default on for upgrades and fresh boots.
+  const userNotifications =
+    (deps.config.notifyOnAvailability ?? true)
+      ? await buildUserNotifications(
+          deps,
+          mediaInfo,
+          options,
+          watchlistItems,
+          enrichment,
+          notificationTypeInfo,
+          hasNativeWebhooks,
+        )
+      : []
 
   const publicNotification = await buildPublicNotification(
     deps,

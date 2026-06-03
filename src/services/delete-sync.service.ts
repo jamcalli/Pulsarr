@@ -36,6 +36,7 @@ import {
 import {
   extractGuidsFromWatchlistItems,
   fetchWatchlistItems,
+  filterExcludedRoutedItems,
 } from '@services/delete-sync/data-fetching/index.js'
 import {
   executeTagBasedDeletion,
@@ -283,8 +284,8 @@ export class DeleteSyncService {
           )
         }
 
-        // Step 5: Get all watchlisted content GUIDs
-        const allWatchlistItems = await this.getAllWatchlistItems(
+        // Step 5: Get watchlisted GUIDs with excluded routed items dropped
+        const allWatchlistItems = await this.getWatchlistGuids(
           this.config.respectUserSyncSetting,
         )
 
@@ -296,6 +297,18 @@ export class DeleteSyncService {
             existingSeries.length,
             existingMovies.length,
           )
+        }
+
+        // Step 6.5: Persist the row removal on real runs. The protected set
+        // above already reflects exclusions, so this is just DB cleanup.
+        if (!dryRun) {
+          const cleanedExcluded =
+            await this.dbService.cleanupExcludedWatchlistItems()
+          if (cleanedExcluded > 0) {
+            this.log.info(
+              `Removed ${cleanedExcluded} routed watchlist item(s) for excluded content`,
+            )
+          }
         }
 
         this.log.info(
@@ -797,6 +810,19 @@ export class DeleteSyncService {
       return protectionLoadResult.result
     }
 
+    // Exclusions drive deletion in tag-based mode the same way they do in
+    // watchlist mode: a key qualifies when every user still watchlisting it is
+    // also covered by an exclusion (per-user or global). Globals alone are
+    // sufficient. The DB returns the union of GUIDs across qualifying keys;
+    // delete-sync treats them as parallel candidates to tagged items.
+    const exclusionDrivenGuids =
+      await this.dbService.getExclusionDrivenDeletionGuids()
+    if (exclusionDrivenGuids.size > 0) {
+      this.log.debug(
+        `Loaded ${exclusionDrivenGuids.size} exclusion-driven deletion GUID(s) for tag-based delete sync`,
+      )
+    }
+
     return executeTagBasedDeletion(
       existingSeries,
       existingMovies,
@@ -818,6 +844,8 @@ export class DeleteSyncService {
         tagCache: this.tagCache,
         protectedGuids: this.protectedGuids,
         trackedGuids: this.trackedGuids,
+        exclusionDrivenGuids:
+          exclusionDrivenGuids.size > 0 ? exclusionDrivenGuids : null,
         deletedMovieGuids: this.deletedMovieGuids,
         deletedShowGuids: this.deletedShowGuids,
         logger: this.log,
@@ -850,14 +878,10 @@ export class DeleteSyncService {
   }
 
   /**
-   * Retrieves all watchlist items from the database and extracts their GUIDs
-   *
-   * This method builds a comprehensive set of GUIDs from all watchlisted content
-   * across all users. This set is used to determine what content should be kept.
-   *
-   * @returns Promise resolving to Set of all GUIDs currently on any watchlist
+   * Builds the protected GUID set, dropping excluded routed items in memory so
+   * dry and real runs protect the same content.
    */
-  private async getAllWatchlistItems(
+  private async getWatchlistGuids(
     respectUserSyncSetting = false,
   ): Promise<Set<string>> {
     try {
@@ -865,9 +889,11 @@ export class DeleteSyncService {
         db: this.dbService,
         logger: this.log,
       })
-      return extractGuidsFromWatchlistItems(watchlistItems, this.log)
+      const exclusionMap = await this.dbService.getExclusionMap()
+      const survivors = filterExcludedRoutedItems(watchlistItems, exclusionMap)
+      return extractGuidsFromWatchlistItems(survivors, this.log)
     } catch (error) {
-      this.log.error({ error }, 'Error in getAllWatchlistItems:')
+      this.log.error({ error }, 'Error in getWatchlistGuids:')
       throw error
     }
   }

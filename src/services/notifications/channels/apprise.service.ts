@@ -1,10 +1,3 @@
-/**
- * Apprise Service
- *
- * Thin wrapper exposing stateless Apprise functions.
- * Constructs deps internally, delegates to pure functions.
- */
-
 import type { AppriseSchemaFormatMap } from '@root/types/apprise.types.js'
 import type { NotificationUser } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
@@ -22,6 +15,7 @@ import {
   sendPublicNotification as sendPublic,
   sendSystemNotification as sendSystem,
   sendTestNotification as sendTest,
+  sendUpdateAvailableNotification as sendUpdateAvailable,
   sendUserWatchlistCapNotification as sendUserWatchlistCap,
   sendWatchlistAdditionNotification as sendWatchlistAddition,
   sendWatchlistCapNotification as sendWatchlistCap,
@@ -30,25 +24,24 @@ import { fetchSchemaFormats } from './apprise-format-cache.js'
 
 export type AppriseStatus = 'enabled' | 'disabled' | 'not_configured'
 
-/**
- * Apprise Service
- *
- * Thin wrapper for Apprise notification operations.
- * Follows the deps getter pattern - constructs deps from constructor args,
- * delegates to pure functions in apprise.ts.
- */
+const READY_PROBE_DEADLINE_MS = 30_000
+const READY_PROBE_INTERVAL_MS = 1_000
+
 export class AppriseService {
   private schemaFormatCache: AppriseSchemaFormatMap = new Map()
+  private readyValue = false
+  private readonly readyPromise: Promise<boolean>
+  private resolveReady!: (value: boolean) => void
 
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.readyPromise = new Promise<boolean>((resolve) => {
+      this.resolveReady = resolve
+    })
+  }
 
-  /**
-   * Constructs deps from instance state.
-   * Following plex-label-sync pattern for deps getters.
-   */
   private get appriseDeps(): AppriseDeps {
     return {
       log: this.log,
@@ -62,25 +55,16 @@ export class AppriseService {
     }
   }
 
-  /**
-   * Checks if Apprise is enabled in configuration.
-   */
   isEnabled(): boolean {
     return checkAppriseEnabled(this.appriseDeps)
   }
 
-  /**
-   * Send public content notification to shared Apprise endpoints.
-   */
   async sendPublicNotification(
     notification: MediaNotification,
   ): Promise<boolean> {
     return sendPublic(notification, this.appriseDeps)
   }
 
-  /**
-   * Sends a media notification to a user via their configured Apprise URL.
-   */
   async sendMediaNotification(
     user: NotificationUser,
     notification: MediaNotification,
@@ -88,18 +72,12 @@ export class AppriseService {
     return sendMedia(user, notification, this.appriseDeps)
   }
 
-  /**
-   * Send a system notification to the configured system endpoint.
-   */
   async sendSystemNotification(
     notification: SystemNotification,
   ): Promise<boolean> {
     return sendSystem(notification, this.appriseDeps)
   }
 
-  /**
-   * Send a delete sync result notification to the admin.
-   */
   async sendDeleteSyncNotification(
     results: DeleteSyncResult,
     dryRun: boolean,
@@ -107,9 +85,18 @@ export class AppriseService {
     return sendDeleteSync(results, dryRun, this.appriseDeps)
   }
 
-  /**
-   * Send a watchlist addition notification.
-   */
+  async sendUpdateAvailableNotification(release: {
+    currentVersion: string
+    latestVersion: string
+    releaseUrl: string
+    releaseName: string | null
+    releaseBody: string | null
+    releaseBodyHtml: string | null
+    publishedAt: string | null
+  }): Promise<boolean> {
+    return sendUpdateAvailable(release, this.appriseDeps)
+  }
+
   async sendWatchlistAdditionNotification(item: {
     title: string
     type: string
@@ -123,9 +110,6 @@ export class AppriseService {
     return sendWatchlistAddition(item, this.appriseDeps)
   }
 
-  /**
-   * Send a watchlist cap notification to the admin system endpoint.
-   */
   async sendWatchlistCapNotification(event: {
     userName: string
     contentType: string
@@ -135,9 +119,6 @@ export class AppriseService {
     return sendWatchlistCap(event, this.appriseDeps)
   }
 
-  /**
-   * Send a watchlist cap notification to a specific user's Apprise URL.
-   */
   async sendUserWatchlistCapNotification(
     user: NotificationUser,
     event: {
@@ -150,16 +131,10 @@ export class AppriseService {
     return sendUserWatchlistCap(user, event, this.appriseDeps)
   }
 
-  /**
-   * Send a test notification to verify Apprise configuration.
-   */
   async sendTestNotification(targetUrl: string): Promise<boolean> {
     return sendTest(targetUrl, this.appriseDeps)
   }
 
-  /**
-   * Get current Apprise status for UI display.
-   */
   getStatus(): AppriseStatus {
     const appriseUrl = this.fastify.config.appriseUrl
     if (!appriseUrl) {
@@ -168,48 +143,62 @@ export class AppriseService {
     return this.fastify.config.enableApprise ? 'enabled' : 'disabled'
   }
 
-  /**
-   * Initialize Apprise service by checking connectivity.
-   * Updates config.enableApprise based on whether the server is reachable.
-   */
-  async initialize(): Promise<void> {
-    const appriseUrl = this.fastify.config.appriseUrl || ''
+  whenReady(): Promise<boolean> {
+    return this.readyPromise
+  }
 
-    if (!appriseUrl) {
-      this.log.info(
-        'No Apprise URL configured, Apprise notifications will be disabled',
-      )
-      await this.fastify.updateConfig({ enableApprise: false })
-      return
+  isReady(): boolean {
+    return this.readyValue
+  }
+
+  private async probeUntilReachable(appriseUrl: string): Promise<boolean> {
+    const deadline = Date.now() + READY_PROBE_DEADLINE_MS
+    let attempt = 0
+    while (Date.now() < deadline) {
+      attempt++
+      if (await pingAppriseServer(appriseUrl)) {
+        this.log.debug({ attempt }, 'Apprise reachable')
+        return true
+      }
+      if (Date.now() + READY_PROBE_INTERVAL_MS >= deadline) break
+      await new Promise((r) => setTimeout(r, READY_PROBE_INTERVAL_MS))
     }
+    this.log.warn(
+      { attempts: attempt },
+      'Apprise did not become reachable within probe deadline',
+    )
+    return false
+  }
 
-    this.log.debug('Found Apprise URL in configuration')
-
-    // Delay before checking to allow Apprise to fully initialize
-    this.log.debug('Waiting 5 seconds for Apprise to initialize...')
-    await new Promise((resolve) => setTimeout(resolve, 5000))
-
+  async initialize(): Promise<void> {
     try {
-      this.log.debug('Pinging Apprise server to verify it is reachable')
-      const isReachable = await pingAppriseServer(appriseUrl)
+      const appriseUrl = this.fastify.config.appriseUrl || ''
+
+      if (!appriseUrl) {
+        this.log.info(
+          'No Apprise URL configured, Apprise notifications will be disabled',
+        )
+        await this.fastify.updateConfig({ enableApprise: false })
+        return
+      }
+
+      this.log.debug('Probing Apprise server for readiness')
+      const isReachable = await this.probeUntilReachable(appriseUrl)
 
       if (isReachable) {
-        this.log.info('Successfully connected to Apprise container')
-        await this.fastify.updateConfig({ enableApprise: true })
-
-        // Fetch and cache schema formats for format-aware notifications
         this.schemaFormatCache = await fetchSchemaFormats(appriseUrl, this.log)
-
+        await this.fastify.updateConfig({ enableApprise: true })
+        this.readyValue = true
         this.log.info('Apprise notification service is configured and enabled')
       } else {
-        this.log.warn(
-          'Could not connect to Apprise container, notifications will be disabled',
-        )
         await this.fastify.updateConfig({ enableApprise: false })
       }
     } catch (error) {
       this.log.error({ error }, 'Error connecting to Apprise container')
+      this.readyValue = false
       await this.fastify.updateConfig({ enableApprise: false })
+    } finally {
+      this.resolveReady(this.readyValue)
     }
   }
 }

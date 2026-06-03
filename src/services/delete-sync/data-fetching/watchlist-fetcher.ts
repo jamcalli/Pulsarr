@@ -1,3 +1,5 @@
+import type { TokenWatchlistItem } from '@root/types/plex.types.js'
+import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -11,12 +13,28 @@ export interface WatchlistFetcherDeps {
 }
 
 /**
+ * Watchlist row shape consumed by delete sync. user_id can be a bare id or a
+ * nested object depending on the upstream query, so callers normalize it.
+ */
+export interface DeleteSyncWatchlistItem {
+  title: string
+  key: string
+  guids?: string | string[]
+  status: TokenWatchlistItem['status']
+  user_id: number | { id: number }
+}
+
+function resolveUserId(userId: number | { id: number }): number {
+  return typeof userId === 'object' ? userId.id : Number(userId)
+}
+
+/**
  * Fetches all watchlist items, optionally filtered by users with sync enabled
  */
 export async function fetchWatchlistItems(
   respectUserSyncSetting: boolean,
   deps: WatchlistFetcherDeps,
-): Promise<Array<{ title: string; guids?: string | string[] }>> {
+): Promise<DeleteSyncWatchlistItem[]> {
   if (respectUserSyncSetting) {
     return fetchWatchlistItemsWithUserFilter(deps)
   }
@@ -40,7 +58,7 @@ export async function fetchWatchlistItems(
  */
 async function fetchWatchlistItemsWithUserFilter(
   deps: WatchlistFetcherDeps,
-): Promise<Array<{ title: string; guids?: string | string[] }>> {
+): Promise<DeleteSyncWatchlistItem[]> {
   // Get all users to check their sync permissions
   const allUsers = await deps.db.getAllUsers()
   const syncEnabledUserIds = allUsers
@@ -53,24 +71,20 @@ async function fetchWatchlistItemsWithUserFilter(
 
   // Only get watchlist items from users with sync enabled
   const [shows, movies] = await Promise.all([
-    deps.db.getAllShowWatchlistItems().then((items) =>
-      items.filter((item) => {
-        const userId =
-          typeof item.user_id === 'object'
-            ? (item.user_id as { id: number }).id
-            : Number(item.user_id)
-        return syncEnabledUserIds.includes(userId)
-      }),
-    ),
-    deps.db.getAllMovieWatchlistItems().then((items) =>
-      items.filter((item) => {
-        const userId =
-          typeof item.user_id === 'object'
-            ? (item.user_id as { id: number }).id
-            : Number(item.user_id)
-        return syncEnabledUserIds.includes(userId)
-      }),
-    ),
+    deps.db
+      .getAllShowWatchlistItems()
+      .then((items) =>
+        items.filter((item) =>
+          syncEnabledUserIds.includes(resolveUserId(item.user_id)),
+        ),
+      ),
+    deps.db
+      .getAllMovieWatchlistItems()
+      .then((items) =>
+        items.filter((item) =>
+          syncEnabledUserIds.includes(resolveUserId(item.user_id)),
+        ),
+      ),
   ])
 
   const watchlistItems = [...shows, ...movies]
@@ -112,4 +126,22 @@ export function extractGuidsFromWatchlistItems(
   }
 
   return guidSet
+}
+
+/**
+ * Drops routed (non-pending) rows excluded for the owning user or globally,
+ * mirroring cleanupExcludedWatchlistItems. Pending rows are kept since they
+ * never reached Sonarr/Radarr.
+ */
+export function filterExcludedRoutedItems(
+  items: DeleteSyncWatchlistItem[],
+  exclusionMap: Map<string, Set<number>>,
+): DeleteSyncWatchlistItem[] {
+  return items.filter((item) => {
+    if (item.status === 'pending') return true
+    const excluders = exclusionMap.get(item.key)
+    if (!excluders) return true
+    const userId = resolveUserId(item.user_id)
+    return !(excluders.has(userId) || excluders.has(SYSTEM_USER_ID))
+  })
 }

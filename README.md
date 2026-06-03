@@ -114,6 +114,7 @@ See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/in
 - **Discord Bot Integration**: Complete approval management directly from Discord with interactive commands
 - **Flexible Notifications**: Discord bot, Plex mobile push, webhooks, and 80+ services via Apprise
 - **Advanced Lifecycle Management**: Watchlist-based or tag-based deletion with playlist protection
+- **Watchlist Exclusions**: Prevent specific watchlist items from being routed to Sonarr/Radarr
 - **Plex Session Monitoring**: Auto-search for next seasons when users near season finales
 - **User Tagging**: Track who requested what content in Sonarr/Radarr
 - **Comprehensive Analytics**: Detailed dashboards with usage stats, genre analysis, and content distribution

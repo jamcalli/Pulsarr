@@ -18,6 +18,11 @@ export interface TagCountConfig {
   deleteSyncTrackedOnly: boolean
   removedTagPrefix: string | undefined
   deleteSyncRequiredTagRegex?: string
+  /**
+   * GUIDs that exclusions designate for deletion; counted alongside
+   * tag-matched items so the safety check arithmetic stays accurate.
+   */
+  exclusionDrivenGuids?: Set<string>
 }
 
 /**
@@ -92,19 +97,19 @@ export async function countTaggedSeries(
     const removalTagPrefix = getRemovalTagPrefixNormalized(
       config.removedTagPrefix,
     )
-    if (!removalTagPrefix) {
-      // Avoid treating every tag as a removal tag when prefix is blank
-      processed += instanceSeries.length
-      continue
-    }
-    const removedTagIdSet = new Set(
-      Array.from(tagMap.entries())
-        .filter(([, label]) => label.startsWith(removalTagPrefix))
-        .map(([id]) => id),
-    )
+    const removedTagIdSet = removalTagPrefix
+      ? new Set(
+          Array.from(tagMap.entries())
+            .filter(([, label]) => label.startsWith(removalTagPrefix))
+            .map(([id]) => id),
+        )
+      : new Set<number>()
 
-    if (removedTagIdSet.size === 0) {
-      // No matching tags in this instance
+    const hasExclusionDriven = (config.exclusionDrivenGuids?.size ?? 0) > 0
+
+    // Skip the instance only if there's no way for any item to qualify:
+    // no removal-tag mechanism AND no exclusion-driven candidates to consider.
+    if (removedTagIdSet.size === 0 && !hasExclusionDriven) {
       processed += instanceSeries.length
       continue
     }
@@ -118,11 +123,20 @@ export async function countTaggedSeries(
     for (const show of instanceSeries) {
       try {
         const showTags = show.tags || []
-        const hasRemoval = showTags.some((id) => removedTagIdSet.has(id))
-        if (!hasRemoval) continue
+        const guids = parseGuids(show.guids)
 
-        // Check if the show has a tag matching the required regex pattern
-        if (regex) {
+        const isExclusionDriven = hasExclusionDriven
+          ? guids.some((g) => config.exclusionDrivenGuids?.has(g))
+          : false
+        const hasRemoval =
+          removedTagIdSet.size > 0 &&
+          showTags.some((id) => removedTagIdSet.has(id))
+
+        if (!hasRemoval && !isExclusionDriven) continue
+
+        // The required-regex filter scopes tag-based candidates; bypass for
+        // exclusion-driven candidates (mirror of validator behavior).
+        if (regex && !isExclusionDriven) {
           const hasRequired = showTags.some((id) => {
             const label = tagMap.get(id)
             return label ? regex.test(label) : false
@@ -131,14 +145,12 @@ export async function countTaggedSeries(
         }
 
         if (config.enablePlexPlaylistProtection && protectedGuids) {
-          const guids = parseGuids(show.guids)
           // Count only if NOT protected
           if (isAnyGuidProtected(guids)) continue
         }
 
         // Check tracked-only deletion
         if (config.deleteSyncTrackedOnly && trackedGuids) {
-          const guids = parseGuids(show.guids)
           // Count only if tracked
           if (!isAnyGuidTracked(guids)) continue
         }
@@ -158,7 +170,7 @@ export async function countTaggedSeries(
     processed += instanceSeries.length
 
     logger.debug(
-      `Checked ${processed} series for removal tag, found ${count} tagged`,
+      `Checked ${processed} series for removal tag or exclusion-driven deletion, found ${count} candidates`,
     )
   }
 
@@ -229,19 +241,19 @@ export async function countTaggedMovies(
     const removalTagPrefix = getRemovalTagPrefixNormalized(
       config.removedTagPrefix,
     )
-    if (!removalTagPrefix) {
-      // Avoid treating every tag as a removal tag when prefix is blank
-      processed += instanceMovies.length
-      continue
-    }
-    const removedTagIdSet = new Set(
-      Array.from(tagMap.entries())
-        .filter(([, label]) => label.startsWith(removalTagPrefix))
-        .map(([id]) => id),
-    )
+    const removedTagIdSet = removalTagPrefix
+      ? new Set(
+          Array.from(tagMap.entries())
+            .filter(([, label]) => label.startsWith(removalTagPrefix))
+            .map(([id]) => id),
+        )
+      : new Set<number>()
 
-    if (removedTagIdSet.size === 0) {
-      // No matching tags in this instance
+    const hasExclusionDriven = (config.exclusionDrivenGuids?.size ?? 0) > 0
+
+    // Skip the instance only if there's no way for any item to qualify:
+    // no removal-tag mechanism AND no exclusion-driven candidates to consider.
+    if (removedTagIdSet.size === 0 && !hasExclusionDriven) {
       processed += instanceMovies.length
       continue
     }
@@ -255,11 +267,20 @@ export async function countTaggedMovies(
     for (const movie of instanceMovies) {
       try {
         const movieTags = movie.tags || []
-        const hasRemoval = movieTags.some((id) => removedTagIdSet.has(id))
-        if (!hasRemoval) continue
+        const guids = parseGuids(movie.guids)
 
-        // Check if the movie has a tag matching the required regex pattern
-        if (regex) {
+        const isExclusionDriven = hasExclusionDriven
+          ? guids.some((g) => config.exclusionDrivenGuids?.has(g))
+          : false
+        const hasRemoval =
+          removedTagIdSet.size > 0 &&
+          movieTags.some((id) => removedTagIdSet.has(id))
+
+        if (!hasRemoval && !isExclusionDriven) continue
+
+        // The required-regex filter scopes tag-based candidates; bypass for
+        // exclusion-driven candidates (mirror of validator behavior).
+        if (regex && !isExclusionDriven) {
           const hasRequired = movieTags.some((id) => {
             const label = tagMap.get(id)
             return label ? regex.test(label) : false
@@ -268,14 +289,12 @@ export async function countTaggedMovies(
         }
 
         if (config.enablePlexPlaylistProtection && protectedGuids) {
-          const guids = parseGuids(movie.guids)
           // Count only if NOT protected
           if (isAnyGuidProtected(guids)) continue
         }
 
         // Check tracked-only deletion
         if (config.deleteSyncTrackedOnly && trackedGuids) {
-          const guids = parseGuids(movie.guids)
           // Count only if tracked
           if (!isAnyGuidTracked(guids)) continue
         }
@@ -295,7 +314,7 @@ export async function countTaggedMovies(
     processed += instanceMovies.length
 
     logger.debug(
-      `Checked ${processed} movies for removal tag, found ${count} tagged`,
+      `Checked ${processed} movies for removal tag or exclusion-driven deletion, found ${count} candidates`,
     )
   }
 

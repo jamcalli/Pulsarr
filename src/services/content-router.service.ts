@@ -19,6 +19,7 @@ import type {
   RoutingEvaluator,
 } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
+import { isArrAlreadyAddedError } from '@utils/arr-error.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -408,8 +409,9 @@ export class ContentRouterService {
                   triggeredBy: approvalResult.trigger || 'manual_flag',
                   data: approvalResult.data || {},
                   proposedRouting: await this.createProposedRoutingDecision(
-                    defaultRoutingDecisions,
+                    defaultRoutingDecisions[0],
                     contentType,
+                    defaultRoutingDecisions.slice(1).map((d) => d.instanceId),
                   ),
                 },
               },
@@ -500,6 +502,7 @@ export class ContentRouterService {
                 bypassRoutedInstances,
                 [],
                 bypassActualRouting,
+                bypassRoutedInstances.slice(1),
               )
             }
 
@@ -537,8 +540,9 @@ export class ContentRouterService {
                     quotaLimit: quotaResult.quotaLimit,
                   },
                   proposedRouting: await this.createProposedRoutingDecision(
-                    defaultRoutingDecisions,
+                    defaultRoutingDecisions[0],
                     contentType,
+                    defaultRoutingDecisions.slice(1).map((d) => d.instanceId),
                   ),
                 },
               },
@@ -599,6 +603,7 @@ export class ContentRouterService {
           defaultRoutedInstances,
           [],
           defaultActualRouting,
+          defaultRoutedInstances.slice(1),
         )
       }
 
@@ -812,8 +817,11 @@ export class ContentRouterService {
                       triggeredBy: approvalResult.trigger || 'manual_flag',
                       data: approvalResult.data || {},
                       proposedRouting: await this.createProposedRoutingDecision(
-                        defaultRoutingDecisions,
+                        defaultRoutingDecisions[0],
                         contentType,
+                        defaultRoutingDecisions
+                          .slice(1)
+                          .map((d) => d.instanceId),
                       ),
                     },
                   },
@@ -893,8 +901,11 @@ export class ContentRouterService {
                           },
                           proposedRouting:
                             await this.createProposedRoutingDecision(
-                              defaultRoutingDecisions,
+                              defaultRoutingDecisions[0],
                               contentType,
+                              defaultRoutingDecisions
+                                .slice(1)
+                                .map((d) => d.instanceId),
                             ),
                         },
                       },
@@ -968,6 +979,7 @@ export class ContentRouterService {
             defaultRoutedInstances,
             [],
             fallbackActualRouting,
+            defaultRoutedInstances.slice(1),
           )
         }
         return {
@@ -1468,12 +1480,15 @@ export class ContentRouterService {
 
     // Create auto-approval record for tracking all successful content additions
     if (routedInstances.length > 0) {
+      // Rule-matched routing has no sync expansion - the tail is independent
+      // rule decisions, not sync targets.
       await this.createAutoApprovalRecord(
         enrichedItem,
         context,
         routedInstances,
         allDecisions,
-        allActualRoutings[0], // Pass first routing for auto-approval record
+        allActualRoutings[0],
+        undefined,
       )
     }
 
@@ -1522,6 +1537,7 @@ export class ContentRouterService {
         return { routedInstances: [], routingDetails: [] }
 
       case 'approved':
+      case 'auto_approved':
         this.log.info(
           `Using previously approved routing for "${item.title}" by user ${context.userName || context.userId}`,
         )
@@ -2259,23 +2275,18 @@ export class ContentRouterService {
   }
 
   /**
-   * Creates a proposed routing decision that includes primary instance and synced instances
+   * Builds the proposedRouting field for an approval record. Only pass
+   * syncedInstances when the tail is true sync expansion from default,
+   * not independent rule decisions.
    */
   private async createProposedRoutingDecision(
-    routingDecisions: RoutingDecision[],
+    primaryDecision: RoutingDecision | undefined,
     contentType: 'movie' | 'show',
+    syncedInstances?: number[],
   ): Promise<NonNullable<RouterDecision['approval']>['proposedRouting']> {
-    if (routingDecisions.length === 0) {
+    if (!primaryDecision) {
       return undefined
     }
-
-    // Use the primary routing decision (first one) as the base
-    const primaryDecision = routingDecisions[0]
-
-    // Extract synced instance IDs from the routing decisions (skip the first one which is primary)
-    const syncedInstances = routingDecisions
-      .slice(1)
-      .map((decision) => decision.instanceId)
 
     return {
       instanceId: primaryDecision.instanceId,
@@ -2289,7 +2300,10 @@ export class ContentRouterService {
       seriesType: primaryDecision.seriesType,
       minimumAvailability: primaryDecision.minimumAvailability,
       monitor: primaryDecision.monitor,
-      syncedInstances: syncedInstances.length > 0 ? syncedInstances : undefined,
+      syncedInstances:
+        syncedInstances && syncedInstances.length > 0
+          ? syncedInstances
+          : undefined,
     }
   }
 
@@ -2315,6 +2329,7 @@ export class ContentRouterService {
       seriesType?: string | null
       monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
     },
+    syncedInstances?: number[],
   ): Promise<void> {
     try {
       // Skip if this is a sync operation
@@ -2347,7 +2362,10 @@ export class ContentRouterService {
 
       // Use actual routing that was executed, not proposed routing
       let proposedRouting: RouterDecision['routing'] | undefined
-      const syncedInstances = routedInstances.slice(1) // All instances except the first
+      const normalizedSyncedInstances =
+        syncedInstances && syncedInstances.length > 0
+          ? syncedInstances
+          : undefined
 
       if (actualRouting) {
         // Use the ACTUAL routing parameters that were sent to Radarr/Sonarr
@@ -2376,8 +2394,7 @@ export class ContentRouterService {
             | 'movieAndCollection'
             | 'none'
             | undefined,
-          syncedInstances:
-            syncedInstances.length > 0 ? syncedInstances : undefined,
+          syncedInstances: normalizedSyncedInstances,
         }
       } else if (routingDecisions.length > 0) {
         // Fall back to proposed routing from decisions if no actual routing captured
@@ -2395,8 +2412,7 @@ export class ContentRouterService {
           seriesType: primaryDecision.seriesType,
           minimumAvailability: primaryDecision.minimumAvailability,
           monitor: primaryDecision.monitor,
-          syncedInstances:
-            syncedInstances.length > 0 ? syncedInstances : undefined,
+          syncedInstances: normalizedSyncedInstances,
         }
       } else {
         // Default routing case - use instance information from routed instances
@@ -2410,8 +2426,7 @@ export class ContentRouterService {
           tags: [],
           priority: 50,
           searchOnAdd: null,
-          syncedInstances:
-            syncedInstances.length > 0 ? syncedInstances : undefined,
+          syncedInstances: normalizedSyncedInstances,
         }
       }
 
@@ -2543,14 +2558,16 @@ export class ContentRouterService {
 
       const routedInstances: number[] = []
       const instanceId = proposedRouting.instanceId
+      const syncedInstanceIds = proposedRouting.syncedInstances ?? []
       const contentType = approvedRequest.contentType
+      const userId = approvedRequest.userId ?? 0
 
       if (contentType === 'movie') {
         try {
           await this.fastify.radarrManager.routeItemToRadarr(
             item as RadarrItem,
             context.itemKey,
-            approvedRequest.userId ?? 0,
+            userId,
             instanceId,
             context.syncing,
             proposedRouting.rootFolder || undefined,
@@ -2564,17 +2581,52 @@ export class ContentRouterService {
             `Successfully routed approved content "${item.title}" to Radarr instance ${instanceId}`,
           )
         } catch (error) {
-          this.log.error(
-            { error },
-            `Failed to route approved content "${item.title}" to Radarr instance ${instanceId}`,
-          )
+          if (isArrAlreadyAddedError(error)) {
+            this.log.info(
+              `Approved content "${item.title}" already exists in Radarr instance ${instanceId}, treating as routed`,
+            )
+            routedInstances.push(instanceId)
+          } else {
+            this.log.error(
+              { error },
+              `Failed to route approved content "${item.title}" to Radarr instance ${instanceId}`,
+            )
+          }
+        }
+
+        for (const syncedId of syncedInstanceIds) {
+          try {
+            await this.fastify.radarrManager.routeItemToRadarr(
+              item as RadarrItem,
+              context.itemKey,
+              userId,
+              syncedId,
+              true,
+            )
+            routedInstances.push(syncedId)
+            this.log.info(
+              `Successfully routed approved content "${item.title}" to synced Radarr instance ${syncedId}`,
+            )
+          } catch (error) {
+            if (isArrAlreadyAddedError(error)) {
+              this.log.info(
+                `Approved content "${item.title}" already exists in synced Radarr instance ${syncedId}, treating as routed`,
+              )
+              routedInstances.push(syncedId)
+            } else {
+              this.log.error(
+                { error },
+                `Failed to route approved content "${item.title}" to synced Radarr instance ${syncedId}`,
+              )
+            }
+          }
         }
       } else {
         try {
           await this.fastify.sonarrManager.routeItemToSonarr(
             item as SonarrItem,
             context.itemKey,
-            approvedRequest.userId ?? 0,
+            userId,
             instanceId,
             context.syncing,
             proposedRouting.rootFolder || undefined,
@@ -2589,10 +2641,45 @@ export class ContentRouterService {
             `Successfully routed approved content "${item.title}" to Sonarr instance ${instanceId}`,
           )
         } catch (error) {
-          this.log.error(
-            { error },
-            `Failed to route approved content "${item.title}" to Sonarr instance ${instanceId}`,
-          )
+          if (isArrAlreadyAddedError(error)) {
+            this.log.info(
+              `Approved content "${item.title}" already exists in Sonarr instance ${instanceId}, treating as routed`,
+            )
+            routedInstances.push(instanceId)
+          } else {
+            this.log.error(
+              { error },
+              `Failed to route approved content "${item.title}" to Sonarr instance ${instanceId}`,
+            )
+          }
+        }
+
+        for (const syncedId of syncedInstanceIds) {
+          try {
+            await this.fastify.sonarrManager.routeItemToSonarr(
+              item as SonarrItem,
+              context.itemKey,
+              userId,
+              syncedId,
+              true,
+            )
+            routedInstances.push(syncedId)
+            this.log.info(
+              `Successfully routed approved content "${item.title}" to synced Sonarr instance ${syncedId}`,
+            )
+          } catch (error) {
+            if (isArrAlreadyAddedError(error)) {
+              this.log.info(
+                `Approved content "${item.title}" already exists in synced Sonarr instance ${syncedId}, treating as routed`,
+              )
+              routedInstances.push(syncedId)
+            } else {
+              this.log.error(
+                { error },
+                `Failed to route approved content "${item.title}" to synced Sonarr instance ${syncedId}`,
+              )
+            }
+          }
         }
       }
 
