@@ -1,0 +1,71 @@
+---
+id: get-user-watchlist-exclusions
+title: "Get user watchlist exclusions"
+description: "Retrieve all watchlist exclusions for a specific user"
+sidebar_label: "Get user watchlist exclusions"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vk1v2zgQ/SvEnFpAjpIt9qJb0BaFsT0YSbtdIDAKmhpbbCRSJYdJDEH/fTGkZNmxstnuYU+WOZw3bz44Mx3YFp0kbc2yhAJ2SF89um+SVFVrTx+fVB28tsZDBiR3Hoo7OEjFkXidQYleOd0yGBRwg+Q0PqCQdS0eDyp4UBFb64QUvkWlt1qJ4NFBBq10skFCx7Y68KrCRkLRAe1bhAJMaDbooM9As5lWUgUZGNmwkDGWJWTg8GfQDksoyAXs13ziW2s8esb67fKSf04Zf8CtDDWJm+EmZKCsITTEd2Xb1lrFUOU/PCvMkLObH6iIvXAcWNLJnA9KofdHFzfW1igNu9Gg93KHR0JPTpsdy6ZoHYmlc3IPGWjCxr9uXJez0eNQfX9Bdo/7WTqkqZ4nmg5mBLugy39DftQYnS6x/C5p/sKU3Dv2bvIlMR95DqxGDqfA6wxkWWpOp6xXRwHbytpj/9zMmMEpXSfJeRWtz+D3/7nmSFLw722JsylWp4KjknPOulnJi4WaQaPNZzQ7qqC4OgvdRGQwOxqZIF+PX7RPlR26VGwUbA7yh6v80F4WU05yLoq8Sx2hhww8uoexqwRXQwFd6yxZZeu+yPOusp76omutI75+mqf3wZNtxG3EgAwepNNyU6dQjzD8jSY07HVF1EIWf4bmGBMNxSg5xf9SoRhhuBOWgqxQtmmC4QJA8aipElShSG5wPphwqqgRurZK1vF4Dp8F3CeFdWK5ErIsHXov7DbirkLtpXNH+ByJU/x3l5fv5qlbR8Ia8VhpVR2gtBcuGJOebZ+NYY8xKfJ8b4NbtOnuQhtP0ii8ULY5M7FyupFuP4b/F6CKWcoftENFA5y4jk9bvIkhZk/ePrNQ5PkhsvOAn0fxLNiai08Fp2kfq0+2+g/cXweu37s12/LouWgPR0cat/zeU50d600NNR7CMA4rlGUs0GEg/rW4Xi0X6cIp5evVUtzjXshAFRoa2owIXpudOKiJAbDPTjm+YF5Ze69xMj+k5Mz4bcJabCSX+iyFBOXZ8iNuKmvvb1E5pF90f6jFRVI+I/ItQc9TkIHsYoeGNyQshY8QF+LWGulcfiNLLvKBnBfSoVDWbPUuOCzHB6v9EMKI1kg2Udf7izjItNna6EuaqzA+nOvVcjZfpVWhQUOJJO9Po8ZCSLGq8elo09KGcOemq4m2kKYUiTq3MXQ+wf95lZ68p0bGOTNE8BNS3MxmV7jnJLtpeP3n/W/IK+ET5W0tddyR4lvshpZ/Bw9XkMFc0x92AcigGFbB9dgn76DruNy+urrv+fhnQMfvcT118/g6S+35uxyGzz+4+OZmGHNvxUvExyo1+zg06sD/hj3lsK72a+7mqXSZQRJyJ2npSO1sG+A2cRiKnz5+gb7/G2KfIDU=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get user watchlist exclusions"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/watchlist-exclusions/user/{userId}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve all watchlist exclusions for a specific user
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number"},"in":"path","name":"userId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"exclusions":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"user_id":{"type":"number"},"key":{"type":"string"},"title":{"type":"string"},"type":{"type":"string"},"guids":{"type":"array","items":{"type":"string"}},"excluded_at":{"type":"string"}},"required":["id","user_id","key","title","type","guids","excluded_at"],"additionalProperties":false}}},"required":["success","message","exclusions"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

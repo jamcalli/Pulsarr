@@ -1,0 +1,63 @@
+---
+id: get-update-status
+title: "Get cached Pulsarr update status"
+description: "Returns the most recent cached Pulsarr release check from the update-check service. The actual GitHub fetch happens server-side on an hourly cron."
+sidebar_label: "Get cached Pulsarr update status"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVt9vGzcM/lcEPW3AOZes2Mu9eWmRBisGo267AYExyDrap0YnXSkqqWHc/15QuvPvYcnLsCcbOvIj9fEjqa30HaAi4919LSu5Bvrc1YpgTopikIUktQ6yepDzTSBo5aKQNQSNpmMfWcmPQBFdENSAaH0ggaDBkdBKN1CLWbRBIQoECyqA0A3oR7FC3yaPmIJN8mkAfDIarsSnBoTSFJUVd4bex6VYAelGNKrrwIVkCDgJpgbhnVBOND6i3QiN3l3JQiKEzrsAQVZb+cv1Nf8cp/0WVipaEh8HS1lI7R2BI7ZVXWeNTrSUXwM7bGXQDbSK/9GmA1lJv/wKmmQhO2QSyeRwOiKCoy+AwWTPwT4QGreWfSGtIgiHFi5aq5YWZEUYoTj3yDxNn5QZ7HaoS+8tKMdGA8ef0b4IczD/Q7XwGvvffL15rf17al+WUxeX1oQG6im9yN6qQLcsnld5vEP0+CLrkNvgrIiFBBdb7gv/yAoAV+djVAR/W9MagpqtUqRFn+j4Fg1CzU4nGjlVxHm9j4p7XLrjwpzTfkzqKWWHhOyuuyikqmvD8ld2dqDulbIB+p6v8+t/21U5s1tfH2rfxXYJyHXSxx/2BYSx1GdfWghBrS94FbI17gO4NTWyujkt3UEiQ9gxyB7y3/lL8anxw8zl6yoOJ8unmzKkUVsOszGMkzhPPR7GWxm5x+W2Q09ee9tXZbltfKC+2nYeqZenY/o2BvKtmCcMWcgnhYaVlcgdYfj/qOuGqJNF+gl56qfSymr8cozPI3uEETFALcgL7ds2Oi45iGdDTRr5+RpcAU44a2iEtl4rm44v4fMHp1oQHsX9TKi6RghB+FXCHTfNHp+ZOMZ/c3395nLqHolXyXNjdLODMkFgdC4Jpu+LkfbESVWWGx9x0mXbiXGBlNNwpX17FmKGplW4Gel/BVR1MeW3BkHTACemWjMPPyWK+SY/n0SoynLH7GXAD+Pni2ALFp+OaGiT1Kc68ztsppEV+7DgWAECT67d0YHHnDs86+zQb9d1+VAW0nAiDag6CdSltST/mkxn95NscJzydHYvHmEjVKQGHA2DRcRg3Frs3MQAyLP8MMd/CK+9fzSwDz+U5Cz4PGNNloqlfjGFDBU48jMsG+8f56AR6JXXH7Q4yc5nifyZoS+noCL5yRocv/CgFiFBXIm5dwqx/KhqFvmQXBAKQWjvVmYdEeqxYU0YKExoreIQ1m6uJM8w41Y+3cUQL1E5Ns50dn+xXrXXsQVHOcmVx12rTYQSMwvfxbMi3VgTSBhHsMa9aU5bKFeLnDqPsfENJb/c5JYP1Kr8psoM3sHZWzQPVrEbrEd5bvcb6//5th10Q/Cdys4qk55+Mb/58hJ5kE83vC/yi318TEz2yz0P3ge53S7zk6Lv+fhbBOQGX+zXQ+7vUZbc+4+w4WJqDR2lPWJjlvHJbucRsFtxd+8+yb7/ATsEXYk=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get cached Pulsarr update status"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/system/update-status"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Returns the most recent cached Pulsarr release check from the update-check service. The actual GitHub fetch happens server-side on an hourly cron.
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"currentVersion":{"type":"string"},"latestVersion":{"nullable":true,"type":"string"},"updateAvailable":{"type":"boolean"},"releaseUrl":{"nullable":true,"type":"string"},"releaseName":{"nullable":true,"type":"string"},"releaseBody":{"nullable":true,"type":"string"},"releaseBodyHtml":{"nullable":true,"type":"string"},"publishedAt":{"nullable":true,"type":"string"},"lastCheckedAt":{"nullable":true,"type":"string"},"lastError":{"nullable":true,"type":"string"},"status":{"type":"string","enum":["ok","pending","rate_limited","error"]}},"required":["currentVersion","latestVersion","updateAvailable","releaseUrl","releaseName","releaseBody","releaseBodyHtml","publishedAt","lastCheckedAt","lastError","status"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

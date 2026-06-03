@@ -1,0 +1,71 @@
+---
+id: create-watchlist-exclusion
+title: "Create watchlist exclusion"
+description: "Create watchlist exclusion records for a key and set of users"
+sidebar_label: "Create watchlist exclusion"
+hide_title: true
+hide_table_of_contents: true
+api: eJztV0uP20YM/isDnlpAjuymvei23eRgNECN9bYpYPgwHtHWZKUZZR7rFQT994Izeni92iZBip66l7WH5EfyGw5Jt6BrNNxJrdY5ZCAMcocfuRNFKa17/yRKb6VWkIDjJwvZDkYhG6UW9gnkaIWRNUFBBrcBiJ1HZRyUmUGhTW7ZURvG2QM2jKucWXRMH5m3aCwkYPCzR+t+1XkDWRu+SoM5ZM54TEBo5VA5EvG6LqUIKaSfLDlvwYoCK06fXFMjZKAPn1A4SKA2lLCTaEn6gM2FknVGqhMkUEn1AdXJFZCtugQopnUeDCqp1g4rC9kqGcy4MbyBBGQUjHDKVwc00HUJOOlK/ApPUfxFtZOXMZwcj9yXDrLd/ovh9GAdxTPRuQscTDkOsfZw+67Xt7VWNpL203IVfV/e97sYCbvrNeFfuyPrhUB7mclB6xK5gi6BCq3lpxnOuqSv5Xz+Ri4ZGDxMcJPxPgGe55Ii5+XmIrAjLy1Gdn5eLv9TQhx33t7qHGdSIy/5PB9ojDazkldZvKq8a96mQHq3g5MJ8mv4++V//r6Dv+DfFZrad61tyJeTP0gfV+nYgBdjA7YpJGDRPFKnzXYteFNCBm1ttNNCl12Wpm2hreuyttbGdfCiuXvrdMW2AQMSeORG8kMZ6R1g6DMqX1GmhXM1JOFfPyv6vjVInuPfF8gGGJoIOXOaCV1VXtGlIztLVzBXIItp0B1QwM9aIpRa8LKIjLzEJ4HiFTJt2HrDeJ4btJZGEOFufGm5MRf4xMRz/LfL5dv50LVxTCt2LqQoRihpmfFKDT14oD1wkqVpo71Z1FF3IZV1XAl8I3T1wsXGyIqbZqD/G6Cy2ZDfSYPC9XDsJvRC9kOgmDL58cpDlqYjs/OAHwbxLNieik94I10Tqo/X8jdsbjyV7G5PvixaqtPx6MJiS2881tml3fju4iFNPwqkQJ6HAqWLhgz+Wtxs1ouo8Dzkm806biLeFahc31qYt1Kd2GjGesAueR7jK+6F1g8SJ/f9lbxwvo1YiwOnUp8NIUJZ8nzGQ6H1wxaFQfeN6fe1uIjGLwL5GKHnQ+De6cUJFa2LSPsaQbxhW624Mekdz6nI++As4waZ0OooT95gPjxYaXsKA1rFyUVZNm/CSKY+fjetfe+feFXHrSmsaVNPHfex3XI/7laT+LoF99vSbjjZd8TPUQfeeuPhkd5s1rO1kWvhK1QuEkKb62CxYJxtSny6WHWlcngyk2qkKGy5kSZqmWhshP9zFduLdRUPc6y/rdc36OsI22kyfvfe3ZPn8Mmldcll2LLC42/7sbKDxxUkMDdYIAHq7rEV76BtqaL/MGXX0fFnj6aJq+owMOKLHwqVukG86tuYz+KeoiH10sfyvpr61C2iBXWa2v2j7v5iUG5+395DAof+50UVZj4YfqafHvwMGUACOvAbmk04a6Hk6uTDpIeISX9/A1xEn1o=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create watchlist exclusion"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/watchlist-exclusions/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Create watchlist exclusion records for a key and set of users
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"key":{"type":"string","minLength":1},"userIds":{"minItems":1,"type":"array","items":{"type":"number"}},"title":{"type":"string","minLength":1},"type":{"type":"string","minLength":1},"guids":{"default":[],"type":"array","items":{"type":"string"}}},"required":["key","userIds","title","type"]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"201":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"created":{"type":"number"}},"required":["success","message","created"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

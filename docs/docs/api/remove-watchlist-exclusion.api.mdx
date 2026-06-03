@@ -1,0 +1,71 @@
+---
+id: remove-watchlist-exclusion
+title: "Remove watchlist exclusion"
+description: "Remove a watchlist exclusion by ID"
+sidebar_label: "Remove watchlist exclusion"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVk1v2zgQ/SvEnFpAjpJt96JbkORgNCiMuLtdIPCBpsYWG4lUyWESQ9B/XwwpyXajLrZ73pNlDufNm292YFt0krQ1yxIKcNjYZ/wqSVW19nT3qurgtTWQAcm9h+IRJqGYpB42GZToldMtQ0EBDxFISPEyXcfxutgexPIWMmilkw0SOgbuwKsKGwlFB3RoEQowodmigz4DzZitpAoyMLJhoS4hA4ffg3ZYQkEuYL/hE99a49Ezzm+XH/nnnNpnK26sITTEyB/nrtziToaaxMMABhmoQaXoQLZtrVUMWv7Ns8IMd7v9horYScchJp0YeZIU/I0tcdZPdS7w5LTZswCds25W0qD3cj+jlUGjzT2aPVVQXPX9abQeT4kMZkcjR8hNBrIsNTsq69WJHztZe+x7xvz98vL/+P3n+EX7VFnuvRJrJIxtwRYhf77Kp+5ZTN3j806XPWTg0T2PrRNcDQV0rbNkla37Is+7ynrqi661jvj6eYZugifbiHXEgAyepdNyW6cgjzD8jSY07G9F1EIWf4Z2jymGYpSc43+pUIwwIngsBVmhbNMEw6lH8aKpElShSG5wJphwqqURurZK1vF4Dp8FPAyEdWK5ErIsHXov7C7irkLtpXMn+ByJc/wPl5cf5qlbR8Ia8VJpVU1Q2gsXjImF0/fZGPYYkyLPDza4RZvuLrTxJI3CC2WbNyZWTjfSHcbw/wJUMUv5VjtUNMCJa6U4Du9iiNmT9z9YKPJ8iuw84P0ongXbcPGp4DQdYvXJVn/Cw3Xgsn3csC2Pnmt1OjrRWHOnpzo71Zu6Lx3CMPMrlGUs0GHq/7W4Xi0X6cI55evVUjzhQchAFRoaBowIXpu9mNTEANhn5xx/Yl5Z+6TxaH5IyRvj64S12Eou9VkKCcqz5RfcVtY+rVE5pF90f6jFRVJ+Q+Rrgp6nIAPZxR4Nb3wshY8QF2JtjXQuf5AlF/lAzgvpUChrdnofHJZjw2o/hDCiNZJN1PXhAvq4pnc2+qKpZrpj41yvlrP5Kq0KDRpKJHfWTa22EFKsanw9eT9oQ7h3x6uJtpCmFIk6jzF0PsH/eZVa3lMj44YZIjg8TGaeJT8y7I476989Z4YMEr5S3tZSG2YQu64bZvojPF9BBnNTHTIodMmTNY3BR+g6rqY/XN33fPw9oON22xyHdWy+Unv+Loet8g9OvHsY9td78TO2YxGaQ9wJdeB/kMETHtKTq9/woE5VydaTgIdESycqb1Y8T4Bp093e3d99uYO+/xv4tadC
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Remove watchlist exclusion"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/watchlist-exclusions/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Remove a watchlist exclusion by ID
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"204":{"description":"No Content"},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
