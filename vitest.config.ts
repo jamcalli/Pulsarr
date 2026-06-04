@@ -29,7 +29,8 @@ export default defineConfig({
     globalSetup: './test/setup/global-setup.ts',
     setupFiles: ['./test/setup/msw-setup.ts'],
     testTimeout: 10000,
-    hookTimeout: 10000,
+    // full-app build() in beforeAll can be slow under CI contention
+    hookTimeout: 30000,
     experimental: {
       // Caches transformed modules to disk for faster subsequent runs
       // Clear with: npx vitest --clearCache
