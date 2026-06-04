@@ -1,6 +1,16 @@
-name: Trivy Container Vulnerability Scan
+name: Trivy Security Scan
 
 on:
+  push:
+    branches: [master, develop]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+  pull_request:
+    branches: [master, develop]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
   schedule:
     - cron: '50 7 * * 5'
   workflow_dispatch:
@@ -9,12 +19,54 @@ permissions:
   contents: read
 
 concurrency:
-  group: trivy-${{ github.ref }}
+  group: trivy-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  trivy:
+  deps:
+    name: Scan dependencies
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    env:
+      TRIVY_CACHE_DIR: .trivycache
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Cache Trivy DB
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: .trivycache
+          key: trivy-fs-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            trivy-fs-${{ runner.os }}-
+
+      - name: Run Trivy dependency scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          skip-dirs: docs
+          version: v0.71.0
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-deps.sarif
+
+      - name: Upload SARIF to code scanning
+        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
+        with:
+          sarif_file: trivy-deps.sarif
+          category: trivy-deps
+
+  image:
     name: Scan ${{ matrix.tag }} image
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
