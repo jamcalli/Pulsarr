@@ -295,8 +295,7 @@ export function extractYear(
     | SonarrSeriesLookupResponse
     | ApiResponse,
 ): number | undefined {
-  if (!response || typeof response !== 'object' || response === null)
-    return undefined
+  if (!response || typeof response !== 'object') return undefined
 
   if ('year' in response && typeof response.year === 'number') {
     return response.year
