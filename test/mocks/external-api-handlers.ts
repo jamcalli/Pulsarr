@@ -128,6 +128,32 @@ export const radarrLookupHandler = http.get(
 )
 
 /**
+ * GitHub API Handlers (update-check service, fires on app boot)
+ *
+ * tag_name stays below any real version so updateAvailable is false (no
+ * notification dispatch); empty body skips the markdown render call.
+ */
+
+export const githubReleaseHandler = http.get(
+  'https://api.github.com/repos/:owner/:repo/releases/latest',
+  () =>
+    HttpResponse.json({
+      tag_name: 'v0.0.0',
+      name: 'Test Release',
+      body: '',
+      html_url: 'https://github.com/jamcalli/Pulsarr/releases/latest',
+      published_at: null,
+      draft: false,
+      prerelease: false,
+    }),
+)
+
+export const githubMarkdownHandler = http.post(
+  'https://api.github.com/markdown',
+  () => HttpResponse.text(''),
+)
+
+/**
  * Export external API handlers for global MSW setup
  * These are registered globally in msw-setup.ts to prevent unhandled request warnings.
  * Individual tests can override these defaults using server.use().
@@ -141,4 +167,6 @@ export const externalApiHandlers = [
   tmdbFindHandler,
   radarrRatingsHandler,
   radarrLookupHandler,
+  githubReleaseHandler,
+  githubMarkdownHandler,
 ]

@@ -601,8 +601,7 @@ export async function updateConfig(
     for (const [key, value] of Object.entries(config)) {
       if (value !== undefined && ALLOWED_COLUMNS.has(key)) {
         if (JSON_COLUMNS.has(key)) {
-          updateData[key] =
-            value !== undefined && value !== null ? JSON.stringify(value) : null
+          updateData[key] = value !== null ? JSON.stringify(value) : null
         } else {
           updateData[key] = value
         }
