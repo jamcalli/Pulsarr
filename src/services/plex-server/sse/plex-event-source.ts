@@ -199,19 +199,15 @@ export class PlexEventSource {
   }
 
   private async warmConnection(): Promise<void> {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), HEALTH_PROBE_TIMEOUT_MS)
     try {
       const res = await fetch(`${this.serverUrl}/identity`, {
         headers: { 'X-Plex-Token': this.token },
-        signal: controller.signal,
+        signal: AbortSignal.timeout(HEALTH_PROBE_TIMEOUT_MS),
       })
       // Drain the response so the connection returns to the pool.
       await res.text()
     } catch {
       this.log.debug('SSE pre-connect health probe failed - continuing')
-    } finally {
-      clearTimeout(timer)
     }
   }
 
