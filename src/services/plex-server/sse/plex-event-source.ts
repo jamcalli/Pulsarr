@@ -12,7 +12,7 @@ import type {
   PlexReachabilityNotification,
   PlexTimelineEntry,
 } from '@root/types/plex-session.types.js'
-import { EventSource } from 'eventsource'
+import { type ErrorEvent, EventSource } from 'eventsource'
 import type { FastifyBaseLogger } from 'fastify'
 
 // Plex wraps some event payloads in a NotificationContainer envelope
@@ -82,6 +82,9 @@ export class PlexEventSource {
     handler: SSEHandler
   }> = []
 
+  // Separate from boundListeners: error events are ErrorEvent, not MessageEvent.
+  private boundErrorHandler: ((evt: ErrorEvent) => void) | null = null
+
   constructor(config: PlexEventSourceConfig) {
     this.serverUrl = config.serverUrl
     this.token = config.token
@@ -135,7 +138,7 @@ export class PlexEventSource {
     if (this.shutdownRequested) return
 
     const url = `${this.serverUrl}/:/eventsource/notifications`
-    this.log.info('Opening SSE connection to Plex')
+    this.log.info({ url }, 'Opening SSE connection to Plex')
 
     this.es = new EventSource(url, {
       fetch: (input, init) =>
@@ -148,9 +151,11 @@ export class PlexEventSource {
         }),
     })
 
+    this.boundErrorHandler = this.handleError.bind(this)
+    this.es.addEventListener('error', this.boundErrorHandler)
+
     // Bind listeners and track references for cleanup
     this.addSSEListener('open', this.handleOpen.bind(this))
-    this.addSSEListener('error', this.handleError.bind(this))
     this.addSSEListener('message', this.handleMessage.bind(this))
     this.addSSEListener('playing', this.handlePlaying.bind(this))
     this.addSSEListener('timeline', this.handleTimeline.bind(this))
@@ -192,6 +197,10 @@ export class PlexEventSource {
         this.es.removeEventListener(type, handler)
       }
       this.boundListeners = []
+      if (this.boundErrorHandler) {
+        this.es.removeEventListener('error', this.boundErrorHandler)
+        this.boundErrorHandler = null
+      }
       this.es.close()
       this.es = null
     }
@@ -257,10 +266,13 @@ export class PlexEventSource {
     this.emitter.emit('connected')
   }
 
-  private handleError(): void {
+  private handleError(evt: ErrorEvent): void {
     // The eventsource package auto-reconnects on errors, but we manage our
     // own reconnection logic for more control over backoff and heartbeat.
-    this.log.warn('SSE connection error')
+    this.log.warn(
+      { code: evt.code, message: evt.message },
+      'SSE connection error',
+    )
     this.emitter.emit('disconnected')
     this.scheduleReconnect()
   }
