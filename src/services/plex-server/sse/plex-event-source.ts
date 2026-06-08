@@ -43,7 +43,6 @@ const CONNECTION_TIMEOUT_MS = 30_000
 const MAX_BACKOFF_MS = 30_000
 const INITIAL_BACKOFF_MS = 1_000
 const STABLE_CONNECTION_MS = 60_000
-const HEALTH_PROBE_TIMEOUT_MS = 5_000
 
 // Plex emits 'buffering' between 'playing' frames during scrubs and hiccups.
 export function normalizePlayingNotification(
@@ -96,7 +95,7 @@ export class PlexEventSource {
 
   async connect(): Promise<void> {
     if (this.shutdownRequested) return
-    await this.createConnection()
+    this.createConnection()
   }
 
   disconnect(): void {
@@ -128,13 +127,8 @@ export class PlexEventSource {
 
   // -- Connection lifecycle --
 
-  private async createConnection(): Promise<void> {
+  private createConnection(): void {
     this.cleanup()
-    if (this.shutdownRequested) return
-
-    // Warm a fresh connection first: a stale pooled socket (Plex drops idle
-    // keep-alives) can otherwise leave the SSE fetch hung in CONNECTING.
-    await this.warmConnection()
     if (this.shutdownRequested) return
 
     const url = `${this.serverUrl}/:/eventsource/notifications`
@@ -207,19 +201,6 @@ export class PlexEventSource {
     this.connectedSince = null
   }
 
-  private async warmConnection(): Promise<void> {
-    try {
-      const res = await fetch(`${this.serverUrl}/identity`, {
-        headers: { 'X-Plex-Token': this.token },
-        signal: AbortSignal.timeout(HEALTH_PROBE_TIMEOUT_MS),
-      })
-      // Drain the response so the connection returns to the pool.
-      await res.text()
-    } catch {
-      this.log.debug('SSE pre-connect health probe failed - continuing')
-    }
-  }
-
   private resetHeartbeat(): void {
     if (this.heartbeatTimer) {
       clearTimeout(this.heartbeatTimer)
@@ -245,7 +226,7 @@ export class PlexEventSource {
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null
       if (!this.shutdownRequested) {
-        void this.createConnection()
+        this.createConnection()
       }
     }, delay)
 

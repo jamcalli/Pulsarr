@@ -1468,14 +1468,7 @@ export class PlexServerService {
    * Polling jobs remain as a safety net - SSE provides faster reaction times.
    */
   async connectSSE(): Promise<void> {
-    // Use a configured URL verbatim so a restart can't auto-negotiate to a
-    // different connection than the one the admin saved. Empty means unset.
-    const manualUrl = this.config.plexServerUrl || null
-    const serverUrl = manualUrl ?? (await this.getPlexServerUrl())
-    this.log.info(
-      { serverUrl, source: manualUrl ? 'manual-config' : 'auto-negotiated' },
-      'Resolved Plex server URL for SSE connection',
-    )
+    const serverUrl = await this.getPlexServerUrl()
     const token = this.config.plexTokens?.[0] || ''
 
     if (!token) {
