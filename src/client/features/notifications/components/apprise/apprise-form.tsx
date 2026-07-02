@@ -168,16 +168,16 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
         <p>
           Apprise is a notification service that can send alerts to multiple
           platforms. The service status is determined at server startup and
-          cannot be changed at runtime.{' '}
+          cannot be changed at runtime. See the{' '}
           <a
             href="https://jamcalli.github.io/Pulsarr/docs/notifications/apprise"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-400 hover:text-blue-500 inline-flex items-center gap-1"
           >
-            Click here <ExternalLink className="h-3 w-3" />
-          </a>{' '}
-          for setup instructions.
+            setup instructions <ExternalLink className="h-3 w-3" />
+          </a>
+          .
         </p>
       </div>
 

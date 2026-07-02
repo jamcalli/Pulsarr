@@ -114,13 +114,11 @@ export default function ApprovalActionsModal({
   const isDesktop = !isMobile
 
   // Reset media details when modal opens or the request changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Need request.id to reset when request changes while modal stays open
   useEffect(() => {
     if (open) setShowMediaDetails(false)
   }, [open, request.id])
 
   // Reset edit routing mode when request changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Need request.id to reset when request changes while modal stays open
   useEffect(() => {
     setEditRoutingMode(false)
   }, [request.id, setEditRoutingMode])

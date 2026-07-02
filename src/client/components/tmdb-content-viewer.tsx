@@ -27,7 +27,6 @@ export function TmdbContentViewer({ approvalRequest }: TmdbContentViewerProps) {
   // - Full fetch on mount or when the selected item changes
   // - Region-only refresh when the region changes for the same item
   const lastIdRef = useRef(approvalRequest.id)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate deps
   useEffect(() => {
     const idChanged = lastIdRef.current !== approvalRequest.id
     if (idChanged || !tmdbMetadata.data) {

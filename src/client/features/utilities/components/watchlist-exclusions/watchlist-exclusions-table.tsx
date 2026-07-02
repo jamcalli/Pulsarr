@@ -136,7 +136,6 @@ export const WatchlistExclusionsTable = React.forwardRef<
 
   // Reset to first page when sorting or filters change, but not when row data
   // updates (so excluding/unexcluding keeps you on the current page)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: sorting and columnFilters are intentional re-run triggers
   React.useEffect(() => {
     table.setPageIndex(0)
   }, [sorting, columnFilters, table])
