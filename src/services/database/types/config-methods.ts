@@ -2,7 +2,7 @@ import type {
   ConfigFull,
   ConfigUpdate,
 } from '@root/schemas/config/config.schema.js'
-import type { SecretColumn } from '../methods/config.js'
+import type { SecretColumn } from '@root/types/config.types.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {

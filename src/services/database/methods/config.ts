@@ -1,5 +1,5 @@
 import type { ConfigFull } from '@root/schemas/config/config.schema.js'
-import type { Config } from '@root/types/config.types.js'
+import type { Config, SecretColumn } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
@@ -660,8 +660,6 @@ export async function setLastNotifiedVersion(
     return false
   }
 }
-
-export type SecretColumn = 'cookieSecret' | 'webhookSecret'
 
 /**
  * Reads the persisted secrets, null when the row predates the columns.

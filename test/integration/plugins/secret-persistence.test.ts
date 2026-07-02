@@ -90,6 +90,19 @@ describe('secret persistence across restarts', () => {
     expect(app.config.cookieSecret).toBe(STORED_COOKIE_SECRET)
   })
 
+  it('replaces legacy cookieSecret values shorter than 32 chars', async () => {
+    await seedStoredSecrets({ cookieSecret: 'short-legacy-secret' })
+
+    app = await build()
+    await app.ready()
+
+    const stored = await getStoredSecrets()
+    expect(app.config.cookieSecret).not.toBe('short-legacy-secret')
+    expect(app.config.cookieSecret.length).toBeGreaterThanOrEqual(32)
+    expect(stored.cookieSecret).toBe(app.config.cookieSecret)
+    expect(app.config.webhookSecret).toBe(STORED_WEBHOOK_SECRET)
+  })
+
   it('lets .env values override persisted secrets', async () => {
     await seedStoredSecrets()
     const envSecret = 'env-webhook-secret-override'
