@@ -599,7 +599,6 @@ export function LogViewerPage() {
             >
               {filteredLogs.length > 0 ? (
                 filteredLogs.map((log, index) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: logs are append-only, never reordered
                   <div key={index}>{renderLogEntry(log)}</div>
                 ))
               ) : (

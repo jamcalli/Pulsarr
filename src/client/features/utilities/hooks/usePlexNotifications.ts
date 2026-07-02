@@ -105,7 +105,6 @@ export function usePlexNotifications() {
   }, [form, config?.plexTokens])
 
   // Fetch current notification status on mount
-  // biome-ignore lint/correctness/useExhaustiveDependencies: We only want to fetch on mount
   useEffect(() => {
     // Create an AbortController to handle cleanup
     const abortController = new AbortController()

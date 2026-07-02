@@ -202,16 +202,16 @@ export function NotificationsSkeleton() {
               <p>
                 Configure webhook endpoints to receive notifications for Pulsarr
                 events. Webhooks send JSON payloads to your specified URLs when
-                events occur.{' '}
+                events occur. See the{' '}
                 <a
                   href={api('/api/docs#tag/webhook-payloads')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-400 hover:text-blue-500 inline-flex items-center gap-1"
                 >
-                  Click here <ExternalLink className="h-3 w-3" />
-                </a>{' '}
-                for payload schemas.
+                  payload schemas <ExternalLink className="h-3 w-3" />
+                </a>
+                .
               </p>
             </div>
             <div className="flex justify-end">
