@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Cache Vitest
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: node_modules/.vite
           key: vitest-${{ runner.os }}-${{ hashFiles('bun.lock') }}
