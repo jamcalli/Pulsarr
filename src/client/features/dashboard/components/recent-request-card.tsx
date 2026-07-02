@@ -21,12 +21,15 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import type { MediaOrientation } from '@/features/dashboard/components/dashboard-media-carousel'
+import { MediaRowItem } from '@/features/dashboard/components/media-row-item'
 import { usePosterUrl } from '@/features/dashboard/hooks/usePosterUrl'
 import { cn } from '@/lib/utils'
 
 interface RecentRequestCardProps {
   item: RecentRequestItem
   className?: string
+  orientation?: MediaOrientation
 }
 
 const STATUS_CONFIG: Record<
@@ -85,8 +88,13 @@ function formatTimeAgo(dateString: string): string {
  * Shows poster placeholder, status badge, title, user, and time.
  * Supports multi-instance popover when item exists on multiple instances.
  */
-export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
+export function RecentRequestCard({
+  item,
+  className,
+  orientation = 'card',
+}: RecentRequestCardProps) {
   const [modalOpen, setModalOpen] = useState(false)
+  const isRow = orientation === 'row'
 
   const hasGuids = Boolean(item.guids?.length)
   const hasInstances = item.allInstances.length > 0
@@ -118,131 +126,171 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
     <Badge
       variant={statusConfig.variant}
       className={cn(
-        'absolute top-0 right-0 rounded-bl-md rounded-br-none rounded-tr-md rounded-tl-none',
+        isRow
+          ? 'shrink-0'
+          : 'absolute top-0 right-0 rounded-bl-md rounded-br-none rounded-tr-md rounded-tl-none',
         statusConfig.className,
-        showInstancePopover && 'cursor-pointer',
+        showInstancePopover && 'cursor-pointer pointer-events-auto',
       )}
     >
       {statusConfig.label}
     </Badge>
   )
 
-  return (
-    <>
-      <Card className={cn('shadow-none', className)}>
-        <CardContent className="p-2.5">
-          <div className="relative w-full overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800">
-            <AspectRatio ratio={2 / 3}>
-              {posterUrl ? (
-                <img
-                  src={posterUrl}
-                  alt={item.title}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  {isPosterLoading ? (
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
-                  ) : (
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {item.contentType === 'movie' ? 'Movie' : 'Show'}
-                    </span>
-                  )}
-                </div>
-              )}
-            </AspectRatio>
+  const StatusBadge = showInstancePopover ? (
+    // Modal in row mode so dismiss taps don't hit the row's overlay button
+    <Popover modal={isRow}>
+      <PopoverTrigger asChild>{StatusBadgeContent}</PopoverTrigger>
+      <PopoverContent
+        side="bottom"
+        align="end"
+        className="w-auto min-w-40 p-2 bg-secondary-background"
+      >
+        <p className="text-xs font-medium mb-1">Status:</p>
+        <ul className="text-xs space-y-0.5">
+          {item.allInstances.map((instance) => {
+            const instanceStatusConfig = INSTANCE_STATUS_CONFIG[instance.status]
+            return (
+              <li
+                key={`${instance.instanceType}-${instance.id}`}
+                className="flex items-center gap-1"
+              >
+                <span>{instanceStatusConfig.icon}</span>
+                <span>
+                  {instance.name} ({instanceStatusConfig.label})
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  ) : (
+    StatusBadgeContent
+  )
 
-            {/* Status badge with optional instance popover */}
-            {showInstancePopover ? (
-              <Popover>
-                <PopoverTrigger asChild>{StatusBadgeContent}</PopoverTrigger>
-                <PopoverContent
-                  side="bottom"
-                  align="end"
-                  className="w-auto min-w-40 p-2 bg-secondary-background"
-                >
-                  <p className="text-xs font-medium mb-1">Status:</p>
-                  <ul className="text-xs space-y-0.5">
-                    {item.allInstances.map((instance) => {
-                      const instanceStatusConfig =
-                        INSTANCE_STATUS_CONFIG[instance.status]
-                      return (
-                        <li
-                          key={`${instance.instanceType}-${instance.id}`}
-                          className="flex items-center gap-1"
-                        >
-                          <span>{instanceStatusConfig.icon}</span>
-                          <span>
-                            {instance.name} ({instanceStatusConfig.label})
-                          </span>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </PopoverContent>
-              </Popover>
+  const posterVisual = (
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800',
+        isRow ? 'w-16 shrink-0' : 'w-full',
+      )}
+    >
+      <AspectRatio ratio={2 / 3}>
+        {posterUrl ? (
+          <img
+            src={posterUrl}
+            alt={item.title}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            {isPosterLoading ? (
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
             ) : (
-              StatusBadgeContent
-            )}
-
-            {/* Content type indicator */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="neutralnoShadow"
-                  size="sm"
-                  className="absolute top-0 left-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none"
-                  aria-label={
-                    item.contentType === 'movie' ? 'Movie' : 'TV Show'
-                  }
-                >
-                  {item.contentType === 'movie' ? (
-                    <Monitor className="h-3 w-3" />
-                  ) : (
-                    <Tv className="h-3 w-3" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {item.contentType === 'movie' ? 'Movie' : 'TV Show'}
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Eye button for detail modal */}
-            {hasGuids && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="neutralnoShadow"
-                    size="sm"
-                    className="absolute bottom-0 right-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none cursor-pointer"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setModalOpen(true)
-                    }}
-                    aria-label="View detailed information"
-                  >
-                    <Eye className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>View details</TooltipContent>
-              </Tooltip>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {item.contentType === 'movie' ? 'Movie' : 'Show'}
+              </span>
             )}
           </div>
+        )}
+      </AspectRatio>
 
-          {/* Title */}
-          <h3 className="mt-2 line-clamp-1 text-sm font-medium leading-tight">
-            {item.title}
-          </h3>
+      {!isRow && StatusBadge}
 
-          {/* User and time */}
-          <p className="text-xs text-muted-foreground truncate">
-            @{item.userName} · {formatTimeAgo(item.createdAt)}
-          </p>
-        </CardContent>
-      </Card>
+      {/* Plain span in row mode; the overlay tap target rules out a tooltip button */}
+      {isRow ? (
+        <span
+          className="absolute top-0 left-0 flex h-5 w-5 items-center justify-center rounded-br-md border-2 border-border bg-secondary-background text-foreground"
+          aria-hidden="true"
+        >
+          {item.contentType === 'movie' ? (
+            <Monitor className="h-3 w-3" />
+          ) : (
+            <Tv className="h-3 w-3" />
+          )}
+        </span>
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="neutralnoShadow"
+              size="sm"
+              className="absolute top-0 left-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none"
+              aria-label={item.contentType === 'movie' ? 'Movie' : 'TV Show'}
+            >
+              {item.contentType === 'movie' ? (
+                <Monitor className="h-3 w-3" />
+              ) : (
+                <Tv className="h-3 w-3" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {item.contentType === 'movie' ? 'Movie' : 'TV Show'}
+          </TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* Row mode opens the modal by tapping the whole item, no overlay button needed */}
+      {!isRow && hasGuids && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="neutralnoShadow"
+              size="sm"
+              className="absolute bottom-0 right-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setModalOpen(true)
+              }}
+              aria-label="View detailed information"
+            >
+              <Eye className="h-3 w-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>View details</TooltipContent>
+        </Tooltip>
+      )}
+    </div>
+  )
+
+  const itemText = (
+    <>
+      <h3 className="line-clamp-1 text-sm font-medium leading-tight">
+        {item.title}
+        <span className="sr-only">
+          {' '}
+          ({item.contentType === 'movie' ? 'movie' : 'show'})
+        </span>
+      </h3>
+      <p className="text-xs text-muted-foreground truncate">
+        @{item.userName} · {formatTimeAgo(item.createdAt)}
+      </p>
+    </>
+  )
+
+  return (
+    <>
+      {isRow ? (
+        <MediaRowItem
+          poster={posterVisual}
+          text={itemText}
+          badge={StatusBadge}
+          onSelect={hasGuids ? () => setModalOpen(true) : undefined}
+          selectLabel={`View details for ${item.title} (${item.contentType === 'movie' ? 'movie' : 'show'})`}
+          className={className}
+        />
+      ) : (
+        <Card className={cn('shadow-none', className)}>
+          <CardContent className="p-2.5">
+            {posterVisual}
+            <div className="mt-2">{itemText}</div>
+          </CardContent>
+        </Card>
+      )}
 
       {hasGuids && (
         <ContentDetailModal

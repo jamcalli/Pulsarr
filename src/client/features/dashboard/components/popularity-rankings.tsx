@@ -2,6 +2,7 @@ import { Loader2, RefreshCw } from 'lucide-react'
 import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
+import { MediaViewToggle } from '@/features/dashboard/components/media-view-toggle'
 import { WatchlistCarousel } from '@/features/dashboard/components/watchlist-carousel'
 import {
   DATE_RANGE_PRESETS,
@@ -10,6 +11,7 @@ import {
   LIMIT_PRESETS,
   useDashboardStats,
 } from '@/features/dashboard/hooks/useDashboardStats'
+import { useMediaViewMode } from '@/features/dashboard/hooks/useMediaViewMode'
 
 interface PopularityRankingsProps {
   onRefresh: () => Promise<void>
@@ -33,6 +35,8 @@ export function PopularityRankings({ onRefresh }: PopularityRankingsProps) {
     limit,
     setLimit,
   } = useDashboardStats()
+  // One shared view so the side-by-side sections never mix carousel and list
+  const { view, setView } = useMediaViewMode('most-watchlisted')
 
   const dateRangeOptions = useMemo(
     () =>
@@ -72,6 +76,7 @@ export function PopularityRankings({ onRefresh }: PopularityRankingsProps) {
           disabled={isLoading}
           className="w-[110px]"
         />
+        <MediaViewToggle view={view} onViewChange={setView} />
         <Button
           onClick={onRefresh}
           disabled={isLoading}
@@ -96,6 +101,7 @@ export function PopularityRankings({ onRefresh }: PopularityRankingsProps) {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <WatchlistCarousel
           title="Most Watchlisted Shows"
+          view={view}
           items={mostWatchedShows || []}
           loading={loadingStates.all || loadingStates.shows}
           error={errorStates.all || errorStates.shows}
@@ -103,6 +109,7 @@ export function PopularityRankings({ onRefresh }: PopularityRankingsProps) {
 
         <WatchlistCarousel
           title="Most Watchlisted Movies"
+          view={view}
           items={mostWatchedMovies || []}
           loading={loadingStates.all || loadingStates.movies}
           error={errorStates.all || errorStates.movies}
