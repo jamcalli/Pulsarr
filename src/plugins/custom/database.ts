@@ -55,6 +55,24 @@ export default fp(
             }),
           )
 
+          // Secrets must stay stable across restarts
+          const storedSecrets = await dbService.getSecrets()
+          for (const key of ['cookieSecret', 'webhookSecret'] as const) {
+            let stored = storedSecrets[key]
+            // drop legacy short values that @fastify/session would reject at boot
+            if (key === 'cookieSecret' && stored && stored.length < 32) {
+              stored = null
+            }
+            if (stored) {
+              if (!isSetInEnvironment(key)) {
+                dbOverrides[key] = stored
+              }
+            } else {
+              delete dbOverrides[key]
+              await dbService.setSecret(key, envConfig[key])
+            }
+          }
+
           const mergedConfig = {
             ...envConfig,
             ...dbOverrides,

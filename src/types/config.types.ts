@@ -105,6 +105,8 @@ export type PublicContentKeyMap = Record<
   }
 >
 
+export type SecretColumn = 'cookieSecret' | 'webhookSecret'
+
 export interface Config {
   id: number
   // System Config

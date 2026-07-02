@@ -130,7 +130,8 @@ const schema = {
     },
     cookieSecret: {
       type: 'string',
-      minLength: 16,
+      // @fastify/session requires 32+ chars
+      minLength: 32,
       default: generateSecret(),
     },
     cookieName: {
