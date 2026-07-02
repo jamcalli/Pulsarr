@@ -2,6 +2,7 @@ import type {
   ConfigFull,
   ConfigUpdate,
 } from '@root/schemas/config/config.schema.js'
+import type { SecretColumn } from '../methods/config.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
@@ -16,5 +17,9 @@ declare module '@services/database.service.js' {
     getLastNotifiedVersion(): Promise<string | null>
 
     setLastNotifiedVersion(version: string): Promise<boolean>
+
+    getSecrets(): Promise<Record<SecretColumn, string | null>>
+
+    setSecret(key: SecretColumn, value: string): Promise<void>
   }
 }
