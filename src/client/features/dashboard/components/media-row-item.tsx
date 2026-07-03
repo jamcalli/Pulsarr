@@ -4,7 +4,8 @@ import { cn } from '@/lib/utils'
 
 interface MediaRowItemProps {
   poster: ReactNode
-  text: ReactNode
+  title: ReactNode
+  meta?: ReactNode
   badge: ReactNode
   onSelect?: () => void
   selectLabel?: string
@@ -17,7 +18,8 @@ interface MediaRowItemProps {
  */
 export function MediaRowItem({
   poster,
-  text,
+  title,
+  meta,
   badge,
   onSelect,
   selectLabel,
@@ -30,7 +32,7 @@ export function MediaRowItem({
         className,
       )}
     >
-      <CardContent className="flex flex-row items-center gap-3 p-2.5">
+      <CardContent className="flex flex-row items-center gap-2.5 p-2">
         {onSelect && (
           <button
             type="button"
@@ -41,11 +43,16 @@ export function MediaRowItem({
           />
         )}
         {poster}
-        <div className="min-w-0 flex-1">{text}</div>
-        {/* Plain badges let taps through; popover badges opt back in via pointer-events-auto */}
-        <span className="pointer-events-none relative z-20 shrink-0">
-          {badge}
-        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">{meta}</div>
+            {/* Plain badges let taps through; popover badges opt back in via pointer-events-auto */}
+            <span className="pointer-events-none relative z-20 shrink-0">
+              {badge}
+            </span>
+          </div>
+          {title}
+        </div>
       </CardContent>
     </Card>
   )
