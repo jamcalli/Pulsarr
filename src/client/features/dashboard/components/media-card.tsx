@@ -88,7 +88,7 @@ export function MediaCard({
     <div
       className={cn(
         'relative overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800',
-        isRow ? 'w-16 shrink-0' : 'w-full',
+        isRow ? 'w-10 shrink-0' : 'w-full',
       )}
     >
       <AspectRatio ratio={2 / 3}>
@@ -146,7 +146,7 @@ export function MediaCard({
       {isRow ? (
         <MediaRowItem
           poster={posterVisual}
-          text={titleText}
+          title={titleText}
           badge={CountBadge}
           onSelect={hasGuids ? () => setModalOpen(true) : undefined}
           selectLabel={`View details for ${item.title}`}
