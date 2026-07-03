@@ -29,6 +29,7 @@ export default fp(
   },
   {
     name: 'session',
-    dependencies: ['config'],
+    // database must load first so the persisted cookieSecret is used
+    dependencies: ['config', 'database'],
   },
 )

@@ -138,8 +138,7 @@ export const ConfigFullSchema = z.object({
   baseUrl: z.string().optional(),
   port: z.number().int().min(1).max(65535).optional(),
   dbPath: z.string().optional(),
-  cookieSecret: z.string().optional(),
-  cookieName: z.string().optional(),
+  // cookieSecret, webhookSecret, and cookieName are server-internal
   cookieSecured: z.boolean(),
   // Logging & Performance
   logLevel: LogLevelEnum.optional(),
@@ -284,8 +283,7 @@ export const ConfigUpdateSchema = z
     baseUrl: HttpUrlOptionalSchema,
     port: z.number().int().min(1).max(65535).optional(),
     dbPath: z.string().optional(),
-    cookieSecret: z.string().optional(),
-    cookieName: z.string().optional(),
+    // cookieSecret, webhookSecret, and cookieName are server-internal
     cookieSecured: z.boolean().optional(),
     logLevel: LogLevelEnum.optional(),
     closeGraceDelay: z.number().optional(),

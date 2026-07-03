@@ -1,7 +1,8 @@
 import * as React from "react"
 
 export function useMediaQuery(query: string) {
-  const [value, setValue] = React.useState(false)
+  // Read synchronously on first render to avoid a flash of the wrong layout
+  const [value, setValue] = React.useState(() => matchMedia(query).matches)
 
   React.useEffect(() => {
     function onChange(event: MediaQueryListEvent) {

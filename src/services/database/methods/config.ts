@@ -1,5 +1,5 @@
 import type { ConfigFull } from '@root/schemas/config/config.schema.js'
-import type { Config } from '@root/types/config.types.js'
+import type { Config, SecretColumn } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
@@ -273,6 +273,7 @@ export async function createConfig(
       dbPath: config.dbPath,
       baseUrl: config.baseUrl,
       cookieSecret: config.cookieSecret,
+      webhookSecret: config.webhookSecret,
       cookieName: config.cookieName,
       cookieSecured: config.cookieSecured,
       logLevel: config.logLevel,
@@ -440,8 +441,7 @@ const ALLOWED_COLUMNS = new Set([
   'dbConnectionString',
 
   // Security & authentication
-  'cookieSecret',
-  'cookieName',
+  // NOTE: cookieSecret, webhookSecret, and cookieName are intentionally omitted
   'cookieSecured',
   'authenticationMethod',
   'allowIframes',
@@ -601,8 +601,7 @@ export async function updateConfig(
     for (const [key, value] of Object.entries(config)) {
       if (value !== undefined && ALLOWED_COLUMNS.has(key)) {
         if (JSON_COLUMNS.has(key)) {
-          updateData[key] =
-            value !== undefined && value !== null ? JSON.stringify(value) : null
+          updateData[key] = value !== null ? JSON.stringify(value) : null
         } else {
           updateData[key] = value
         }
@@ -659,5 +658,38 @@ export async function setLastNotifiedVersion(
   } catch (error) {
     this.log.error({ error, version }, 'Error setting lastNotifiedVersion')
     return false
+  }
+}
+
+/**
+ * Reads the persisted secrets, null when the row predates the columns.
+ * Errors propagate so boot aborts instead of overwriting a stored secret.
+ */
+export async function getSecrets(
+  this: DatabaseService,
+): Promise<Record<SecretColumn, string | null>> {
+  const row = await this.knex('configs')
+    .where({ id: 1 })
+    .first('cookieSecret', 'webhookSecret')
+  return {
+    cookieSecret: (row?.cookieSecret as string | null) ?? null,
+    webhookSecret: (row?.webhookSecret as string | null) ?? null,
+  }
+}
+
+/**
+ * Persists a secret. Bypasses ALLOWED_COLUMNS so these internal fields
+ * cannot be set through the public config update API.
+ */
+export async function setSecret(
+  this: DatabaseService,
+  key: SecretColumn,
+  value: string,
+): Promise<void> {
+  const updated = await this.knex('configs')
+    .where({ id: 1 })
+    .update({ [key]: value, updated_at: this.timestamp })
+  if (updated === 0) {
+    throw new Error(`Failed to persist ${key}: config row missing`)
   }
 }

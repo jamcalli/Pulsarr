@@ -1,7 +1,6 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react'
+import React, { useEffect, useCallback, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import GitHubStatsButton from '@site/src/components/GitHubStatsButton'
-import GitHubStatsButtonWrapper from '@site/src/components/GitHubStatsButtonWrapper'
 import { useLocation } from '@docusaurus/router'
 
 // Global root store to prevent multiple createRoot calls

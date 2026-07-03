@@ -935,10 +935,9 @@ export class SonarrService {
             : true
 
       // Season monitoring strategy - prefer override, then config, then default to 'all'
-      const monitorStrategy =
-        overrideSeasonMonitoring && overrideSeasonMonitoring !== null
-          ? overrideSeasonMonitoring
-          : config.sonarrSeasonMonitoring || 'all'
+      const monitorStrategy = overrideSeasonMonitoring
+        ? overrideSeasonMonitoring
+        : config.sonarrSeasonMonitoring || 'all'
 
       const addOptions: SonarrAddOptions = {
         monitor: monitorStrategy,
@@ -1030,10 +1029,9 @@ export class SonarrService {
       const tags = Array.from(tagIdsSet)
 
       // Series type - prefer override, then config, then default to 'standard'
-      const seriesType =
-        overrideSeriesType && overrideSeriesType !== null
-          ? overrideSeriesType
-          : config.sonarrSeriesType || 'standard'
+      const seriesType = overrideSeriesType
+        ? overrideSeriesType
+        : config.sonarrSeriesType || 'standard'
 
       // Create season folders - prefer override, then config, then default to undefined (Sonarr default)
       const createSeasonFolders =
