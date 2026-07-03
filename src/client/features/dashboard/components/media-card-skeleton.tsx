@@ -15,18 +15,14 @@ export function MediaCardSkeleton({
     return (
       <MediaRowItem
         poster={
-          <div className="w-16 shrink-0 overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800">
+          <div className="w-10 shrink-0 overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800">
             <AspectRatio ratio={2 / 3}>
               <Skeleton className="h-full w-full" />
             </AspectRatio>
           </div>
         }
-        text={
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-3 w-1/2" />
-          </div>
-        }
+        title={<Skeleton className="h-4 w-3/4" />}
+        meta={<Skeleton className="h-3 w-24" />}
         badge={<Skeleton className="h-6 w-20" />}
       />
     )

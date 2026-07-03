@@ -131,8 +131,8 @@ export function DashboardMediaCarousel<T>({
           )}
         </CardHeader>
       )}
-      {/* CardContent's default pt-0 assumes a preceding CardHeader */}
-      <CardContent className={cn(!showHeader && 'pt-6')}>
+      {/* CardContent's default pt-0 assumes a CardHeader; pt-3 mirrors the header's pb-3 gap when there isn't one */}
+      <CardContent className={cn(!showHeader && 'pt-3')}>
         {error ? (
           <div className="flex h-48 items-center justify-center">
             <span className="text-destructive">{error}</span>

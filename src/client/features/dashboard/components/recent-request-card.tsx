@@ -173,7 +173,7 @@ export function RecentRequestCard({
     <div
       className={cn(
         'relative overflow-hidden rounded-md bg-gray-100 dark:bg-gray-800',
-        isRow ? 'w-16 shrink-0' : 'w-full',
+        isRow ? 'w-10 shrink-0' : 'w-full',
       )}
     >
       <AspectRatio ratio={2 / 3}>
@@ -199,19 +199,7 @@ export function RecentRequestCard({
 
       {!isRow && StatusBadge}
 
-      {/* Plain span in row mode; the overlay tap target rules out a tooltip button */}
-      {isRow ? (
-        <span
-          className="absolute top-0 left-0 flex h-5 w-5 items-center justify-center rounded-br-md border-2 border-border bg-secondary-background text-foreground"
-          aria-hidden="true"
-        >
-          {item.contentType === 'movie' ? (
-            <Monitor className="h-3 w-3" />
-          ) : (
-            <Tv className="h-3 w-3" />
-          )}
-        </span>
-      ) : (
+      {!isRow && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -257,19 +245,33 @@ export function RecentRequestCard({
     </div>
   )
 
-  const itemText = (
-    <>
-      <h3 className="line-clamp-1 text-sm font-medium leading-tight">
-        {item.title}
-        <span className="sr-only">
-          {' '}
-          ({item.contentType === 'movie' ? 'movie' : 'show'})
-        </span>
-      </h3>
-      <p className="text-xs text-muted-foreground truncate">
+  const titleText = (
+    <h3
+      className={cn(
+        'text-sm font-medium leading-tight',
+        isRow ? 'line-clamp-2' : 'line-clamp-1',
+      )}
+    >
+      {item.title}
+      <span className="sr-only">
+        {' '}
+        ({item.contentType === 'movie' ? 'movie' : 'show'})
+      </span>
+    </h3>
+  )
+
+  const metaText = (
+    <p className="flex items-center gap-1 text-xs text-muted-foreground">
+      {isRow &&
+        (item.contentType === 'movie' ? (
+          <Monitor className="h-3 w-3 shrink-0" aria-hidden="true" />
+        ) : (
+          <Tv className="h-3 w-3 shrink-0" aria-hidden="true" />
+        ))}
+      <span className="truncate">
         @{item.userName} · {formatTimeAgo(item.createdAt)}
-      </p>
-    </>
+      </span>
+    </p>
   )
 
   return (
@@ -277,7 +279,8 @@ export function RecentRequestCard({
       {isRow ? (
         <MediaRowItem
           poster={posterVisual}
-          text={itemText}
+          title={titleText}
+          meta={metaText}
           badge={StatusBadge}
           onSelect={hasGuids ? () => setModalOpen(true) : undefined}
           selectLabel={`View details for ${item.title} (${item.contentType === 'movie' ? 'movie' : 'show'})`}
@@ -287,7 +290,10 @@ export function RecentRequestCard({
         <Card className={cn('shadow-none', className)}>
           <CardContent className="p-2.5">
             {posterVisual}
-            <div className="mt-2">{itemText}</div>
+            <div className="mt-2">
+              {titleText}
+              {metaText}
+            </div>
           </CardContent>
         </Card>
       )}
