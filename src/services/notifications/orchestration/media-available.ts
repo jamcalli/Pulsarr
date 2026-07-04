@@ -372,7 +372,7 @@ async function buildEnrichmentData(
   }
 }
 
-async function buildUserNotifications(
+export async function buildUserNotifications(
   deps: MediaAvailableDeps,
   mediaInfo: MediaInfo,
   options: MediaAvailableOptions,
@@ -388,14 +388,27 @@ async function buildUserNotifications(
   const users = await deps.db.getUsersByIds(userIds)
   const userMap = new Map(users.map((u) => [u.id, u]))
 
+  // public mention IDs are derived from these results, so mention-only users must stay in
+  const { hasDiscordUrls } = getPublicContentNotificationFlags(
+    deps.config.publicContentNotifications,
+  )
+  const publicMentionsPossible =
+    Boolean(deps.config.publicContentNotifications?.enabled) && hasDiscordUrls
+
   for (const item of watchlistItems) {
     const user = userMap.get(item.user_id)
     if (!user) continue
 
+    const mentionEligible =
+      publicMentionsPossible &&
+      user.notify_discord_mention &&
+      Boolean(user.discord_id?.trim())
+
     if (
       !user.notify_discord &&
       !user.notify_apprise &&
-      !user.notify_plex_mobile
+      !user.notify_plex_mobile &&
+      !mentionEligible
     )
       continue
 
