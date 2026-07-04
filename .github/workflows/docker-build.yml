@@ -402,6 +402,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    concurrency:
+      group: release-drafting
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
@@ -450,10 +452,10 @@ jobs:
       matrix:
         include:
           - variant: standard
-            zip_pattern: "*windows-x64.zip"
+            zip_suffix: "-windows-x64.zip"
             iss_file: pulsarr.iss
           - variant: baseline
-            zip_pattern: "*windows-x64-baseline.zip"
+            zip_suffix: "-windows-x64-baseline.zip"
             iss_file: pulsarr-baseline.iss
     steps:
       - name: Checkout
@@ -483,7 +485,7 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           gh release download "$RELEASE_VERSION" \
-            --pattern "${{ matrix.zip_pattern }}" \
+            --pattern "pulsarr-${RELEASE_VERSION}${{ matrix.zip_suffix }}" \
             --dir scripts/installers/windows
 
       - name: Extract zip
@@ -557,7 +559,7 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: |
           gh release download "$RELEASE_VERSION" \
-            --pattern "*macos-${ARCH}.zip" \
+            --pattern "pulsarr-${RELEASE_VERSION}-macos-${ARCH}.zip" \
             --dir .
 
       - name: Install create-dmg
@@ -568,17 +570,10 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
           ARCH: ${{ matrix.arch }}
         run: |
-          # Extract the native build zip
-          unzip -q "pulsarr-"*"-macos-${ARCH}.zip"
-
-          # Enter the extracted directory
-          cd "pulsarr-"*"-macos-${ARCH}"
-
-          # Run the build script
+          unzip -q "pulsarr-${RELEASE_VERSION}-macos-${ARCH}.zip"
+          cd "pulsarr-${RELEASE_VERSION}-macos-${ARCH}"
           ../scripts/installers/macos/build-app.sh "$RELEASE_VERSION" "$ARCH"
-
-          # Move output to workspace root
-          mv pulsarr-*.dmg ../
+          mv "pulsarr-${RELEASE_VERSION}-macos-${ARCH}.dmg" ../
 
       - name: Upload installer to release
         env:
@@ -587,5 +582,5 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: |
           gh release upload "$RELEASE_VERSION" \
-            "pulsarr-"*"-macos-${ARCH}.dmg" \
+            "pulsarr-${RELEASE_VERSION}-macos-${ARCH}.dmg" \
             --clobber
