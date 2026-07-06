@@ -313,7 +313,7 @@ jobs:
       - name: Install Trivy
         uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
         with:
-          version: v0.71.2
+          version: v0.72.0
 
       - name: Login to Docker Hub
         uses: docker/login-action@c99871dec2022cc055c062a10cc1a1310835ceb4 # v4
@@ -382,13 +382,13 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ matrix.ref }}
-          version: v0.71.2
+          version: v0.72.0
           format: sarif
           output: trivy-release-${{ matrix.variant }}.sarif
           ignore-unfixed: true
 
       - name: Upload SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4.36.3
         with:
           sarif_file: trivy-release-${{ matrix.variant }}.sarif
           category: trivy-release-${{ matrix.variant }}
@@ -404,6 +404,7 @@ jobs:
       contents: write
     concurrency:
       group: release-drafting
+      queue: max
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7

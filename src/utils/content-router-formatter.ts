@@ -42,6 +42,7 @@ export function formatRule(
       season_monitoring:
         rule.season_monitoring !== null ? rule.season_monitoring : undefined,
       series_type: rule.series_type !== null ? rule.series_type : undefined,
+      monitor: rule.monitor !== null ? rule.monitor : undefined,
       // Action fields
       always_require_approval: rule.always_require_approval ?? false,
       bypass_user_quotas: rule.bypass_user_quotas ?? false,
@@ -75,6 +76,7 @@ export function formatRule(
       season_monitoring:
         rule.season_monitoring !== null ? rule.season_monitoring : undefined,
       series_type: rule.series_type !== null ? rule.series_type : undefined,
+      monitor: rule.monitor !== null ? rule.monitor : undefined,
       // Action fields
       always_require_approval: rule.always_require_approval ?? false,
       bypass_user_quotas: rule.bypass_user_quotas ?? false,

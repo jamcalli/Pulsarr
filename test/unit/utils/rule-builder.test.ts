@@ -350,6 +350,7 @@ describe('rule-builder', () => {
         search_on_add: undefined,
         season_monitoring: undefined,
         series_type: undefined,
+        monitor: undefined,
         always_require_approval: undefined,
         bypass_user_quotas: undefined,
         approval_reason: undefined,
@@ -456,6 +457,19 @@ describe('rule-builder', () => {
       expect(rule.target_type).toBe('sonarr')
       expect(rule.season_monitoring).toBe('future')
       expect(rule.series_type).toBe('daily')
+    })
+
+    it('should handle radarr-specific fields', () => {
+      const rule = RuleBuilder.createRule({
+        name: 'Movie Rule',
+        target_type: 'radarr',
+        target_instance_id: 1,
+        condition: RuleBuilder.genre('Action'),
+        monitor: 'movieAndCollection',
+      })
+
+      expect(rule.target_type).toBe('radarr')
+      expect(rule.monitor).toBe('movieAndCollection')
     })
 
     it('should handle empty tags array by default', () => {

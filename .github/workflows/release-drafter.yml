@@ -13,6 +13,7 @@ permissions:
 
 concurrency:
   group: release-drafting
+  queue: max
 
 jobs:
   label:
