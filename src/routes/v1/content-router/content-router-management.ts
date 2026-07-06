@@ -267,16 +267,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const ruleData = request.body
 
-        if (
-          ruleData.target_type === 'radarr' &&
-          ruleData.season_monitoring !== null &&
-          ruleData.season_monitoring !== undefined
-        ) {
-          return reply.badRequest(
-            'season_monitoring field is not supported for Radarr rules',
-          )
-        }
-
         const builtRule = RuleBuilder.createRule({
           name: ruleData.name,
           target_type: ruleData.target_type,
@@ -287,14 +277,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             negate: false,
           },
           root_folder: ruleData.root_folder,
-          quality_profile: (() => {
-            if (typeof ruleData.quality_profile === 'string') {
-              const parsed = Number.parseInt(ruleData.quality_profile, 10)
-              return Number.isFinite(parsed) ? parsed : null
-            }
-            return ruleData.quality_profile
-          })(),
-          tags: Array.isArray(ruleData.tags) ? ruleData.tags : [],
+          quality_profile: ruleData.quality_profile,
+          tags: ruleData.tags,
           order: ruleData.order ?? 50,
           enabled: ruleData.enabled ?? true,
           search_on_add: ruleData.search_on_add,
@@ -394,6 +378,26 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
+        if (
+          targetType === 'radarr' &&
+          updates.series_type !== null &&
+          updates.series_type !== undefined
+        ) {
+          return reply.badRequest(
+            'series_type field is not supported for Radarr rules',
+          )
+        }
+
+        if (
+          targetType === 'sonarr' &&
+          updates.monitor !== null &&
+          updates.monitor !== undefined
+        ) {
+          return reply.badRequest(
+            'monitor field is not supported for Sonarr rules',
+          )
+        }
+
         const updatesAsRouterRule: Partial<
           Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>
         > = {}
@@ -409,10 +413,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           updatesAsRouterRule.order = updates.order
         if (updates.enabled !== undefined)
           updatesAsRouterRule.enabled = updates.enabled
-        if (updates.tags !== undefined)
-          updatesAsRouterRule.tags = Array.isArray(updates.tags)
-            ? updates.tags
-            : []
+        if (updates.tags !== undefined) updatesAsRouterRule.tags = updates.tags
         if (updates.search_on_add !== undefined)
           updatesAsRouterRule.search_on_add = updates.search_on_add
         if (updates.season_monitoring !== undefined)
@@ -429,15 +430,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         if (updates.approval_reason !== undefined)
           updatesAsRouterRule.approval_reason = updates.approval_reason
 
-        if (updates.quality_profile !== undefined) {
-          updatesAsRouterRule.quality_profile = (() => {
-            if (typeof updates.quality_profile === 'string') {
-              const parsed = Number.parseInt(updates.quality_profile, 10)
-              return Number.isFinite(parsed) ? parsed : null
-            }
-            return updates.quality_profile ?? null
-          })()
-        }
+        if (updates.quality_profile !== undefined)
+          updatesAsRouterRule.quality_profile = updates.quality_profile
 
         if (updates.condition) {
           updatesAsRouterRule.criteria = {
