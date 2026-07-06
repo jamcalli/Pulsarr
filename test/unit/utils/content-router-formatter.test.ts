@@ -37,6 +37,7 @@ describe('content-router-formatter', () => {
         search_on_add: true,
         season_monitoring: 'all',
         series_type: 'standard',
+        monitor: 'movieAndCollection',
         always_require_approval: false,
         bypass_user_quotas: false,
         approval_reason: 'Test reason',
@@ -58,6 +59,7 @@ describe('content-router-formatter', () => {
         search_on_add: true,
         season_monitoring: 'all',
         series_type: 'standard',
+        monitor: 'movieAndCollection',
         always_require_approval: false,
         bypass_user_quotas: false,
         approval_reason: 'Test reason',
@@ -217,6 +219,19 @@ describe('content-router-formatter', () => {
       expect(result.series_type).toBeUndefined()
     })
 
+    it('should handle null monitor as undefined', () => {
+      const rule = createMockRule({
+        id: 13,
+        name: 'Null Monitor',
+        target_type: 'radarr',
+        monitor: null,
+      })
+
+      const result = formatRule(rule)
+
+      expect(result.monitor).toBeUndefined()
+    })
+
     it('should default always_require_approval to false when null', () => {
       const rule = createMockRule({
         id: 14,
@@ -369,6 +384,34 @@ describe('content-router-formatter', () => {
       const result = formatRule(rule)
 
       expect(result.series_type).toBeUndefined()
+      expect(result.condition).toBeUndefined()
+    })
+
+    it('should handle null monitor in catch path', () => {
+      const rule = createMockRule({
+        id: 26,
+        name: 'Catch Null Monitor',
+        criteria: '{invalid json',
+        monitor: null,
+      })
+
+      const result = formatRule(rule)
+
+      expect(result.monitor).toBeUndefined()
+      expect(result.condition).toBeUndefined()
+    })
+
+    it('should preserve monitor value in catch path', () => {
+      const rule = createMockRule({
+        id: 26,
+        name: 'Catch Monitor Value',
+        criteria: '{invalid json',
+        monitor: 'movieOnly',
+      })
+
+      const result = formatRule(rule)
+
+      expect(result.monitor).toBe('movieOnly')
       expect(result.condition).toBeUndefined()
     })
 

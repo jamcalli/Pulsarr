@@ -123,6 +123,7 @@ export const RuleBuilder = {
     search_on_add?: boolean | null
     season_monitoring?: string | null
     series_type?: 'standard' | 'anime' | 'daily' | null
+    monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
     always_require_approval?: boolean
     bypass_user_quotas?: boolean
     approval_reason?: string | null
@@ -137,6 +138,7 @@ export const RuleBuilder = {
       search_on_add,
       season_monitoring,
       series_type,
+      monitor,
       always_require_approval,
       bypass_user_quotas,
       approval_reason,
@@ -156,6 +158,7 @@ export const RuleBuilder = {
       search_on_add,
       season_monitoring,
       series_type,
+      monitor,
       always_require_approval,
       bypass_user_quotas,
       approval_reason,
