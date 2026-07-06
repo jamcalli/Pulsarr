@@ -160,6 +160,23 @@ describe('Content Router Rules API', () => {
       expect(res.json().message).toContain('season_monitoring')
     })
 
+    it('rejects season_monitoring on Radarr rule update', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: radarrRule,
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: { season_monitoring: 'all' },
+      })
+      expect(putRes.statusCode).toBe(400)
+      expect(putRes.json().message).toContain('season_monitoring')
+    })
+
     it('accepts explicit null for target-specific fields', async () => {
       const res = await app.inject({
         method: 'POST',
