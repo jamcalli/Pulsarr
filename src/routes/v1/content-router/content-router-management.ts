@@ -300,6 +300,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           search_on_add: ruleData.search_on_add,
           season_monitoring: ruleData.season_monitoring,
           series_type: ruleData.series_type,
+          monitor: ruleData.monitor,
           always_require_approval: ruleData.always_require_approval ?? false,
           bypass_user_quotas: ruleData.bypass_user_quotas ?? false,
           approval_reason: ruleData.approval_reason,
@@ -323,6 +324,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           search_on_add: ruleData.search_on_add,
           season_monitoring: ruleData.season_monitoring,
           series_type: ruleData.series_type,
+          monitor: ruleData.monitor,
           always_require_approval: ruleData.always_require_approval ?? false,
           bypass_user_quotas: ruleData.bypass_user_quotas ?? false,
           approval_reason: ruleData.approval_reason,
@@ -417,6 +419,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           updatesAsRouterRule.season_monitoring = updates.season_monitoring
         if (updates.series_type !== undefined)
           updatesAsRouterRule.series_type = updates.series_type
+        if (updates.monitor !== undefined)
+          updatesAsRouterRule.monitor = updates.monitor
         if (updates.always_require_approval !== undefined)
           updatesAsRouterRule.always_require_approval =
             updates.always_require_approval
