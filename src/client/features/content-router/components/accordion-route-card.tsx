@@ -81,10 +81,13 @@ interface Criteria {
 }
 
 // Extended ContentRouterRule to include criteria and type
-interface ExtendedContentRouterRule extends ContentRouterRule {
+// quality_profile allows null since the update schema coerces unparseable strings to null
+interface ExtendedContentRouterRule
+  extends Omit<ContentRouterRule, 'quality_profile'> {
   type?: string
   criteria?: Criteria
   condition?: ConditionGroup
+  quality_profile?: string | number | null
 }
 
 /**

@@ -263,15 +263,27 @@ export const BaseRouterRuleSchema = z.object({
   order: z.number().optional(),
   enabled: z.boolean().optional(),
   search_on_add: z.boolean().nullable().optional(),
-  // For Sonarr only - sending this with Radarr rules will be rejected by the API
-  // Additional validation happens in the route handlers
-  season_monitoring: z.string().nullable().optional(),
-  series_type: z.enum(SERIES_TYPES).nullable().optional(),
-  // For Radarr only - monitor type when adding movies
+  season_monitoring: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      'Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.',
+    ),
+  series_type: z
+    .enum(SERIES_TYPES)
+    .nullable()
+    .optional()
+    .describe(
+      'Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.',
+    ),
   monitor: z
     .enum(['movieOnly', 'movieAndCollection', 'none'])
     .nullable()
-    .optional(),
+    .optional()
+    .describe(
+      'Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.',
+    ),
   always_require_approval: z.boolean().optional(),
   bypass_user_quotas: z.boolean().optional(),
   approval_reason: z.string().optional(),
@@ -315,11 +327,37 @@ export const ContentRouterPluginsResponseSchema = z.object({
   ),
 })
 
+// Accepts numeric strings from API clients; unparseable strings become null
+const QualityProfileInputSchema = z
+  .union([z.number(), z.string()])
+  .optional()
+  .transform((val) => {
+    if (val === undefined || typeof val === 'number') return val
+    const parsed = Number.parseInt(val, 10)
+    return Number.isFinite(parsed) ? parsed : null
+  })
+  .pipe(z.number().nullable().optional())
+
 // Schema for creating a new rule
-export const ContentRouterRuleSchema = BaseRouterRuleSchema
+// Update-side target-type checks live in the route handler since updates may omit target_type
+export const ContentRouterRuleSchema = BaseRouterRuleSchema.extend({
+  quality_profile: QualityProfileInputSchema,
+})
+  .refine((v) => v.target_type !== 'radarr' || v.season_monitoring == null, {
+    message: 'season_monitoring field is not supported for Radarr rules',
+  })
+  .refine((v) => v.target_type !== 'radarr' || v.series_type == null, {
+    message: 'series_type field is not supported for Radarr rules',
+  })
+  .refine((v) => v.target_type !== 'sonarr' || v.monitor == null, {
+    message: 'monitor field is not supported for Sonarr rules',
+  })
 
 // Schema for updating an existing rule
-export const ContentRouterRuleUpdateSchema = BaseRouterRuleSchema.partial()
+export const ContentRouterRuleUpdateSchema =
+  BaseRouterRuleSchema.partial().extend({
+    quality_profile: QualityProfileInputSchema,
+  })
 
 // Schema for toggling a rule
 export const ContentRouterRuleToggleSchema = z.object({
