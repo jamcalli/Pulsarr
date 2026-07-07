@@ -1281,6 +1281,112 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       expect(mockUpdateSeasonMonitoring).toHaveBeenCalledWith(1566, 1, true)
     })
   })
+
+  describe('Multi-instance fan-out (synced 1080p + 4K)', () => {
+    it('expands and searches every enrolled instance, not just the first', async () => {
+      const knex = getTestDatabase()
+
+      await app.updateConfig({
+        plexSessionMonitoring: {
+          enabled: true,
+          filterUsers: [],
+          enableAutoReset: false,
+          remainingEpisodes: 2,
+          inactivityResetDays: 7,
+          autoResetIntervalHours: 24,
+          pollingIntervalMinutes: 15,
+          enableProgressiveCleanup: false,
+        },
+      })
+
+      // Second Sonarr instance (the 4K one) to satisfy the FK on the rolling row.
+      await knex('sonarr_instances').insert({
+        id: 2,
+        name: '4K Sonarr',
+        base_url: 'http://test-sonarr-4k:8989',
+        api_key: 'test_sonarr_4k_api_key_1234567890abcdef',
+        quality_profile: '1',
+        root_folder: '/data/shows-4k',
+        bypass_ignored: false,
+        season_monitoring: 'firstSeasonRolling',
+        monitor_new_items: 'all',
+        search_on_add: true,
+        tags: JSON.stringify([]),
+        is_default: false,
+        is_enabled: true,
+        synced_instances: JSON.stringify([]),
+        series_type: 'standard',
+        create_season_folders: false,
+      })
+
+      // Same show synced to two Sonarr instances: one master row per instance,
+      // sharing the TVDB ID but with a distinct series ID.
+      await insertRollingShow(knex, {
+        show_title: 'Stella',
+        monitoring_type: 'firstSeasonRolling',
+        sonarr_series_id: 1566,
+        sonarr_instance_id: 1,
+        tvdb_id: '90210',
+      })
+      await insertRollingShow(knex, {
+        show_title: 'Stella',
+        monitoring_type: 'firstSeasonRolling',
+        sonarr_series_id: 9999,
+        sonarr_instance_id: 2,
+        tvdb_id: '90210',
+      })
+
+      app.plexServerService.getActiveSessions = vi
+        .fn()
+        .mockResolvedValue([makeEpisodeSession({ season: 1, episode: 15 })])
+      app.plexServerService.getShowMetadata = vi
+        .fn()
+        .mockResolvedValue(makeShowMetadata('90210'))
+
+      const makeFakeSonarr = (seriesId: number) => ({
+        getAllSeries: vi
+          .fn()
+          .mockResolvedValue([makeSonarrSeries(seriesId, 2)]),
+        getEpisodes: vi
+          .fn()
+          .mockResolvedValue(makeEpisodesSeason2Unmonitored(seriesId)),
+        updateSeasonMonitoring: vi.fn().mockResolvedValue(true),
+        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
+        deleteEpisodeFiles: vi.fn().mockResolvedValue(true),
+        searchSeason: vi.fn().mockResolvedValue(true),
+      })
+
+      const sonarrByInstance = new Map([
+        [1, makeFakeSonarr(1566)],
+        [2, makeFakeSonarr(9999)],
+      ])
+
+      app.sonarrManager.getAllInstances = vi.fn().mockResolvedValue([
+        { id: 1, name: '1080p', baseUrl: 'http://x', apiKey: 'k' },
+        { id: 2, name: '4K', baseUrl: 'http://y', apiKey: 'k' },
+      ])
+      app.sonarrManager.getSonarrService = vi
+        .fn()
+        .mockImplementation(
+          (id: number) =>
+            sonarrByInstance.get(id) as unknown as ReturnType<
+              typeof app.sonarrManager.getSonarrService
+            >,
+        )
+
+      const result = await app.plexSessionMonitor.monitorSessions()
+
+      expect(result.triggeredSearches).toBe(2)
+      expect(sonarrByInstance.get(1)?.searchSeason).toHaveBeenCalledWith(
+        1566,
+        2,
+      )
+      expect(sonarrByInstance.get(2)?.searchSeason).toHaveBeenCalledWith(
+        9999,
+        2,
+      )
+    })
+  })
 })
 
 function makeEpisodeSession({
@@ -1348,6 +1454,42 @@ function makeSonarrSeries(
     id: seriesId,
     seasons,
   } as unknown as SonarrSeries
+}
+
+// Season 1 fully monitored with files, season 2 present but unmonitored - the
+// state that lets expandMonitoringToNextSeason fire (it skips when the next
+// season has no unmonitored episodes).
+function makeEpisodesSeason2Unmonitored(seriesId: number): SonarrEpisode[] {
+  const episodes: SonarrEpisode[] = []
+  for (let n = 1; n <= 16; n++) {
+    episodes.push({
+      id: 100 + n,
+      seriesId,
+      episodeFileId: 1000 + n,
+      seasonNumber: 1,
+      episodeNumber: n,
+      title: `S1E${n}`,
+      hasFile: true,
+      monitored: true,
+      unverifiedSceneNumbering: false,
+      grabbed: false,
+    })
+  }
+  for (let n = 1; n <= 16; n++) {
+    episodes.push({
+      id: 200 + n,
+      seriesId,
+      episodeFileId: 0,
+      seasonNumber: 2,
+      episodeNumber: n,
+      title: `S2E${n}`,
+      hasFile: false,
+      monitored: false,
+      unverifiedSceneNumbering: false,
+      grabbed: false,
+    })
+  }
+  return episodes
 }
 
 // Builds episodes for the given seasons with files. Episode IDs are

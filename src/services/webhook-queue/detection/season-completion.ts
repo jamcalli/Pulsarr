@@ -44,8 +44,7 @@ export async function fetchExpectedEpisodeCount(
     return seasonQueue.expectedEpisodeCount
   }
 
-  const { sonarrSeriesId } = showQueue
-  const { instanceId } = seasonQueue
+  const { sonarrSeriesId, instanceId } = seasonQueue
 
   if (sonarrSeriesId === undefined || instanceId == null) {
     logger.debug(
@@ -71,7 +70,7 @@ export async function fetchExpectedEpisodeCount(
   // For pilot-based rolling shows, the pilot (E01) was already notified
   // immediately and skipped the queue. Subtract 1 so the queue completes
   // as soon as the remaining expansion episodes (E02-EN) arrive.
-  const isPilotRolling = showQueue.isPilotRolling === true
+  const isPilotRolling = seasonQueue.isPilotRolling === true
   const adjustedCount = isPilotRolling ? Math.max(1, count - 1) : count
 
   seasonQueue.expectedEpisodeCount = adjustedCount

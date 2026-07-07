@@ -229,20 +229,23 @@ export class PlexSessionMonitorService {
       `Processing session: ${episodeInfo} watched by ${session.User.title}`,
     )
 
-    // Always check for rolling monitored show (per-user lookup)
-    const rollingShow = await this.getRollingMonitoredShow(session)
+    // Synced shows have one rolling entry per instance, so process all of them.
+    const rollingShows = await this.getRollingMonitoredShows(session)
 
-    if (rollingShow) {
+    if (rollingShows.length === 0) {
+      // Skip shows that are not configured for rolling monitoring
+      this.log.debug(
+        `Skipping ${session.grandparentTitle} - not configured for rolling monitoring for user ${session.User.title}`,
+      )
+      return
+    }
+
+    for (const rollingShow of rollingShows) {
       await this.handleRollingMonitoredShow(
         session,
         rollingShow,
         result,
         canTriggerActions,
-      )
-    } else {
-      // Skip shows that are not configured for rolling monitoring
-      this.log.debug(
-        `Skipping ${session.grandparentTitle} - not configured for rolling monitoring for user ${session.User.title}`,
       )
     }
   }
@@ -531,39 +534,53 @@ export class PlexSessionMonitorService {
   }
 
   /**
-   * Get rolling monitored show from database for the specific user
-   * Handles migration from global to per-user entries
+   * Get rolling monitored shows from database for the specific user, one per
+   * enrolled Sonarr instance. Handles migration from global to per-user entries.
    */
-  private async getRollingMonitoredShow(
+  private async getRollingMonitoredShows(
     session: PlexSession,
-  ): Promise<RollingMonitoredShow | null> {
+  ): Promise<RollingMonitoredShow[]> {
     try {
       const identifiers = await this.getSeriesIdentifiers(session)
       const tvdbId = identifiers?.tvdbId
 
-      // First, check for global entry to see if this show should be monitored
-      const globalShow = await this.db.getRollingMonitoredShow(
+      // Master entries (null plex_user_id) define which shows are enrolled.
+      const globalShows = await this.db.getRollingMonitoredShowMatches(
         tvdbId,
         session.grandparentTitle,
-        undefined, // Look for global entry (null plex_user_id)
+        undefined,
       )
 
-      if (!globalShow) {
-        // No global entry means this show is not configured for rolling monitoring
-        return null
+      if (globalShows.length === 0) {
+        return []
       }
 
-      // Now try to find user-specific entry for progress tracking
-      let rollingShow = await this.db.getRollingMonitoredShow(
+      // Key per-user rows by instance+series so each master resolves to its own.
+      const userShows = await this.db.getRollingMonitoredShowMatches(
         tvdbId,
         session.grandparentTitle,
-        session.User.id, // Pass user ID for per-user entries
+        session.User.id,
+      )
+      const userShowByKey = new Map(
+        userShows.map((show) => [
+          `${show.sonarr_instance_id}-${show.sonarr_series_id}`,
+          show,
+        ]),
       )
 
-      // If no user-specific entry found, create one based on global entry
-      if (!rollingShow) {
+      const resolved: RollingMonitoredShow[] = []
+
+      for (const globalShow of globalShows) {
+        const key = `${globalShow.sonarr_instance_id}-${globalShow.sonarr_series_id}`
+        const existing = userShowByKey.get(key)
+
+        if (existing) {
+          resolved.push(existing)
+          continue
+        }
+
         this.log.info(
-          `Creating per-user rolling show entry for ${globalShow.show_title} for user ${session.User.title}`,
+          `Creating per-user rolling show entry for ${globalShow.show_title} on instance ${globalShow.sonarr_instance_id} for user ${session.User.title}`,
         )
 
         const userEntryId = await this.db.createOrFindUserRollingMonitoredShow(
@@ -572,21 +589,20 @@ export class PlexSessionMonitorService {
           session.User.title,
         )
 
-        // Get the newly created or existing per-user entry
         const byId = await this.db.getRollingMonitoredShowById(userEntryId)
         if (!byId) {
           this.log.warn(
             `Per-user entry (ID: ${userEntryId}) not found after createOrFind for ${globalShow.show_title} (${session.User.title})`,
           )
-          return null
+          continue
         }
-        rollingShow = byId
+        resolved.push(byId)
       }
 
-      return rollingShow
+      return resolved
     } catch (error) {
-      this.log.error({ error }, 'Error getting rolling monitored show:')
-      return null
+      this.log.error({ error }, 'Error getting rolling monitored shows:')
+      return []
     }
   }
 

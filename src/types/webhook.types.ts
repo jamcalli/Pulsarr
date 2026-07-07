@@ -27,7 +27,11 @@ export interface SeasonQueue {
   lastUpdated: Date
   notifiedSeasons: Set<number>
   timeoutId?: ReturnType<typeof setTimeout>
+  // Captured together when the season queue is created: Sonarr series IDs and
+  // rolling monitoring type are per-instance, so they must match this season's instance.
   instanceId?: number | null
+  sonarrSeriesId?: number
+  isPilotRolling?: boolean
   expectedEpisodeCount?: number
 }
 
@@ -37,7 +41,5 @@ export interface WebhookQueue {
       [seasonNumber: number]: SeasonQueue
     }
     title: string
-    sonarrSeriesId?: number
-    isPilotRolling?: boolean
   }
 }

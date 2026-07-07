@@ -18,6 +18,16 @@ export interface QueueManagerDeps {
   logger: FastifyBaseLogger
 }
 
+/**
+ * Per-instance origin of a webhook. Captured onto the season queue so completion
+ * detection uses the sending instance's own series ID and rolling monitoring type.
+ */
+export interface WebhookSource {
+  instanceId: number | null
+  sonarrSeriesId?: number
+  isPilotRolling: boolean
+}
+
 export interface EpisodeQueueDeps {
   logger: FastifyBaseLogger
   queue: WebhookQueue
@@ -77,19 +87,10 @@ export function ensureShowQueue(
   title: string,
   queue: WebhookQueue,
   logger: FastifyBaseLogger,
-  sonarrSeriesId?: number,
 ): void {
   if (!queue[tvdbId]) {
-    logger.debug(
-      { tvdbId, sonarrSeriesId },
-      'Initializing webhook queue for show',
-    )
-    queue[tvdbId] = { seasons: {}, title, sonarrSeriesId }
-  } else if (
-    sonarrSeriesId !== undefined &&
-    queue[tvdbId].sonarrSeriesId === undefined
-  ) {
-    queue[tvdbId].sonarrSeriesId = sonarrSeriesId
+    logger.debug({ tvdbId }, 'Initializing webhook queue for show')
+    queue[tvdbId] = { seasons: {}, title }
   }
 }
 
@@ -100,7 +101,7 @@ export function ensureShowQueue(
 export async function ensureSeasonQueue(
   tvdbId: string,
   seasonNumber: number,
-  instanceId: number | null,
+  source: WebhookSource,
   deps: EpisodeQueueDeps,
 ): Promise<boolean> {
   const { logger, queue, fetchExpectedEpisodeCount } = deps
@@ -128,7 +129,9 @@ export async function ensureSeasonQueue(
       firstReceived: new Date(),
       lastUpdated: new Date(),
       notifiedSeasons: new Set(),
-      instanceId,
+      instanceId: source.instanceId,
+      sonarrSeriesId: source.sonarrSeriesId,
+      isPilotRolling: source.isPilotRolling,
       timeoutId: createQueueTimeout(tvdbId, seasonNumber, timeoutDeps),
     }
 
@@ -151,7 +154,7 @@ export async function addEpisodeToQueue(
   tvdbId: string,
   seasonNumber: number,
   episode: SonarrEpisode,
-  instanceId: number | null,
+  source: WebhookSource,
   deps: EpisodeQueueDeps,
 ): Promise<void> {
   const { logger, queue, isSeasonComplete, processQueuedWebhooks } = deps
@@ -159,7 +162,7 @@ export async function addEpisodeToQueue(
   const isNewSeason = await ensureSeasonQueue(
     tvdbId,
     seasonNumber,
-    instanceId,
+    source,
     deps,
   )
 
@@ -233,7 +236,7 @@ export async function addEpisodesToQueue(
   tvdbId: string,
   seasonNumber: number,
   episodes: SonarrEpisode[],
-  instanceId: number | null,
+  source: WebhookSource,
   deps: EpisodeQueueDeps,
 ): Promise<void> {
   const { logger, queue, isSeasonComplete, processQueuedWebhooks } = deps
@@ -241,7 +244,7 @@ export async function addEpisodesToQueue(
   const isNewSeason = await ensureSeasonQueue(
     tvdbId,
     seasonNumber,
-    instanceId,
+    source,
     deps,
   )
 
