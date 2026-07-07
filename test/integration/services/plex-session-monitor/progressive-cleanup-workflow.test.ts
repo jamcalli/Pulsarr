@@ -140,7 +140,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566))
 
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesByTvdbId: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: mockGetEpisodes,
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
         updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
@@ -234,7 +234,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesByTvdbId: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
@@ -327,7 +327,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesByTvdbId: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
@@ -425,7 +425,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 7)]),
+        getSeriesByTvdbId: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 7)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3, 4, 5], 1566)),
@@ -507,7 +507,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesByTvdbId: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
@@ -603,7 +603,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const mockUpdateEpisodesMonitoring = vi.fn().mockResolvedValue(true)
       const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesByTvdbId: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
@@ -692,7 +692,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const mockUpdateEpisodesMonitoring = vi.fn().mockResolvedValue(true)
       const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesByTvdbId: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
@@ -788,7 +788,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
       const mockUpdateEpisodesMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesByTvdbId: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
@@ -897,7 +897,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesByTvdbId: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
@@ -988,11 +988,11 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .fn()
         .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566))
 
-      const mockGetAllSeries = vi
+      const mockGetSeriesByTvdbId = vi
         .fn()
-        .mockResolvedValue([makeSonarrSeries(1566, 5)])
+        .mockResolvedValue(makeSonarrSeries(1566, 5))
       const fakeSonarr = {
-        getAllSeries: mockGetAllSeries,
+        getSeriesByTvdbId: mockGetSeriesByTvdbId,
         getEpisodes: mockGetEpisodes,
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
         updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
@@ -1017,7 +1017,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       expect(mockUpdateSeasonMonitoring).not.toHaveBeenCalled()
       expect(mockDeleteEpisodeFiles).not.toHaveBeenCalled()
-      expect(mockGetAllSeries).not.toHaveBeenCalled()
+      expect(mockGetSeriesByTvdbId).not.toHaveBeenCalled()
       expect(mockGetEpisodes).not.toHaveBeenCalled()
     })
 
@@ -1067,11 +1067,11 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .fn()
         .mockResolvedValue(makeShowMetadata('90210'))
 
-      const mockGetAllSeries = vi
+      const mockGetSeriesByTvdbId = vi
         .fn()
-        .mockResolvedValue([makeSonarrSeries(1566, 5)])
+        .mockResolvedValue(makeSonarrSeries(1566, 5))
       const fakeSonarr = {
-        getAllSeries: mockGetAllSeries,
+        getSeriesByTvdbId: mockGetSeriesByTvdbId,
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
@@ -1097,7 +1097,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       await app.plexSessionMonitor.monitorSessions()
 
       // Without this the end-of-season expansion would never trigger.
-      expect(mockGetAllSeries).toHaveBeenCalled()
+      expect(mockGetSeriesByTvdbId).toHaveBeenCalled()
     })
 
     it('should fire cleanup exactly once when the same session is processed twice without progress', async () => {
@@ -1148,7 +1148,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesByTvdbId: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
@@ -1252,7 +1252,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const mockGetEpisodes = vi.fn().mockResolvedValue(s1Episodes)
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesByTvdbId: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: mockGetEpisodes,
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
         updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
@@ -1344,9 +1344,9 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .mockResolvedValue(makeShowMetadata('90210'))
 
       const makeFakeSonarr = (seriesId: number) => ({
-        getAllSeries: vi
+        getSeriesByTvdbId: vi
           .fn()
-          .mockResolvedValue([makeSonarrSeries(seriesId, 2)]),
+          .mockResolvedValue(makeSonarrSeries(seriesId, 2)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesSeason2Unmonitored(seriesId)),

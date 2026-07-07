@@ -58,8 +58,9 @@ describe('season-completion', () => {
       expect(await fetchExpectedEpisodeCount('100', 1, deps)).toBe(7)
     })
 
-    it('should resolve each instance of a synced show independently', async () => {
-      // Same show on two instances: instance 1 full-season, instance 2 pilot-rolling.
+    it("should use each season entry's own instance context, not a shared show-level one", async () => {
+      // Synced show whose instances are at different seasons: season 1 full-season
+      // on instance 1, season 2 pilot-rolling on instance 2.
       seedSeason('100', 1, { instanceId: 1, sonarrSeriesId: 111 })
       seedSeason('100', 2, {
         instanceId: 2,

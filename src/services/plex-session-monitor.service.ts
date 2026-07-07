@@ -11,7 +11,6 @@ import type {
   RollingMonitoredShow,
   SessionMonitoringResult,
 } from '@root/types/plex-session.types.js'
-import type { SonarrSeries } from '@root/types/sonarr.types.js'
 import {
   collectSeasonsEligibleForCleanup,
   userNeedsSeason,
@@ -310,17 +309,22 @@ export class PlexSessionMonitorService {
     // allSeasonPilotRolling only expands via pilot watch, not end-of-season threshold
     if (rollingShow.monitoring_type === 'allSeasonPilotRolling') return
 
-    // The next-season check below hits Sonarr getAllSeries (uncached full
-    // library dump), so skip it on no-progress events.
+    // The next-season check below queries Sonarr, so skip it on no-progress events.
     if (positionUnchanged) return
 
-    // Check if we need to expand monitoring using Sonarr data
-    const currentSeasonData = await this.getSonarrSeriesData(session)
-    if (!currentSeasonData) return
-
-    const season = currentSeasonData.series.seasons?.find(
-      (s) => s.seasonNumber === currentSeason,
+    // Read season statistics from this entry's own instance and series.
+    const sonarr = this.sonarrManager.getSonarrService(
+      rollingShow.sonarr_instance_id,
     )
+    if (!sonarr) return
+
+    const tvdbId = extractTvdbId(`tvdb://${rollingShow.tvdb_id ?? ''}`)
+    if (tvdbId <= 0) return
+
+    const series = await sonarr.getSeriesByTvdbId(tvdbId)
+    if (!series) return
+
+    const season = series.seasons?.find((s) => s.seasonNumber === currentSeason)
     if (!season?.statistics?.totalEpisodeCount) return
 
     const totalEpisodes = season.statistics.totalEpisodeCount
@@ -329,7 +333,7 @@ export class PlexSessionMonitorService {
 
     if (remainingEpisodes <= threshold && remainingEpisodes >= 0) {
       // User is near the end of the current season
-      const hasMoreSeasons = currentSeasonData.series.seasons?.some(
+      const hasMoreSeasons = series.seasons?.some(
         (s) => s.seasonNumber > currentSeason,
       )
 
@@ -430,106 +434,6 @@ export class PlexSessionMonitorService {
         `Could not fetch metadata for ${session.grandparentTitle}, will fallback to title matching:`,
       )
       return {} // Return empty object to allow title fallback
-    }
-  }
-
-  /**
-   * Find series across all Sonarr instances
-   */
-  private async findSeriesInSonarr(
-    identifiers: { tvdbId?: string; imdbId?: string },
-    title: string,
-  ): Promise<{ series: SonarrSeries; instanceId: number } | null> {
-    const instances = await this.sonarrManager.getAllInstances()
-
-    this.log.debug(
-      {
-        identifiers,
-        title,
-      },
-      `Searching for series in ${instances.length} Sonarr instances`,
-    )
-
-    for (const instance of instances) {
-      try {
-        const sonarr = this.sonarrManager.getSonarrService(instance.id)
-        if (!sonarr) continue
-
-        const allSeries = await sonarr.getAllSeries()
-
-        // Try to match by TVDB ID first (primary identifier)
-        if (identifiers.tvdbId) {
-          const tvdbId = identifiers.tvdbId
-          const tvdbIdNum = Number.parseInt(tvdbId, 10)
-
-          const series = allSeries.find((s) => s.tvdbId === tvdbIdNum)
-          if (series) {
-            this.log.debug(
-              `Found match by TVDB ID: ${series.title} (${series.tvdbId})`,
-            )
-            return { series, instanceId: instance.id }
-          }
-        }
-
-        // Try IMDB ID as secondary identifier
-        if (identifiers.imdbId) {
-          const series = allSeries.find((s) => s.imdbId === identifiers.imdbId)
-          if (series) {
-            this.log.debug(
-              `Found match by IMDB ID: ${series.title} (${identifiers.imdbId})`,
-            )
-            return { series, instanceId: instance.id }
-          }
-        }
-
-        // Enhanced title matching as fallback
-        const series = allSeries.find((s) => {
-          const sonarrTitle = s.title.toLowerCase()
-          const searchTitle = title.toLowerCase()
-
-          // Exact match
-          if (sonarrTitle === searchTitle) return true
-
-          // Match without year suffix (e.g., "Versailles" matches "Versailles (2015)")
-          const titleWithoutYear = sonarrTitle.replace(/\s*\(\d{4}\)\s*$/, '')
-          if (titleWithoutYear === searchTitle) return true
-
-          // Match with "The" prefix variations
-          if (sonarrTitle === `the ${searchTitle}`) return true
-          if (`the ${sonarrTitle}` === searchTitle) return true
-
-          return false
-        })
-
-        if (series) {
-          this.log.debug(`Found match by title: ${series.title}`)
-          return { series, instanceId: instance.id }
-        }
-      } catch (error) {
-        this.log.error(
-          { error },
-          `Error searching Sonarr instance ${instance.id}:`,
-        )
-      }
-    }
-
-    return null
-  }
-
-  /**
-   * Helper method to get Sonarr series data for a session
-   */
-  private async getSonarrSeriesData(
-    session: PlexSession,
-  ): Promise<{ series: SonarrSeries; instanceId: number } | null> {
-    try {
-      const seriesIds = await this.getSeriesIdentifiers(session)
-      if (!seriesIds) return null
-
-      return await this.findSeriesInSonarr(seriesIds, session.grandparentTitle)
-    } catch (error) {
-      this.log.error({ error }, 'Error getting Sonarr series data:')
-      return null
     }
   }
 
