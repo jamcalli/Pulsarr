@@ -5310,10 +5310,12 @@
                             "type": "boolean"
                           },
                           "season_monitoring": {
+                            "description": "Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.",
                             "nullable": true,
                             "type": "string"
                           },
                           "series_type": {
+                            "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
                             "nullable": true,
                             "type": "string",
                             "enum": [
@@ -5323,6 +5325,7 @@
                             ]
                           },
                           "monitor": {
+                            "description": "Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.",
                             "nullable": true,
                             "type": "string",
                             "enum": [
@@ -5908,10 +5911,12 @@
                     "type": "boolean"
                   },
                   "season_monitoring": {
+                    "description": "Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.",
                     "nullable": true,
                     "type": "string"
                   },
                   "series_type": {
+                    "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
                     "nullable": true,
                     "type": "string",
                     "enum": [
@@ -5921,6 +5926,7 @@
                     ]
                   },
                   "monitor": {
+                    "description": "Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.",
                     "nullable": true,
                     "type": "string",
                     "enum": [
@@ -6473,10 +6479,12 @@
                           "type": "boolean"
                         },
                         "season_monitoring": {
+                          "description": "Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.",
                           "nullable": true,
                           "type": "string"
                         },
                         "series_type": {
+                          "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
                           "nullable": true,
                           "type": "string",
                           "enum": [
@@ -6486,6 +6494,7 @@
                           ]
                         },
                         "monitor": {
+                          "description": "Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.",
                           "nullable": true,
                           "type": "string",
                           "enum": [
@@ -7153,10 +7162,12 @@
                             "type": "boolean"
                           },
                           "season_monitoring": {
+                            "description": "Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.",
                             "nullable": true,
                             "type": "string"
                           },
                           "series_type": {
+                            "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
                             "nullable": true,
                             "type": "string",
                             "enum": [
@@ -7166,6 +7177,7 @@
                             ]
                           },
                           "monitor": {
+                            "description": "Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.",
                             "nullable": true,
                             "type": "string",
                             "enum": [
@@ -7807,10 +7819,12 @@
                             "type": "boolean"
                           },
                           "season_monitoring": {
+                            "description": "Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.",
                             "nullable": true,
                             "type": "string"
                           },
                           "series_type": {
+                            "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
                             "nullable": true,
                             "type": "string",
                             "enum": [
@@ -7820,6 +7834,7 @@
                             ]
                           },
                           "monitor": {
+                            "description": "Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.",
                             "nullable": true,
                             "type": "string",
                             "enum": [
@@ -8447,10 +8462,12 @@
                           "type": "boolean"
                         },
                         "season_monitoring": {
+                          "description": "Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.",
                           "nullable": true,
                           "type": "string"
                         },
                         "series_type": {
+                          "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
                           "nullable": true,
                           "type": "string",
                           "enum": [
@@ -8460,6 +8477,7 @@
                           ]
                         },
                         "monitor": {
+                          "description": "Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.",
                           "nullable": true,
                           "type": "string",
                           "enum": [
@@ -9076,10 +9094,12 @@
                     "type": "boolean"
                   },
                   "season_monitoring": {
+                    "description": "Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.",
                     "nullable": true,
                     "type": "string"
                   },
                   "series_type": {
+                    "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
                     "nullable": true,
                     "type": "string",
                     "enum": [
@@ -9089,6 +9109,7 @@
                     ]
                   },
                   "monitor": {
+                    "description": "Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.",
                     "nullable": true,
                     "type": "string",
                     "enum": [
@@ -9646,10 +9667,12 @@
                           "type": "boolean"
                         },
                         "season_monitoring": {
+                          "description": "Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.",
                           "nullable": true,
                           "type": "string"
                         },
                         "series_type": {
+                          "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
                           "nullable": true,
                           "type": "string",
                           "enum": [
@@ -9659,6 +9682,7 @@
                           ]
                         },
                         "monitor": {
+                          "description": "Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.",
                           "nullable": true,
                           "type": "string",
                           "enum": [
@@ -10430,10 +10454,12 @@
                             "type": "boolean"
                           },
                           "season_monitoring": {
+                            "description": "Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.",
                             "nullable": true,
                             "type": "string"
                           },
                           "series_type": {
+                            "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
                             "nullable": true,
                             "type": "string",
                             "enum": [
@@ -10443,6 +10469,7 @@
                             ]
                           },
                           "monitor": {
+                            "description": "Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.",
                             "nullable": true,
                             "type": "string",
                             "enum": [
