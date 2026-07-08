@@ -642,6 +642,39 @@ export class ContentRouterService {
       }
     }
 
+    // Step 1.5: Absolute veto - if any enabled, matching conditional rule for
+    // this target type has exclude_from_routing set, content is never routed,
+    // regardless of what any other rule (higher or lower priority) matches.
+    // This must run before evaluators build any RoutingDecisions and before
+    // Step 3's default-instance fallback, so an excluded match is never
+    // confused with "no rule matched at all".
+    for (const rule of allRouterRules) {
+      if (!rule.enabled) continue
+      if (rule.type !== 'conditional') continue
+      if (rule.target_type !== targetType) continue
+      if (!rule.exclude_from_routing) continue
+      if (!rule.criteria?.condition) continue
+
+      try {
+        const isMatch = this.evaluateCondition(
+          rule.criteria.condition,
+          enrichedItem,
+          context,
+        )
+        if (isMatch) {
+          this.log.info(
+            `"${item.title}" excluded from routing by rule "${rule.name}"`,
+          )
+          return { routedInstances: [], routingDetails: [] }
+        }
+      } catch (error) {
+        this.log.error(
+          { error },
+          `Error evaluating exclude rule ${rule.id} for "${item.title}"`,
+        )
+      }
+    }
+
     // Step 2: Evaluate all applicable evaluators to get routing decisions
     const allDecisions: RoutingDecision[] = []
     const processedInstanceIds = new Set<number>() // Track instances we've routed to
@@ -1948,6 +1981,10 @@ export class ContentRouterService {
       for (const rule of allRouterRules) {
         if (!rule.enabled) continue
         if (rule.target_type !== expectedTargetType) continue
+        // Exclude rules never route content, so approval semantics don't
+        // apply - they're vetoed upstream in routeContent() before approval
+        // checks would even run for genuinely excluded content.
+        if (rule.exclude_from_routing) continue
 
         // Check if this rule matches the current context
         if (rule.criteria && typeof rule.criteria === 'object') {
@@ -2861,6 +2898,15 @@ export class ContentRouterService {
               itemForEvaluation,
               context,
             )
+
+            if (matches && rule.exclude_from_routing) {
+              // Absolute veto - this content is excluded from routing
+              // entirely, regardless of any other matching rule.
+              this.log.info(
+                `"${item.title}" excluded from routing by rule "${rule.name}"`,
+              )
+              return []
+            }
 
             if (matches && rule.target_instance_id) {
               // This rule matches, add its target instance

@@ -220,6 +220,117 @@ describe('ContentRouterService Integration', () => {
     })
   })
 
+  describe('exclude_from_routing absolute veto', () => {
+    // Matches the seeded "Radarr Drama Approval" rule (id: 2, target_instance_id: 1)
+    const dramaMovie: ContentItem = {
+      title: 'Test Drama Movie',
+      type: 'movie',
+      guids: ['imdb:tt1234567', 'tmdb:12345'],
+      genres: ['Drama', 'Thriller'],
+    }
+
+    const movieContext: RoutingContext = {
+      userId: 1,
+      userName: 'Test User',
+      contentType: 'movie',
+      itemKey: 'test-drama-exclude-key',
+    }
+
+    afterEach(async () => {
+      const knex = getTestDatabase()
+      await knex('router_rules').where('id', 99).del()
+      fastify.contentRouter.clearRouterRulesCache()
+    })
+
+    it('vetoes routing via getTargetInstances even though a different rule also matches', async () => {
+      const knex = getTestDatabase()
+      // A separate, lower-priority exclude rule matching the same Drama movie
+      await knex('router_rules').insert({
+        id: 99,
+        name: 'Exclude Drama Movies',
+        type: 'conditional',
+        target_type: 'radarr',
+        target_instance_id: null,
+        order: 10, // lower priority than rule 2 (order 50)
+        enabled: true,
+        exclude_from_routing: true,
+        tags: JSON.stringify([]),
+        criteria: JSON.stringify({
+          condition: {
+            negate: false,
+            operator: 'AND',
+            conditions: [
+              {
+                field: 'genres',
+                value: 'Drama',
+                negate: false,
+                operator: 'contains',
+              },
+            ],
+          },
+        }),
+      })
+      fastify.contentRouter.clearRouterRulesCache()
+
+      const targets = await fastify.contentRouter.getTargetInstances(
+        dramaMovie,
+        movieContext,
+      )
+
+      expect(targets).toEqual([])
+    })
+
+    it('vetoes routing via routeContent even though a different rule also matches', async () => {
+      const knex = getTestDatabase()
+      await knex('router_rules').insert({
+        id: 99,
+        name: 'Exclude Drama Movies',
+        type: 'conditional',
+        target_type: 'radarr',
+        target_instance_id: null,
+        order: 999, // higher priority than rule 2 - exclude still must win either way
+        enabled: true,
+        exclude_from_routing: true,
+        tags: JSON.stringify([]),
+        criteria: JSON.stringify({
+          condition: {
+            negate: false,
+            operator: 'AND',
+            conditions: [
+              {
+                field: 'genres',
+                value: 'Drama',
+                negate: false,
+                operator: 'contains',
+              },
+            ],
+          },
+        }),
+      })
+      fastify.contentRouter.clearRouterRulesCache()
+
+      const result = await fastify.contentRouter.routeContent(
+        dramaMovie,
+        'test-drama-exclude-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([])
+      expect(result.routingDetails).toEqual([])
+    })
+
+    it('still routes normally when exclude_from_routing is false (no regression)', async () => {
+      // No exclude rule inserted - rule 2 (Drama Approval) should still
+      // produce a routing decision path via getTargetInstances
+      const targets = await fastify.contentRouter.getTargetInstances(
+        dramaMovie,
+        movieContext,
+      )
+
+      expect(targets).toEqual([1])
+    })
+  })
+
   describe('evaluator loading', () => {
     it('should load evaluators with correct methods', async () => {
       // The service should have loaded evaluators during initialization

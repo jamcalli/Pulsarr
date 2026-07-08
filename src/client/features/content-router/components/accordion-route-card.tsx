@@ -314,14 +314,14 @@ const AccordionRouteCard = ({
           `New ${routeContentType === 'radarr' ? 'Movie' : 'Show'} Route`,
         condition: getInitialConditionValue(routeObj),
         target_instance_id:
-          routeObj?.target_instance_id ||
-          (instancesList.length > 0 ? instancesList[0].id : 0),
-        root_folder: routeObj?.root_folder || '',
+          routeObj?.target_instance_id ??
+          (instancesList.length > 0 ? instancesList[0].id : null),
+        root_folder: routeObj?.root_folder || null,
         quality_profile:
           routeObj?.quality_profile !== undefined &&
           routeObj?.quality_profile !== null
             ? routeObj.quality_profile.toString()
-            : '',
+            : null,
         tags: routeObj?.tags || [],
         enabled: routeObj?.enabled !== false,
         order: routeObj?.order ?? 50,
@@ -364,6 +364,7 @@ const AccordionRouteCard = ({
         always_require_approval: routeObj?.always_require_approval || false,
         bypass_user_quotas: routeObj?.bypass_user_quotas || false,
         approval_reason: routeObj?.approval_reason || '',
+        exclude_from_routing: routeObj?.exclude_from_routing || false,
       }
     },
     [getInitialConditionValue],
@@ -562,8 +563,8 @@ const AccordionRouteCard = ({
       const instanceId = Number.parseInt(value, 10)
       if (!Number.isNaN(instanceId)) {
         form.setValue('target_instance_id', instanceId)
-        form.setValue('root_folder', '', { shouldDirty: true })
-        form.setValue('quality_profile', '', {
+        form.setValue('root_folder', null, { shouldDirty: true })
+        form.setValue('quality_profile', null, {
           shouldDirty: true,
           shouldValidate: true,
         })
@@ -664,11 +665,16 @@ const AccordionRouteCard = ({
         const routeData: ContentRouterRuleUpdate = {
           name: data.name,
           target_type: contentType,
-          target_instance_id: data.target_instance_id,
-          quality_profile: data.quality_profile
-            ? Number(data.quality_profile)
-            : undefined,
-          root_folder: data.root_folder,
+          target_instance_id: data.exclude_from_routing
+            ? null
+            : data.target_instance_id,
+          quality_profile:
+            !data.exclude_from_routing && data.quality_profile
+              ? Number(data.quality_profile)
+              : undefined,
+          root_folder: data.exclude_from_routing
+            ? undefined
+            : data.root_folder || undefined,
           tags: data.tags || [],
           enabled: data.enabled,
           order: data.order,
@@ -683,6 +689,7 @@ const AccordionRouteCard = ({
           always_require_approval: data.always_require_approval,
           bypass_user_quotas: data.bypass_user_quotas,
           approval_reason: data.approval_reason,
+          exclude_from_routing: data.exclude_from_routing,
         }
 
         await onSave(routeData)
@@ -692,11 +699,16 @@ const AccordionRouteCard = ({
         const updatePayload: ContentRouterRuleUpdate = {
           name: data.name,
           condition: normalizeConditionGroup(data.condition),
-          target_instance_id: data.target_instance_id,
-          quality_profile: data.quality_profile
-            ? Number(data.quality_profile)
-            : undefined,
-          root_folder: data.root_folder,
+          target_instance_id: data.exclude_from_routing
+            ? null
+            : data.target_instance_id,
+          quality_profile:
+            !data.exclude_from_routing && data.quality_profile
+              ? Number(data.quality_profile)
+              : undefined,
+          root_folder: data.exclude_from_routing
+            ? undefined
+            : data.root_folder || undefined,
           tags: data.tags || [],
           enabled: data.enabled,
           order: data.order,
@@ -710,6 +722,7 @@ const AccordionRouteCard = ({
           always_require_approval: data.always_require_approval,
           bypass_user_quotas: data.bypass_user_quotas,
           approval_reason: data.approval_reason,
+          exclude_from_routing: data.exclude_from_routing,
         }
 
         await onSave(updatePayload)
@@ -1093,6 +1106,53 @@ const AccordionRouteCard = ({
                     <div className="grid gap-4 md:grid-cols-2">
                       <FormField
                         control={form.control}
+                        name="exclude_from_routing"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center space-x-2">
+                              <FormLabel className="text-foreground">
+                                Exclude from Routing
+                              </FormLabel>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="max-w-xs">
+                                    <p className="mb-2">
+                                      When enabled, content matching this rule
+                                      is never sent to Radarr/Sonarr - the
+                                      instance and configuration options below
+                                      are ignored.
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      This is an absolute veto: it wins even if
+                                      another rule also matches and would
+                                      otherwise route this content.
+                                    </p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <div className="flex h-10 items-center gap-2 px-3 py-2">
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  aria-label="Exclude from Routing"
+                                />
+                              </FormControl>
+                              <span className="text-sm text-foreground">
+                                Never send matching content to Radarr/Sonarr
+                              </span>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
                         name="always_require_approval"
                         render={({ field }) => (
                           <FormItem>
@@ -1213,489 +1273,502 @@ const AccordionRouteCard = ({
                     )}
                   </div>
 
-                  {/* Instance Selection and Priority Weight */}
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="target_instance_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground">
-                            {contentType === 'radarr' ? 'Radarr' : 'Sonarr'}{' '}
-                            Instance
-                          </FormLabel>
-                          <Select
-                            value={field.value?.toString() ?? ''}
-                            onValueChange={handleInstanceChange}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select instance" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {instances.map((instance) => (
-                                <SelectItem
-                                  key={instance.id}
-                                  value={instance.id.toString()}
-                                >
-                                  {instance.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="order"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
+                  {/* Instance Selection, Quality Profile, Root Folder, Tags,
+                      and Monitoring - irrelevant and hidden when this route
+                      is set to exclude matching content from routing. */}
+                  {!form.watch('exclude_from_routing') && (
+                    <>
+                      {/* Instance Selection and Priority Weight */}
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="target_instance_id"
+                          render={({ field }) => (
+                            <FormItem>
                               <FormLabel className="text-foreground">
-                                Priority Weight
+                                {contentType === 'radarr' ? 'Radarr' : 'Sonarr'}{' '}
+                                Instance
                               </FormLabel>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Priority weight only affects routing when
-                                    multiple rules would send content to the
-                                    same instance. In such cases, only the rule
-                                    with the highest priority will be used for
-                                    that instance. If rules route to different
-                                    instances, content will be sent to all
-                                    matching instances regardless of priority.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <span className="text-sm text-foreground">
-                              {field.value}
-                            </span>
-                          </div>
-                          <FormControl>
-                            <Slider
-                              value={[field.value ?? 50]}
-                              min={1}
-                              max={100}
-                              step={1}
-                              onValueChange={(vals) => field.onChange(vals[0])}
-                            />
-                          </FormControl>
-                          <FormDescription className="text-xs">
-                            Higher values give this route greater priority
-                            (1-100)
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* Root Folder & Quality Profile */}
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="root_folder"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground">
-                            Root Folder
-                          </FormLabel>
-                          <Select
-                            value={field.value || ''}
-                            onValueChange={field.onChange}
-                            disabled={
-                              !selectedInstance?.data?.rootFolders?.length
-                            }
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue
-                                  placeholder={
-                                    !selectedInstance?.data?.rootFolders?.length
-                                      ? 'N/A'
-                                      : 'Select root folder'
-                                  }
-                                />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {selectedInstance?.data?.rootFolders?.map(
-                                (folder: { path: string }) => (
-                                  <SelectItem
-                                    key={folder.path}
-                                    value={folder.path}
-                                  >
-                                    {folder.path}
-                                  </SelectItem>
-                                ),
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="quality_profile"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground">
-                            Quality Profile
-                          </FormLabel>
-                          <Select
-                            value={field.value?.toString() || ''}
-                            onValueChange={field.onChange}
-                            disabled={
-                              !selectedInstance?.data?.qualityProfiles?.length
-                            }
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue
-                                  placeholder={
-                                    !selectedInstance?.data?.qualityProfiles
-                                      ?.length
-                                      ? 'N/A'
-                                      : 'Select quality profile'
-                                  }
-                                />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {selectedInstance?.data?.qualityProfiles?.map(
-                                (profile: { id: number; name: string }) => (
-                                  <SelectItem
-                                    key={profile.id}
-                                    value={profile.id.toString()}
-                                  >
-                                    {profile.name}
-                                  </SelectItem>
-                                ),
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* Separator for Advanced Settings */}
-                  <Separator className="my-4" />
-
-                  {/* Advanced Settings */}
-                  <h3 className="font-medium text-foreground mb-4">
-                    Advanced Settings
-                  </h3>
-
-                  {/* Season Monitoring and Series Type - Sonarr Only */}
-                  {contentType === 'sonarr' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <FormField
-                        control={form.control}
-                        name="season_monitoring"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center space-x-2">
-                              <FormLabel className="text-foreground">
-                                Season Monitoring
-                              </FormLabel>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Season monitoring strategy to use for this
-                                    route. Determines which seasons are
-                                    monitored for new episodes when series are
-                                    added.
-                                  </p>
-                                  {!isSessionMonitoringEnabled && (
-                                    <p className="max-w-xs mt-2 text-sm text-muted-foreground">
-                                      Note: Rolling monitoring options (Pilot
-                                      Rolling and First Season Rolling) require
-                                      Plex Session Monitoring to be enabled in
-                                      Utilities.
-                                    </p>
-                                  )}
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Select
-                              value={field.value || 'all'}
-                              onValueChange={field.onChange}
-                            >
+                              <Select
+                                value={field.value?.toString() ?? ''}
+                                onValueChange={handleInstanceChange}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select instance" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {instances.map((instance) => (
+                                    <SelectItem
+                                      key={instance.id}
+                                      value={instance.id.toString()}
+                                    >
+                                      {instance.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="order"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <FormLabel className="text-foreground">
+                                    Priority Weight
+                                  </FormLabel>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Priority weight only affects routing
+                                        when multiple rules would send content
+                                        to the same instance. In such cases,
+                                        only the rule with the highest priority
+                                        will be used for that instance. If rules
+                                        route to different instances, content
+                                        will be sent to all matching instances
+                                        regardless of priority.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <span className="text-sm text-foreground">
+                                  {field.value}
+                                </span>
+                              </div>
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select monitoring strategy" />
-                                </SelectTrigger>
+                                <Slider
+                                  value={[field.value ?? 50]}
+                                  min={1}
+                                  max={100}
+                                  step={1}
+                                  onValueChange={(vals) =>
+                                    field.onChange(vals[0])
+                                  }
+                                />
                               </FormControl>
-                              <SelectContent>
-                                {Object.entries(SONARR_MONITORING_OPTIONS).map(
-                                  ([value, label]) => {
-                                    const isRollingOption =
-                                      isRollingMonitoringOption(value)
-                                    const isDisabled =
-                                      isRollingOption &&
-                                      !isSessionMonitoringEnabled
+                              <FormDescription className="text-xs">
+                                Higher values give this route greater priority
+                                (1-100)
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                                    return (
+                      {/* Root Folder & Quality Profile */}
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="root_folder"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-foreground">
+                                Root Folder
+                              </FormLabel>
+                              <Select
+                                value={field.value || ''}
+                                onValueChange={field.onChange}
+                                disabled={
+                                  !selectedInstance?.data?.rootFolders?.length
+                                }
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue
+                                      placeholder={
+                                        !selectedInstance?.data?.rootFolders
+                                          ?.length
+                                          ? 'N/A'
+                                          : 'Select root folder'
+                                      }
+                                    />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {selectedInstance?.data?.rootFolders?.map(
+                                    (folder: { path: string }) => (
                                       <SelectItem
-                                        key={value}
-                                        value={value}
-                                        disabled={isDisabled}
-                                        className={
-                                          isDisabled
-                                            ? 'cursor-not-allowed opacity-50'
-                                            : ''
-                                        }
+                                        key={folder.path}
+                                        value={folder.path}
                                       >
-                                        {label}
+                                        {folder.path}
                                       </SelectItem>
-                                    )
-                                  },
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="series_type"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center space-x-2">
+                                    ),
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="quality_profile"
+                          render={({ field }) => (
+                            <FormItem>
                               <FormLabel className="text-foreground">
-                                Series Type
+                                Quality Profile
                               </FormLabel>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Series type to use when adding content to
-                                    Sonarr. Overrides the default series type
-                                    set on the instance.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Select
-                              value={field.value || undefined}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Use instance default" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="none">
-                                  Use instance default
-                                </SelectItem>
-                                <SelectItem value="standard">
-                                  Standard
-                                </SelectItem>
-                                <SelectItem value="anime">Anime</SelectItem>
-                                <SelectItem value="daily">Daily</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
+                              <Select
+                                value={field.value?.toString() || ''}
+                                onValueChange={field.onChange}
+                                disabled={
+                                  !selectedInstance?.data?.qualityProfiles
+                                    ?.length
+                                }
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue
+                                      placeholder={
+                                        !selectedInstance?.data?.qualityProfiles
+                                          ?.length
+                                          ? 'N/A'
+                                          : 'Select quality profile'
+                                      }
+                                    />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {selectedInstance?.data?.qualityProfiles?.map(
+                                    (profile: { id: number; name: string }) => (
+                                      <SelectItem
+                                        key={profile.id}
+                                        value={profile.id.toString()}
+                                      >
+                                        {profile.name}
+                                      </SelectItem>
+                                    ),
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                  {/* Monitor (Radarr) + Search on Add row */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    {/* Monitor - Radarr Only */}
-                    {contentType === 'radarr' && (
-                      <FormField
-                        control={form.control}
-                        name="monitor"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center space-x-2">
-                              <FormLabel className="text-foreground">
-                                Monitor
-                              </FormLabel>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Monitor setting to use when adding movies to
-                                    Radarr. Overrides the default monitor
-                                    setting on the instance.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Select
-                              value={field.value || 'movieOnly'}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select monitor type" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="movieOnly">
-                                  Movie Only
-                                </SelectItem>
-                                <SelectItem value="movieAndCollection">
-                                  Movie and Collection
-                                </SelectItem>
-                                <SelectItem value="none">None</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
+                      {/* Separator for Advanced Settings */}
+                      <Separator className="my-4" />
 
-                    {/* Search on Add */}
-                    <FormField
-                      control={form.control}
-                      name="search_on_add"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center space-x-2">
-                            <FormLabel className="text-foreground">
-                              Search on Add
-                            </FormLabel>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  When enabled, content will be automatically
-                                  searched for when added. Overrides the default
-                                  setting configured on the instance.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                          <div className="flex h-10 items-center gap-2 px-3 py-2">
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                aria-label="Search on Add"
-                              />
-                            </FormControl>
-                            <span className="text-sm text-foreground">
-                              Automatically search for content when added
-                            </span>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
+                      {/* Advanced Settings */}
+                      <h3 className="font-medium text-foreground mb-4">
+                        Advanced Settings
+                      </h3>
+
+                      {/* Season Monitoring and Series Type - Sonarr Only */}
+                      {contentType === 'sonarr' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <FormField
+                            control={form.control}
+                            name="season_monitoring"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center space-x-2">
+                                  <FormLabel className="text-foreground">
+                                    Season Monitoring
+                                  </FormLabel>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Season monitoring strategy to use for
+                                        this route. Determines which seasons are
+                                        monitored for new episodes when series
+                                        are added.
+                                      </p>
+                                      {!isSessionMonitoringEnabled && (
+                                        <p className="max-w-xs mt-2 text-sm text-muted-foreground">
+                                          Note: Rolling monitoring options
+                                          (Pilot Rolling and First Season
+                                          Rolling) require Plex Session
+                                          Monitoring to be enabled in Utilities.
+                                        </p>
+                                      )}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <Select
+                                  value={field.value || 'all'}
+                                  onValueChange={field.onChange}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select monitoring strategy" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {Object.entries(
+                                      SONARR_MONITORING_OPTIONS,
+                                    ).map(([value, label]) => {
+                                      const isRollingOption =
+                                        isRollingMonitoringOption(value)
+                                      const isDisabled =
+                                        isRollingOption &&
+                                        !isSessionMonitoringEnabled
+
+                                      return (
+                                        <SelectItem
+                                          key={value}
+                                          value={value}
+                                          disabled={isDisabled}
+                                          className={
+                                            isDisabled
+                                              ? 'cursor-not-allowed opacity-50'
+                                              : ''
+                                          }
+                                        >
+                                          {label}
+                                        </SelectItem>
+                                      )
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="series_type"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center space-x-2">
+                                  <FormLabel className="text-foreground">
+                                    Series Type
+                                  </FormLabel>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Series type to use when adding content
+                                        to Sonarr. Overrides the default series
+                                        type set on the instance.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <Select
+                                  value={field.value || undefined}
+                                  onValueChange={field.onChange}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Use instance default" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="none">
+                                      Use instance default
+                                    </SelectItem>
+                                    <SelectItem value="standard">
+                                      Standard
+                                    </SelectItem>
+                                    <SelectItem value="anime">Anime</SelectItem>
+                                    <SelectItem value="daily">Daily</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                       )}
-                    />
 
-                    {/* Tags - Only in this row for Sonarr */}
-                    {contentType === 'sonarr' && (
-                      <FormField
-                        control={form.control}
-                        name="tags"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center space-x-2">
-                              <FormLabel className="text-foreground">
-                                Tags
-                              </FormLabel>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Add tags to content that matches this route.
-                                    Tags will be applied when content is added
-                                    to the target instance.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <FormControl>
-                              <TagsMultiSelect
-                                ref={tagsMultiSelectRef}
-                                field={field}
-                                instanceId={Number(
-                                  form.watch('target_instance_id'),
-                                )}
-                                instanceType={contentType}
-                                instanceName={selectedInstance?.name}
-                                isConnectionValid={true}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                      {/* Monitor (Radarr) + Search on Add row */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        {/* Monitor - Radarr Only */}
+                        {contentType === 'radarr' && (
+                          <FormField
+                            control={form.control}
+                            name="monitor"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center space-x-2">
+                                  <FormLabel className="text-foreground">
+                                    Monitor
+                                  </FormLabel>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Monitor setting to use when adding
+                                        movies to Radarr. Overrides the default
+                                        monitor setting on the instance.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <Select
+                                  value={field.value || 'movieOnly'}
+                                  onValueChange={field.onChange}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select monitor type" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="movieOnly">
+                                      Movie Only
+                                    </SelectItem>
+                                    <SelectItem value="movieAndCollection">
+                                      Movie and Collection
+                                    </SelectItem>
+                                    <SelectItem value="none">None</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         )}
-                      />
-                    )}
-                  </div>
 
-                  {/* Tags - Separate row for Radarr */}
-                  {contentType === 'radarr' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <FormField
-                        control={form.control}
-                        name="tags"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center space-x-2">
-                              <FormLabel className="text-foreground">
-                                Tags
-                              </FormLabel>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Add tags to content that matches this route.
-                                    Tags will be applied when content is added
-                                    to the target instance.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <FormControl>
-                              <TagsMultiSelect
-                                ref={tagsMultiSelectRef}
-                                field={field}
-                                instanceId={Number(
-                                  form.watch('target_instance_id'),
-                                )}
-                                instanceType={contentType}
-                                instanceName={selectedInstance?.name}
-                                isConnectionValid={true}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                        {/* Search on Add */}
+                        <FormField
+                          control={form.control}
+                          name="search_on_add"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center space-x-2">
+                                <FormLabel className="text-foreground">
+                                  Search on Add
+                                </FormLabel>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      When enabled, content will be
+                                      automatically searched for when added.
+                                      Overrides the default setting configured
+                                      on the instance.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <div className="flex h-10 items-center gap-2 px-3 py-2">
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    aria-label="Search on Add"
+                                  />
+                                </FormControl>
+                                <span className="text-sm text-foreground">
+                                  Automatically search for content when added
+                                </span>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Tags - Only in this row for Sonarr */}
+                        {contentType === 'sonarr' && (
+                          <FormField
+                            control={form.control}
+                            name="tags"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center space-x-2">
+                                  <FormLabel className="text-foreground">
+                                    Tags
+                                  </FormLabel>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Add tags to content that matches this
+                                        route. Tags will be applied when content
+                                        is added to the target instance.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <FormControl>
+                                  <TagsMultiSelect
+                                    ref={tagsMultiSelectRef}
+                                    field={field}
+                                    instanceId={Number(
+                                      form.watch('target_instance_id'),
+                                    )}
+                                    instanceType={contentType}
+                                    instanceName={selectedInstance?.name}
+                                    isConnectionValid={true}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         )}
-                      />
-                    </div>
+                      </div>
+
+                      {/* Tags - Separate row for Radarr */}
+                      {contentType === 'radarr' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <FormField
+                            control={form.control}
+                            name="tags"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center space-x-2">
+                                  <FormLabel className="text-foreground">
+                                    Tags
+                                  </FormLabel>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Add tags to content that matches this
+                                        route. Tags will be applied when content
+                                        is added to the target instance.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <FormControl>
+                                  <TagsMultiSelect
+                                    ref={tagsMultiSelectRef}
+                                    field={field}
+                                    instanceId={Number(
+                                      form.watch('target_instance_id'),
+                                    )}
+                                    instanceType={contentType}
+                                    instanceName={selectedInstance?.name}
+                                    isConnectionValid={true}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </form>

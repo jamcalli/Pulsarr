@@ -157,8 +157,21 @@ export default function createConditionalEvaluator(
         return null
       }
 
-      return matchingRules.map((rule) => ({
-        instanceId: rule.target_instance_id,
+      // Exclude rules never produce a routing decision - a RoutingDecision
+      // always requires a real target instance. The "never route this" veto
+      // is enforced upstream in ContentRouterService.routeContent() before
+      // evaluators run at all, so this filter only prevents a null
+      // instanceId from ever reaching downstream routing logic.
+      const routableRules = matchingRules.filter(
+        (rule) => !rule.exclude_from_routing && rule.target_instance_id != null,
+      )
+
+      if (routableRules.length === 0) {
+        return null
+      }
+
+      return routableRules.map((rule) => ({
+        instanceId: rule.target_instance_id as number,
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
         tags: rule.tags || [],
