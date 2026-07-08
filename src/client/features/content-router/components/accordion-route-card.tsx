@@ -1285,10 +1285,29 @@ const AccordionRouteCard = ({
                           name="target_instance_id"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-foreground">
-                                {contentType === 'radarr' ? 'Radarr' : 'Sonarr'}{' '}
-                                Instance
-                              </FormLabel>
+                              <div className="flex items-center space-x-2">
+                                <FormLabel className="text-foreground">
+                                  {contentType === 'radarr'
+                                    ? 'Radarr'
+                                    : 'Sonarr'}{' '}
+                                  Instance
+                                </FormLabel>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      The{' '}
+                                      {contentType === 'radarr'
+                                        ? 'Radarr'
+                                        : 'Sonarr'}{' '}
+                                      instance that content matching this route
+                                      is sent to.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
                               <Select
                                 value={field.value?.toString() ?? ''}
                                 onValueChange={handleInstanceChange}
@@ -1373,9 +1392,22 @@ const AccordionRouteCard = ({
                           name="root_folder"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-foreground">
-                                Root Folder
-                              </FormLabel>
+                              <div className="flex items-center space-x-2">
+                                <FormLabel className="text-foreground">
+                                  Root Folder
+                                </FormLabel>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      Overrides the instance's default root
+                                      folder for content matching this route.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
                               <Select
                                 value={field.value || ''}
                                 onValueChange={field.onChange}
@@ -1417,9 +1449,22 @@ const AccordionRouteCard = ({
                           name="quality_profile"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-foreground">
-                                Quality Profile
-                              </FormLabel>
+                              <div className="flex items-center space-x-2">
+                                <FormLabel className="text-foreground">
+                                  Quality Profile
+                                </FormLabel>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      Overrides the instance's default quality
+                                      profile for content matching this route.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
                               <Select
                                 value={field.value?.toString() || ''}
                                 onValueChange={field.onChange}

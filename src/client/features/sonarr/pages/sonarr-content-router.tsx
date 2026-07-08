@@ -69,11 +69,19 @@ export default function SonarrContentRouterPage() {
     return null
   }
 
+  const defaultInstance = instances.find((instance) => instance.isDefault)
+
   return (
     <div>
       <Tabs defaultValue="content-routes" className="w-full">
         <TabsContent value="content-routes" className="mt-0">
-          <DefaultRoutingBehaviorSection />
+          <DefaultRoutingBehaviorSection
+            contentTypeLabel="Sonarr"
+            defaultInstanceName={defaultInstance?.name}
+            skipDefaultRoutingWhenNoMatch={
+              defaultInstance?.skipDefaultRoutingWhenNoMatch ?? false
+            }
+          />
           <AccordionContentRouterSection
             targetType="sonarr"
             instances={instances}

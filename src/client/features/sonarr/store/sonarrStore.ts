@@ -21,6 +21,7 @@ export interface SonarrInstance {
   isDefault: boolean
   syncedInstances?: number[]
   seriesType?: 'standard' | 'anime' | 'daily'
+  skipDefaultRoutingWhenNoMatch?: boolean
   data?: SonarrInstanceData
 }
 

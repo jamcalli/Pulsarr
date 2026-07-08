@@ -312,10 +312,6 @@ const schema = {
       type: 'boolean',
       default: false,
     },
-    skipDefaultRoutingWhenNoMatch: {
-      type: 'boolean',
-      default: false,
-    },
     enablePlexPlaylistProtection: {
       type: 'boolean',
       default: false,

@@ -174,9 +174,9 @@ describe('ContentRouterService Integration', () => {
     })
   })
 
-  describe('skipDefaultRoutingWhenNoMatch guard', () => {
-    // Comedy movie matches none of the seeded router rules, so it exercises
-    // the default-instance fallback path in getTargetInstances.
+  describe('skipDefaultRoutingWhenNoMatch guard (per-instance)', () => {
+    // Comedy movie/show match none of the seeded router rules, so they
+    // exercise the default-instance fallback path in getTargetInstances.
     const unmatchedMovie: ContentItem = {
       title: 'Test Comedy Movie',
       type: 'movie',
@@ -184,21 +184,39 @@ describe('ContentRouterService Integration', () => {
       genres: ['Comedy'],
     }
 
+    const unmatchedShow: ContentItem = {
+      title: 'Test Comedy Show',
+      type: 'show',
+      guids: ['imdb:tt8888888', 'tmdb:88888'],
+      genres: ['Comedy'],
+    }
+
     const movieContext: RoutingContext = {
       userId: 1,
       userName: 'Test User',
       contentType: 'movie',
-      itemKey: 'test-comedy-key',
+      itemKey: 'test-comedy-movie-key',
+    }
+
+    const showContext: RoutingContext = {
+      userId: 1,
+      userName: 'Test User',
+      contentType: 'show',
+      itemKey: 'test-comedy-show-key',
     }
 
     afterEach(async () => {
       // Restore default behavior so other tests are unaffected
-      await fastify.updateConfig({ skipDefaultRoutingWhenNoMatch: false })
+      const knex = getTestDatabase()
+      await knex('radarr_instances')
+        .where('id', 1)
+        .update('skip_default_routing_when_no_match', false)
+      await knex('sonarr_instances')
+        .where('id', 1)
+        .update('skip_default_routing_when_no_match', false)
     })
 
     it('falls back to the default instance when the flag is off (default)', async () => {
-      await fastify.updateConfig({ skipDefaultRoutingWhenNoMatch: false })
-
       const targets = await fastify.contentRouter.getTargetInstances(
         unmatchedMovie,
         movieContext,
@@ -208,8 +226,11 @@ describe('ContentRouterService Integration', () => {
       expect(targets).toEqual([1])
     })
 
-    it('skips (returns no targets) when the flag is on and no rule matches', async () => {
-      await fastify.updateConfig({ skipDefaultRoutingWhenNoMatch: true })
+    it('skips (returns no targets) when the flag is on for the default Radarr instance', async () => {
+      const knex = getTestDatabase()
+      await knex('radarr_instances')
+        .where('id', 1)
+        .update('skip_default_routing_when_no_match', true)
 
       const targets = await fastify.contentRouter.getTargetInstances(
         unmatchedMovie,
@@ -217,6 +238,28 @@ describe('ContentRouterService Integration', () => {
       )
 
       expect(targets).toEqual([])
+    })
+
+    it('controls movie and show routing independently', async () => {
+      const knex = getTestDatabase()
+      // Enable the flag on the default Radarr instance only
+      await knex('radarr_instances')
+        .where('id', 1)
+        .update('skip_default_routing_when_no_match', true)
+
+      const movieTargets = await fastify.contentRouter.getTargetInstances(
+        unmatchedMovie,
+        movieContext,
+      )
+      const showTargets = await fastify.contentRouter.getTargetInstances(
+        unmatchedShow,
+        showContext,
+      )
+
+      // Movies are skipped (Radarr's flag is on)...
+      expect(movieTargets).toEqual([])
+      // ...but shows still route normally (Sonarr's flag is untouched)
+      expect(showTargets).toEqual([1])
     })
   })
 

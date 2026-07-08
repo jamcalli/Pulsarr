@@ -2142,6 +2142,13 @@ export class ContentRouterService {
           return { instanceIds: [], error: 'No default Radarr instance found' }
         }
 
+        if (defaultInstance.skipDefaultRoutingWhenNoMatch) {
+          this.log.info(
+            `Default routing disabled on default Radarr instance "${defaultInstance.name}" — skipping movie with no matching router rule`,
+          )
+          return { instanceIds: [] }
+        }
+
         instanceIds.push(defaultInstance.id)
         const syncedIds = this.parseSyncedInstances(
           defaultInstance.syncedInstances,
@@ -2160,6 +2167,13 @@ export class ContentRouterService {
         const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
         if (!defaultInstance) {
           return { instanceIds: [], error: 'No default Sonarr instance found' }
+        }
+
+        if (defaultInstance.skipDefaultRoutingWhenNoMatch) {
+          this.log.info(
+            `Default routing disabled on default Sonarr instance "${defaultInstance.name}" — skipping show with no matching router rule`,
+          )
+          return { instanceIds: [] }
         }
 
         instanceIds.push(defaultInstance.id)
@@ -2202,17 +2216,6 @@ export class ContentRouterService {
   private async getDefaultRoutingInstanceIds(
     contentType: 'movie' | 'show',
   ): Promise<number[]> {
-    // When enabled, content that matches no router rule is skipped entirely
-    // rather than falling back to the default instance. This is the single
-    // chokepoint for all default-routing paths (normal adds, sync, and
-    // approval previews), so guarding here covers every fallback.
-    if (this.fastify.config.skipDefaultRoutingWhenNoMatch) {
-      this.log.info(
-        `Default routing disabled (skipDefaultRoutingWhenNoMatch) — skipping ${contentType} with no matching router rule`,
-      )
-      return []
-    }
-
     try {
       const result = await this.getDefaultInstanceIds(contentType)
       if (result.error) {
@@ -2946,22 +2949,28 @@ export class ContentRouterService {
         return [context.syncTargetInstanceId]
       }
 
-      // When default routing is disabled, skip rather than falling back to the
-      // default instance (mirrors getDefaultRoutingInstanceIds behavior).
-      if (this.fastify.config.skipDefaultRoutingWhenNoMatch) {
+      // Fall back to default instance, unless that instance has opted out of
+      // default routing (mirrors the check in getDefaultInstanceIds).
+      if (contentType === 'movie') {
+        const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
+        if (!defaultInstance) return []
+        if (defaultInstance.skipDefaultRoutingWhenNoMatch) {
+          this.log.info(
+            `Default routing disabled on default Radarr instance "${defaultInstance.name}" — skipping movie with no matching router rule after evaluation error`,
+          )
+          return []
+        }
+        return [defaultInstance.id]
+      }
+      const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
+      if (!defaultInstance) return []
+      if (defaultInstance.skipDefaultRoutingWhenNoMatch) {
         this.log.info(
-          `Default routing disabled (skipDefaultRoutingWhenNoMatch) — skipping ${contentType} with no matching router rule after evaluation error`,
+          `Default routing disabled on default Sonarr instance "${defaultInstance.name}" — skipping show with no matching router rule after evaluation error`,
         )
         return []
       }
-
-      // Fall back to default instance
-      if (contentType === 'movie') {
-        const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
-        return defaultInstance ? [defaultInstance.id] : []
-      }
-      const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
-      return defaultInstance ? [defaultInstance.id] : []
+      return [defaultInstance.id]
     }
   }
 }

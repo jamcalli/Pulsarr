@@ -20,6 +20,7 @@ export const SonarrInstanceSchema = z.object({
     .enum(['standard', 'anime', 'daily'])
     .optional()
     .default('standard'),
+  skipDefaultRoutingWhenNoMatch: z.boolean().optional().default(false),
 })
 
 // Sonarr instance schema for updates (no defaults to prevent overwriting existing values)
@@ -38,6 +39,7 @@ export const SonarrInstanceUpdateSchema = z.object({
   isDefault: z.boolean().optional(),
   syncedInstances: z.array(z.number()).optional(),
   seriesType: z.enum(['standard', 'anime', 'daily']).optional(),
+  skipDefaultRoutingWhenNoMatch: z.boolean().optional(),
 })
 
 // Response schema for a single instance (includes id)

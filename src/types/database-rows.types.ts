@@ -18,6 +18,7 @@ export interface BaseInstanceRow {
   is_default: boolean | number
   is_enabled: boolean | number
   synced_instances: string | null
+  skip_default_routing_when_no_match: boolean | number | null
   created_at: string
   updated_at: string
 }

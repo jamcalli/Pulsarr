@@ -317,9 +317,23 @@ export function InstanceCard({
                       name="qualityProfile"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground">
-                            Quality Profile
-                          </FormLabel>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-foreground">
+                              Quality Profile
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  The default quality profile used when adding
+                                  content to this instance, unless a route
+                                  overrides it.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
                           <QualityProfileSelect
                             field={field}
                             isConnectionValid={isConnectionValid}
@@ -337,9 +351,23 @@ export function InstanceCard({
                       name="rootFolder"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground">
-                            Root Folder
-                          </FormLabel>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-foreground">
+                              Root Folder
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  The default root folder used when adding
+                                  content to this instance, unless a route
+                                  overrides it.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
                           <RootFolderSelect
                             field={field}
                             isConnectionValid={isConnectionValid}
@@ -662,6 +690,47 @@ export function InstanceCard({
                       </FormItem>
                     )}
                   />
+                  {form.watch('isDefault') && (
+                    <FormField
+                      control={form.control}
+                      name="skipDefaultRoutingWhenNoMatch"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-foreground">
+                              Skip Content With No Matching Route
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Only applies while this is the default
+                                  instance. When off (default), content that
+                                  matches none of your content router rules is
+                                  still sent here. When on, that content is
+                                  skipped entirely instead.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <div className="flex h-10 items-center gap-2 px-3 py-2">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                disabled={!isConnectionValid}
+                              />
+                            </FormControl>
+                            <span className="text-sm text-foreground">
+                              Skip instead of routing here by default
+                            </span>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </form>
             </Form>

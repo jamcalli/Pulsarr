@@ -185,7 +185,6 @@ export const ConfigFullSchema = z.object({
   skipFriendSync: z.boolean(),
   plexServerUrl: z.string().optional(),
   skipIfExistsOnPlex: z.boolean(),
-  skipDefaultRoutingWhenNoMatch: z.boolean(),
   deleteMovie: z.boolean(),
   deleteEndedShow: z.boolean(),
   deleteContinuingShow: z.boolean(),
@@ -380,8 +379,6 @@ export const ConfigUpdateSchema = z
     // Primary token user: checks ALL accessible servers (owned + shared)
     // Friend/other users: checks ONLY the owned server (no access tokens for shared)
     skipIfExistsOnPlex: z.boolean().optional(),
-    // When true, content matching no router rule is skipped instead of routed to the default instance
-    skipDefaultRoutingWhenNoMatch: z.boolean().optional(),
     // Plex Label Sync Configuration - nested object following complex config pattern
     plexLabelSync: PlexLabelSyncConfigSchema.optional(),
     // RSS and other settings

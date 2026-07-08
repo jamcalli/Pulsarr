@@ -34,6 +34,9 @@ function mapRowToSonarrInstance(
     ),
     seriesType:
       (row.series_type as 'standard' | 'anime' | 'daily') || 'standard',
+    skipDefaultRoutingWhenNoMatch: Boolean(
+      row.skip_default_routing_when_no_match,
+    ),
   }
 }
 
@@ -133,6 +136,8 @@ export async function createSonarrInstance(
           ? JSON.stringify(instance.syncedInstances)
           : instance.syncedInstances || JSON.stringify([]),
         series_type: instance.seriesType || 'standard',
+        skip_default_routing_when_no_match:
+          instance.skipDefaultRoutingWhenNoMatch ?? false,
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
@@ -224,6 +229,10 @@ export async function updateSonarrInstance(
           synced_instances: Array.isArray(sanitized.syncedInstances)
             ? JSON.stringify(sanitized.syncedInstances)
             : sanitized.syncedInstances,
+        }),
+        ...(typeof sanitized.skipDefaultRoutingWhenNoMatch !== 'undefined' && {
+          skip_default_routing_when_no_match:
+            sanitized.skipDefaultRoutingWhenNoMatch,
         }),
         updated_at: this.timestamp,
       })

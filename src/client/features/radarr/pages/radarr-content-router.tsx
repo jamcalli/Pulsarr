@@ -22,7 +22,7 @@ export default function RadarrContentRouterPage() {
   const initialize = useRadarrStore((state) => state.initialize)
   const fetchInstanceData = useRadarrStore((state) => state.fetchInstanceData)
 
-  // Initialize config store so the default routing behavior toggle has data
+  // Route cards read session-monitoring config, so it must be initialized here
   const configInitialize = useConfigStore((state) => state.initialize)
 
   const hasInitializedRef = useRef(false)
@@ -31,7 +31,7 @@ export default function RadarrContentRouterPage() {
     const initializeData = async () => {
       if (!hasInitializedRef.current) {
         await initialize(true)
-        configInitialize() // Initialize config store for the routing toggle
+        configInitialize()
 
         // Ensure instance data is fetched for all valid instances
         const validInstances = instances.filter(
@@ -69,11 +69,19 @@ export default function RadarrContentRouterPage() {
     return null
   }
 
+  const defaultInstance = instances.find((instance) => instance.isDefault)
+
   return (
     <div>
       <Tabs defaultValue="content-routes" className="w-full">
         <TabsContent value="content-routes" className="mt-0">
-          <DefaultRoutingBehaviorSection />
+          <DefaultRoutingBehaviorSection
+            contentTypeLabel="Radarr"
+            defaultInstanceName={defaultInstance?.name}
+            skipDefaultRoutingWhenNoMatch={
+              defaultInstance?.skipDefaultRoutingWhenNoMatch ?? false
+            }
+          />
           <AccordionContentRouterSection
             targetType="radarr"
             instances={instances}
