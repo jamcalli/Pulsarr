@@ -2,6 +2,7 @@ import type { ContentItem, RoutingContext } from '@root/types/router.types.js'
 import type { FastifyInstance } from 'fastify'
 import {
   afterAll,
+  afterEach,
   beforeAll,
   beforeEach,
   describe,
@@ -170,6 +171,52 @@ describe('ContentRouterService Integration', () => {
       // No enabled rules should match
       const result = await checkApproval(dramaMovie, movieContext, [])
       expect(result.required).toBe(false)
+    })
+  })
+
+  describe('skipDefaultRoutingWhenNoMatch guard', () => {
+    // Comedy movie matches none of the seeded router rules, so it exercises
+    // the default-instance fallback path in getTargetInstances.
+    const unmatchedMovie: ContentItem = {
+      title: 'Test Comedy Movie',
+      type: 'movie',
+      guids: ['imdb:tt9999999', 'tmdb:99999'],
+      genres: ['Comedy'],
+    }
+
+    const movieContext: RoutingContext = {
+      userId: 1,
+      userName: 'Test User',
+      contentType: 'movie',
+      itemKey: 'test-comedy-key',
+    }
+
+    afterEach(async () => {
+      // Restore default behavior so other tests are unaffected
+      await fastify.updateConfig({ skipDefaultRoutingWhenNoMatch: false })
+    })
+
+    it('falls back to the default instance when the flag is off (default)', async () => {
+      await fastify.updateConfig({ skipDefaultRoutingWhenNoMatch: false })
+
+      const targets = await fastify.contentRouter.getTargetInstances(
+        unmatchedMovie,
+        movieContext,
+      )
+
+      // Seeded default Radarr instance has id 1
+      expect(targets).toEqual([1])
+    })
+
+    it('skips (returns no targets) when the flag is on and no rule matches', async () => {
+      await fastify.updateConfig({ skipDefaultRoutingWhenNoMatch: true })
+
+      const targets = await fastify.contentRouter.getTargetInstances(
+        unmatchedMovie,
+        movieContext,
+      )
+
+      expect(targets).toEqual([])
     })
   })
 

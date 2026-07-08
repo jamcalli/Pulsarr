@@ -177,6 +177,9 @@ export async function getConfig(
       config.plexProtectionPlaylistName || 'Do Not Delete',
     plexServerUrl: config.plexServerUrl || undefined,
     skipIfExistsOnPlex: Boolean(config.skipIfExistsOnPlex ?? false),
+    skipDefaultRoutingWhenNoMatch: Boolean(
+      config.skipDefaultRoutingWhenNoMatch ?? false,
+    ),
     // Plex Label Sync configuration - nested object following complex config pattern
     plexLabelSync: (() => {
       const parsed = config.plexLabelSync
@@ -324,6 +327,8 @@ export async function createConfig(
         config.plexProtectionPlaylistName || 'Do Not Delete',
       plexServerUrl: config.plexServerUrl,
       skipIfExistsOnPlex: config.skipIfExistsOnPlex ?? false,
+      skipDefaultRoutingWhenNoMatch:
+        config.skipDefaultRoutingWhenNoMatch ?? false,
       // RSS fields
       selfRss: config.selfRss,
       friendsRss: config.friendsRss,
@@ -507,6 +512,7 @@ const ALLOWED_COLUMNS = new Set([
   'skipFriendSync',
   'plexServerUrl',
   'skipIfExistsOnPlex',
+  'skipDefaultRoutingWhenNoMatch',
   'selfRss',
   'friendsRss',
 

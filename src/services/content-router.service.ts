@@ -2165,6 +2165,17 @@ export class ContentRouterService {
   private async getDefaultRoutingInstanceIds(
     contentType: 'movie' | 'show',
   ): Promise<number[]> {
+    // When enabled, content that matches no router rule is skipped entirely
+    // rather than falling back to the default instance. This is the single
+    // chokepoint for all default-routing paths (normal adds, sync, and
+    // approval previews), so guarding here covers every fallback.
+    if (this.fastify.config.skipDefaultRoutingWhenNoMatch) {
+      this.log.info(
+        `Default routing disabled (skipDefaultRoutingWhenNoMatch) — skipping ${contentType} with no matching router rule`,
+      )
+      return []
+    }
+
     try {
       const result = await this.getDefaultInstanceIds(contentType)
       if (result.error) {
@@ -2887,6 +2898,15 @@ export class ContentRouterService {
       // On error, check if we should use sync target before falling back to defaults
       if (context.syncing && context.syncTargetInstanceId !== undefined) {
         return [context.syncTargetInstanceId]
+      }
+
+      // When default routing is disabled, skip rather than falling back to the
+      // default instance (mirrors getDefaultRoutingInstanceIds behavior).
+      if (this.fastify.config.skipDefaultRoutingWhenNoMatch) {
+        this.log.info(
+          `Default routing disabled (skipDefaultRoutingWhenNoMatch) — skipping ${contentType} with no matching router rule after evaluation error`,
+        )
+        return []
       }
 
       // Fall back to default instance

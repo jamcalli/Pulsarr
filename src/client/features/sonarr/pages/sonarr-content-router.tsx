@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
+import DefaultRoutingBehaviorSection from '@/features/content-router/components/default-routing-behavior-section'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { useConfigStore } from '@/stores/configStore'
@@ -72,6 +73,7 @@ export default function SonarrContentRouterPage() {
     <div>
       <Tabs defaultValue="content-routes" className="w-full">
         <TabsContent value="content-routes" className="mt-0">
+          <DefaultRoutingBehaviorSection />
           <AccordionContentRouterSection
             targetType="sonarr"
             instances={instances}
