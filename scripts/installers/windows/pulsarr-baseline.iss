@@ -53,9 +53,19 @@ Name: "service"; Description: "Install as Windows Service"; Types: full
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "startafterinstall"; Description: "Start Pulsarr after installation"; GroupDescription: "Startup:"; Flags: checkedonce
 
+[InstallDelete]
+; Wipe only the code subdirectories before copying the new version so files
+; removed or moved between releases do not linger and get loaded alongside their
+; replacements. Here {app} and {#MyAppDataDir} are the same folder, so the data
+; (db, logs, .env) sits at the root next to these subdirs and is left untouched.
+Type: filesandordirs; Name: "{app}\dist"
+Type: filesandordirs; Name: "{app}\node_modules"
+
 [Files]
-; Main application files (from extracted native build zip)
-Source: "build\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: main
+; Main application files (from extracted native build zip).
+; update.bat is the portable-install updater; installer users update by re-running
+; the installer, so it is left out to keep them on that path.
+Source: "build\*"; DestDir: "{app}"; Excludes: "update.bat"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: main
 ; Icon for uninstaller
 Source: "pulsarr.ico"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 
