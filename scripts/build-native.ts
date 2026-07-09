@@ -152,8 +152,7 @@ mkdirSync(BUILD_DIR, { recursive: true })
 
 if (!skipBuild) {
   console.log('[1/4] Building server...')
-  // Wipe dist first so files removed or moved since the last build do not linger
-  // in the shipped tree (tsc builds incrementally and never deletes stale output).
+  // Wipe dist first: tsc builds incrementally and never deletes stale output.
   run('bun run clean:server')
   run('bun run build:server')
 
@@ -275,8 +274,7 @@ exec ./bun run --bun dist/server.js "$@"
 
 const UPDATE_UNIX = `#!/bin/bash
 # Update a portable Pulsarr install from a downloaded release zip.
-# Only Pulsarr's own program directories are replaced, so config and data stay
-# put wherever .env points them (dbPath, dataDir, custom locations, and all).
+# Replaces only Pulsarr's own program files; your config and data are left alone.
 #
 # Usage: ./update.sh <path-to-new-release-zip>
 set -euo pipefail
@@ -309,11 +307,13 @@ if [ ! -f "$NEW/start.sh" ]; then
   echo "This does not look like a Pulsarr release zip (start.sh not found)."
   exit 1
 fi
+if [ ! -d "$NEW/dist" ] || [ ! -d "$NEW/node_modules" ]; then
+  echo "This release zip is incomplete (dist or node_modules missing)."
+  exit 1
+fi
 
 echo "Replacing application files..."
-# Remove only the fully owned code directories where a stale file breaks startup,
-# then copy the new tree over the rest. Nothing else is deleted, so config and
-# data are left untouched wherever they live.
+# Only dist and node_modules are deleted; config and data are left in place.
 rm -rf "$INSTALL_DIR/dist" "$INSTALL_DIR/node_modules"
 cp -a "$NEW/." "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/start.sh" "$INSTALL_DIR/bun" 2>/dev/null || true
@@ -366,7 +366,11 @@ set "ZIP=%~2"
 set "STAGEDIR=%TEMP%\\pulsarr-new-%RANDOM%%RANDOM%"
 
 echo Extracting update...
-powershell -NoProfile -Command "Expand-Archive -LiteralPath '%ZIP%' -DestinationPath '%STAGEDIR%' -Force"
+rem Pass paths to PowerShell via environment variables so quotes or apostrophes
+rem in the path cannot break out of the command string.
+set "PS_ZIP=%ZIP%"
+set "PS_DEST=%STAGEDIR%"
+powershell -NoProfile -Command "Expand-Archive -LiteralPath $env:PS_ZIP -DestinationPath $env:PS_DEST -Force"
 if errorlevel 1 (
   echo Failed to extract zip.
   rd /s /q "%STAGEDIR%" 2>nul
@@ -382,6 +386,16 @@ if not exist "!NEW!\\start.bat" (
   rd /s /q "%STAGEDIR%" 2>nul
   exit /b 1
 )
+if not exist "!NEW!\\dist" (
+  echo This release zip is incomplete (dist missing).
+  rd /s /q "%STAGEDIR%" 2>nul
+  exit /b 1
+)
+if not exist "!NEW!\\node_modules" (
+  echo This release zip is incomplete (node_modules missing).
+  rd /s /q "%STAGEDIR%" 2>nul
+  exit /b 1
+)
 
 if exist "!INSTALL!\\pulsarr-service.exe" (
   echo Stopping Pulsarr service...
@@ -390,9 +404,7 @@ if exist "!INSTALL!\\pulsarr-service.exe" (
 )
 
 echo Replacing application files...
-rem Remove only the fully owned code directories where a stale file breaks
-rem startup, then copy the new tree over the rest with /E (no purge). Nothing
-rem else is deleted, so config and data are left untouched wherever they live.
+rem Only dist and node_modules are removed; /E copies without purging the rest.
 rd /s /q "!INSTALL!\\dist" 2>nul
 rd /s /q "!INSTALL!\\node_modules" 2>nul
 robocopy "!NEW!" "!INSTALL!" /E /R:2 /W:2 /NFL /NDL /NJH /NJS /NP >nul

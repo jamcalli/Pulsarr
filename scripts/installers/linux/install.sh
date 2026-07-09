@@ -138,41 +138,30 @@ create_user() {
     fi
 }
 
-# Install application files.
-# Only Pulsarr-owned code directories are replaced. Config and data are never
-# touched, so a relocated dbPath or dataDir survives wherever .env points it.
-# The owned dirs are renamed aside in place (no /tmp copy) so a failed copy rolls
-# back to the previous version.
+# Replace only Pulsarr-owned code (dist, node_modules); config and data are left
+# alone. Stage in a sibling dir first so a failed copy changes nothing.
 install_files() {
     local src_dir="$1"
     local owned="dist node_modules"
+    local staging="${INSTALL_DIR}.staging"
     local d
 
     mkdir -p "$INSTALL_DIR"
 
-    for d in $owned; do
-        if [[ -e "${INSTALL_DIR}/${d}" ]]; then
-            rm -rf "${INSTALL_DIR}/${d}.old"
-            mv "${INSTALL_DIR}/${d}" "${INSTALL_DIR}/${d}.old"
-        fi
-    done
-
+    rm -rf "${staging:?}"
+    mkdir -p "$staging"
     info "Installing files to ${INSTALL_DIR}..."
-    if ! cp -a "${src_dir}/." "${INSTALL_DIR}/"; then
-        error "Copy failed, restoring the previous version..."
-        for d in $owned; do
-            if [[ -e "${INSTALL_DIR}/${d}.old" ]]; then
-                rm -rf "${INSTALL_DIR}/${d}"
-                mv "${INSTALL_DIR}/${d}.old" "${INSTALL_DIR}/${d}"
-            fi
-        done
-        die "Update aborted and rolled back. Your config and data were not touched."
+    if ! cp -a "${src_dir}/." "${staging}/"; then
+        rm -rf "${staging:?}"
+        die "Copy failed. No changes were made to the installation."
     fi
 
-    # Copy succeeded, discard the saved copies.
     for d in $owned; do
-        rm -rf "${INSTALL_DIR}/${d}.old"
+        rm -rf "${INSTALL_DIR:?}/${d}"
+        mv "${staging}/${d}" "${INSTALL_DIR}/${d}"
     done
+    cp -a "${staging}/." "${INSTALL_DIR}/"
+    rm -rf "${staging:?}"
 
     # First-install scaffolding (the default dbPath and log dir live under data/).
     mkdir -p "${INSTALL_DIR}/data/db"
