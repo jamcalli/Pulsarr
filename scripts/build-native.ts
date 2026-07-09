@@ -279,46 +279,55 @@ const UPDATE_UNIX = `#!/bin/bash
 # Usage: ./update.sh <path-to-new-release-zip>
 set -euo pipefail
 
-cd "$(dirname "\${BASH_SOURCE[0]}")"
-INSTALL_DIR="$(pwd)"
+# The cp below overwrites this script mid-run. Bash reads the script from disk as
+# it executes, so keep the whole body in a function (parsed up front) and exit on
+# the last line before bash can read past it into the replacement.
+main() {
+  ZIP="\${1:-}"
+  if [ -z "$ZIP" ] || [ ! -f "$ZIP" ]; then
+    echo "Usage: ./update.sh <path-to-new-release-zip>"
+    exit 1
+  fi
+  # Resolve the zip to an absolute path before cd so a relative arg keeps working.
+  ZIP="$(cd "$(dirname "$ZIP")" && pwd)/$(basename "$ZIP")"
 
-ZIP="\${1:-}"
-if [ -z "$ZIP" ] || [ ! -f "$ZIP" ]; then
-  echo "Usage: ./update.sh <path-to-new-release-zip>"
-  exit 1
-fi
+  cd "$(dirname "\${BASH_SOURCE[0]}")"
+  INSTALL_DIR="$(pwd)"
 
-if ! command -v unzip >/dev/null 2>&1; then
-  echo "unzip is required but was not found."
-  exit 1
-fi
+  if ! command -v unzip >/dev/null 2>&1; then
+    echo "unzip is required but was not found."
+    exit 1
+  fi
 
-TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+  TMP="$(mktemp -d)"
+  trap 'rm -rf "$TMP"' EXIT
 
-echo "Extracting update..."
-unzip -q "$ZIP" -d "$TMP"
+  echo "Extracting update..."
+  unzip -q "$ZIP" -d "$TMP"
 
-# Release zips hold a single top-level pulsarr-vX.Y.Z-<platform>/ directory.
-NEW="$(find "$TMP" -mindepth 1 -maxdepth 1 -type d -name 'pulsarr-*' | head -1)" || true
-if [ -z "$NEW" ]; then NEW="$TMP"; fi
+  # Release zips hold a single top-level pulsarr-vX.Y.Z-<platform>/ directory.
+  NEW="$(find "$TMP" -mindepth 1 -maxdepth 1 -type d -name 'pulsarr-*' | head -1)" || true
+  if [ -z "$NEW" ]; then NEW="$TMP"; fi
 
-if [ ! -f "$NEW/start.sh" ]; then
-  echo "This does not look like a Pulsarr release zip (start.sh not found)."
-  exit 1
-fi
-if [ ! -d "$NEW/dist" ] || [ ! -d "$NEW/node_modules" ]; then
-  echo "This release zip is incomplete (dist or node_modules missing)."
-  exit 1
-fi
+  if [ ! -f "$NEW/start.sh" ]; then
+    echo "This does not look like a Pulsarr release zip (start.sh not found)."
+    exit 1
+  fi
+  if [ ! -d "$NEW/dist" ] || [ ! -d "$NEW/node_modules" ]; then
+    echo "This release zip is incomplete (dist or node_modules missing)."
+    exit 1
+  fi
 
-echo "Replacing application files..."
-# Only dist and node_modules are deleted; config and data are left in place.
-rm -rf "$INSTALL_DIR/dist" "$INSTALL_DIR/node_modules"
-cp -a "$NEW/." "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/start.sh" "$INSTALL_DIR/bun" 2>/dev/null || true
+  echo "Replacing application files..."
+  # Only dist and node_modules are deleted; config and data are left in place.
+  rm -rf "$INSTALL_DIR/dist" "$INSTALL_DIR/node_modules"
+  cp -a "$NEW/." "$INSTALL_DIR/"
+  chmod +x "$INSTALL_DIR/start.sh" "$INSTALL_DIR/bun" 2>/dev/null || true
 
-echo "Update complete. Start Pulsarr with ./start.sh (or restart your service)."
+  echo "Update complete. Start Pulsarr with ./start.sh (or restart your service)."
+}
+
+main "$@"; exit 0
 `
 
 const WINDOWS_START = `@echo off

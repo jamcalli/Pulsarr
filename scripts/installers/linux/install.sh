@@ -165,7 +165,10 @@ install_files() {
         rm -rf "${INSTALL_DIR:?}/${d}"
         mv "${staging}/${d}" "${INSTALL_DIR}/${d}"
     done
-    cp -a "${staging}/." "${INSTALL_DIR}/"
+    if ! cp -a "${staging}/." "${INSTALL_DIR}/"; then
+        rm -rf "${staging:?}"
+        die "Failed to copy application files. Re-run the installer to complete the installation."
+    fi
     rm -rf "${staging:?}"
 
     # First-install scaffolding (the default dbPath and log dir live under data/).
