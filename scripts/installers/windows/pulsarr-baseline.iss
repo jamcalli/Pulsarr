@@ -53,9 +53,17 @@ Name: "service"; Description: "Install as Windows Service"; Types: full
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "startafterinstall"; Description: "Start Pulsarr after installation"; GroupDescription: "Startup:"; Flags: checkedonce
 
+[InstallDelete]
+; Clear the code dirs before copying so files removed between releases can't
+; linger. {app} and {#MyAppDataDir} are the same folder, so db/logs/.env sit
+; alongside these and are left untouched.
+Type: filesandordirs; Name: "{app}\dist"
+Type: filesandordirs; Name: "{app}\node_modules"
+
 [Files]
-; Main application files (from extracted native build zip)
-Source: "build\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: main
+; Main application files (from extracted native build zip).
+; Exclude update.bat: installer users update by re-running the installer.
+Source: "build\*"; DestDir: "{app}"; Excludes: "update.bat"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: main
 ; Icon for uninstaller
 Source: "pulsarr.ico"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 

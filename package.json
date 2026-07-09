@@ -10,7 +10,7 @@
   "scripts": {
     "clean:client": "rimraf dist/client",
     "clean:server": "rimraf dist",
-    "build": "bun run build:server && bun run clean:client && bun run --bun vite build",
+    "build": "bun run clean:server && bun run build:server && bun run clean:client && bun run --bun vite build",
     "build:server": "tsc && tsc-alias",
     "dev:server": "bun run --bun --watch src/server.ts",
     "dev": "bun run --bun src/server.ts --dev",
