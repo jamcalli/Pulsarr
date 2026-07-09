@@ -156,6 +156,11 @@ install_files() {
         die "Copy failed. No changes were made to the installation."
     fi
 
+    if [[ ! -d "${staging}/dist" ]] || [[ ! -d "${staging}/node_modules" ]]; then
+        rm -rf "${staging:?}"
+        die "Release payload is incomplete (dist or node_modules missing). No changes were made."
+    fi
+
     for d in $owned; do
         rm -rf "${INSTALL_DIR:?}/${d}"
         mv "${staging}/${d}" "${INSTALL_DIR}/${d}"
