@@ -313,14 +313,16 @@ main() {
     echo "This does not look like a Pulsarr release zip (start.sh not found)."
     exit 1
   fi
-  if [ ! -d "$NEW/dist" ] || [ ! -d "$NEW/node_modules" ]; then
-    echo "This release zip is incomplete (dist or node_modules missing)."
-    exit 1
-  fi
+  for d in dist node_modules migrations packages; do
+    if [ ! -d "$NEW/$d" ]; then
+      echo "This release zip is incomplete ($d missing)."
+      exit 1
+    fi
+  done
 
   echo "Replacing application files..."
-  # Only dist and node_modules are deleted; config and data are left in place.
-  rm -rf "$INSTALL_DIR/dist" "$INSTALL_DIR/node_modules"
+  # Only Pulsarr-owned code dirs are deleted; config and data are left in place.
+  rm -rf "$INSTALL_DIR/dist" "$INSTALL_DIR/node_modules" "$INSTALL_DIR/migrations" "$INSTALL_DIR/packages"
   cp -a "$NEW/." "$INSTALL_DIR/"
   chmod +x "$INSTALL_DIR/start.sh" "$INSTALL_DIR/bun" 2>/dev/null || true
 
@@ -395,15 +397,12 @@ if not exist "!NEW!\\start.bat" (
   rd /s /q "%STAGEDIR%" 2>nul
   exit /b 1
 )
-if not exist "!NEW!\\dist" (
-  echo This release zip is incomplete (dist missing).
-  rd /s /q "%STAGEDIR%" 2>nul
-  exit /b 1
-)
-if not exist "!NEW!\\node_modules" (
-  echo This release zip is incomplete (node_modules missing).
-  rd /s /q "%STAGEDIR%" 2>nul
-  exit /b 1
+for %%D in (dist node_modules migrations packages) do (
+  if not exist "!NEW!\\%%D" (
+    echo This release zip is incomplete (%%D missing).
+    rd /s /q "%STAGEDIR%" 2>nul
+    exit /b 1
+  )
 )
 
 if exist "!INSTALL!\\pulsarr-service.exe" (
@@ -413,9 +412,16 @@ if exist "!INSTALL!\\pulsarr-service.exe" (
 )
 
 echo Replacing application files...
-rem Only dist and node_modules are removed; /E copies without purging the rest.
-rd /s /q "!INSTALL!\\dist" 2>nul
-rd /s /q "!INSTALL!\\node_modules" 2>nul
+rem Only Pulsarr-owned code dirs are removed; /E copies without purging the rest.
+rem rd exits 0 even when a locked file survives, so verify each dir is gone.
+for %%D in (dist node_modules migrations packages) do (
+  rd /s /q "!INSTALL!\\%%D" 2>nul
+  if exist "!INSTALL!\\%%D" (
+    echo Failed to remove !INSTALL!\\%%D. Make sure Pulsarr is fully stopped and retry.
+    rd /s /q "%STAGEDIR%" 2>nul
+    exit /b 1
+  )
+)
 robocopy "!NEW!" "!INSTALL!" /E /R:2 /W:2 /NFL /NDL /NJH /NJS /NP >nul
 set "RC=!ERRORLEVEL!"
 rd /s /q "%STAGEDIR%" 2>nul
