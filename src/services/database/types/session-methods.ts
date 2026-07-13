@@ -54,17 +54,17 @@ declare module '@services/database.service.js' {
     ): Promise<RollingMonitoredShow | null>
 
     /**
-     * Gets a rolling monitored show by TVDB ID or title for a specific user
+     * Gets all rolling monitored shows matching a TVDB ID or title, one per enrolled Sonarr instance
      * @param tvdbId - The TVDB ID
      * @param title - The show title
      * @param plexUserId - The Plex user ID for per-user tracking
-     * @returns Promise resolving to the rolling monitored show or null
+     * @returns Promise resolving to the matching rolling monitored shows
      */
-    getRollingMonitoredShow(
+    getRollingMonitoredShowMatches(
       tvdbId?: string,
       title?: string,
       plexUserId?: string,
-    ): Promise<RollingMonitoredShow | null>
+    ): Promise<RollingMonitoredShow[]>
 
     /**
      * Updates rolling show progress

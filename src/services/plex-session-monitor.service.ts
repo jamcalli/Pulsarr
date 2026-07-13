@@ -11,7 +11,6 @@ import type {
   RollingMonitoredShow,
   SessionMonitoringResult,
 } from '@root/types/plex-session.types.js'
-import type { SonarrSeries } from '@root/types/sonarr.types.js'
 import {
   collectSeasonsEligibleForCleanup,
   userNeedsSeason,
@@ -229,20 +228,23 @@ export class PlexSessionMonitorService {
       `Processing session: ${episodeInfo} watched by ${session.User.title}`,
     )
 
-    // Always check for rolling monitored show (per-user lookup)
-    const rollingShow = await this.getRollingMonitoredShow(session)
+    // Synced shows have one rolling entry per instance, so process all of them.
+    const rollingShows = await this.getRollingMonitoredShows(session)
 
-    if (rollingShow) {
+    if (rollingShows.length === 0) {
+      // Skip shows that are not configured for rolling monitoring
+      this.log.debug(
+        `Skipping ${session.grandparentTitle} - not configured for rolling monitoring for user ${session.User.title}`,
+      )
+      return
+    }
+
+    for (const rollingShow of rollingShows) {
       await this.handleRollingMonitoredShow(
         session,
         rollingShow,
         result,
         canTriggerActions,
-      )
-    } else {
-      // Skip shows that are not configured for rolling monitoring
-      this.log.debug(
-        `Skipping ${session.grandparentTitle} - not configured for rolling monitoring for user ${session.User.title}`,
       )
     }
   }
@@ -307,17 +309,22 @@ export class PlexSessionMonitorService {
     // allSeasonPilotRolling only expands via pilot watch, not end-of-season threshold
     if (rollingShow.monitoring_type === 'allSeasonPilotRolling') return
 
-    // The next-season check below hits Sonarr getAllSeries (uncached full
-    // library dump), so skip it on no-progress events.
+    // The next-season check below queries Sonarr, so skip it on no-progress events.
     if (positionUnchanged) return
 
-    // Check if we need to expand monitoring using Sonarr data
-    const currentSeasonData = await this.getSonarrSeriesData(session)
-    if (!currentSeasonData) return
-
-    const season = currentSeasonData.series.seasons?.find(
-      (s) => s.seasonNumber === currentSeason,
+    // Read season statistics from this entry's own instance and series.
+    const sonarr = this.sonarrManager.getSonarrService(
+      rollingShow.sonarr_instance_id,
     )
+    if (!sonarr) return
+
+    const tvdbId = extractTvdbId(`tvdb://${rollingShow.tvdb_id ?? ''}`)
+    if (tvdbId <= 0) return
+
+    const series = await sonarr.getSeriesByTvdbId(tvdbId)
+    if (!series) return
+
+    const season = series.seasons?.find((s) => s.seasonNumber === currentSeason)
     if (!season?.statistics?.totalEpisodeCount) return
 
     const totalEpisodes = season.statistics.totalEpisodeCount
@@ -326,7 +333,7 @@ export class PlexSessionMonitorService {
 
     if (remainingEpisodes <= threshold && remainingEpisodes >= 0) {
       // User is near the end of the current season
-      const hasMoreSeasons = currentSeasonData.series.seasons?.some(
+      const hasMoreSeasons = series.seasons?.some(
         (s) => s.seasonNumber > currentSeason,
       )
 
@@ -431,139 +438,53 @@ export class PlexSessionMonitorService {
   }
 
   /**
-   * Find series across all Sonarr instances
+   * Get rolling monitored shows from database for the specific user, one per
+   * enrolled Sonarr instance. Handles migration from global to per-user entries.
    */
-  private async findSeriesInSonarr(
-    identifiers: { tvdbId?: string; imdbId?: string },
-    title: string,
-  ): Promise<{ series: SonarrSeries; instanceId: number } | null> {
-    const instances = await this.sonarrManager.getAllInstances()
-
-    this.log.debug(
-      {
-        identifiers,
-        title,
-      },
-      `Searching for series in ${instances.length} Sonarr instances`,
-    )
-
-    for (const instance of instances) {
-      try {
-        const sonarr = this.sonarrManager.getSonarrService(instance.id)
-        if (!sonarr) continue
-
-        const allSeries = await sonarr.getAllSeries()
-
-        // Try to match by TVDB ID first (primary identifier)
-        if (identifiers.tvdbId) {
-          const tvdbId = identifiers.tvdbId
-          const tvdbIdNum = Number.parseInt(tvdbId, 10)
-
-          const series = allSeries.find((s) => s.tvdbId === tvdbIdNum)
-          if (series) {
-            this.log.debug(
-              `Found match by TVDB ID: ${series.title} (${series.tvdbId})`,
-            )
-            return { series, instanceId: instance.id }
-          }
-        }
-
-        // Try IMDB ID as secondary identifier
-        if (identifiers.imdbId) {
-          const series = allSeries.find((s) => s.imdbId === identifiers.imdbId)
-          if (series) {
-            this.log.debug(
-              `Found match by IMDB ID: ${series.title} (${identifiers.imdbId})`,
-            )
-            return { series, instanceId: instance.id }
-          }
-        }
-
-        // Enhanced title matching as fallback
-        const series = allSeries.find((s) => {
-          const sonarrTitle = s.title.toLowerCase()
-          const searchTitle = title.toLowerCase()
-
-          // Exact match
-          if (sonarrTitle === searchTitle) return true
-
-          // Match without year suffix (e.g., "Versailles" matches "Versailles (2015)")
-          const titleWithoutYear = sonarrTitle.replace(/\s*\(\d{4}\)\s*$/, '')
-          if (titleWithoutYear === searchTitle) return true
-
-          // Match with "The" prefix variations
-          if (sonarrTitle === `the ${searchTitle}`) return true
-          if (`the ${sonarrTitle}` === searchTitle) return true
-
-          return false
-        })
-
-        if (series) {
-          this.log.debug(`Found match by title: ${series.title}`)
-          return { series, instanceId: instance.id }
-        }
-      } catch (error) {
-        this.log.error(
-          { error },
-          `Error searching Sonarr instance ${instance.id}:`,
-        )
-      }
-    }
-
-    return null
-  }
-
-  /**
-   * Helper method to get Sonarr series data for a session
-   */
-  private async getSonarrSeriesData(
+  private async getRollingMonitoredShows(
     session: PlexSession,
-  ): Promise<{ series: SonarrSeries; instanceId: number } | null> {
-    try {
-      const seriesIds = await this.getSeriesIdentifiers(session)
-      if (!seriesIds) return null
-
-      return await this.findSeriesInSonarr(seriesIds, session.grandparentTitle)
-    } catch (error) {
-      this.log.error({ error }, 'Error getting Sonarr series data:')
-      return null
-    }
-  }
-
-  /**
-   * Get rolling monitored show from database for the specific user
-   * Handles migration from global to per-user entries
-   */
-  private async getRollingMonitoredShow(
-    session: PlexSession,
-  ): Promise<RollingMonitoredShow | null> {
+  ): Promise<RollingMonitoredShow[]> {
     try {
       const identifiers = await this.getSeriesIdentifiers(session)
       const tvdbId = identifiers?.tvdbId
 
-      // First, check for global entry to see if this show should be monitored
-      const globalShow = await this.db.getRollingMonitoredShow(
+      // Master entries (null plex_user_id) define which shows are enrolled.
+      const globalShows = await this.db.getRollingMonitoredShowMatches(
         tvdbId,
         session.grandparentTitle,
-        undefined, // Look for global entry (null plex_user_id)
+        undefined,
       )
 
-      if (!globalShow) {
-        // No global entry means this show is not configured for rolling monitoring
-        return null
+      if (globalShows.length === 0) {
+        return []
       }
 
-      // Now try to find user-specific entry for progress tracking
-      let rollingShow = await this.db.getRollingMonitoredShow(
+      // Key per-user rows by instance+series so each master resolves to its own.
+      const userShows = await this.db.getRollingMonitoredShowMatches(
         tvdbId,
         session.grandparentTitle,
-        session.User.id, // Pass user ID for per-user entries
+        session.User.id,
+      )
+      const userShowByKey = new Map(
+        userShows.map((show) => [
+          `${show.sonarr_instance_id}-${show.sonarr_series_id}`,
+          show,
+        ]),
       )
 
-      // If no user-specific entry found, create one based on global entry
-      if (!rollingShow) {
+      const resolved: RollingMonitoredShow[] = []
+
+      for (const globalShow of globalShows) {
+        const key = `${globalShow.sonarr_instance_id}-${globalShow.sonarr_series_id}`
+        const existing = userShowByKey.get(key)
+
+        if (existing) {
+          resolved.push(existing)
+          continue
+        }
+
         this.log.info(
-          `Creating per-user rolling show entry for ${globalShow.show_title} for user ${session.User.title}`,
+          `Creating per-user rolling show entry for ${globalShow.show_title} on instance ${globalShow.sonarr_instance_id} for user ${session.User.title}`,
         )
 
         const userEntryId = await this.db.createOrFindUserRollingMonitoredShow(
@@ -572,21 +493,20 @@ export class PlexSessionMonitorService {
           session.User.title,
         )
 
-        // Get the newly created or existing per-user entry
         const byId = await this.db.getRollingMonitoredShowById(userEntryId)
         if (!byId) {
           this.log.warn(
             `Per-user entry (ID: ${userEntryId}) not found after createOrFind for ${globalShow.show_title} (${session.User.title})`,
           )
-          return null
+          continue
         }
-        rollingShow = byId
+        resolved.push(byId)
       }
 
-      return rollingShow
+      return resolved
     } catch (error) {
-      this.log.error({ error }, 'Error getting rolling monitored show:')
-      return null
+      this.log.error({ error }, 'Error getting rolling monitored shows:')
+      return []
     }
   }
 

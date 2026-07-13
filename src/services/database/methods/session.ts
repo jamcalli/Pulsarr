@@ -214,21 +214,21 @@ export async function getRollingMonitoredShowById(
 }
 
 /**
- * Retrieves a rolling monitored show by TVDB ID or show title, optionally filtered by Plex user ID.
+ * Retrieves all rolling monitored shows matching a TVDB ID or title, optionally filtered by Plex user ID.
  *
- * If a Plex user ID is provided, returns the per-user entry; otherwise, returns the global (legacy) entry.
+ * Returns one row per enrolled instance so a show synced across instances resolves fully. When a Plex user ID is provided, returns per-user entries; otherwise the global (legacy) entries. Ordered by instance ID.
  *
  * @param tvdbId - The TVDB ID of the show (optional)
  * @param title - The title of the show (optional)
  * @param plexUserId - The Plex user ID for per-user tracking (optional)
- * @returns The matching rolling monitored show, or null if not found or on error
+ * @returns The matching rolling monitored shows, or an empty array if none found or on error
  */
-export async function getRollingMonitoredShow(
+export async function getRollingMonitoredShowMatches(
   this: DatabaseService,
   tvdbId?: string,
   title?: string,
   plexUserId?: string,
-): Promise<RollingMonitoredShow | null> {
+): Promise<RollingMonitoredShow[]> {
   try {
     const query = this.knex('rolling_monitored_shows')
 
@@ -237,21 +237,19 @@ export async function getRollingMonitoredShow(
     } else if (title) {
       query.where('show_title', title)
     } else {
-      return null
+      return []
     }
 
-    // Always filter by user ID to ensure per-user entries
     if (plexUserId) {
       query.where('plex_user_id', plexUserId)
     } else {
-      // If no user ID provided, look for legacy global entries (null plex_user_id)
       query.whereNull('plex_user_id')
     }
 
-    return await query.first()
+    return await query.orderBy('sonarr_instance_id', 'asc')
   } catch (error) {
-    this.log.error({ error }, 'Error getting rolling monitored show:')
-    return null
+    this.log.error({ error }, 'Error getting rolling monitored show matches:')
+    return []
   }
 }
 
