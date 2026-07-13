@@ -101,7 +101,7 @@
     "zod": "^4.0.17"
   },
   "overrides": {
-    "undici": "^6.27.0"
+    "undici": "^8.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.1",
