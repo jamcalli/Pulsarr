@@ -217,6 +217,51 @@ describe('Content Router Rules API', () => {
       expect(row.quality_profile).toBeNull()
     })
 
+    it('clears sonarr fields when a rule switches to radarr', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...sonarrRule,
+          season_monitoring: 'all',
+          series_type: 'anime',
+        },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: { target_type: 'radarr', target_instance_id: 1 },
+      })
+      expect(putRes.statusCode).toBe(200)
+
+      const knex = getTestDatabase()
+      const row = await knex('router_rules').where({ id }).first()
+      expect(row.season_monitoring).toBeNull()
+      expect(row.series_type).toBeNull()
+    })
+
+    it('clears monitor when a rule switches to sonarr', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...radarrRule, monitor: 'movieOnly' },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: { target_type: 'sonarr', target_instance_id: 1 },
+      })
+      expect(putRes.statusCode).toBe(200)
+
+      const knex = getTestDatabase()
+      const row = await knex('router_rules').where({ id }).first()
+      expect(row.monitor).toBeNull()
+    })
+
     it('accepts sonarr fields on Sonarr rules', async () => {
       const res = await app.inject({
         method: 'POST',
