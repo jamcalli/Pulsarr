@@ -313,7 +313,8 @@ main() {
     echo "This does not look like a Pulsarr release zip (start.sh not found)."
     exit 1
   fi
-  for d in dist node_modules migrations packages; do
+  OWNED="dist node_modules migrations packages"
+  for d in $OWNED; do
     if [ ! -d "$NEW/$d" ]; then
       echo "This release zip is incomplete ($d missing)."
       exit 1
@@ -322,7 +323,9 @@ main() {
 
   echo "Replacing application files..."
   # Only Pulsarr-owned code dirs are deleted; config and data are left in place.
-  rm -rf "$INSTALL_DIR/dist" "$INSTALL_DIR/node_modules" "$INSTALL_DIR/migrations" "$INSTALL_DIR/packages"
+  for d in $OWNED; do
+    rm -rf "$INSTALL_DIR/$d"
+  done
   cp -a "$NEW/." "$INSTALL_DIR/"
   chmod +x "$INSTALL_DIR/start.sh" "$INSTALL_DIR/bun" 2>/dev/null || true
 
