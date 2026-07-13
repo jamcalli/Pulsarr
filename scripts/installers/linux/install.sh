@@ -138,69 +138,50 @@ create_user() {
     fi
 }
 
-# Install application files
+# Replace only Pulsarr-owned code dirs; config and data are left alone.
+# Stage in a sibling dir first so a failed copy changes nothing.
 install_files() {
     local src_dir="$1"
+    local owned="dist node_modules migrations packages"
+    local staging="${INSTALL_DIR}.staging"
+    local d
 
-    # Backup existing .env and data if present
-    local env_backup=""
-    local data_backup=""
-
-    if [[ -f "${INSTALL_DIR}/.env" ]]; then
-        info "Backing up existing .env..."
-        env_backup=$(mktemp)
-        cp "${INSTALL_DIR}/.env" "$env_backup"
-    fi
-
-    if [[ -d "${INSTALL_DIR}/data" ]]; then
-        info "Backing up existing data directory..."
-        data_backup=$(mktemp -d)
-        cp -r "${INSTALL_DIR}/data" "$data_backup/"
-    fi
-
-    # Remove old installation (except .env and data which are backed up)
-    if [[ -d "$INSTALL_DIR" ]]; then
-        info "Removing old installation..."
-        rm -rf "$INSTALL_DIR"
-    fi
-
-    # Create install directory
     mkdir -p "$INSTALL_DIR"
 
-    # Copy new files
+    rm -rf "${staging:?}"
+    mkdir -p "$staging"
     info "Installing files to ${INSTALL_DIR}..."
-    cp -r "${src_dir}/." "${INSTALL_DIR}/"
-
-    # Remove any .env or data from the source (fresh install shouldn't have user data)
-    rm -f "${INSTALL_DIR}/.env" 2>/dev/null || true
-    rm -rf "${INSTALL_DIR}/data" 2>/dev/null || true
-
-    # Restore backups
-    if [[ -n "$env_backup" && -f "$env_backup" ]]; then
-        info "Restoring .env..."
-        cp "$env_backup" "${INSTALL_DIR}/.env"
-        rm "$env_backup"
+    if ! cp -a "${src_dir}/." "${staging}/"; then
+        rm -rf "${staging:?}"
+        die "Copy failed. No changes were made to the installation."
     fi
 
-    if [[ -n "$data_backup" && -d "${data_backup}/data" ]]; then
-        info "Restoring data directory..."
-        cp -r "${data_backup}/data" "${INSTALL_DIR}/"
-        rm -rf "$data_backup"
-    fi
+    for d in $owned; do
+        if [[ ! -d "${staging}/${d}" ]]; then
+            rm -rf "${staging:?}"
+            die "Release payload is incomplete (${d} missing). No changes were made."
+        fi
+    done
 
-    # Create data directories if they don't exist
+    for d in $owned; do
+        rm -rf "${INSTALL_DIR:?}/${d}"
+        mv "${staging}/${d}" "${INSTALL_DIR}/${d}"
+    done
+    if ! cp -a "${staging}/." "${INSTALL_DIR}/"; then
+        rm -rf "${staging:?}"
+        die "Failed to copy application files. Re-run the installer to complete the installation."
+    fi
+    rm -rf "${staging:?}"
+
+    # First-install scaffolding (the default dbPath and log dir live under data/).
     mkdir -p "${INSTALL_DIR}/data/db"
     mkdir -p "${INSTALL_DIR}/data/logs"
 
-    # Create .env from template if it doesn't exist
     if [[ ! -f "${INSTALL_DIR}/.env" ]]; then
         cp "${INSTALL_DIR}/.env.example" "${INSTALL_DIR}/.env"
     fi
 
-    # Set ownership
     chown -R "${APP_USER}:${APP_GROUP}" "$INSTALL_DIR"
-
-    # Make start script executable
     chmod +x "${INSTALL_DIR}/start.sh"
     chmod +x "${INSTALL_DIR}/bun"
 }
