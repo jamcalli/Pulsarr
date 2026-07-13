@@ -138,11 +138,11 @@ create_user() {
     fi
 }
 
-# Replace only Pulsarr-owned code (dist, node_modules); config and data are left
-# alone. Stage in a sibling dir first so a failed copy changes nothing.
+# Replace only Pulsarr-owned code dirs; config and data are left alone.
+# Stage in a sibling dir first so a failed copy changes nothing.
 install_files() {
     local src_dir="$1"
-    local owned="dist node_modules"
+    local owned="dist node_modules migrations packages"
     local staging="${INSTALL_DIR}.staging"
     local d
 
@@ -156,10 +156,12 @@ install_files() {
         die "Copy failed. No changes were made to the installation."
     fi
 
-    if [[ ! -d "${staging}/dist" ]] || [[ ! -d "${staging}/node_modules" ]]; then
-        rm -rf "${staging:?}"
-        die "Release payload is incomplete (dist or node_modules missing). No changes were made."
-    fi
+    for d in $owned; do
+        if [[ ! -d "${staging}/${d}" ]]; then
+            rm -rf "${staging:?}"
+            die "Release payload is incomplete (${d} missing). No changes were made."
+        fi
+    done
 
     for d in $owned; do
         rm -rf "${INSTALL_DIR:?}/${d}"

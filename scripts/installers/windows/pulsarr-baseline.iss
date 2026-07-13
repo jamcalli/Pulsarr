@@ -59,6 +59,8 @@ Name: "startafterinstall"; Description: "Start Pulsarr after installation"; Grou
 ; alongside these and are left untouched.
 Type: filesandordirs; Name: "{app}\dist"
 Type: filesandordirs; Name: "{app}\node_modules"
+Type: filesandordirs; Name: "{app}\migrations"
+Type: filesandordirs; Name: "{app}\packages"
 
 [Files]
 ; Main application files (from extracted native build zip).
