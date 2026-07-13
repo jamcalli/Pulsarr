@@ -54,6 +54,7 @@ jobs:
           skip-dirs: docs
           version: v0.72.0
           severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
           ignore-unfixed: true
           format: sarif
           output: trivy-deps.sarif
@@ -100,6 +101,7 @@ jobs:
           output: trivy-scheduled-${{ matrix.tag }}.sarif
           ignore-unfixed: true
           severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
           trivyignores: .trivyignore.yaml
 
       - name: Upload SARIF to code scanning
