@@ -67,7 +67,13 @@ export function BulkManageDialog({
           if (data.enrolled > 0) parts.push(`${data.enrolled} enrolled`)
           if (data.modified > 0) parts.push(`${data.modified} modified`)
           if (data.skipped > 0) parts.push(`${data.skipped} skipped`)
-          toast.success(parts.join(', ') || data.message)
+          if (data.failed > 0) parts.push(`${data.failed} failed`)
+          const summary = parts.join(', ') || data.message
+          if (data.failed > 0) {
+            toast.warning(summary)
+          } else {
+            toast.success(summary)
+          }
           setMonitoringType('')
           setResetMonitoring(false)
           onSuccess()
@@ -149,7 +155,9 @@ export function BulkManageDialog({
               Resetting to baseline will immediately unmonitor excess episodes
               and delete their files based on the selected type. If unchecked,
               shows keep their current monitoring state but will still reset
-              automatically when they exceed the inactivity threshold.
+              automatically when they exceed the inactivity threshold. Selecting
+              All Season Pilot monitors the first episode of every season even
+              without a reset.
             </p>
           </div>
         </CredenzaBody>

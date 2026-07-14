@@ -412,7 +412,7 @@ export async function resetRollingMonitoredShowToOriginal(
         .whereNotNull('plex_user_id') // Only delete user entries, not master
         .delete()
 
-      // Reset the master record to original state (if it exists)
+      // allSeasonPilotRolling tracks full-season expansion from 0, not 1
       await trx('rolling_monitored_shows')
         .where({
           sonarr_series_id: show.sonarr_series_id,
@@ -420,7 +420,8 @@ export async function resetRollingMonitoredShowToOriginal(
         })
         .whereNull('plex_user_id') // Only update master record
         .update({
-          current_monitored_season: 1,
+          current_monitored_season:
+            show.monitoring_type === 'allSeasonPilotRolling' ? 0 : 1,
           last_watched_season: 0,
           last_watched_episode: 0,
           updated_at: this.timestamp,
@@ -547,12 +548,13 @@ export async function getInactiveRollingMonitoredShows(
  * Updates the monitoring type and initial season for a rolling monitored show.
  *
  * Used when changing an enrolled show's monitoring approach (e.g. pilotRolling
- * to firstSeasonRolling). Only updates the master record.
+ * to firstSeasonRolling). The type change propagates to per-user entries; the
+ * initial season is only written to the master record.
  *
  * @param id - The ID of the master rolling monitored show entry
  * @param monitoringType - The new monitoring type
  * @param currentMonitoredSeason - The initial season for the new type
- * @returns True if a row was updated
+ * @returns True if the master entry was found and updated
  */
 export async function updateRollingShowMonitoringType(
   this: DatabaseService,
@@ -564,17 +566,35 @@ export async function updateRollingShowMonitoringType(
   currentMonitoredSeason: number,
 ): Promise<boolean> {
   try {
-    const updated = await this.knex('rolling_monitored_shows')
-      .where({ id })
-      .whereNull('plex_user_id')
-      .update({
-        monitoring_type: monitoringType,
-        current_monitored_season: currentMonitoredSeason,
-        updated_at: this.timestamp,
-        last_updated_at: this.timestamp,
-      })
+    return await this.knex.transaction(async (trx) => {
+      const master = await trx('rolling_monitored_shows')
+        .where({ id })
+        .whereNull('plex_user_id')
+        .first()
 
-    return Number(updated) > 0
+      if (!master) {
+        return false
+      }
+
+      // The session monitor reads monitoring_type from per-user rows, so the
+      // type change must reach them too. Per-user season progress is left alone.
+      await trx('rolling_monitored_shows')
+        .where({
+          sonarr_series_id: master.sonarr_series_id,
+          sonarr_instance_id: master.sonarr_instance_id,
+        })
+        .update({
+          monitoring_type: monitoringType,
+          updated_at: this.timestamp,
+          last_updated_at: this.timestamp,
+        })
+
+      await trx('rolling_monitored_shows')
+        .where({ id })
+        .update({ current_monitored_season: currentMonitoredSeason })
+
+      return true
+    })
   } catch (error) {
     this.log.error(
       { error, id, monitoringType },
