@@ -147,10 +147,9 @@ install_files() {
 
     mkdir -p "$INSTALL_DIR"
 
-    # Unique staging dir keeps concurrent runs from clobbering each other; only
-    # sweep leftovers old enough to be from a dead run.
     find "$(dirname "$INSTALL_DIR")" -maxdepth 1 -name "$(basename "$INSTALL_DIR").staging.*" -mmin +60 -exec rm -rf {} + 2>/dev/null || true
-    staging="$(mktemp -d "${INSTALL_DIR}.staging.XXXXXX")"
+    staging="$(mktemp -d "${INSTALL_DIR}.staging.XXXXXX")" || die "Failed to create staging directory"
+    [[ -d "$staging" ]] || die "Staging directory was not created"
     info "Installing files to ${INSTALL_DIR}..."
     if ! cp -a "${src_dir}/." "${staging}/"; then
         rm -rf "${staging:?}"
@@ -258,8 +257,7 @@ uninstall() {
         systemctl daemon-reload
     fi
 
-    # Remove user. userdel also removes the group it created; a pre-existing
-    # admin-managed group must be left alone.
+    # Remove user
     if id "$APP_USER" &>/dev/null; then
         info "Removing user '$APP_USER'..."
         userdel "$APP_USER" 2>/dev/null || true
@@ -347,8 +345,7 @@ install() {
     version=$(get_latest_version)
     info "Latest version: $version"
 
-    # Download and extract before stopping, so a failed download leaves the
-    # running install untouched
+    # Download and extract
     extracted_dir=$(download_release "$version" "$arch")
 
     # Create user

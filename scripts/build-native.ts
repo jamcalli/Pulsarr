@@ -327,10 +327,8 @@ main() {
   echo "Replacing application files..."
   # Stage inside the install dir (same filesystem, so mv is a rename) and only
   # then delete Pulsarr-owned code dirs; config and data are left in place.
-  # Unique staging dir keeps concurrent runs from clobbering each other; only
-  # sweep leftovers old enough to be from a dead run.
   find "$INSTALL_DIR" -maxdepth 1 -name '.update-staging.*' -mmin +60 -exec rm -rf {} + 2>/dev/null || true
-  STAGE="$(mktemp -d "$INSTALL_DIR/.update-staging.XXXXXX")"
+  STAGE="$(mktemp -d "$INSTALL_DIR/.update-staging.XXXXXX")" || { echo "Failed to create staging directory."; exit 1; }
   trap 'rm -rf "$TMP" "$STAGE"' EXIT
   if ! cp -a "$NEW/." "$STAGE/"; then
     echo "Copy failed. No changes were made to the installation."
