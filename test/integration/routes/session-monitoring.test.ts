@@ -71,7 +71,7 @@ describe('Session Monitoring Routes - bulk manage', () => {
     return { masterId, userId }
   }
 
-  function showEntry(rollingShowId: number, seriesId = 100) {
+  function showEntry(rollingShowId: number | null, seriesId = 100) {
     return {
       sonarrSeriesId: seriesId,
       sonarrInstanceId: 1,
@@ -268,6 +268,23 @@ describe('Session Monitoring Routes - bulk manage', () => {
       .where({ id: userId })
       .first()
     expect(userEntry).toBeUndefined()
+  })
+
+  it('does not double-seed pilots when enrolling into allSeasonPilotRolling with a reset', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/session-monitoring/rolling-monitored/bulk',
+      payload: bulkBody([showEntry(null, 300)], 'allSeasonPilotRolling', true),
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toMatchObject({ enrolled: 1, failed: 0 })
+    expect(app.plexSessionMonitor.resetToAllSeasonPilots).toHaveBeenCalledWith(
+      300,
+      1,
+      'Test Show 300',
+    )
+    expect(app.plexSessionMonitor.monitorAllSeasonPilots).not.toHaveBeenCalled()
   })
 
   it('continues past a failing show and reports it as failed', async () => {

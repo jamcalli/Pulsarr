@@ -384,7 +384,7 @@ export async function deleteAllRollingMonitoredShowEntries(
 /**
  * Reset a show's rolling monitored data to its original (master) state.
  *
- * Deletes all per-user entries for the show identified by `id`'s series/instance and updates the master record (plex_user_id IS NULL) to season 1 with cleared progress and refreshed timestamps. The provided `id` may be any entry (master or user) for the target show.
+ * Deletes all per-user entries for the show identified by `id`'s series/instance and updates the master record (plex_user_id IS NULL) to its type's baseline season (0 for allSeasonPilotRolling, 1 otherwise) with cleared progress and refreshed timestamps. The provided `id` may be any entry (master or user) for the target show.
  *
  * @param id - ID of any rolling monitored show entry for the target show
  * @returns The number of user-specific entries deleted. Returns 0 if the show was not found or an error occurred.
@@ -567,10 +567,11 @@ export async function updateRollingShowMonitoringType(
 ): Promise<boolean> {
   try {
     return await this.knex.transaction(async (trx) => {
-      const master = await trx('rolling_monitored_shows')
+      const masterQuery = trx('rolling_monitored_shows')
         .where({ id })
         .whereNull('plex_user_id')
-        .first()
+      if (this.isPostgres) masterQuery.forUpdate() // row-level lock only on PG
+      const master = await masterQuery.first()
 
       if (!master) {
         return false

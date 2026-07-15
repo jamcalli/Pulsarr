@@ -341,9 +341,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
                 if (newShow) {
                   await resetShowMonitoring(newShow, fastify.plexSessionMonitor)
                 }
-              }
-
-              if (monitoringType === 'allSeasonPilotRolling') {
+              } else if (monitoringType === 'allSeasonPilotRolling') {
                 await fastify.plexSessionMonitor.monitorAllSeasonPilots(
                   show.sonarrSeriesId,
                   show.sonarrInstanceId,

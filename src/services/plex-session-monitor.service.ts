@@ -944,7 +944,7 @@ export class PlexSessionMonitorService {
 
   /**
    * Reset inactive rolling monitored shows to their original monitoring state
-   * Removes all user entries and resets master records to season 1
+   * Removes all user entries and resets master records to their type's baseline season
    * Should be called periodically to clean up shows that haven't been watched recently
    */
   async resetInactiveRollingShows(inactivityDays = 7): Promise<void> {
