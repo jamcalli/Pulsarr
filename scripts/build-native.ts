@@ -39,6 +39,9 @@ if (!BUN_VERSION) {
 }
 const WINSW_VERSION = '2.12.0'
 const WINSW_URL = `https://github.com/winsw/winsw/releases/download/v${WINSW_VERSION}/WinSW-x64.exe`
+// WinSW publishes no checksum file, so pin the known-good hash per version
+const WINSW_SHA256 =
+  '05b82d46ad331cc16bdc00de5c6332c1ef818df8ceefcd49c726553209b3a0da'
 const VERSION = packageJson.version
 
 interface Platform {
@@ -293,6 +296,7 @@ main() {
 
   cd "$(dirname "\${BASH_SOURCE[0]}")"
   INSTALL_DIR="$(pwd)"
+  STAGE="$INSTALL_DIR/.update-staging"
 
   if ! command -v unzip >/dev/null 2>&1; then
     echo "unzip is required but was not found."
@@ -300,7 +304,7 @@ main() {
   fi
 
   TMP="$(mktemp -d)"
-  trap 'rm -rf "$TMP"' EXIT
+  trap 'rm -rf "$TMP" "$STAGE"' EXIT
 
   echo "Extracting update..."
   unzip -q "$ZIP" -d "$TMP"
@@ -322,11 +326,20 @@ main() {
   done
 
   echo "Replacing application files..."
-  # Only Pulsarr-owned code dirs are deleted; config and data are left in place.
+  # Stage inside the install dir (same filesystem, so mv is a rename) and only
+  # then delete Pulsarr-owned code dirs; config and data are left in place.
+  rm -rf "$STAGE"
+  mkdir -p "$STAGE"
+  if ! cp -a "$NEW/." "$STAGE/"; then
+    echo "Copy failed. No changes were made to the installation."
+    exit 1
+  fi
   for d in $OWNED; do
     rm -rf "$INSTALL_DIR/$d"
+    mv "$STAGE/$d" "$INSTALL_DIR/$d"
   done
-  cp -a "$NEW/." "$INSTALL_DIR/"
+  cp -a "$STAGE/." "$INSTALL_DIR/"
+  rm -rf "$STAGE"
   chmod +x "$INSTALL_DIR/start.sh" "$INSTALL_DIR/bun" 2>/dev/null || true
 
   echo "Update complete. Start Pulsarr with ./start.sh (or restart your service)."
@@ -485,6 +498,7 @@ const UNINSTALL_SERVICE_BAT = `@echo off
 cd /d "%~dp0"
 echo Stopping Pulsarr service...
 pulsarr-service.exe stop
+timeout /t 2 /nobreak >nul
 echo Uninstalling Pulsarr service...
 pulsarr-service.exe uninstall
 echo.
@@ -776,6 +790,16 @@ for (const platform of PLATFORMS) {
     const winswTmp = resolve(BUILD_DIR, '_winsw.exe')
     if (!existsSync(winswTmp)) {
       runFile('curl', ['-fsSL', WINSW_URL, '-o', winswTmp])
+      const winswHasher = new Bun.CryptoHasher('sha256')
+      winswHasher.update(readFileSync(winswTmp))
+      const winswHash = winswHasher.digest('hex')
+      if (winswHash !== WINSW_SHA256) {
+        rmSync(winswTmp, { force: true })
+        throw new Error(
+          `Checksum mismatch for WinSW-x64.exe: expected ${WINSW_SHA256}, got ${winswHash}`,
+        )
+      }
+      console.log('      Checksum verified for WinSW-x64.exe')
     }
     cpSync(winswTmp, resolve(platformDir, 'pulsarr-service.exe'))
     writeFileSync(resolve(platformDir, 'pulsarr-service.xml'), WINSW_XML)

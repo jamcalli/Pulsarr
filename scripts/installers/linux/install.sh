@@ -257,10 +257,13 @@ uninstall() {
         systemctl daemon-reload
     fi
 
-    # Remove user
+    # Remove user and group
     if id "$APP_USER" &>/dev/null; then
         info "Removing user '$APP_USER'..."
         userdel "$APP_USER" 2>/dev/null || true
+    fi
+    if getent group "$APP_GROUP" &>/dev/null; then
+        groupdel "$APP_GROUP" 2>/dev/null || true
     fi
 
     # Handle data directory
@@ -345,14 +348,15 @@ install() {
     version=$(get_latest_version)
     info "Latest version: $version"
 
-    # Stop existing service if running
-    stop_service
-
-    # Download and extract
+    # Download and extract before stopping, so a failed download leaves the
+    # running install untouched
     extracted_dir=$(download_release "$version" "$arch")
 
     # Create user
     create_user
+
+    # Stop existing service if running
+    stop_service
 
     # Install files
     install_files "$extracted_dir"
