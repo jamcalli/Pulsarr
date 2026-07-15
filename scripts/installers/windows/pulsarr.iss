@@ -63,6 +63,8 @@ Type: filesandordirs; Name: "{app}\migrations"
 Type: filesandordirs; Name: "{app}\packages"
 ; Shipped by older installers; now excluded from [Files]
 Type: files; Name: "{app}\README.txt"
+; Leftover lock probe from an interrupted run
+Type: files; Name: "{app}\bun.exe.locktest"
 
 [Files]
 ; Main application files (from extracted native build zip).
@@ -115,7 +117,7 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
   BunPath, ProbePath: String;
-  I: Integer;
+  I, J: Integer;
 begin
   Result := '';
   if FileExists(ExpandConstant('{app}\pulsarr-service.exe')) then
@@ -131,11 +133,20 @@ begin
   if FileExists(BunPath) then
   begin
     ProbePath := BunPath + '.locktest';
+    { A stale probe file from an interrupted run blocks the rename below }
+    DeleteFile(ProbePath);
     for I := 1 to 5 do
     begin
       if RenameFile(BunPath, ProbePath) then
       begin
-        RenameFile(ProbePath, BunPath);
+        { Retry the restore; AV scanners can briefly lock a renamed file }
+        for J := 1 to 5 do
+        begin
+          if RenameFile(ProbePath, BunPath) then
+            Exit;
+          Sleep(1000);
+        end;
+        Result := 'Setup could not restore bun.exe. Rename ' + ProbePath + ' back to bun.exe, then run Setup again.';
         Exit;
       end;
       Sleep(2000);

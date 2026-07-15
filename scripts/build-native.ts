@@ -296,7 +296,6 @@ main() {
 
   cd "$(dirname "\${BASH_SOURCE[0]}")"
   INSTALL_DIR="$(pwd)"
-  STAGE="$INSTALL_DIR/.update-staging"
 
   if ! command -v unzip >/dev/null 2>&1; then
     echo "unzip is required but was not found."
@@ -304,7 +303,7 @@ main() {
   fi
 
   TMP="$(mktemp -d)"
-  trap 'rm -rf "$TMP" "$STAGE"' EXIT
+  trap 'rm -rf "$TMP"' EXIT
 
   echo "Extracting update..."
   unzip -q "$ZIP" -d "$TMP"
@@ -328,8 +327,11 @@ main() {
   echo "Replacing application files..."
   # Stage inside the install dir (same filesystem, so mv is a rename) and only
   # then delete Pulsarr-owned code dirs; config and data are left in place.
-  rm -rf "$STAGE"
-  mkdir -p "$STAGE"
+  # Unique staging dir keeps concurrent runs from clobbering each other; only
+  # sweep leftovers old enough to be from a dead run.
+  find "$INSTALL_DIR" -maxdepth 1 -name '.update-staging.*' -mmin +60 -exec rm -rf {} + 2>/dev/null || true
+  STAGE="$(mktemp -d "$INSTALL_DIR/.update-staging.XXXXXX")"
+  trap 'rm -rf "$TMP" "$STAGE"' EXIT
   if ! cp -a "$NEW/." "$STAGE/"; then
     echo "Copy failed. No changes were made to the installation."
     exit 1

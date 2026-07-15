@@ -143,13 +143,14 @@ create_user() {
 install_files() {
     local src_dir="$1"
     local owned="dist node_modules migrations packages"
-    local staging="${INSTALL_DIR}.staging"
-    local d
+    local staging d
 
     mkdir -p "$INSTALL_DIR"
 
-    rm -rf "${staging:?}"
-    mkdir -p "$staging"
+    # Unique staging dir keeps concurrent runs from clobbering each other; only
+    # sweep leftovers old enough to be from a dead run.
+    find "$(dirname "$INSTALL_DIR")" -maxdepth 1 -name "$(basename "$INSTALL_DIR").staging.*" -mmin +60 -exec rm -rf {} + 2>/dev/null || true
+    staging="$(mktemp -d "${INSTALL_DIR}.staging.XXXXXX")"
     info "Installing files to ${INSTALL_DIR}..."
     if ! cp -a "${src_dir}/." "${staging}/"; then
         rm -rf "${staging:?}"
@@ -257,13 +258,11 @@ uninstall() {
         systemctl daemon-reload
     fi
 
-    # Remove user and group
+    # Remove user. userdel also removes the group it created; a pre-existing
+    # admin-managed group must be left alone.
     if id "$APP_USER" &>/dev/null; then
         info "Removing user '$APP_USER'..."
         userdel "$APP_USER" 2>/dev/null || true
-    fi
-    if getent group "$APP_GROUP" &>/dev/null; then
-        groupdel "$APP_GROUP" 2>/dev/null || true
     fi
 
     # Handle data directory
