@@ -367,14 +367,32 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
               }
 
               if (typeChanged) {
+                if (
+                  !resetMonitoring &&
+                  monitoringType === 'allSeasonPilotRolling'
+                ) {
+                  // Without a reset nothing else seeds season pilots, and this
+                  // mode only expands via a pilot watch
+                  await fastify.plexSessionMonitor.monitorAllSeasonPilots(
+                    show.sonarrSeriesId,
+                    show.sonarrInstanceId,
+                  )
+                }
+
                 const initialSeason =
                   monitoringType === 'allSeasonPilotRolling' ? 0 : 1
 
-                await fastify.db.updateRollingShowMonitoringType(
-                  show.rollingShowId,
-                  monitoringType,
-                  initialSeason,
-                )
+                const updated =
+                  await fastify.db.updateRollingShowMonitoringType(
+                    show.rollingShowId,
+                    monitoringType,
+                    initialSeason,
+                  )
+                if (!updated) {
+                  throw new Error(
+                    `Failed to update monitoring type for rolling show ${show.rollingShowId}`,
+                  )
+                }
               }
 
               if (resetMonitoring) {
@@ -389,16 +407,6 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
 
                 await fastify.db.resetRollingMonitoredShowToOriginal(
                   show.rollingShowId,
-                )
-              } else if (
-                typeChanged &&
-                monitoringType === 'allSeasonPilotRolling'
-              ) {
-                // Without a reset nothing else seeds season pilots, and this
-                // mode only expands via a pilot watch
-                await fastify.plexSessionMonitor.monitorAllSeasonPilots(
-                  show.sonarrSeriesId,
-                  show.sonarrInstanceId,
                 )
               }
 

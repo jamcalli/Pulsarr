@@ -790,17 +790,17 @@ for (const platform of PLATFORMS) {
     const winswTmp = resolve(BUILD_DIR, '_winsw.exe')
     if (!existsSync(winswTmp)) {
       runFile('curl', ['-fsSL', WINSW_URL, '-o', winswTmp])
-      const winswHasher = new Bun.CryptoHasher('sha256')
-      winswHasher.update(readFileSync(winswTmp))
-      const winswHash = winswHasher.digest('hex')
-      if (winswHash !== WINSW_SHA256) {
-        rmSync(winswTmp, { force: true })
-        throw new Error(
-          `Checksum mismatch for WinSW-x64.exe: expected ${WINSW_SHA256}, got ${winswHash}`,
-        )
-      }
-      console.log('      Checksum verified for WinSW-x64.exe')
     }
+    const winswHasher = new Bun.CryptoHasher('sha256')
+    winswHasher.update(readFileSync(winswTmp))
+    const winswHash = winswHasher.digest('hex')
+    if (winswHash !== WINSW_SHA256) {
+      rmSync(winswTmp, { force: true })
+      throw new Error(
+        `Checksum mismatch for WinSW-x64.exe: expected ${WINSW_SHA256}, got ${winswHash}`,
+      )
+    }
+    console.log('      Checksum verified for WinSW-x64.exe')
     cpSync(winswTmp, resolve(platformDir, 'pulsarr-service.exe'))
     writeFileSync(resolve(platformDir, 'pulsarr-service.xml'), WINSW_XML)
     writeFileSync(
