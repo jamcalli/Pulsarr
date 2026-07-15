@@ -143,13 +143,13 @@ create_user() {
 install_files() {
     local src_dir="$1"
     local owned="dist node_modules migrations packages"
-    local staging="${INSTALL_DIR}.staging"
-    local d
+    local staging d
 
     mkdir -p "$INSTALL_DIR"
 
-    rm -rf "${staging:?}"
-    mkdir -p "$staging"
+    find "$(dirname "$INSTALL_DIR")" -maxdepth 1 -name "$(basename "$INSTALL_DIR").staging.*" -mmin +60 -exec rm -rf {} + 2>/dev/null || true
+    staging="$(mktemp -d "${INSTALL_DIR}.staging.XXXXXX")" || die "Failed to create staging directory"
+    [[ -d "$staging" ]] || die "Staging directory was not created"
     info "Installing files to ${INSTALL_DIR}..."
     if ! cp -a "${src_dir}/." "${staging}/"; then
         rm -rf "${staging:?}"
@@ -345,14 +345,14 @@ install() {
     version=$(get_latest_version)
     info "Latest version: $version"
 
-    # Stop existing service if running
-    stop_service
-
     # Download and extract
     extracted_dir=$(download_release "$version" "$arch")
 
     # Create user
     create_user
+
+    # Stop existing service if running
+    stop_service
 
     # Install files
     install_files "$extracted_dir"

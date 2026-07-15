@@ -61,11 +61,15 @@ Type: filesandordirs; Name: "{app}\dist"
 Type: filesandordirs; Name: "{app}\node_modules"
 Type: filesandordirs; Name: "{app}\migrations"
 Type: filesandordirs; Name: "{app}\packages"
+; Shipped by older installers; now excluded from [Files]
+Type: files; Name: "{app}\README.txt"
+; Leftover lock probe from an interrupted run
+Type: files; Name: "{app}\bun.exe.locktest"
 
 [Files]
 ; Main application files (from extracted native build zip).
-; Exclude update.bat: installer users update by re-running the installer.
-Source: "build\*"; DestDir: "{app}"; Excludes: "update.bat"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: main
+; Exclude zip-flow files: installer users update by re-running the installer.
+Source: "build\*"; DestDir: "{app}"; Excludes: "update.bat,README.txt"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: main
 ; Icon for uninstaller
 Source: "pulsarr.ico"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 
@@ -95,6 +99,8 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Start {#MyAppName}"; Flags: now
 [UninstallRun]
 ; Stop and uninstall service
 Filename: "{app}\pulsarr-service.exe"; Parameters: "stop"; Flags: runhidden; RunOnceId: "StopService"
+; WinSW stop can return before the process tree exits
+Filename: "cmd.exe"; Parameters: "/c timeout /t 2 /nobreak"; Flags: runhidden; RunOnceId: "StopSettle"
 Filename: "{app}\pulsarr-service.exe"; Parameters: "uninstall"; Flags: runhidden; RunOnceId: "UninstallService"
 
 [UninstallDelete]
@@ -107,25 +113,45 @@ Type: files; Name: "{app}\pulsarr-service.err.log"
 const
   CRLF = #13#10;
 
-var
-  DataDirPage: TInputDirWizardPage;
-  DeleteDataCheckbox: TNewCheckBox;
-
-procedure InitializeWizard;
-begin
-  { Add custom page for data directory selection (optional, for advanced users) }
-  { For now, we use the default ProgramData\Pulsarr location }
-end;
-
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
+  BunPath, ProbePath: String;
+  I, J: Integer;
 begin
   Result := '';
-  { Stop existing service if running }
   if FileExists(ExpandConstant('{app}\pulsarr-service.exe')) then
   begin
     Exec(ExpandConstant('{app}\pulsarr-service.exe'), 'stop', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    { WinSW stop can return before the process tree exits }
+    Sleep(2000);
+  end;
+
+  { A locked bun.exe means Pulsarr is still running. Abort here, before
+    InstallDelete wipes the code dirs with no rollback. }
+  BunPath := ExpandConstant('{app}\bun.exe');
+  if FileExists(BunPath) then
+  begin
+    ProbePath := BunPath + '.locktest';
+    { A stale probe file from an interrupted run blocks the rename below }
+    DeleteFile(ProbePath);
+    for I := 1 to 5 do
+    begin
+      if RenameFile(BunPath, ProbePath) then
+      begin
+        { Retry the restore; AV scanners can briefly lock a renamed file }
+        for J := 1 to 5 do
+        begin
+          if RenameFile(ProbePath, BunPath) then
+            Exit;
+          Sleep(1000);
+        end;
+        Result := 'Setup could not restore bun.exe. Rename ' + ProbePath + ' back to bun.exe, then run Setup again.';
+        Exit;
+      end;
+      Sleep(2000);
+    end;
+    Result := 'Pulsarr appears to be running. Stop the Pulsarr service or close the Pulsarr window, then run Setup again.';
   end;
 end;
 
