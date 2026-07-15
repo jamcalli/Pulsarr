@@ -108,7 +108,8 @@ declare module '@services/database.service.js' {
     /**
      * Resets a rolling monitored show to its original state:
      * - Removes all user entries
-     * - Resets master record to season 1
+     * - Resets master record to its type's baseline season (0 for
+     *   allSeasonPilotRolling, 1 otherwise)
      * @param id - The ID of any rolling monitored show entry for the show
      * @returns Promise resolving to number of user entries deleted
      */
@@ -137,11 +138,11 @@ declare module '@services/database.service.js' {
     ): Promise<RollingMonitoredShow[]>
 
     /**
-     * Updates the monitoring type and initial season for a master rolling monitored show.
+     * Updates the monitoring type for a rolling monitored show, propagating to per-user entries.
      * @param id - The ID of the master entry
      * @param monitoringType - The new monitoring type
-     * @param currentMonitoredSeason - The initial season for the new type
-     * @returns True if a row was updated
+     * @param currentMonitoredSeason - The initial season for the new type (master only)
+     * @returns True if the master entry was found and updated
      */
     updateRollingShowMonitoringType(
       id: number,

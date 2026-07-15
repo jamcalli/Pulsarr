@@ -7,10 +7,7 @@
  * which files get deleted) for each monitoring type.
  */
 
-import type {
-  PlexSession,
-  RollingMonitoredShow,
-} from '@root/types/plex-session.types.js'
+import type { PlexSession } from '@root/types/plex-session.types.js'
 import type { SonarrEpisode, SonarrSeries } from '@root/types/sonarr.types.js'
 import type { FastifyInstance } from 'fastify'
 import {
@@ -24,33 +21,8 @@ import {
 } from 'vitest'
 import { build } from '../../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../../helpers/database.js'
+import { insertRollingShow } from '../../../helpers/rolling-shows.js'
 import { seedAll } from '../../../helpers/seeds/index.js'
-
-async function insertRollingShow(
-  knex: ReturnType<typeof getTestDatabase>,
-  overrides: Partial<RollingMonitoredShow> & {
-    show_title: string
-    monitoring_type: RollingMonitoredShow['monitoring_type']
-    sonarr_series_id: number
-    sonarr_instance_id: number
-    tvdb_id: string
-  },
-): Promise<number> {
-  const now = new Date().toISOString()
-  const [result] = await knex('rolling_monitored_shows')
-    .insert({
-      current_monitored_season: 1,
-      last_watched_season: 0,
-      last_watched_episode: 0,
-      last_session_date: now,
-      created_at: now,
-      updated_at: now,
-      last_updated_at: now,
-      ...overrides,
-    })
-    .returning('id')
-  return typeof result === 'object' ? result.id : (result as number)
-}
 
 describe('Progressive Cleanup → Multi-User Safety Integration', () => {
   let app: FastifyInstance
