@@ -30,6 +30,7 @@ describe('Session Monitoring Routes - bulk manage', () => {
     vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
+    app.config.authenticationMethod = 'disabled'
 
     app.plexSessionMonitor.resetToPilotOnly = vi
       .fn()
