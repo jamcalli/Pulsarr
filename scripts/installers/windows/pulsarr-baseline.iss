@@ -23,9 +23,6 @@ AppSupportURL={#MyAppURL}/issues
 AppUpdatesURL={#MyAppURL}/releases
 ; Code goes to Program Files (admin-only). User data stays in {#MyAppDataDir}.
 DefaultDirName={autopf}\{#MyAppName}
-; Older installers put code in the user-writable data dir. Ignore that stored
-; path so upgrades relocate the code out of it.
-UsePreviousAppDir=no
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 LicenseFile=license.txt
@@ -67,8 +64,7 @@ Type: filesandordirs; Name: "{app}\packages"
 Type: files; Name: "{app}\README.txt"
 ; Leftover lock probe from an interrupted run
 Type: files; Name: "{app}\bun.exe.locktest"
-; Older installers kept code in the user-writable data dir. Remove those copies so
-; a non-admin can't swap them under the service. .env, db and logs are left alone.
+; Older installers put code in the data dir; remove those copies (keep .env, db, logs).
 Type: filesandordirs; Name: "{#MyAppDataDir}\dist"
 Type: filesandordirs; Name: "{#MyAppDataDir}\node_modules"
 Type: filesandordirs; Name: "{#MyAppDataDir}\migrations"
@@ -93,9 +89,7 @@ Source: "build\*"; DestDir: "{app}"; Excludes: "update.bat,README.txt"; Flags: i
 Source: "pulsarr.ico"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 
 [Dirs]
-; {app} keeps its default Program Files ACL (admins write, users read/execute).
-; Granting users write here would let a non-admin replace code the LocalSystem
-; service runs. Only the data dir below is user-writable.
+; No user-write on {app}: the LocalSystem service runs this code. Only data below.
 Name: "{#MyAppDataDir}"; Permissions: users-full
 Name: "{#MyAppDataDir}\db"; Permissions: users-full
 Name: "{#MyAppDataDir}\logs"; Permissions: users-full
@@ -132,6 +126,13 @@ Type: files; Name: "{app}\pulsarr-service.err.log"
 const
   CRLF = #13#10;
 
+procedure InitializeWizard;
+begin
+  { Relocate legacy data-dir installs to the default; keep a custom directory. }
+  if CompareText(WizardDirValue, ExpandConstant('{#MyAppDataDir}')) = 0 then
+    WizardForm.DirEdit.Text := ExpandConstant('{autopf}\{#MyAppName}');
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
@@ -140,9 +141,8 @@ var
 begin
   Result := '';
 
-  { Older installers ran the service from the data dir. Stop and unregister that
-    copy before installing the Program Files one, or winsw install hits a name
-    clash and the old bun.exe stays locked against InstallDelete. }
+  { Old install ran the service from the data dir; remove it first or winsw
+    install name-clashes and the old bun.exe stays locked. }
   OldServiceExe := ExpandConstant('{#MyAppDataDir}\pulsarr-service.exe');
   if (CompareText(ExpandConstant('{#MyAppDataDir}'), ExpandConstant('{app}')) <> 0) and FileExists(OldServiceExe) then
   begin
