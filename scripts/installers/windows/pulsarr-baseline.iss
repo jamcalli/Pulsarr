@@ -182,6 +182,14 @@ begin
     Exec(ExpandConstant('{sys}\sc.exe'), 'stop pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Sleep(2000);
     Exec(ExpandConstant('{sys}\sc.exe'), 'delete pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    { 1060 = never registered (compact installs). Anything else leaves a stale
+      entry that InstallDelete would orphan and the winsw install below would
+      collide with. }
+    if (ResultCode <> 0) and (ResultCode <> 1060) then
+    begin
+      Result := 'Setup could not remove the old Pulsarr service (error ' + IntToStr(ResultCode) + '). Close the Services console if it is open, then run Setup again.';
+      Exit;
+    end;
     Sleep(1000);
   end;
 
