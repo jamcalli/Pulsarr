@@ -173,13 +173,15 @@ begin
   Result := '';
 
   { Old install ran the service from the data dir; remove it first or winsw
-    install name-clashes and the old bun.exe stays locked. }
+    install name-clashes and the old bun.exe stays locked. Go through the
+    SCM by service name: the data dir is user-writable, so binaries there
+    must never run elevated. }
   OldServiceExe := ExpandConstant('{#MyAppDataDir}\pulsarr-service.exe');
   if (CompareText(ExpandConstant('{#MyAppDataDir}'), ExpandConstant('{app}')) <> 0) and FileExists(OldServiceExe) then
   begin
-    Exec(OldServiceExe, 'stop', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec(ExpandConstant('{sys}\sc.exe'), 'stop pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Sleep(2000);
-    Exec(OldServiceExe, 'uninstall', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Exec(ExpandConstant('{sys}\sc.exe'), 'delete pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Sleep(1000);
   end;
 
