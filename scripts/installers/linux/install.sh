@@ -147,9 +147,11 @@ install_files() {
 
     mkdir -p "$INSTALL_DIR"
 
-    # Own before stripping so the copy below can't follow a symlink left in a
-    # previously writable INSTALL_DIR; a root-owned data symlink is kept.
+    # Own and lock down before stripping so the copy below can't follow a
+    # symlink planted in a previously writable INSTALL_DIR; a root-owned
+    # data symlink is kept.
     chown root:root "$INSTALL_DIR"
+    chmod 755 "$INSTALL_DIR"
     find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -type l ! \( -name data -user root \) -delete
 
     find "$(dirname "$INSTALL_DIR")" -maxdepth 1 -name "$(basename "$INSTALL_DIR").staging.*" -mmin +60 -exec rm -rf {} + 2>/dev/null || true
@@ -186,8 +188,10 @@ install_files() {
         cp "${INSTALL_DIR}/.env.example" "${INSTALL_DIR}/.env"
     fi
 
-    chown -R root:root "$INSTALL_DIR"
-    chown -R "${APP_USER}:${APP_GROUP}" "${INSTALL_DIR}/data"
+    find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 ! -name data -exec chown -R root:root {} +
+    # Trailing slash dereferences a relocated data symlink; the symlink itself
+    # must stay root-owned or the strip above removes it on the next upgrade.
+    chown -R "${APP_USER}:${APP_GROUP}" "${INSTALL_DIR}/data/"
     if [[ -f "${INSTALL_DIR}/.env" ]]; then
         chown "root:${APP_GROUP}" "${INSTALL_DIR}/.env"
         chmod 640 "${INSTALL_DIR}/.env"
