@@ -439,7 +439,7 @@ export async function resetRollingMonitoredShowToOriginal(
       { error },
       'Error resetting rolling monitored show to original state',
     )
-    return 0
+    throw error
   }
 }
 
