@@ -133,11 +133,42 @@ begin
     WizardForm.DirEdit.Text := ExpandConstant('{autopf}\{#MyAppName}');
 end;
 
+{ A locked bun.exe means Pulsarr is still running. Returns '' when the
+  file is absent or free. }
+function CheckBunLocked(BunPath: String): String;
+var
+  ProbePath: String;
+  I, J: Integer;
+begin
+  Result := '';
+  if not FileExists(BunPath) then
+    Exit;
+  ProbePath := BunPath + '.locktest';
+  { A stale probe file from an interrupted run blocks the rename below }
+  DeleteFile(ProbePath);
+  for I := 1 to 5 do
+  begin
+    if RenameFile(BunPath, ProbePath) then
+    begin
+      { Retry the restore; AV scanners can briefly lock a renamed file }
+      for J := 1 to 5 do
+      begin
+        if RenameFile(ProbePath, BunPath) then
+          Exit;
+        Sleep(1000);
+      end;
+      Result := 'Setup could not restore bun.exe. Rename ' + ProbePath + ' back to bun.exe, then run Setup again.';
+      Exit;
+    end;
+    Sleep(2000);
+  end;
+  Result := 'Pulsarr appears to be running. Stop the Pulsarr service or close the Pulsarr window, then run Setup again.';
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
-  OldServiceExe, BunPath, ProbePath: String;
-  I, J: Integer;
+  OldServiceExe: String;
 begin
   Result := '';
 
@@ -159,32 +190,12 @@ begin
     Sleep(2000);
   end;
 
-  { A locked bun.exe means Pulsarr is still running. Abort here, before
-    InstallDelete wipes the code dirs with no rollback. }
-  BunPath := ExpandConstant('{app}\bun.exe');
-  if FileExists(BunPath) then
-  begin
-    ProbePath := BunPath + '.locktest';
-    { A stale probe file from an interrupted run blocks the rename below }
-    DeleteFile(ProbePath);
-    for I := 1 to 5 do
-    begin
-      if RenameFile(BunPath, ProbePath) then
-      begin
-        { Retry the restore; AV scanners can briefly lock a renamed file }
-        for J := 1 to 5 do
-        begin
-          if RenameFile(ProbePath, BunPath) then
-            Exit;
-          Sleep(1000);
-        end;
-        Result := 'Setup could not restore bun.exe. Rename ' + ProbePath + ' back to bun.exe, then run Setup again.';
-        Exit;
-      end;
-      Sleep(2000);
-    end;
-    Result := 'Pulsarr appears to be running. Stop the Pulsarr service or close the Pulsarr window, then run Setup again.';
-  end;
+  { Abort here, before InstallDelete wipes the code dirs with no rollback.
+    Check the legacy data-dir copy too: a compact install never registered
+    the service, so nothing above stops an instance still running there. }
+  Result := CheckBunLocked(ExpandConstant('{app}\bun.exe'));
+  if (Result = '') and (CompareText(ExpandConstant('{#MyAppDataDir}'), ExpandConstant('{app}')) <> 0) then
+    Result := CheckBunLocked(ExpandConstant('{#MyAppDataDir}\bun.exe'));
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
