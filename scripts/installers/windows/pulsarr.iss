@@ -183,6 +183,7 @@ end;
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
+  I: Integer;
 begin
   Result := '';
 
@@ -203,7 +204,19 @@ begin
       Result := 'Setup could not remove the old Pulsarr service (error ' + IntToStr(ResultCode) + '). Close the Services console if it is open, then run Setup again.';
       Exit;
     end;
-    Sleep(1000);
+    { SCM drops the entry only after the service stops and all handles close }
+    for I := 1 to 10 do
+    begin
+      Exec(ExpandConstant('{sys}\sc.exe'), 'query pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      if ResultCode = 1060 then
+        Break;
+      Sleep(1000);
+    end;
+    if ResultCode <> 1060 then
+    begin
+      Result := 'The old Pulsarr service has not finished being removed. Close the Services console if it is open, then run Setup again.';
+      Exit;
+    end;
   end;
 
   if FileExists(ExpandConstant('{app}\pulsarr-service.exe')) then
