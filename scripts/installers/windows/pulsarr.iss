@@ -165,10 +165,24 @@ begin
   Result := 'Pulsarr appears to be running. Stop the Pulsarr service or close the Pulsarr window, then run Setup again.';
 end;
 
+{ True when the registered pulsarr service runs from the data dir. The
+  registry is admin-writable only, so user-writable files can't spoof this. }
+function LegacyServiceInDataDir(): Boolean;
+var
+  ImagePath, DataDir: String;
+begin
+  Result := False;
+  if not RegQueryStringValue(HKLM, 'SYSTEM\CurrentControlSet\Services\pulsarr', 'ImagePath', ImagePath) then
+    Exit;
+  if (ImagePath <> '') and (ImagePath[1] = '"') then
+    Delete(ImagePath, 1, 1);
+  DataDir := ExpandConstant('{#MyAppDataDir}\');
+  Result := CompareText(Copy(ImagePath, 1, Length(DataDir)), DataDir) = 0;
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
-  OldServiceExe: String;
 begin
   Result := '';
 
@@ -176,8 +190,7 @@ begin
     install name-clashes and the old bun.exe stays locked. Go through the
     SCM by service name: the data dir is user-writable, so binaries there
     must never run elevated. }
-  OldServiceExe := ExpandConstant('{#MyAppDataDir}\pulsarr-service.exe');
-  if (CompareText(ExpandConstant('{#MyAppDataDir}'), ExpandConstant('{app}')) <> 0) and FileExists(OldServiceExe) then
+  if (CompareText(ExpandConstant('{#MyAppDataDir}'), ExpandConstant('{app}')) <> 0) and LegacyServiceInDataDir() then
   begin
     Exec(ExpandConstant('{sys}\sc.exe'), 'stop pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Sleep(2000);
