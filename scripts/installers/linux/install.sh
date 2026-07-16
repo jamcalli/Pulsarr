@@ -152,6 +152,9 @@ install_files() {
     # data symlink is kept.
     chown root:root "$INSTALL_DIR"
     chmod 755 "$INSTALL_DIR"
+    if [[ -L "${INSTALL_DIR}/data" ]] && [[ "$(stat -c %u "${INSTALL_DIR}/data")" != 0 ]]; then
+        die "${INSTALL_DIR}/data is a symlink not owned by root (older installers left it this way). If you relocated data intentionally, run 'chown -h root:root ${INSTALL_DIR}/data' and re-run this installer. If you did not create this symlink, remove it and investigate before upgrading."
+    fi
     find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -type l ! \( -name data -user root \) -delete
 
     find "$(dirname "$INSTALL_DIR")" -maxdepth 1 -name "$(basename "$INSTALL_DIR").staging.*" -mmin +60 -exec rm -rf {} + 2>/dev/null || true
