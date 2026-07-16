@@ -181,7 +181,12 @@ install_files() {
         cp "${INSTALL_DIR}/.env.example" "${INSTALL_DIR}/.env"
     fi
 
-    chown -R "${APP_USER}:${APP_GROUP}" "$INSTALL_DIR"
+    chown -R root:root "$INSTALL_DIR"
+    chown -R "${APP_USER}:${APP_GROUP}" "${INSTALL_DIR}/data"
+    if [[ -f "${INSTALL_DIR}/.env" ]]; then
+        chown "root:${APP_GROUP}" "${INSTALL_DIR}/.env"
+        chmod 640 "${INSTALL_DIR}/.env"
+    fi
     chmod +x "${INSTALL_DIR}/start.sh"
     chmod +x "${INSTALL_DIR}/bun"
 }
@@ -209,7 +214,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=${INSTALL_DIR}
+ReadWritePaths=${INSTALL_DIR}/data
 
 [Install]
 WantedBy=multi-user.target
