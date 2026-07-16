@@ -21,7 +21,11 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}/issues
 AppUpdatesURL={#MyAppURL}/releases
-DefaultDirName={commonappdata}\{#MyAppName}
+; Code goes to Program Files (admin-only). User data stays in {#MyAppDataDir}.
+DefaultDirName={autopf}\{#MyAppName}
+; Older installers put code in the user-writable data dir. Ignore that stored
+; path so upgrades relocate the code out of it.
+UsePreviousAppDir=no
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 LicenseFile=license.txt
@@ -54,9 +58,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "startafterinstall"; Description: "Start Pulsarr after installation"; GroupDescription: "Startup:"; Flags: checkedonce
 
 [InstallDelete]
-; Clear the code dirs before copying so files removed between releases can't
-; linger. {app} and {#MyAppDataDir} are the same folder, so db/logs/.env sit
-; alongside these and are left untouched.
+; Clear the code dirs before copying so files removed between releases can't linger.
 Type: filesandordirs; Name: "{app}\dist"
 Type: filesandordirs; Name: "{app}\node_modules"
 Type: filesandordirs; Name: "{app}\migrations"
@@ -65,6 +67,23 @@ Type: filesandordirs; Name: "{app}\packages"
 Type: files; Name: "{app}\README.txt"
 ; Leftover lock probe from an interrupted run
 Type: files; Name: "{app}\bun.exe.locktest"
+; Older installers kept code in the user-writable data dir. Remove those copies so
+; a non-admin can't swap them under the service. .env, db and logs are left alone.
+Type: filesandordirs; Name: "{#MyAppDataDir}\dist"
+Type: filesandordirs; Name: "{#MyAppDataDir}\node_modules"
+Type: filesandordirs; Name: "{#MyAppDataDir}\migrations"
+Type: filesandordirs; Name: "{#MyAppDataDir}\packages"
+Type: files; Name: "{#MyAppDataDir}\bun.exe"
+Type: files; Name: "{#MyAppDataDir}\start.bat"
+Type: files; Name: "{#MyAppDataDir}\pulsarr-service.exe"
+Type: files; Name: "{#MyAppDataDir}\pulsarr-service.xml"
+Type: files; Name: "{#MyAppDataDir}\pulsarr-service.wrapper.log"
+Type: files; Name: "{#MyAppDataDir}\pulsarr-service.out.log"
+Type: files; Name: "{#MyAppDataDir}\pulsarr-service.err.log"
+Type: files; Name: "{#MyAppDataDir}\.env.example"
+Type: files; Name: "{#MyAppDataDir}\pulsarr.ico"
+Type: files; Name: "{#MyAppDataDir}\README.txt"
+Type: files; Name: "{#MyAppDataDir}\bun.exe.locktest"
 
 [Files]
 ; Main application files (from extracted native build zip).
@@ -74,9 +93,9 @@ Source: "build\*"; DestDir: "{app}"; Excludes: "update.bat,README.txt"; Flags: i
 Source: "pulsarr.ico"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 
 [Dirs]
-; App directory permissions for non-admin user access
-Name: "{app}"; Permissions: users-modify
-; Create data directory with full permissions
+; {app} keeps its default Program Files ACL (admins write, users read/execute).
+; Granting users write here would let a non-admin replace code the LocalSystem
+; service runs. Only the data dir below is user-writable.
 Name: "{#MyAppDataDir}"; Permissions: users-full
 Name: "{#MyAppDataDir}\db"; Permissions: users-full
 Name: "{#MyAppDataDir}\logs"; Permissions: users-full
@@ -116,10 +135,23 @@ const
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
-  BunPath, ProbePath: String;
+  OldServiceExe, BunPath, ProbePath: String;
   I, J: Integer;
 begin
   Result := '';
+
+  { Older installers ran the service from the data dir. Stop and unregister that
+    copy before installing the Program Files one, or winsw install hits a name
+    clash and the old bun.exe stays locked against InstallDelete. }
+  OldServiceExe := ExpandConstant('{#MyAppDataDir}\pulsarr-service.exe');
+  if (CompareText(ExpandConstant('{#MyAppDataDir}'), ExpandConstant('{app}')) <> 0) and FileExists(OldServiceExe) then
+  begin
+    Exec(OldServiceExe, 'stop', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(2000);
+    Exec(OldServiceExe, 'uninstall', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(1000);
+  end;
+
   if FileExists(ExpandConstant('{app}\pulsarr-service.exe')) then
   begin
     Exec(ExpandConstant('{app}\pulsarr-service.exe'), 'stop', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);

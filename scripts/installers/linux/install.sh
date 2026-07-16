@@ -147,6 +147,11 @@ install_files() {
 
     mkdir -p "$INSTALL_DIR"
 
+    # Strip symlinks planted directly in INSTALL_DIR so cp -a and the .env chown/chmod
+    # cannot follow one out of the tree. mindepth 1 spares INSTALL_DIR itself in case
+    # it is a user relocation symlink; maxdepth 1 leaves user symlinks under data/ alone.
+    find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -type l -delete
+
     find "$(dirname "$INSTALL_DIR")" -maxdepth 1 -name "$(basename "$INSTALL_DIR").staging.*" -mmin +60 -exec rm -rf {} + 2>/dev/null || true
     staging="$(mktemp -d "${INSTALL_DIR}.staging.XXXXXX")" || die "Failed to create staging directory"
     [[ -d "$staging" ]] || die "Staging directory was not created"
