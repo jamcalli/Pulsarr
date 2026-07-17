@@ -29,7 +29,7 @@ export interface ArrMockServerOptions {
   name: string
   port: number
   routes: ArrMockRoute[]
-  /** When true, require a non-empty X-Api-Key (any value accepted). Default true. */
+  /** When true, require X-Api-Key to match MOCK_API_KEY. Default true. */
   requireApiKey?: boolean
 }
 
@@ -95,9 +95,9 @@ export function startArrMockServer(options: ArrMockServerOptions) {
 
       if (requireApiKey) {
         const apiKey = request.headers.get('X-Api-Key')
-        if (!apiKey) {
+        if (apiKey !== MOCK_API_KEY) {
           console.log(
-            `${label} ${method} ${url.pathname} → 401 (missing API key)`,
+            `${label} ${method} ${url.pathname} → 401 (invalid API key)`,
           )
           return json({ message: 'Unauthorized' }, 401)
         }

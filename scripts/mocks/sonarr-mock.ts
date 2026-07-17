@@ -217,7 +217,10 @@ function createArrRoutes(): ArrMockRoute[] {
           addOptions?: Record<string, unknown>
         }>(request)
 
-        const tvdbId = Number(body.tvdbId ?? 0)
+        const tvdbId = Number(body.tvdbId)
+        if (!Number.isInteger(tvdbId) || tvdbId <= 0) {
+          return json({ message: 'tvdbId must be a positive integer' }, 400)
+        }
         const title = body.title ?? `Mock Series ${tvdbId}`
         const existing = seriesList.find((series) => series.tvdbId === tvdbId)
         if (existing) {
