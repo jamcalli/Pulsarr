@@ -179,7 +179,7 @@ const data = {
       items: [
         {
           title: 'Network Settings',
-          action: 'open-network-settings',
+          action: 'open-network-settings' as const,
         },
         {
           title: 'API Keys',
