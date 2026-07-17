@@ -217,6 +217,7 @@ export const bulkManageRollingMonitoredSchema = {
       enrolled: z.number(),
       modified: z.number(),
       skipped: z.number(),
+      failed: z.number(),
     }),
     400: ErrorSchema,
   },

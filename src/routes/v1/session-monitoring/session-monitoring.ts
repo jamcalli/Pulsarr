@@ -316,80 +316,108 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
         let enrolled = 0
         let modified = 0
         let skipped = 0
+        let failed = 0
 
         for (const show of shows) {
-          if (show.rollingShowId === null) {
-            const tvdbGuid = show.guids.find((g) =>
-              g.toLowerCase().startsWith('tvdb:'),
-            )
-            const tvdbId = tvdbGuid ? tvdbGuid.replace(/^tvdb:/i, '') : ''
-
-            const newId =
-              await fastify.plexSessionMonitor.createRollingMonitoredShow(
-                show.sonarrSeriesId,
-                show.sonarrInstanceId,
-                tvdbId,
-                show.title,
-                monitoringType,
+          try {
+            if (show.rollingShowId === null) {
+              const tvdbGuid = show.guids.find((g) =>
+                g.toLowerCase().startsWith('tvdb:'),
               )
+              const tvdbId = tvdbGuid ? tvdbGuid.replace(/^tvdb:/i, '') : ''
 
-            if (resetMonitoring) {
-              const newShow =
-                await fastify.db.getRollingMonitoredShowById(newId)
-              if (newShow) {
-                await resetShowMonitoring(newShow, fastify.plexSessionMonitor)
-              }
-            }
+              const newId =
+                await fastify.plexSessionMonitor.createRollingMonitoredShow(
+                  show.sonarrSeriesId,
+                  show.sonarrInstanceId,
+                  tvdbId,
+                  show.title,
+                  monitoringType,
+                )
 
-            if (monitoringType === 'allSeasonPilotRolling') {
-              await fastify.plexSessionMonitor.monitorAllSeasonPilots(
-                show.sonarrSeriesId,
-                show.sonarrInstanceId,
-              )
-            }
-
-            enrolled++
-          } else {
-            const existing = await fastify.db.getRollingMonitoredShowById(
-              show.rollingShowId,
-            )
-
-            if (!existing) {
-              skipped++
-              continue
-            }
-
-            if (existing.monitoring_type === monitoringType) {
-              skipped++
-              continue
-            }
-
-            const initialSeason =
-              monitoringType === 'allSeasonPilotRolling' ? 0 : 1
-
-            await fastify.db.updateRollingShowMonitoringType(
-              show.rollingShowId,
-              monitoringType,
-              initialSeason,
-            )
-
-            if (resetMonitoring) {
-              const updatedShow = await fastify.db.getRollingMonitoredShowById(
-                show.rollingShowId,
-              )
-              if (updatedShow) {
-                await resetShowMonitoring(
-                  updatedShow,
-                  fastify.plexSessionMonitor,
+              if (resetMonitoring) {
+                const newShow =
+                  await fastify.db.getRollingMonitoredShowById(newId)
+                if (newShow) {
+                  await resetShowMonitoring(newShow, fastify.plexSessionMonitor)
+                }
+              } else if (monitoringType === 'allSeasonPilotRolling') {
+                await fastify.plexSessionMonitor.monitorAllSeasonPilots(
+                  show.sonarrSeriesId,
+                  show.sonarrInstanceId,
                 )
               }
 
-              await fastify.db.resetRollingMonitoredShowToOriginal(
+              enrolled++
+            } else {
+              const existing = await fastify.db.getRollingMonitoredShowById(
                 show.rollingShowId,
               )
-            }
 
-            modified++
+              if (!existing) {
+                skipped++
+                continue
+              }
+
+              const typeChanged = existing.monitoring_type !== monitoringType
+
+              if (!typeChanged && !resetMonitoring) {
+                skipped++
+                continue
+              }
+
+              if (typeChanged) {
+                if (
+                  !resetMonitoring &&
+                  monitoringType === 'allSeasonPilotRolling'
+                ) {
+                  // Without a reset nothing else seeds season pilots, and this
+                  // mode only expands via a pilot watch
+                  await fastify.plexSessionMonitor.monitorAllSeasonPilots(
+                    show.sonarrSeriesId,
+                    show.sonarrInstanceId,
+                  )
+                }
+
+                const initialSeason =
+                  monitoringType === 'allSeasonPilotRolling' ? 0 : 1
+
+                const updated =
+                  await fastify.db.updateRollingShowMonitoringType(
+                    show.rollingShowId,
+                    monitoringType,
+                    initialSeason,
+                  )
+                if (!updated) {
+                  throw new Error(
+                    `Failed to update monitoring type for rolling show ${show.rollingShowId}`,
+                  )
+                }
+              }
+
+              if (resetMonitoring) {
+                const target = typeChanged
+                  ? await fastify.db.getRollingMonitoredShowById(
+                      show.rollingShowId,
+                    )
+                  : existing
+                if (target) {
+                  await resetShowMonitoring(target, fastify.plexSessionMonitor)
+                }
+
+                await fastify.db.resetRollingMonitoredShowToOriginal(
+                  show.rollingShowId,
+                )
+              }
+
+              modified++
+            }
+          } catch (error) {
+            failed++
+            request.log.error(
+              { error, title: show.title, rollingShowId: show.rollingShowId },
+              'Failed to bulk manage rolling monitored show',
+            )
           }
         }
 
@@ -397,13 +425,15 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
         if (enrolled > 0) parts.push(`${enrolled} enrolled`)
         if (modified > 0) parts.push(`${modified} modified`)
         if (skipped > 0) parts.push(`${skipped} skipped`)
+        if (failed > 0) parts.push(`${failed} failed`)
 
         return reply.send({
-          success: true,
+          success: failed === 0,
           message: `Bulk manage complete: ${parts.join(', ')}`,
           enrolled,
           modified,
           skipped,
+          failed,
         })
       } catch (error) {
         logRouteError(request.log, request, error, {

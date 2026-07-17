@@ -275,6 +275,13 @@
       "allowedVersions": "< 3.0.0"
     },
     {
+      "description": "undici override must track discord.js's v6 pin - block majors until discord.js moves to undici 7+",
+      "matchPackageNames": [
+        "undici"
+      ],
+      "allowedVersions": "< 7.0.0"
+    },
+    {
       "description": "Ignore regular updates for docs dependencies but keep security alerts",
       "matchFileNames": [
         "docs/**"

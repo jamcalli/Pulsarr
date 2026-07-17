@@ -1,0 +1,9 @@
+# Alpine base-image OpenSSL CVE. libssl3 is linked only by apk and busybox
+# ssl_client, not the app (Node bundles OpenSSL, Bun bundles BoringSSL). Clears
+# when the base image rebuilds with 3.5.7-r0. Re-review on expiry.
+vulnerabilities:
+  - id: CVE-2026-45447
+    purls:
+      - "pkg:apk/alpine/libssl3"
+      - "pkg:apk/alpine/libcrypto3"
+    expired_at: 2026-10-09

@@ -352,6 +352,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         body: ContentRouterRuleUpdateSchema,
         response: {
           200: ContentRouterRuleResponseSchema,
+          400: ContentRouterRuleErrorSchema,
           404: ContentRouterRuleErrorSchema,
           500: ContentRouterRuleErrorSchema,
         },
@@ -456,6 +457,19 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         if (updates.quality_profile !== undefined)
           updatesAsRouterRule.quality_profile = updates.quality_profile
+
+        // A target_type switch leaves the old type's stored fields behind; clear them
+        if (
+          updates.target_type !== undefined &&
+          updates.target_type !== existingRule.target_type
+        ) {
+          if (updates.target_type === 'radarr') {
+            updatesAsRouterRule.season_monitoring = null
+            updatesAsRouterRule.series_type = null
+          } else {
+            updatesAsRouterRule.monitor = null
+          }
+        }
 
         if (updates.condition) {
           updatesAsRouterRule.criteria = {

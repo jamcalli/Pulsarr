@@ -8,7 +8,6 @@
     "module": "ESNext",
     "rootDir": "../..",
     "skipLibCheck": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "@app/*": ["./*"],

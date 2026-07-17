@@ -7,7 +7,7 @@ import type {
   UpdateUser,
 } from '@root/schemas/users/users.schema'
 import type { Row } from '@tanstack/react-table'
-import type { UserWatchlistInfo } from '@/stores/configStore'
+import type { UserWithQuotaInfo } from '@/stores/configStore'
 
 export interface PlexConnectionValues {
   plexToken: string
@@ -20,7 +20,7 @@ export type ConnectionStatus =
   | 'success'
   | 'error'
 export type SyncStatus = 'idle' | 'loading' | 'success' | 'error'
-export type PlexUserTableRow = Row<UserWatchlistInfo>
+export type PlexUserTableRow = Row<UserWithQuotaInfo>
 export type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export type PlexUserUpdates = UpdateUser

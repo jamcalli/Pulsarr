@@ -38,7 +38,7 @@ jobs:
           persist-credentials: false
 
       - name: Cache Trivy DB
-        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: .trivycache
           key: trivy-fs-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -54,6 +54,7 @@ jobs:
           skip-dirs: docs
           version: v0.72.0
           severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
           ignore-unfixed: true
           format: sarif
           output: trivy-deps.sarif
@@ -84,7 +85,7 @@ jobs:
           persist-credentials: false
 
       - name: Cache Trivy DB
-        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: .trivycache
           key: trivy-${{ runner.os }}-${{ hashFiles('**/Dockerfile', '**/dockerfile.node') }}
@@ -99,6 +100,9 @@ jobs:
           format: sarif
           output: trivy-scheduled-${{ matrix.tag }}.sarif
           ignore-unfixed: true
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          trivyignores: .trivyignore.yaml
 
       - name: Upload SARIF to code scanning
         uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4.36.3

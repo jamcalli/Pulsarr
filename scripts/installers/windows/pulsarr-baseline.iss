@@ -21,7 +21,8 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}/issues
 AppUpdatesURL={#MyAppURL}/releases
-DefaultDirName={commonappdata}\{#MyAppName}
+; Code goes to Program Files (admin-only). User data stays in {#MyAppDataDir}.
+DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 LicenseFile=license.txt
@@ -53,16 +54,42 @@ Name: "service"; Description: "Install as Windows Service"; Types: full
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "startafterinstall"; Description: "Start Pulsarr after installation"; GroupDescription: "Startup:"; Flags: checkedonce
 
+[InstallDelete]
+; Clear the code dirs before copying so files removed between releases can't linger.
+Type: filesandordirs; Name: "{app}\dist"
+Type: filesandordirs; Name: "{app}\node_modules"
+Type: filesandordirs; Name: "{app}\migrations"
+Type: filesandordirs; Name: "{app}\packages"
+; Shipped by older installers; now excluded from [Files]
+Type: files; Name: "{app}\README.txt"
+; Leftover lock probe from an interrupted run
+Type: files; Name: "{app}\bun.exe.locktest"
+; Older installers put code in the data dir; remove those copies (keep .env, db, logs).
+Type: filesandordirs; Name: "{#MyAppDataDir}\dist"
+Type: filesandordirs; Name: "{#MyAppDataDir}\node_modules"
+Type: filesandordirs; Name: "{#MyAppDataDir}\migrations"
+Type: filesandordirs; Name: "{#MyAppDataDir}\packages"
+Type: files; Name: "{#MyAppDataDir}\bun.exe"
+Type: files; Name: "{#MyAppDataDir}\start.bat"
+Type: files; Name: "{#MyAppDataDir}\pulsarr-service.exe"
+Type: files; Name: "{#MyAppDataDir}\pulsarr-service.xml"
+Type: files; Name: "{#MyAppDataDir}\pulsarr-service.wrapper.log"
+Type: files; Name: "{#MyAppDataDir}\pulsarr-service.out.log"
+Type: files; Name: "{#MyAppDataDir}\pulsarr-service.err.log"
+Type: files; Name: "{#MyAppDataDir}\.env.example"
+Type: files; Name: "{#MyAppDataDir}\pulsarr.ico"
+Type: files; Name: "{#MyAppDataDir}\README.txt"
+Type: files; Name: "{#MyAppDataDir}\bun.exe.locktest"
+
 [Files]
-; Main application files (from extracted native build zip)
-Source: "build\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: main
+; Main application files (from extracted native build zip).
+; Exclude zip-flow files: installer users update by re-running the installer.
+Source: "build\*"; DestDir: "{app}"; Excludes: "update.bat,README.txt"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: main
 ; Icon for uninstaller
 Source: "pulsarr.ico"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 
 [Dirs]
-; App directory permissions for non-admin user access
-Name: "{app}"; Permissions: users-modify
-; Create data directory with full permissions
+; No user-write on {app}: the LocalSystem service runs this code. Only data below.
 Name: "{#MyAppDataDir}"; Permissions: users-full
 Name: "{#MyAppDataDir}\db"; Permissions: users-full
 Name: "{#MyAppDataDir}\logs"; Permissions: users-full
@@ -85,6 +112,8 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Start {#MyAppName}"; Flags: now
 [UninstallRun]
 ; Stop and uninstall service
 Filename: "{app}\pulsarr-service.exe"; Parameters: "stop"; Flags: runhidden; RunOnceId: "StopService"
+; WinSW stop can return before the process tree exits
+Filename: "cmd.exe"; Parameters: "/c timeout /t 2 /nobreak"; Flags: runhidden; RunOnceId: "StopSettle"
 Filename: "{app}\pulsarr-service.exe"; Parameters: "uninstall"; Flags: runhidden; RunOnceId: "UninstallService"
 
 [UninstallDelete]
@@ -97,14 +126,86 @@ Type: files; Name: "{app}\pulsarr-service.err.log"
 const
   CRLF = #13#10;
 
-var
-  DataDirPage: TInputDirWizardPage;
-  DeleteDataCheckbox: TNewCheckBox;
-
 procedure InitializeWizard;
 begin
-  { Add custom page for data directory selection (optional, for advanced users) }
-  { For now, we use the default ProgramData\Pulsarr location }
+  { Relocate legacy data-dir installs to the default; keep a custom directory. }
+  if CompareText(WizardDirValue, ExpandConstant('{#MyAppDataDir}')) = 0 then
+    WizardForm.DirEdit.Text := ExpandConstant('{autopf}\{#MyAppName}');
+end;
+
+{ A locked bun.exe means Pulsarr is still running. Returns '' when the
+  file is absent or free. }
+function CheckBunLocked(BunPath: String): String;
+var
+  ProbePath: String;
+  I, J: Integer;
+begin
+  Result := '';
+  if not FileExists(BunPath) then
+    Exit;
+  ProbePath := BunPath + '.locktest';
+  { A stale probe file from an interrupted run blocks the rename below }
+  DeleteFile(ProbePath);
+  for I := 1 to 5 do
+  begin
+    if RenameFile(BunPath, ProbePath) then
+    begin
+      { Retry the restore; AV scanners can briefly lock a renamed file }
+      for J := 1 to 5 do
+      begin
+        if RenameFile(ProbePath, BunPath) then
+          Exit;
+        Sleep(1000);
+      end;
+      Result := 'Setup could not restore bun.exe. Rename ' + ProbePath + ' back to bun.exe, then run Setup again.';
+      Exit;
+    end;
+    Sleep(2000);
+  end;
+  Result := 'Pulsarr appears to be running. Stop the Pulsarr service or close the Pulsarr window, then run Setup again.';
+end;
+
+{ True when the registered pulsarr service runs from the data dir. The
+  registry is admin-writable only, so user-writable files can't spoof this. }
+function LegacyServiceInDataDir(): Boolean;
+var
+  ImagePath, DataDir: String;
+begin
+  Result := False;
+  if not RegQueryStringValue(HKLM, 'SYSTEM\CurrentControlSet\Services\pulsarr', 'ImagePath', ImagePath) then
+    Exit;
+  if (ImagePath <> '') and (ImagePath[1] = '"') then
+    Delete(ImagePath, 1, 1);
+  DataDir := ExpandConstant('{#MyAppDataDir}\');
+  Result := CompareText(Copy(ImagePath, 1, Length(DataDir)), DataDir) = 0;
+end;
+
+function RemoveService(): String;
+var
+  ResultCode, I: Integer;
+begin
+  Result := '';
+  if not RegKeyExists(HKLM, 'SYSTEM\CurrentControlSet\Services\pulsarr') then
+    Exit;
+  Exec(ExpandConstant('{sys}\sc.exe'), 'stop pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(2000);
+  Exec(ExpandConstant('{sys}\sc.exe'), 'delete pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  { 1060 = ERROR_SERVICE_DOES_NOT_EXIST; any other code left a stale entry. }
+  if (ResultCode <> 0) and (ResultCode <> 1060) then
+  begin
+    Result := 'Setup could not remove the old Pulsarr service (error ' + IntToStr(ResultCode) + '). Close the Services console if it is open, then run Setup again.';
+    Exit;
+  end;
+  { SCM drops the entry only after the service stops and all handles close }
+  for I := 1 to 10 do
+  begin
+    Exec(ExpandConstant('{sys}\sc.exe'), 'query pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    if ResultCode = 1060 then
+      Break;
+    Sleep(1000);
+  end;
+  if ResultCode <> 1060 then
+    Result := 'The old Pulsarr service has not finished being removed. Close the Services console if it is open, then run Setup again.';
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
@@ -112,11 +213,34 @@ var
   ResultCode: Integer;
 begin
   Result := '';
-  { Stop existing service if running }
+
+  if not IsComponentSelected('service') then
+  begin
+    Result := RemoveService();
+    if Result <> '' then
+      Exit;
+  end
+  else if (CompareText(ExpandConstant('{#MyAppDataDir}'), ExpandConstant('{app}')) <> 0) and LegacyServiceInDataDir() then
+  begin
+    { Remove via SCM so [Run] reinstalls it from {app}. }
+    Result := RemoveService();
+    if Result <> '' then
+      Exit;
+  end;
+
   if FileExists(ExpandConstant('{app}\pulsarr-service.exe')) then
   begin
     Exec(ExpandConstant('{app}\pulsarr-service.exe'), 'stop', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    { WinSW stop can return before the process tree exits }
+    Sleep(2000);
   end;
+
+  { Abort here, before InstallDelete wipes the code dirs with no rollback.
+    Check the legacy data-dir copy too: a compact install never registered
+    the service, so nothing above stops an instance still running there. }
+  Result := CheckBunLocked(ExpandConstant('{app}\bun.exe'));
+  if (Result = '') and (CompareText(ExpandConstant('{#MyAppDataDir}'), ExpandConstant('{app}')) <> 0) then
+    Result := CheckBunLocked(ExpandConstant('{#MyAppDataDir}\bun.exe'));
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

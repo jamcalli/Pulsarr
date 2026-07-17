@@ -2,7 +2,7 @@
 /// <reference types="bun-types" />
 /**
  * Build native distribution packages for Pulsarr
- * Produces per-platform zips with the Bun runtime included — no install needed
+ * Produces per-platform zips with the Bun runtime included - no install needed
  *
  * Usage: bun run --bun scripts/build-native.ts [options]
  *   --run          Build for current platform and start the app
@@ -39,6 +39,9 @@ if (!BUN_VERSION) {
 }
 const WINSW_VERSION = '2.12.0'
 const WINSW_URL = `https://github.com/winsw/winsw/releases/download/v${WINSW_VERSION}/WinSW-x64.exe`
+// WinSW publishes no checksum file, so pin the known-good hash per version
+const WINSW_SHA256 =
+  '05b82d46ad331cc16bdc00de5c6332c1ef818df8ceefcd49c726553209b3a0da'
 const VERSION = packageJson.version
 
 interface Platform {
@@ -152,6 +155,8 @@ mkdirSync(BUILD_DIR, { recursive: true })
 
 if (!skipBuild) {
   console.log('[1/4] Building server...')
+  // Wipe dist first: tsc builds incrementally and never deletes stale output.
+  run('bun run clean:server')
   run('bun run build:server')
 
   console.log('[2/4] Building client...')
@@ -165,7 +170,7 @@ if (!skipBuild) {
 console.log('[3/4] Assembling common files...')
 mkdirSync(COMMON_DIR, { recursive: true })
 
-// dist/ — tsc server output + vite client output
+// dist/ - tsc server output + vite client output
 const distDir = resolve(PROJECT_ROOT, 'dist')
 if (!existsSync(distDir)) {
   throw new Error(
@@ -180,7 +185,7 @@ if (existsSync(nestedBuild)) {
   rmSync(nestedBuild, { recursive: true })
 }
 
-// migrations/ — Knex runtime directory scanning + utils (clientDetection.ts)
+// migrations/ - Knex runtime directory scanning + utils (clientDetection.ts)
 mkdirSync(resolve(COMMON_DIR, 'migrations'), { recursive: true })
 cpSync(
   resolve(PROJECT_ROOT, 'migrations', 'migrations'),
@@ -201,7 +206,7 @@ cpSync(
   resolve(COMMON_DIR, 'migrations', 'migrate.ts'),
 )
 
-// packages/ — better-sqlite3-bun shim (package.json uses file: reference)
+// packages/ - better-sqlite3-bun shim (package.json uses file: reference)
 mkdirSync(resolve(COMMON_DIR, 'packages'), { recursive: true })
 cpSync(
   resolve(PROJECT_ROOT, 'packages', 'better-sqlite3-bun'),
@@ -270,6 +275,79 @@ echo "Starting Pulsarr..."
 exec ./bun run --bun dist/server.js "$@"
 `
 
+const UPDATE_UNIX = `#!/bin/bash
+# Update a portable Pulsarr install from a downloaded release zip.
+# Replaces only Pulsarr's own program files; your config and data are left alone.
+#
+# Usage: ./update.sh <path-to-new-release-zip>
+set -euo pipefail
+
+# The cp below overwrites this script mid-run. Bash reads the script from disk as
+# it executes, so keep the whole body in a function (parsed up front) and exit on
+# the last line before bash can read past it into the replacement.
+main() {
+  ZIP="\${1:-}"
+  if [ -z "$ZIP" ] || [ ! -f "$ZIP" ]; then
+    echo "Usage: ./update.sh <path-to-new-release-zip>"
+    exit 1
+  fi
+  # Resolve the zip to an absolute path before cd so a relative arg keeps working.
+  ZIP="$(cd "$(dirname "$ZIP")" && pwd)/$(basename "$ZIP")"
+
+  cd "$(dirname "\${BASH_SOURCE[0]}")"
+  INSTALL_DIR="$(pwd)"
+
+  if ! command -v unzip >/dev/null 2>&1; then
+    echo "unzip is required but was not found."
+    exit 1
+  fi
+
+  TMP="$(mktemp -d)"
+  trap 'rm -rf "$TMP"' EXIT
+
+  echo "Extracting update..."
+  unzip -q "$ZIP" -d "$TMP"
+
+  # Release zips hold a single top-level pulsarr-vX.Y.Z-<platform>/ directory.
+  NEW="$(find "$TMP" -mindepth 1 -maxdepth 1 -type d -name 'pulsarr-*' | head -1)" || true
+  if [ -z "$NEW" ]; then NEW="$TMP"; fi
+
+  if [ ! -f "$NEW/start.sh" ]; then
+    echo "This does not look like a Pulsarr release zip (start.sh not found)."
+    exit 1
+  fi
+  OWNED="dist node_modules migrations packages"
+  for d in $OWNED; do
+    if [ ! -d "$NEW/$d" ]; then
+      echo "This release zip is incomplete ($d missing)."
+      exit 1
+    fi
+  done
+
+  echo "Replacing application files..."
+  # Stage inside the install dir (same filesystem, so mv is a rename) and only
+  # then delete Pulsarr-owned code dirs; config and data are left in place.
+  find "$INSTALL_DIR" -maxdepth 1 -name '.update-staging.*' -mmin +60 -exec rm -rf {} + 2>/dev/null || true
+  STAGE="$(mktemp -d "$INSTALL_DIR/.update-staging.XXXXXX")" || { echo "Failed to create staging directory."; exit 1; }
+  trap 'rm -rf "$TMP" "$STAGE"' EXIT
+  if ! cp -a "$NEW/." "$STAGE/"; then
+    echo "Copy failed. No changes were made to the installation."
+    exit 1
+  fi
+  for d in $OWNED; do
+    rm -rf "$INSTALL_DIR/$d"
+    mv "$STAGE/$d" "$INSTALL_DIR/$d"
+  done
+  cp -a "$STAGE/." "$INSTALL_DIR/"
+  rm -rf "$STAGE"
+  chmod +x "$INSTALL_DIR/start.sh" "$INSTALL_DIR/bun" 2>/dev/null || true
+
+  echo "Update complete. Start Pulsarr with ./start.sh (or restart your service)."
+}
+
+main "$@"; exit 0
+`
+
 const WINDOWS_START = `@echo off
 cd /d "%~dp0"
 
@@ -282,6 +360,96 @@ echo Starting Pulsarr...
 echo.
 echo Pulsarr has exited (code: %ERRORLEVEL%)
 if not defined PULSARR_SERVICE pause
+`
+
+const UPDATE_WINDOWS = `@echo off
+setlocal enabledelayedexpansion
+
+if "%~1"=="" (
+  echo Usage: update.bat ^<path-to-new-release-zip^>
+  exit /b 1
+)
+if not exist "%~1" (
+  echo Zip not found: %~1
+  exit /b 1
+)
+
+rem cmd reads this file from disk as it runs and the update replaces this folder,
+rem so relaunch a copy from TEMP before touching anything here.
+if not defined PULSARR_UPDATE_STAGED (
+  set "STAGED=%TEMP%\\pulsarr-update-%RANDOM%%RANDOM%.bat"
+  copy /y "%~f0" "!STAGED!" >nul
+  set "PULSARR_UPDATE_STAGED=1"
+  call "!STAGED!" "%~dp0." "%~f1"
+  set "RC=!ERRORLEVEL!"
+  del "!STAGED!" >nul 2>&1
+  exit /b !RC!
+)
+
+set "INSTALL=%~1"
+if "!INSTALL:~-2!"=="\\." set "INSTALL=!INSTALL:~0,-2!"
+if "!INSTALL:~-1!"=="\\" set "INSTALL=!INSTALL:~0,-1!"
+set "ZIP=%~2"
+set "STAGEDIR=%TEMP%\\pulsarr-new-%RANDOM%%RANDOM%"
+
+echo Extracting update...
+rem Pass paths to PowerShell via environment variables so quotes or apostrophes
+rem in the path cannot break out of the command string.
+set "PS_ZIP=%ZIP%"
+set "PS_DEST=%STAGEDIR%"
+powershell -NoProfile -Command "Expand-Archive -LiteralPath $env:PS_ZIP -DestinationPath $env:PS_DEST -Force"
+if errorlevel 1 (
+  echo Failed to extract zip.
+  rd /s /q "%STAGEDIR%" 2>nul
+  exit /b 1
+)
+
+set "NEW="
+for /d %%D in ("%STAGEDIR%\\pulsarr-*") do set "NEW=%%D"
+if not defined NEW set "NEW=%STAGEDIR%"
+
+if not exist "!NEW!\\start.bat" (
+  echo This does not look like a Pulsarr release zip.
+  rd /s /q "%STAGEDIR%" 2>nul
+  exit /b 1
+)
+for %%D in (dist node_modules migrations packages) do (
+  if not exist "!NEW!\\%%D" (
+    echo This release zip is incomplete (%%D missing).
+    rd /s /q "%STAGEDIR%" 2>nul
+    exit /b 1
+  )
+)
+
+if exist "!INSTALL!\\pulsarr-service.exe" (
+  echo Stopping Pulsarr service...
+  "!INSTALL!\\pulsarr-service.exe" stop >nul 2>&1
+  timeout /t 2 /nobreak >nul
+)
+
+echo Replacing application files...
+rem Only Pulsarr-owned code dirs are removed; /E copies without purging the rest.
+rem rd exits 0 even when a locked file survives, so verify each dir is gone.
+for %%D in (dist node_modules migrations packages) do (
+  rd /s /q "!INSTALL!\\%%D" 2>nul
+  if exist "!INSTALL!\\%%D" (
+    echo Failed to remove !INSTALL!\\%%D. Make sure Pulsarr is fully stopped and retry.
+    rd /s /q "%STAGEDIR%" 2>nul
+    exit /b 1
+  )
+)
+robocopy "!NEW!" "!INSTALL!" /E /R:2 /W:2 /NFL /NDL /NJH /NJS /NP >nul
+set "RC=!ERRORLEVEL!"
+rd /s /q "%STAGEDIR%" 2>nul
+
+if !RC! GEQ 8 (
+  echo Update failed ^(robocopy code !RC!^). Make sure Pulsarr is fully stopped and retry.
+  exit /b 1
+)
+
+echo Update complete.
+echo Start Pulsarr with start.bat, or: pulsarr-service.exe start
+exit /b 0
 `
 
 const WINSW_XML = `<service>
@@ -330,6 +498,7 @@ const UNINSTALL_SERVICE_BAT = `@echo off
 cd /d "%~dp0"
 echo Stopping Pulsarr service...
 pulsarr-service.exe stop
+timeout /t 2 /nobreak >nul
 echo Uninstalling Pulsarr service...
 pulsarr-service.exe uninstall
 echo.
@@ -337,7 +506,7 @@ echo Pulsarr service has been removed.
 pause
 `
 
-const README_LINUX = `# Pulsarr — Native Install (Linux)
+const README_LINUX = `# Pulsarr - Native Install (Linux)
 
 ## Quick Start
 
@@ -383,10 +552,13 @@ Manage with:
 1. Stop Pulsarr (Ctrl+C, or stop the service):
    sudo systemctl stop pulsarr
 
-2. Download the new release zip and extract it over this directory.
-   Your .env and data/ folder will not be overwritten.
+2. Download the new release zip, then run the updater with its path:
+   ./update.sh ~/Downloads/pulsarr-vX.Y.Z-linux-x64.zip
+   Pulsarr's program files are replaced; your config and data are left untouched
+   wherever .env points them.
+   (If you installed with the install script, re-running it updates in place too.)
 
-3. Restart Pulsarr:
+3. Start Pulsarr:
    ./start.sh
    (or: sudo systemctl start pulsarr)
 
@@ -398,19 +570,19 @@ Migrations run automatically on startup.
 - Database and logs: ./data/
 `
 
-const README_MACOS = `# Pulsarr — Native Install (macOS)
+const README_MACOS = `# Pulsarr - Native Install (macOS)
 
 ## Quick Start
 
-1. Copy .env.example to .env and edit your settings:
-   cp .env.example .env
-
-2. Run Pulsarr:
+1. Run Pulsarr (this creates ~/.config/Pulsarr on first start):
    ./start.sh
 
    If macOS blocks execution, allow it in System Settings > Privacy & Security,
    or remove the quarantine attribute:
    xattr -r -d com.apple.quarantine .
+
+2. Optional: to configure via .env, copy .env.example to ~/.config/Pulsarr/.env
+   and edit it, then restart. Pulsarr reads config from there, not this folder.
 
 3. Open http://localhost:3003 in your browser.
 
@@ -457,10 +629,13 @@ Manage with:
 1. Stop Pulsarr (Ctrl+C, or stop the service):
    launchctl stop com.pulsarr
 
-2. Download the new release zip and extract it over this directory.
-   Your .env and data/ folder will not be overwritten.
+2. Download the new release zip, then run the updater with its path:
+   ./update.sh ~/Downloads/pulsarr-vX.Y.Z-macos-arm64.zip
+   Pulsarr's program files are replaced; your config and data are left untouched
+   wherever .env points them.
+   (If you installed the .app via the DMG, just reinstall the new DMG instead.)
 
-3. Restart Pulsarr:
+3. Start Pulsarr:
    ./start.sh
    (or: launchctl start com.pulsarr)
 
@@ -468,18 +643,20 @@ Migrations run automatically on startup.
 
 ## Data & Configuration
 
-- Configuration: .env (copied from .env.example)
-- Database and logs: ./data/
+- Configuration and data live in ~/.config/Pulsarr (.env, db, and logs)
 `
 
-const README_WINDOWS = `# Pulsarr — Native Install (Windows)
+const README_WINDOWS = `# Pulsarr - Native Install (Windows)
 
 ## Quick Start
 
-1. Copy .env.example to .env and edit your settings.
-
-2. Double-click start.bat or run it from a terminal:
+1. Double-click start.bat or run it from a terminal (this creates
+   %PROGRAMDATA%\\Pulsarr on first start):
    start.bat
+
+2. Optional: to configure via .env, copy .env.example to
+   %PROGRAMDATA%\\Pulsarr\\.env and edit it, then restart. Pulsarr reads config
+   from there, not this folder.
 
 3. Open http://localhost:3003 in your browser.
 
@@ -505,10 +682,13 @@ Remove the service:
 1. Stop Pulsarr (Ctrl+C, close the window, or stop the service):
    pulsarr-service.exe stop
 
-2. Download the new release zip and extract it over this directory.
-   Your .env and data folder will not be overwritten.
+2. Download the new release zip, then run the updater with its path:
+   update.bat C:\\Users\\You\\Downloads\\pulsarr-vX.Y.Z-windows-x64.zip
+   Pulsarr's program files are replaced; your config and data are left untouched
+   wherever .env points them.
+   (If you installed with the Windows installer, just run the new installer instead.)
 
-3. Restart Pulsarr:
+3. Start Pulsarr:
    start.bat
    (or: pulsarr-service.exe start)
 
@@ -516,8 +696,7 @@ Migrations run automatically on startup.
 
 ## Data & Configuration
 
-- Configuration: .env (copied from .env.example)
-- Database and logs: .\\data\\
+- Configuration and data live in %PROGRAMDATA%\\Pulsarr (.env, db, and logs)
 `
 
 function getReadme(zipSuffix: string): string {
@@ -606,11 +785,22 @@ for (const platform of PLATFORMS) {
 
   if (isWindows) {
     writeFileSync(resolve(platformDir, 'start.bat'), WINDOWS_START)
+    writeFileSync(resolve(platformDir, 'update.bat'), UPDATE_WINDOWS)
 
     const winswTmp = resolve(BUILD_DIR, '_winsw.exe')
     if (!existsSync(winswTmp)) {
       runFile('curl', ['-fsSL', WINSW_URL, '-o', winswTmp])
     }
+    const winswHasher = new Bun.CryptoHasher('sha256')
+    winswHasher.update(readFileSync(winswTmp))
+    const winswHash = winswHasher.digest('hex')
+    if (winswHash !== WINSW_SHA256) {
+      rmSync(winswTmp, { force: true })
+      throw new Error(
+        `Checksum mismatch for WinSW-x64.exe: expected ${WINSW_SHA256}, got ${winswHash}`,
+      )
+    }
+    console.log('      Checksum verified for WinSW-x64.exe')
     cpSync(winswTmp, resolve(platformDir, 'pulsarr-service.exe'))
     writeFileSync(resolve(platformDir, 'pulsarr-service.xml'), WINSW_XML)
     writeFileSync(
@@ -625,6 +815,10 @@ for (const platform of PLATFORMS) {
     const startPath = resolve(platformDir, 'start.sh')
     writeFileSync(startPath, UNIX_START)
     chmodSync(startPath, 0o755)
+
+    const updatePath = resolve(platformDir, 'update.sh')
+    writeFileSync(updatePath, UPDATE_UNIX)
+    chmodSync(updatePath, 0o755)
   }
 
   writeFileSync(
@@ -638,7 +832,7 @@ for (const platform of PLATFORMS) {
   console.log(`      -> ${zipName}.zip (${formatSize(zipSize)})`)
 }
 
-// Cleanup — keep unzipped dirs when --run needs them
+// Cleanup - keep unzipped dirs when --run needs them
 rmSync(COMMON_DIR, { recursive: true, force: true })
 const currentPlatformConfig = PLATFORMS.find(
   (p) => p.detectName === currentPlatform,
