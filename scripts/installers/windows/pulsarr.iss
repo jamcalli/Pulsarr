@@ -180,43 +180,52 @@ begin
   Result := CompareText(Copy(ImagePath, 1, Length(DataDir)), DataDir) = 0;
 end;
 
+function RemoveService(): String;
+var
+  ResultCode, I: Integer;
+begin
+  Result := '';
+  if not RegKeyExists(HKLM, 'SYSTEM\CurrentControlSet\Services\pulsarr') then
+    Exit;
+  Exec(ExpandConstant('{sys}\sc.exe'), 'stop pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(2000);
+  Exec(ExpandConstant('{sys}\sc.exe'), 'delete pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  { 1060 = ERROR_SERVICE_DOES_NOT_EXIST; any other code left a stale entry. }
+  if (ResultCode <> 0) and (ResultCode <> 1060) then
+  begin
+    Result := 'Setup could not remove the old Pulsarr service (error ' + IntToStr(ResultCode) + '). Close the Services console if it is open, then run Setup again.';
+    Exit;
+  end;
+  { SCM drops the entry only after the service stops and all handles close }
+  for I := 1 to 10 do
+  begin
+    Exec(ExpandConstant('{sys}\sc.exe'), 'query pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    if ResultCode = 1060 then
+      Break;
+    Sleep(1000);
+  end;
+  if ResultCode <> 1060 then
+    Result := 'The old Pulsarr service has not finished being removed. Close the Services console if it is open, then run Setup again.';
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
-  I: Integer;
 begin
   Result := '';
 
-  { Old install ran the service from the data dir; remove it first or winsw
-    install name-clashes and the old bun.exe stays locked. Go through the
-    SCM by service name: the data dir is user-writable, so binaries there
-    must never run elevated. }
-  if (CompareText(ExpandConstant('{#MyAppDataDir}'), ExpandConstant('{app}')) <> 0) and LegacyServiceInDataDir() then
+  if not IsComponentSelected('service') then
   begin
-    Exec(ExpandConstant('{sys}\sc.exe'), 'stop pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(2000);
-    Exec(ExpandConstant('{sys}\sc.exe'), 'delete pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    { 1060 = never registered (compact installs). Anything else leaves a stale
-      entry that InstallDelete would orphan and the winsw install below would
-      collide with. }
-    if (ResultCode <> 0) and (ResultCode <> 1060) then
-    begin
-      Result := 'Setup could not remove the old Pulsarr service (error ' + IntToStr(ResultCode) + '). Close the Services console if it is open, then run Setup again.';
+    Result := RemoveService();
+    if Result <> '' then
       Exit;
-    end;
-    { SCM drops the entry only after the service stops and all handles close }
-    for I := 1 to 10 do
-    begin
-      Exec(ExpandConstant('{sys}\sc.exe'), 'query pulsarr', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-      if ResultCode = 1060 then
-        Break;
-      Sleep(1000);
-    end;
-    if ResultCode <> 1060 then
-    begin
-      Result := 'The old Pulsarr service has not finished being removed. Close the Services console if it is open, then run Setup again.';
+  end
+  else if (CompareText(ExpandConstant('{#MyAppDataDir}'), ExpandConstant('{app}')) <> 0) and LegacyServiceInDataDir() then
+  begin
+    { Remove via SCM so [Run] reinstalls it from {app}. }
+    Result := RemoveService();
+    if Result <> '' then
       Exit;
-    end;
   end;
 
   if FileExists(ExpandConstant('{app}\pulsarr-service.exe')) then
