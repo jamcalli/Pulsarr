@@ -1358,6 +1358,107 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         2,
       )
     })
+
+    it('keeps processing other instances when one instance fails', async () => {
+      const knex = getTestDatabase()
+
+      await app.updateConfig({
+        plexSessionMonitoring: {
+          enabled: true,
+          filterUsers: [],
+          enableAutoReset: false,
+          remainingEpisodes: 2,
+          inactivityResetDays: 7,
+          autoResetIntervalHours: 24,
+          pollingIntervalMinutes: 15,
+          enableProgressiveCleanup: false,
+        },
+      })
+
+      await knex('sonarr_instances').insert({
+        id: 2,
+        name: '4K Sonarr',
+        base_url: 'http://test-sonarr-4k:8989',
+        api_key: 'test_sonarr_4k_api_key_1234567890abcdef',
+        quality_profile: '1',
+        root_folder: '/data/shows-4k',
+        bypass_ignored: false,
+        season_monitoring: 'firstSeasonRolling',
+        monitor_new_items: 'all',
+        search_on_add: true,
+        tags: JSON.stringify([]),
+        is_default: false,
+        is_enabled: true,
+        synced_instances: JSON.stringify([]),
+        series_type: 'standard',
+        create_season_folders: false,
+      })
+
+      await insertRollingShow(knex, {
+        show_title: 'Stella',
+        monitoring_type: 'firstSeasonRolling',
+        sonarr_series_id: 1566,
+        sonarr_instance_id: 1,
+        tvdb_id: '90210',
+      })
+      await insertRollingShow(knex, {
+        show_title: 'Stella',
+        monitoring_type: 'firstSeasonRolling',
+        sonarr_series_id: 9999,
+        sonarr_instance_id: 2,
+        tvdb_id: '90210',
+      })
+
+      app.plexServerService.getActiveSessions = vi
+        .fn()
+        .mockResolvedValue([makeEpisodeSession({ season: 1, episode: 15 })])
+      app.plexServerService.getShowMetadata = vi
+        .fn()
+        .mockResolvedValue(makeShowMetadata('90210'))
+
+      const healthySonarr = {
+        getSeriesByTvdbId: vi.fn().mockResolvedValue(makeSonarrSeries(9999, 2)),
+        getEpisodes: vi
+          .fn()
+          .mockResolvedValue(makeEpisodesSeason2Unmonitored(9999)),
+        updateSeasonMonitoring: vi.fn().mockResolvedValue(true),
+        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
+        deleteEpisodeFiles: vi.fn().mockResolvedValue(true),
+        searchSeason: vi.fn().mockResolvedValue(true),
+      }
+      const failingSonarr = {
+        ...healthySonarr,
+        getSeriesByTvdbId: vi
+          .fn()
+          .mockRejectedValue(new Error('instance 1 unreachable')),
+        searchSeason: vi.fn().mockResolvedValue(true),
+      }
+
+      const sonarrByInstance = new Map([
+        [1, failingSonarr],
+        [2, healthySonarr],
+      ])
+
+      app.sonarrManager.getAllInstances = vi.fn().mockResolvedValue([
+        { id: 1, name: '1080p', baseUrl: 'http://x', apiKey: 'k' },
+        { id: 2, name: '4K', baseUrl: 'http://y', apiKey: 'k' },
+      ])
+      app.sonarrManager.getSonarrService = vi
+        .fn()
+        .mockImplementation(
+          (id: number) =>
+            sonarrByInstance.get(id) as unknown as ReturnType<
+              typeof app.sonarrManager.getSonarrService
+            >,
+        )
+
+      const result = await app.plexSessionMonitor.monitorSessions()
+
+      expect(result.triggeredSearches).toBe(1)
+      expect(result.errors).toHaveLength(1)
+      expect(failingSonarr.searchSeason).not.toHaveBeenCalled()
+      expect(healthySonarr.searchSeason).toHaveBeenCalledWith(9999, 2)
+    })
   })
 })
 
