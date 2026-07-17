@@ -403,6 +403,21 @@ export async function resetRollingMonitoredShowToOriginal(
       if (!show) {
         return 0
       }
+
+      // Master row owns monitoring_type; a user row's copy can be stale.
+      const masterQuery = trx('rolling_monitored_shows')
+        .where({
+          sonarr_series_id: show.sonarr_series_id,
+          sonarr_instance_id: show.sonarr_instance_id,
+        })
+        .whereNull('plex_user_id')
+      if (this.isPostgres) masterQuery.forUpdate() // row-level lock only on PG
+      const master = await masterQuery.first()
+
+      if (!master) {
+        return 0
+      }
+
       // Delete all user entries (keep only master record)
       const deletedUserEntries = await trx('rolling_monitored_shows')
         .where({
@@ -421,7 +436,7 @@ export async function resetRollingMonitoredShowToOriginal(
         .whereNull('plex_user_id') // Only update master record
         .update({
           current_monitored_season:
-            show.monitoring_type === 'allSeasonPilotRolling' ? 0 : 1,
+            master.monitoring_type === 'allSeasonPilotRolling' ? 0 : 1,
           last_watched_season: 0,
           last_watched_episode: 0,
           updated_at: this.timestamp,
@@ -429,7 +444,7 @@ export async function resetRollingMonitoredShowToOriginal(
         })
 
       this.log.info(
-        `Reset ${show.show_title} to original state: removed ${deletedUserEntries} user entries, reset master record (series_id: ${show.sonarr_series_id}, instance_id: ${show.sonarr_instance_id})`,
+        `Reset ${master.show_title} to original state: removed ${deletedUserEntries} user entries, reset master record (series_id: ${show.sonarr_series_id}, instance_id: ${show.sonarr_instance_id})`,
       )
 
       return deletedUserEntries
