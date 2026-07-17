@@ -239,13 +239,28 @@ export class PlexSessionMonitorService {
       return
     }
 
+    // Isolate per instance so one failure does not skip the rest.
     for (const rollingShow of rollingShows) {
-      await this.handleRollingMonitoredShow(
-        session,
-        rollingShow,
-        result,
-        canTriggerActions,
-      )
+      try {
+        await this.handleRollingMonitoredShow(
+          session,
+          rollingShow,
+          result,
+          canTriggerActions,
+        )
+      } catch (error) {
+        this.log.error(
+          {
+            error,
+            showTitle: rollingShow.show_title,
+            instanceId: rollingShow.sonarr_instance_id,
+          },
+          'Error processing rolling monitored show',
+        )
+        result.errors.push(
+          `Error processing rolling monitored show ${rollingShow.show_title} on instance ${rollingShow.sonarr_instance_id}`,
+        )
+      }
     }
   }
 
@@ -487,20 +502,33 @@ export class PlexSessionMonitorService {
           `Creating per-user rolling show entry for ${globalShow.show_title} on instance ${globalShow.sonarr_instance_id} for user ${session.User.title}`,
         )
 
-        const userEntryId = await this.db.createOrFindUserRollingMonitoredShow(
-          globalShow,
-          session.User.id,
-          session.User.title,
-        )
+        try {
+          const userEntryId =
+            await this.db.createOrFindUserRollingMonitoredShow(
+              globalShow,
+              session.User.id,
+              session.User.title,
+            )
 
-        const byId = await this.db.getRollingMonitoredShowById(userEntryId)
-        if (!byId) {
-          this.log.warn(
-            `Per-user entry (ID: ${userEntryId}) not found after createOrFind for ${globalShow.show_title} (${session.User.title})`,
+          const byId = await this.db.getRollingMonitoredShowById(userEntryId)
+          if (!byId) {
+            this.log.warn(
+              `Per-user entry (ID: ${userEntryId}) not found after createOrFind for ${globalShow.show_title} (${session.User.title})`,
+            )
+            continue
+          }
+          resolved.push(byId)
+        } catch (error) {
+          // Keep entries already resolved on other instances.
+          this.log.error(
+            {
+              error,
+              showTitle: globalShow.show_title,
+              instanceId: globalShow.sonarr_instance_id,
+            },
+            'Error resolving per-user rolling show entry',
           )
-          continue
         }
-        resolved.push(byId)
       }
 
       return resolved
