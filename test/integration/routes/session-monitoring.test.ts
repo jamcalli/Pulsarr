@@ -174,6 +174,39 @@ describe('Session Monitoring Routes - bulk manage', () => {
     expect(master.current_monitored_season).toBe(0)
   })
 
+  it('resets the master to its own baseline when a stale user row has a different type', async () => {
+    const knex = getTestDatabase()
+    const masterId = await insertRollingShow(knex, {
+      show_title: 'Test Show 100',
+      monitoring_type: 'allSeasonPilotRolling',
+      sonarr_series_id: 100,
+      sonarr_instance_id: 1,
+      tvdb_id: '100456',
+      current_monitored_season: 3,
+    })
+    const staleUserId = await insertRollingShow(knex, {
+      show_title: 'Test Show 100',
+      monitoring_type: 'pilotRolling',
+      sonarr_series_id: 100,
+      sonarr_instance_id: 1,
+      tvdb_id: '100456',
+      plex_user_id: 'user-1',
+      plex_username: 'Alice',
+    })
+
+    await app.db.resetRollingMonitoredShowToOriginal(staleUserId)
+
+    const master = await knex('rolling_monitored_shows')
+      .where({ id: masterId })
+      .first()
+    expect(master.current_monitored_season).toBe(0)
+
+    const userEntry = await knex('rolling_monitored_shows')
+      .where({ id: staleUserId })
+      .first()
+    expect(userEntry).toBeUndefined()
+  })
+
   it('changes type without touching Sonarr when reset is not requested', async () => {
     const { masterId, userId } = await seedEnrolledShow()
 
