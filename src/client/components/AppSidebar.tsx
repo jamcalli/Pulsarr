@@ -24,6 +24,7 @@ import * as React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import pulsarrLogo from '@/assets/images/pulsarr.svg'
 import { DiscordIcon } from '@/components/icons/DiscordIcon'
+import { NetworkConfigCredenza } from '@/components/network-config-credenza'
 import { useSettings } from '@/components/settings-provider'
 import { useTheme } from '@/components/theme-provider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -40,7 +41,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { NetworkConfigCredenza } from '@/components/network-config-credenza'
 import { LogoutAlert } from '@/components/ui/logout-alert'
 import {
   Sidebar,
