@@ -271,8 +271,10 @@ export function NetworkConfigCredenza({
                 <Check className="h-4 w-4" />
                 Saved
               </>
-            ) : (
+            ) : onRetry ? (
               'Save & Retry'
+            ) : (
+              'Save'
             )}
           </Button>
         </CredenzaFooter>

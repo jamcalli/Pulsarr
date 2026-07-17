@@ -40,6 +40,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { NetworkConfigCredenza } from '@/components/network-config-credenza'
 import { LogoutAlert } from '@/components/ui/logout-alert'
 import {
   Sidebar,
@@ -59,6 +60,14 @@ import {
 } from '@/components/ui/sidebar'
 import { UserAvatarSkeleton } from '@/components/ui/user-avatar-skeleton'
 import { useConfigStore } from '@/stores/configStore'
+
+type NavSubItemAction = 'open-network-settings'
+
+type NavSubItem = {
+  title: string
+  url?: string
+  action?: NavSubItemAction
+}
 
 // Navigation data
 const data = {
@@ -169,6 +178,10 @@ const data = {
       icon: Wrench,
       items: [
         {
+          title: 'Network Settings',
+          action: 'open-network-settings',
+        },
+        {
           title: 'API Keys',
           url: '/utilities/api-keys',
         },
@@ -262,6 +275,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setFullscreenEnabled,
   } = useSettings()
   const [showLogoutAlert, setShowLogoutAlert] = React.useState(false)
+  const [showNetworkConfig, setShowNetworkConfig] = React.useState(false)
   const { currentUser, currentUserLoading, fetchCurrentUser } = useConfigStore()
 
   // Memoized default sections to avoid recalculation
@@ -398,6 +412,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     [navigate, location.pathname, isMobile, setOpenMobile],
   )
 
+  const handleSubItemClick = React.useCallback(
+    (subItem: NavSubItem, e: React.MouseEvent) => {
+      if (subItem.action === 'open-network-settings') {
+        e.preventDefault()
+        setShowNetworkConfig(true)
+        if (isMobile) {
+          setOpenMobile(false)
+        }
+        return
+      }
+
+      if (subItem.url) {
+        handleNavigation(subItem.url, e)
+      }
+    },
+    [handleNavigation, isMobile, setOpenMobile],
+  )
+
   // Memoized navigation items rendering
   const navigationItems = React.useMemo(() => {
     return data.navMain.map((item) =>
@@ -426,11 +458,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuSubItem key={subItem.title}>
                     <SidebarMenuSubButton
                       asChild
-                      isActive={isActiveRoute(subItem.url)}
+                      isActive={
+                        subItem.url ? isActiveRoute(subItem.url) : false
+                      }
                     >
                       <a
-                        href={subItem.url}
-                        onClick={(e) => handleNavigation(subItem.url, e)}
+                        href={subItem.url ?? '#'}
+                        onClick={(e) => handleSubItemClick(subItem, e)}
                       >
                         <span>{subItem.title}</span>
                       </a>
@@ -456,7 +490,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenuItem>
       ),
     )
-  }, [openSections, isActiveRoute, handleNavigation, toggleSection])
+  }, [openSections, isActiveRoute, handleSubItemClick, toggleSection])
 
   // Memoized help resources rendering
   const helpResourceItems = React.useMemo(() => {
@@ -666,6 +700,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </Sidebar>
 
       <LogoutAlert open={showLogoutAlert} onOpenChange={setShowLogoutAlert} />
+      <NetworkConfigCredenza
+        open={showNetworkConfig}
+        onOpenChange={setShowNetworkConfig}
+      />
     </>
   )
 }
