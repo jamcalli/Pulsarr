@@ -44,6 +44,22 @@ export default defineConfig({
         inline: ['zod'],
       },
     },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: { label: 'Unit', color: 'blue' },
+          include: ['test/unit/**/*.test.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: { label: 'Integration', color: 'yellow' },
+          include: ['test/integration/**/*.test.ts'],
+        },
+      },
+    ],
   },
   resolve: {
     alias: [
