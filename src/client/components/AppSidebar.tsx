@@ -178,10 +178,6 @@ const data = {
       icon: Wrench,
       items: [
         {
-          title: 'Network Settings',
-          action: 'open-network-settings' as const,
-        },
-        {
           title: 'API Keys',
           url: '/utilities/api-keys',
         },
@@ -192,6 +188,10 @@ const data = {
         {
           title: 'Log Viewer',
           url: '/utilities/log-viewer',
+        },
+        {
+          title: 'Network Settings',
+          action: 'open-network-settings' as const,
         },
         {
           title: 'New User Defaults',
