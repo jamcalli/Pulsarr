@@ -24,7 +24,6 @@ import * as React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import pulsarrLogo from '@/assets/images/pulsarr.svg'
 import { DiscordIcon } from '@/components/icons/DiscordIcon'
-import { NetworkConfigCredenza } from '@/components/network-config-credenza'
 import { useSettings } from '@/components/settings-provider'
 import { useTheme } from '@/components/theme-provider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -60,14 +59,6 @@ import {
 } from '@/components/ui/sidebar'
 import { UserAvatarSkeleton } from '@/components/ui/user-avatar-skeleton'
 import { useConfigStore } from '@/stores/configStore'
-
-type NavSubItemAction = 'open-network-settings'
-
-type NavSubItem = {
-  title: string
-  url?: string
-  action?: NavSubItemAction
-}
 
 // Navigation data
 const data = {
@@ -190,10 +181,6 @@ const data = {
           url: '/utilities/log-viewer',
         },
         {
-          title: 'Network Settings',
-          action: 'open-network-settings' as const,
-        },
-        {
           title: 'New User Defaults',
           url: '/utilities/new-user-defaults',
         },
@@ -275,7 +262,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setFullscreenEnabled,
   } = useSettings()
   const [showLogoutAlert, setShowLogoutAlert] = React.useState(false)
-  const [showNetworkConfig, setShowNetworkConfig] = React.useState(false)
   const { currentUser, currentUserLoading, fetchCurrentUser } = useConfigStore()
 
   // Memoized default sections to avoid recalculation
@@ -412,24 +398,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     [navigate, location.pathname, isMobile, setOpenMobile],
   )
 
-  const handleSubItemClick = React.useCallback(
-    (subItem: NavSubItem, e: React.MouseEvent) => {
-      if (subItem.action === 'open-network-settings') {
-        e.preventDefault()
-        setShowNetworkConfig(true)
-        if (isMobile) {
-          setOpenMobile(false)
-        }
-        return
-      }
-
-      if (subItem.url) {
-        handleNavigation(subItem.url, e)
-      }
-    },
-    [handleNavigation, isMobile, setOpenMobile],
-  )
-
   // Memoized navigation items rendering
   const navigationItems = React.useMemo(() => {
     return data.navMain.map((item) =>
@@ -458,13 +426,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuSubItem key={subItem.title}>
                     <SidebarMenuSubButton
                       asChild
-                      isActive={
-                        subItem.url ? isActiveRoute(subItem.url) : false
-                      }
+                      isActive={isActiveRoute(subItem.url)}
                     >
                       <a
-                        href={subItem.url ?? '#'}
-                        onClick={(e) => handleSubItemClick(subItem, e)}
+                        href={subItem.url}
+                        onClick={(e) => handleNavigation(subItem.url, e)}
                       >
                         <span>{subItem.title}</span>
                       </a>
@@ -490,7 +456,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenuItem>
       ),
     )
-  }, [openSections, isActiveRoute, handleSubItemClick, toggleSection])
+  }, [openSections, isActiveRoute, handleNavigation, toggleSection])
 
   // Memoized help resources rendering
   const helpResourceItems = React.useMemo(() => {
@@ -700,10 +666,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </Sidebar>
 
       <LogoutAlert open={showLogoutAlert} onOpenChange={setShowLogoutAlert} />
-      <NetworkConfigCredenza
-        open={showNetworkConfig}
-        onOpenChange={setShowNetworkConfig}
-      />
     </>
   )
 }

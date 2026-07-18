@@ -1,4 +1,6 @@
+import { Network } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { NetworkConfigCredenza } from '@/components/network-config-credenza'
 import { Button } from '@/components/ui/button'
 import RadarrPageSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
 import { InstanceCard as RadarrInstanceCard } from '@/features/radarr/components/instance/radarr-instance-card'
@@ -20,6 +22,7 @@ export default function RadarrInstancesPage() {
 
   const hasInitializedRef = useRef(false)
   const [showInstanceCard, setShowInstanceCard] = useState(false)
+  const [showNetworkConfig, setShowNetworkConfig] = useState(false)
 
   useEffect(() => {
     if (!hasInitializedRef.current) {
@@ -60,14 +63,30 @@ export default function RadarrInstancesPage() {
         {isPlaceholderInstance && !showInstanceCard ? (
           <div className="text-center py-8 text-foreground">
             <p>No Radarr instances configured</p>
-            <Button onClick={addInstance} className="mt-4">
-              Add Your First Instance
-            </Button>
+            <div className="flex justify-center gap-2 mt-4">
+              <Button onClick={addInstance}>Add Your First Instance</Button>
+              <Button
+                variant="blue"
+                className="shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none"
+                onClick={() => setShowNetworkConfig(true)}
+              >
+                <Network />
+                Network Settings
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="grid gap-6">
-            <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
               <Button onClick={addInstance}>Add Instance</Button>
+              <Button
+                variant="blue"
+                className="shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none"
+                onClick={() => setShowNetworkConfig(true)}
+              >
+                <Network />
+                Network Settings
+              </Button>
             </div>
             <div className="grid gap-4">
               {instances.map((instance) =>
@@ -100,6 +119,11 @@ export default function RadarrInstancesPage() {
           </div>
         )}
       </div>
+
+      <NetworkConfigCredenza
+        open={showNetworkConfig}
+        onOpenChange={setShowNetworkConfig}
+      />
     </div>
   )
 }
