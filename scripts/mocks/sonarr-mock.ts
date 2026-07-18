@@ -19,7 +19,9 @@ import {
   emptyPagedResult,
   type MockEpisode,
   type MockEpisodeFile,
+  parseApplyTagsMode,
   qualityProfiles,
+  recomputeSeriesAggregates,
   rootFolders,
   seedSeriesEpisodes,
 } from './fixtures.ts'
@@ -286,12 +288,18 @@ function createArrRoutes(): ArrMockRoute[] {
         const body = await readJsonBody<{
           seriesIds?: number[]
           tags?: number[]
-          applyTags?: 'add' | 'remove' | 'replace'
+          applyTags?: string
         }>(request)
 
         const seriesIds = Array.isArray(body.seriesIds) ? body.seriesIds : []
         const tagIds = Array.isArray(body.tags) ? body.tags : []
-        const mode = body.applyTags ?? 'replace'
+        const mode = parseApplyTagsMode(body.applyTags)
+        if (!mode) {
+          return json(
+            { message: 'applyTags must be add, remove, or replace' },
+            400,
+          )
+        }
 
         for (const seriesId of seriesIds) {
           const series = seriesList.find((item) => item.id === seriesId)
@@ -455,13 +463,30 @@ function createArrRoutes(): ArrMockRoute[] {
         if (fileIndex === -1) {
           return notFound(`Episode file ${id} not found`)
         }
-        episodeFiles.splice(fileIndex, 1)
+        const [removed] = episodeFiles.splice(fileIndex, 1)
+        const seriesId = removed.seriesId
 
         for (const episode of episodes) {
           if (episode.episodeFileId === id) {
             episode.episodeFileId = 0
             episode.hasFile = false
           }
+        }
+
+        const series = seriesList.find((item) => item.id === seriesId)
+        if (series) {
+          const seriesEpisodes = episodes.filter(
+            (ep) => ep.seriesId === seriesId,
+          )
+          const seriesFiles = episodeFiles.filter(
+            (file) => file.seriesId === seriesId,
+          )
+          const aggregates = recomputeSeriesAggregates(
+            seriesEpisodes,
+            seriesFiles,
+          )
+          series.seasons = aggregates.seasons
+          series.statistics = aggregates.statistics
         }
 
         console.log(`${label} DELETE episodefile id=${id}`)

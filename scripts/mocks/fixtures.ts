@@ -69,11 +69,27 @@ export function emptyPagedResult() {
   }
 }
 
+export type ApplyTagsMode = 'add' | 'remove' | 'replace'
+
+/** Parse applyTags from untrusted JSON; returns null when the value is invalid. */
+export function parseApplyTagsMode(
+  value: unknown,
+  fallback: ApplyTagsMode = 'replace',
+): ApplyTagsMode | null {
+  if (value === undefined || value === null) {
+    return fallback
+  }
+  if (value === 'add' || value === 'remove' || value === 'replace') {
+    return value
+  }
+  return null
+}
+
 /** Apply Servarr bulk-editor tag semantics to an existing tag list. */
 export function applyTags(
   current: number[],
   tags: number[],
-  mode: 'add' | 'remove' | 'replace' = 'replace',
+  mode: ApplyTagsMode = 'replace',
 ): number[] {
   if (mode === 'replace') {
     return [...new Set(tags)]
@@ -178,39 +194,83 @@ export function seedSeriesEpisodes(
     })
   }
 
-  const seasons = [
-    {
-      seasonNumber: 0,
-      monitored: false,
-      statistics: {
-        episodeFileCount: 0,
-        episodeCount: 0,
-        totalEpisodeCount: 0,
-        sizeOnDisk: 0,
-        percentOfEpisodes: 0,
-      },
-    },
-    {
-      seasonNumber: 1,
-      monitored: true,
-      statistics: {
-        episodeFileCount: EPISODES_WITH_FILES,
-        episodeCount: EPISODES_PER_SEASON,
-        totalEpisodeCount: EPISODES_PER_SEASON,
-        sizeOnDisk: EPISODES_WITH_FILES * 1_500_000_000,
-        percentOfEpisodes: (EPISODES_WITH_FILES / EPISODES_PER_SEASON) * 100,
-      },
-    },
-  ]
+  const aggregates = recomputeSeriesAggregates(episodes, episodeFiles)
+  return {
+    episodes,
+    episodeFiles,
+    seasons: aggregates.seasons,
+    statistics: aggregates.statistics,
+  }
+}
 
-  const statistics = {
-    seasonCount: 1,
-    episodeFileCount: EPISODES_WITH_FILES,
-    episodeCount: EPISODES_PER_SEASON,
-    totalEpisodeCount: EPISODES_PER_SEASON,
-    sizeOnDisk: EPISODES_WITH_FILES * 1_500_000_000,
-    percentOfEpisodes: (EPISODES_WITH_FILES / EPISODES_PER_SEASON) * 100,
+/**
+ * Rebuild series/season statistics from the current episode + episode-file
+ * state so deletes stay consistent with subsequent series reads.
+ */
+export function recomputeSeriesAggregates(
+  seriesEpisodes: MockEpisode[],
+  seriesEpisodeFiles: MockEpisodeFile[],
+): {
+  seasons: Array<{
+    seasonNumber: number
+    monitored: boolean
+    statistics: Record<string, number>
+  }>
+  statistics: Record<string, number>
+} {
+  const seasonNumbers = new Set<number>([0])
+  for (const episode of seriesEpisodes) {
+    seasonNumbers.add(episode.seasonNumber)
   }
 
-  return { episodes, episodeFiles, seasons, statistics }
+  const seasons = [...seasonNumbers]
+    .sort((a, b) => a - b)
+    .map((seasonNumber) => {
+      const seasonEps = seriesEpisodes.filter(
+        (ep) => ep.seasonNumber === seasonNumber,
+      )
+      const episodeFileCount = seasonEps.filter((ep) => ep.hasFile).length
+      const totalEpisodeCount = seasonEps.length
+      const sizeOnDisk = seriesEpisodeFiles
+        .filter((file) => file.seasonNumber === seasonNumber)
+        .reduce((sum, file) => sum + file.size, 0)
+
+      return {
+        seasonNumber,
+        monitored: seasonNumber > 0,
+        statistics: {
+          episodeFileCount,
+          episodeCount: totalEpisodeCount,
+          totalEpisodeCount,
+          sizeOnDisk,
+          percentOfEpisodes:
+            totalEpisodeCount === 0
+              ? 0
+              : (episodeFileCount / totalEpisodeCount) * 100,
+        },
+      }
+    })
+
+  const episodeFileCount = seriesEpisodes.filter((ep) => ep.hasFile).length
+  const totalEpisodeCount = seriesEpisodes.length
+  const sizeOnDisk = seriesEpisodeFiles.reduce(
+    (sum, file) => sum + file.size,
+    0,
+  )
+  const seasonCount = seasons.filter((season) => season.seasonNumber > 0).length
+
+  return {
+    seasons,
+    statistics: {
+      seasonCount,
+      episodeFileCount,
+      episodeCount: totalEpisodeCount,
+      totalEpisodeCount,
+      sizeOnDisk,
+      percentOfEpisodes:
+        totalEpisodeCount === 0
+          ? 0
+          : (episodeFileCount / totalEpisodeCount) * 100,
+    },
+  }
 }

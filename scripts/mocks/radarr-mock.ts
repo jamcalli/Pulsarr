@@ -18,6 +18,7 @@ import {
   createSystemStatus,
   defaultTags,
   emptyPagedResult,
+  parseApplyTagsMode,
   qualityProfiles,
   rootFolders,
 } from './fixtures.ts'
@@ -268,12 +269,18 @@ function createArrRoutes(): ArrMockRoute[] {
         const body = await readJsonBody<{
           movieIds?: number[]
           tags?: number[]
-          applyTags?: 'add' | 'remove' | 'replace'
+          applyTags?: string
         }>(request)
 
         const movieIds = Array.isArray(body.movieIds) ? body.movieIds : []
         const tagIds = Array.isArray(body.tags) ? body.tags : []
-        const mode = body.applyTags ?? 'replace'
+        const mode = parseApplyTagsMode(body.applyTags)
+        if (!mode) {
+          return json(
+            { message: 'applyTags must be add, remove, or replace' },
+            400,
+          )
+        }
 
         for (const movieId of movieIds) {
           const movie = movies.find((item) => item.id === movieId)
