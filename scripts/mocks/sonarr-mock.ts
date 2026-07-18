@@ -13,11 +13,15 @@ import {
   startArrMockServer,
 } from './arr-mock-server.ts'
 import {
+  applyTags,
   createSystemStatus,
   defaultTags,
   emptyPagedResult,
+  type MockEpisode,
+  type MockEpisodeFile,
   qualityProfiles,
   rootFolders,
+  seedSeriesEpisodes,
 } from './fixtures.ts'
 
 const port = Number(process.env.MOCK_SONARR_PORT ?? 8989)
@@ -28,15 +32,20 @@ type Series = Record<string, unknown> & {
   id: number
   title: string
   tvdbId: number
+  tags: number[]
 }
 type Tag = { id: number; label: string }
 
 const notifications: Notification[] = []
 const seriesList: Series[] = []
+const episodes: MockEpisode[] = []
+const episodeFiles: MockEpisodeFile[] = []
 const tags: Tag[] = [...defaultTags]
 let nextNotificationId = 1
 let nextSeriesId = 1
 let nextTagId = tags.reduce((max, tag) => Math.max(max, tag.id), 0) + 1
+const nextEpisodeId = { value: 1 }
+const nextEpisodeFileId = { value: 1 }
 
 function createArrRoutes(): ArrMockRoute[] {
   return [
@@ -230,8 +239,18 @@ function createArrRoutes(): ArrMockRoute[] {
           return json(existing)
         }
 
+        const seriesId = nextSeriesId++
+        const seeded = seedSeriesEpisodes(
+          seriesId,
+          title,
+          nextEpisodeId,
+          nextEpisodeFileId,
+        )
+        episodes.push(...seeded.episodes)
+        episodeFiles.push(...seeded.episodeFiles)
+
         const series: Series = {
-          id: nextSeriesId++,
+          id: seriesId,
           title,
           tvdbId,
           year: 2024,
@@ -249,21 +268,52 @@ function createArrRoutes(): ArrMockRoute[] {
                 .map((tag) => Number(tag))
                 .filter((tag) => !Number.isNaN(tag))
             : [],
-          seasons: [],
-          statistics: {
-            seasonCount: 0,
-            episodeFileCount: 0,
-            episodeCount: 0,
-            totalEpisodeCount: 0,
-            sizeOnDisk: 0,
-            percentOfEpisodes: 0,
-          },
+          seasons: seeded.seasons,
+          statistics: seeded.statistics,
           addOptions: body.addOptions ?? {},
         }
         seriesList.push(series)
         console.log(
-          `${label} ADD series tvdb=${tvdbId} title="${title}" id=${series.id}`,
+          `${label} ADD series tvdb=${tvdbId} title="${title}" id=${series.id} episodes=${seeded.episodes.length}`,
         )
+        return json(series)
+      },
+    },
+    {
+      method: 'PUT',
+      path: 'series/editor',
+      handler: async (request) => {
+        const body = await readJsonBody<{
+          seriesIds?: number[]
+          tags?: number[]
+          applyTags?: 'add' | 'remove' | 'replace'
+        }>(request)
+
+        const seriesIds = Array.isArray(body.seriesIds) ? body.seriesIds : []
+        const tagIds = Array.isArray(body.tags) ? body.tags : []
+        const mode = body.applyTags ?? 'replace'
+
+        for (const seriesId of seriesIds) {
+          const series = seriesList.find((item) => item.id === seriesId)
+          if (!series) continue
+          series.tags = applyTags(series.tags ?? [], tagIds, mode)
+        }
+
+        console.log(
+          `${label} EDITOR series=${seriesIds.length} tags=[${tagIds.join(',')}] mode=${mode}`,
+        )
+        return noContent(202)
+      },
+    },
+    {
+      method: 'GET',
+      path: 'series/:id',
+      handler: (_request, _url, params) => {
+        const id = Number(params.id)
+        const series = seriesList.find((item) => item.id === id)
+        if (!series) {
+          return notFound(`Series ${id} not found`)
+        }
         return json(series)
       },
     },
@@ -283,6 +333,11 @@ function createArrRoutes(): ArrMockRoute[] {
           id,
           title: String(body.title ?? seriesList[index].title),
           tvdbId: Number(body.tvdbId ?? seriesList[index].tvdbId),
+          tags: Array.isArray(body.tags)
+            ? body.tags
+                .map((tag) => Number(tag))
+                .filter((tag) => !Number.isNaN(tag))
+            : (seriesList[index].tags ?? []),
         }
         seriesList[index] = updated
         return json(updated)
@@ -298,9 +353,120 @@ function createArrRoutes(): ArrMockRoute[] {
           return notFound(`Series ${id} not found`)
         }
         const [removed] = seriesList.splice(index, 1)
+
+        for (let i = episodes.length - 1; i >= 0; i--) {
+          if (episodes[i].seriesId === id) {
+            episodes.splice(i, 1)
+          }
+        }
+        for (let i = episodeFiles.length - 1; i >= 0; i--) {
+          if (episodeFiles[i].seriesId === id) {
+            episodeFiles.splice(i, 1)
+          }
+        }
+
         console.log(
           `${label} DELETE series id=${removed.id} title="${removed.title}" deleteFiles=${url.searchParams.get('deleteFiles') ?? 'false'}`,
         )
+        return noContent()
+      },
+    },
+    {
+      method: 'GET',
+      path: 'episode',
+      handler: (_request, url) => {
+        const seriesId = Number(url.searchParams.get('seriesId'))
+        if (!Number.isInteger(seriesId) || seriesId <= 0) {
+          return json({ message: 'seriesId is required' }, 400)
+        }
+
+        let result = episodes.filter((ep) => ep.seriesId === seriesId)
+        const seasonNumber = url.searchParams.get('seasonNumber')
+        if (seasonNumber !== null) {
+          const season = Number(seasonNumber)
+          result = result.filter((ep) => ep.seasonNumber === season)
+        }
+        return json(result)
+      },
+    },
+    {
+      method: 'PUT',
+      path: 'episode/monitor',
+      handler: async (request) => {
+        const body = await readJsonBody<{
+          episodeIds?: number[]
+          monitored?: boolean
+        }>(request)
+
+        const episodeIds = Array.isArray(body.episodeIds) ? body.episodeIds : []
+        const monitored = body.monitored ?? true
+
+        for (const episodeId of episodeIds) {
+          const episode = episodes.find((ep) => ep.id === episodeId)
+          if (episode) {
+            episode.monitored = monitored
+          }
+        }
+
+        console.log(
+          `${label} EPISODE monitor count=${episodeIds.length} monitored=${monitored}`,
+        )
+        return json(
+          episodes.filter((ep) => episodeIds.includes(ep.id)),
+        )
+      },
+    },
+    {
+      method: 'GET',
+      path: 'episode/:id',
+      handler: (_request, _url, params) => {
+        const id = Number(params.id)
+        const episode = episodes.find((ep) => ep.id === id)
+        if (!episode) {
+          return notFound(`Episode ${id} not found`)
+        }
+        return json(episode)
+      },
+    },
+    {
+      method: 'PUT',
+      path: 'episode/:id',
+      handler: async (request, _url, params) => {
+        const id = Number(params.id)
+        const index = episodes.findIndex((ep) => ep.id === id)
+        if (index === -1) {
+          return notFound(`Episode ${id} not found`)
+        }
+        const body = await readJsonBody<Partial<MockEpisode>>(request)
+        const updated: MockEpisode = {
+          ...episodes[index],
+          ...body,
+          id,
+          seriesId: episodes[index].seriesId,
+        }
+        episodes[index] = updated
+        return json(updated)
+      },
+    },
+    {
+      method: 'DELETE',
+      path: 'episodefile/:id',
+      handler: (_request, _url, params) => {
+        const id = Number(params.id)
+        const fileIndex = episodeFiles.findIndex((file) => file.id === id)
+        if (fileIndex === -1) {
+          return notFound(`Episode file ${id} not found`)
+        }
+        episodeFiles.splice(fileIndex, 1)
+
+        for (const episode of episodes) {
+          if (episode.episodeFileId === id) {
+            episode.episodeFileId = 0
+            episode.hasFile = false
+          }
+        }
+
+        console.log(`${label} DELETE episodefile id=${id}`)
         return noContent()
       },
     },

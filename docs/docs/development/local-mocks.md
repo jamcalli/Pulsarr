@@ -6,7 +6,7 @@ sidebar_position: 2
 
 Run Pulsarr against local Radarr / Sonarr (and optionally Plex) mocks when your real *arr* instances are unreachable — for example off your home network.
 
-The mocks speak enough of the Servarr / Plex APIs for connection tests, health checks, webhook setup, quality profiles / root folders, and content adds. Every add is logged so you can verify routing vs skip behavior.
+The mocks cover Pulsarr’s full dependency surface against those services: connection tests, health checks, webhooks, quality profiles / root folders, library CRUD, bulk tag editors, Sonarr episodes / commands, and local Plex existence / labels / sessions / playlists. Every content add is logged so you can verify routing vs skip behavior.
 
 ## Commands
 
@@ -45,7 +45,37 @@ Only needed when testing with `skipIfExistsOnPlex` enabled:
 1. `bun run mock:plex` (or `bun run mock:all`)
 2. Set `plexServerUrl` to `http://localhost:32400`
 
-Plex **watchlist** ingestion still uses real plex.tv tokens; this mock only fakes the local media server health / library surface.
+By default `/library/all?guid=` returns empty (content is never “on Plex”). To exercise the **exists → skip** path, seed GUIDs:
+
+```bash
+MOCK_PLEX_EXISTING_GUIDS=tmdb://123,tvdb://456 bun run mock:plex
+```
+
+Plex **watchlist** ingestion still uses real plex.tv tokens; this mock only fakes the local media server surface.
+
+## What is covered
+
+### Radarr / Sonarr
+
+- System status, quality profiles, root folders, tags (CRUD)
+- Notifications / webhooks (CRUD; no callbacks into Pulsarr)
+- Library list / lookup / add / update / delete
+- Bulk editors (`PUT movie/editor`, `PUT series/editor`)
+- Radarr TMDB lookup (`GET movie/lookup/tmdb`)
+- Sonarr episodes (`GET episode`, `PUT episode/monitor`, `DELETE episodefile/:id`)
+- Sonarr commands (`POST command`)
+- Import-list exclusions (always empty)
+
+Added series are seeded with season 1 and a few episodes (some with files) so session-monitor and season-completion flows have data to work with.
+
+### Plex Media Server
+
+- `/identity`, `/library/sections` (health)
+- `/library/all?guid=` (existence / skip-if-exists)
+- `/library/metadata/:id` GET + PUT labels
+- `/status/sessions` (empty)
+- `/:/eventsource/notifications` (keep-alive SSE)
+- `/playlists` list / create / items
 
 ## Verifying routing vs skip
 
@@ -58,6 +88,7 @@ Watch the mock terminal for add lines:
 
 - Content that **should route** → you see an `ADD` line.
 - Content that **should skip** (no matching route + skip-default enabled, or exclude-from-routing) → no `ADD` line.
+- With `skipIfExistsOnPlex` + seeded GUIDs → matching items skip without an `ADD` line.
 
 ## Notes
 

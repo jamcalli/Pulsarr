@@ -13,6 +13,8 @@ import {
   startArrMockServer,
 } from './arr-mock-server.ts'
 import {
+  applyTags,
+  createRadarrTmdbLookup,
   createSystemStatus,
   defaultTags,
   emptyPagedResult,
@@ -28,6 +30,7 @@ type Movie = Record<string, unknown> & {
   id: number
   title: string
   tmdbId: number
+  tags: number[]
 }
 type Tag = { id: number; label: string }
 
@@ -180,18 +183,27 @@ function createArrRoutes(): ArrMockRoute[] {
           return json([existing])
         }
 
-        // Not in library — Radarr returns id: 0 for lookup-only results
-        return json([
-          {
-            id: 0,
-            title: `Mock Movie ${tmdbId}`,
-            tmdbId,
-            year: 2024,
-            monitored: false,
-            hasFile: false,
-            isAvailable: false,
-          },
-        ])
+        return json([createRadarrTmdbLookup(tmdbId)])
+      },
+    },
+    {
+      method: 'GET',
+      path: 'movie/lookup/tmdb',
+      handler: (_request, url) => {
+        const tmdbId = Number(url.searchParams.get('tmdbId'))
+        if (!Number.isInteger(tmdbId) || tmdbId <= 0) {
+          return json({ message: 'tmdbId is required' }, 400)
+        }
+
+        const existing = movies.find((movie) => movie.tmdbId === tmdbId)
+        if (existing) {
+          return json({
+            ...createRadarrTmdbLookup(tmdbId, existing.title),
+            ...existing,
+          })
+        }
+
+        return json(createRadarrTmdbLookup(tmdbId))
       },
     },
     {
@@ -247,6 +259,70 @@ function createArrRoutes(): ArrMockRoute[] {
           `${label} ADD movie tmdb=${tmdbId} title="${title}" id=${movie.id}`,
         )
         return json(movie)
+      },
+    },
+    {
+      method: 'PUT',
+      path: 'movie/editor',
+      handler: async (request) => {
+        const body = await readJsonBody<{
+          movieIds?: number[]
+          tags?: number[]
+          applyTags?: 'add' | 'remove' | 'replace'
+        }>(request)
+
+        const movieIds = Array.isArray(body.movieIds) ? body.movieIds : []
+        const tagIds = Array.isArray(body.tags) ? body.tags : []
+        const mode = body.applyTags ?? 'replace'
+
+        for (const movieId of movieIds) {
+          const movie = movies.find((item) => item.id === movieId)
+          if (!movie) continue
+          movie.tags = applyTags(movie.tags ?? [], tagIds, mode)
+        }
+
+        console.log(
+          `${label} EDITOR movies=${movieIds.length} tags=[${tagIds.join(',')}] mode=${mode}`,
+        )
+        return noContent(202)
+      },
+    },
+    {
+      method: 'GET',
+      path: 'movie/:id',
+      handler: (_request, _url, params) => {
+        const id = Number(params.id)
+        const movie = movies.find((item) => item.id === id)
+        if (!movie) {
+          return notFound(`Movie ${id} not found`)
+        }
+        return json(movie)
+      },
+    },
+    {
+      method: 'PUT',
+      path: 'movie/:id',
+      handler: async (request, _url, params) => {
+        const id = Number(params.id)
+        const index = movies.findIndex((movie) => movie.id === id)
+        if (index === -1) {
+          return notFound(`Movie ${id} not found`)
+        }
+        const body = await readJsonBody<Record<string, unknown>>(request)
+        const updated: Movie = {
+          ...movies[index],
+          ...body,
+          id,
+          title: String(body.title ?? movies[index].title),
+          tmdbId: Number(body.tmdbId ?? movies[index].tmdbId),
+          tags: Array.isArray(body.tags)
+            ? body.tags
+                .map((tag) => Number(tag))
+                .filter((tag) => !Number.isNaN(tag))
+            : (movies[index].tags ?? []),
+        }
+        movies[index] = updated
+        return json(updated)
       },
     },
     {

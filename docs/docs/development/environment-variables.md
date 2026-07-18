@@ -286,4 +286,4 @@ These variables are for development/testing only. Do not use in production.
 
 ### Local mock servers
 
-For offline testing against mock Radarr / Sonarr / Plex (no real instances required), see [Local Mock Servers](./local-mocks). Use `bun run dev:mocks` or point seeded URLs at `http://localhost:7878` / `http://localhost:8989` with API key `mock-api-key`.
+For offline testing against mock Radarr / Sonarr / Plex (no real instances required), see [Local Mock Servers](./local-mocks). Use `bun run dev:mocks` or point seeded URLs at `http://localhost:7878` / `http://localhost:8989` with API key `mock-api-key`. Optional `MOCK_PLEX_EXISTING_GUIDS` seeds GUIDs that `/library/all` treats as present on Plex.
