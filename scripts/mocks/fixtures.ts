@@ -140,7 +140,12 @@ export function seedSeriesEpisodes(
   seriesTitle: string,
   nextEpisodeId: { value: number },
   nextEpisodeFileId: { value: number },
-): { episodes: MockEpisode[]; episodeFiles: MockEpisodeFile[]; seasons: unknown[]; statistics: Record<string, number> } {
+): {
+  episodes: MockEpisode[]
+  episodeFiles: MockEpisodeFile[]
+  seasons: unknown[]
+  statistics: Record<string, number>
+} {
   const episodes: MockEpisode[] = []
   const episodeFiles: MockEpisodeFile[] = []
 

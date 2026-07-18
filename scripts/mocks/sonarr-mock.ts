@@ -411,9 +411,7 @@ function createArrRoutes(): ArrMockRoute[] {
         console.log(
           `${label} EPISODE monitor count=${episodeIds.length} monitored=${monitored}`,
         )
-        return json(
-          episodes.filter((ep) => episodeIds.includes(ep.id)),
-        )
+        return json(episodes.filter((ep) => episodeIds.includes(ep.id)))
       },
     },
     {

@@ -52,9 +52,8 @@ const existingGuids = parseExistingGuids()
 // Pre-seed metadata for configured GUIDs so /library/all and /library/metadata work.
 for (const guid of existingGuids) {
   const ratingKey = String(nextRatingKey++)
-  const type = guid.startsWith('tvdb://') || guid.startsWith('tvdb:')
-    ? 'show'
-    : 'movie'
+  const type =
+    guid.startsWith('tvdb://') || guid.startsWith('tvdb:') ? 'show' : 'movie'
   metadataByKey.set(ratingKey, {
     ratingKey,
     key: `/library/metadata/${ratingKey}`,
@@ -285,7 +284,9 @@ export function startPlexMock(overridePort = port) {
           leafCount: 0,
         }
         playlists.push(playlist)
-        console.log(`${label} PLAYLIST created id=${ratingKey} title="${title}"`)
+        console.log(
+          `${label} PLAYLIST created id=${ratingKey} title="${title}"`,
+        )
         return Response.json({
           MediaContainer: {
             size: 1,
