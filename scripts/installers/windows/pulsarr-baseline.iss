@@ -80,11 +80,17 @@ Type: files; Name: "{#MyAppDataDir}\.env.example"
 Type: files; Name: "{#MyAppDataDir}\pulsarr.ico"
 Type: files; Name: "{#MyAppDataDir}\README.txt"
 Type: files; Name: "{#MyAppDataDir}\bun.exe.locktest"
+; Legacy installs wrote their uninstaller into the user-writable data dir, where
+; any local user could replace it before an admin runs it. Skipped when the
+; install dir is the data dir so the live uninstall log survives.
+Type: files; Name: "{#MyAppDataDir}\unins*.exe"; Check: not AppIsDataDir
+Type: files; Name: "{#MyAppDataDir}\unins*.dat"; Check: not AppIsDataDir
+Type: files; Name: "{#MyAppDataDir}\unins*.msg"; Check: not AppIsDataDir
 
 [Files]
 ; Main application files (from extracted native build zip).
 ; Exclude zip-flow files: installer users update by re-running the installer.
-Source: "build\*"; DestDir: "{app}"; Excludes: "update.bat,README.txt"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: main
+Source: "build\*"; DestDir: "{app}"; Excludes: "\update.bat,\README.txt"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: main
 ; Icon for uninstaller
 Source: "pulsarr.ico"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 
@@ -125,6 +131,11 @@ Type: files; Name: "{app}\pulsarr-service.err.log"
 [Code]
 const
   CRLF = #13#10;
+
+function AppIsDataDir: Boolean;
+begin
+  Result := CompareText(ExpandConstant('{app}'), ExpandConstant('{#MyAppDataDir}')) = 0;
+end;
 
 procedure InitializeWizard;
 begin

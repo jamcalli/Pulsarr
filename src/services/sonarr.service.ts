@@ -775,6 +775,21 @@ export class SonarrService {
   }
 
   /**
+   * Get full series data by Sonarr series ID, including season statistics
+   */
+  async getSeriesById(seriesId: number): Promise<SonarrSeries | null> {
+    try {
+      return await this.getFromSonarr<SonarrSeries>(`series/${seriesId}`)
+    } catch (err) {
+      this.log.error(
+        { error: err, seriesId },
+        'Error fetching series by Sonarr ID',
+      )
+      return null
+    }
+  }
+
+  /**
    * Get full series data by TVDB ID from library
    * Uses /series endpoint (not lookup) to get full statistics including episode counts
    * @param tvdbId - The TVDB ID to look up

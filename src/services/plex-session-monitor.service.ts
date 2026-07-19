@@ -11,6 +11,7 @@ import type {
   RollingMonitoredShow,
   SessionMonitoringResult,
 } from '@root/types/plex-session.types.js'
+import type { SonarrSeries } from '@root/types/sonarr.types.js'
 import {
   collectSeasonsEligibleForCleanup,
   userNeedsSeason,
@@ -327,17 +328,38 @@ export class PlexSessionMonitorService {
     // The next-season check below queries Sonarr, so skip it on no-progress events.
     if (positionUnchanged) return
 
+    // Progress was already persisted above, so a failed check would make every
+    // later poll of this episode hit the positionUnchanged gate and never
+    // retry. Restore the prior position on failure so the next poll retries.
+    const revertProgress = () =>
+      this.db.updateRollingShowProgress(
+        rollingShow.id,
+        rollingShow.last_watched_season,
+        rollingShow.last_watched_episode,
+      )
+
     // Read season statistics from this entry's own instance and series.
     const sonarr = this.sonarrManager.getSonarrService(
       rollingShow.sonarr_instance_id,
     )
-    if (!sonarr) return
+    if (!sonarr) {
+      await revertProgress()
+      return
+    }
 
-    const tvdbId = extractTvdbId(`tvdb://${rollingShow.tvdb_id ?? ''}`)
-    if (tvdbId <= 0) return
-
-    const series = await sonarr.getSeriesByTvdbId(tvdbId)
-    if (!series) return
+    // Fetch by Sonarr ID: entries enrolled without a TVDB GUID store an
+    // empty tvdb_id, and the series ID is always present.
+    let series: SonarrSeries | null
+    try {
+      series = await sonarr.getSeriesById(rollingShow.sonarr_series_id)
+    } catch (error) {
+      await revertProgress()
+      throw error
+    }
+    if (!series) {
+      await revertProgress()
+      return
+    }
 
     const season = series.seasons?.find((s) => s.seasonNumber === currentSeason)
     if (!season?.statistics?.totalEpisodeCount) return
@@ -354,7 +376,12 @@ export class PlexSessionMonitorService {
 
       if (hasMoreSeasons) {
         // Expand to next season based on what user is watching
-        await this.expandMonitoringToNextSeason(rollingShow, session, result)
+        try {
+          await this.expandMonitoringToNextSeason(rollingShow, session, result)
+        } catch (error) {
+          await revertProgress()
+          throw error
+        }
       }
       // No more seasons - show stays in rolling monitoring.
       // Inactivity reset handles cleanup; no need to delete tracking entries.
@@ -636,6 +663,8 @@ export class PlexSessionMonitorService {
         { error },
         `Failed to expand monitoring for ${session.grandparentTitle}:`,
       )
+      // Rethrow so the caller can restore progress and retry next poll
+      throw error
     }
   }
 

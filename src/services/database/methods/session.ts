@@ -349,14 +349,23 @@ export async function deleteAllRollingMonitoredShowEntries(
 ): Promise<number> {
   try {
     return await this.knex.transaction(async (trx) => {
-      // Get the show details inside the transaction to avoid race conditions
-      const rowQuery = trx('rolling_monitored_shows').where({ id })
-      if (this.isPostgres) rowQuery.forUpdate() // row-level lock only on PG
-      const show = await rowQuery.first()
+      // Read without locking, then lock the master first. Locking the caller's
+      // row here while updateRollingShowMonitoringType locks master-first
+      // would deadlock on Postgres.
+      const show = await trx('rolling_monitored_shows').where({ id }).first()
 
       if (!show) {
         return 0
       }
+
+      const masterQuery = trx('rolling_monitored_shows')
+        .where({
+          sonarr_series_id: show.sonarr_series_id,
+          sonarr_instance_id: show.sonarr_instance_id,
+        })
+        .whereNull('plex_user_id')
+      if (this.isPostgres) masterQuery.forUpdate() // row-level lock only on PG
+      await masterQuery.first()
 
       // Delete all entries for this show (all users)
       const deleted = await trx('rolling_monitored_shows')
@@ -395,10 +404,10 @@ export async function resetRollingMonitoredShowToOriginal(
 ): Promise<number> {
   try {
     return await this.knex.transaction(async (trx) => {
-      // Get the show details inside the transaction to avoid race conditions
-      const rowQuery = trx('rolling_monitored_shows').where({ id })
-      if (this.isPostgres) rowQuery.forUpdate() // row-level lock only on PG
-      const show = await rowQuery.first()
+      // Read without locking, then lock the master first. Locking the caller's
+      // row here while updateRollingShowMonitoringType locks master-first
+      // would deadlock on Postgres.
+      const show = await trx('rolling_monitored_shows').where({ id }).first()
 
       if (!show) {
         return 0
