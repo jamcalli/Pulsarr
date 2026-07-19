@@ -233,7 +233,7 @@ begin
   end
   else if (CompareText(ExpandConstant('{#MyAppDataDir}'), ExpandConstant('{app}')) <> 0) and LegacyServiceInDataDir() then
   begin
-    { Remove via SCM so [Run] reinstalls it from {app}. }
+    { Remove via SCM so [Run] reinstalls it from the install dir. }
     Result := RemoveService();
     if Result <> '' then
       Exit;
