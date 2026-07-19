@@ -7,7 +7,6 @@ import type {
   ConnectionTestResult,
   SonarrInstance,
   SonarrItem,
-  SonarrSeries,
 } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import { createServiceLogger } from '@utils/logger.js'
