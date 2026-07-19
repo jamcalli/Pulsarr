@@ -356,10 +356,8 @@ export class PlexSessionMonitorService {
       await revertProgress()
       throw error
     }
-    if (!series) {
-      await revertProgress()
-      return
-    }
+    // Null means the series no longer exists in Sonarr - nothing to retry
+    if (!series) return
 
     const season = series.seasons?.find((s) => s.seasonNumber === currentSeason)
     if (!season?.statistics?.totalEpisodeCount) return
