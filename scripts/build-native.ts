@@ -363,7 +363,9 @@ if not defined PULSARR_SERVICE pause
 `
 
 const UPDATE_WINDOWS = `@echo off
-setlocal enabledelayedexpansion
+rem Delayed expansion would eat exclamation marks while the raw args are
+rem parsed, so it stays off until the args are captured into variables.
+setlocal disabledelayedexpansion
 
 if "%~1"=="" (
   echo Usage: update.bat ^<path-to-new-release-zip^>
@@ -376,26 +378,27 @@ if not exist "%~1" (
 
 rem cmd reads this file from disk as it runs and the update replaces this folder,
 rem so relaunch a copy from TEMP before touching anything here.
-if not defined PULSARR_UPDATE_STAGED (
-  set "STAGED=%TEMP%\\pulsarr-update-%RANDOM%%RANDOM%.bat"
-  copy /y "%~f0" "!STAGED!" >nul
-  set "PULSARR_UPDATE_STAGED=1"
-  call "!STAGED!" "%~dp0." "%~f1"
-  set "RC=!ERRORLEVEL!"
-  del "!STAGED!" >nul 2>&1
-  exit /b !RC!
-)
+if defined PULSARR_UPDATE_STAGED goto :staged
+set "STAGED=%TEMP%\\pulsarr-update-%RANDOM%%RANDOM%.bat"
+copy /y "%~f0" "%STAGED%" >nul
+set "PULSARR_UPDATE_STAGED=1"
+call "%STAGED%" "%~dp0." "%~f1"
+set "RC=%ERRORLEVEL%"
+del "%STAGED%" >nul 2>&1
+exit /b %RC%
 
+:staged
 set "INSTALL=%~1"
+set "ZIP=%~2"
+setlocal enabledelayedexpansion
 if "!INSTALL:~-2!"=="\\." set "INSTALL=!INSTALL:~0,-2!"
 if "!INSTALL:~-1!"=="\\" set "INSTALL=!INSTALL:~0,-1!"
-set "ZIP=%~2"
 set "STAGEDIR=%TEMP%\\pulsarr-new-%RANDOM%%RANDOM%"
 
 echo Extracting update...
 rem Pass paths to PowerShell via environment variables so quotes or apostrophes
 rem in the path cannot break out of the command string.
-set "PS_ZIP=%ZIP%"
+set "PS_ZIP=!ZIP!"
 set "PS_DEST=%STAGEDIR%"
 powershell -NoProfile -Command "Expand-Archive -LiteralPath $env:PS_ZIP -DestinationPath $env:PS_DEST -Force"
 if errorlevel 1 (
@@ -415,7 +418,7 @@ if not exist "!NEW!\\start.bat" (
 )
 for %%D in (dist node_modules migrations packages) do (
   if not exist "!NEW!\\%%D" (
-    echo This release zip is incomplete (%%D missing).
+    echo This release zip is incomplete ^(%%D missing^).
     rd /s /q "%STAGEDIR%" 2>nul
     exit /b 1
   )
@@ -501,6 +504,11 @@ pulsarr-service.exe stop
 timeout /t 2 /nobreak >nul
 echo Uninstalling Pulsarr service...
 pulsarr-service.exe uninstall
+if errorlevel 1 (
+  echo Failed to uninstall the Pulsarr service.
+  pause
+  exit /b 1
+)
 echo.
 echo Pulsarr service has been removed.
 pause
