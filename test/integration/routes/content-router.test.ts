@@ -242,6 +242,31 @@ describe('Content Router Rules API', () => {
       expect(row.series_type).toBeNull()
     })
 
+    it('clears quality profile and root folder on a type switch when not resupplied', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...sonarrRule,
+          quality_profile: 5,
+          root_folder: '/data/shows',
+        },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: { target_type: 'radarr', target_instance_id: 1 },
+      })
+      expect(putRes.statusCode).toBe(200)
+
+      const knex = getTestDatabase()
+      const row = await knex('router_rules').where({ id }).first()
+      expect(row.quality_profile).toBeNull()
+      expect(row.root_folder).toBeNull()
+    })
+
     it('clears monitor when a rule switches to sonarr', async () => {
       const createRes = await app.inject({
         method: 'POST',

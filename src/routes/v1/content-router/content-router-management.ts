@@ -469,6 +469,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           } else {
             updatesAsRouterRule.monitor = null
           }
+          // Profile and folder ids belong to the old service unless resupplied
+          if (updates.quality_profile === undefined)
+            updatesAsRouterRule.quality_profile = null
+          if (updates.root_folder === undefined)
+            updatesAsRouterRule.root_folder = null
         }
 
         if (updates.condition) {

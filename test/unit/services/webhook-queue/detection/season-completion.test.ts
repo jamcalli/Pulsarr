@@ -47,7 +47,7 @@ describe('season-completion', () => {
       expect(result).toBe(10)
     })
 
-    it('should subtract the pilot for a pilot-rolling season', async () => {
+    it('should cache the raw count for a pilot-rolling season', async () => {
       seedSeason('100', 1, {
         instanceId: 7,
         sonarrSeriesId: 555,
@@ -55,7 +55,7 @@ describe('season-completion', () => {
       })
       getSeasonEpisodeCount.mockResolvedValue(8)
 
-      expect(await fetchExpectedEpisodeCount('100', 1, deps)).toBe(7)
+      expect(await fetchExpectedEpisodeCount('100', 1, deps)).toBe(8)
     })
 
     it("should use each season entry's own instance context, not a shared show-level one", async () => {
@@ -77,7 +77,7 @@ describe('season-completion', () => {
       expect(getSeasonEpisodeCount).toHaveBeenCalledWith(1, 111, 1)
       expect(getSeasonEpisodeCount).toHaveBeenCalledWith(2, 222, 2)
       expect(s1).toBe(10)
-      expect(s2).toBe(7)
+      expect(s2).toBe(8)
     })
 
     it('should return null when instance or series ID is missing', async () => {
@@ -123,6 +123,32 @@ describe('season-completion', () => {
       await fetchExpectedEpisodeCount('100', 1, deps)
 
       expect(isSeasonComplete('100', 1, deps)).toBe(false)
+    })
+
+    it('should not subtract the pilot when E01 arrived in the queue', async () => {
+      seedSeason('100', 1, {
+        instanceId: 2,
+        sonarrSeriesId: 222,
+        isPilotRolling: true,
+        episodes: [1, 2, 3, 4, 5, 6, 7].map(episode),
+      })
+      getSeasonEpisodeCount.mockResolvedValue(8)
+      await fetchExpectedEpisodeCount('100', 1, deps)
+
+      expect(isSeasonComplete('100', 1, deps)).toBe(false)
+    })
+
+    it('should be complete when a bulk import including E01 delivers the full season', async () => {
+      seedSeason('100', 1, {
+        instanceId: 2,
+        sonarrSeriesId: 222,
+        isPilotRolling: true,
+        episodes: [1, 2, 3, 4, 5, 6, 7, 8].map(episode),
+      })
+      getSeasonEpisodeCount.mockResolvedValue(8)
+      await fetchExpectedEpisodeCount('100', 1, deps)
+
+      expect(isSeasonComplete('100', 1, deps)).toBe(true)
     })
   })
 })
