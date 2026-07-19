@@ -11,7 +11,7 @@ import {
   notFound,
   readJsonBody,
   startArrMockServer,
-} from './arr-mock-server.ts'
+} from './arr-mock-server.js'
 import {
   applyTags,
   createRadarrTmdbLookup,
@@ -21,7 +21,7 @@ import {
   parseApplyTagsMode,
   qualityProfiles,
   rootFolders,
-} from './fixtures.ts'
+} from './fixtures.js'
 
 const port = Number(process.env.MOCK_RADARR_PORT ?? 7878)
 const label = '[mock-radarr]'

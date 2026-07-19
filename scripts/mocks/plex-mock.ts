@@ -10,6 +10,8 @@
  * Usage: bun run scripts/mocks/plex-mock.ts
  */
 
+import type { PlexMetadata as PulsarrPlexMetadata } from '../../src/types/plex-server.types.js'
+
 const port = Number(process.env.MOCK_PLEX_PORT ?? 32400)
 const label = '[mock-plex]'
 
@@ -17,11 +19,14 @@ type PlexMetadata = {
   ratingKey: string
   key: string
   guid: string
-  type: string
+  type: PulsarrPlexMetadata['type']
   title: string
   Label?: Array<{ tag: string }>
-  [key: string]: unknown
 }
+
+// Compile-time contract: mock metadata must stay assignable to what Pulsarr parses.
+type AssertAssignable<T, _U extends T> = never
+type _MetadataContract = AssertAssignable<PulsarrPlexMetadata, PlexMetadata>
 
 type PlexPlaylist = {
   ratingKey: string

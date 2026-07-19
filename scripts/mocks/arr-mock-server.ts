@@ -2,15 +2,7 @@
  * Shared Bun.serve helpers for Radarr / Sonarr local mock servers.
  */
 
-import { MOCK_API_KEY } from './fixtures.ts'
-
-export type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JsonValue[]
-  | { [key: string]: JsonValue }
+import { MOCK_API_KEY } from './fixtures.js'
 
 export type RouteHandler = (
   request: Request,
@@ -33,7 +25,7 @@ export interface ArrMockServerOptions {
   requireApiKey?: boolean
 }
 
-export function json(data: JsonValue, status = 200): Response {
+export function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: { 'Content-Type': 'application/json' },

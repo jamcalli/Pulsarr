@@ -11,9 +11,10 @@ import {
   notFound,
   readJsonBody,
   startArrMockServer,
-} from './arr-mock-server.ts'
+} from './arr-mock-server.js'
 import {
   applyTags,
+  createSonarrTvdbLookup,
   createSystemStatus,
   defaultTags,
   emptyPagedResult,
@@ -24,7 +25,7 @@ import {
   recomputeSeriesAggregates,
   rootFolders,
   seedSeriesEpisodes,
-} from './fixtures.ts'
+} from './fixtures.js'
 
 const port = Number(process.env.MOCK_SONARR_PORT ?? 8989)
 const label = '[mock-sonarr]'
@@ -198,18 +199,7 @@ function createArrRoutes(): ArrMockRoute[] {
           return json([existing])
         }
 
-        // Not in library — Sonarr returns id: 0 for lookup-only results
-        return json([
-          {
-            id: 0,
-            title: `Mock Series ${tvdbId}`,
-            tvdbId,
-            year: 2024,
-            monitored: false,
-            ended: false,
-            status: 'continuing',
-          },
-        ])
+        return json([createSonarrTvdbLookup(tvdbId)])
       },
     },
     {

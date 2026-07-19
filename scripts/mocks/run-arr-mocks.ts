@@ -4,8 +4,8 @@
  * Usage: bun run scripts/mocks/run-arr-mocks.ts
  */
 
-import { startRadarrMock } from './radarr-mock.ts'
-import { startSonarrMock } from './sonarr-mock.ts'
+import { startRadarrMock } from './radarr-mock.js'
+import { startSonarrMock } from './sonarr-mock.js'
 
 startRadarrMock()
 startSonarrMock()

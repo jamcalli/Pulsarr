@@ -41,6 +41,8 @@ jobs:
         run: tsc --noEmit
       - name: TypeScript Check - Client
         run: tsc --noEmit -p src/client/tsconfig.json
+      - name: TypeScript Check - Scripts
+        run: tsc --noEmit -p scripts/tsconfig.json
       - name: Run Tests
         run: bun run test
       - name: Build

@@ -2,6 +2,29 @@
  * Shared fixture data for local Radarr / Sonarr mock servers.
  */
 
+import type {
+  RadarrMovieLookupResponse,
+  SonarrSeason,
+  SonarrSeriesLookupResponse,
+} from '../../src/types/content-lookup.types.js'
+import type {
+  PagedResult as RadarrPagedResult,
+  QualityProfile as RadarrQualityProfile,
+  RootFolder as RadarrRootFolder,
+} from '../../src/types/radarr.types.js'
+import type {
+  SonarrEpisode,
+  PagedResult as SonarrPagedResult,
+  QualityProfile as SonarrQualityProfile,
+  RootFolder as SonarrRootFolder,
+  SonarrSeries,
+} from '../../src/types/sonarr.types.js'
+import type { SystemStatus } from '../../src/types/system-status.types.js'
+
+// Mock payloads must stay assignable to the types Pulsarr parses responses
+// into. Assignment (not satisfies) allows extra mock-only fields.
+function expectAssignable<T>(_value: T): void {}
+
 export const MOCK_API_KEY = 'mock-api-key'
 
 export function createSystemStatus(appName: 'Radarr' | 'Sonarr') {
@@ -43,6 +66,10 @@ export const qualityProfiles = [
     upgradeAllowed: true,
     cutoff: 7,
     items: [],
+    minFormatScore: 0,
+    cutoffFormatScore: 0,
+    minUpgradeFormatScore: 1,
+    formatItems: [],
   },
 ]
 
@@ -52,6 +79,7 @@ export const rootFolders = [
     path: '/data/media',
     accessible: true,
     freeSpace: 1_000_000_000_000,
+    totalSpace: 2_000_000_000_000,
     unmappedFolders: [],
   },
 ]
@@ -63,15 +91,23 @@ export function emptyPagedResult() {
     page: 1,
     pageSize: 1000,
     sortKey: 'id',
-    sortDirection: 'ascending',
+    sortDirection: 'ascending' as const,
     totalRecords: 0,
     records: [],
   }
 }
 
+expectAssignable<SystemStatus>(createSystemStatus('Radarr'))
+expectAssignable<RadarrQualityProfile[]>(qualityProfiles)
+expectAssignable<SonarrQualityProfile[]>(qualityProfiles)
+expectAssignable<RadarrRootFolder[]>(rootFolders)
+expectAssignable<SonarrRootFolder[]>(rootFolders)
+expectAssignable<RadarrPagedResult<never>>(emptyPagedResult())
+expectAssignable<SonarrPagedResult<never>>(emptyPagedResult())
+
 export type ApplyTagsMode = 'add' | 'remove' | 'replace'
 
-/** Parse applyTags from untrusted JSON; returns null when the value is invalid. */
+/** Absent applyTags defaults to replace, matching Servarr; invalid values return null. */
 export function parseApplyTagsMode(
   value: unknown,
   fallback: ApplyTagsMode = 'replace',
@@ -122,6 +158,19 @@ export function createRadarrTmdbLookup(tmdbId: number, title?: string) {
   }
 }
 
+/** Synthetic Sonarr TVDB lookup payload; id 0 means not in the library. */
+export function createSonarrTvdbLookup(tvdbId: number, title?: string) {
+  return {
+    id: 0,
+    title: title ?? `Mock Series ${tvdbId}`,
+    tvdbId,
+    year: 2024,
+    monitored: false,
+    ended: false,
+    status: 'continuing' as const,
+  }
+}
+
 export interface MockEpisode {
   id: number
   seriesId: number
@@ -144,6 +193,25 @@ export interface MockEpisodeFile {
   size: number
 }
 
+export interface MockSeasonStatistics {
+  episodeFileCount: number
+  episodeCount: number
+  totalEpisodeCount: number
+  sizeOnDisk: number
+  releaseGroups: string[]
+  percentOfEpisodes: number
+}
+
+export interface MockSeason {
+  seasonNumber: number
+  monitored: boolean
+  statistics: MockSeasonStatistics
+}
+
+export interface MockSeriesStatistics extends MockSeasonStatistics {
+  seasonCount: number
+}
+
 const EPISODES_PER_SEASON = 5
 const EPISODES_WITH_FILES = 2
 
@@ -159,8 +227,8 @@ export function seedSeriesEpisodes(
 ): {
   episodes: MockEpisode[]
   episodeFiles: MockEpisodeFile[]
-  seasons: unknown[]
-  statistics: Record<string, number>
+  seasons: MockSeason[]
+  statistics: MockSeriesStatistics
 } {
   const episodes: MockEpisode[] = []
   const episodeFiles: MockEpisodeFile[] = []
@@ -211,12 +279,8 @@ export function recomputeSeriesAggregates(
   seriesEpisodes: MockEpisode[],
   seriesEpisodeFiles: MockEpisodeFile[],
 ): {
-  seasons: Array<{
-    seasonNumber: number
-    monitored: boolean
-    statistics: Record<string, number>
-  }>
-  statistics: Record<string, number>
+  seasons: MockSeason[]
+  statistics: MockSeriesStatistics
 } {
   const seasonNumbers = new Set<number>([0])
   for (const episode of seriesEpisodes) {
@@ -243,6 +307,7 @@ export function recomputeSeriesAggregates(
           episodeCount: totalEpisodeCount,
           totalEpisodeCount,
           sizeOnDisk,
+          releaseGroups: [],
           percentOfEpisodes:
             totalEpisodeCount === 0
               ? 0
@@ -267,6 +332,7 @@ export function recomputeSeriesAggregates(
       episodeCount: totalEpisodeCount,
       totalEpisodeCount,
       sizeOnDisk,
+      releaseGroups: [],
       percentOfEpisodes:
         totalEpisodeCount === 0
           ? 0
@@ -274,3 +340,19 @@ export function recomputeSeriesAggregates(
     },
   }
 }
+
+type AssertAssignable<T, _U extends T> = never
+type _EpisodeContract = AssertAssignable<SonarrEpisode, MockEpisode>
+type _SeasonContract = AssertAssignable<SonarrSeason[], MockSeason[]>
+type _SeriesStatsContract = AssertAssignable<
+  NonNullable<SonarrSeries['statistics']>,
+  MockSeriesStatistics
+>
+type _LookupContract = AssertAssignable<
+  RadarrMovieLookupResponse,
+  ReturnType<typeof createRadarrTmdbLookup>
+>
+type _SeriesLookupContract = AssertAssignable<
+  SonarrSeriesLookupResponse,
+  ReturnType<typeof createSonarrTvdbLookup>
+>
