@@ -775,27 +775,22 @@ export class SonarrService {
   }
 
   /**
-   * Get full series data by TVDB ID from library
-   * Uses /series endpoint (not lookup) to get full statistics including episode counts
-   * @param tvdbId - The TVDB ID to look up
-   * @returns Promise resolving to SonarrSeries or null if not found
+   * Get full series data by Sonarr series ID, including season statistics.
+   * Returns null when the series does not exist; rethrows other errors so
+   * callers can distinguish a missing series from a failed lookup.
    */
-  async getSeriesByTvdbId(tvdbId: number): Promise<SonarrSeries | null> {
+  async getSeriesById(seriesId: number): Promise<SonarrSeries | null> {
     try {
-      // Use /series endpoint with tvdbId filter to get full data with statistics
-      // The lookup endpoint doesn't return season statistics needed for completion detection
-      const series = await this.getFromSonarr<SonarrSeries[]>(
-        `series?tvdbId=${tvdbId}`,
-      )
-
-      if (series.length > 0) {
-        return series[0]
-      }
-
-      return null
+      return await this.getFromSonarr<SonarrSeries>(`series/${seriesId}`)
     } catch (err) {
-      this.log.error({ error: err, tvdbId }, 'Error fetching series by TVDB ID')
-      return null
+      if (err instanceof HttpError && err.status === 404) {
+        return null
+      }
+      this.log.error(
+        { error: err, seriesId },
+        'Error fetching series by Sonarr ID',
+      )
+      throw err
     }
   }
 
