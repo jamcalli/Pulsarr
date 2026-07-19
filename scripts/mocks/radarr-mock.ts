@@ -282,16 +282,18 @@ function createArrRoutes(): ArrMockRoute[] {
           )
         }
 
+        const updated: Movie[] = []
         for (const movieId of movieIds) {
           const movie = movies.find((item) => item.id === movieId)
           if (!movie) continue
           movie.tags = applyTags(movie.tags ?? [], tagIds, mode)
+          updated.push(movie)
         }
 
         console.log(
           `${label} EDITOR movies=${movieIds.length} tags=[${tagIds.join(',')}] mode=${mode}`,
         )
-        return noContent(202)
+        return json(updated, 202)
       },
     },
     {

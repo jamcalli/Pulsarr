@@ -291,16 +291,18 @@ function createArrRoutes(): ArrMockRoute[] {
           )
         }
 
+        const updated: Series[] = []
         for (const seriesId of seriesIds) {
           const series = seriesList.find((item) => item.id === seriesId)
           if (!series) continue
           series.tags = applyTags(series.tags ?? [], tagIds, mode)
+          updated.push(series)
         }
 
         console.log(
           `${label} EDITOR series=${seriesIds.length} tags=[${tagIds.join(',')}] mode=${mode}`,
         )
-        return noContent(202)
+        return json(updated, 202)
       },
     },
     {
