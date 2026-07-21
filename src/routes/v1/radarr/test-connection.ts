@@ -3,7 +3,7 @@ import {
   TestConnectionBodySchema,
   TestConnectionResponseSchema,
 } from '@schemas/radarr/test-connection.schema.js'
-import { logRouteError } from '@utils/route-errors.js'
+import { logRouteError, stripArrApiErrorPrefix } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -46,7 +46,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             : 'Unable to test Radarr connection'
 
         return reply.internalServerError(
-          errorMessage.replace(/Radarr API error: /, ''),
+          stripArrApiErrorPrefix('radarr', errorMessage),
         )
       }
     },
