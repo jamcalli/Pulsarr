@@ -1,3 +1,7 @@
+import type {
+  WebhookResyncInstanceResult,
+  WebhookResyncResponse,
+} from '@root/schemas/config/resync-arr-webhooks.schema'
 import { AlertCircle, Check, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -21,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { api } from '@/lib/api'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -78,9 +83,23 @@ interface NetworkConfigCredenzaProps {
   errorMessage?: string
 }
 
+async function resyncArrWebhooks(): Promise<WebhookResyncResponse> {
+  const response = await fetch(api('/v1/config/resync-arr-webhooks'), {
+    method: 'POST',
+  })
+  if (!response.ok) {
+    throw new Error('Failed to update webhooks in Radarr and Sonarr')
+  }
+  return (await response.json()) as WebhookResyncResponse
+}
+
+type ResyncFailure = WebhookResyncInstanceResult & { app: string }
+
 /**
  * Responsive modal for configuring Pulsarr's network settings (baseUrl and port).
- * Opens when Radarr/Sonarr webhook callbacks fail due to connectivity issues.
+ * Opens automatically when Radarr/Sonarr webhook callbacks fail, or manually from
+ * the instance pages. Saving re-registers the webhook in every configured instance
+ * so the arrs pick up the new address.
  */
 export function NetworkConfigCredenza({
   open,
@@ -97,6 +116,7 @@ export function NetworkConfigCredenza({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'success'>(
     'idle',
   )
+  const [resyncFailures, setResyncFailures] = useState<ResyncFailure[]>([])
 
   // Sync local state when config changes or modal opens
   useEffect(() => {
@@ -121,6 +141,7 @@ export function NetworkConfigCredenza({
 
   const handleSave = async () => {
     setSaveStatus('loading')
+    setResyncFailures([])
     try {
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, MIN_LOADING_DELAY),
@@ -128,10 +149,24 @@ export function NetworkConfigCredenza({
 
       await Promise.all([updateConfig({ baseUrl, port }), minimumLoadingTime])
 
+      // re-register webhooks so the arrs point at the new address; registration fires a test callback
+      const resync = await resyncArrWebhooks()
+      const failures = [
+        ...resync.radarr.map((result) => ({ ...result, app: 'Radarr' })),
+        ...resync.sonarr.map((result) => ({ ...result, app: 'Sonarr' })),
+      ].filter((result) => !result.success)
+
+      if (failures.length > 0) {
+        setResyncFailures(failures)
+        toast.error('Settings saved, but some webhooks could not be updated')
+        setSaveStatus('idle')
+        return
+      }
+
       setSaveStatus('success')
       toast.success('Network settings saved')
 
-      // Show success state briefly before retrying
+      // Show success state briefly before retrying or closing
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY / 2))
 
       // If retry callback provided, attempt to retry the connection
@@ -140,11 +175,12 @@ export function NetworkConfigCredenza({
       // If retry fails with webhook error, webhookError gets set and credenza stays open
       if (onRetry) {
         await onRetry()
+        setSaveStatus('idle')
+      } else {
+        setSaveStatus('idle')
+        onOpenChange(false)
       }
-
-      setSaveStatus('idle')
     } catch (error) {
-      // Config save failed
       toast.error(
         error instanceof Error ? error.message : 'Failed to save settings',
       )
@@ -158,6 +194,7 @@ export function NetworkConfigCredenza({
     onOpenChange(newOpen)
     if (!newOpen) {
       setSaveStatus('idle')
+      setResyncFailures([])
     }
   }
 
@@ -169,9 +206,9 @@ export function NetworkConfigCredenza({
             Configure Network Settings
           </CredenzaTitle>
           <CredenzaDescription>
-            Radarr/Sonarr couldn't reach Pulsarr's webhook endpoint. Configure
-            the address below that Radarr/Sonarr should use to reach Pulsarr
-            (must be resolvable from their perspective, not your browser).
+            {errorMessage || onRetry
+              ? "Radarr/Sonarr couldn't reach Pulsarr's webhook endpoint. Configure the address below that Radarr/Sonarr should use to reach Pulsarr (must be resolvable from their perspective, not your browser)."
+              : 'Configure the address that Radarr/Sonarr should use to reach Pulsarr (must be resolvable from their perspective, not your browser). Saving re-registers the webhook in every configured instance.'}
           </CredenzaDescription>
         </CredenzaHeader>
 
@@ -181,6 +218,22 @@ export function NetworkConfigCredenza({
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Connection Failed</AlertTitle>
               <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+
+          {resyncFailures.length > 0 && (
+            <Alert variant="error">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Webhook Update Failed</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-4">
+                  {resyncFailures.map((failure) => (
+                    <li key={`${failure.app}-${failure.instanceId}`}>
+                      {failure.app} - {failure.name}: {failure.message}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
             </Alert>
           )}
 
