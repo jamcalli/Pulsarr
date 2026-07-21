@@ -4,9 +4,9 @@ sidebar_position: 2
 
 # Local Mock Servers
 
-Run Pulsarr against local Radarr / Sonarr (and optionally Plex) mocks when your real *arr* instances are unreachable — for example off your home network.
+Run Pulsarr against local Radarr / Sonarr mocks when your real *arr* instances are unreachable — for example off your home network.
 
-The mocks cover Pulsarr’s full dependency surface against those services: connection tests, health checks, webhooks, quality profiles / root folders, library CRUD, bulk tag editors, Sonarr episodes / commands, and local Plex existence / labels / sessions / playlists. Every content add is logged so you can verify routing vs skip behavior.
+The mocks cover Pulsarr’s full dependency surface against those services: connection tests, health checks, webhooks, quality profiles / root folders, library CRUD, bulk tag editors, and Sonarr episodes / commands. Every content add is logged so you can verify routing vs skip behavior.
 
 ## Commands
 
@@ -15,10 +15,8 @@ The mocks cover Pulsarr’s full dependency surface against those services: conn
 | `bun run dev` | Pulsarr FE+BE only (normal local development) |
 | `bun run dev:mocks` | Start Radarr + Sonarr mocks, then Pulsarr in `--dev` mode (one terminal) |
 | `bun run mock:arr` | Radarr + Sonarr mocks only |
-| `bun run mock:all` | Radarr + Sonarr + Plex mocks |
 | `bun run mock:radarr` | Radarr mock only (`:7878`) |
 | `bun run mock:sonarr` | Sonarr mock only (`:8989`) |
-| `bun run mock:plex` | Plex Media Server mock only (`:32400`) |
 
 Day-to-day:
 
@@ -27,7 +25,7 @@ bun run dev          # regular — no mocks
 bun run dev:mocks    # mocks + FE/BE in one shot
 ```
 
-Ports can be overridden with `MOCK_RADARR_PORT`, `MOCK_SONARR_PORT`, and `MOCK_PLEX_PORT`.
+Ports can be overridden with `mockRadarrPort` and `mockSonarrPort`.
 
 ## Point Pulsarr at the mocks
 
@@ -37,21 +35,6 @@ Ports can be overridden with `MOCK_RADARR_PORT`, `MOCK_SONARR_PORT`, and `MOCK_P
    - **Sonarr:** `http://localhost:8989`, API key `mock-api-key`
 3. Run **Test Connection** — it should succeed and unlock default-instance controls.
 4. Set quality profile / root folder (seeded as `HD-1080p` and `/data/media`).
-
-### Optional Plex Media Server mock
-
-Only needed when testing with `skipIfExistsOnPlex` enabled:
-
-1. `bun run mock:plex` (or `bun run mock:all`)
-2. Set `plexServerUrl` to `http://localhost:32400`
-
-By default `/library/all?guid=` returns empty (content is never “on Plex”). To exercise the **exists → skip** path, seed GUIDs:
-
-```bash
-MOCK_PLEX_EXISTING_GUIDS=tmdb://123,tvdb://456 bun run mock:plex
-```
-
-Plex **watchlist** ingestion still uses real plex.tv tokens; this mock only fakes the local media server surface.
 
 ## What is covered
 
@@ -68,15 +51,6 @@ Plex **watchlist** ingestion still uses real plex.tv tokens; this mock only fake
 
 Added series are seeded with season 1 and a few episodes (some with files) so session-monitor and season-completion flows have data to work with.
 
-### Plex Media Server
-
-- `/identity`, `/library/sections` (health)
-- `/library/all?guid=` (existence / skip-if-exists)
-- `/library/metadata/:id` GET + PUT labels
-- `/status/sessions` (empty)
-- `/:/eventsource/notifications` (keep-alive SSE)
-- `/playlists` list / create / items
-
 ## Verifying routing vs skip
 
 Watch the mock terminal for add lines:
@@ -88,7 +62,6 @@ Watch the mock terminal for add lines:
 
 - Content that **should route** → you see an `ADD` line.
 - Content that **should skip** (no matching route + skip-default enabled, or exclude-from-routing) → no `ADD` line.
-- With `skipIfExistsOnPlex` + seeded GUIDs → matching items skip without an `ADD` line.
 
 ## Notes
 

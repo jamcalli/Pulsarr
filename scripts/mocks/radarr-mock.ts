@@ -23,7 +23,7 @@ import {
   rootFolders,
 } from './fixtures.js'
 
-const port = Number(process.env.MOCK_RADARR_PORT ?? 7878)
+const port = Number(process.env.mockRadarrPort ?? 7878)
 const label = '[mock-radarr]'
 
 type Notification = Record<string, unknown> & { id: number; name: string }

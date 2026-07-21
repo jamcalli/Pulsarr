@@ -27,7 +27,7 @@ import {
   seedSeriesEpisodes,
 } from './fixtures.js'
 
-const port = Number(process.env.MOCK_SONARR_PORT ?? 8989)
+const port = Number(process.env.mockSonarrPort ?? 8989)
 const label = '[mock-sonarr]'
 
 type Notification = Record<string, unknown> & { id: number; name: string }
