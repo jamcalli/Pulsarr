@@ -74,62 +74,72 @@ function matchRoute(
   return params
 }
 
+function isNoisyReadEndpoint(method: string, pathname: string): boolean {
+  return (
+    method === 'GET' &&
+    (pathname.endsWith('/system/status') ||
+      pathname.endsWith('/movie') ||
+      pathname.endsWith('/series') ||
+      pathname.endsWith('/notification') ||
+      pathname.endsWith('/qualityprofile') ||
+      pathname.endsWith('/rootfolder') ||
+      pathname.endsWith('/tag'))
+  )
+}
+
 export function startArrMockServer(options: ArrMockServerOptions) {
   const requireApiKey = options.requireApiKey !== false
   const label = `[mock-${options.name.toLowerCase()}]`
 
-  const server = Bun.serve({
-    port: options.port,
-    hostname: '0.0.0.0',
-    async fetch(request) {
-      const url = new URL(request.url)
-      const method = request.method.toUpperCase()
+  let server: ReturnType<typeof Bun.serve>
+  try {
+    server = Bun.serve({
+      port: options.port,
+      hostname: '0.0.0.0',
+      async fetch(request) {
+        const url = new URL(request.url)
+        const method = request.method.toUpperCase()
 
-      if (requireApiKey) {
-        const apiKey = request.headers.get('X-Api-Key')
-        if (apiKey !== MOCK_API_KEY) {
-          console.log(
-            `${label} ${method} ${url.pathname} → 401 (invalid API key)`,
-          )
-          return json({ message: 'Unauthorized' }, 401)
-        }
-      }
-
-      for (const route of options.routes) {
-        const params = matchRoute(method, url.pathname, route)
-        if (!params) {
-          continue
-        }
-
-        try {
-          const response = await route.handler(request, url, params)
-          if (
-            !(
-              method === 'GET' &&
-              (url.pathname.endsWith('/system/status') ||
-                url.pathname.endsWith('/movie') ||
-                url.pathname.endsWith('/series') ||
-                url.pathname.endsWith('/notification') ||
-                url.pathname.endsWith('/qualityprofile') ||
-                url.pathname.endsWith('/rootfolder') ||
-                url.pathname.endsWith('/tag'))
-            )
-          ) {
+        if (requireApiKey) {
+          const apiKey = request.headers.get('X-Api-Key')
+          if (apiKey !== MOCK_API_KEY) {
             console.log(
-              `${label} ${method} ${url.pathname}${url.search} → ${response.status}`,
+              `${label} ${method} ${url.pathname} → 401 (invalid API key)`,
             )
+            return json({ message: 'Unauthorized' }, 401)
           }
-          return response
-        } catch (error) {
-          console.error(`${label} handler error:`, error)
-          return json({ message: 'Internal Server Error' }, 500)
         }
-      }
 
-      console.log(`${label} ${method} ${url.pathname} → 404 (unhandled)`)
-      return notFound(`No mock handler for ${method} ${url.pathname}`)
-    },
-  })
+        for (const route of options.routes) {
+          const params = matchRoute(method, url.pathname, route)
+          if (!params) {
+            continue
+          }
+
+          try {
+            const response = await route.handler(request, url, params)
+            if (!isNoisyReadEndpoint(method, url.pathname)) {
+              console.log(
+                `${label} ${method} ${url.pathname}${url.search} → ${response.status}`,
+              )
+            }
+            return response
+          } catch (error) {
+            console.error(`${label} handler error:`, error)
+            return json({ message: 'Internal Server Error' }, 500)
+          }
+        }
+
+        console.log(`${label} ${method} ${url.pathname} → 404 (unhandled)`)
+        return notFound(`No mock handler for ${method} ${url.pathname}`)
+      },
+    })
+  } catch (error) {
+    throw new Error(
+      `${label} failed to bind port ${options.port}. Check whether a real Radarr/Sonarr instance (or another mock) is already running on that port.`,
+      { cause: error },
+    )
+  }
 
   console.log(
     `${label} listening on http://localhost:${server.port} (API key: ${MOCK_API_KEY})`,
