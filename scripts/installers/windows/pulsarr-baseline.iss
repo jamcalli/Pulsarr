@@ -53,6 +53,7 @@ Name: "service"; Description: "Install as Windows Service"; Types: full
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "startafterinstall"; Description: "Start Pulsarr after installation"; GroupDescription: "Startup:"; Flags: checkedonce
+Name: "firewall"; Description: "Allow access from other devices on your network (adds a Windows Firewall rule)"; GroupDescription: "Network Access:"; Flags: checkedonce
 
 [InstallDelete]
 ; Clear the code dirs before copying so files removed between releases can't linger.
@@ -109,6 +110,12 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDi
 [Run]
 ; Create .env from template if it doesn't exist
 Filename: "cmd.exe"; Parameters: "/c if not exist ""{#MyAppDataDir}\.env"" copy ""{app}\.env.example"" ""{#MyAppDataDir}\.env"""; Flags: runhidden
+; Services never get the firewall consent prompt, so remote access needs an
+; explicit rule. netsh add stacks duplicates by name; delete clears all matches.
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Pulsarr"""; Flags: runhidden; Tasks: firewall
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Pulsarr"" dir=in action=allow program=""{app}\bun.exe"" protocol=TCP profile=private,domain remoteip=localsubnet"; Flags: runhidden; Tasks: firewall
+; Task-gated entries only run when selected; unchecking must remove the old rule
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Pulsarr"""; Flags: runhidden; Check: not WizardIsTaskSelected('firewall')
 ; Install and start service
 Filename: "{app}\pulsarr-service.exe"; Parameters: "install"; StatusMsg: "Installing Windows service..."; Flags: runhidden; Components: service
 Filename: "{app}\pulsarr-service.exe"; Parameters: "start"; StatusMsg: "Starting Pulsarr service..."; Flags: runhidden; Components: service; Tasks: startafterinstall
@@ -121,6 +128,7 @@ Filename: "{app}\pulsarr-service.exe"; Parameters: "stop"; Flags: runhidden; Run
 ; WinSW stop can return before the process tree exits
 Filename: "cmd.exe"; Parameters: "/c timeout /t 2 /nobreak"; Flags: runhidden; RunOnceId: "StopSettle"
 Filename: "{app}\pulsarr-service.exe"; Parameters: "uninstall"; Flags: runhidden; RunOnceId: "UninstallService"
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Pulsarr"""; Flags: runhidden; RunOnceId: "RemoveFirewallRule"
 
 [UninstallDelete]
 ; Clean up service wrapper logs if any
