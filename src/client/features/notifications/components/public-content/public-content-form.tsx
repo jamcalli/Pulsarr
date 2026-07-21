@@ -526,7 +526,7 @@ export function PublicContentForm({ isInitialized }: PublicContentFormProps) {
                     !isInitialized
                   }
                   className="flex items-center gap-2"
-                  variant="blue"
+                  variant="bluenoShadow"
                 >
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

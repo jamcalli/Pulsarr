@@ -503,7 +503,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
                 !webhookTestValid // Disable if test hasn't passed
               }
               className="flex items-center gap-2"
-              variant="blue"
+              variant="bluenoShadow"
             >
               {webhookStatus === 'loading' ? (
                 <>

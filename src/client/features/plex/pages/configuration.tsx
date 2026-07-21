@@ -676,7 +676,7 @@ export default function PlexConfigurationPage() {
                         <div className="mt-auto px-4 pb-3">
                           <Button
                             type="button"
-                            variant="blue"
+                            variant="bluenoShadow"
                             size="sm"
                             className="w-full"
                             onClick={() => {
@@ -722,7 +722,7 @@ export default function PlexConfigurationPage() {
                       !existenceCheckForm.formState.isDirty
                     }
                     className="flex items-center gap-2"
-                    variant="blue"
+                    variant="bluenoShadow"
                   >
                     {isExistenceCheckSaving ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

@@ -117,7 +117,7 @@ export function ApprovalTableToolbar({
         {/* Bulk actions button */}
         {table.getSelectedRowModel().rows.length > 0 && onBulkActions && (
           <Button
-            variant="blue"
+            variant="bluenoShadow"
             size="sm"
             className="flex items-center gap-2 h-10"
             onClick={() => {

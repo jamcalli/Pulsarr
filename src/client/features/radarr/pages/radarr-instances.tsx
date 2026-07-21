@@ -65,11 +65,7 @@ export default function RadarrInstancesPage() {
             <p>No Radarr instances configured</p>
             <div className="flex justify-center gap-2 mt-4">
               <Button onClick={addInstance}>Add Your First Instance</Button>
-              <Button
-                variant="blue"
-                className="shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none"
-                onClick={() => setShowNetworkConfig(true)}
-              >
+              <Button variant="blue" onClick={() => setShowNetworkConfig(true)}>
                 <Network />
                 Network Settings
               </Button>
@@ -79,11 +75,7 @@ export default function RadarrInstancesPage() {
           <div className="grid gap-6">
             <div className="flex items-center gap-2">
               <Button onClick={addInstance}>Add Instance</Button>
-              <Button
-                variant="blue"
-                className="shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none"
-                onClick={() => setShowNetworkConfig(true)}
-              >
+              <Button variant="blue" onClick={() => setShowNetworkConfig(true)}>
                 <Network />
                 Network Settings
               </Button>
