@@ -79,7 +79,7 @@ export function WatchlistExclusionsTableToolbar({
         <div className="flex items-center justify-start gap-2 flex-wrap">
           {onBulkExclude && excludableSelected.length > 0 && (
             <Button
-              variant="blue"
+              variant="bluenoShadow"
               size="sm"
               className="flex items-center gap-2 h-10"
               onClick={() => onBulkExclude(excludableSelected)}

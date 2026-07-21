@@ -1,3 +1,4 @@
+import type { WebhookResyncInstanceResult } from '@root/schemas/config/resync-arr-webhooks.schema.js'
 import type {
   ExistenceCheckResult,
   InstanceHealthResult,
@@ -17,6 +18,9 @@ import {
   normalizeEndpointWithPath,
 } from '@utils/url.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import pLimit from 'p-limit'
+
+const WEBHOOK_RESYNC_CONCURRENCY = 4
 
 export class SonarrManagerService {
   private sonarrServices: Map<number, SonarrService> = new Map()
@@ -656,5 +660,62 @@ export class SonarrManagerService {
 
   getSonarrService(id: number): SonarrService | undefined {
     return this.sonarrServices.get(id)
+  }
+
+  async resyncWebhooks(): Promise<WebhookResyncInstanceResult[]> {
+    const instances = await this.fastify.db.getAllSonarrInstances()
+    const limit = pLimit(WEBHOOK_RESYNC_CONCURRENCY)
+
+    return Promise.all(
+      instances
+        .filter((instance) => instance.apiKey !== 'placeholder')
+        .map((instance) =>
+          limit(async (): Promise<WebhookResyncInstanceResult> => {
+            // old service still holds the prior baseUrl/port, so this deletes the stale webhook name
+            const oldService = this.sonarrServices.get(instance.id)
+            if (oldService) {
+              try {
+                await oldService.removeWebhook()
+              } catch (error) {
+                this.log.warn(
+                  { error, instanceId: instance.id },
+                  'Failed to remove stale webhook during resync',
+                )
+              }
+            }
+
+            try {
+              const sonarrService = new SonarrService(
+                this.baseLog,
+                this.appBaseUrl,
+                this.port,
+                this.fastify,
+              )
+              await sonarrService.initialize(instance)
+              this.sonarrServices.set(instance.id, sonarrService)
+              return {
+                instanceId: instance.id,
+                name: instance.name,
+                success: true,
+                message: 'Webhook re-registered',
+              }
+            } catch (error) {
+              this.log.error(
+                { error, instanceId: instance.id },
+                'Failed to re-register webhook during resync',
+              )
+              return {
+                instanceId: instance.id,
+                name: instance.name,
+                success: false,
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : 'Failed to re-register webhook',
+              }
+            }
+          }),
+        ),
+    )
   }
 }

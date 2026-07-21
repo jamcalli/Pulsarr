@@ -467,7 +467,7 @@ export function GeneralSettingsForm({
                 generalStatus === 'loading' || !isDirty || !isInitialized
               }
               className="flex items-center gap-2"
-              variant="blue"
+              variant="bluenoShadow"
             >
               {generalStatus === 'loading' ? (
                 <>

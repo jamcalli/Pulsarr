@@ -115,7 +115,7 @@ const EditableCardHeader = ({
               </Button>
             )}
             <Button
-              variant="blue"
+              variant="bluenoShadow"
               onClick={onSave}
               className="flex items-center gap-2"
               disabled={!isDirty || !isValid || isSaving}
@@ -149,7 +149,7 @@ const EditableCardHeader = ({
           {/* Mobile buttons - vertical layout */}
           <div className={`flex flex-col gap-2 ${isMobile ? "flex" : "hidden"}`}>
             <Button
-              variant="blue"
+              variant="bluenoShadow"
               onClick={onSave}
               className="flex items-center justify-center"
               disabled={!isDirty || !isValid || isSaving}
