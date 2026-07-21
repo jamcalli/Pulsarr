@@ -53,7 +53,7 @@ Name: "service"; Description: "Install as Windows Service"; Types: full
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "startafterinstall"; Description: "Start Pulsarr after installation"; GroupDescription: "Startup:"; Flags: checkedonce
-Name: "firewall"; Description: "Allow access from other devices on your network (adds a Windows Firewall rule)"; GroupDescription: "Network Access:"; Flags: checkedonce
+Name: "firewall"; Description: "Allow access from other devices on your network (adds a Windows Firewall rule)"; GroupDescription: "Network Access:"
 
 [InstallDelete]
 ; Clear the code dirs before copying so files removed between releases can't linger.
