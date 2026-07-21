@@ -83,7 +83,7 @@ export function WebhookEndpointsSection() {
           {/* Button at top when endpoints exist */}
           <Button
             onClick={openCreateModal}
-            variant="blue"
+            variant="bluenoShadow"
             className="flex items-center gap-2"
           >
             <Webhook className="h-4 w-4" />
@@ -117,7 +117,7 @@ export function WebhookEndpointsSection() {
           <p>No webhook endpoints configured</p>
           <Button
             onClick={openCreateModal}
-            variant="blue"
+            variant="bluenoShadow"
             className="mt-4 flex items-center gap-2 mx-auto"
           >
             <Webhook className="h-4 w-4" />

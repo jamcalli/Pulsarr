@@ -1,4 +1,6 @@
+import { Network } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { NetworkConfigCredenza } from '@/components/network-config-credenza'
 import { Button } from '@/components/ui/button'
 import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-card-skeleton'
 import { InstanceCard } from '@/features/sonarr/components/instance/sonarr-instance-card'
@@ -24,6 +26,7 @@ export default function SonarrInstancesPage() {
 
   const hasInitializedRef = useRef(false)
   const [showInstanceCard, setShowInstanceCard] = useState(false)
+  const [showNetworkConfig, setShowNetworkConfig] = useState(false)
 
   useEffect(() => {
     if (!hasInitializedRef.current) {
@@ -65,14 +68,22 @@ export default function SonarrInstancesPage() {
         {isPlaceholderInstance && !showInstanceCard ? (
           <div className="text-center py-8 text-foreground">
             <p>No Sonarr instances configured</p>
-            <Button onClick={addInstance} className="mt-4">
-              Add Your First Instance
-            </Button>
+            <div className="flex justify-center gap-2 mt-4">
+              <Button onClick={addInstance}>Add Your First Instance</Button>
+              <Button variant="blue" onClick={() => setShowNetworkConfig(true)}>
+                <Network />
+                Network Settings
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="grid gap-6">
-            <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
               <Button onClick={addInstance}>Add Instance</Button>
+              <Button variant="blue" onClick={() => setShowNetworkConfig(true)}>
+                <Network />
+                Network Settings
+              </Button>
             </div>
             <div className="grid gap-4">
               {instances.map((instance) =>
@@ -107,6 +118,11 @@ export default function SonarrInstancesPage() {
           </div>
         )}
       </div>
+
+      <NetworkConfigCredenza
+        open={showNetworkConfig}
+        onOpenChange={setShowNetworkConfig}
+      />
     </div>
   )
 }

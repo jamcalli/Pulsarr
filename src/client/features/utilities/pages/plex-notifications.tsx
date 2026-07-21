@@ -255,7 +255,7 @@ export default function PlexNotificationsPage() {
                         <div className="mt-auto px-4 pb-3">
                           <Button
                             type="button"
-                            variant="blue"
+                            variant="bluenoShadow"
                             size="sm"
                             className="w-full"
                             onClick={() => {
@@ -369,7 +369,7 @@ export default function PlexNotificationsPage() {
                 type="submit"
                 disabled={isSubmitting || !form.formState.isDirty}
                 className="flex items-center gap-2"
-                variant="blue"
+                variant="bluenoShadow"
               >
                 {isSubmitting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
