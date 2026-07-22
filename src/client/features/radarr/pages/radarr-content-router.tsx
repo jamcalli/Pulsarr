@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
-import DefaultRoutingBehaviorSection from '@/features/content-router/components/default-routing-behavior-section'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import { useConfigStore } from '@/stores/configStore'
@@ -69,19 +68,10 @@ export default function RadarrContentRouterPage() {
     return null
   }
 
-  const defaultInstance = instances.find((instance) => instance.isDefault)
-
   return (
     <div>
       <Tabs defaultValue="content-routes" className="w-full">
         <TabsContent value="content-routes" className="mt-0">
-          <DefaultRoutingBehaviorSection
-            contentTypeLabel="Radarr"
-            defaultInstanceName={defaultInstance?.name}
-            skipDefaultRoutingWhenNoMatch={
-              defaultInstance?.skipDefaultRoutingWhenNoMatch ?? false
-            }
-          />
           <AccordionContentRouterSection
             targetType="radarr"
             instances={instances}

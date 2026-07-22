@@ -404,13 +404,15 @@ export function InstanceCard({
                                     instance.
                                   </p>
                                   <p>
-                                    When off, movies that match none of your
-                                    content router routes still fall back to
-                                    this instance.
+                                    When <strong>OFF</strong>, movies that match
+                                    none of your content router routes still
+                                    fall back to this instance and will be
+                                    routed and sent to Radarr.
                                   </p>
                                   <p>
-                                    When on, those movies are skipped and not
-                                    sent to Radarr.
+                                    When <strong>ON</strong>, movies that match
+                                    none of your content router routes will be
+                                    skipped and not sent to Radarr.
                                   </p>
                                 </div>
                               </TooltipContent>

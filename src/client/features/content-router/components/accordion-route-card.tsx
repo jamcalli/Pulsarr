@@ -1143,7 +1143,7 @@ const AccordionRouteCard = ({
                                 />
                               </FormControl>
                               <span className="text-sm text-foreground">
-                                Never send matching content to Radarr/Sonarr
+                                Skip matching content
                               </span>
                             </div>
                             <FormMessage />

@@ -455,13 +455,15 @@ export function InstanceCard({
                                     instance.
                                   </p>
                                   <p>
-                                    When off, shows that match none of your
-                                    content router routes still fall back to
-                                    this instance.
+                                    When <strong>OFF</strong>, shows that match
+                                    none of your content router routes still
+                                    fall back to this instance and will be
+                                    routed and sent to Sonarr.
                                   </p>
                                   <p>
-                                    When on, those shows are skipped and not
-                                    sent to Sonarr.
+                                    When <strong>ON</strong>, shows that match
+                                    none of your content router routes will be
+                                    skipped and not sent to Sonarr.
                                   </p>
                                 </div>
                               </TooltipContent>
