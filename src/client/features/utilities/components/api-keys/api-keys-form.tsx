@@ -86,7 +86,7 @@ export function ApiKeysForm({
               type="submit"
               disabled={isCreating || !form.watch('name')?.trim()}
               className="flex items-center gap-2"
-              variant="blue"
+              variant="bluenoShadow"
             >
               <Key className="h-4 w-4" />
               {isCreating ? 'Generating...' : 'Generate API Key'}

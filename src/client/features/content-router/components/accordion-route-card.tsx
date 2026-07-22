@@ -923,7 +923,7 @@ const AccordionRouteCard = ({
 
                       {/* Save, cancel and delete buttons */}
                       <Button
-                        variant="blue"
+                        variant="bluenoShadow"
                         onClick={form.handleSubmit(handleSubmit)}
                         className="flex items-center gap-2 h-8"
                         disabled={!isDirty || !isValid || isSaving}

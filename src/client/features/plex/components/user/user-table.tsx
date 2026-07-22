@@ -517,7 +517,7 @@ export default function UserTable({
             <div className="pb-4 flex gap-2">
               {onBulkEdit && (
                 <Button
-                  variant="blue"
+                  variant="bluenoShadow"
                   size="sm"
                   className="flex items-center gap-2"
                   onClick={() => {

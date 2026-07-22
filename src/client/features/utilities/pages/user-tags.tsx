@@ -891,7 +891,7 @@ export function UserTagsPage() {
                   type="submit"
                   disabled={isSaving || !form.formState.isDirty}
                   className="flex items-center gap-2"
-                  variant="blue"
+                  variant="bluenoShadow"
                 >
                   {isSaving ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

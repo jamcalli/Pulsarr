@@ -479,9 +479,10 @@ if %ERRORLEVEL% EQU 0 (
     echo Existing Pulsarr service detected, updating...
     echo Stopping service...
     pulsarr-service.exe stop
+    call :waitstop
     echo Removing old service registration...
     pulsarr-service.exe uninstall
-    timeout /t 2 /nobreak >nul
+    call :waitgone
 )
 
 echo Installing Pulsarr as a Windows service...
@@ -495,13 +496,31 @@ echo   pulsarr-service.exe stop
 echo   pulsarr-service.exe start
 echo   pulsarr-service.exe restart
 pause
+exit /b
+
+rem WinSW stop returns before the service reports STOPPED; poll SCM instead of sleeping
+:waitstop
+for /l %%I in (1,1,30) do (
+    sc query pulsarr >nul 2>&1 || exit /b
+    sc query pulsarr | find "STOPPED" >nul && exit /b
+    timeout /t 1 /nobreak >nul
+)
+exit /b
+
+rem SCM drops the registration only after all handles close
+:waitgone
+for /l %%I in (1,1,10) do (
+    sc query pulsarr >nul 2>&1 || exit /b
+    timeout /t 1 /nobreak >nul
+)
+exit /b
 `
 
 const UNINSTALL_SERVICE_BAT = `@echo off
 cd /d "%~dp0"
 echo Stopping Pulsarr service...
 pulsarr-service.exe stop
-timeout /t 2 /nobreak >nul
+call :waitstop
 echo Uninstalling Pulsarr service...
 pulsarr-service.exe uninstall
 if errorlevel 1 (
@@ -512,6 +531,16 @@ if errorlevel 1 (
 echo.
 echo Pulsarr service has been removed.
 pause
+exit /b
+
+rem WinSW stop returns before the service reports STOPPED; poll SCM instead of sleeping
+:waitstop
+for /l %%I in (1,1,30) do (
+    sc query pulsarr >nul 2>&1 || exit /b
+    sc query pulsarr | find "STOPPED" >nul && exit /b
+    timeout /t 1 /nobreak >nul
+)
+exit /b
 `
 
 const README_LINUX = `# Pulsarr - Native Install (Linux)
