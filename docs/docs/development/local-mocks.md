@@ -6,7 +6,7 @@ sidebar_position: 2
 
 Run Pulsarr against local Radarr / Sonarr mocks when your real *arr* instances are unreachable — for example off your home network.
 
-The mocks cover Pulsarr’s full dependency surface against those services: connection tests, health checks, webhooks, quality profiles / root folders, library CRUD, bulk tag editors, and Sonarr episodes / commands. Every content add is logged so you can verify routing vs skip behavior.
+The mocks cover Pulsarr's full dependency surface against those services: connection tests, health checks, webhooks, quality profiles / root folders, library CRUD, bulk tag editors, and Sonarr episodes / commands. Every content add is logged so you can verify routing vs skip behavior.
 
 ## Commands
 
@@ -21,7 +21,7 @@ The mocks cover Pulsarr’s full dependency surface against those services: conn
 Day-to-day:
 
 ```bash
-bun run dev          # regular — no mocks
+bun run dev          # regular - no mocks
 bun run dev:mocks    # mocks + FE/BE in one shot
 ```
 

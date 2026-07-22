@@ -107,10 +107,10 @@ expectAssignable<SonarrPagedResult<never>>(emptyPagedResult())
 
 export type ApplyTagsMode = 'add' | 'remove' | 'replace'
 
-/** Absent applyTags defaults to replace, matching Servarr; invalid values return null. */
+/** Absent applyTags defaults to add; invalid values return null. */
 export function parseApplyTagsMode(
   value: unknown,
-  fallback: ApplyTagsMode = 'replace',
+  fallback: ApplyTagsMode = 'add',
 ): ApplyTagsMode | null {
   if (value === undefined || value === null) {
     return fallback

@@ -45,16 +45,24 @@ const mockProc = Bun.spawn(['bun', 'run', 'scripts/mocks/run-arr-mocks.ts'], {
   env: process.env,
 })
 
+let mocksReady = false
+
 try {
   await Promise.race([
     Promise.all([
       waitForMockReady('Radarr', RADARR_PORT),
       waitForMockReady('Sonarr', SONARR_PORT),
-    ]),
+    ]).then(() => {
+      mocksReady = true
+    }),
+    // Only reject while the mocks are still coming up; the mocksReady guard keeps
+    // this from becoming an unhandled rejection when the mock process exits on shutdown.
     mockProc.exited.then((code) => {
-      throw new Error(
-        `[dev:mocks] mock process exited before becoming ready (code ${code})`,
-      )
+      if (!mocksReady) {
+        throw new Error(
+          `[dev:mocks] mock process exited before becoming ready (code ${code})`,
+        )
+      }
     }),
   ])
 } catch (error) {
