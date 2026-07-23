@@ -412,12 +412,6 @@ export class SonarrManagerService {
   }
 
   /**
-   * Get a specific Sonarr service instance by ID
-   * @param instanceId The ID of the Sonarr instance
-   * @returns The SonarrService instance or undefined if not found
-   */
-
-  /**
    * Efficiently check if a series exists using TVDB lookup
    * @param instanceId - The Sonarr instance ID
    * @param tvdbId - The TVDB ID to check
