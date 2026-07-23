@@ -242,7 +242,7 @@ describe('Content Router Rules API', () => {
       expect(row.series_type).toBeNull()
     })
 
-    it('clears quality profile and root folder on a type switch when not resupplied', async () => {
+    it('clears quality profile, root folder, and tags on a type switch when not resupplied', async () => {
       const createRes = await app.inject({
         method: 'POST',
         url: '/v1/content-router/rules',
@@ -250,6 +250,7 @@ describe('Content Router Rules API', () => {
           ...sonarrRule,
           quality_profile: 5,
           root_folder: '/data/shows',
+          tags: ['10', '20'],
         },
       })
       const id = createRes.json().rule.id
@@ -265,6 +266,7 @@ describe('Content Router Rules API', () => {
       const row = await knex('router_rules').where({ id }).first()
       expect(row.quality_profile).toBeNull()
       expect(row.root_folder).toBeNull()
+      expect(JSON.parse(row.tags)).toEqual([])
     })
 
     it('clears monitor when a rule switches to sonarr', async () => {
