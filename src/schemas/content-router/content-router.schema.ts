@@ -255,7 +255,7 @@ export const ConditionGroupSchema = z
 export const BaseRouterRuleSchema = z.object({
   name: z.string().min(1, { error: 'Name is required' }),
   target_type: z.enum(['sonarr', 'radarr']),
-  target_instance_id: z.number().min(1),
+  target_instance_id: z.number().min(1).nullable(),
   condition: z.union([ConditionSchema, ConditionGroupSchema]).optional(),
   root_folder: z.string().optional(),
   quality_profile: z.union([z.number(), z.string()]).optional(),
@@ -287,6 +287,7 @@ export const BaseRouterRuleSchema = z.object({
   always_require_approval: z.boolean().optional(),
   bypass_user_quotas: z.boolean().optional(),
   approval_reason: z.string().optional(),
+  exclude_from_routing: z.boolean().optional(),
 })
 
 // For the ConditionalRouteFormSchema (used in the frontend)
@@ -352,6 +353,20 @@ export const ContentRouterRuleSchema = BaseRouterRuleSchema.extend({
   .refine((v) => v.target_type !== 'sonarr' || v.monitor == null, {
     message: 'monitor field is not supported for Sonarr rules',
   })
+  .refine(
+    (v) => v.exclude_from_routing === true || v.target_instance_id != null,
+    {
+      message:
+        'target_instance_id is required unless exclude_from_routing is true',
+    },
+  )
+  .refine(
+    (v) => !(v.exclude_from_routing === true && v.target_instance_id != null),
+    {
+      message:
+        'target_instance_id must be omitted when exclude_from_routing is true',
+    },
+  )
 
 // Schema for updating an existing rule
 export const ContentRouterRuleUpdateSchema =

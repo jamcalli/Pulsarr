@@ -48,6 +48,8 @@ export function useSonarrInstanceForm({
         : instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
       seriesType: instance.seriesType || 'standard',
+      skipDefaultRoutingWhenNoMatch:
+        instance.skipDefaultRoutingWhenNoMatch ?? false,
       _originalBaseUrl: instance.baseUrl,
       _originalApiKey: instance.apiKey,
     },
@@ -81,6 +83,8 @@ export function useSonarrInstanceForm({
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
       seriesType: instance.seriesType || 'standard',
+      skipDefaultRoutingWhenNoMatch:
+        instance.skipDefaultRoutingWhenNoMatch ?? false,
       _originalBaseUrl: instance.baseUrl,
       _originalApiKey: instance.apiKey,
     })
@@ -163,6 +167,8 @@ export function useSonarrInstanceForm({
           isDefault: instance.isDefault,
           syncedInstances: instance.syncedInstances || [],
           seriesType: instance.seriesType || 'standard',
+          skipDefaultRoutingWhenNoMatch:
+            instance.skipDefaultRoutingWhenNoMatch ?? false,
           _originalBaseUrl: instance.baseUrl,
           _originalApiKey: instance.apiKey,
         })

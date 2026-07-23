@@ -222,6 +222,7 @@ export interface RadarrInstance {
   searchOnAdd?: boolean
   minimumAvailability?: MinimumAvailability
   monitor?: RadarrMonitorType
+  skipDefaultRoutingWhenNoMatch?: boolean
   data?: {
     qualityProfiles?: Array<{ id: number; name: string }>
     rootFolders?: Array<{ path: string }>

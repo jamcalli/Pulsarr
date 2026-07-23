@@ -288,6 +288,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           always_require_approval: ruleData.always_require_approval ?? false,
           bypass_user_quotas: ruleData.bypass_user_quotas ?? false,
           approval_reason: ruleData.approval_reason,
+          exclude_from_routing: ruleData.exclude_from_routing ?? false,
         })
 
         const formattedRuleData: Omit<
@@ -312,6 +313,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           always_require_approval: ruleData.always_require_approval ?? false,
           bypass_user_quotas: ruleData.bypass_user_quotas ?? false,
           approval_reason: ruleData.approval_reason,
+          exclude_from_routing: ruleData.exclude_from_routing ?? false,
         }
 
         const createdRule = await fastify.db.createRouterRule(formattedRuleData)
@@ -399,6 +401,25 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
+        const effectiveExclude =
+          updates.exclude_from_routing ?? existingRule.exclude_from_routing
+        const effectiveTargetInstanceId =
+          updates.target_instance_id !== undefined
+            ? updates.target_instance_id
+            : existingRule.target_instance_id
+
+        if (!effectiveExclude && effectiveTargetInstanceId == null) {
+          return reply.badRequest(
+            'target_instance_id is required unless exclude_from_routing is true',
+          )
+        }
+
+        if (effectiveExclude && effectiveTargetInstanceId != null) {
+          return reply.badRequest(
+            'target_instance_id must be omitted when exclude_from_routing is true',
+          )
+        }
+
         const updatesAsRouterRule: Partial<
           Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>
         > = {}
@@ -430,6 +451,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           updatesAsRouterRule.bypass_user_quotas = updates.bypass_user_quotas
         if (updates.approval_reason !== undefined)
           updatesAsRouterRule.approval_reason = updates.approval_reason
+        if (updates.exclude_from_routing !== undefined)
+          updatesAsRouterRule.exclude_from_routing =
+            updates.exclude_from_routing
 
         if (updates.quality_profile !== undefined)
           updatesAsRouterRule.quality_profile = updates.quality_profile

@@ -121,32 +121,55 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
 )
 
 // Schema for a conditional route - enhanced validation for all conditions
-export const ConditionalRouteFormSchema = z.object({
-  name: z.string().min(2, {
-    error: 'Route name must be at least 2 characters.',
-  }),
-  condition: ConditionGroupSchema,
-  target_instance_id: z.coerce.number().int().min(1, {
-    error: 'Instance selection is required.',
-  }),
-  root_folder: z.string().min(1, {
-    error: 'Root folder is required.',
-  }),
-  quality_profile: z.string().min(1, {
-    error: 'Quality Profile is required.',
-  }),
-  tags: z.array(z.string()).default([]),
-  enabled: z.boolean().default(true),
-  order: z.number().int().min(1).max(100).default(50),
-  search_on_add: z.boolean().default(true),
-  monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).optional(),
-  season_monitoring: z.string().optional(),
-  series_type: z.enum([...ROUTER_SERIES_TYPES, 'none'] as const).optional(),
-  // Actions section - approval behavior
-  always_require_approval: z.boolean().default(false),
-  bypass_user_quotas: z.boolean().default(false),
-  approval_reason: z.string().optional(),
-})
+export const ConditionalRouteFormSchema = z
+  .object({
+    name: z.string().min(2, {
+      error: 'Route name must be at least 2 characters.',
+    }),
+    condition: ConditionGroupSchema,
+    target_instance_id: z.coerce.number().int().min(1).nullable(),
+    root_folder: z.string().nullable().default(null),
+    quality_profile: z.string().nullable().default(null),
+    tags: z.array(z.string()).default([]),
+    enabled: z.boolean().default(true),
+    order: z.number().int().min(1).max(100).default(50),
+    search_on_add: z.boolean().default(true),
+    monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).optional(),
+    season_monitoring: z.string().optional(),
+    series_type: z.enum([...ROUTER_SERIES_TYPES, 'none'] as const).optional(),
+    // Actions section - approval behavior
+    always_require_approval: z.boolean().default(false),
+    bypass_user_quotas: z.boolean().default(false),
+    approval_reason: z.string().optional(),
+    // When true, content matching this route is never sent to Radarr/Sonarr
+    // and the instance/quality profile/root folder fields are not required.
+    exclude_from_routing: z.boolean().default(false),
+  })
+  .superRefine((data, ctx) => {
+    if (data.exclude_from_routing) return
+
+    if (data.target_instance_id == null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['target_instance_id'],
+        message: 'Instance selection is required.',
+      })
+    }
+    if (!data.root_folder) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['root_folder'],
+        message: 'Root folder is required.',
+      })
+    }
+    if (!data.quality_profile) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['quality_profile'],
+        message: 'Quality Profile is required.',
+      })
+    }
+  })
 
 export type ConditionalRouteFormValues = z.infer<
   typeof ConditionalRouteFormSchema

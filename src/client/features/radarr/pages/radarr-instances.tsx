@@ -100,7 +100,7 @@ export default function RadarrInstancesPage() {
                     minimumAvailability: 'announced',
                     searchOnAdd: true,
                     tags: [],
-                    isDefault: instances.length === 0,
+                    isDefault: !hasRealInstances,
                     qualityProfile: '',
                     rootFolder: '',
                   }}

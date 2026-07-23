@@ -33,6 +33,9 @@ function mapRowToRadarrInstance(
       [],
       'radarr.synced_instances',
     ),
+    skipDefaultRoutingWhenNoMatch: Boolean(
+      row.skip_default_routing_when_no_match,
+    ),
   }
 }
 
@@ -128,6 +131,8 @@ export async function createRadarrInstance(
         synced_instances: Array.isArray(instance.syncedInstances)
           ? JSON.stringify(instance.syncedInstances)
           : instance.syncedInstances || JSON.stringify([]),
+        skip_default_routing_when_no_match:
+          instance.skipDefaultRoutingWhenNoMatch ?? false,
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
@@ -209,6 +214,10 @@ export async function updateRadarrInstance(
           synced_instances: Array.isArray(sanitized.syncedInstances)
             ? JSON.stringify(sanitized.syncedInstances)
             : sanitized.syncedInstances,
+        }),
+        ...(typeof sanitized.skipDefaultRoutingWhenNoMatch !== 'undefined' && {
+          skip_default_routing_when_no_match:
+            sanitized.skipDefaultRoutingWhenNoMatch,
         }),
         updated_at: this.timestamp,
       })

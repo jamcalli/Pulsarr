@@ -224,6 +224,10 @@ export async function updateRouterRule(
     updateData.approval_reason = updates.approval_reason
   }
 
+  if (updates.exclude_from_routing !== undefined) {
+    updateData.exclude_from_routing = updates.exclude_from_routing
+  }
+
   const [updatedRule] = await this.knex('router_rules')
     .where('id', id)
     .update(updateData)

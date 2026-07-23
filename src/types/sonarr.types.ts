@@ -293,6 +293,7 @@ export interface SonarrInstance {
   searchOnAdd?: boolean
   seriesType?: 'standard' | 'anime' | 'daily'
   createSeasonFolders?: boolean
+  skipDefaultRoutingWhenNoMatch?: boolean
   data?: {
     qualityProfiles?: Array<{ id: number; name: string }>
     rootFolders?: Array<{ path: string }>

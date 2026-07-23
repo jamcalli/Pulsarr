@@ -317,9 +317,23 @@ export function InstanceCard({
                       name="qualityProfile"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground">
-                            Quality Profile
-                          </FormLabel>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-foreground">
+                              Quality Profile
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  The default quality profile used when adding
+                                  content to this instance, unless a route
+                                  overrides it.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
                           <QualityProfileSelect
                             field={field}
                             isConnectionValid={isConnectionValid}
@@ -337,9 +351,23 @@ export function InstanceCard({
                       name="rootFolder"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground">
-                            Root Folder
-                          </FormLabel>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-foreground">
+                              Root Folder
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  The default root folder used when adding
+                                  content to this instance, unless a route
+                                  overrides it.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
                           <RootFolderSelect
                             field={field}
                             isConnectionValid={isConnectionValid}
@@ -355,6 +383,56 @@ export function InstanceCard({
 
                 {/* Instance Configuration */}
                 <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-4">
+                  {form.watch('isDefault') && (
+                    <FormField
+                      control={form.control}
+                      name="skipDefaultRoutingWhenNoMatch"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-foreground">
+                              Skip Content if No Match
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs space-y-2">
+                                  <p className="text-xs italic text-muted-foreground">
+                                    Only applies while this is the default
+                                    instance.
+                                  </p>
+                                  <p>
+                                    When <strong>OFF</strong>, movies that match
+                                    none of your content router routes still
+                                    fall back to this instance and will be
+                                    routed and sent to Radarr.
+                                  </p>
+                                  <p>
+                                    When <strong>ON</strong>, movies that match
+                                    none of your content router routes will be
+                                    skipped and not sent to Radarr.
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <div className="flex h-10 items-center gap-2 px-3 py-2">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <span className="text-sm text-foreground">
+                              Skip unmatched content
+                            </span>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  )}
                   <FormField
                     control={form.control}
                     name="searchOnAdd"

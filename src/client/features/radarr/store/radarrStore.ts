@@ -19,6 +19,7 @@ export interface RadarrInstance {
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
+  skipDefaultRoutingWhenNoMatch?: boolean
   data?: RadarrInstanceData
 }
 

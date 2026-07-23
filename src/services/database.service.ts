@@ -698,7 +698,7 @@ export class DatabaseService {
     type: string
     criteria: string | Record<string, unknown>
     target_type: 'sonarr' | 'radarr'
-    target_instance_id: number
+    target_instance_id: number | null
     root_folder?: string | null
     quality_profile?: number | null
     tags?: string | string[]
@@ -711,6 +711,7 @@ export class DatabaseService {
     always_require_approval?: number | boolean
     bypass_user_quotas?: number | boolean
     approval_reason?: string | null
+    exclude_from_routing?: number | boolean
     created_at: string
     updated_at: string
     [key: string]: unknown
@@ -724,6 +725,7 @@ export class DatabaseService {
       always_require_approval: Boolean(rule.always_require_approval ?? false),
       bypass_user_quotas: Boolean(rule.bypass_user_quotas ?? false),
       approval_reason: rule.approval_reason ?? null,
+      exclude_from_routing: Boolean(rule.exclude_from_routing ?? false),
       criteria:
         typeof rule.criteria === 'string'
           ? this.safeJsonParse(

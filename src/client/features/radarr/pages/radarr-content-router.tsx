@@ -3,6 +3,7 @@ import { Tabs, TabsContent } from '@/components/ui/tabs'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Renders the Radarr Content Router configuration page, initializing Radarr instances and genres on mount and displaying the routing rule management UI when data is ready.
@@ -20,12 +21,16 @@ export default function RadarrContentRouterPage() {
   const initialize = useRadarrStore((state) => state.initialize)
   const fetchInstanceData = useRadarrStore((state) => state.fetchInstanceData)
 
+  // Route cards read session-monitoring config, so it must be initialized here
+  const configInitialize = useConfigStore((state) => state.initialize)
+
   const hasInitializedRef = useRef(false)
 
   useEffect(() => {
     const initializeData = async () => {
       if (!hasInitializedRef.current) {
         await initialize(true)
+        configInitialize()
 
         // Ensure instance data is fetched for all valid instances
         const validInstances = instances.filter(
@@ -43,7 +48,7 @@ export default function RadarrContentRouterPage() {
     }
 
     initializeData()
-  }, [initialize, fetchInstanceData, instances])
+  }, [initialize, fetchInstanceData, instances, configInitialize])
 
   const handleGenreDropdownOpen = async () => {
     if (!genres.length) {
