@@ -44,8 +44,7 @@ export async function fetchExpectedEpisodeCount(
     return seasonQueue.expectedEpisodeCount
   }
 
-  const { sonarrSeriesId } = showQueue
-  const { instanceId } = seasonQueue
+  const { sonarrSeriesId, instanceId } = seasonQueue
 
   if (sonarrSeriesId === undefined || instanceId == null) {
     logger.debug(
@@ -68,24 +67,19 @@ export async function fetchExpectedEpisodeCount(
     return null
   }
 
-  // For pilot-based rolling shows, the pilot (E01) was already notified
-  // immediately and skipped the queue. Subtract 1 so the queue completes
-  // as soon as the remaining expansion episodes (E02-EN) arrive.
-  const isPilotRolling = showQueue.isPilotRolling === true
-  const adjustedCount = isPilotRolling ? Math.max(1, count - 1) : count
-
-  seasonQueue.expectedEpisodeCount = adjustedCount
+  // Cache the raw count; the pilot adjustment happens at completion-check
+  // time because bulk imports can deliver E01 into the queue in any chunk.
+  seasonQueue.expectedEpisodeCount = count
   logger.debug(
     {
       tvdbId,
       seasonNumber,
-      expectedEpisodeCount: adjustedCount,
+      expectedEpisodeCount: count,
       sonarrSeriesId,
-      ...(isPilotRolling && { rawCount: count, pilotAdjusted: true }),
     },
     'Cached expected episode count for season',
   )
-  return adjustedCount
+  return count
 }
 
 /**
@@ -104,12 +98,21 @@ export function isSeasonComplete(
   }
 
   const seasonQueue = showQueue.seasons[seasonNumber]
-  const expectedCount = seasonQueue.expectedEpisodeCount
   const receivedCount = seasonQueue.episodes.length
 
-  if (expectedCount === undefined) {
+  if (seasonQueue.expectedEpisodeCount === undefined) {
     return false
   }
+
+  // For pilot-based rolling shows, E01 was notified immediately and skipped
+  // the queue - unless a bulk import delivered it here anyway. Only subtract
+  // the pilot when it is actually absent from the queue.
+  const pilotNotifiedSeparately =
+    seasonQueue.isPilotRolling === true &&
+    !seasonQueue.episodes.some((ep) => ep.episodeNumber === 1)
+  const expectedCount = pilotNotifiedSeparately
+    ? Math.max(1, seasonQueue.expectedEpisodeCount - 1)
+    : seasonQueue.expectedEpisodeCount
 
   const isComplete = receivedCount >= expectedCount
 

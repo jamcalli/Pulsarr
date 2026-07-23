@@ -107,6 +107,16 @@ const INIT_FAILURE_PREFIX: Record<ArrService, RegExp> = {
   sonarr: /Failed to initialize Sonarr instance/,
 }
 
+/**
+ * Strip the internal `<Service> API error: ` prefix for user-facing display
+ */
+export function stripArrApiErrorPrefix(
+  service: ArrService,
+  message: string,
+): string {
+  return message.replace(API_ERROR_PREFIX[service], '')
+}
+
 interface ArrInstanceErrorOptions {
   /** The service type for message cleanup */
   service: ArrService
@@ -129,9 +139,10 @@ export function handleArrInstanceError(
 
   if (error instanceof Error) {
     // Clean up error message for user display
-    const userMessage = error.message
-      .replace(API_ERROR_PREFIX[service], '')
-      .replace(INIT_FAILURE_PREFIX[service], 'Failed to save settings')
+    const userMessage = stripArrApiErrorPrefix(service, error.message).replace(
+      INIT_FAILURE_PREFIX[service],
+      'Failed to save settings',
+    )
 
     if (error.message.includes('Authentication')) {
       return reply.unauthorized(userMessage)

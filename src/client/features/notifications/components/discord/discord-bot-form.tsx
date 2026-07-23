@@ -293,7 +293,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
                 !isInitialized
               }
               className="flex items-center gap-2"
-              variant="blue"
+              variant="bluenoShadow"
             >
               {discordBotStatus === 'loading' ? (
                 <>

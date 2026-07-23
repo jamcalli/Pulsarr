@@ -15,18 +15,17 @@
     "sourceMap": true,
     "strict": true,
     "target": "es2022",
-    "baseUrl": "./src",
     "paths": {
-      "@root/*": ["./*"],
-      "@db/*": ["./db/*"],
-      "@routes/*": ["./routes/*"],
-      "@utils/*": ["./utils/*"],
-      "@plex/*": ["./plex/*"],
-      "@shared/*": ["./shared/*"],
-      "@data/*": ["./data/*"],
-      "@schemas/*": ["./schemas/*"],
-      "@services/*": ["./services/*"],
-      "@/*": ["./client/*"]
+      "@root/*": ["./src/*"],
+      "@db/*": ["./src/db/*"],
+      "@routes/*": ["./src/routes/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@plex/*": ["./src/plex/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@data/*": ["./src/data/*"],
+      "@schemas/*": ["./src/schemas/*"],
+      "@services/*": ["./src/services/*"],
+      "@/*": ["./src/client/*"]
     }
   },
   "include": ["src/**/*", "config"],

@@ -7,10 +7,7 @@
  * which files get deleted) for each monitoring type.
  */
 
-import type {
-  PlexSession,
-  RollingMonitoredShow,
-} from '@root/types/plex-session.types.js'
+import type { PlexSession } from '@root/types/plex-session.types.js'
 import type { SonarrEpisode, SonarrSeries } from '@root/types/sonarr.types.js'
 import type { FastifyInstance } from 'fastify'
 import {
@@ -24,33 +21,8 @@ import {
 } from 'vitest'
 import { build } from '../../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../../helpers/database.js'
+import { insertRollingShow } from '../../../helpers/rolling-shows.js'
 import { seedAll } from '../../../helpers/seeds/index.js'
-
-async function insertRollingShow(
-  knex: ReturnType<typeof getTestDatabase>,
-  overrides: Partial<RollingMonitoredShow> & {
-    show_title: string
-    monitoring_type: RollingMonitoredShow['monitoring_type']
-    sonarr_series_id: number
-    sonarr_instance_id: number
-    tvdb_id: string
-  },
-): Promise<number> {
-  const now = new Date().toISOString()
-  const [result] = await knex('rolling_monitored_shows')
-    .insert({
-      current_monitored_season: 1,
-      last_watched_season: 0,
-      last_watched_episode: 0,
-      last_session_date: now,
-      created_at: now,
-      updated_at: now,
-      last_updated_at: now,
-      ...overrides,
-    })
-    .returning('id')
-  return typeof result === 'object' ? result.id : (result as number)
-}
 
 describe('Progressive Cleanup → Multi-User Safety Integration', () => {
   let app: FastifyInstance
@@ -140,7 +112,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566))
 
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: mockGetEpisodes,
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
         updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
@@ -234,7 +206,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
@@ -327,7 +299,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
@@ -425,7 +397,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 7)]),
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 7)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3, 4, 5], 1566)),
@@ -507,7 +479,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
@@ -603,7 +575,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const mockUpdateEpisodesMonitoring = vi.fn().mockResolvedValue(true)
       const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
@@ -692,7 +664,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const mockUpdateEpisodesMonitoring = vi.fn().mockResolvedValue(true)
       const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
@@ -788,7 +760,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
       const mockUpdateEpisodesMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
@@ -897,7 +869,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
@@ -988,11 +960,11 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .fn()
         .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566))
 
-      const mockGetAllSeries = vi
+      const mockGetSeriesById = vi
         .fn()
-        .mockResolvedValue([makeSonarrSeries(1566, 5)])
+        .mockResolvedValue(makeSonarrSeries(1566, 5))
       const fakeSonarr = {
-        getAllSeries: mockGetAllSeries,
+        getSeriesById: mockGetSeriesById,
         getEpisodes: mockGetEpisodes,
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
         updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
@@ -1017,7 +989,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       expect(mockUpdateSeasonMonitoring).not.toHaveBeenCalled()
       expect(mockDeleteEpisodeFiles).not.toHaveBeenCalled()
-      expect(mockGetAllSeries).not.toHaveBeenCalled()
+      expect(mockGetSeriesById).not.toHaveBeenCalled()
       expect(mockGetEpisodes).not.toHaveBeenCalled()
     })
 
@@ -1067,11 +1039,11 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .fn()
         .mockResolvedValue(makeShowMetadata('90210'))
 
-      const mockGetAllSeries = vi
+      const mockGetSeriesById = vi
         .fn()
-        .mockResolvedValue([makeSonarrSeries(1566, 5)])
+        .mockResolvedValue(makeSonarrSeries(1566, 5))
       const fakeSonarr = {
-        getAllSeries: mockGetAllSeries,
+        getSeriesById: mockGetSeriesById,
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
@@ -1097,7 +1069,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       await app.plexSessionMonitor.monitorSessions()
 
       // Without this the end-of-season expansion would never trigger.
-      expect(mockGetAllSeries).toHaveBeenCalled()
+      expect(mockGetSeriesById).toHaveBeenCalled()
     })
 
     it('should fire cleanup exactly once when the same session is processed twice without progress', async () => {
@@ -1148,7 +1120,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
@@ -1252,7 +1224,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const mockGetEpisodes = vi.fn().mockResolvedValue(s1Episodes)
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
       const fakeSonarr = {
-        getAllSeries: vi.fn().mockResolvedValue([makeSonarrSeries(1566, 5)]),
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
         getEpisodes: mockGetEpisodes,
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
         updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
@@ -1279,6 +1251,227 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       expect(mockGetEpisodes).toHaveBeenCalled()
       expect(mockUpdateSeasonMonitoring).toHaveBeenCalledWith(1566, 1, true)
+    })
+  })
+
+  describe('Multi-instance fan-out (synced 1080p + 4K)', () => {
+    it('expands and searches every enrolled instance, not just the first', async () => {
+      const knex = getTestDatabase()
+
+      await app.updateConfig({
+        plexSessionMonitoring: {
+          enabled: true,
+          filterUsers: [],
+          enableAutoReset: false,
+          remainingEpisodes: 2,
+          inactivityResetDays: 7,
+          autoResetIntervalHours: 24,
+          pollingIntervalMinutes: 15,
+          enableProgressiveCleanup: false,
+        },
+      })
+
+      // Second Sonarr instance (the 4K one) to satisfy the FK on the rolling row.
+      await knex('sonarr_instances').insert({
+        id: 2,
+        name: '4K Sonarr',
+        base_url: 'http://test-sonarr-4k:8989',
+        api_key: 'test_sonarr_4k_api_key_1234567890abcdef',
+        quality_profile: '1',
+        root_folder: '/data/shows-4k',
+        bypass_ignored: false,
+        season_monitoring: 'firstSeasonRolling',
+        monitor_new_items: 'all',
+        search_on_add: true,
+        tags: JSON.stringify([]),
+        is_default: false,
+        is_enabled: true,
+        synced_instances: JSON.stringify([]),
+        series_type: 'standard',
+        create_season_folders: false,
+      })
+
+      // Same show synced to two Sonarr instances: one master row per instance,
+      // sharing the TVDB ID but with a distinct series ID.
+      await insertRollingShow(knex, {
+        show_title: 'Stella',
+        monitoring_type: 'firstSeasonRolling',
+        sonarr_series_id: 1566,
+        sonarr_instance_id: 1,
+        tvdb_id: '90210',
+      })
+      await insertRollingShow(knex, {
+        show_title: 'Stella',
+        monitoring_type: 'firstSeasonRolling',
+        sonarr_series_id: 9999,
+        sonarr_instance_id: 2,
+        tvdb_id: '90210',
+      })
+
+      app.plexServerService.getActiveSessions = vi
+        .fn()
+        .mockResolvedValue([makeEpisodeSession({ season: 1, episode: 15 })])
+      app.plexServerService.getShowMetadata = vi
+        .fn()
+        .mockResolvedValue(makeShowMetadata('90210'))
+
+      const makeFakeSonarr = (seriesId: number) => ({
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(seriesId, 2)),
+        getEpisodes: vi
+          .fn()
+          .mockResolvedValue(makeEpisodesSeason2Unmonitored(seriesId)),
+        updateSeasonMonitoring: vi.fn().mockResolvedValue(true),
+        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
+        deleteEpisodeFiles: vi.fn().mockResolvedValue(true),
+        searchSeason: vi.fn().mockResolvedValue(true),
+      })
+
+      const sonarrByInstance = new Map([
+        [1, makeFakeSonarr(1566)],
+        [2, makeFakeSonarr(9999)],
+      ])
+
+      app.sonarrManager.getAllInstances = vi.fn().mockResolvedValue([
+        { id: 1, name: '1080p', baseUrl: 'http://x', apiKey: 'k' },
+        { id: 2, name: '4K', baseUrl: 'http://y', apiKey: 'k' },
+      ])
+      app.sonarrManager.getSonarrService = vi
+        .fn()
+        .mockImplementation(
+          (id: number) =>
+            sonarrByInstance.get(id) as unknown as ReturnType<
+              typeof app.sonarrManager.getSonarrService
+            >,
+        )
+
+      const result = await app.plexSessionMonitor.monitorSessions()
+
+      expect(result.triggeredSearches).toBe(2)
+      expect(sonarrByInstance.get(1)?.searchSeason).toHaveBeenCalledWith(
+        1566,
+        2,
+      )
+      expect(sonarrByInstance.get(2)?.searchSeason).toHaveBeenCalledWith(
+        9999,
+        2,
+      )
+    })
+
+    it('keeps processing other instances when one instance fails', async () => {
+      const knex = getTestDatabase()
+
+      await app.updateConfig({
+        plexSessionMonitoring: {
+          enabled: true,
+          filterUsers: [],
+          enableAutoReset: false,
+          remainingEpisodes: 2,
+          inactivityResetDays: 7,
+          autoResetIntervalHours: 24,
+          pollingIntervalMinutes: 15,
+          enableProgressiveCleanup: false,
+        },
+      })
+
+      await knex('sonarr_instances').insert({
+        id: 2,
+        name: '4K Sonarr',
+        base_url: 'http://test-sonarr-4k:8989',
+        api_key: 'test_sonarr_4k_api_key_1234567890abcdef',
+        quality_profile: '1',
+        root_folder: '/data/shows-4k',
+        bypass_ignored: false,
+        season_monitoring: 'firstSeasonRolling',
+        monitor_new_items: 'all',
+        search_on_add: true,
+        tags: JSON.stringify([]),
+        is_default: false,
+        is_enabled: true,
+        synced_instances: JSON.stringify([]),
+        series_type: 'standard',
+        create_season_folders: false,
+      })
+
+      await insertRollingShow(knex, {
+        show_title: 'Stella',
+        monitoring_type: 'firstSeasonRolling',
+        sonarr_series_id: 1566,
+        sonarr_instance_id: 1,
+        tvdb_id: '90210',
+      })
+      await insertRollingShow(knex, {
+        show_title: 'Stella',
+        monitoring_type: 'firstSeasonRolling',
+        sonarr_series_id: 9999,
+        sonarr_instance_id: 2,
+        tvdb_id: '90210',
+      })
+
+      app.plexServerService.getActiveSessions = vi
+        .fn()
+        .mockResolvedValue([makeEpisodeSession({ season: 1, episode: 15 })])
+      app.plexServerService.getShowMetadata = vi
+        .fn()
+        .mockResolvedValue(makeShowMetadata('90210'))
+
+      const healthySonarr = {
+        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(9999, 2)),
+        getEpisodes: vi
+          .fn()
+          .mockResolvedValue(makeEpisodesSeason2Unmonitored(9999)),
+        updateSeasonMonitoring: vi.fn().mockResolvedValue(true),
+        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
+        deleteEpisodeFiles: vi.fn().mockResolvedValue(true),
+        searchSeason: vi.fn().mockResolvedValue(true),
+      }
+      const failingSonarr = {
+        ...healthySonarr,
+        getSeriesById: vi
+          .fn()
+          .mockRejectedValue(new Error('instance 1 unreachable')),
+        searchSeason: vi.fn().mockResolvedValue(true),
+      }
+
+      const sonarrByInstance = new Map([
+        [1, failingSonarr],
+        [2, healthySonarr],
+      ])
+
+      app.sonarrManager.getAllInstances = vi.fn().mockResolvedValue([
+        { id: 1, name: '1080p', baseUrl: 'http://x', apiKey: 'k' },
+        { id: 2, name: '4K', baseUrl: 'http://y', apiKey: 'k' },
+      ])
+      app.sonarrManager.getSonarrService = vi
+        .fn()
+        .mockImplementation(
+          (id: number) =>
+            sonarrByInstance.get(id) as unknown as ReturnType<
+              typeof app.sonarrManager.getSonarrService
+            >,
+        )
+
+      const result = await app.plexSessionMonitor.monitorSessions()
+
+      expect(result.triggeredSearches).toBe(1)
+      expect(result.errors).toHaveLength(1)
+      expect(failingSonarr.searchSeason).not.toHaveBeenCalled()
+      expect(healthySonarr.searchSeason).toHaveBeenCalledWith(9999, 2)
+
+      // The failed instance's progress must be rolled back so the next poll
+      // retries the expansion check instead of hitting the no-progress gate.
+      const failedRow = await knex('rolling_monitored_shows')
+        .where({ sonarr_series_id: 1566, sonarr_instance_id: 1 })
+        .whereNotNull('plex_user_id')
+        .first()
+      expect(failedRow.last_watched_season).toBe(0)
+      expect(failedRow.last_watched_episode).toBe(0)
+
+      const healthyRow = await knex('rolling_monitored_shows')
+        .where({ sonarr_series_id: 9999, sonarr_instance_id: 2 })
+        .whereNotNull('plex_user_id')
+        .first()
+      expect(healthyRow.last_watched_season).toBe(1)
+      expect(healthyRow.last_watched_episode).toBe(15)
     })
   })
 })
@@ -1348,6 +1541,42 @@ function makeSonarrSeries(
     id: seriesId,
     seasons,
   } as unknown as SonarrSeries
+}
+
+// Season 1 fully monitored with files, season 2 present but unmonitored - the
+// state that lets expandMonitoringToNextSeason fire (it skips when the next
+// season has no unmonitored episodes).
+function makeEpisodesSeason2Unmonitored(seriesId: number): SonarrEpisode[] {
+  const episodes: SonarrEpisode[] = []
+  for (let n = 1; n <= 16; n++) {
+    episodes.push({
+      id: 100 + n,
+      seriesId,
+      episodeFileId: 1000 + n,
+      seasonNumber: 1,
+      episodeNumber: n,
+      title: `S1E${n}`,
+      hasFile: true,
+      monitored: true,
+      unverifiedSceneNumbering: false,
+      grabbed: false,
+    })
+  }
+  for (let n = 1; n <= 16; n++) {
+    episodes.push({
+      id: 200 + n,
+      seriesId,
+      episodeFileId: 0,
+      seasonNumber: 2,
+      episodeNumber: n,
+      title: `S2E${n}`,
+      hasFile: false,
+      monitored: false,
+      unverifiedSceneNumbering: false,
+      grabbed: false,
+    })
+  }
+  return episodes
 }
 
 // Builds episodes for the given seasons with files. Episode IDs are

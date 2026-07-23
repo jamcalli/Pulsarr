@@ -11,8 +11,10 @@ import { seedConfig } from '../../helpers/seeds/config.js'
 const STORED_COOKIE_SECRET = 'stored-cookie-secret-0123456789abcdef'
 const STORED_WEBHOOK_SECRET = 'stored-webhook-secret'
 
-// Each test seeds its own configs row and boots the app to simulate a restart
-describe('secret persistence across restarts', () => {
+// Each test seeds its own configs row and boots the app to simulate a restart.
+// Booting the full app takes 7-10s on loaded CI runners, so the global 10s
+// timeout has no headroom.
+describe('secret persistence across restarts', { timeout: 30_000 }, () => {
   let app: FastifyInstance | undefined
 
   beforeAll(async () => {

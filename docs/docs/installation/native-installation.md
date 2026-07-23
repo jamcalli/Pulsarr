@@ -120,7 +120,7 @@ Use **Add or Remove Programs** in Windows Settings, or run the uninstaller from 
 
 | Item | Location |
 |------|----------|
-| Application | `C:\ProgramData\Pulsarr\` |
+| Application | `C:\Program Files\Pulsarr\` |
 | Configuration | `C:\ProgramData\Pulsarr\.env` |
 | Database | `C:\ProgramData\Pulsarr\data\db\` |
 | Logs | `C:\ProgramData\Pulsarr\data\logs\` |

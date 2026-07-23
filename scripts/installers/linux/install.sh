@@ -138,69 +138,70 @@ create_user() {
     fi
 }
 
-# Install application files
+# Replace only Pulsarr-owned code dirs; config and data are left alone.
+# Stage in a sibling dir first so a failed copy changes nothing.
 install_files() {
     local src_dir="$1"
+    local owned="dist node_modules migrations packages"
+    local staging d
 
-    # Backup existing .env and data if present
-    local env_backup=""
-    local data_backup=""
-
-    if [[ -f "${INSTALL_DIR}/.env" ]]; then
-        info "Backing up existing .env..."
-        env_backup=$(mktemp)
-        cp "${INSTALL_DIR}/.env" "$env_backup"
-    fi
-
-    if [[ -d "${INSTALL_DIR}/data" ]]; then
-        info "Backing up existing data directory..."
-        data_backup=$(mktemp -d)
-        cp -r "${INSTALL_DIR}/data" "$data_backup/"
-    fi
-
-    # Remove old installation (except .env and data which are backed up)
-    if [[ -d "$INSTALL_DIR" ]]; then
-        info "Removing old installation..."
-        rm -rf "$INSTALL_DIR"
-    fi
-
-    # Create install directory
     mkdir -p "$INSTALL_DIR"
 
-    # Copy new files
+    # Own and lock down before stripping so the copy below can't follow a
+    # symlink planted in a previously writable INSTALL_DIR; a root-owned
+    # data symlink is kept.
+    chown root:root "$INSTALL_DIR"
+    chmod 755 "$INSTALL_DIR"
+    if [[ -L "${INSTALL_DIR}/data" ]] && [[ "$(stat -c %u "${INSTALL_DIR}/data")" != 0 ]]; then
+        die "${INSTALL_DIR}/data is a symlink not owned by root (older installers left it this way). If you relocated data intentionally, run 'chown -h root:root ${INSTALL_DIR}/data' and re-run this installer. If you did not create this symlink, remove it and investigate before upgrading."
+    fi
+    if [[ -L "${INSTALL_DIR}/.env" ]] && [[ "$(stat -c %u "${INSTALL_DIR}/.env")" != 0 ]]; then
+        die "${INSTALL_DIR}/.env is a symlink not owned by root. If you relocated it intentionally, run 'chown -h root:root ${INSTALL_DIR}/.env' and re-run this installer. If you did not create this symlink, remove it and investigate before upgrading."
+    fi
+    find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -type l ! \( -name data -user root \) ! \( -name .env -user root \) -delete
+
+    find "$(dirname "$INSTALL_DIR")" -maxdepth 1 -name "$(basename "$INSTALL_DIR").staging.*" -mmin +60 -exec rm -rf {} + 2>/dev/null || true
+    staging="$(mktemp -d "${INSTALL_DIR}.staging.XXXXXX")" || die "Failed to create staging directory"
+    [[ -d "$staging" ]] || die "Staging directory was not created"
     info "Installing files to ${INSTALL_DIR}..."
-    cp -r "${src_dir}/." "${INSTALL_DIR}/"
-
-    # Remove any .env or data from the source (fresh install shouldn't have user data)
-    rm -f "${INSTALL_DIR}/.env" 2>/dev/null || true
-    rm -rf "${INSTALL_DIR}/data" 2>/dev/null || true
-
-    # Restore backups
-    if [[ -n "$env_backup" && -f "$env_backup" ]]; then
-        info "Restoring .env..."
-        cp "$env_backup" "${INSTALL_DIR}/.env"
-        rm "$env_backup"
+    if ! cp -a "${src_dir}/." "${staging}/"; then
+        rm -rf "${staging:?}"
+        die "Copy failed. No changes were made to the installation."
     fi
 
-    if [[ -n "$data_backup" && -d "${data_backup}/data" ]]; then
-        info "Restoring data directory..."
-        cp -r "${data_backup}/data" "${INSTALL_DIR}/"
-        rm -rf "$data_backup"
-    fi
+    for d in $owned; do
+        if [[ ! -d "${staging}/${d}" ]]; then
+            rm -rf "${staging:?}"
+            die "Release payload is incomplete (${d} missing). No changes were made."
+        fi
+    done
 
-    # Create data directories if they don't exist
+    for d in $owned; do
+        rm -rf "${INSTALL_DIR:?}/${d}"
+        mv "${staging}/${d}" "${INSTALL_DIR}/${d}"
+    done
+    if ! cp -a "${staging}/." "${INSTALL_DIR}/"; then
+        rm -rf "${staging:?}"
+        die "Failed to copy application files. Re-run the installer to complete the installation."
+    fi
+    rm -rf "${staging:?}"
+
+    # First-install scaffolding (the default dbPath and log dir live under data/).
     mkdir -p "${INSTALL_DIR}/data/db"
     mkdir -p "${INSTALL_DIR}/data/logs"
 
-    # Create .env from template if it doesn't exist
     if [[ ! -f "${INSTALL_DIR}/.env" ]]; then
         cp "${INSTALL_DIR}/.env.example" "${INSTALL_DIR}/.env"
     fi
 
-    # Set ownership
-    chown -R "${APP_USER}:${APP_GROUP}" "$INSTALL_DIR"
-
-    # Make start script executable
+    find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 ! -name data -exec chown -R root:root {} +
+    # Trailing slash dereferences a relocated data symlink; the symlink itself
+    # must stay root-owned or the strip above removes it on the next upgrade.
+    chown -R "${APP_USER}:${APP_GROUP}" "${INSTALL_DIR}/data/"
+    if [[ -f "${INSTALL_DIR}/.env" ]]; then
+        chown "root:${APP_GROUP}" "${INSTALL_DIR}/.env"
+        chmod 640 "${INSTALL_DIR}/.env"
+    fi
     chmod +x "${INSTALL_DIR}/start.sh"
     chmod +x "${INSTALL_DIR}/bun"
 }
@@ -228,7 +229,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=${INSTALL_DIR}
+ReadWritePaths=${INSTALL_DIR}/data
 
 [Install]
 WantedBy=multi-user.target
@@ -364,14 +365,14 @@ install() {
     version=$(get_latest_version)
     info "Latest version: $version"
 
-    # Stop existing service if running
-    stop_service
-
     # Download and extract
     extracted_dir=$(download_release "$version" "$arch")
 
     # Create user
     create_user
+
+    # Stop existing service if running
+    stop_service
 
     # Install files
     install_files "$extracted_dir"

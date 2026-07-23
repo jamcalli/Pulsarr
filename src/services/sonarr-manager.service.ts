@@ -1,3 +1,4 @@
+import type { WebhookResyncInstanceResult } from '@root/schemas/config/resync-arr-webhooks.schema.js'
 import type {
   ExistenceCheckResult,
   InstanceHealthResult,
@@ -7,7 +8,6 @@ import type {
   ConnectionTestResult,
   SonarrInstance,
   SonarrItem,
-  SonarrSeries,
 } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import { createServiceLogger } from '@utils/logger.js'
@@ -18,6 +18,9 @@ import {
   normalizeEndpointWithPath,
 } from '@utils/url.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import pLimit from 'p-limit'
+
+const WEBHOOK_RESYNC_CONCURRENCY = 4
 
 export class SonarrManagerService {
   private sonarrServices: Map<number, SonarrService> = new Map()
@@ -409,12 +412,6 @@ export class SonarrManagerService {
   }
 
   /**
-   * Get a specific Sonarr service instance by ID
-   * @param instanceId The ID of the Sonarr instance
-   * @returns The SonarrService instance or undefined if not found
-   */
-
-  /**
    * Efficiently check if a series exists using TVDB lookup
    * @param instanceId - The Sonarr instance ID
    * @param tvdbId - The TVDB ID to check
@@ -441,28 +438,6 @@ export class SonarrManagerService {
   }
 
   /**
-   * Get full series data by TVDB ID from a specific instance
-   * @param instanceId - The Sonarr instance ID
-   * @param tvdbId - The TVDB ID to look up
-   * @returns Promise resolving to SonarrSeries or null if not found
-   */
-  async getSeriesByTvdbId(
-    instanceId: number,
-    tvdbId: number,
-  ): Promise<SonarrSeries | null> {
-    const sonarrService = this.sonarrServices.get(instanceId)
-    if (!sonarrService) {
-      this.log.warn(
-        { instanceId, tvdbId },
-        'Sonarr instance not found for series lookup',
-      )
-      return null
-    }
-
-    return sonarrService.getSeriesByTvdbId(tvdbId)
-  }
-
-  /**
    * Get the episode count for a specific season from a specific instance.
    * Uses the fast /episode endpoint instead of the slow /series endpoint.
    */
@@ -481,33 +456,6 @@ export class SonarrManagerService {
     }
 
     return sonarrService.getSeasonEpisodeCount(seriesId, seasonNumber)
-  }
-
-  /**
-   * Get full series data by TVDB ID from any available instance
-   * Tries each instance until one returns data
-   * @param tvdbId - The TVDB ID to look up
-   * @returns Promise resolving to SonarrSeries or null if not found
-   */
-  async getSeriesByTvdbIdFromAny(tvdbId: number): Promise<SonarrSeries | null> {
-    for (const [instanceId, service] of this.sonarrServices.entries()) {
-      try {
-        const series = await service.getSeriesByTvdbId(tvdbId)
-        if (series) {
-          this.log.debug(
-            { instanceId, tvdbId },
-            'Found series data from Sonarr instance',
-          )
-          return series
-        }
-      } catch (err) {
-        this.log.debug(
-          { instanceId, tvdbId, error: err },
-          'Failed to get series from instance',
-        )
-      }
-    }
-    return null
   }
 
   /**
@@ -706,5 +654,62 @@ export class SonarrManagerService {
 
   getSonarrService(id: number): SonarrService | undefined {
     return this.sonarrServices.get(id)
+  }
+
+  async resyncWebhooks(): Promise<WebhookResyncInstanceResult[]> {
+    const instances = await this.fastify.db.getAllSonarrInstances()
+    const limit = pLimit(WEBHOOK_RESYNC_CONCURRENCY)
+
+    return Promise.all(
+      instances
+        .filter((instance) => instance.apiKey !== 'placeholder')
+        .map((instance) =>
+          limit(async (): Promise<WebhookResyncInstanceResult> => {
+            // old service still holds the prior baseUrl/port, so this deletes the stale webhook name
+            const oldService = this.sonarrServices.get(instance.id)
+            if (oldService) {
+              try {
+                await oldService.removeWebhook()
+              } catch (error) {
+                this.log.warn(
+                  { error, instanceId: instance.id },
+                  'Failed to remove stale webhook during resync',
+                )
+              }
+            }
+
+            try {
+              const sonarrService = new SonarrService(
+                this.baseLog,
+                this.appBaseUrl,
+                this.port,
+                this.fastify,
+              )
+              await sonarrService.initialize(instance)
+              this.sonarrServices.set(instance.id, sonarrService)
+              return {
+                instanceId: instance.id,
+                name: instance.name,
+                success: true,
+                message: 'Webhook re-registered',
+              }
+            } catch (error) {
+              this.log.error(
+                { error, instanceId: instance.id },
+                'Failed to re-register webhook during resync',
+              )
+              return {
+                instanceId: instance.id,
+                name: instance.name,
+                success: false,
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : 'Failed to re-register webhook',
+              }
+            }
+          }),
+        ),
+    )
   }
 }

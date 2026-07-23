@@ -24,6 +24,8 @@ const buttonVariants = cva(
             'text-main-foreground bg-fun border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',
         error: 'text-main-foreground bg-error border-2 border-border',
         blue:
+            'text-main-foreground bg-blue border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',
+        bluenoShadow:
             'text-main-foreground bg-blue border-2 border-border',
         plex:
             'text-main-foreground bg-plex border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',

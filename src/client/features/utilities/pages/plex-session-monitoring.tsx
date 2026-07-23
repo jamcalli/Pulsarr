@@ -215,7 +215,7 @@ export default function PlexSessionMonitoringPage() {
                   type="submit"
                   disabled={isSaving || !form.formState.isDirty}
                   className="flex items-center gap-2"
-                  variant="blue"
+                  variant="bluenoShadow"
                   aria-busy={isSaving}
                 >
                   {isSaving ? (

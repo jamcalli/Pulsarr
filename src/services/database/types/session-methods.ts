@@ -54,17 +54,17 @@ declare module '@services/database.service.js' {
     ): Promise<RollingMonitoredShow | null>
 
     /**
-     * Gets a rolling monitored show by TVDB ID or title for a specific user
+     * Gets all rolling monitored shows matching a TVDB ID or title, one per enrolled Sonarr instance
      * @param tvdbId - The TVDB ID
      * @param title - The show title
      * @param plexUserId - The Plex user ID for per-user tracking
-     * @returns Promise resolving to the rolling monitored show or null
+     * @returns Promise resolving to the matching rolling monitored shows
      */
-    getRollingMonitoredShow(
+    getRollingMonitoredShowMatches(
       tvdbId?: string,
       title?: string,
       plexUserId?: string,
-    ): Promise<RollingMonitoredShow | null>
+    ): Promise<RollingMonitoredShow[]>
 
     /**
      * Updates rolling show progress
@@ -108,7 +108,8 @@ declare module '@services/database.service.js' {
     /**
      * Resets a rolling monitored show to its original state:
      * - Removes all user entries
-     * - Resets master record to season 1
+     * - Resets master record to its type's baseline season (0 for
+     *   allSeasonPilotRolling, 1 otherwise)
      * @param id - The ID of any rolling monitored show entry for the show
      * @returns Promise resolving to number of user entries deleted
      */
@@ -137,11 +138,11 @@ declare module '@services/database.service.js' {
     ): Promise<RollingMonitoredShow[]>
 
     /**
-     * Updates the monitoring type and initial season for a master rolling monitored show.
+     * Updates the monitoring type for a rolling monitored show, propagating to per-user entries.
      * @param id - The ID of the master entry
      * @param monitoringType - The new monitoring type
-     * @param currentMonitoredSeason - The initial season for the new type
-     * @returns True if a row was updated
+     * @param currentMonitoredSeason - The initial season for the new type (master only)
+     * @returns True if the master entry was found and updated
      */
     updateRollingShowMonitoringType(
       id: number,
