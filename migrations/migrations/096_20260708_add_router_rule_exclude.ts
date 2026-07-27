@@ -63,6 +63,10 @@ export async function down(knex: Knex): Promise<void> {
     await dropRouterRuleTriggers(knex)
   }
 
+  // Exclusion rules use NULL target_instance_id; remove them before
+  // restoring the NOT NULL constraint so the alter succeeds.
+  await knex('router_rules').whereNull('target_instance_id').del()
+
   await knex.schema.alterTable('router_rules', (table) => {
     table.integer('target_instance_id').notNullable().alter()
     table.dropColumn('exclude_from_routing')

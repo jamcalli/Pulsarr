@@ -9,6 +9,22 @@ export async function up(knex: Knex): Promise<void> {
     table.boolean('skip_default_routing_when_no_match').defaultTo(false)
   })
 
+  // Preserve the global flag from migration 095 on the default instances
+  // before dropping the configs column.
+  const config = await knex('configs')
+    .select('skipDefaultRoutingWhenNoMatch')
+    .first()
+  const skipDefault = Boolean(config?.skipDefaultRoutingWhenNoMatch)
+
+  if (skipDefault) {
+    await knex('radarr_instances')
+      .where('is_default', true)
+      .update({ skip_default_routing_when_no_match: true })
+    await knex('sonarr_instances')
+      .where('is_default', true)
+      .update({ skip_default_routing_when_no_match: true })
+  }
+
   await knex.schema.alterTable('configs', (table) => {
     table.dropColumn('skipDefaultRoutingWhenNoMatch')
   })

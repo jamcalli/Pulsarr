@@ -2949,28 +2949,7 @@ export class ContentRouterService {
         return [context.syncTargetInstanceId]
       }
 
-      // Fall back to default instance, unless that instance has opted out of
-      // default routing (mirrors the check in getDefaultInstanceIds).
-      if (contentType === 'movie') {
-        const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
-        if (!defaultInstance) return []
-        if (defaultInstance.skipDefaultRoutingWhenNoMatch) {
-          this.log.info(
-            `Default routing disabled on default Radarr instance "${defaultInstance.name}" — skipping movie with no matching router rule after evaluation error`,
-          )
-          return []
-        }
-        return [defaultInstance.id]
-      }
-      const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
-      if (!defaultInstance) return []
-      if (defaultInstance.skipDefaultRoutingWhenNoMatch) {
-        this.log.info(
-          `Default routing disabled on default Sonarr instance "${defaultInstance.name}" — skipping show with no matching router rule after evaluation error`,
-        )
-        return []
-      }
-      return [defaultInstance.id]
+      return await this.getDefaultRoutingInstanceIds(contentType)
     }
   }
 }
