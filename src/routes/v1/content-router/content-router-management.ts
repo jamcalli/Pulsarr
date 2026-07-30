@@ -416,7 +416,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         if (effectiveExclude && effectiveTargetInstanceId != null) {
           return reply.badRequest(
-            'target_instance_id must be omitted when exclude_from_routing is true',
+            'target_instance_id must be null when exclude_from_routing is true',
           )
         }
 

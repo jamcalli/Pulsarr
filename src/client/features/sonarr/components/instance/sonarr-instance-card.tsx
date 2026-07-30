@@ -474,6 +474,7 @@ export function InstanceCard({
                               <Switch
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
+                                disabled={!isConnectionValid}
                               />
                             </FormControl>
                             <span className="text-sm text-foreground">

@@ -1355,7 +1355,9 @@ const AccordionRouteCard = ({
                                         will be used for that instance. If rules
                                         route to different instances, content
                                         will be sent to all matching instances
-                                        regardless of priority.
+                                        regardless of priority. Exclude rules
+                                        always win regardless of priority
+                                        weight.
                                       </p>
                                     </TooltipContent>
                                   </Tooltip>

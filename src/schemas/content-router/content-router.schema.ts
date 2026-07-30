@@ -364,7 +364,7 @@ export const ContentRouterRuleSchema = BaseRouterRuleSchema.extend({
     (v) => !(v.exclude_from_routing === true && v.target_instance_id != null),
     {
       message:
-        'target_instance_id must be omitted when exclude_from_routing is true',
+        'target_instance_id must be null when exclude_from_routing is true',
     },
   )
 
