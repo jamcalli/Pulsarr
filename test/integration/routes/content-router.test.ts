@@ -361,4 +361,38 @@ describe('Content Router Rules API', () => {
       expect(res.json().rule.series_type).toBe('anime')
     })
   })
+
+  describe('exclude_from_routing', () => {
+    it('clears instance-scoped fields when a rule is switched to exclude', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...sonarrRule,
+          quality_profile: 5,
+          root_folder: '/data/shows',
+          tags: ['10', '20'],
+        },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: {
+          exclude_from_routing: true,
+          target_instance_id: null,
+        },
+      })
+      expect(putRes.statusCode).toBe(200)
+      expect(putRes.json().rule.exclude_from_routing).toBe(true)
+
+      const knex = getTestDatabase()
+      const row = await knex('router_rules').where({ id }).first()
+      expect(row.target_instance_id).toBeNull()
+      expect(row.quality_profile).toBeNull()
+      expect(row.root_folder).toBeNull()
+      expect(JSON.parse(row.tags)).toEqual([])
+    })
+  })
 })

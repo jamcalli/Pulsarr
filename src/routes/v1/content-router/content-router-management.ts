@@ -477,6 +477,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           if (updates.tags === undefined) updatesAsRouterRule.tags = []
         }
 
+        // Exclude rules must not retain instance-scoped fields
+        if (effectiveExclude) {
+          updatesAsRouterRule.quality_profile = null
+          updatesAsRouterRule.root_folder = null
+          updatesAsRouterRule.tags = []
+        }
+
         if (updates.condition) {
           updatesAsRouterRule.criteria = {
             condition: updates.condition,
