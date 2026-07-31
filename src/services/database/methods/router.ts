@@ -428,7 +428,8 @@ export async function updateConditionalRule(
   updates: {
     name?: string
     condition?: Condition | ConditionGroup
-    target_instance_id?: number
+    target_instance_id?: number | null
+    exclude_from_routing?: boolean
     root_folder?: string | null
     quality_profile?: number | null
     order?: number
@@ -463,8 +464,6 @@ export async function updateConditionalRule(
 
   // Update basic fields
   if (updates.name !== undefined) updateData.name = updates.name
-  if (updates.target_instance_id !== undefined)
-    updateData.target_instance_id = updates.target_instance_id
   if (updates.root_folder !== undefined)
     updateData.root_folder = updates.root_folder
   if (updates.quality_profile !== undefined)
@@ -484,6 +483,50 @@ export async function updateConditionalRule(
     updateData.bypass_user_quotas = updates.bypass_user_quotas
   if (updates.approval_reason !== undefined)
     updateData.approval_reason = updates.approval_reason
+
+  if (
+    updates.exclude_from_routing !== undefined ||
+    updates.target_instance_id !== undefined
+  ) {
+    const effectiveExclude =
+      updates.exclude_from_routing ?? currentRule.exclude_from_routing ?? false
+    let effectiveTargetInstanceId =
+      updates.target_instance_id !== undefined
+        ? updates.target_instance_id
+        : currentRule.target_instance_id
+
+    if (effectiveExclude) {
+      effectiveTargetInstanceId = null
+    }
+
+    if (!effectiveExclude && effectiveTargetInstanceId == null) {
+      throw new Error(
+        'target_instance_id is required unless exclude_from_routing is true',
+      )
+    }
+
+    if (
+      effectiveExclude &&
+      updates.target_instance_id != null &&
+      updates.exclude_from_routing !== false
+    ) {
+      throw new Error(
+        'target_instance_id must be null when exclude_from_routing is true',
+      )
+    }
+
+    if (updates.exclude_from_routing !== undefined) {
+      updateData.exclude_from_routing = effectiveExclude
+    }
+
+    const targetInstanceChanged =
+      updates.target_instance_id !== undefined ||
+      (effectiveExclude && currentRule.target_instance_id != null)
+
+    if (targetInstanceChanged) {
+      updateData.target_instance_id = effectiveTargetInstanceId
+    }
+  }
 
   // Update condition within criteria, preserving other criteria fields
   if (updates.condition !== undefined) {

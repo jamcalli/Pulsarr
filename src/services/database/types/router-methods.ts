@@ -131,7 +131,8 @@ declare module '@services/database.service.js' {
       updates: {
         name?: string
         condition?: Condition | ConditionGroup
-        target_instance_id?: number
+        target_instance_id?: number | null
+        exclude_from_routing?: boolean
         root_folder?: string | null
         quality_profile?: number | null
         order?: number
