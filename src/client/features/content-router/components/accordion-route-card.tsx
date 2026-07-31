@@ -675,7 +675,7 @@ const AccordionRouteCard = ({
           root_folder: data.exclude_from_routing
             ? undefined
             : data.root_folder || undefined,
-          tags: data.tags || [],
+          tags: data.exclude_from_routing ? [] : data.tags || [],
           enabled: data.enabled,
           order: data.order,
           condition: normalizeConditionGroup(data.condition),
