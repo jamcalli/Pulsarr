@@ -696,19 +696,18 @@ const AccordionRouteCard = ({
       }
       // For existing routes (updating a route)
       else {
-        const updatePayload = {
+        const updatePayload: ContentRouterRuleUpdate = {
           name: data.name,
           condition: normalizeConditionGroup(data.condition),
           target_instance_id: data.exclude_from_routing
             ? null
             : data.target_instance_id,
-          quality_profile: data.exclude_from_routing
-            ? null
-            : data.quality_profile
+          quality_profile:
+            !data.exclude_from_routing && data.quality_profile
               ? Number(data.quality_profile)
               : undefined,
           root_folder: data.exclude_from_routing
-            ? null
+            ? undefined
             : data.root_folder || undefined,
           tags: data.exclude_from_routing ? [] : data.tags || [],
           enabled: data.enabled,
@@ -724,7 +723,7 @@ const AccordionRouteCard = ({
           bypass_user_quotas: data.bypass_user_quotas,
           approval_reason: data.approval_reason,
           exclude_from_routing: data.exclude_from_routing,
-        } as ContentRouterRuleUpdate
+        }
 
         await onSave(updatePayload)
       }

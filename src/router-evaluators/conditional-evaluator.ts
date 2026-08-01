@@ -163,7 +163,8 @@ export default function createConditionalEvaluator(
       // evaluators run at all, so this filter only prevents a null
       // instanceId from ever reaching downstream routing logic.
       const routableRules = matchingRules.filter(
-        (rule) => !rule.exclude_from_routing && rule.target_instance_id != null,
+        (rule): rule is RouterRule & { target_instance_id: number } =>
+          !rule.exclude_from_routing && rule.target_instance_id != null,
       )
 
       if (routableRules.length === 0) {
@@ -171,7 +172,7 @@ export default function createConditionalEvaluator(
       }
 
       return routableRules.map((rule) => ({
-        instanceId: rule.target_instance_id as number,
+        instanceId: rule.target_instance_id,
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
         tags: rule.tags || [],

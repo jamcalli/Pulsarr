@@ -420,5 +420,64 @@ describe('Content Router Rules API', () => {
       expect(row.root_folder).toBeNull()
       expect(JSON.parse(row.tags)).toEqual([])
     })
+
+    it('accepts the full client update payload when switching to exclude', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...sonarrRule,
+          quality_profile: 5,
+          root_folder: '/data/shows',
+        },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: {
+          name: sonarrRule.name,
+          condition: sonarrRule.condition,
+          target_instance_id: null,
+          tags: [],
+          enabled: true,
+          order: 50,
+          always_require_approval: false,
+          bypass_user_quotas: false,
+          approval_reason: '',
+          exclude_from_routing: true,
+        },
+      })
+      expect(putRes.statusCode).toBe(200)
+      expect(putRes.json().rule.exclude_from_routing).toBe(true)
+
+      const knex = getTestDatabase()
+      const row = await knex('router_rules').where({ id }).first()
+      expect(row.target_instance_id).toBeNull()
+      expect(row.quality_profile).toBeNull()
+      expect(row.root_folder).toBeNull()
+    })
+
+    it('rejects null quality_profile and root_folder in update payloads', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...sonarrRule },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: {
+          exclude_from_routing: true,
+          target_instance_id: null,
+          quality_profile: null,
+          root_folder: null,
+        },
+      })
+      expect(putRes.statusCode).toBe(400)
+    })
   })
 })
