@@ -290,32 +290,6 @@ export const BaseRouterRuleSchema = z.object({
   exclude_from_routing: z.boolean().optional(),
 })
 
-// For the ConditionalRouteFormSchema (used in the frontend)
-export const ConditionalRouteFormSchema = z.object({
-  name: z.string().min(2, {
-    error: 'Route name must be at least 2 characters.',
-  }),
-  condition: ConditionGroupSchema.refine(
-    (val) =>
-      isValidConditionGroup(val) &&
-      Array.isArray(val.conditions) &&
-      val.conditions.length > 0,
-    { message: 'All conditions must be completely filled out' },
-  ),
-  target_instance_id: z.number().min(1, {
-    error: 'Instance selection is required.',
-  }),
-  root_folder: z.string().min(1, {
-    error: 'Root folder is required.',
-  }),
-  quality_profile: z.string().min(1, {
-    error: 'Quality Profile is required',
-  }),
-  tags: z.array(z.string()).optional().default([]),
-  enabled: z.boolean().default(true),
-  order: z.number().int().min(1).max(100).default(50),
-})
-
 // Plugin schema
 export const ContentRouterPluginsResponseSchema = z.object({
   success: z.boolean(),
