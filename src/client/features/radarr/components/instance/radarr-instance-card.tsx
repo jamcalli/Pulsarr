@@ -383,57 +383,6 @@ export function InstanceCard({
 
                 {/* Instance Configuration */}
                 <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-4">
-                  {form.watch('isDefault') && (
-                    <FormField
-                      control={form.control}
-                      name="skipDefaultRoutingWhenNoMatch"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center space-x-2">
-                            <FormLabel className="text-foreground">
-                              Skip Content if No Match
-                            </FormLabel>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="max-w-xs space-y-2">
-                                  <p className="text-xs italic text-muted-foreground">
-                                    Only applies while this is the default
-                                    instance.
-                                  </p>
-                                  <p>
-                                    When <strong>OFF</strong>, movies that match
-                                    none of your content router routes still
-                                    fall back to this instance and will be
-                                    routed and sent to Radarr.
-                                  </p>
-                                  <p>
-                                    When <strong>ON</strong>, movies that match
-                                    none of your content router routes will be
-                                    skipped and not sent to Radarr.
-                                  </p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                          <div className="flex h-10 items-center gap-2 px-3 py-2">
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                disabled={!isConnectionValid}
-                              />
-                            </FormControl>
-                            <span className="text-sm text-foreground">
-                              Skip unmatched content
-                            </span>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                  )}
                   <FormField
                     control={form.control}
                     name="searchOnAdd"
@@ -720,7 +669,8 @@ export function InstanceCard({
                             <TooltipContent>
                               <p className="max-w-xs">
                                 The default instance will receive all content
-                                when no specific routing rules apply. Only one
+                                when no specific routing rules apply, unless
+                                Skip Content if No Match is enabled. Only one
                                 instance can be set as default at a time.
                               </p>
                             </TooltipContent>
@@ -741,6 +691,57 @@ export function InstanceCard({
                       </FormItem>
                     )}
                   />
+                  {form.watch('isDefault') && (
+                    <FormField
+                      control={form.control}
+                      name="skipDefaultRoutingWhenNoMatch"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-foreground">
+                              Skip Content if No Match
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs space-y-2">
+                                  <p className="text-xs italic text-muted-foreground">
+                                    Only applies while this is the default
+                                    instance.
+                                  </p>
+                                  <p>
+                                    When <strong>OFF</strong>, movies that match
+                                    none of your content router routes still
+                                    fall back to this instance and will be
+                                    routed and sent to Radarr.
+                                  </p>
+                                  <p>
+                                    When <strong>ON</strong>, movies that match
+                                    none of your content router routes will be
+                                    skipped and not sent to Radarr.
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <div className="flex h-10 items-center gap-2 px-3 py-2">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                disabled={!isConnectionValid}
+                              />
+                            </FormControl>
+                            <span className="text-sm text-foreground">
+                              Skip unmatched content
+                            </span>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </form>
             </Form>
