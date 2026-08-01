@@ -479,5 +479,46 @@ describe('Content Router Rules API', () => {
       })
       expect(putRes.statusCode).toBe(400)
     })
+
+    it('rejects an exclude update that keeps a target instance', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...sonarrRule },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: {
+          exclude_from_routing: true,
+          target_instance_id: 1,
+        },
+      })
+      expect(putRes.statusCode).toBe(400)
+    })
+
+    it('rejects clearing exclude without supplying a target instance', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...sonarrRule,
+          exclude_from_routing: true,
+          target_instance_id: null,
+        },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: {
+          exclude_from_routing: false,
+        },
+      })
+      expect(putRes.statusCode).toBe(400)
+    })
   })
 })
