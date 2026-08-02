@@ -47,12 +47,11 @@ describe('normalizePlayingNotification', () => {
     expect(normalizePlayingNotification(input)).toBe(input)
   })
 
-  it.each([
-    'paused',
-    'stopped',
-    'error',
-  ] as const)('passes %s through unchanged', (state) => {
-    const input = makeNotification({ state })
-    expect(normalizePlayingNotification(input)).toBe(input)
-  })
+  it.each(['paused', 'stopped', 'error'] as const)(
+    'passes %s through unchanged',
+    (state) => {
+      const input = makeNotification({ state })
+      expect(normalizePlayingNotification(input)).toBe(input)
+    },
+  )
 })
