@@ -21,6 +21,7 @@ export const RadarrInstanceSchema = z.object({
   tags: z.array(z.string()).optional().default([]),
   isDefault: z.boolean().optional().default(false),
   syncedInstances: z.array(z.number()).optional(),
+  skipDefaultRoutingWhenNoMatch: z.boolean().optional().default(false),
 })
 
 // Radarr instance schema for updates (no defaults to prevent overwriting existing values)
@@ -39,6 +40,7 @@ export const RadarrInstanceUpdateSchema = z.object({
   tags: z.array(z.string()).optional(),
   isDefault: z.boolean().optional(),
   syncedInstances: z.array(z.number()).optional(),
+  skipDefaultRoutingWhenNoMatch: z.boolean().optional(),
 })
 
 // Response schema for a single instance (includes id)

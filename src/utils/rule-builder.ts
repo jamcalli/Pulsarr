@@ -113,7 +113,7 @@ export const RuleBuilder = {
   createRule(options: {
     name: string
     target_type: 'sonarr' | 'radarr'
-    target_instance_id: number
+    target_instance_id: number | null
     condition: Condition | ConditionGroup
     root_folder?: string | null
     quality_profile?: number | null
@@ -127,6 +127,7 @@ export const RuleBuilder = {
     always_require_approval?: boolean
     bypass_user_quotas?: boolean
     approval_reason?: string | null
+    exclude_from_routing?: boolean
   }): Omit<RouterRule, 'id' | 'created_at' | 'updated_at'> {
     const {
       condition,

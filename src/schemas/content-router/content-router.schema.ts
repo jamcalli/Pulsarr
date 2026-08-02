@@ -255,7 +255,7 @@ export const ConditionGroupSchema = z
 export const BaseRouterRuleSchema = z.object({
   name: z.string().min(1, { error: 'Name is required' }),
   target_type: z.enum(['sonarr', 'radarr']),
-  target_instance_id: z.number().min(1),
+  target_instance_id: z.number().min(1).nullable(),
   condition: z.union([ConditionSchema, ConditionGroupSchema]).optional(),
   root_folder: z.string().optional(),
   quality_profile: z.union([z.number(), z.string()]).optional(),
@@ -287,32 +287,7 @@ export const BaseRouterRuleSchema = z.object({
   always_require_approval: z.boolean().optional(),
   bypass_user_quotas: z.boolean().optional(),
   approval_reason: z.string().optional(),
-})
-
-// For the ConditionalRouteFormSchema (used in the frontend)
-export const ConditionalRouteFormSchema = z.object({
-  name: z.string().min(2, {
-    error: 'Route name must be at least 2 characters.',
-  }),
-  condition: ConditionGroupSchema.refine(
-    (val) =>
-      isValidConditionGroup(val) &&
-      Array.isArray(val.conditions) &&
-      val.conditions.length > 0,
-    { message: 'All conditions must be completely filled out' },
-  ),
-  target_instance_id: z.number().min(1, {
-    error: 'Instance selection is required.',
-  }),
-  root_folder: z.string().min(1, {
-    error: 'Root folder is required.',
-  }),
-  quality_profile: z.string().min(1, {
-    error: 'Quality Profile is required',
-  }),
-  tags: z.array(z.string()).optional().default([]),
-  enabled: z.boolean().default(true),
-  order: z.number().int().min(1).max(100).default(50),
+  exclude_from_routing: z.boolean().optional(),
 })
 
 // Plugin schema
@@ -352,6 +327,20 @@ export const ContentRouterRuleSchema = BaseRouterRuleSchema.extend({
   .refine((v) => v.target_type !== 'sonarr' || v.monitor == null, {
     message: 'monitor field is not supported for Sonarr rules',
   })
+  .refine(
+    (v) => v.exclude_from_routing === true || v.target_instance_id != null,
+    {
+      message:
+        'target_instance_id is required unless exclude_from_routing is true',
+    },
+  )
+  .refine(
+    (v) => !(v.exclude_from_routing === true && v.target_instance_id != null),
+    {
+      message:
+        'target_instance_id must be null when exclude_from_routing is true',
+    },
+  )
 
 // Schema for updating an existing rule
 export const ContentRouterRuleUpdateSchema =

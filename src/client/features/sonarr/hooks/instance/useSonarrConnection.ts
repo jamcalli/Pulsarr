@@ -207,6 +207,9 @@ export function useSonarrConnection(
                 baseUrl: values.baseUrl,
                 apiKey: values.apiKey,
                 isDefault: true,
+                skipDefaultRoutingWhenNoMatch: form.getValues(
+                  'skipDefaultRoutingWhenNoMatch',
+                ),
               })
               await fetchInstances()
               await fetchInstanceData(instances[0].id.toString())

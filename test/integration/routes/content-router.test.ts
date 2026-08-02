@@ -361,4 +361,164 @@ describe('Content Router Rules API', () => {
       expect(res.json().rule.series_type).toBe('anime')
     })
   })
+
+  describe('exclude_from_routing', () => {
+    it('clears instance-scoped fields when creating an exclude rule', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...sonarrRule,
+          exclude_from_routing: true,
+          target_instance_id: null,
+          quality_profile: 5,
+          root_folder: '/data/shows',
+          tags: ['10', '20'],
+        },
+      })
+      expect(createRes.statusCode).toBe(201)
+      expect(createRes.json().rule.exclude_from_routing).toBe(true)
+
+      const knex = getTestDatabase()
+      const row = await knex('router_rules')
+        .where({ id: createRes.json().rule.id })
+        .first()
+      expect(row.target_instance_id).toBeNull()
+      expect(row.quality_profile).toBeNull()
+      expect(row.root_folder).toBeNull()
+      expect(JSON.parse(row.tags)).toEqual([])
+    })
+
+    it('clears instance-scoped fields when a rule is switched to exclude', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...sonarrRule,
+          quality_profile: 5,
+          root_folder: '/data/shows',
+          tags: ['10', '20'],
+        },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: {
+          exclude_from_routing: true,
+          target_instance_id: null,
+        },
+      })
+      expect(putRes.statusCode).toBe(200)
+      expect(putRes.json().rule.exclude_from_routing).toBe(true)
+
+      const knex = getTestDatabase()
+      const row = await knex('router_rules').where({ id }).first()
+      expect(row.target_instance_id).toBeNull()
+      expect(row.quality_profile).toBeNull()
+      expect(row.root_folder).toBeNull()
+      expect(JSON.parse(row.tags)).toEqual([])
+    })
+
+    it('accepts the full client update payload when switching to exclude', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...sonarrRule,
+          quality_profile: 5,
+          root_folder: '/data/shows',
+        },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: {
+          name: sonarrRule.name,
+          condition: sonarrRule.condition,
+          target_instance_id: null,
+          tags: [],
+          enabled: true,
+          order: 50,
+          always_require_approval: false,
+          bypass_user_quotas: false,
+          approval_reason: '',
+          exclude_from_routing: true,
+        },
+      })
+      expect(putRes.statusCode).toBe(200)
+      expect(putRes.json().rule.exclude_from_routing).toBe(true)
+
+      const knex = getTestDatabase()
+      const row = await knex('router_rules').where({ id }).first()
+      expect(row.target_instance_id).toBeNull()
+      expect(row.quality_profile).toBeNull()
+      expect(row.root_folder).toBeNull()
+    })
+
+    it('rejects null quality_profile and root_folder in update payloads', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...sonarrRule },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: {
+          exclude_from_routing: true,
+          target_instance_id: null,
+          quality_profile: null,
+          root_folder: null,
+        },
+      })
+      expect(putRes.statusCode).toBe(400)
+    })
+
+    it('rejects an exclude update that keeps a target instance', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...sonarrRule },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: {
+          exclude_from_routing: true,
+          target_instance_id: 1,
+        },
+      })
+      expect(putRes.statusCode).toBe(400)
+    })
+
+    it('rejects clearing exclude without supplying a target instance', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...sonarrRule,
+          exclude_from_routing: true,
+          target_instance_id: null,
+        },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: {
+          exclude_from_routing: false,
+        },
+      })
+      expect(putRes.statusCode).toBe(400)
+    })
+  })
 })

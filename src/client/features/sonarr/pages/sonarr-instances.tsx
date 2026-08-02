@@ -107,7 +107,7 @@ export default function SonarrInstancesPage() {
                     searchOnAdd: true,
                     createSeasonFolders: false,
                     tags: [],
-                    isDefault: instances.length === 0,
+                    isDefault: !hasRealInstances,
                     qualityProfile: '',
                     rootFolder: '',
                   }}

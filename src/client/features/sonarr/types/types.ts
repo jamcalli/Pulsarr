@@ -41,6 +41,7 @@ export interface SonarrInstance {
   isDefault: boolean
   syncedInstances?: number[]
   seriesType?: 'standard' | 'anime' | 'daily'
+  skipDefaultRoutingWhenNoMatch?: boolean
   data?: SonarrInstanceData
 }
 
@@ -69,6 +70,7 @@ export interface SonarrInstanceFormValues extends SonarrConnectionValues {
   isDefault: boolean
   syncedInstances?: number[]
   seriesType?: 'standard' | 'anime' | 'daily'
+  skipDefaultRoutingWhenNoMatch?: boolean
   _connectionTested?: boolean
   _originalBaseUrl?: string
   _originalApiKey?: string

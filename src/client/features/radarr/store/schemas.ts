@@ -21,6 +21,7 @@ const baseObjectSchema = z.object({
   tags: z.array(z.string()),
   isDefault: z.boolean(),
   syncedInstances: z.array(z.number()).optional(),
+  skipDefaultRoutingWhenNoMatch: z.boolean().default(false),
   _connectionTested: z.boolean().optional(),
   _originalBaseUrl: z.string().optional(),
   _originalApiKey: z.string().optional(),
