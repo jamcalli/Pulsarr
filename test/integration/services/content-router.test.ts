@@ -376,6 +376,77 @@ describe('ContentRouterService Integration', () => {
 
       expect(targets.instanceIds).toEqual([1])
     })
+
+    // Comedy matches no seeded router rule, so without the exclude rule these
+    // items would fall back to the default instance (skip toggle is off)
+    const comedyMovie: ContentItem = {
+      title: 'Test Comedy Movie',
+      type: 'movie',
+      guids: ['imdb:tt7777777', 'tmdb:77777'],
+      genres: ['Comedy'],
+    }
+
+    const comedyContext: RoutingContext = {
+      userId: 1,
+      userName: 'Test User',
+      contentType: 'movie',
+      itemKey: 'test-comedy-exclude-key',
+    }
+
+    const insertComedyExcludeRule = async () => {
+      const knex = getTestDatabase()
+      await knex('router_rules').insert({
+        id: 99,
+        name: 'Exclude Comedy Movies',
+        type: 'conditional',
+        target_type: 'radarr',
+        target_instance_id: null,
+        order: 50,
+        enabled: true,
+        exclude_from_routing: true,
+        tags: JSON.stringify([]),
+        criteria: JSON.stringify({
+          condition: {
+            negate: false,
+            operator: 'AND',
+            conditions: [
+              {
+                field: 'genres',
+                value: 'Comedy',
+                negate: false,
+                operator: 'contains',
+              },
+            ],
+          },
+        }),
+      })
+      fastify.contentRouter.clearRouterRulesCache()
+    }
+
+    it('vetoes the default-instance fallback via getTargetInstances when only an exclude rule matches', async () => {
+      await insertComedyExcludeRule()
+
+      const targets = await fastify.contentRouter.getTargetInstances(
+        comedyMovie,
+        comedyContext,
+      )
+
+      expect(targets.instanceIds).toEqual([])
+      expect(targets.skipReason).toBe('excluded')
+    })
+
+    it('vetoes the default-instance fallback via routeContent when only an exclude rule matches', async () => {
+      await insertComedyExcludeRule()
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'test-comedy-exclude-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([])
+      expect(result.routingDetails).toEqual([])
+    })
   })
 
   describe('evaluator loading', () => {
