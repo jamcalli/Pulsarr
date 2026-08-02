@@ -17,6 +17,7 @@ import type {
   RoutingContext,
   RoutingDecision,
   RoutingEvaluator,
+  TargetInstancesResult,
 } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import { isArrAlreadyAddedError } from '@utils/arr-error.js'
@@ -1857,7 +1858,8 @@ export class ContentRouterService {
   ): Promise<number[]> {
     try {
       // Get all instances that should be routed to (using shared logic)
-      const instanceIds = await this.getDefaultRoutingInstanceIds(contentType)
+      const { instanceIds } =
+        await this.getDefaultRoutingInstanceIds(contentType)
       if (instanceIds.length === 0) {
         return []
       }
@@ -2130,9 +2132,11 @@ export class ContentRouterService {
   /**
    * Gets default instance IDs for a specific content type
    */
-  private async getDefaultInstanceIds(
-    contentType: 'movie' | 'show',
-  ): Promise<{ instanceIds: number[]; error?: string }> {
+  private async getDefaultInstanceIds(contentType: 'movie' | 'show'): Promise<{
+    instanceIds: number[]
+    error?: string
+    skipReason?: 'default-skip'
+  }> {
     try {
       const instanceIds: number[] = []
 
@@ -2143,10 +2147,10 @@ export class ContentRouterService {
         }
 
         if (defaultInstance.skipDefaultRoutingWhenNoMatch) {
-          this.log.info(
+          this.log.debug(
             `Default routing disabled on default Radarr instance "${defaultInstance.name}" — skipping movie with no matching router rule`,
           )
-          return { instanceIds: [] }
+          return { instanceIds: [], skipReason: 'default-skip' }
         }
 
         instanceIds.push(defaultInstance.id)
@@ -2170,10 +2174,10 @@ export class ContentRouterService {
         }
 
         if (defaultInstance.skipDefaultRoutingWhenNoMatch) {
-          this.log.info(
+          this.log.debug(
             `Default routing disabled on default Sonarr instance "${defaultInstance.name}" — skipping show with no matching router rule`,
           )
-          return { instanceIds: [] }
+          return { instanceIds: [], skipReason: 'default-skip' }
         }
 
         instanceIds.push(defaultInstance.id)
@@ -2215,19 +2219,22 @@ export class ContentRouterService {
    */
   private async getDefaultRoutingInstanceIds(
     contentType: 'movie' | 'show',
-  ): Promise<number[]> {
+  ): Promise<TargetInstancesResult> {
     try {
       const result = await this.getDefaultInstanceIds(contentType)
       if (result.error) {
         this.log.warn(result.error)
       }
-      return result.instanceIds
+      return {
+        instanceIds: result.instanceIds,
+        skipReason: result.skipReason,
+      }
     } catch (error) {
       this.log.error(
         { error },
         `Error in getting default routing instances for ${contentType}`,
       )
-      return []
+      return { instanceIds: [] }
     }
   }
 
@@ -2243,7 +2250,8 @@ export class ContentRouterService {
     contentType: 'movie' | 'show',
   ): Promise<RoutingDecision[]> {
     try {
-      const instanceIds = await this.getDefaultRoutingInstanceIds(contentType)
+      const { instanceIds } =
+        await this.getDefaultRoutingInstanceIds(contentType)
       if (instanceIds.length === 0) {
         return []
       }
@@ -2832,12 +2840,13 @@ export class ContentRouterService {
    *
    * @param item - The content item to evaluate
    * @param context - Routing context with user information and content type
-   * @returns Promise resolving to array of instance IDs that would be targeted
+   * @returns Promise resolving to target instance IDs, with a skipReason when
+   *   an empty list is deliberate (skip toggle or exclude rule)
    */
   async getTargetInstances(
     item: ContentItem,
     context: RoutingContext,
-  ): Promise<number[]> {
+  ): Promise<TargetInstancesResult> {
     const contentType = context.contentType
 
     try {
@@ -2908,7 +2917,7 @@ export class ContentRouterService {
               this.log.info(
                 `"${item.title}" excluded from routing by rule "${rule.name}"`,
               )
-              return []
+              return { instanceIds: [], skipReason: 'excluded' }
             }
 
             if (matches && rule.target_instance_id) {
@@ -2929,12 +2938,12 @@ export class ContentRouterService {
 
       // If routing rules matched, return those target instances
       if (targetInstanceIds.size > 0) {
-        return [...targetInstanceIds]
+        return { instanceIds: [...targetInstanceIds] }
       }
 
       // No routing rules matched - check if we should use sync target
       if (context.syncing && context.syncTargetInstanceId !== undefined) {
-        return [context.syncTargetInstanceId]
+        return { instanceIds: [context.syncTargetInstanceId] }
       }
 
       // No routing rules matched, fall back to default instance(s)
@@ -2946,7 +2955,7 @@ export class ContentRouterService {
       )
       // On error, check if we should use sync target before falling back to defaults
       if (context.syncing && context.syncTargetInstanceId !== undefined) {
-        return [context.syncTargetInstanceId]
+        return { instanceIds: [context.syncTargetInstanceId] }
       }
 
       return await this.getDefaultRoutingInstanceIds(contentType)

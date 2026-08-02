@@ -63,6 +63,13 @@ export interface RoutingContext {
   syncTargetInstanceId?: number
 }
 
+export interface TargetInstancesResult {
+  instanceIds: number[]
+  // Set when an empty list is a deliberate outcome (skip toggle or exclude
+  // rule) rather than a misconfiguration
+  skipReason?: 'default-skip' | 'excluded'
+}
+
 export interface RoutingDecision {
   instanceId: number
   /**

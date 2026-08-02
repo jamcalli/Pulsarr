@@ -223,7 +223,8 @@ describe('ContentRouterService Integration', () => {
       )
 
       // Seeded default Radarr instance has id 1
-      expect(targets).toEqual([1])
+      expect(targets.instanceIds).toEqual([1])
+      expect(targets.skipReason).toBeUndefined()
     })
 
     it('skips (returns no targets) when the flag is on for the default Radarr instance', async () => {
@@ -237,7 +238,8 @@ describe('ContentRouterService Integration', () => {
         movieContext,
       )
 
-      expect(targets).toEqual([])
+      expect(targets.instanceIds).toEqual([])
+      expect(targets.skipReason).toBe('default-skip')
     })
 
     it('controls movie and show routing independently', async () => {
@@ -257,9 +259,10 @@ describe('ContentRouterService Integration', () => {
       )
 
       // Movies are skipped (Radarr's flag is on)...
-      expect(movieTargets).toEqual([])
+      expect(movieTargets.instanceIds).toEqual([])
+      expect(movieTargets.skipReason).toBe('default-skip')
       // ...but shows still route normally (Sonarr's flag is untouched)
-      expect(showTargets).toEqual([1])
+      expect(showTargets.instanceIds).toEqual([1])
     })
   })
 
@@ -320,7 +323,8 @@ describe('ContentRouterService Integration', () => {
         movieContext,
       )
 
-      expect(targets).toEqual([])
+      expect(targets.instanceIds).toEqual([])
+      expect(targets.skipReason).toBe('excluded')
     })
 
     it('vetoes routing via routeContent even though a different rule also matches', async () => {
@@ -370,7 +374,7 @@ describe('ContentRouterService Integration', () => {
         movieContext,
       )
 
-      expect(targets).toEqual([1])
+      expect(targets.instanceIds).toEqual([1])
     })
   })
 
