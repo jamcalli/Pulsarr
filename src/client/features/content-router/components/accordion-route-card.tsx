@@ -313,9 +313,10 @@ const AccordionRouteCard = ({
           routeObj?.name ||
           `New ${routeContentType === 'radarr' ? 'Movie' : 'Show'} Route`,
         condition: getInitialConditionValue(routeObj),
-        target_instance_id:
-          routeObj?.target_instance_id ??
-          (instancesList.length > 0 ? instancesList[0].id : null),
+        target_instance_id: routeObj?.exclude_from_routing
+          ? null
+          : (routeObj?.target_instance_id ??
+            (instancesList.length > 0 ? instancesList[0].id : null)),
         root_folder: routeObj?.root_folder || null,
         quality_profile:
           routeObj?.quality_profile !== undefined &&
