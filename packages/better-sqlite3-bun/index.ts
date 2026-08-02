@@ -124,6 +124,13 @@ class Database {
   private safeIntegersDefault = false
 
   constructor(path: string, options: DatabaseOptions = {}) {
+    // better-sqlite3 defaults to a 5s busy timeout; Bun's constructor has
+    // no timeout option and its busy_timeout default is 0
+    const timeout = options.timeout ?? 5000
+    if (!Number.isFinite(timeout) || timeout < 0) {
+      throw new TypeError('timeout must be a non-negative finite number')
+    }
+
     this.db = new BunDatabase(path, {
       readwrite: !options.readonly,
       readonly: options.readonly,
@@ -133,12 +140,6 @@ class Database {
     })
     this.verbose = options.verbose
 
-    // better-sqlite3 defaults to a 5s busy timeout; Bun's constructor has
-    // no timeout option and its busy_timeout default is 0
-    const timeout = options.timeout ?? 5000
-    if (!Number.isFinite(timeout) || timeout < 0) {
-      throw new TypeError('timeout must be a non-negative finite number')
-    }
     this.db.exec(`PRAGMA busy_timeout = ${timeout}`)
   }
 
