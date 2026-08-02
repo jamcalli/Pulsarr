@@ -40,14 +40,15 @@ describe('Update schemas: no default leakage on partial input', () => {
     expect(updateSchemas.length).toBeGreaterThan(0)
   })
 
-  it.each(
-    updateSchemas,
-  )('$name ($file) parse({}) returns no auto-injected keys', ({ schema }) => {
-    const result = schema.safeParse({})
-    if (result.success) {
-      expect(result.data).toEqual({})
-    } else {
-      expect(result.error).toBeDefined()
-    }
-  })
+  it.each(updateSchemas)(
+    '$name ($file) parse({}) returns no auto-injected keys',
+    ({ schema }) => {
+      const result = schema.safeParse({})
+      if (result.success) {
+        expect(result.data).toEqual({})
+      } else {
+        expect(result.error).toBeDefined()
+      }
+    },
+  )
 })
