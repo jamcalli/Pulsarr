@@ -164,7 +164,7 @@ export interface RadarrConfiguration {
 export type RootFolder = {
   path: string
   accessible: boolean
-  freeSpace: number
+  freeSpace: number | null
   unmappedFolders: unknown[]
   id: number
 }

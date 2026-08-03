@@ -1090,7 +1090,7 @@
         }
       }
     },
-    "/v1/watchlist-exclusions/": {
+    "/v1/watchlist-exclusions": {
       "post": {
         "operationId": "createWatchlistExclusion",
         "summary": "Create watchlist exclusion",
@@ -10556,7 +10556,7 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "number"
             },
             "in": "path",
             "name": "id",
@@ -10665,7 +10665,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "number"
             },
             "in": "path",
             "name": "id",
@@ -13104,8 +13104,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "pattern": "^\\d+$"
+              "type": "number"
             },
             "in": "path",
             "name": "id",
@@ -13891,8 +13890,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "pattern": "^\\d+$"
+              "type": "number"
             },
             "in": "path",
             "name": "id",
@@ -14499,8 +14497,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "pattern": "^\\d+$"
+              "type": "number"
             },
             "in": "path",
             "name": "id",
@@ -14656,8 +14653,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "pattern": "^\\d+$"
+              "type": "number"
             },
             "in": "path",
             "name": "id",
@@ -14945,8 +14941,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "pattern": "^\\d+$"
+              "type": "number"
             },
             "in": "path",
             "name": "id",

@@ -57,8 +57,7 @@ export type QualityProfile = {
 export type RootFolder = {
   path: string
   accessible: boolean
-  freeSpace: number
-  totalSpace: number
+  freeSpace: number | null
   id: number
 }
 

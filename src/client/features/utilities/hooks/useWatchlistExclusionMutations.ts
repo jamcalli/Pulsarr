@@ -17,7 +17,7 @@ export function useCreateWatchlistExclusion() {
     useMutation({
       mutationFn: async (body: CreateWatchlistExclusion) => {
         const { data, error } = await apiFetch.POST(
-          '/v1/watchlist-exclusions/',
+          '/v1/watchlist-exclusions',
           { body },
         )
         if (error) throw error

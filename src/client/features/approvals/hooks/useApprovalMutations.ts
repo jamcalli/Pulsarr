@@ -33,7 +33,7 @@ export function useApproveRequest() {
       mutationFn: async ({ id, notes }: { id: number; notes?: string }) => {
         const { data, error } = await apiFetch.POST(
           '/v1/approval/requests/{id}/approve',
-          { params: { path: { id: String(id) } }, body: { notes } },
+          { params: { path: { id } }, body: { notes } },
         )
         if (error) throw error
         return data
@@ -54,7 +54,7 @@ export function useRejectRequest() {
       mutationFn: async ({ id, reason }: { id: number; reason?: string }) => {
         const { data, error } = await apiFetch.POST(
           '/v1/approval/requests/{id}/reject',
-          { params: { path: { id: String(id) } }, body: { reason } },
+          { params: { path: { id } }, body: { reason } },
         )
         if (error) throw error
         return data
@@ -74,7 +74,7 @@ export function useDeleteApproval() {
     useMutation({
       mutationFn: async (id: number) => {
         const { error } = await apiFetch.DELETE('/v1/approval/requests/{id}', {
-          params: { path: { id: String(id) } },
+          params: { path: { id } },
         })
         if (error) throw error
       },
@@ -101,7 +101,7 @@ export function useUpdateApproval() {
       }) => {
         const { data, error } = await apiFetch.PATCH(
           '/v1/approval/requests/{id}',
-          { params: { path: { id: String(id) } }, body: updates },
+          { params: { path: { id } }, body: updates },
         )
         if (error) throw error
         return data.approvalRequest
