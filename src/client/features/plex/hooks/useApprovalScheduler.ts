@@ -2,8 +2,11 @@ import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
-import { api } from '@/lib/api'
+import {
+  useScheduleActions,
+  useSchedules,
+} from '@/features/utilities/hooks/useSchedules'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 /**
  * React hook for managing the scheduling, configuration, and execution of approval and quota maintenance jobs.
@@ -13,14 +16,13 @@ import { api } from '@/lib/api'
  * @returns An object containing job data, schedule configuration states, loading and error indicators, formatting utilities, and action handlers for approval and quota maintenance schedules.
  */
 export function useApprovalScheduler() {
+  const schedulesQuery = useSchedules()
+  const schedules = schedulesQuery.data
   const {
-    schedules,
-    loading,
-    error,
-    fetchSchedules,
     runScheduleNow,
     toggleScheduleStatus,
-  } = useUtilitiesStore()
+    updateSchedule: updateScheduleAction,
+  } = useScheduleActions()
 
   // Schedule time states for quota (daily scheduling)
   const [quotaScheduleTime, setQuotaScheduleTime] = useState<Date | undefined>(
@@ -152,15 +154,6 @@ export function useApprovalScheduler() {
     }
   }, [quotaMaintenanceJob, parseQuotaCronExpression])
 
-  // Load schedules on first mount if not already loaded
-  useEffect(() => {
-    if (!schedules && !loading.schedules) {
-      fetchSchedules().catch((err) => {
-        console.error('Failed to fetch schedules:', err)
-      })
-    }
-  }, [schedules, loading.schedules, fetchSchedules])
-
   // Generate cron expression for approval maintenance (interval-based)
   const generateApprovalCronExpression = useCallback((interval: number) => {
     return `0 */${interval} * * *`
@@ -185,42 +178,25 @@ export function useApprovalScheduler() {
     ) => {
       setIsSavingSchedule(true)
       try {
-        const response = await fetch(
-          api(`/v1/scheduler/schedules/${scheduleName}`),
-          {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'cron',
-              config: { expression: cronExpression },
-              enabled: true,
-            }),
-          },
-        )
+        const success = await updateScheduleAction(scheduleName, {
+          type: 'cron',
+          config: { expression: cronExpression },
+          enabled: true,
+        })
 
-        if (!response.ok) {
-          throw new Error(`Failed to update ${scheduleName} schedule`)
+        if (!success) {
+          toast.error(`Failed to update ${scheduleName} schedule`)
+          return false
         }
-
-        // Refresh schedules
-        await fetchSchedules()
 
         toast.success(successMessage)
 
         return true
-      } catch (err) {
-        console.error(`Error updating ${scheduleName} schedule:`, err)
-        toast.error(
-          err instanceof Error
-            ? err.message
-            : `Failed to update ${scheduleName} schedule`,
-        )
-        return false
       } finally {
         setIsSavingSchedule(false)
       }
     },
-    [fetchSchedules],
+    [updateScheduleAction],
   )
 
   // Schedule update function for approval maintenance (interval-based)
@@ -382,8 +358,8 @@ export function useApprovalScheduler() {
     quotaDayOfWeek,
 
     // Loading states
-    isLoading: loading.schedules || isSavingSchedule,
-    schedulerError: error.schedules,
+    isLoading: schedulesQuery.isLoading || isSavingSchedule,
+    schedulerError: apiErrorMessage(schedulesQuery.error),
     isTogglingApproval,
     isTogglingQuota,
     isRunningApproval,

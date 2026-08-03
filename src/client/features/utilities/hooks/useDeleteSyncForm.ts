@@ -5,7 +5,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
-import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
+import {
+  useScheduleActions,
+  useSchedules,
+} from '@/features/utilities/hooks/useSchedules'
 import { useConfigStore } from '@/stores/configStore'
 
 // Extract delete sync fields from backend API schema
@@ -69,8 +72,8 @@ export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
  */
 export function useDeleteSyncForm() {
   const { config, updateConfig } = useConfigStore()
-  const { schedules, setLoadingWithMinDuration, updateSchedule } =
-    useUtilitiesStore()
+  const schedules = useSchedules().data
+  const { updateSchedule } = useScheduleActions()
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
   const [submittedValues, setSubmittedValues] =
     useState<DeleteSyncFormValues | null>(null)
@@ -206,7 +209,6 @@ export function useDeleteSyncForm() {
   const onSubmit = async (data: DeleteSyncFormValues) => {
     setSubmittedValues(data)
     setSaveStatus('loading')
-    setLoadingWithMinDuration(true)
 
     try {
       const minimumLoadingTime = new Promise((resolve) =>
@@ -318,8 +320,6 @@ export function useDeleteSyncForm() {
         setSubmittedValues(null)
         setSaveStatus('idle')
       }, 1000)
-    } finally {
-      setLoadingWithMinDuration(false)
     }
   }
 

@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import { useApprovalConfiguration } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
-import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
+import { invalidateSchedules } from '@/features/utilities/hooks/useSchedules'
 import { api } from '@/lib/api'
 
 // Define the form data type that includes both config and schedule fields
@@ -31,9 +31,6 @@ export function useQuotaSystem() {
 
   // Scheduler management hook for operational controls
   const scheduleHook = useApprovalScheduler()
-
-  // Utilities store for schedule management
-  const { fetchSchedules } = useUtilitiesStore()
 
   // Sync scheduler data into form when it changes
   useEffect(() => {
@@ -105,7 +102,7 @@ export function useQuotaSystem() {
 
         // Update local state and refresh schedules
         scheduleHook.handleQuotaTimeChange(data.scheduleTime, data.dayOfWeek)
-        await fetchSchedules()
+        await invalidateSchedules()
       } catch (err) {
         // Schedule update failed, but config was already saved successfully
         console.error(

@@ -1,13 +1,14 @@
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { useCallback, useEffect, useState } from 'react'
-import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
+import { useSchedules } from '@/features/utilities/hooks/useSchedules'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 import { parseCronExpression } from '@/lib/utils'
 
 /**
  * React hook that provides scheduling information and formatting helpers for the "delete-sync" job.
  *
- * Retrieves the "delete-sync" job from the utilities store, parses its cron expression to determine the scheduled execution time and day of the week, and exposes functions to format the last and next run times as human-readable strings. Automatically fetches schedules if they are not already loaded.
+ * Finds the "delete-sync" job in the shared schedules query, parses its cron expression to determine the scheduled execution time and day of the week, and exposes functions to format the last and next run times as human-readable strings.
  *
  * @returns An object containing:
  * - scheduleTime: The scheduled execution time as a Date, or undefined if unavailable.
@@ -19,17 +20,13 @@ import { parseCronExpression } from '@/lib/utils'
  * - formatNextRun: Formats the next run time as a relative string.
  */
 export function useDeleteSyncSchedule() {
-  const { schedules, loading, error, fetchSchedules } = useUtilitiesStore()
+  const schedulesQuery = useSchedules()
+  const schedules = schedulesQuery.data
   const [scheduleTime, setScheduleTime] = useState<Date | undefined>(undefined)
   const [dayOfWeek, setDayOfWeek] = useState<string>('*')
 
-  // Get the delete-sync job from schedules
-  const getDeleteSyncJob = useCallback(() => {
-    if (!schedules) return null
-    return schedules.find((job) => job.name === 'delete-sync')
-  }, [schedules])
-
-  const deleteSyncJob = getDeleteSyncJob()
+  const deleteSyncJob =
+    schedules?.find((job) => job.name === 'delete-sync') ?? null
 
   // Extract schedule time from cron if available
   useEffect(() => {
@@ -49,15 +46,6 @@ export function useDeleteSyncSchedule() {
       setDayOfWeek('*')
     }
   }, [deleteSyncJob])
-
-  // Load schedules on first mount if not already loaded
-  useEffect(() => {
-    if (!schedules && !loading.schedules) {
-      fetchSchedules().catch((err) => {
-        console.error('Failed to fetch schedules:', err)
-      })
-    }
-  }, [schedules, loading.schedules, fetchSchedules])
 
   // Format last run time with proper handling
   const formatLastRun = useCallback(
@@ -91,8 +79,8 @@ export function useDeleteSyncSchedule() {
     scheduleTime,
     dayOfWeek,
     deleteSyncJob,
-    isLoading: loading.schedules,
-    error: error.schedules,
+    isLoading: schedulesQuery.isLoading,
+    error: apiErrorMessage(schedulesQuery.error),
     formatLastRun,
     formatNextRun,
   }
