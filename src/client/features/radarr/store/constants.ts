@@ -1,1 +1,1 @@
-export const API_KEY_PLACEHOLDER = 'placeholder'
+export { API_KEY_PLACEHOLDER } from '@/features/arr/constants'

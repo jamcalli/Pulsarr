@@ -42,7 +42,7 @@ interface FormatItem {
   score: number
 }
 
-export interface QualityProfile {
+export type QualityProfile = {
   id: number
   name: string
   upgradeAllowed: boolean
@@ -54,7 +54,7 @@ export interface QualityProfile {
   formatItems: FormatItem[]
 }
 
-export interface RootFolder {
+export type RootFolder = {
   path: string
   accessible: boolean
   freeSpace: number

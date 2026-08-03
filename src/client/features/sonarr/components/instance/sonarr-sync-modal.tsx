@@ -9,8 +9,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
+import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { useSyncProgress } from '@/features/sonarr/hooks/instance/useSyncProgress'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { api } from '@/lib/api'
 
 interface SonarrSyncModalProps {
@@ -43,7 +43,7 @@ export function SonarrSyncModal({
   const [syncCompleted, setSyncCompleted] = useState(false)
   const [overallProgress, setOverallProgress] = useState(0)
 
-  const allInstances = useSonarrStore((state) => state.instances)
+  const { data: allInstances = [] } = useSonarrInstancesQuery()
   const instanceNamesRef = useRef<Record<number, string>>({})
   const isSingleInstance = syncedInstances.length === 1
 

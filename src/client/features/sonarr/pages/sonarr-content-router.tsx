@@ -1,25 +1,19 @@
 import { useEffect, useRef } from 'react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
-import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import { useArrGenres } from '@/features/arr/useArrGenres'
+import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Displays the Sonarr Content Router page for managing content routing rules.
  *
- * Initializes Sonarr and configuration stores on mount, loads instance and genre data as needed, and renders a tabbed interface for configuring routing rules. The page is rendered only after all required data is loaded.
- *
  * @returns The Sonarr Content Router page component.
  */
 export default function SonarrContentRouterPage() {
-  const instances = useSonarrStore((state) => state.instances)
-  const genres = useSonarrStore((state) => state.genres)
-  const fetchGenres = useSonarrStore((state) => state.fetchGenres)
-  const instancesLoading = useSonarrStore((state) => state.instancesLoading)
-  const isInitialized = useSonarrStore((state) => state.isInitialized)
-  const initialize = useSonarrStore((state) => state.initialize)
-  const fetchInstanceData = useSonarrStore((state) => state.fetchInstanceData)
+  const { data, isLoading } = useSonarrInstancesQuery()
+  const instances = data ?? []
+  const { genres, handleGenreDropdownOpen } = useArrGenres()
 
   // Add config store initialization for session monitoring support
   const configInitialize = useConfigStore((state) => state.initialize)
@@ -27,44 +21,13 @@ export default function SonarrContentRouterPage() {
   const hasInitializedRef = useRef(false)
 
   useEffect(() => {
-    const initializeData = async () => {
-      if (!hasInitializedRef.current) {
-        await initialize(true)
-        configInitialize() // Initialize config store for session monitoring
-
-        // Ensure instance data is fetched for all valid instances
-        const validInstances = instances.filter(
-          (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
-        )
-
-        await Promise.all(
-          validInstances.map((instance) =>
-            fetchInstanceData(instance.id.toString()),
-          ),
-        )
-
-        hasInitializedRef.current = true
-      }
+    if (!hasInitializedRef.current) {
+      configInitialize() // Initialize config store for session monitoring
+      hasInitializedRef.current = true
     }
+  }, [configInitialize])
 
-    initializeData()
-  }, [initialize, fetchInstanceData, instances, configInitialize])
-
-  const handleGenreDropdownOpen = async () => {
-    if (!genres.length) {
-      await fetchGenres()
-    }
-  }
-
-  const hasRealInstances = instances.some(
-    (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
-  )
-
-  if (!isInitialized) {
-    return null
-  }
-
-  if (instancesLoading && hasRealInstances) {
+  if (data === undefined || isLoading) {
     return null
   }
 

@@ -1,9 +1,9 @@
+import type { RadarrInstanceResponse } from '@root/schemas/radarr/radarr-instance.schema'
 import { Computer } from 'lucide-react'
 import type { ControllerRenderProps } from 'react-hook-form'
 import { Badge } from '@/components/ui/badge'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
-import type { RadarrInstance } from '@/features/radarr/store/radarrStore'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 
 /**
@@ -22,7 +22,7 @@ function SyncedInstancesSelect({
   disabled = false,
 }: {
   field: ControllerRenderProps<RadarrInstanceSchema, 'syncedInstances'>
-  instances: RadarrInstance[]
+  instances: RadarrInstanceResponse[]
   currentInstanceId: number
   isDefault: boolean
   disabled?: boolean

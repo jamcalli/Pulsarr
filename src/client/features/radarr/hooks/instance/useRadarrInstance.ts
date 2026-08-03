@@ -1,51 +1,43 @@
 import { useCallback } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
+import {
+  useDeleteRadarrInstanceMutation,
+  useRadarrInstancesQuery,
+  useUpdateRadarrInstanceMutation,
+} from '@/features/radarr/hooks/instance/useRadarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 
 /**
  * React hook for managing a specific Radarr instance by its ID.
  *
- * Returns the current instance, all instances, and handler functions to update, delete, and fetch instance data. If the last real instance is deleted, it is replaced with a default placeholder configuration.
+ * Returns the current instance, all instances, and handler functions to update and delete it. If the last real instance is deleted, it is replaced with a default placeholder configuration.
  *
  * @param instanceId - The ID of the Radarr instance to manage.
- * @returns An object containing the current instance, all instances, and functions to update, delete, and fetch instance data.
+ * @returns An object containing the current instance, all instances, pending states, and functions to update and delete the specified instance.
  */
 export function useRadarrInstance(instanceId: number) {
-  const instance = useRadarrStore((state) =>
-    state.instances.find((i) => i.id === instanceId),
-  )
-  const instances = useRadarrStore((state) => state.instances)
-  const updateInstance = useRadarrStore((state) => state.updateInstance)
-  const deleteInstance = useRadarrStore((state) => state.deleteInstance)
-  const fetchInstanceData = useRadarrStore((state) => state.fetchInstanceData)
-  const fetchInstances = useRadarrStore((state) => state.fetchInstances)
+  const instancesQuery = useRadarrInstancesQuery()
+  const instances = instancesQuery.data ?? []
+  const instance = instances.find((i) => i.id === instanceId)
+  const updateMutation = useUpdateRadarrInstanceMutation()
+  const deleteMutation = useDeleteRadarrInstanceMutation()
+  const { mutateAsync: updateAsync } = updateMutation
+  const { mutateAsync: deleteAsync } = deleteMutation
 
   const handleUpdateInstance = useCallback(
     async (data: RadarrInstanceSchema) => {
-      if (data.isDefault) {
-        const updatePromises = instances
-          .filter((inst) => inst.id !== instanceId && inst.isDefault)
-          .map((inst) =>
-            updateInstance(inst.id, {
-              ...inst,
-              isDefault: false,
-              syncedInstances: [],
-            }),
-          )
-
-        await Promise.all(updatePromises)
-      }
-
-      await updateInstance(instanceId, {
-        ...data,
-        name: data.name.trim(),
-        syncedInstances: data.syncedInstances || [],
+      await updateAsync({
+        id: instanceId,
+        updates: {
+          ...data,
+          name: data.name.trim(),
+          syncedInstances: data.syncedInstances || [],
+        },
       })
     },
-    [instanceId, instances, updateInstance],
+    [instanceId, updateAsync],
   )
 
   const handleDeleteInstance = useCallback(
@@ -73,7 +65,7 @@ export function useRadarrInstance(instanceId: number) {
             syncedInstances: [],
           }
 
-          await updateInstance(instanceId, defaultInstance)
+          await updateAsync({ id: instanceId, updates: defaultInstance })
 
           form.reset(defaultInstance, {
             keepDirty: false,
@@ -83,12 +75,11 @@ export function useRadarrInstance(instanceId: number) {
             keepErrors: false,
           })
         } else {
-          await deleteInstance(instanceId)
+          await deleteAsync(instanceId)
         }
 
         setIsConnectionValid(false)
         setTestStatus('idle')
-        await fetchInstances()
 
         toast.success(
           isLastRealInstance
@@ -100,7 +91,7 @@ export function useRadarrInstance(instanceId: number) {
         throw error
       }
     },
-    [instanceId, instances, updateInstance, deleteInstance, fetchInstances],
+    [instanceId, instances, updateAsync, deleteAsync],
   )
 
   return {
@@ -108,6 +99,7 @@ export function useRadarrInstance(instanceId: number) {
     instances,
     updateInstance: handleUpdateInstance,
     deleteInstance: handleDeleteInstance,
-    fetchInstanceData: () => fetchInstanceData(instanceId.toString()),
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   }
 }

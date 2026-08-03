@@ -1,3 +1,4 @@
+import { RootFolderResourceSchema } from '@root/schemas/common/arr-resources.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
@@ -14,7 +15,7 @@ export const InstanceInfoSchema = z.object({
 export const RootFoldersResponseSchema = z.object({
   success: z.boolean(),
   instance: InstanceInfoSchema,
-  rootFolders: z.array(z.any()),
+  rootFolders: z.array(RootFolderResourceSchema),
 })
 
 export type Querystring = z.infer<typeof QuerystringSchema>

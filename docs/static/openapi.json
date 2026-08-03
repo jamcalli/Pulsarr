@@ -17956,7 +17956,22 @@
                     },
                     "qualityProfiles": {
                       "type": "array",
-                      "items": {}
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": {}
+                      }
                     }
                   },
                   "required": [
@@ -18125,7 +18140,22 @@
                     },
                     "rootFolders": {
                       "type": "array",
-                      "items": {}
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "path": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "path"
+                        ],
+                        "additionalProperties": {}
+                      }
                     }
                   },
                   "required": [
@@ -35046,7 +35076,22 @@
                     },
                     "qualityProfiles": {
                       "type": "array",
-                      "items": {}
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": {}
+                      }
                     }
                   },
                   "required": [
@@ -35892,7 +35937,22 @@
                     },
                     "rootFolders": {
                       "type": "array",
-                      "items": {}
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "path": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "path"
+                        ],
+                        "additionalProperties": {}
+                      }
                     }
                   },
                   "required": [

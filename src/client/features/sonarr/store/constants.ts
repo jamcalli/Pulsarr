@@ -20,4 +20,4 @@ export const SONARR_MONITORING_OPTIONS: Record<SonarrMonitoringType, string> = {
   skip: 'Skip',
 }
 
-export const API_KEY_PLACEHOLDER = 'placeholder'
+export { API_KEY_PLACEHOLDER } from '@/features/arr/constants'

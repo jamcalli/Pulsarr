@@ -4,22 +4,18 @@ import { NetworkConfigCredenza } from '@/components/network-config-credenza'
 import { Button } from '@/components/ui/button'
 import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-card-skeleton'
 import { InstanceCard } from '@/features/sonarr/components/instance/sonarr-instance-card'
+import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Renders the page for managing Sonarr instances, enabling users to add, view, and configure their Sonarr connections.
  *
- * Initializes both Sonarr and configuration stores on mount, manages loading and initialization states, and conditionally displays UI for adding new instances or listing existing ones.
- *
  * @returns The React component for the Sonarr Instances management page.
  */
 export default function SonarrInstancesPage() {
-  const instances = useSonarrStore((state) => state.instances)
-  const instancesLoading = useSonarrStore((state) => state.instancesLoading)
-  const isInitialized = useSonarrStore((state) => state.isInitialized)
-  const initialize = useSonarrStore((state) => state.initialize)
+  const { data, isLoading } = useSonarrInstancesQuery()
+  const instances = data ?? []
 
   // Add config store initialization for session monitoring support
   const configInitialize = useConfigStore((state) => state.initialize)
@@ -30,11 +26,10 @@ export default function SonarrInstancesPage() {
 
   useEffect(() => {
     if (!hasInitializedRef.current) {
-      initialize(true)
       configInitialize() // Initialize config store for session monitoring
       hasInitializedRef.current = true
     }
-  }, [initialize, configInitialize])
+  }, [configInitialize])
 
   const addInstance = () => {
     setShowInstanceCard(true)
@@ -43,15 +38,15 @@ export default function SonarrInstancesPage() {
   const isPlaceholderInstance =
     instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
 
-  if (!isInitialized) {
-    return null
-  }
-
   const hasRealInstances = instances.some(
     (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
   )
 
-  if (instancesLoading && hasRealInstances) {
+  if (data === undefined) {
+    return null
+  }
+
+  if (isLoading && hasRealInstances) {
     return <SonarrPageSkeleton />
   }
 
@@ -110,6 +105,8 @@ export default function SonarrInstancesPage() {
                     isDefault: !hasRealInstances,
                     qualityProfile: '',
                     rootFolder: '',
+                    seriesType: 'standard',
+                    skipDefaultRoutingWhenNoMatch: false,
                   }}
                   setShowInstanceCard={setShowInstanceCard}
                 />

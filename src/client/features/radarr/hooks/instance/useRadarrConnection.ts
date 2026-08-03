@@ -1,25 +1,26 @@
+import type { RadarrInstanceResponse } from '@root/schemas/radarr/radarr-instance.schema'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
+import { useArrInstanceData } from '@/features/arr/useArrInstanceData'
+import {
+  createRadarrInstance,
+  testRadarrConnection,
+  updateRadarrInstance,
+  useRadarrInstancesQuery,
+} from '@/features/radarr/hooks/instance/useRadarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
-import type {
-  RadarrConnectionValues,
-  RadarrInstance,
-} from '@/features/radarr/types/types'
-import { api } from '@/lib/api'
+import type { RadarrConnectionValues } from '@/features/radarr/types/types'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 import { isWebhookCallbackError } from '@/lib/webhook-errors'
 
 /**
  * Checks if a Radarr instance is missing required configuration fields.
  *
  * Returns `true` if either the `qualityProfile` or `rootFolder` property is missing or empty; otherwise, returns `false`.
- *
- * @param instance - The Radarr instance to evaluate for configuration completeness.
- * @returns `true` if additional configuration is required; otherwise, `false`.
  */
-function checkNeedsConfiguration(instance: RadarrInstance) {
+function checkNeedsConfiguration(instance: RadarrInstanceResponse) {
   return (
     !instance.qualityProfile ||
     instance.qualityProfile === '' ||
@@ -31,14 +32,14 @@ function checkNeedsConfiguration(instance: RadarrInstance) {
 /**
  * React hook for managing the connection lifecycle, configuration state, and UI status of a Radarr instance.
  *
- * Provides state and functions for testing and validating Radarr connections, tracking configuration requirements, and handling related UI updates. Integrates with the Radarr store and displays user notifications for connection events.
+ * Provides state and functions for testing and validating Radarr connections, tracking configuration requirements, and handling instance creation and updating as part of the Radarr connection workflow.
  *
  * @param instance - The Radarr instance to manage.
  * @param setShowInstanceCard - Optional callback to control the visibility of the instance card UI.
- * @returns An object containing connection and save statuses, configuration state, refs for navigation and initialization, and functions for testing, resetting, and validating the Radarr connection.
+ * @returns An object containing connection and save statuses, configuration state, and functions for testing, resetting, and validating the Radarr connection.
  */
 export function useRadarrConnection(
-  instance: RadarrInstance,
+  instance: RadarrInstanceResponse,
   setShowInstanceCard?: (show: boolean) => void,
 ) {
   const [testStatus, setTestStatus] = useState<
@@ -50,72 +51,55 @@ export function useRadarrConnection(
   const [isConnectionValid, setIsConnectionValid] = useState(false)
   const [needsConfiguration, setNeedsConfiguration] = useState(false)
   const [webhookError, setWebhookError] = useState<string | null>(null)
-  const isNavigationTest = useRef(false)
+  const [isNavigationTesting, setIsNavigationTesting] = useState(false)
   const hasInitialized = useRef(false)
 
-  const {
-    instances,
-    fetchInstanceData,
-    fetchInstances,
-    updateInstance,
-    setLoadingWithMinDuration: setInstancesLoading,
-  } = useRadarrStore()
+  const instancesQuery = useRadarrInstancesQuery()
+  const instances = instancesQuery.data ?? []
+  const instanceData = useArrInstanceData(
+    'radarr',
+    instance.id,
+    isConnectionValid,
+  )
 
   const testConnectionWithoutLoading = useCallback(
     async (baseUrl: string, apiKey: string) => {
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, 500),
       )
-      const [response] = await Promise.all([
-        fetch(api('/v1/radarr/test-connection'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ baseUrl, apiKey }),
-        }),
+      const [result] = await Promise.all([
+        testRadarrConnection(baseUrl, apiKey),
         minimumLoadingTime,
       ])
-      if (!response.ok) {
-        try {
-          const error = await response.json()
-          throw new Error(error.message || 'Failed to test connection')
-        } catch (_parseError) {
-          throw new Error('Failed to test connection')
-        }
-      }
-      return await response.json()
+      return result
     },
     [],
   )
 
   // Check if the instance needs configuration (missing required fields)
   useEffect(() => {
-    // Only check when we have a valid instance
     if (instance.id > 0) {
-      const needsConfig = checkNeedsConfiguration(instance)
-      setNeedsConfiguration(needsConfig)
+      setNeedsConfiguration(checkNeedsConfiguration(instance))
     }
   }, [instance])
 
-  // Initialize component and test connection on mount
+  // Validate the connection on mount; cached instance data counts as proof
   useEffect(() => {
     const initializeComponent = async () => {
       if (hasInitialized.current) return
       hasInitialized.current = true
 
-      const hasInstanceData =
-        instance.data?.rootFolders && instance.data?.qualityProfiles
       const isPlaceholderKey = instance.apiKey === API_KEY_PLACEHOLDER
 
       if (instance.id === -1) {
         return
       }
 
-      if (hasInstanceData) {
+      if (instanceData.hasData) {
         setIsConnectionValid(true)
         setTestStatus('success')
       } else if (instance.baseUrl && instance.apiKey && !isPlaceholderKey) {
-        isNavigationTest.current = true
-        setInstancesLoading(true)
+        setIsNavigationTesting(true)
         try {
           const result = await testConnectionWithoutLoading(
             instance.baseUrl,
@@ -124,40 +108,20 @@ export function useRadarrConnection(
           if (result.success) {
             setIsConnectionValid(true)
             setTestStatus('success')
-
-            // Check if the instance needs additional configuration
-            // ONLY consider it needing configuration if it's missing quality profile or root folder
-            const needsConfig = checkNeedsConfiguration(instance)
-
-            if (needsConfig) {
-              setNeedsConfiguration(true)
-            } else {
-              setNeedsConfiguration(false)
-            }
-
-            if (
-              !instance.data?.rootFolders ||
-              !instance.data?.qualityProfiles
-            ) {
-              await fetchInstanceData(instance.id.toString())
-            }
+            setNeedsConfiguration(checkNeedsConfiguration(instance))
           }
         } catch (error) {
           console.error('Silent connection test failed:', error)
         } finally {
-          setInstancesLoading(false)
-          isNavigationTest.current = false
+          setIsNavigationTesting(false)
         }
       }
     }
 
     initializeComponent()
-  }, [
-    instance,
-    testConnectionWithoutLoading,
-    fetchInstanceData,
-    setInstancesLoading,
-  ])
+  }, [instance, testConnectionWithoutLoading, instanceData.hasData])
+
+  const { refetch: refetchInstanceData } = instanceData
 
   const testConnection = useCallback(
     async (
@@ -199,10 +163,11 @@ export function useRadarrConnection(
             })
 
             const isOnlyPlaceholderInstance =
-              instances.length === 1 && instances[0].apiKey === 'placeholder'
+              instances.length === 1 &&
+              instances[0].apiKey === API_KEY_PLACEHOLDER
 
             if (isOnlyPlaceholderInstance) {
-              await updateInstance(instances[0].id, {
+              await updateRadarrInstance(instances, instances[0].id, {
                 name: values.name.trim(),
                 baseUrl: values.baseUrl,
                 apiKey: values.apiKey,
@@ -211,8 +176,6 @@ export function useRadarrConnection(
                   'skipDefaultRoutingWhenNoMatch',
                 ),
               })
-              await fetchInstances()
-              await fetchInstanceData(instances[0].id.toString())
               setShowInstanceCard?.(false)
             } else if (instance.id === -1) {
               setIsConnectionValid(true)
@@ -224,46 +187,26 @@ export function useRadarrConnection(
               ])
               if (!isValid) return
 
-              const createResponse = await fetch(api('/v1/radarr/instances'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  name: values.name.trim(),
-                  baseUrl: values.baseUrl,
-                  apiKey: values.apiKey,
-                  qualityProfile: values.qualityProfile,
-                  rootFolder: values.rootFolder,
-                  isDefault: false,
-                }),
+              await createRadarrInstance({
+                name: values.name.trim(),
+                baseUrl: values.baseUrl,
+                apiKey: values.apiKey,
+                qualityProfile: values.qualityProfile,
+                rootFolder: values.rootFolder,
+                isDefault: false,
               })
 
-              if (!createResponse.ok) {
-                throw new Error('Failed to create instance')
-              }
-
-              const newInstance = await createResponse.json()
-
-              // Check if required fields were provided
               const hasRequiredFields = !checkNeedsConfiguration({
                 ...instance,
                 qualityProfile: values.qualityProfile,
                 rootFolder: values.rootFolder,
               })
-              if (!hasRequiredFields) {
-                setNeedsConfiguration(true)
-              } else {
-                setNeedsConfiguration(false)
-              }
-
-              await Promise.all([
-                fetchInstances(),
-                fetchInstanceData(newInstance.id.toString()),
-              ])
+              setNeedsConfiguration(!hasRequiredFields)
 
               // Always close the add instance form - we'll show the persisted one from the database instead
               setShowInstanceCard?.(false)
             } else {
-              await fetchInstanceData(instance.id.toString())
+              await refetchInstanceData()
             }
           })(),
           minimumLoadingTime,
@@ -280,7 +223,7 @@ export function useRadarrConnection(
         form.setValue('_connectionTested', false, { shouldValidate: true })
 
         const errorMessage =
-          error instanceof Error ? error.message : 'Failed to connect to Radarr'
+          apiErrorMessage(error) ?? 'Failed to connect to Radarr'
 
         // Check if this is a webhook callback error (Radarr can't reach Pulsarr)
         if (isWebhookCallbackError(errorMessage)) {
@@ -294,9 +237,7 @@ export function useRadarrConnection(
       instance,
       instances,
       testConnectionWithoutLoading,
-      updateInstance,
-      fetchInstances,
-      fetchInstanceData,
+      refetchInstanceData,
       setShowInstanceCard,
     ],
   )
@@ -315,8 +256,7 @@ export function useRadarrConnection(
     setSaveStatus,
     isConnectionValid,
     setIsConnectionValid,
-    isNavigationTest,
-    hasInitialized,
+    isNavigationTesting,
     needsConfiguration,
     setNeedsConfiguration,
     webhookError,

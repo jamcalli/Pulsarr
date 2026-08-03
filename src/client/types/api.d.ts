@@ -8852,7 +8852,12 @@ export interface operations {
                             name: string;
                             baseUrl: string;
                         };
-                        qualityProfiles: unknown[];
+                        qualityProfiles: ({
+                            id: number;
+                            name: string;
+                        } & {
+                            [key: string]: unknown;
+                        })[];
                     };
                 };
             };
@@ -8924,7 +8929,12 @@ export interface operations {
                             name: string;
                             baseUrl: string;
                         };
-                        rootFolders: unknown[];
+                        rootFolders: ({
+                            id: number;
+                            path: string;
+                        } & {
+                            [key: string]: unknown;
+                        })[];
                     };
                 };
             };
@@ -14875,7 +14885,12 @@ export interface operations {
                             name: string;
                             baseUrl: string;
                         };
-                        qualityProfiles: unknown[];
+                        qualityProfiles: ({
+                            id: number;
+                            name: string;
+                        } & {
+                            [key: string]: unknown;
+                        })[];
                     };
                 };
             };
@@ -15247,7 +15262,12 @@ export interface operations {
                             name: string;
                             baseUrl: string;
                         };
-                        rootFolders: unknown[];
+                        rootFolders: ({
+                            id: number;
+                            path: string;
+                        } & {
+                            [key: string]: unknown;
+                        })[];
                     };
                 };
             };
