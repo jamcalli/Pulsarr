@@ -2,8 +2,12 @@ import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { useCallback } from 'react'
 import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
 import { queryClient } from '@/lib/queryClient'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
-import { useDashboardStatsQuery } from './useDashboardStatsQuery'
+import {
+  dashboardStatsKeys,
+  useDashboardStatsQuery,
+} from './useDashboardStatsQuery'
 
 // Re-export presets from store for convenience
 export {
@@ -65,11 +69,11 @@ export function useDashboardStats(): DashboardStatsState {
 
   const { data, isLoading, error, dataUpdatedAt } = useDashboardStatsQuery()
 
-  const errorMessage = error instanceof Error ? error.message : null
+  const errorMessage = apiErrorMessage(error)
 
   // Reset clears cache and refetches, showing skeleton loader again
   const refreshStats = useCallback(async () => {
-    await queryClient.resetQueries({ queryKey: ['dashboard-stats'] })
+    await queryClient.resetQueries({ queryKey: dashboardStatsKeys.all })
   }, [])
 
   return {

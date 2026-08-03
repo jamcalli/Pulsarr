@@ -8,6 +8,7 @@
       "!**/tests",
       "!**/docs",
       "!**/src/client/dist",
+      "!**/src/client/types/api.d.ts",
       "!**/tmp",
       "!**/coverage"
     ]

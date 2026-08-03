@@ -42,6 +42,8 @@
     "release:major": "npm version major && git push && git push --tags",
     "prepare": "husky",
     "openapi:generate": "bun run --bun scripts/generate-openapi.ts",
+    "openapi:types": "bun install --cwd scripts/openapi-codegen --silent && bun run --cwd scripts/openapi-codegen generate",
+    "openapi:dev": "bun run openapi:generate && bun run openapi:types",
     "build:native": "bun run --bun scripts/build-native.ts",
     "docs:build": "./scripts/build-docs.sh",
     "docs:start": "npm --prefix docs run start"
@@ -95,6 +97,8 @@
     "fastify-sse-v2": "^4.2.1",
     "fastify-zod-openapi": "^5.5.0",
     "knex": "^3.1.0",
+    "openapi-fetch": "^0.17.0",
+    "openapi-react-query": "^1.0.0",
     "p-limit": "^7.1.0",
     "pg": "^8.16.0",
     "pino": "^10.1.0",

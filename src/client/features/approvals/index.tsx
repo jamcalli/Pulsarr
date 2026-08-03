@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/shallow'
 import { PageError } from '@/components/ui/page-error'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 import ApprovalActionsModal from '@/features/approvals/components/approval-actions-modal'
 import ApprovalStatsHeader from '@/features/approvals/components/approval-stats-header'
 import {
@@ -176,9 +177,7 @@ export default function ApprovalsPage() {
   // Show error state
   if (approvalsError && !isLoading) {
     const errorMessage =
-      approvalsError instanceof Error
-        ? approvalsError.message
-        : 'Failed to load approvals'
+      apiErrorMessage(approvalsError) ?? 'Failed to load approvals'
     return (
       <div>
         <div className="flex justify-between items-center mb-4">

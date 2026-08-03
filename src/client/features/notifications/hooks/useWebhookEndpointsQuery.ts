@@ -1,23 +1,18 @@
-import {
-  type WebhookEndpoint,
-  WebhookEndpointsListResponseSchema,
-} from '@root/schemas/webhooks/webhook-endpoints.schema'
-import { apiClient } from '@/lib/apiClient'
-import { useAppQuery } from '@/lib/useAppQuery'
+import type { WebhookEndpoint } from '@root/schemas/webhooks/webhook-endpoints.schema'
+import { $api } from '@/lib/tanstackApi'
+import { useMinLoading } from '@/lib/useMinLoading'
 
 export const webhookEndpointKeys = {
-  all: ['webhook-endpoints'] as const,
-  list: () => [...webhookEndpointKeys.all, 'list'] as const,
+  all: ['get', '/v1/webhooks/endpoints'] as const,
 }
 
 export function useWebhookEndpointsQuery() {
-  return useAppQuery({
-    queryKey: webhookEndpointKeys.list(),
-    queryFn: () =>
-      apiClient.get(
-        '/v1/webhooks/endpoints',
-        WebhookEndpointsListResponseSchema,
-      ),
-    select: (data): WebhookEndpoint[] => data.data,
-  })
+  return useMinLoading(
+    $api.useQuery(
+      'get',
+      '/v1/webhooks/endpoints',
+      {},
+      { select: (data): WebhookEndpoint[] => data.data },
+    ),
+  )
 }

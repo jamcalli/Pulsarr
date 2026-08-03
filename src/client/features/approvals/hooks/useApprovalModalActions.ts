@@ -1,6 +1,7 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 import {
   useApproveRequest,
   useDeleteApproval,
@@ -61,11 +62,12 @@ export function useApprovalModalActions({
       }, 1500)
     } catch (error) {
       // Check if it's a conflict error (request already approved/expired)
+      const message = apiErrorMessage(error)
       const isConflict =
-        error instanceof Error &&
-        (error.message.includes('already approved') ||
-          error.message.includes('already expired') ||
-          error.message.includes('Cannot approve request'))
+        message !== null &&
+        (message.includes('already approved') ||
+          message.includes('already expired') ||
+          message.includes('Cannot approve request'))
 
       toast.error(
         isConflict
