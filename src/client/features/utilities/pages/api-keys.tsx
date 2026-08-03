@@ -45,7 +45,7 @@ export function ApiKeysPage() {
     revokeApiKey,
     toggleKeyVisibility,
     initiateRevoke,
-    fetchApiKeys,
+    refreshApiKeys,
   } = useApiKeys()
 
   // Initialize config store with minimum duration for consistent UX
@@ -94,7 +94,7 @@ export function ApiKeysPage() {
               <Button
                 type="button"
                 size="sm"
-                onClick={() => fetchApiKeys(true)}
+                onClick={() => refreshApiKeys()}
                 disabled={isLoading || isRefreshing}
                 variant="noShadow"
                 className="h-8"

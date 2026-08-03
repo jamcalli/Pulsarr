@@ -3,117 +3,135 @@ import {
   type CreateApiKey,
   CreateApiKeySchema,
 } from '@root/schemas/api-keys/api-keys.schema'
-import { useEffect } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { useApiKeysStore } from '@/features/utilities/store/apiKeysStore'
+import { queryClient } from '@/lib/queryClient'
+import { $api, apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
+import {
+  useMinDuration,
+  useMinLoading,
+  useMinLoadingMutation,
+  withMinDuration,
+} from '@/lib/useMinLoading'
 
-type ApiKeyFormData = CreateApiKey
+export const apiKeyKeys = {
+  all: ['get', '/v1/api-keys/api-keys'] as const,
+}
+
+function invalidateApiKeyCaches() {
+  queryClient.invalidateQueries({ queryKey: apiKeyKeys.all })
+}
 
 /**
- * React hook that manages API key state and actions, including creation, revocation, visibility toggling, clipboard copying, and form handling.
- *
- * Returns form handlers, API key data, loading and error states, and utility functions for use in API key management UI components.
+ * Manages API key data and actions, including creation, revocation,
+ * visibility toggling, and form handling for the API keys page.
  */
 export function useApiKeys() {
-  const {
-    apiKeys,
-    visibleKeys,
-    showDeleteConfirmation,
-    hasLoadedApiKeys,
-    loading,
-    error,
-    fetchApiKeys,
-    createApiKey,
-    revokeApiKey,
-    toggleKeyVisibility,
-    setShowDeleteConfirmation,
-    resetErrors,
-  } = useApiKeysStore()
+  const [visibleKeys, setVisibleKeys] = useState<Record<number, boolean>>({})
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState<
+    number | null
+  >(null)
 
-  const form = useForm<ApiKeyFormData>({
+  const query = useMinLoading($api.useQuery('get', '/v1/api-keys/api-keys'))
+  const isRefreshing = useMinDuration(query.isRefetching)
+
+  const createMutation = useMinLoadingMutation(
+    useMutation({
+      mutationFn: async (body: CreateApiKey) => {
+        const { data, error } = await withMinDuration(
+          apiFetch.POST('/v1/api-keys/api-keys', { body }),
+        )
+        if (error) throw error
+        return data
+      },
+      onSuccess: (data) => {
+        // Show the newly created key by default
+        setVisibleKeys((prev) => ({ ...prev, [data.apiKey.id]: true }))
+        invalidateApiKeyCaches()
+      },
+    }),
+  )
+
+  const revokeMutation = useMinLoadingMutation(
+    useMutation({
+      mutationFn: async (id: number) => {
+        const { error } = await withMinDuration(
+          apiFetch.DELETE('/v1/api-keys/api-keys/{id}', {
+            params: { path: { id } },
+          }),
+        )
+        if (error) throw error
+      },
+      onSuccess: (_data, id) => {
+        setVisibleKeys((prev) => {
+          const { [id]: _removed, ...rest } = prev
+          return rest
+        })
+        setShowDeleteConfirmation(null)
+        invalidateApiKeyCaches()
+      },
+    }),
+  )
+
+  const form = useForm<CreateApiKey>({
     resolver: zodResolver(CreateApiKeySchema),
     defaultValues: {
       name: '',
     },
   })
 
-  const handleCreateApiKey = async (data: ApiKeyFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
-      await createApiKey(data)
+      await createMutation.mutateAsync(data)
       form.reset()
       toast.success('API key created successfully')
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to create API key'
-      toast.error(errorMessage)
+      toast.error(apiErrorMessage(err) ?? 'Failed to create API key')
     }
-  }
+  })
 
-  const handleRevokeApiKey = async (id: number) => {
+  const revokeApiKey = async (id: number) => {
     try {
-      await revokeApiKey(id)
+      await revokeMutation.mutateAsync(id)
       toast.success('API key revoked successfully')
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to revoke API key'
-      toast.error(errorMessage)
+      toast.error(apiErrorMessage(err) ?? 'Failed to revoke API key')
     }
   }
 
-  const copyToClipboard = async (key: string, name: string) => {
-    try {
-      // Check if clipboard API is available
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(key)
-      } else {
-        // Fallback for non-secure contexts or older browsers
-        const textArea = document.createElement('textarea')
-        textArea.value = key
-        textArea.style.position = 'fixed'
-        textArea.style.left = '-999999px'
-        textArea.style.top = '-999999px'
-        document.body.appendChild(textArea)
-        textArea.focus()
-        textArea.select()
-        document.execCommand('copy')
-        textArea.remove()
-      }
-      toast.success(`API key for "${name}" copied to clipboard`)
-    } catch (_err) {
-      toast.error('Failed to copy to clipboard')
-    }
+  const toggleKeyVisibility = (id: number) => {
+    setVisibleKeys((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
   const initiateRevoke = (id: number) => {
     setShowDeleteConfirmation(id)
   }
 
-  const onSubmit = form.handleSubmit(handleCreateApiKey)
-
-  useEffect(() => {
-    if (!hasLoadedApiKeys) {
-      fetchApiKeys(false)
-    }
-  }, [fetchApiKeys, hasLoadedApiKeys])
+  const isRevoking: Record<number, boolean> =
+    revokeMutation.isPending && revokeMutation.variables !== undefined
+      ? { [revokeMutation.variables]: true }
+      : {}
 
   return {
     form,
-    apiKeys,
-    isLoading: loading.fetch,
-    isCreating: loading.create,
-    isRevoking: loading.revoke,
-    isRefreshing: loading.fetch, // Use same loading state for refresh
-    error: error.fetch || error.create || error.revoke,
+    apiKeys: query.data?.apiKeys ?? [],
+    isLoading: query.isLoading,
+    isCreating: createMutation.isPending,
+    isRevoking,
+    isRefreshing,
+    error:
+      apiErrorMessage(query.error) ??
+      apiErrorMessage(createMutation.error) ??
+      apiErrorMessage(revokeMutation.error),
     visibleKeys,
     showDeleteConfirmation,
     setShowDeleteConfirmation,
     onSubmit,
-    revokeApiKey: handleRevokeApiKey,
+    revokeApiKey,
     toggleKeyVisibility,
-    copyToClipboard,
     initiateRevoke,
-    fetchApiKeys,
-    resetErrors,
+    refreshApiKeys: () => query.refetch(),
   }
 }
