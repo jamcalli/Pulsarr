@@ -6,7 +6,7 @@ import {
 } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 import { invalidateSchedules } from '@/features/utilities/hooks/useSchedules'
-import { api } from '@/lib/api'
+import { apiFetch } from '@/lib/tanstackApi'
 
 /**
  * Combines approval configuration form management with scheduling controls in a single React hook.
@@ -54,20 +54,16 @@ export function useApprovalSystem() {
       try {
         const cronExpression = `0 */${data.scheduleInterval} * * *`
 
-        const response = await fetch(
-          api('/v1/scheduler/schedules/approval-maintenance'),
-          {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'cron',
-              config: { expression: cronExpression },
-              enabled: true,
-            }),
+        const { error } = await apiFetch.PUT('/v1/scheduler/schedules/{name}', {
+          params: { path: { name: 'approval-maintenance' } },
+          body: {
+            type: 'cron',
+            config: { expression: cronExpression },
+            enabled: true,
           },
-        )
+        })
 
-        if (!response.ok) {
+        if (error) {
           throw new Error('Failed to update approval maintenance schedule')
         }
 

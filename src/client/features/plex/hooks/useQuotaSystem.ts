@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { useApprovalConfiguration } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 import { invalidateSchedules } from '@/features/utilities/hooks/useSchedules'
-import { api } from '@/lib/api'
+import { apiFetch } from '@/lib/tanstackApi'
 
 // Define the form data type that includes both config and schedule fields
 const approvalConfigurationSchema = z.object({
@@ -83,20 +83,16 @@ export function useQuotaSystem() {
         const minute = data.scheduleTime.getMinutes()
         const cronExpression = `${minute} ${hour} * * ${data.dayOfWeek}`
 
-        const response = await fetch(
-          api('/v1/scheduler/schedules/quota-maintenance'),
-          {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'cron',
-              config: { expression: cronExpression },
-              enabled: true,
-            }),
+        const { error } = await apiFetch.PUT('/v1/scheduler/schedules/{name}', {
+          params: { path: { name: 'quota-maintenance' } },
+          body: {
+            type: 'cron',
+            config: { expression: cronExpression },
+            enabled: true,
           },
-        )
+        })
 
-        if (!response.ok) {
+        if (error) {
           throw new Error('Failed to update quota maintenance schedule')
         }
 

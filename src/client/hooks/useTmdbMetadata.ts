@@ -1,7 +1,7 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import type { TmdbMetadataSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api } from '@/lib/api'
+import { apiFetch } from '@/lib/tanstackApi'
 
 interface UseTmdbMetadataOptions {
   region?: string
@@ -90,26 +90,29 @@ export function useTmdbMetadata(
       }
 
       // Use the new intelligent TMDB endpoint that accepts GUID format
-      const queryParams = new URLSearchParams()
-      if (options.region) {
-        queryParams.set('region', options.region.length === 2 ? options.region.toUpperCase() : options.region)
-      }
+      const region = options.region
+        ? options.region.length === 2
+          ? options.region.toUpperCase()
+          : options.region
+        : undefined
       // Pass content type to help API choose correct endpoint for TMDB IDs
-      if (approvalRequest.contentType === 'movie' || approvalRequest.contentType === 'show') {
-        queryParams.set('type', approvalRequest.contentType)
-      }
-      
-      const queryString = queryParams.toString()
-      const metadataResponse = await fetch(
-        api(`/v1/tmdb/metadata/${encodeURIComponent(guidToUse)}${queryString ? `?${queryString}` : ''}`),
-        {
-          signal: abortController.signal,
-          cache: regionOnly ? 'no-store' : 'default',
-          headers: { Accept: 'application/json' }
-        }
-      )
+      const type =
+        approvalRequest.contentType === 'movie' ||
+        approvalRequest.contentType === 'show'
+          ? approvalRequest.contentType
+          : undefined
 
-      if (!metadataResponse.ok) {
+      const {
+        data: metadataData,
+        error: fetchError,
+        response: metadataResponse,
+      } = await apiFetch.GET('/v1/tmdb/metadata/{id}', {
+        params: { path: { id: guidToUse }, query: { region, type } },
+        signal: abortController.signal,
+        cache: regionOnly ? 'no-store' : 'default',
+      })
+
+      if (fetchError) {
         if (metadataResponse.status === 404) {
           throw new Error(
             'No TMDB metadata available for this content. The content may only have TVDB information or may not be in the database.',
@@ -117,8 +120,6 @@ export function useTmdbMetadata(
         }
         throw new Error('Failed to fetch TMDB metadata for this request')
       }
-
-      const metadataData = await metadataResponse.json()
       if (requestSeqRef.current !== seq) return
       
       if (regionOnly) {

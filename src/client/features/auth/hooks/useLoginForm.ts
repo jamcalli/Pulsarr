@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 /**
  * React hook that manages state, validation, and submission logic for a login form.
@@ -40,17 +40,11 @@ export function useLoginForm() {
       setStatus('loading')
       setBackendError(null)
       try {
-        const response = await fetch(api('/v1/users/login'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ login, password }),
-        })
-        const responseData = response.ok
-          ? await response.json()
-          : await response.json().catch(() => ({
-              message: response.statusText || 'Authentication failed',
-            }))
-        if (response.ok) {
+        const { data: responseData, error } = await apiFetch.POST(
+          '/v1/users/login',
+          { body: { login, password } },
+        )
+        if (!error) {
           setStatus('success')
           toast.success(`Welcome back, ${responseData.username}!`)
           setTimeout(() => {
@@ -59,7 +53,7 @@ export function useLoginForm() {
         } else {
           setStatus('idle')
           setBackendError(
-            responseData.message || 'Login failed. Please try again.',
+            apiErrorMessage(error) || 'Login failed. Please try again.',
           )
         }
       } catch (error) {

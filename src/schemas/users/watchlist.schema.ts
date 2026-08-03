@@ -21,7 +21,7 @@ const UserInfoSchema = z.object({
 
 // Request params schema
 export const GetUserWatchlistParamsSchema = z.object({
-  userId: z.string().transform(Number),
+  userId: z.coerce.number(),
 })
 
 // Success response schema

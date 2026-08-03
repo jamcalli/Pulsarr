@@ -25,7 +25,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { apiClient } from '@/lib/apiClient'
+import { apiFetch } from '@/lib/tanstackApi'
 
 interface FriendStatusBadgeProps {
   status: PlexFriendStatus
@@ -244,7 +244,10 @@ function SendFriendRequestCredenza({
   const handleSend = async () => {
     setIsSubmitting(true)
     try {
-      await apiClient.post('/v1/plex/send-friend-request', { uuid })
+      const { error } = await apiFetch.POST('/v1/plex/send-friend-request', {
+        body: { uuid },
+      })
+      if (error) throw error
       toast.success(`Friend request sent to ${username}`)
       onStatusChange()
       onOpenChange(false)
@@ -303,7 +306,10 @@ function RemoveFriendCredenza({
   const handleRemove = async () => {
     setIsSubmitting(true)
     try {
-      await apiClient.post('/v1/plex/cancel-friend-request', { uuid })
+      const { error } = await apiFetch.POST('/v1/plex/cancel-friend-request', {
+        body: { uuid },
+      })
+      if (error) throw error
       toast.success(`${username} removed from friends`)
       onStatusChange()
       onOpenChange(false)
@@ -371,7 +377,10 @@ function CancelFriendRequestCredenza({
   const handleCancel = async () => {
     setIsSubmitting(true)
     try {
-      await apiClient.post('/v1/plex/cancel-friend-request', { uuid })
+      const { error } = await apiFetch.POST('/v1/plex/cancel-friend-request', {
+        body: { uuid },
+      })
+      if (error) throw error
       toast.success(`Friend request to ${username} canceled`)
       onStatusChange()
       onOpenChange(false)
@@ -436,9 +445,15 @@ function ResendFriendRequestCredenza({
   const handleResend = async () => {
     setIsSubmitting(true)
     try {
-      await apiClient.post('/v1/plex/cancel-friend-request', { uuid })
+      const { error } = await apiFetch.POST('/v1/plex/cancel-friend-request', {
+        body: { uuid },
+      })
+      if (error) throw error
       try {
-        await apiClient.post('/v1/plex/send-friend-request', { uuid })
+        const { error } = await apiFetch.POST('/v1/plex/send-friend-request', {
+          body: { uuid },
+        })
+        if (error) throw error
         toast.success(`Friend request resent to ${username}`)
         onStatusChange()
         onOpenChange(false)

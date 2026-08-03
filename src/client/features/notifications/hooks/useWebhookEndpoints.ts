@@ -259,7 +259,7 @@ export function useWebhookEndpoints() {
           closeModal()
         }, 1000)
       } catch (error) {
-        // Error is already handled by apiClient and React Query
+        // Errors are surfaced by the mutation hooks
         console.error('Failed to save webhook endpoint:', error)
       }
     },

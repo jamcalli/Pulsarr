@@ -13,7 +13,7 @@ import {
   CredenzaHeader,
   CredenzaTitle,
 } from '@/components/ui/credenza'
-import { api } from '@/lib/api'
+import { apiFetch } from '@/lib/tanstackApi'
 
 interface AliasReadinessCredenzaProps {
   open: boolean
@@ -39,13 +39,11 @@ export function AliasReadinessCredenza({
 
     const fetchData = async () => {
       try {
-        const response = await fetch(api('/v1/users/alias-readiness'))
+        const { data: result, error: fetchError } = await apiFetch.GET(
+          '/v1/users/alias-readiness',
+        )
+        if (fetchError) throw fetchError
 
-        if (!response.ok) {
-          throw new Error('Failed to check alias readiness')
-        }
-
-        const result: AliasReadinessResponse = await response.json()
         setData(result)
       } catch {
         setError('Failed to check alias readiness')

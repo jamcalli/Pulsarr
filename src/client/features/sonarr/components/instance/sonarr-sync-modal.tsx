@@ -11,7 +11,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { useSyncProgress } from '@/features/sonarr/hooks/instance/useSyncProgress'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 interface SonarrSyncModalProps {
   open: boolean
@@ -137,23 +137,21 @@ export function SonarrSyncModal({
         try {
           const instanceToSync = syncedInstances[currentInstanceIndex]
 
-          const response = await fetch(
-            api(`/v1/sync/instance/${instanceToSync}?type=sonarr`),
+          const { error } = await apiFetch.POST(
+            '/v1/sync/instance/{instanceId}',
             {
-              method: 'POST',
+              params: {
+                path: { instanceId: instanceToSync },
+                query: { type: 'sonarr' },
+              },
             },
           )
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || 'Failed to sync instance')
-          }
+          if (error) throw error
         } catch (error) {
           console.error('Error syncing instance:', error)
           toast.error(
-            error instanceof Error
-              ? error.message
-              : 'An error occurred during synchronization',
+            apiErrorMessage(error) ??
+              'An error occurred during synchronization',
           )
 
           const nextIndex = currentInstanceIndex + 1

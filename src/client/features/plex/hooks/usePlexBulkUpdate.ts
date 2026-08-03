@@ -6,7 +6,7 @@ import type {
   PlexUserTableRow,
   PlexUserUpdates,
 } from '@/features/plex/store/types'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
 
 export type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -42,23 +42,11 @@ export function usePlexBulkUpdate() {
         updates,
       }
 
-      const [response] = await Promise.all([
-        fetch(api('/v1/users/bulk'), {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        }),
+      const [{ data: result, error: fetchError }] = await Promise.all([
+        apiFetch.PATCH('/v1/users/bulk', { body: requestBody }),
         minimumLoadingTime,
       ])
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to update users')
-      }
-
-      const result = await response.json()
+      if (fetchError) throw fetchError
 
       setUpdateStatus('success')
       toast.success(
@@ -79,9 +67,7 @@ export function usePlexBulkUpdate() {
     } catch (error) {
       console.error('Bulk update error:', error)
       setUpdateStatus('error')
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to update users',
-      )
+      toast.error(apiErrorMessage(error) ?? 'Failed to update users')
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
       setUpdateStatus('idle')
     }

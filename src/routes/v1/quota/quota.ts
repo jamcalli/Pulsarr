@@ -9,6 +9,7 @@ import {
   GetUsersWithQuotasResponseSchema,
   PendingHeldCountResponseSchema,
   QuotaErrorSchema,
+  QuotaUserIdParamsSchema,
   QuotaStatusGetResponseSchema,
   QuotaSuccessResponseSchema,
   QuotaUsageListResponseSchema,
@@ -92,9 +93,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Get user quotas',
         operationId: 'getUserQuotas',
         description: 'Get quota configurations for a specific user',
-        params: z.object({
-          userId: z.string(),
-        }),
+        params: QuotaUserIdParamsSchema,
         response: {
           200: UserQuotaGetResponseSchema,
           404: QuotaErrorSchema,
@@ -104,7 +103,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const userId = Number.parseInt(request.params.userId, 10)
+        const userId = request.params.userId
         const userQuotas = await fastify.db.getUserQuotas(userId)
 
         if (!userQuotas.movieQuota && !userQuotas.showQuota) {
@@ -135,9 +134,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'getPendingHeldCount',
         description:
           'Get the count of pending quota_exceeded approval requests for a user, grouped by content type',
-        params: z.object({
-          userId: z.string(),
-        }),
+        params: QuotaUserIdParamsSchema,
         response: {
           200: PendingHeldCountResponseSchema,
           500: QuotaErrorSchema,
@@ -147,7 +144,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const userId = Number.parseInt(request.params.userId, 10)
+        const userId = request.params.userId
         const counts =
           await fastify.db.getPendingQuotaExceededCountForUser(userId)
 
@@ -177,9 +174,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Update user quotas',
         operationId: 'updateUserQuotas',
         description: 'Update quota configurations for a specific user',
-        params: z.object({
-          userId: z.string(),
-        }),
+        params: QuotaUserIdParamsSchema,
         body: UpdateUserQuotaSchema,
         response: {
           200: UserQuotaUpdateResponseSchema,
@@ -190,7 +185,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const userId = Number.parseInt(request.params.userId, 10)
+        const userId = request.params.userId
 
         const existingQuotas = await fastify.db.getUserQuotas(userId)
         if (!existingQuotas.movieQuota && !existingQuotas.showQuota) {
@@ -246,9 +241,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'updateSeparateUserQuotas',
         description:
           'Update movie and show quota configurations separately for a user',
-        params: z.object({
-          userId: z.string(),
-        }),
+        params: QuotaUserIdParamsSchema,
         body: UpdateSeparateQuotasSchema,
         response: {
           200: UserQuotaUpdateResponseSchema,
@@ -259,7 +252,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const userId = Number.parseInt(request.params.userId, 10)
+        const userId = request.params.userId
         const { movieQuota, showQuota, autoApproveHeld } = request.body
 
         const existingQuotas = await fastify.db.getUserQuotas(userId)
@@ -372,9 +365,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Delete user quota',
         operationId: 'deleteUserQuota',
         description: 'Delete quota configuration for a specific user',
-        params: z.object({
-          userId: z.string(),
-        }),
+        params: QuotaUserIdParamsSchema,
         querystring: z.object({
           autoApproveHeld: z
             .string()
@@ -392,7 +383,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const userId = Number.parseInt(request.params.userId, 10)
+        const userId = request.params.userId
         const { autoApproveHeld } = request.query
         const deleted = await fastify.db.deleteAllUserQuotas(userId)
 
@@ -464,9 +455,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Get user quota status',
         operationId: 'getUserQuotaStatus',
         description: 'Get current quota status for a user',
-        params: z.object({
-          userId: z.string(),
-        }),
+        params: QuotaUserIdParamsSchema,
         querystring: z.object({
           contentType: z.enum(['movie', 'show']).optional(),
         }),
@@ -479,7 +468,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const userId = Number.parseInt(request.params.userId, 10)
+        const userId = request.params.userId
         const { contentType } = request.query
 
         const quotaStatus = contentType
@@ -558,9 +547,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Record quota usage',
         operationId: 'recordQuotaUsage',
         description: 'Record quota usage for a user',
-        params: z.object({
-          userId: z.string(),
-        }),
+        params: QuotaUserIdParamsSchema,
         body: z.object({
           contentType: z.enum(['movie', 'show']),
           requestDate: z.iso.datetime().optional(),
@@ -574,7 +561,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const userId = Number.parseInt(request.params.userId, 10)
+        const userId = request.params.userId
         const { contentType, requestDate } = request.body
 
         await fastify.db.recordQuotaUsage(

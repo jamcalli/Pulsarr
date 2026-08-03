@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api } from '@/lib/api'
+import { apiFetch } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
 
 export function usePlexSetup() {
@@ -17,14 +17,8 @@ export function usePlexSetup() {
 
     // Sync watchlists
     await Promise.all([
-      fetch(api('/v1/plex/self-watchlist-token'), {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      }),
-      fetch(api('/v1/plex/others-watchlist-token'), {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      }),
+      apiFetch.GET('/v1/plex/self-watchlist-token'),
+      apiFetch.GET('/v1/plex/others-watchlist-token'),
     ])
 
     // Generate RSS feeds

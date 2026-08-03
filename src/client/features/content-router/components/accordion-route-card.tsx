@@ -68,7 +68,7 @@ import {
   type ConditionalRouteFormValues,
 } from '@/features/content-router/schemas/content-router.schema'
 import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 import { cn } from '@/lib/utils'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -430,21 +430,12 @@ const AccordionRouteCard = ({
     setError(null)
 
     try {
-      const response = await fetch(api('/v1/content-router/plugins/metadata'))
+      const { data, error: fetchError } = await apiFetch.GET(
+        '/v1/content-router/plugins/metadata',
+      )
+      if (fetchError) throw fetchError
 
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch evaluator metadata: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const data = await response.json()
-
-      if (
-        !data.evaluators ||
-        !Array.isArray(data.evaluators) ||
-        data.evaluators.length === 0
-      ) {
+      if (data.evaluators.length === 0) {
         throw new Error(
           'No evaluator metadata available. The server response was empty or invalid.',
         )
@@ -455,9 +446,8 @@ const AccordionRouteCard = ({
     } catch (err) {
       console.error('Error fetching evaluator metadata:', err)
       setError(
-        err instanceof Error
-          ? err.message
-          : 'Failed to load condition options. Please try again.',
+        apiErrorMessage(err) ??
+          'Failed to load condition options. Please try again.',
       )
       initializationRef.current = false // Allow retries on error
     } finally {
