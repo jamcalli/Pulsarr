@@ -242,6 +242,13 @@
       "pinDigests": true
     },
     {
+      "description": "Trivy is a version input on setup-trivy/trivy-action, not a uses ref - digest pinning cannot be written there and errors the branch",
+      "matchDepNames": [
+        "aquasecurity/trivy"
+      ],
+      "pinDigests": false
+    },
+    {
       "description": "Auto-merge patch/minor GitHub Actions updates after stability period",
       "matchManagers": [
         "github-actions"
