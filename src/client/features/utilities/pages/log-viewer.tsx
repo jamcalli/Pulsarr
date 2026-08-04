@@ -34,7 +34,7 @@ import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { LogViewerPageSkeleton } from '@/features/utilities/components/log-viewer/log-viewer-page-skeleton'
 import { useLogStream } from '@/features/utilities/hooks/useLogStream'
 import { updateConfig, useConfig } from '@/hooks/useConfig'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 const LOG_LEVELS: { value: ConfigLogLevel; label: string }[] = [
   { value: 'trace', label: 'Trace' },
@@ -209,7 +209,7 @@ export function LogViewerPage() {
   })
 
   // Initialize config with minimum duration for consistent UX
-  const isInitializing = useInitializeWithMinDuration(initialize)
+  const isInitializing = useShowLoading(!isInitialized)
 
   // Auto-scroll ref - MUST be before conditional return
   const logContainerRef = useRef<HTMLPreElement>(null)
@@ -277,8 +277,12 @@ export function LogViewerPage() {
     return <PageError message={configError} onRetry={() => initialize(true)} />
   }
 
-  if (isInitializing || !isInitialized) {
+  if (isInitializing) {
     return <LogViewerPageSkeleton />
+  }
+
+  if (!isInitialized) {
+    return null
   }
 
   const handleTogglePause = async (shouldPause: boolean) => {

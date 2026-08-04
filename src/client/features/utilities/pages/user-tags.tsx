@@ -42,7 +42,7 @@ import {
 } from '@/features/utilities/hooks/useUserTags'
 import { UserTagsPageSkeleton } from '@/features/utilities/pages/user-tags-page-skeleton'
 import { useConfig } from '@/hooks/useConfig'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useShowLoading } from '@/lib/useMinLoading'
 import { useProgressStore } from '@/stores/progressStore'
 
 /**
@@ -90,7 +90,7 @@ export function UserTagsPage() {
   const radarrRemovalProgress = useTaggingProgress('radarr-tag-removal')
 
   // Initialize config with minimum duration for consistent UX
-  const isInitializing = useInitializeWithMinDuration(configInitialize)
+  const isInitializing = useShowLoading(!config)
 
   // Initialize progress connection
   useEffect(() => {
@@ -143,8 +143,12 @@ export function UserTagsPage() {
     )
   }
 
-  if (isInitializing || isLoading || !config) {
+  if (isInitializing || isLoading) {
     return <UserTagsPageSkeleton />
+  }
+
+  if (!config) {
+    return null
   }
 
   return (

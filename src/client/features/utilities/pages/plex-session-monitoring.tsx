@@ -27,11 +27,11 @@ import {
   useRunSessionMonitorMutation,
 } from '@/features/utilities/hooks/useSessionMonitoringQueries'
 import { useConfig } from '@/hooks/useConfig'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 export default function PlexSessionMonitoringPage() {
   const { initialize, isInitialized, error: configError } = useConfig()
-  const isInitializing = useInitializeWithMinDuration(initialize)
+  const isInitializing = useShowLoading(!isInitialized)
 
   const {
     form,
@@ -120,6 +120,10 @@ export default function PlexSessionMonitoringPage() {
     return <PageError message={configError} onRetry={() => initialize(true)} />
   }
 
+  if (!isInitialized && !isInitializing) {
+    return null
+  }
+
   return (
     <div>
       <UtilitySectionHeader
@@ -130,7 +134,7 @@ export default function PlexSessionMonitoringPage() {
         <PlexSSEStatusBadge />
       </UtilitySectionHeader>
 
-      {!isInitialized || isInitializing ? (
+      {isInitializing ? (
         <PlexSessionMonitoringPageSkeleton />
       ) : (
         <div className="space-y-6">

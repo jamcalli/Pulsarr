@@ -23,7 +23,6 @@ import {
   MovieStatusOptions,
   SeriesStatusOptions,
 } from '@/features/content-router/types/route-types'
-import { useConfig } from '@/hooks/useConfig'
 import { useUserOptions } from '@/hooks/useUserOptions'
 
 interface FieldState {
@@ -111,23 +110,6 @@ function ConditionInput({
 
   // Get user options from shared hook
   const { options: userOptions } = useUserOptions()
-
-  const { isInitialized } = useConfig()
-  const { initialize } = useConfig()
-
-  useEffect(() => {
-    const initializeStore = async () => {
-      try {
-        if (!isInitialized) {
-          await initialize()
-        }
-      } catch (error) {
-        console.error('Error initializing condition input:', error)
-      }
-    }
-
-    initializeStore()
-  }, [initialize, isInitialized])
 
   // Store handler functions to keep them stable between renders
   const handlers = useRef({

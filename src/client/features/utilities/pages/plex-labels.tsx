@@ -49,7 +49,7 @@ import {
 } from '@/features/utilities/hooks/usePlexLabels'
 import { PlexLabelsPageSkeleton } from '@/features/utilities/pages/plex-labels-page-skeleton'
 import { useConfig } from '@/hooks/useConfig'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useShowLoading } from '@/lib/useMinLoading'
 import { formatScheduleDisplay } from '@/lib/utils'
 import { useProgressStore } from '@/stores/progressStore'
 
@@ -66,7 +66,7 @@ export function PlexLabelsPage() {
     initialize: configInitialize,
     error: configError,
   } = useConfig()
-  const isInitializing = useInitializeWithMinDuration(configInitialize)
+  const isInitializing = useShowLoading(!config)
 
   const {
     form,
@@ -173,8 +173,12 @@ export function PlexLabelsPage() {
     )
   }
 
-  if (isInitializing || isLoading || !config?.plexLabelSync) {
+  if (isInitializing || isLoading) {
     return <PlexLabelsPageSkeleton />
+  }
+
+  if (!config?.plexLabelSync) {
+    return null
   }
 
   return (

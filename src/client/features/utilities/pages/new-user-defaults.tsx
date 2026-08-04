@@ -34,7 +34,7 @@ import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { validateWatchlistCap } from '@/features/plex/quota/form-schema'
 import { NewUserDefaultsPageSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-page-skeleton'
 import { updateConfig, useConfig } from '@/hooks/useConfig'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 const newUserDefaultsSchema = z
   .object({
@@ -98,7 +98,7 @@ export default function NewUserDefaultsPage() {
   const { config, isInitialized, initialize, error: configError } = useConfig()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const submittingStartTime = useRef<number | null>(null)
-  const isInitializing = useInitializeWithMinDuration(initialize)
+  const isInitializing = useShowLoading(!isInitialized)
 
   const form = useForm<NewUserDefaultsFormData>({
     resolver: zodResolver(newUserDefaultsSchema),
@@ -171,8 +171,12 @@ export default function NewUserDefaultsPage() {
     return <PageError message={configError} onRetry={() => initialize(true)} />
   }
 
-  if (!isInitialized || isInitializing) {
+  if (isInitializing) {
     return <NewUserDefaultsPageSkeleton />
+  }
+
+  if (!isInitialized) {
+    return null
   }
 
   return (

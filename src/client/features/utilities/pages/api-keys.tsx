@@ -9,7 +9,7 @@ import { ApiKeysForm } from '@/features/utilities/components/api-keys/api-keys-f
 import { ApiKeysSkeleton } from '@/features/utilities/components/api-keys/api-keys-skeleton'
 import { useApiKeys } from '@/features/utilities/hooks/useApiKeys'
 import { useConfig } from '@/hooks/useConfig'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 const getUserFriendlyErrorMessage = (error: string) => {
   if (error.includes('network') || error.includes('fetch')) {
@@ -50,7 +50,7 @@ export function ApiKeysPage() {
   } = useApiKeys()
 
   // Initialize config with minimum duration for consistent UX
-  const isInitializing = useInitializeWithMinDuration(initialize)
+  const isInitializing = useShowLoading(!isInitialized)
 
   const totalKeysCount = apiKeys.length
 
@@ -58,8 +58,12 @@ export function ApiKeysPage() {
     return <PageError message={configError} onRetry={() => initialize(true)} />
   }
 
-  if (isInitializing || !isInitialized || isLoading) {
+  if (isInitializing || isLoading) {
     return <ApiKeysSkeleton />
+  }
+
+  if (!isInitialized) {
+    return null
   }
 
   const selectedApiKey = apiKeys.find(

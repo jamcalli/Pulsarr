@@ -26,8 +26,8 @@ import type {
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { useApprovalEvents } from '@/hooks/useApprovalEvents'
 import { useConfig } from '@/hooks/useConfig'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { apiErrorMessage } from '@/lib/tanstackApi'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 /**
  * Displays the Plex Users administration page, allowing administrators to view, edit, and manage user watchlists, individual user settings, quotas, and perform bulk operations.
@@ -38,7 +38,6 @@ import { apiErrorMessage } from '@/lib/tanstackApi'
  */
 export default function PlexUsersPage() {
   const { initialize, isInitialized, error: configError } = useConfig()
-  const isInitializing = useInitializeWithMinDuration(initialize)
 
   const {
     selectedUser,
@@ -115,7 +114,7 @@ export default function PlexUsersPage() {
   } = useUsersWithQuota()
   const usersQuery = useUsers()
 
-  const isLoading = isInitializing || !isInitialized || usersLoading
+  const isLoading = useShowLoading(!isInitialized || usersLoading)
 
   // Quota handlers
   const handleEditQuota = (user: UserWithQuotaInfo) => {
@@ -236,6 +235,10 @@ export default function PlexUsersPage() {
         onRetry={() => usersQuery.refetch()}
       />
     )
+  }
+
+  if (!isInitialized && !isLoading) {
+    return null
   }
 
   return (

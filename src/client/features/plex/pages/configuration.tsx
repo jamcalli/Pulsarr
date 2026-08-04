@@ -63,8 +63,8 @@ import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { usePlexServerDiscovery } from '@/features/utilities/hooks/usePlexServerDiscovery'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { updateConfig, useConfig } from '@/hooks/useConfig'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useWatchlistProgress } from '@/hooks/useProgress'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 /**
  * Displays the Plex Configuration page, allowing users to manage Plex integration settings.
@@ -73,7 +73,7 @@ import { useWatchlistProgress } from '@/hooks/useProgress'
  */
 export default function PlexConfigurationPage() {
   const { config, initialize, isInitialized, error: configError } = useConfig()
-  const isInitializing = useInitializeWithMinDuration(initialize)
+  const isInitializing = useShowLoading(!isInitialized)
   const { showSetupModal, setShowSetupModal } = usePlexSetup()
   const [showReauthDialog, setShowReauthDialog] = useState(false)
   const [showRemoveTokenModal, setShowRemoveTokenModal] = useState(false)
@@ -113,7 +113,7 @@ export default function PlexConfigurationPage() {
   // Media query for mobile/desktop
   const isMobile = useMediaQuery('(max-width: 768px)')
 
-  const isLoading = isInitializing || !isInitialized
+  const isLoading = isInitializing
 
   // RSS feed state
   const { rssStatus, generateRssFeeds } = usePlexRssFeeds()
@@ -152,6 +152,10 @@ export default function PlexConfigurationPage() {
 
   if (configError && !isInitialized) {
     return <PageError message={configError} onRetry={() => initialize(true)} />
+  }
+
+  if (!isInitialized && !isInitializing) {
+    return null
   }
 
   return (

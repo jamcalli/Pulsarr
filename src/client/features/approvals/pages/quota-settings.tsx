@@ -8,7 +8,6 @@ import {
   Save,
   X,
 } from 'lucide-react'
-import { useEffect } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import {
@@ -42,6 +41,7 @@ import type { ApprovalConfigurationFormData } from '@/features/plex/hooks/useApp
 import { useQuotaSystem } from '@/features/plex/hooks/useQuotaSystem'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useConfig } from '@/hooks/useConfig'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 /**
  * Helper function to get day name from day index
@@ -96,6 +96,7 @@ const formatScheduleDisplay = (
 export default function QuotaSettingsPage() {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const { isInitialized, initialize, error: configError } = useConfig()
+  const isInitializing = useShowLoading(!isInitialized)
 
   const {
     // Schedule management
@@ -119,17 +120,16 @@ export default function QuotaSettingsPage() {
     handleCancel,
   } = useQuotaSystem()
 
-  // Initialize stores on mount
-  useEffect(() => {
-    initialize()
-  }, [initialize])
-
   if (configError && !isInitialized) {
     return <PageError message={configError} onRetry={() => initialize(true)} />
   }
 
-  if (!isInitialized) {
+  if (isInitializing) {
     return <QuotaSettingsPageSkeleton />
+  }
+
+  if (!isInitialized) {
+    return null
   }
 
   if (schedulerError) {

@@ -1,10 +1,7 @@
-import { useEffect, useState } from 'react'
 import type { ControllerRenderProps } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { MultiSelect } from '@/components/ui/multi-select'
-import { useConfig } from '@/hooks/useConfig'
 import { useUserOptions } from '@/hooks/useUserOptions'
-import { MIN_LOADING_DELAY } from '@/lib/constants'
 
 interface UserMultiSelectProps {
   field: ControllerRenderProps<any, any>
@@ -20,41 +17,12 @@ interface UserMultiSelectProps {
  * @param disabled - If true, disables the multi-select input.
  */
 export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
-  const { isInitialized } = useConfig()
-  const { initialize } = useConfig()
-  const [isLoading, setIsLoading] = useState(false)
   const {
     options,
     isLoading: usersLoading,
     isError: usersError,
     refetch,
   } = useUserOptions()
-
-  useEffect(() => {
-    const initializeStore = async () => {
-      try {
-        setIsLoading(true)
-
-        // Create minimum loading time promise for better UX
-        const minimumLoadingTime = new Promise((resolve) =>
-          setTimeout(resolve, MIN_LOADING_DELAY),
-        )
-
-        // Run initialization in parallel with minimum loading time; the
-        // user options query fetches on its own
-        const operations = []
-        if (!isInitialized) {
-          operations.push(initialize())
-        }
-
-        await Promise.all([...operations, minimumLoadingTime])
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    initializeStore()
-  }, [initialize, isInitialized])
 
   if (usersError) {
     return (
@@ -78,11 +46,11 @@ export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
       }}
       defaultValue={Array.isArray(field.value) ? field.value : field.value ? [field.value] : []}
       placeholder={
-        isLoading || usersLoading ? 'Loading users...' : 'Select user(s)'
+        usersLoading ? 'Loading users...' : 'Select user(s)'
       }
       modalPopover={true}
       maxCount={2}
-      disabled={disabled || isLoading || usersLoading}
+      disabled={disabled || usersLoading}
     />
   )
 }

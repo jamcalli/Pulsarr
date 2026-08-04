@@ -46,7 +46,7 @@ import { DeleteSyncPageSkeleton } from '@/features/utilities/components/delete-s
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useConfig } from '@/hooks/useConfig'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useShowLoading } from '@/lib/useMinLoading'
 import { formatScheduleDisplay } from '@/lib/utils'
 
 /**
@@ -96,7 +96,7 @@ export default function DeleteSyncPage() {
   const navigate = useNavigate()
 
   // Initialize config with minimum duration for consistent UX
-  const isInitializing = useInitializeWithMinDuration(configInitialize)
+  const isInitializing = useShowLoading(!isInitialized)
 
   // Determine status based on job state
   const getStatus = () => {
@@ -125,7 +125,15 @@ export default function DeleteSyncPage() {
     )
   }
 
-  if (isInitializing || !isInitialized || !deleteSyncJob) {
+  if (isInitializing) {
+    return <DeleteSyncPageSkeleton />
+  }
+
+  if (!isInitialized) {
+    return null
+  }
+
+  if (!deleteSyncJob) {
     return <DeleteSyncPageSkeleton />
   }
 

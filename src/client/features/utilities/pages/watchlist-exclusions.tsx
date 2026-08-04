@@ -26,9 +26,9 @@ import {
 } from '@/features/utilities/hooks/useWatchlistExclusionMutations'
 import { useWatchlistExclusions } from '@/features/utilities/hooks/useWatchlistExclusions'
 import { useConfig } from '@/hooks/useConfig'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useUserOptions } from '@/hooks/useUserOptions'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 interface WatchlistItemWithUser {
   title: string
@@ -46,7 +46,7 @@ export function WatchlistExclusionsPage() {
   const users = useUserList()
   const usersQuery = useUsers()
   const { options: realUserOptions } = useUserOptions()
-  const isInitializing = useInitializeWithMinDuration(initialize)
+  const isInitializing = useShowLoading(!isInitialized)
 
   const {
     data: exclusionsData,
@@ -400,7 +400,6 @@ export function WatchlistExclusionsPage() {
 
   const isInitialLoad =
     isInitializing ||
-    !isInitialized ||
     !hasLoadedWatchlists ||
     exclusionsLoading ||
     exclusionsData === undefined
@@ -416,6 +415,10 @@ export function WatchlistExclusionsPage() {
         onRetry={() => usersQuery.refetch()}
       />
     )
+  }
+
+  if (!isInitialized && !isInitializing) {
+    return null
   }
 
   if (isInitialLoad) {

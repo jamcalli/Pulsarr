@@ -8,7 +8,6 @@ import {
   Save,
   X,
 } from 'lucide-react'
-import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -39,6 +38,7 @@ import { ApprovalSettingsPageSkeleton } from '@/features/approvals/pages/approva
 import { useApprovalSystem } from '@/features/plex/hooks/useApprovalSystem'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useConfig } from '@/hooks/useConfig'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 /**
  * Displays a configuration page for managing approval system settings, including scheduling, expiration policies, notification preferences, and cleanup options.
@@ -48,6 +48,7 @@ import { useConfig } from '@/hooks/useConfig'
 export default function ApprovalSettingsPage() {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const { isInitialized, initialize, error: configError } = useConfig()
+  const isInitializing = useShowLoading(!isInitialized)
 
   const {
     // Schedule management
@@ -70,17 +71,16 @@ export default function ApprovalSettingsPage() {
     handleCancel,
   } = useApprovalSystem()
 
-  // Initialize stores on mount
-  useEffect(() => {
-    initialize()
-  }, [initialize])
-
   if (configError && !isInitialized) {
     return <PageError message={configError} onRetry={() => initialize(true)} />
   }
 
-  if (!isInitialized) {
+  if (isInitializing) {
     return <ApprovalSettingsPageSkeleton />
+  }
+
+  if (!isInitialized) {
+    return null
   }
 
   if (schedulerError) {
