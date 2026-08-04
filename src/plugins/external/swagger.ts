@@ -56,6 +56,11 @@ function buildWebhooksSpec(): Record<string, unknown> {
   return webhooks
 }
 
+const sortKeys = (obj: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(obj).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+  )
+
 const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
   const urlObject = new URL(fastify.config.baseUrl)
 
@@ -252,7 +257,20 @@ const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
 
       // Inject webhooks section into the OpenAPI spec
       // We're using OpenAPI mode so result will have OpenAPI structure
-      ;(result as Record<string, unknown>).webhooks = buildWebhooksSpec()
+      const spec = result as Record<string, unknown>
+      spec.webhooks = buildWebhooksSpec()
+
+      // Route autoload follows filesystem enumeration order, which varies
+      // across machines - sort so spec generation is deterministic
+      if (spec.paths) {
+        spec.paths = sortKeys(spec.paths as Record<string, unknown>)
+      }
+      const components = spec.components as Record<string, unknown> | undefined
+      if (components?.schemas) {
+        components.schemas = sortKeys(
+          components.schemas as Record<string, unknown>,
+        )
+      }
 
       return result
     },

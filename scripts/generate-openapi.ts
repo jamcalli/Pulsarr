@@ -33,24 +33,7 @@ if (!app.swagger) {
   throw new Error('@fastify/swagger plugin is not loaded')
 }
 
-const document = app.swagger() as Record<string, unknown>
-
-// Route autoload follows filesystem enumeration order, which varies across
-// machines - sort the spec collections so regeneration is deterministic
-const sortKeys = (obj: Record<string, unknown>): Record<string, unknown> =>
-  Object.fromEntries(
-    Object.entries(obj).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
-  )
-
-if (document.paths) {
-  document.paths = sortKeys(document.paths as Record<string, unknown>)
-}
-const components = document.components as Record<string, unknown> | undefined
-if (components?.schemas) {
-  components.schemas = sortKeys(components.schemas as Record<string, unknown>)
-}
-
-const schema = JSON.stringify(document, undefined, 2)
+const schema = JSON.stringify(app.swagger(), undefined, 2)
 const outputPath = resolve(process.cwd(), 'docs/static/openapi.json')
 
 await writeFile(outputPath, schema, { flag: 'w+' })
