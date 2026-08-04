@@ -292,15 +292,26 @@ export function useUsersWithQuota() {
     userStatusQuery.data,
   ])
 
+  const queries = [
+    usersQuery,
+    quotaConfigsQuery,
+    movieStatusQuery,
+    showStatusQuery,
+    userStatusQuery,
+  ]
+
   return {
     usersWithQuota,
     hasUserData: (users?.length ?? 0) > 0,
-    // pending quota data is indistinguishable from a user having no quotas
-    isLoading:
-      usersQuery.isLoading ||
-      quotaConfigsQuery.isLoading ||
-      movieStatusQuery.isLoading ||
-      showStatusQuery.isLoading,
+    // pending or failed source data is indistinguishable from a user having
+    // no quotas or friend status, so the aggregate must cover every query
+    isLoading: queries.some((q) => q.isLoading),
+    isError: queries.some((q) => q.isError && q.data === undefined),
+    refetch: () => {
+      for (const q of queries) {
+        if (q.isError) q.refetch()
+      }
+    },
   }
 }
 

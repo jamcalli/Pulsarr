@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PageError } from '@/components/ui/page-error'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
@@ -33,7 +34,7 @@ import { useShowLoading } from '@/lib/useMinLoading'
  * Users can enter Plex connection details, discover and select available Plex servers, view the status of notifications for each Radarr and Sonarr instance, and remove all Plex notifications with confirmation. The page provides real-time feedback on configuration status and supports safe, validated updates.
  */
 export default function PlexNotificationsPage() {
-  const { isInitialized } = useConfig()
+  const { isInitialized, initialize, error: configError } = useConfig()
   const isInitializing = useShowLoading(!isInitialized)
 
   const {
@@ -57,8 +58,16 @@ export default function PlexNotificationsPage() {
     return 'disabled'
   }
 
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
+  }
+
   if (isInitializing || isLoading) {
     return <PlexNotificationsPageSkeleton />
+  }
+
+  if (!isInitialized) {
+    return null
   }
 
   return (

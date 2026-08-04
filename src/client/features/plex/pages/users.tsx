@@ -15,7 +15,6 @@ import {
   invalidateQuotaData,
   invalidateUserData,
   type UserWithQuotaInfo,
-  useUsers,
   useUsersWithQuota,
 } from '@/features/plex/hooks/usePlexUsers'
 import { useQuotaManagement } from '@/features/plex/hooks/useQuotaManagement'
@@ -26,7 +25,6 @@ import type {
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { useApprovalEvents } from '@/hooks/useApprovalEvents'
 import { useConfig } from '@/hooks/useConfig'
-import { apiErrorMessage } from '@/lib/tanstackApi'
 import { useShowLoading } from '@/lib/useMinLoading'
 
 /**
@@ -111,8 +109,9 @@ export default function PlexUsersPage() {
     usersWithQuota,
     hasUserData,
     isLoading: usersLoading,
+    isError: usersError,
+    refetch: refetchUsers,
   } = useUsersWithQuota()
-  const usersQuery = useUsers()
 
   const isLoading = useShowLoading(!isInitialized || usersLoading)
 
@@ -228,11 +227,11 @@ export default function PlexUsersPage() {
     return <PageError message={configError} onRetry={() => initialize(true)} />
   }
 
-  if (usersQuery.isError && usersWithQuota === null) {
+  if (usersError) {
     return (
       <PageError
-        message={apiErrorMessage(usersQuery.error) ?? 'Failed to load users'}
-        onRetry={() => usersQuery.refetch()}
+        message="Failed to load user data"
+        onRetry={() => refetchUsers()}
       />
     )
   }
