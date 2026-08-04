@@ -295,7 +295,12 @@ export function useUsersWithQuota() {
   return {
     usersWithQuota,
     hasUserData: (users?.length ?? 0) > 0,
-    isLoading: usersQuery.isLoading,
+    // pending quota data is indistinguishable from a user having no quotas
+    isLoading:
+      usersQuery.isLoading ||
+      quotaConfigsQuery.isLoading ||
+      movieStatusQuery.isLoading ||
+      showStatusQuery.isLoading,
   }
 }
 
