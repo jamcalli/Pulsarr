@@ -20,7 +20,7 @@ export function DashboardPage() {
   // Centralized SSE subscription for all dashboard data
   useDashboardSSE()
 
-  const { refreshStats, isLoading } = useDashboardStats()
+  const { refreshStats, isLoading, isRefreshing } = useDashboardStats()
   const { configInitialize, isConfigInitialized, configError } = useConfigStore(
     useShallow((state) => ({
       configInitialize: state.initialize,
@@ -72,7 +72,7 @@ export function DashboardPage() {
   }, [configError])
 
   const handleRefresh = useCallback(async () => {
-    if (!isLoading) {
+    if (!isLoading && !isRefreshing) {
       try {
         await refreshStats()
       } catch (err) {
@@ -85,7 +85,7 @@ export function DashboardPage() {
         })
       }
     }
-  }, [refreshStats, isLoading])
+  }, [refreshStats, isLoading, isRefreshing])
 
   return (
     <div className="space-y-8">

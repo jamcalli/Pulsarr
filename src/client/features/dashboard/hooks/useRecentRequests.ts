@@ -100,7 +100,8 @@ export function useRecentRequests(
 
   return {
     items: data?.items ?? [],
-    isLoading,
+    // Empty state is only knowable once data exists
+    isLoading: isLoading || data === undefined,
     error: apiErrorMessage(error),
     status,
     setStatus: useCallback((value: string) => {
