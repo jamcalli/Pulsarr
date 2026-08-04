@@ -1,9 +1,12 @@
 import { useEffect, useRef } from 'react'
+import { PageError } from '@/components/ui/page-error'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useArrGenres } from '@/features/arr/useArrGenres'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
+import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 import { useConfigStore } from '@/stores/configStore'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 /**
  * Displays the Sonarr Content Router page for managing content routing rules.
@@ -11,21 +14,33 @@ import { useConfigStore } from '@/stores/configStore'
  * @returns The Sonarr Content Router page component.
  */
 export default function SonarrContentRouterPage() {
-  const { data, isLoading } = useSonarrInstancesQuery()
-  const instances = data ?? []
+  const { data, isLoading, isError, error, refetch } = useSonarrInstancesQuery()
+  // Placeholder instances are unconfigured - routing to them cannot work
+  const instances = (data ?? []).filter(
+    (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
+  )
   const { genres, handleGenreDropdownOpen } = useArrGenres()
 
-  // Add config store initialization for session monitoring support
+  // Initialize config for session monitoring support
   const configInitialize = useConfigStore((state) => state.initialize)
 
   const hasInitializedRef = useRef(false)
 
   useEffect(() => {
     if (!hasInitializedRef.current) {
-      configInitialize() // Initialize config store for session monitoring
+      configInitialize() // Initialize config for session monitoring
       hasInitializedRef.current = true
     }
   }, [configInitialize])
+
+  if (isError) {
+    return (
+      <PageError
+        message={apiErrorMessage(error) ?? 'Failed to load Sonarr instances'}
+        onRetry={() => refetch()}
+      />
+    )
+  }
 
   if (data === undefined || isLoading) {
     return null

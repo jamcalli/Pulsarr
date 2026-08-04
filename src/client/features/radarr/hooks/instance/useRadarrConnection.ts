@@ -167,7 +167,7 @@ export function useRadarrConnection(
               instances[0].apiKey === API_KEY_PLACEHOLDER
 
             if (isOnlyPlaceholderInstance) {
-              await updateRadarrInstance(instances, instances[0].id, {
+              await updateRadarrInstance(instances[0].id, {
                 name: values.name.trim(),
                 baseUrl: values.baseUrl,
                 apiKey: values.apiKey,

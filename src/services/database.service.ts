@@ -658,12 +658,16 @@ export class DatabaseService {
       }
     }
 
-    // If setting as default, make all other instances non-default
+    // If setting as default, make all other instances non-default. Synced
+    // instances only apply to the default, so clear them on demotion
     if (newDefaultStatus === true) {
-      await trx(tableName).whereNot('id', instanceId).update({
-        is_default: false,
-        updated_at: this.timestamp,
-      })
+      await trx(tableName)
+        .whereNot('id', instanceId)
+        .update({
+          is_default: false,
+          synced_instances: JSON.stringify([]),
+          updated_at: this.timestamp,
+        })
     }
 
     // Final safety check - at least one instance must be default at the end

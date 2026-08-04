@@ -2,11 +2,13 @@ import { Network } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NetworkConfigCredenza } from '@/components/network-config-credenza'
 import { Button } from '@/components/ui/button'
+import { PageError } from '@/components/ui/page-error'
 import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-card-skeleton'
 import { InstanceCard } from '@/features/sonarr/components/instance/sonarr-instance-card'
 import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 import { useConfigStore } from '@/stores/configStore'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 /**
  * Renders the page for managing Sonarr instances, enabling users to add, view, and configure their Sonarr connections.
@@ -14,10 +16,10 @@ import { useConfigStore } from '@/stores/configStore'
  * @returns The React component for the Sonarr Instances management page.
  */
 export default function SonarrInstancesPage() {
-  const { data, isLoading } = useSonarrInstancesQuery()
+  const { data, isLoading, isError, error, refetch } = useSonarrInstancesQuery()
   const instances = data ?? []
 
-  // Add config store initialization for session monitoring support
+  // Initialize config for session monitoring support
   const configInitialize = useConfigStore((state) => state.initialize)
 
   const hasInitializedRef = useRef(false)
@@ -26,7 +28,7 @@ export default function SonarrInstancesPage() {
 
   useEffect(() => {
     if (!hasInitializedRef.current) {
-      configInitialize() // Initialize config store for session monitoring
+      configInitialize() // Initialize config for session monitoring
       hasInitializedRef.current = true
     }
   }, [configInitialize])
@@ -41,6 +43,15 @@ export default function SonarrInstancesPage() {
   const hasRealInstances = instances.some(
     (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
   )
+
+  if (isError) {
+    return (
+      <PageError
+        message={apiErrorMessage(error) ?? 'Failed to load Sonarr instances'}
+        onRetry={() => refetch()}
+      />
+    )
+  }
 
   if (data === undefined) {
     return <SonarrPageSkeleton />

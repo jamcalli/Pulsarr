@@ -167,7 +167,7 @@ export function useSonarrConnection(
               instances[0].apiKey === API_KEY_PLACEHOLDER
 
             if (isOnlyPlaceholderInstance) {
-              await updateSonarrInstance(instances, instances[0].id, {
+              await updateSonarrInstance(instances[0].id, {
                 name: values.name.trim(),
                 baseUrl: values.baseUrl,
                 apiKey: values.apiKey,

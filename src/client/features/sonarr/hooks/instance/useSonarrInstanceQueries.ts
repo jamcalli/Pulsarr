@@ -1,13 +1,9 @@
 import type {
   SonarrInstanceCreateResponse,
-  SonarrInstanceResponse,
   SonarrInstanceUpdate,
 } from '@root/schemas/sonarr/sonarr-instance.schema'
 import { useMutation } from '@tanstack/react-query'
-import {
-  clearOtherDefaults,
-  invalidateArrInstances,
-} from '@/features/arr/instanceMutations'
+import { invalidateArrInstances } from '@/features/arr/instanceMutations'
 import { $api, apiFetch } from '@/lib/tanstackApi'
 import { useMinLoading, useMinLoadingMutation } from '@/lib/useMinLoading'
 
@@ -47,17 +43,11 @@ async function putSonarrInstance(id: number, body: SonarrInstanceUpdate) {
 }
 
 export async function updateSonarrInstance(
-  instances: SonarrInstanceResponse[],
   id: number,
   updates: SonarrInstanceUpdate,
 ): Promise<void> {
-  await clearOtherDefaults(instances, id, updates.isDefault, (inst) =>
-    putSonarrInstance(inst.id, {
-      ...inst,
-      isDefault: false,
-      syncedInstances: [],
-    }),
-  )
+  // Promotion is atomic server-side: setting isDefault demotes every other
+  // instance and clears their synced instances in the same transaction
   await putSonarrInstance(id, {
     ...updates,
     name: updates.name?.trim(),
@@ -67,7 +57,6 @@ export async function updateSonarrInstance(
 }
 
 export function useUpdateSonarrInstanceMutation() {
-  const { data: instances } = useSonarrInstancesQuery()
   return useMinLoadingMutation(
     useMutation({
       mutationFn: ({
@@ -76,7 +65,7 @@ export function useUpdateSonarrInstanceMutation() {
       }: {
         id: number
         updates: SonarrInstanceUpdate
-      }) => updateSonarrInstance(instances ?? [], id, updates),
+      }) => updateSonarrInstance(id, updates),
     }),
   )
 }

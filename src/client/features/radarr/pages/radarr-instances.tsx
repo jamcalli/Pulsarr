@@ -2,10 +2,12 @@ import { Network } from 'lucide-react'
 import { useState } from 'react'
 import { NetworkConfigCredenza } from '@/components/network-config-credenza'
 import { Button } from '@/components/ui/button'
+import { PageError } from '@/components/ui/page-error'
 import RadarrPageSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
 import { InstanceCard as RadarrInstanceCard } from '@/features/radarr/components/instance/radarr-instance-card'
 import { useRadarrInstancesQuery } from '@/features/radarr/hooks/instance/useRadarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 /**
  * Renders the management page for configuring and maintaining Radarr instances.
@@ -13,7 +15,7 @@ import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
  * @returns The React component for the Radarr Instances management page.
  */
 export default function RadarrInstancesPage() {
-  const { data, isLoading } = useRadarrInstancesQuery()
+  const { data, isLoading, isError, error, refetch } = useRadarrInstancesQuery()
   const instances = data ?? []
 
   const [showInstanceCard, setShowInstanceCard] = useState(false)
@@ -29,6 +31,15 @@ export default function RadarrInstancesPage() {
   const hasRealInstances = instances.some(
     (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
   )
+
+  if (isError) {
+    return (
+      <PageError
+        message={apiErrorMessage(error) ?? 'Failed to load Radarr instances'}
+        onRetry={() => refetch()}
+      />
+    )
+  }
 
   if (data === undefined) {
     return <RadarrPageSkeleton />

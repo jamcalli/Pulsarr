@@ -1,13 +1,9 @@
 import type {
   RadarrInstanceCreateResponse,
-  RadarrInstanceResponse,
   RadarrInstanceUpdate,
 } from '@root/schemas/radarr/radarr-instance.schema'
 import { useMutation } from '@tanstack/react-query'
-import {
-  clearOtherDefaults,
-  invalidateArrInstances,
-} from '@/features/arr/instanceMutations'
+import { invalidateArrInstances } from '@/features/arr/instanceMutations'
 import { $api, apiFetch } from '@/lib/tanstackApi'
 import { useMinLoading, useMinLoadingMutation } from '@/lib/useMinLoading'
 
@@ -47,17 +43,11 @@ async function putRadarrInstance(id: number, body: RadarrInstanceUpdate) {
 }
 
 export async function updateRadarrInstance(
-  instances: RadarrInstanceResponse[],
   id: number,
   updates: RadarrInstanceUpdate,
 ): Promise<void> {
-  await clearOtherDefaults(instances, id, updates.isDefault, (inst) =>
-    putRadarrInstance(inst.id, {
-      ...inst,
-      isDefault: false,
-      syncedInstances: [],
-    }),
-  )
+  // Promotion is atomic server-side: setting isDefault demotes every other
+  // instance and clears their synced instances in the same transaction
   await putRadarrInstance(id, {
     ...updates,
     name: updates.name?.trim(),
@@ -67,7 +57,6 @@ export async function updateRadarrInstance(
 }
 
 export function useUpdateRadarrInstanceMutation() {
-  const { data: instances } = useRadarrInstancesQuery()
   return useMinLoadingMutation(
     useMutation({
       mutationFn: ({
@@ -76,7 +65,7 @@ export function useUpdateRadarrInstanceMutation() {
       }: {
         id: number
         updates: RadarrInstanceUpdate
-      }) => updateRadarrInstance(instances ?? [], id, updates),
+      }) => updateRadarrInstance(id, updates),
     }),
   )
 }
