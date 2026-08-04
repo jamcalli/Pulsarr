@@ -62,6 +62,7 @@ export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
         type="button"
         variant="neutral"
         className="w-full"
+        disabled={disabled}
         onClick={() => refetch()}
       >
         Failed to load users - Retry
