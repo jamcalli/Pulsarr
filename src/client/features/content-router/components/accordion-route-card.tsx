@@ -1424,15 +1424,20 @@ const AccordionRouteCard = ({
                               <Select
                                 value={field.value || ''}
                                 onValueChange={field.onChange}
-                                disabled={!instanceData.rootFolders.length}
+                                disabled={
+                                  instanceData.isLoading ||
+                                  !instanceData.rootFolders.length
+                                }
                               >
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue
                                       placeholder={
-                                        !instanceData.rootFolders.length
-                                          ? 'N/A'
-                                          : 'Select root folder'
+                                        instanceData.isLoading
+                                          ? 'Loading...'
+                                          : !instanceData.rootFolders.length
+                                            ? 'N/A'
+                                            : 'Select root folder'
                                       }
                                     />
                                   </SelectTrigger>
@@ -1476,15 +1481,20 @@ const AccordionRouteCard = ({
                               <Select
                                 value={field.value?.toString() || ''}
                                 onValueChange={field.onChange}
-                                disabled={!instanceData.qualityProfiles.length}
+                                disabled={
+                                  instanceData.isLoading ||
+                                  !instanceData.qualityProfiles.length
+                                }
                               >
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue
                                       placeholder={
-                                        !instanceData.qualityProfiles.length
-                                          ? 'N/A'
-                                          : 'Select quality profile'
+                                        instanceData.isLoading
+                                          ? 'Loading...'
+                                          : !instanceData.qualityProfiles.length
+                                            ? 'N/A'
+                                            : 'Select quality profile'
                                       }
                                     />
                                   </SelectTrigger>

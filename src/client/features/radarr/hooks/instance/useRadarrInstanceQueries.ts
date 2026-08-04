@@ -48,10 +48,11 @@ export async function updateRadarrInstance(
 ): Promise<void> {
   // Promotion is atomic server-side: setting isDefault demotes every other
   // instance and clears their synced instances in the same transaction
+  // Spread carries syncedInstances only when the caller sets it - defaulting
+  // to [] here would clear assignments on unrelated updates
   await putRadarrInstance(id, {
     ...updates,
     name: updates.name?.trim(),
-    syncedInstances: updates.syncedInstances || [],
   })
   await invalidateArrInstances('radarr')
 }
