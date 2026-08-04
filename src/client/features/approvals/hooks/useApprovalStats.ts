@@ -6,7 +6,7 @@ import { useMinLoading } from '@/lib/useMinLoading'
  * independent invalidation.
  */
 export const approvalStatsKeys = {
-  all: ['get', '/v1/approval/stats'] as const,
+  all: $api.queryOptions('get', '/v1/approval/stats').queryKey,
 }
 
 /**

@@ -90,7 +90,11 @@ export function useSonarrInstance(instanceId: number) {
             : 'Sonarr instance has been deleted',
         )
       } catch (error) {
-        toast.error('Failed to delete instance')
+        toast.error(
+          isLastRealInstance
+            ? 'Failed to clear Sonarr configuration'
+            : 'Failed to delete instance',
+        )
         throw error
       }
     },

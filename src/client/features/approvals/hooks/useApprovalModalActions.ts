@@ -99,10 +99,11 @@ export function useApprovalModalActions({
       }, 1500)
     } catch (error) {
       // Check if it's a conflict error (request already processed)
+      const message = apiErrorMessage(error)
       const isConflict =
-        error instanceof Error &&
-        (error.message.includes('already') ||
-          error.message.includes('Cannot reject request'))
+        message !== null &&
+        (message.includes('already') ||
+          message.includes('Cannot reject request'))
 
       toast.error(
         isConflict

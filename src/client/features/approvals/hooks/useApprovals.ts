@@ -7,7 +7,7 @@ import { useMinLoading } from '@/lib/useMinLoading'
  * Key prefix covering every params variant of the approval requests query.
  */
 export const approvalKeys = {
-  all: ['get', '/v1/approval/requests'] as const,
+  all: $api.queryOptions('get', '/v1/approval/requests').queryKey,
 }
 
 /**

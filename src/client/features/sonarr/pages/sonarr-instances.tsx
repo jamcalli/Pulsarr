@@ -43,7 +43,7 @@ export default function SonarrInstancesPage() {
   )
 
   if (data === undefined) {
-    return null
+    return <SonarrPageSkeleton />
   }
 
   if (isLoading && hasRealInstances) {

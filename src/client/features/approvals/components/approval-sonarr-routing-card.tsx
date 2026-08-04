@@ -152,7 +152,9 @@ export function ApprovalSonarrRoutingCard({
     }
   }
 
-  const isConnectionValid = targetInstance?.apiKey !== API_KEY_PLACEHOLDER
+  const isConnectionValid =
+    targetInstance !== undefined &&
+    targetInstance.apiKey !== API_KEY_PLACEHOLDER
 
   return (
     <div className="space-y-4">

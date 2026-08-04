@@ -6,7 +6,7 @@ import { useMinLoading } from '@/lib/useMinLoading'
  * matches the registered route path in the OpenAPI spec.
  */
 export const watchlistExclusionKeys = {
-  all: ['get', '/v1/watchlist-exclusions/'] as const,
+  all: $api.queryOptions('get', '/v1/watchlist-exclusions/').queryKey,
 }
 
 /**

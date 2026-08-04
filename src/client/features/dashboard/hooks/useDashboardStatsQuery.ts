@@ -7,7 +7,7 @@ import { useMinLoading } from '@/lib/useMinLoading'
  * Key prefix covering every params variant of the dashboard stats query.
  */
 export const dashboardStatsKeys = {
-  all: ['get', '/v1/stats/all'] as const,
+  all: $api.queryOptions('get', '/v1/stats/all').queryKey,
 }
 
 /**

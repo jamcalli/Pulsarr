@@ -196,12 +196,13 @@ export function useSonarrConnection(
                 isDefault: false,
               })
 
-              const hasRequiredFields = !checkNeedsConfiguration({
-                ...instance,
-                qualityProfile: values.qualityProfile,
-                rootFolder: values.rootFolder,
-              })
-              setNeedsConfiguration(!hasRequiredFields)
+              setNeedsConfiguration(
+                checkNeedsConfiguration({
+                  ...instance,
+                  qualityProfile: values.qualityProfile,
+                  rootFolder: values.rootFolder,
+                }),
+              )
 
               // Always close the add instance form - we'll show the persisted one from the database instead
               setShowInstanceCard?.(false)

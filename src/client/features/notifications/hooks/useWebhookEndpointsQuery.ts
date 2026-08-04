@@ -3,7 +3,7 @@ import { $api } from '@/lib/tanstackApi'
 import { useMinLoading } from '@/lib/useMinLoading'
 
 export const webhookEndpointKeys = {
-  all: ['get', '/v1/webhooks/endpoints'] as const,
+  all: $api.queryOptions('get', '/v1/webhooks/endpoints').queryKey,
 }
 
 export function useWebhookEndpointsQuery() {

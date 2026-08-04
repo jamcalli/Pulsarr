@@ -31,7 +31,7 @@ export default function RadarrInstancesPage() {
   )
 
   if (data === undefined) {
-    return null
+    return <RadarrPageSkeleton />
   }
 
   if (isLoading && hasRealInstances) {

@@ -29,7 +29,7 @@ export type StatusFilterValue = 'all' | RecentRequestStatus
  * Key prefix covering every params variant of the recent requests query.
  */
 export const recentRequestsKeys = {
-  all: ['get', '/v1/stats/recent-requests'] as const,
+  all: $api.queryOptions('get', '/v1/stats/recent-requests').queryKey,
 }
 
 const STATUS_VALUES: readonly string[] = [

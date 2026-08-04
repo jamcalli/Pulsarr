@@ -5,11 +5,11 @@ import type {
   UpdateApprovalRequest,
 } from '@root/schemas/approval/approval.schema'
 import { useMutation } from '@tanstack/react-query'
+import { dashboardStatsKeys } from '@/features/dashboard/hooks/useDashboardStatsQuery'
+import { recentRequestsKeys } from '@/features/dashboard/hooks/useRecentRequests'
 import { queryClient } from '@/lib/queryClient'
 import { apiFetch } from '@/lib/tanstackApi'
 import { useMinLoadingMutation } from '@/lib/useMinLoading'
-import { recentRequestsKeys } from '@/features/dashboard/hooks/useRecentRequests'
-import { dashboardStatsKeys } from '@/features/dashboard/hooks/useDashboardStatsQuery'
 import { approvalStatsKeys } from './useApprovalStats'
 import { approvalKeys } from './useApprovals'
 
