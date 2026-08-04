@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useUserList } from '@/features/plex/hooks/usePlexUsers'
+import { useUsers } from '@/features/plex/hooks/usePlexUsers'
 
 export interface UserOption {
   label: string
@@ -9,6 +9,8 @@ export interface UserOption {
 export interface UseUserOptionsResult {
   options: UserOption[]
   isLoading: boolean
+  isError: boolean
+  refetch: () => void
 }
 
 /**
@@ -28,7 +30,8 @@ export interface UseUserOptionsResult {
  * ```
  */
 export function useUserOptions(): UseUserOptionsResult {
-  const users = useUserList()
+  const { data, isLoading, isError, refetch } = useUsers()
+  const users = data?.users ?? null
 
   const options = useMemo(() => {
     if (!users) return []
@@ -42,6 +45,8 @@ export function useUserOptions(): UseUserOptionsResult {
 
   return {
     options,
-    isLoading: users === null,
+    isLoading,
+    isError,
+    refetch,
   }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ControllerRenderProps } from 'react-hook-form'
+import { Button } from '@/components/ui/button'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { useConfig } from '@/hooks/useConfig'
 import { useUserOptions } from '@/hooks/useUserOptions'
@@ -22,7 +23,12 @@ export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
   const { isInitialized } = useConfig()
   const { initialize } = useConfig()
   const [isLoading, setIsLoading] = useState(false)
-  const { options, isLoading: usersLoading } = useUserOptions()
+  const {
+    options,
+    isLoading: usersLoading,
+    isError: usersError,
+    refetch,
+  } = useUserOptions()
 
   useEffect(() => {
     const initializeStore = async () => {
@@ -49,6 +55,19 @@ export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
 
     initializeStore()
   }, [initialize, isInitialized])
+
+  if (usersError) {
+    return (
+      <Button
+        type="button"
+        variant="neutral"
+        className="w-full"
+        onClick={() => refetch()}
+      >
+        Failed to load users - Retry
+      </Button>
+    )
+  }
 
   return (
     <MultiSelect
