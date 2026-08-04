@@ -20,6 +20,7 @@ import {
 import { generateUUID } from '@/features/content-router/utils/utils'
 import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapter'
 import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 // Define possible value types for criteria
 type CriteriaValue =
@@ -353,7 +354,7 @@ const AccordionContentRouterSection = ({
         toast.success('Route created successfully')
       } catch (error) {
         toast.error(
-          `Failed to create route: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `Failed to create route: ${apiErrorMessage(error) ?? 'Unknown error'}`,
         )
       } finally {
         setSavingRules((prev) => {
@@ -397,7 +398,7 @@ const AccordionContentRouterSection = ({
         toast.success('Route updated successfully')
       } catch (error) {
         toast.error(
-          `Failed to update route: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `Failed to update route: ${apiErrorMessage(error) ?? 'Unknown error'}`,
         )
 
         // On error, keep the form values in state
@@ -436,7 +437,7 @@ const AccordionContentRouterSection = ({
         toast.success('Route removed successfully')
       } catch (error) {
         toast.error(
-          `Failed to remove route: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `Failed to remove route: ${apiErrorMessage(error) ?? 'Unknown error'}`,
         )
       }
     }

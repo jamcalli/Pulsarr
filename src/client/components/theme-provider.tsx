@@ -1,6 +1,9 @@
 'use client'
 import * as React from 'react'
 import { createContext, useContext, useEffect, useState } from 'react'
+import { parseOneOf, readPref, writePref } from '@/lib/prefs'
+
+const parseTheme = parseOneOf(['light', 'dark', 'system'])
 
 type Theme = 'light' | 'dark' | 'system'
 
@@ -37,7 +40,12 @@ export function ThemeProvider({
   ...props
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    const storedTheme = localStorage.getItem(storageKey) as Theme | null
+    const storedTheme = readPref<Theme | null>({
+      key: storageKey,
+      fallback: null,
+      parse: parseTheme,
+      serialize: (value) => value ?? 'system',
+    })
     if (storedTheme && storedTheme !== 'system') {
       return storedTheme
     }
@@ -96,7 +104,15 @@ export function ThemeProvider({
 
   const setTheme = React.useCallback(
     (newTheme: Theme) => {
-      localStorage.setItem(storageKey, newTheme)
+      writePref(
+        {
+          key: storageKey,
+          fallback: newTheme,
+          parse: parseTheme,
+          serialize: (value) => value,
+        },
+        newTheme,
+      )
       setThemeState(newTheme)
     },
     [storageKey],

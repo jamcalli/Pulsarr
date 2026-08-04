@@ -11,13 +11,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useConfig } from '@/hooks/useConfig'
 import { useWatchlistStatus } from '@/hooks/workflow/useWatchlistStatus'
 import {
   useStartWorkflow,
   useStopWorkflow,
 } from '@/hooks/workflow/useWorkflowMutations'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 import { cn } from '@/lib/utils'
-import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Renders a badge and controls for managing the watchlist workflow status.
@@ -32,7 +33,7 @@ export function WatchlistStatusBadge() {
     null,
   )
   const [showFirstStartDialog, setShowFirstStartDialog] = useState(false)
-  const config = useConfigStore((state) => state.config)
+  const { config } = useConfig()
 
   const {
     mutate: startWorkflow,
@@ -100,7 +101,7 @@ export function WatchlistStatusBadge() {
         onError: (error) => {
           setCurrentAction(null)
           toast.error(
-            error.message ||
+            apiErrorMessage(error) ??
               'Failed to start Watchlist workflow. Please check your configuration.',
           )
         },
@@ -117,7 +118,9 @@ export function WatchlistStatusBadge() {
         },
         onError: (error) => {
           setCurrentAction(null)
-          toast.error(error.message || 'Failed to stop Watchlist workflow')
+          toast.error(
+            apiErrorMessage(error) ?? 'Failed to stop Watchlist workflow',
+          )
         },
       })
     } else {
@@ -143,9 +146,12 @@ export function WatchlistStatusBadge() {
     }
   }
 
-  // Don't allow toggling while in a transition state
+  // No toggling mid-transition; starting needs config for the first-start check
   const isDisabled =
-    status === 'starting' || status === 'stopping' || isPending
+    status === 'starting' ||
+    status === 'stopping' ||
+    isPending ||
+    (status !== 'running' && !config)
 
   // Determine if we should show the loading spinner
   const showLoading =

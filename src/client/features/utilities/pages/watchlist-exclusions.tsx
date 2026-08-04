@@ -1,6 +1,8 @@
 import * as React from 'react'
 import { toast } from 'sonner'
+import { PageError } from '@/components/ui/page-error'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { useUserList, useUsers } from '@/features/plex/hooks/usePlexUsers'
 import {
   type BulkExclusionScope,
   type BulkExclusionStatus,
@@ -23,10 +25,10 @@ import {
   useRemoveWatchlistExclusion,
 } from '@/features/utilities/hooks/useWatchlistExclusionMutations'
 import { useWatchlistExclusions } from '@/features/utilities/hooks/useWatchlistExclusions'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useConfig } from '@/hooks/useConfig'
 import { useUserOptions } from '@/hooks/useUserOptions'
-import { apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 interface WatchlistItemWithUser {
   title: string
@@ -40,10 +42,11 @@ interface WatchlistItemWithUser {
 }
 
 export function WatchlistExclusionsPage() {
-  const { isInitialized, initialize } = useConfigStore()
-  const users = useConfigStore((state) => state.users)
+  const { isInitialized, initialize, error: configError } = useConfig()
+  const users = useUserList()
+  const usersQuery = useUsers()
   const { options: realUserOptions } = useUserOptions()
-  const isInitializing = useInitializeWithMinDuration(initialize)
+  const isInitializing = useShowLoading(!isInitialized)
 
   const {
     data: exclusionsData,
@@ -126,10 +129,12 @@ export function WatchlistExclusionsPage() {
   }, [users])
 
   React.useEffect(() => {
-    if (isInitialized && !hasLoadedWatchlists) {
+    // Users load from a separate query - fetching before they arrive would
+    // latch hasLoadedWatchlists with an empty item list
+    if (isInitialized && users !== null && !hasLoadedWatchlists) {
       fetchAllWatchlistItems()
     }
-  }, [isInitialized, hasLoadedWatchlists, fetchAllWatchlistItems])
+  }, [isInitialized, users, hasLoadedWatchlists, fetchAllWatchlistItems])
 
   const tableData = React.useMemo<WatchlistExclusionTableRow[]>(() => {
     const perUserExclusionByUserAndKey = new Map<
@@ -395,10 +400,26 @@ export function WatchlistExclusionsPage() {
 
   const isInitialLoad =
     isInitializing ||
-    !isInitialized ||
     !hasLoadedWatchlists ||
     exclusionsLoading ||
     exclusionsData === undefined
+
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
+  }
+
+  if (usersQuery.isError && users === null) {
+    return (
+      <PageError
+        message={apiErrorMessage(usersQuery.error) ?? 'Failed to load users'}
+        onRetry={() => usersQuery.refetch()}
+      />
+    )
+  }
+
+  if (!isInitialized && !isInitializing) {
+    return null
+  }
 
   if (isInitialLoad) {
     return <WatchlistExclusionsSkeleton />

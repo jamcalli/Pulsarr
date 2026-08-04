@@ -32,7 +32,13 @@ export function ApiKeysDeleteConfirmationModal({
   apiKeyName,
 }: ApiKeysDeleteConfirmationModalProps) {
   return (
-    <Credenza open={open} onOpenChange={onOpenChange}>
+    <Credenza
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && isSubmitting) return
+        onOpenChange(nextOpen)
+      }}
+    >
       <CredenzaContent>
         <CredenzaHeader>
           <CredenzaTitle className="text-foreground">
@@ -46,7 +52,9 @@ export function ApiKeysDeleteConfirmationModal({
         </CredenzaHeader>
         <CredenzaFooter>
           <CredenzaClose asChild>
-            <Button variant="neutral">Cancel</Button>
+            <Button variant="neutral" disabled={isSubmitting}>
+              Cancel
+            </Button>
           </CredenzaClose>
           <Button
             variant="clear"

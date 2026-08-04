@@ -21,6 +21,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PageError } from '@/components/ui/page-error'
 import { Progress } from '@/components/ui/progress'
 import {
   Select,
@@ -47,9 +48,9 @@ import {
   usePlexLabels,
 } from '@/features/utilities/hooks/usePlexLabels'
 import { PlexLabelsPageSkeleton } from '@/features/utilities/pages/plex-labels-page-skeleton'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useConfig } from '@/hooks/useConfig'
+import { useShowLoading } from '@/lib/useMinLoading'
 import { formatScheduleDisplay } from '@/lib/utils'
-import { useConfigStore } from '@/stores/configStore'
 import { useProgressStore } from '@/stores/progressStore'
 
 /**
@@ -60,8 +61,12 @@ import { useProgressStore } from '@/stores/progressStore'
  * @returns A React element representing the Plex label management interface.
  */
 export function PlexLabelsPage() {
-  const { config, initialize: configInitialize } = useConfigStore()
-  const isInitializing = useInitializeWithMinDuration(configInitialize)
+  const {
+    config,
+    initialize: configInitialize,
+    error: configError,
+  } = useConfig()
+  const isInitializing = useShowLoading(!config)
 
   const {
     form,
@@ -162,8 +167,18 @@ export function PlexLabelsPage() {
     return formatScheduleDisplay(currentTime, currentDay)
   }
 
-  if (isInitializing || isLoading || !config?.plexLabelSync) {
+  if (configError && !config) {
+    return (
+      <PageError message={configError} onRetry={() => configInitialize(true)} />
+    )
+  }
+
+  if (isInitializing || isLoading) {
     return <PlexLabelsPageSkeleton />
+  }
+
+  if (!config?.plexLabelSync) {
+    return null
   }
 
   return (

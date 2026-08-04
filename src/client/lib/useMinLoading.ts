@@ -6,7 +6,26 @@ import { LOADER_SHOW_DELAY, MIN_LOADING_DELAY } from './constants'
  * appears. No show delay - use for action feedback that must be immediate.
  */
 export function useMinDuration(active: boolean): boolean {
-  return useSpinDelay(active, { delay: 0, minDuration: MIN_LOADING_DELAY })
+  // ssr: false - the ssr default shows spinners instantly on first render,
+  // bypassing show delays (this is a SPA, there is no server render)
+  return useSpinDelay(active, {
+    delay: 0,
+    minDuration: MIN_LOADING_DELAY,
+    ssr: false,
+  })
+}
+
+/**
+ * Envelope over any readiness boolean: true only when unreadiness outlasts
+ * LOADER_SHOW_DELAY, then held at least MIN_LOADING_DELAY. Render null while
+ * the input is true but this is still false (the show-delay window).
+ */
+export function useShowLoading(loading: boolean): boolean {
+  return useSpinDelay(loading, {
+    delay: LOADER_SHOW_DELAY,
+    minDuration: MIN_LOADING_DELAY,
+    ssr: false,
+  })
 }
 
 /**
@@ -22,7 +41,7 @@ export function useMinLoading<
 >(query: T): T {
   const showLoading = useSpinDelay(
     query.isFetching && query.data === undefined,
-    { delay: LOADER_SHOW_DELAY, minDuration: MIN_LOADING_DELAY },
+    { delay: LOADER_SHOW_DELAY, minDuration: MIN_LOADING_DELAY, ssr: false },
   )
   return { ...query, isLoading: showLoading }
 }

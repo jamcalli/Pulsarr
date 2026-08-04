@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { z } from 'zod'
+import { PageError } from '@/components/ui/page-error'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import BulkEditModal from '@/features/plex/components/user/bulk-edit-modal'
 import { BulkQuotaEditModal } from '@/features/plex/components/user/bulk-quota-edit-modal'
@@ -10,15 +11,21 @@ import UserTable from '@/features/plex/components/user/user-table'
 import { useBulkQuotaManagement } from '@/features/plex/hooks/useBulkQuotaManagement'
 import { usePlexBulkUpdate } from '@/features/plex/hooks/usePlexBulkUpdate'
 import { usePlexUser } from '@/features/plex/hooks/usePlexUser'
+import {
+  invalidateQuotaData,
+  invalidateUserData,
+  type UserWithQuotaInfo,
+  useUsersWithQuota,
+} from '@/features/plex/hooks/usePlexUsers'
 import { useQuotaManagement } from '@/features/plex/hooks/useQuotaManagement'
 import type {
   BulkQuotaFormSchema,
   QuotaFormData,
 } from '@/features/plex/quota/form-schema'
-import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { useApprovalEvents } from '@/hooks/useApprovalEvents'
-import { type UserWithQuotaInfo, useConfigStore } from '@/stores/configStore'
+import { useConfig } from '@/hooks/useConfig'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 /**
  * Displays the Plex Users administration page, allowing administrators to view, edit, and manage user watchlists, individual user settings, quotas, and perform bulk operations.
@@ -28,16 +35,7 @@ import { type UserWithQuotaInfo, useConfigStore } from '@/stores/configStore'
  * @returns The rendered Plex Users administration page component.
  */
 export default function PlexUsersPage() {
-  const initialize = useConfigStore((state) => state.initialize)
-  const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)
-  const refreshPlexUserStatus = useConfigStore(
-    (state) => state.refreshPlexUserStatus,
-  )
-
-  // Initialize store on mount
-  useEffect(() => {
-    initialize()
-  }, [initialize])
+  const { initialize, isInitialized, error: configError } = useConfig()
 
   const {
     selectedUser,
@@ -74,11 +72,11 @@ export default function PlexUsersPage() {
   useApprovalEvents({
     onApprovalApproved: () => {
       // Refresh quota data when approvals are processed
-      refreshQuotaData()
+      invalidateQuotaData()
     },
     onApprovalRejected: () => {
       // Refresh quota data when approvals are rejected
-      refreshQuotaData()
+      invalidateQuotaData()
     },
     showToasts: false, // Don't show duplicate toasts on this page
   })
@@ -107,36 +105,15 @@ export default function PlexUsersPage() {
     PlexUserTableRow[]
   >([])
 
-  const [isLoading, setIsLoading] = useState(true)
-  const [minLoadingComplete, setMinLoadingComplete] = useState(false)
-  const isInitialized = useConfigStore((state) => state.isInitialized)
-  const usersWithQuota = useConfigStore((state) => state.usersWithQuota)
-  const hasUserData = useConfigStore((state) => Boolean(state.users?.length))
+  const {
+    usersWithQuota,
+    hasUserData,
+    isLoading: usersLoading,
+    isError: usersError,
+    refetch: refetchUsers,
+  } = useUsersWithQuota()
 
-  // Setup minimum loading time
-  useEffect(() => {
-    let isMounted = true
-    const timer = setTimeout(() => {
-      if (isMounted) {
-        setMinLoadingComplete(true)
-        if (isInitialized) {
-          setIsLoading(false)
-        }
-      }
-    }, MIN_LOADING_DELAY)
-
-    return () => {
-      isMounted = false
-      clearTimeout(timer)
-    }
-  }, [isInitialized])
-
-  // Update loading state when initialized
-  useEffect(() => {
-    if (isInitialized && minLoadingComplete) {
-      setIsLoading(false)
-    }
-  }, [isInitialized, minLoadingComplete])
+  const isLoading = useShowLoading(!isInitialized || usersLoading)
 
   // Quota handlers
   const handleEditQuota = (user: UserWithQuotaInfo) => {
@@ -246,6 +223,23 @@ export default function PlexUsersPage() {
     })
   }
 
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
+  }
+
+  if (usersError) {
+    return (
+      <PageError
+        message="Failed to load user data"
+        onRetry={() => refetchUsers()}
+      />
+    )
+  }
+
+  if (!isInitialized && !isLoading) {
+    return null
+  }
+
   return (
     <div>
       <UtilitySectionHeader
@@ -254,7 +248,7 @@ export default function PlexUsersPage() {
         showStatus={false}
       />
       <div className="grid gap-4">
-        {!hasUserData && !isLoading ? (
+        {!hasUserData && !isLoading && usersWithQuota !== null ? (
           <div className="text-center py-8 text-foreground">
             No watchlist data available
           </div>
@@ -267,7 +261,7 @@ export default function PlexUsersPage() {
               isLoading={isLoading}
               onBulkEdit={handleOpenBulkEditModal}
               onBulkEditQuotas={handleOpenBulkQuotaModal}
-              onRefreshStatus={refreshPlexUserStatus}
+              onRefreshStatus={invalidateUserData}
             />
             {/* Individual user edit modal */}
             <UserEditModal

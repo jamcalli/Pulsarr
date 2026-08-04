@@ -17,7 +17,7 @@ import {
 } from '@/lib/useMinLoading'
 
 export const apiKeyKeys = {
-  all: ['get', '/v1/api-keys/api-keys'] as const,
+  all: $api.queryOptions('get', '/v1/api-keys/api-keys').queryKey,
 }
 
 function invalidateApiKeyCaches() {
@@ -30,6 +30,8 @@ function invalidateApiKeyCaches() {
  */
 export function useApiKeys() {
   const [visibleKeys, setVisibleKeys] = useState<Record<number, boolean>>({})
+  // per-key state so concurrent revokes each show in-flight
+  const [isRevoking, setIsRevoking] = useState<Record<number, boolean>>({})
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState<
     number | null
   >(null)
@@ -69,7 +71,9 @@ export function useApiKeys() {
           const { [id]: _removed, ...rest } = prev
           return rest
         })
-        setShowDeleteConfirmation(null)
+        setShowDeleteConfirmation((current) =>
+          current === id ? null : current,
+        )
         invalidateApiKeyCaches()
       },
     }),
@@ -93,11 +97,14 @@ export function useApiKeys() {
   })
 
   const revokeApiKey = async (id: number) => {
+    setIsRevoking((prev) => ({ ...prev, [id]: true }))
     try {
       await revokeMutation.mutateAsync(id)
       toast.success('API key revoked successfully')
     } catch (err) {
       toast.error(apiErrorMessage(err) ?? 'Failed to revoke API key')
+    } finally {
+      setIsRevoking(({ [id]: _removed, ...rest }) => rest)
     }
   }
 
@@ -108,11 +115,6 @@ export function useApiKeys() {
   const initiateRevoke = (id: number) => {
     setShowDeleteConfirmation(id)
   }
-
-  const isRevoking: Record<number, boolean> =
-    revokeMutation.isPending && revokeMutation.variables !== undefined
-      ? { [revokeMutation.variables]: true }
-      : {}
 
   return {
     form,

@@ -68,9 +68,9 @@ import {
   type ConditionalRouteFormValues,
 } from '@/features/content-router/schemas/content-router.schema'
 import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
+import { useConfig } from '@/hooks/useConfig'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 import { cn } from '@/lib/utils'
-import { useConfigStore } from '@/stores/configStore'
 
 // Define criteria interface to match backend schema
 interface Criteria {
@@ -228,7 +228,7 @@ const AccordionRouteCard = ({
   const tagsMultiSelectRef =
     useRef<import('@/components/ui/tag-multi-select').TagsMultiSelectRef>(null)
 
-  const { config } = useConfigStore()
+  const { config } = useConfig()
   const isSessionMonitoringEnabled =
     config?.plexSessionMonitoring?.enabled || false
 

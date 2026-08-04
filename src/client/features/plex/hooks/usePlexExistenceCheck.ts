@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
-import { useConfigStore } from '@/stores/configStore'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 
 // Pick Plex existence check fields from the backend ConfigUpdateSchema
 const plexExistenceCheckFormSchema = ConfigUpdateSchema.pick({
@@ -25,8 +25,7 @@ type PlexExistenceCheckFormValues = z.infer<typeof plexExistenceCheckFormSchema>
  * and providing save/cancel handlers following the established pattern.
  */
 export function usePlexExistenceCheck() {
-  const config = useConfigStore((state) => state.config)
-  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const { config } = useConfig()
   const [isSaving, setIsSaving] = useState(false)
 
   const form = useForm<PlexExistenceCheckFormValues>({
@@ -72,7 +71,7 @@ export function usePlexExistenceCheck() {
   }
 
   const handleCancel = () => {
-    // Reset form to last saved values from config store
+    // Reset form to last saved config values
     if (config) {
       form.reset({
         skipIfExistsOnPlex: config.skipIfExistsOnPlex ?? false,

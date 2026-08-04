@@ -5,8 +5,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 // Extract API schema (includes URL validation from backend) and extend with testing fields
 const ApiPublicContentNotificationsSchema =
@@ -60,12 +60,12 @@ interface TestStatus {
 /**
  * React hook for managing public content notification settings, including form state, validation, Discord webhook connection testing, and persistence.
  *
- * Provides synchronized form management with the configuration store, schema-based validation, and user feedback for testing and saving Discord webhook and Apprise notification URLs. Exposes handlers for submitting, toggling, canceling, testing, and clearing notification fields, along with loading and test status indicators.
+ * Provides synchronized form management with the global configuration, schema-based validation, and user feedback for testing and saving Discord webhook and Apprise notification URLs. Exposes handlers for submitting, toggling, canceling, testing, and clearing notification fields, along with loading and test status indicators.
  *
  * @returns An object containing the form instance, loading states, webhook test status, Apprise enablement flag, and handler functions for notification configuration operations.
  */
 export function usePublicContentNotifications() {
-  const { config, updateConfig } = useConfigStore()
+  const { config } = useConfig()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
   const [isClearing, setIsClearing] = useState(false)

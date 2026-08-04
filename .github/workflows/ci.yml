@@ -43,6 +43,13 @@ jobs:
         run: tsc --noEmit -p src/client/tsconfig.json
       - name: TypeScript Check - Scripts
         run: tsc --noEmit -p scripts/tsconfig.json
+      - name: OpenAPI Contract Drift Check
+        run: |
+          bun run openapi:dev
+          git diff --exit-code docs/static/openapi.json src/client/types/api.d.ts || {
+            echo "OpenAPI spec or generated client types are stale. Run 'bun run openapi:dev' and commit the results."
+            exit 1
+          }
       - name: Run Tests
         run: bun run test
       - name: Build

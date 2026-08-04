@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { z } from 'zod'
+import {
+  type UserWatchlistInfo,
+  useUpdateUser,
+  useUserList,
+} from '@/features/plex/hooks/usePlexUsers'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { plexUserSchema } from '@/features/plex/store/schemas'
-import type { UserWatchlistInfo } from '@/stores/configStore'
-import { useConfigStore } from '@/stores/configStore'
+import { useConfig } from '@/hooks/useConfig'
 
 export type UserStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -16,15 +20,15 @@ export type UserStatus = 'idle' | 'loading' | 'success' | 'error'
  * @returns An object containing user data, selected user state and setter, modal visibility controls, save status and setter, loading state, and handler functions for editing and updating users.
  */
 export function usePlexUser() {
-  const users = useConfigStore((state) => state.users)
-  const updateUser = useConfigStore((state) => state.updateUser)
+  const users = useUserList()
+  const updateUserMutation = useUpdateUser()
   const [selectedUser, setSelectedUser] = useState<UserWatchlistInfo | null>(
     null,
   )
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [saveStatus, setSaveStatus] = useState<UserStatus>('idle')
   const [isLoading, setIsLoading] = useState(true)
-  const isInitialized = useConfigStore((state) => state.isInitialized)
+  const { isInitialized } = useConfig()
 
   useEffect(() => {
     if (isInitialized) {
@@ -52,7 +56,10 @@ export function usePlexUser() {
         setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
-      await Promise.all([updateUser(userId, updates), minimumLoadingTime])
+      await Promise.all([
+        updateUserMutation.mutateAsync({ userId, updates }),
+        minimumLoadingTime,
+      ])
 
       setSaveStatus('success')
       toast.success('User information updated successfully')

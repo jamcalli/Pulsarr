@@ -1,14 +1,15 @@
 import { AlertCircle, Loader2, RefreshCw } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { PageError } from '@/components/ui/page-error'
 import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { ApiKeysDeleteConfirmationModal } from '@/features/utilities/components/api-keys/api-keys-delete-confirmation-modal'
 import { ApiKeysForm } from '@/features/utilities/components/api-keys/api-keys-form'
 import { ApiKeysSkeleton } from '@/features/utilities/components/api-keys/api-keys-skeleton'
 import { useApiKeys } from '@/features/utilities/hooks/useApiKeys'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
-import { useConfigStore } from '@/stores/configStore'
+import { useConfig } from '@/hooks/useConfig'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 const getUserFriendlyErrorMessage = (error: string) => {
   if (error.includes('network') || error.includes('fetch')) {
@@ -28,7 +29,7 @@ const getUserFriendlyErrorMessage = (error: string) => {
  * @returns The API keys management page as a React element.
  */
 export function ApiKeysPage() {
-  const { isInitialized, initialize } = useConfigStore()
+  const { isInitialized, initialize, error: configError } = useConfig()
 
   const {
     form,
@@ -48,13 +49,21 @@ export function ApiKeysPage() {
     refreshApiKeys,
   } = useApiKeys()
 
-  // Initialize config store with minimum duration for consistent UX
-  const isInitializing = useInitializeWithMinDuration(initialize)
+  // Initialize config with minimum duration for consistent UX
+  const isInitializing = useShowLoading(!isInitialized)
 
   const totalKeysCount = apiKeys.length
 
-  if (isInitializing || !isInitialized || isLoading) {
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
+  }
+
+  if (isInitializing || isLoading) {
     return <ApiKeysSkeleton />
+  }
+
+  if (!isInitialized) {
+    return null
   }
 
   const selectedApiKey = apiKeys.find(

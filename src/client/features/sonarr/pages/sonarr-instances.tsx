@@ -7,8 +7,8 @@ import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-car
 import { InstanceCard } from '@/features/sonarr/components/instance/sonarr-instance-card'
 import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
+import { useConfig } from '@/hooks/useConfig'
 import { apiErrorMessage } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Renders the page for managing Sonarr instances, enabling users to add, view, and configure their Sonarr connections.
@@ -20,7 +20,7 @@ export default function SonarrInstancesPage() {
   const instances = data ?? []
 
   // Initialize config for session monitoring support
-  const configInitialize = useConfigStore((state) => state.initialize)
+  const { initialize: configInitialize } = useConfig()
 
   const hasInitializedRef = useRef(false)
   const [showInstanceCard, setShowInstanceCard] = useState(false)
@@ -44,7 +44,7 @@ export default function SonarrInstancesPage() {
     (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
   )
 
-  if (isError) {
+  if (isError && data === undefined) {
     return (
       <PageError
         message={apiErrorMessage(error) ?? 'Failed to load Sonarr instances'}

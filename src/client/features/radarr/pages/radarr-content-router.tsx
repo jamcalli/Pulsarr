@@ -5,8 +5,8 @@ import { useArrGenres } from '@/features/arr/useArrGenres'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { useRadarrInstancesQuery } from '@/features/radarr/hooks/instance/useRadarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
+import { useConfig } from '@/hooks/useConfig'
 import { apiErrorMessage } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Renders the Radarr Content Router configuration page for managing content routing rules.
@@ -22,7 +22,7 @@ export default function RadarrContentRouterPage() {
   const { genres, handleGenreDropdownOpen } = useArrGenres()
 
   // Route cards read session-monitoring config, so it must be initialized here
-  const configInitialize = useConfigStore((state) => state.initialize)
+  const { initialize: configInitialize } = useConfig()
 
   const hasInitializedRef = useRef(false)
 
@@ -33,7 +33,7 @@ export default function RadarrContentRouterPage() {
     }
   }, [configInitialize])
 
-  if (isError) {
+  if (isError && data === undefined) {
     return (
       <PageError
         message={apiErrorMessage(error) ?? 'Failed to load Radarr instances'}

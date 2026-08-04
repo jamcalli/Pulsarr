@@ -12,10 +12,15 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PlexPinAuth } from '@/features/plex/components/setup/plex-pin-auth'
+import { invalidateUserData } from '@/features/plex/hooks/usePlexUsers'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
+import {
+  getConfigSnapshot,
+  refreshRssFeeds,
+  updateConfig,
+} from '@/hooks/useConfig'
 import { useWatchlistProgress } from '@/hooks/useProgress'
-import { apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 interface SetupModalProps {
   open: boolean
@@ -31,12 +36,6 @@ interface SetupModalProps {
  * @param onOpenChange - Callback to update the modal's open state
  */
 export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
-  const updateConfig = useConfigStore((state) => state.updateConfig)
-  const fetchUserData = useConfigStore((state) => state.fetchUserData)
-  const fetchPlexUserStatus = useConfigStore(
-    (state) => state.fetchPlexUserStatus,
-  )
-  const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
   const [plexToken, setPlexToken] = useState('')
   const [currentStep, setCurrentStep] = useState<'token' | 'syncing'>('token')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -59,8 +58,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
     ) {
       const timer = setTimeout(async () => {
         try {
-          await fetchUserData()
-          await fetchPlexUserStatus()
+          await invalidateUserData()
           onOpenChange(false)
 
           setTimeout(() => {
@@ -80,8 +78,6 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
     selfWatchlistStatus,
     othersWatchlistStatus,
     onOpenChange,
-    fetchUserData,
-    fetchPlexUserStatus,
     setSelfWatchlistStatus,
     setOthersWatchlistStatus,
   ])
@@ -101,7 +97,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
     async (token: string) => {
       setIsSubmitting(true)
       // Capture existing tokens for rollback in case verification fails
-      const existingTokens = useConfigStore.getState().config?.plexTokens ?? []
+      const existingTokens = getConfigSnapshot()?.plexTokens ?? []
       try {
         const tokenMinLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, 500),
@@ -186,11 +182,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         toast.success('Plex configuration has been successfully completed')
       } catch (error) {
         console.error('Setup error:', error)
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred',
-        )
+        toast.error(apiErrorMessage(error) ?? 'An unexpected error occurred')
         setIsSubmitting(false)
         setCurrentStep('token')
         setSelfWatchlistStatus('idle')

@@ -8,9 +8,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
+import { useConfig } from '@/hooks/useConfig'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 export type PlexNotificationsFormValues = z.input<
   typeof PlexNotificationConfigSchema
@@ -24,7 +24,7 @@ export type PlexNotificationsFormValues = z.input<
  * @returns An object containing the form instance, error message, loading and submission states, handlers for submitting, canceling, and deleting the configuration, a placeholder for initiating deletion, and the latest server response data.
  */
 export function usePlexNotifications() {
-  const config = useConfigStore((state) => state.config)
+  const { config } = useConfig()
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -44,7 +44,7 @@ export function usePlexNotifications() {
     },
   })
 
-  // Populate Plex token from config store when config changes
+  // Populate Plex token when config changes
   useEffect(() => {
     const token = config?.plexTokens?.[0] || ''
     // reset works on unregistered fields and bakes the token into the cancel baseline

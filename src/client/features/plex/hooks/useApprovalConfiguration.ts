@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { useConfigStore } from '@/stores/configStore'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 // Define the form data type that includes both config and schedule fields
 const approvalConfigurationSchema = z.object({
@@ -31,12 +32,12 @@ type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 /**
  * React hook for managing an approval and quota configuration form with validation, state synchronization, and persistence.
  *
- * Integrates `react-hook-form` with Zod schema validation to manage form state, synchronizes with a global configuration store, and handles save and error states. Excludes schedule-related fields from configuration updates and provides user feedback via toast notifications.
+ * Integrates `react-hook-form` with Zod schema validation to manage form state, synchronizes with the global configuration, and handles save and error states. Excludes schedule-related fields from configuration updates and provides user feedback via toast notifications.
  *
  * @returns An object containing the form instance, current configuration, error state, saving status, save status, last submitted values, submit and cancel handlers, and a flag indicating if the form has unsaved changes.
  */
 export function useApprovalConfiguration() {
-  const { config, updateConfig } = useConfigStore()
+  const { config } = useConfig()
   const [error] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
   const [submittedValues, setSubmittedValues] =
@@ -245,9 +246,7 @@ export function useApprovalConfiguration() {
       // Set error state
       setSaveStatus('error')
 
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to save configuration',
-      )
+      toast.error(apiErrorMessage(err) ?? 'Failed to save configuration')
 
       // Error cleanup after 1 second (matching delete sync)
       setTimeout(() => {

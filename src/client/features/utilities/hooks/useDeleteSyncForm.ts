@@ -9,7 +9,8 @@ import {
   useScheduleActions,
   useSchedules,
 } from '@/features/utilities/hooks/useSchedules'
-import { useConfigStore } from '@/stores/configStore'
+import { getConfigSnapshot, updateConfig, useConfig } from '@/hooks/useConfig'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 // Extract delete sync fields from backend API schema
 const ApiDeleteSyncSchema = ConfigUpdateSchema.pick({
@@ -71,7 +72,7 @@ export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
  *  - handleTimeChange: updates the form's scheduleTime and optional dayOfWeek
  */
 export function useDeleteSyncForm() {
-  const { config, updateConfig } = useConfigStore()
+  const { config } = useConfig()
   const schedules = useSchedules().data
   const { updateSchedule } = useScheduleActions()
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
@@ -271,8 +272,7 @@ export function useDeleteSyncForm() {
       toast.success('Settings saved successfully')
 
       // Reset form with updated configuration
-      const updatedConfig =
-        useConfigStore.getState().config || config || ({} as Config)
+      const updatedConfig = getConfigSnapshot() || config || ({} as Config)
 
       // Apply the form reset
       form.reset(
@@ -310,8 +310,7 @@ export function useDeleteSyncForm() {
       setSaveStatus('idle')
     } catch (error) {
       console.error('Failed to save configuration:', error)
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to save settings'
+      const errorMessage = apiErrorMessage(error) ?? 'Failed to save settings'
 
       setSaveStatus('error')
       toast.error(errorMessage)

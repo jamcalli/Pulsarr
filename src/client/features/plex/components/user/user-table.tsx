@@ -59,10 +59,10 @@ import {
 import { FriendStatusBadge } from '@/features/plex/components/user/friend-status-badge'
 import { QuotaStatusBadge } from '@/features/plex/components/user/quota-status-badge'
 import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
+import type { UserWithQuotaInfo } from '@/features/plex/hooks/usePlexUsers'
 import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { useTablePagination } from '@/hooks/use-table-pagination'
-import type { UserWithQuotaInfo } from '@/stores/configStore'
 
 interface ColumnMetaType {
   className?: string
@@ -464,7 +464,7 @@ export default function UserTable({
     },
   })
 
-  // Update table pageSize when localStorage value changes
+  // Sync table pageSize when the persisted preference changes
   React.useEffect(() => {
     table.setPageSize(pageSize)
   }, [pageSize, table])
