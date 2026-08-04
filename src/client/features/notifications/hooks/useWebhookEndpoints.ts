@@ -66,10 +66,11 @@ export interface WebhookEndpointFormValues {
 export function useWebhookEndpoints() {
   // React Query hooks
   const {
-    data: endpoints = [],
+    data,
     isLoading: isFetchLoading,
     error: fetchError,
   } = useWebhookEndpointsQuery()
+  const endpoints = data ?? []
 
   const createMutation = useCreateWebhookEndpoint()
   const updateMutation = useUpdateWebhookEndpoint()
@@ -314,7 +315,8 @@ export function useWebhookEndpoints() {
   return {
     // Data state (React Query)
     endpoints,
-    isLoading: isFetchLoading,
+    // Empty state is only knowable once data exists
+    isLoading: isFetchLoading || data === undefined,
     error: fetchError,
 
     // Mutations (React Query)

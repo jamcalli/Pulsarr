@@ -396,7 +396,8 @@ export function WatchlistExclusionsPage() {
     isInitializing ||
     !isInitialized ||
     !hasLoadedWatchlists ||
-    exclusionsLoading
+    exclusionsLoading ||
+    exclusionsData === undefined
 
   if (isInitialLoad) {
     return <WatchlistExclusionsSkeleton />

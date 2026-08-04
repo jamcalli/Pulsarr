@@ -172,7 +172,12 @@ export default function ApprovalsPage() {
   }
 
   // Combined loading state
-  const isLoading = !isConfigInitialized || approvalsLoading || statsLoading
+  const isLoading =
+    !isConfigInitialized ||
+    approvalsLoading ||
+    statsLoading ||
+    approvalsData === undefined ||
+    statsData === undefined
 
   // Show error state
   if (approvalsError && !isLoading) {
