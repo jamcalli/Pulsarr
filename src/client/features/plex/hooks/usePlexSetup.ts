@@ -16,10 +16,12 @@ export function usePlexSetup() {
     })
 
     // Sync watchlists
-    await Promise.all([
+    const [selfWatchlist, othersWatchlist] = await Promise.all([
       apiFetch.GET('/v1/plex/self-watchlist-token'),
       apiFetch.GET('/v1/plex/others-watchlist-token'),
     ])
+    if (selfWatchlist.error) throw selfWatchlist.error
+    if (othersWatchlist.error) throw othersWatchlist.error
 
     // Generate RSS feeds
     await refreshRssFeeds()

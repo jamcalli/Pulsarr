@@ -176,21 +176,13 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
         { params: { path: { id } }, body: { enabled } },
       )
 
-      if (fetchError) {
-        // Revert on non-2xx status
-        setRules((prevRules) =>
-          prevRules.map((rule) =>
-            rule.id === id ? { ...rule, enabled: !enabled } : rule,
-          ),
-        )
-        throw fetchError
-      }
+      if (fetchError) throw fetchError
 
       toast.success(
         `Routing rule ${enabled ? 'enabled' : 'disabled'} successfully`,
       )
     } catch (error) {
-      // Revert on network / runtime error as well
+      // Revert the optimistic update on any failure
       setRules((prevRules) =>
         prevRules.map((rule) =>
           rule.id === id ? { ...rule, enabled: !enabled } : rule,

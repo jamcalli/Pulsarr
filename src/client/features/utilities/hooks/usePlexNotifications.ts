@@ -47,7 +47,8 @@ export function usePlexNotifications() {
   // Populate Plex token from config store when config changes
   useEffect(() => {
     const token = config?.plexTokens?.[0] || ''
-    form.setValue('plexToken', token)
+    // resetField keeps the token in the reset baseline so cancel doesn't clear it
+    form.resetField('plexToken', { defaultValue: token })
   }, [config?.plexTokens, form])
 
   // Function to fetch current notification status
@@ -194,16 +195,10 @@ export function usePlexNotifications() {
     [form],
   )
 
-  // Handle form cancellation - reset to last saved values from server
+  // Handle form cancellation - discard edits back to the last saved values
   const handleCancel = useCallback(() => {
-    // Reset to defaults with current token
-    form.reset({
-      plexToken: config?.plexTokens?.[0] ?? '',
-      plexHost: '',
-      plexPort: 32400,
-      useSsl: false,
-    })
-  }, [form, config?.plexTokens])
+    form.reset()
+  }, [form])
 
   // Handle deletion of Plex notifications
   const handleDelete = useCallback(async () => {
