@@ -32,7 +32,7 @@ export default function RadarrInstancesPage() {
     (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
   )
 
-  if (isError) {
+  if (isError && data === undefined) {
     return (
       <PageError
         message={apiErrorMessage(error) ?? 'Failed to load Radarr instances'}

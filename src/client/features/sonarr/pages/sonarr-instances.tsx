@@ -44,7 +44,7 @@ export default function SonarrInstancesPage() {
     (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
   )
 
-  if (isError) {
+  if (isError && data === undefined) {
     return (
       <PageError
         message={apiErrorMessage(error) ?? 'Failed to load Sonarr instances'}

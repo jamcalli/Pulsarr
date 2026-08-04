@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { PageError } from '@/components/ui/page-error'
 import { AnalyticsDashboard } from '@/features/dashboard/components/analytics-dashboard'
 import { PopularityRankings } from '@/features/dashboard/components/popularity-rankings'
 import { RecentRequests } from '@/features/dashboard/components/recent-requests'
@@ -54,9 +55,9 @@ export function DashboardPage() {
     }
   }, [configInitialize, isConfigInitialized])
 
-  // React to config errors
+  // React to config errors after initial load; pre-init failures render PageError
   useEffect(() => {
-    if (!configError) return
+    if (!configError || !isConfigInitialized) return
     const msg =
       typeof configError === 'string' ? configError : String(configError)
     if (lastConfigErrorRef.current === msg) return
@@ -66,7 +67,7 @@ export function DashboardPage() {
       description: msg,
     })
     lastConfigErrorRef.current = msg
-  }, [configError])
+  }, [configError, isConfigInitialized])
 
   const handleRefresh = useCallback(async () => {
     if (!isLoading && !isRefreshing) {
@@ -83,6 +84,12 @@ export function DashboardPage() {
       }
     }
   }, [refreshStats, isLoading, isRefreshing])
+
+  if (configError && !isConfigInitialized) {
+    return (
+      <PageError message={configError} onRetry={() => configInitialize(true)} />
+    )
+  }
 
   return (
     <div className="space-y-8">

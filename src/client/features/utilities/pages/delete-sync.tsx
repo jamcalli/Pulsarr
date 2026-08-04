@@ -87,7 +87,11 @@ export default function DeleteSyncPage() {
     setShowDryRunModal,
   } = useDeleteSync()
 
-  const { initialize: configInitialize, isInitialized } = useConfig()
+  const {
+    initialize: configInitialize,
+    isInitialized,
+    error: configError,
+  } = useConfig()
 
   const navigate = useNavigate()
 
@@ -112,6 +116,12 @@ export default function DeleteSyncPage() {
         />
         <PageError message={`Error loading schedule: ${error}`} />
       </div>
+    )
+  }
+
+  if (configError && !isInitialized) {
+    return (
+      <PageError message={configError} onRetry={() => configInitialize(true)} />
     )
   }
 

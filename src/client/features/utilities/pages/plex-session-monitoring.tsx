@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
+import { PageError } from '@/components/ui/page-error'
 import { PlexSSEStatusBadge } from '@/components/ui/plex-sse-status-badge'
 import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
@@ -29,7 +30,7 @@ import { useConfig } from '@/hooks/useConfig'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 
 export default function PlexSessionMonitoringPage() {
-  const { initialize, isInitialized } = useConfig()
+  const { initialize, isInitialized, error: configError } = useConfig()
   const isInitializing = useInitializeWithMinDuration(initialize)
 
   const {
@@ -113,6 +114,10 @@ export default function PlexSessionMonitoringPage() {
   const getStatus = () => {
     if (!isInitialized || isInitializing) return 'unknown'
     return isEnabled ? 'enabled' : 'disabled'
+  }
+
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
   }
 
   return (

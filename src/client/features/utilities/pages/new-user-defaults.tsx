@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PageError } from '@/components/ui/page-error'
 import {
   Select,
   SelectContent,
@@ -94,7 +95,7 @@ function buildFormValues(config: ConfigFull | null): NewUserDefaultsFormData {
  * Provides a validated form and real-time status summary for setting default sync behavior, manual approval requirements, and quota limits for movies and shows. Allows administrators to save or cancel changes, with user feedback on success or failure.
  */
 export default function NewUserDefaultsPage() {
-  const { config, isInitialized, initialize } = useConfig()
+  const { config, isInitialized, initialize, error: configError } = useConfig()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const submittingStartTime = useRef<number | null>(null)
   const isInitializing = useInitializeWithMinDuration(initialize)
@@ -165,6 +166,10 @@ export default function NewUserDefaultsPage() {
   }
 
   // No status needed for header - we'll show detailed status in the body
+
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
+  }
 
   if (!isInitialized || isInitializing) {
     return <NewUserDefaultsPageSkeleton />

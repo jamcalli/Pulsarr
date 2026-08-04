@@ -33,7 +33,7 @@ export default function SonarrContentRouterPage() {
     }
   }, [configInitialize])
 
-  if (isError) {
+  if (isError && data === undefined) {
     return (
       <PageError
         message={apiErrorMessage(error) ?? 'Failed to load Sonarr instances'}

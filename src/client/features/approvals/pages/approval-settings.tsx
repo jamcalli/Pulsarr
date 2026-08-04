@@ -47,7 +47,7 @@ import { useConfig } from '@/hooks/useConfig'
  */
 export default function ApprovalSettingsPage() {
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const { isInitialized, initialize } = useConfig()
+  const { isInitialized, initialize, error: configError } = useConfig()
 
   const {
     // Schedule management
@@ -74,6 +74,10 @@ export default function ApprovalSettingsPage() {
   useEffect(() => {
     initialize()
   }, [initialize])
+
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
+  }
 
   if (!isInitialized) {
     return <ApprovalSettingsPageSkeleton />

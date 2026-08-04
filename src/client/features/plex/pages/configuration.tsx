@@ -39,6 +39,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PageError } from '@/components/ui/page-error'
 import { PlexSSEStatusBadge } from '@/components/ui/plex-sse-status-badge'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
@@ -59,10 +60,10 @@ import { usePlexRssFeeds } from '@/features/plex/hooks/usePlexRssFeeds'
 import { usePlexSetup } from '@/features/plex/hooks/usePlexSetup'
 import { useUserList } from '@/features/plex/hooks/usePlexUsers'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
-import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { usePlexServerDiscovery } from '@/features/utilities/hooks/usePlexServerDiscovery'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { updateConfig, useConfig } from '@/hooks/useConfig'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useWatchlistProgress } from '@/hooks/useProgress'
 
 /**
@@ -71,18 +72,13 @@ import { useWatchlistProgress } from '@/hooks/useProgress'
  * Provides an interface for configuring Plex tokens, generating RSS feeds, refreshing watchlist data, and viewing watchlist statistics for the current user and others. Includes responsive layout, loading skeletons, and visual feedback for asynchronous actions.
  */
 export default function PlexConfigurationPage() {
-  const { config } = useConfig()
-  const { initialize } = useConfig()
+  const { config, initialize, isInitialized, error: configError } = useConfig()
+  const isInitializing = useInitializeWithMinDuration(initialize)
   const { showSetupModal, setShowSetupModal } = usePlexSetup()
   const [showReauthDialog, setShowReauthDialog] = useState(false)
   const [showRemoveTokenModal, setShowRemoveTokenModal] = useState(false)
   const [isRemovingToken, setIsRemovingToken] = useState(false)
   const [reauthKey, setReauthKey] = useState(0)
-
-  // Initialize store on mount
-  useEffect(() => {
-    initialize()
-  }, [initialize])
 
   // Check if Plex token is missing and show setup modal
   useEffect(() => {
@@ -117,13 +113,10 @@ export default function PlexConfigurationPage() {
   // Media query for mobile/desktop
   const isMobile = useMediaQuery('(max-width: 768px)')
 
-  // Loading state
-  const [isLoading, setIsLoading] = useState(true)
-  const [minLoadingComplete, setMinLoadingComplete] = useState(false)
+  const isLoading = isInitializing || !isInitialized
 
   // RSS feed state
   const { rssStatus, generateRssFeeds } = usePlexRssFeeds()
-  const { isInitialized } = useConfig()
 
   // Get user data to compute watchlist counts
   const users = useUserList()
@@ -142,32 +135,6 @@ export default function PlexConfigurationPage() {
   const selfWatchlistProgress = useWatchlistProgress('self-watchlist')
   const othersWatchlistProgress = useWatchlistProgress('others-watchlist')
 
-  // Setup minimum loading time
-  useEffect(() => {
-    let isMounted = true
-
-    const timer = setTimeout(() => {
-      if (isMounted) {
-        setMinLoadingComplete(true)
-        if (isInitialized) {
-          setIsLoading(false)
-        }
-      }
-    }, MIN_LOADING_DELAY)
-
-    return () => {
-      isMounted = false
-      clearTimeout(timer)
-    }
-  }, [isInitialized])
-
-  // Update loading state when initialized
-  useEffect(() => {
-    if (isInitialized && minLoadingComplete) {
-      setIsLoading(false)
-    }
-  }, [isInitialized, minLoadingComplete])
-
   // Handle token received from re-auth PIN flow
   const handleReauthSuccess = async (token: string) => {
     try {
@@ -181,6 +148,10 @@ export default function PlexConfigurationPage() {
       console.error('Failed to update token:', error)
       toast.error('Failed to update Plex token')
     }
+  }
+
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
   }
 
   return (

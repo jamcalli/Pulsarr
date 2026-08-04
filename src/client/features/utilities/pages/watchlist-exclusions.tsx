@@ -1,7 +1,8 @@
 import * as React from 'react'
 import { toast } from 'sonner'
+import { PageError } from '@/components/ui/page-error'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
-import { useUserList } from '@/features/plex/hooks/usePlexUsers'
+import { useUserList, useUsers } from '@/features/plex/hooks/usePlexUsers'
 import {
   type BulkExclusionScope,
   type BulkExclusionStatus,
@@ -27,7 +28,7 @@ import { useWatchlistExclusions } from '@/features/utilities/hooks/useWatchlistE
 import { useConfig } from '@/hooks/useConfig'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useUserOptions } from '@/hooks/useUserOptions'
-import { apiFetch } from '@/lib/tanstackApi'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 interface WatchlistItemWithUser {
   title: string
@@ -41,8 +42,9 @@ interface WatchlistItemWithUser {
 }
 
 export function WatchlistExclusionsPage() {
-  const { isInitialized, initialize } = useConfig()
+  const { isInitialized, initialize, error: configError } = useConfig()
   const users = useUserList()
+  const usersQuery = useUsers()
   const { options: realUserOptions } = useUserOptions()
   const isInitializing = useInitializeWithMinDuration(initialize)
 
@@ -402,6 +404,19 @@ export function WatchlistExclusionsPage() {
     !hasLoadedWatchlists ||
     exclusionsLoading ||
     exclusionsData === undefined
+
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
+  }
+
+  if (usersQuery.isError && users === null) {
+    return (
+      <PageError
+        message={apiErrorMessage(usersQuery.error) ?? 'Failed to load users'}
+        onRetry={() => usersQuery.refetch()}
+      />
+    )
+  }
 
   if (isInitialLoad) {
     return <WatchlistExclusionsSkeleton />

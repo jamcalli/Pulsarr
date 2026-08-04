@@ -20,6 +20,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PageError } from '@/components/ui/page-error'
 import { Progress } from '@/components/ui/progress'
 import { Select } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
@@ -52,7 +53,11 @@ import { useProgressStore } from '@/stores/progressStore'
  * @returns The React element representing the user tag management interface.
  */
 export function UserTagsPage() {
-  const { config, initialize: configInitialize } = useConfig()
+  const {
+    config,
+    initialize: configInitialize,
+    error: configError,
+  } = useConfig()
 
   const {
     form,
@@ -131,6 +136,12 @@ export function UserTagsPage() {
     })
     setShowAliasCredenza(false)
   }, [form])
+
+  if (configError && !config) {
+    return (
+      <PageError message={configError} onRetry={() => configInitialize(true)} />
+    )
+  }
 
   if (isInitializing || isLoading || !config) {
     return <UserTagsPageSkeleton />

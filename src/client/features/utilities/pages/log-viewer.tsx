@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PageError } from '@/components/ui/page-error'
 import {
   Select,
   SelectContent,
@@ -178,7 +179,7 @@ export function LogViewerPage() {
   const [isToggling, setIsToggling] = useState(false)
 
   // Get config and update functions from store
-  const { config, initialize, isInitialized } = useConfig()
+  const { config, initialize, isInitialized, error: configError } = useConfig()
   const currentLogLevel = config?.logLevel || 'info' // Default to 'info' if not set
 
   // Minimum loading duration for consistent UX
@@ -272,6 +273,10 @@ export function LogViewerPage() {
   }
 
   // Show skeleton during initialization - AFTER all hooks are called
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
+  }
+
   if (isInitializing || !isInitialized) {
     return <LogViewerPageSkeleton />
   }

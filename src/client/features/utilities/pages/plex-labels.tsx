@@ -21,6 +21,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PageError } from '@/components/ui/page-error'
 import { Progress } from '@/components/ui/progress'
 import {
   Select,
@@ -60,7 +61,11 @@ import { useProgressStore } from '@/stores/progressStore'
  * @returns A React element representing the Plex label management interface.
  */
 export function PlexLabelsPage() {
-  const { config, initialize: configInitialize } = useConfig()
+  const {
+    config,
+    initialize: configInitialize,
+    error: configError,
+  } = useConfig()
   const isInitializing = useInitializeWithMinDuration(configInitialize)
 
   const {
@@ -160,6 +165,12 @@ export function PlexLabelsPage() {
         : dayOfWeek
 
     return formatScheduleDisplay(currentTime, currentDay)
+  }
+
+  if (configError && !config) {
+    return (
+      <PageError message={configError} onRetry={() => configInitialize(true)} />
+    )
   }
 
   if (isInitializing || isLoading || !config?.plexLabelSync) {

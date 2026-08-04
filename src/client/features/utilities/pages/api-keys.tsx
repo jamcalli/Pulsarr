@@ -1,6 +1,7 @@
 import { AlertCircle, Loader2, RefreshCw } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { PageError } from '@/components/ui/page-error'
 import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { ApiKeysDeleteConfirmationModal } from '@/features/utilities/components/api-keys/api-keys-delete-confirmation-modal'
@@ -28,7 +29,7 @@ const getUserFriendlyErrorMessage = (error: string) => {
  * @returns The API keys management page as a React element.
  */
 export function ApiKeysPage() {
-  const { isInitialized, initialize } = useConfig()
+  const { isInitialized, initialize, error: configError } = useConfig()
 
   const {
     form,
@@ -52,6 +53,10 @@ export function ApiKeysPage() {
   const isInitializing = useInitializeWithMinDuration(initialize)
 
   const totalKeysCount = apiKeys.length
+
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
+  }
 
   if (isInitializing || !isInitialized || isLoading) {
     return <ApiKeysSkeleton />

@@ -31,8 +31,11 @@ import { approvalKeys } from './hooks/useApprovals'
  * Modal and selection state managed via Zustand store.
  */
 export default function ApprovalsPage() {
-  const { initialize: configInitialize } = useConfig()
-  const { isInitialized: isConfigInitialized } = useConfig()
+  const {
+    initialize: configInitialize,
+    isInitialized: isConfigInitialized,
+    error: configError,
+  } = useConfig()
 
   // Query hooks for data
   const {
@@ -178,6 +181,12 @@ export default function ApprovalsPage() {
     statsLoading ||
     approvalsData === undefined ||
     statsData === undefined
+
+  if (configError && !isConfigInitialized) {
+    return (
+      <PageError message={configError} onRetry={() => configInitialize(true)} />
+    )
+  }
 
   // Show error state
   if (approvalsError && !isLoading) {
