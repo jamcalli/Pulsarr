@@ -102,12 +102,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
     },
     async (request, reply) => {
       try {
-        const { id } = request.params
-        const showId = Number.parseInt(id, 10)
-
-        if (Number.isNaN(showId)) {
-          return reply.badRequest('Invalid show ID')
-        }
+        const showId = request.params.id
 
         const existingShow =
           await fastify.db.getRollingMonitoredShowById(showId)
@@ -156,12 +151,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
     },
     async (request, reply) => {
       try {
-        const { id } = request.params
-        const showId = Number.parseInt(id, 10)
-
-        if (Number.isNaN(showId)) {
-          return reply.badRequest('Invalid show ID')
-        }
+        const showId = request.params.id
 
         const existingShow =
           await fastify.db.getRollingMonitoredShowById(showId)

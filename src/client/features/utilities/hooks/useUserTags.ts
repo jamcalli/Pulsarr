@@ -6,11 +6,13 @@ import type {
   SyncTaggingResponse,
 } from '@root/schemas/tags/user-tags.schema'
 import { TaggingConfigSchema } from '@root/schemas/tags/user-tags.schema'
+import { useMutation } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
-import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
+import { useMinLoadingMutation, withMinDuration } from '@/lib/useMinLoading'
 import { useConfigStore } from '@/stores/configStore'
 
 // Union type for action results
@@ -75,7 +77,7 @@ export function isRemoveTagsResponse(
 /**
  * React hook for managing user tagging configuration and actions for Sonarr and Radarr.
  *
- * Provides form state, validation, and handler functions for configuring user tagging, as well as operations to create, sync, clean up, and remove user tags. Integrates with external stores for configuration and utility state management, synchronizes form values with the global configuration, and manages UI state for tag deletion confirmation. Displays toast notifications for operation results and tracks the status of tag deletion operations.
+ * Provides form state, validation, and handler functions for configuring user tagging, as well as operations to create, sync, clean up, and remove user tags. Synchronizes form values with the global configuration and manages UI state for tag deletion confirmation. Displays toast notifications for operation results and tracks the status of tag deletion operations.
  *
  * @returns An object containing the form instance, flags for operation states, results of the latest actions, tag deletion status, and handler functions for all user tag management operations.
  */
@@ -93,42 +95,66 @@ export function useUserTags() {
   >('idle')
 
   const initialLoadRef = useRef(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [showDeleteTagsConfirmation, setShowDeleteTagsConfirmation] =
+    useState(false)
 
-  const {
-    loading,
-    error,
-    createUserTags,
-    syncUserTags,
-    cleanupUserTags,
-    removeTagsResults,
-    showDeleteTagsConfirmation,
-    setShowDeleteTagsConfirmation,
-    removeUserTags,
-    setLoadingWithMinDuration, // Important - this is used in DeleteSyncForm
-  } = useUtilitiesStore()
+  const createTagsMutation = useMinLoadingMutation(
+    useMutation({
+      mutationFn: async () => {
+        const { data, error } = await withMinDuration(
+          apiFetch.POST('/v1/tags/create'),
+        )
+        if (error) throw error
+        return data
+      },
+    }),
+  )
 
-  // Manually set loading state during initial load
-  useEffect(() => {
-    if (initialLoadRef.current) {
-      useUtilitiesStore.setState((state) => ({
-        ...state,
-        loading: { ...state.loading, userTags: true },
-      }))
-    }
-  }, [])
+  const syncTagsMutation = useMinLoadingMutation(
+    useMutation({
+      mutationFn: async () => {
+        const { data, error } = await withMinDuration(
+          apiFetch.POST('/v1/tags/sync'),
+        )
+        if (error) throw error
+        return data
+      },
+    }),
+  )
+
+  const cleanupTagsMutation = useMinLoadingMutation(
+    useMutation({
+      mutationFn: async () => {
+        const { data, error } = await withMinDuration(
+          apiFetch.POST('/v1/tags/cleanup'),
+        )
+        if (error) throw error
+        return data
+      },
+    }),
+  )
+
+  const removeTagsMutation = useMinLoadingMutation(
+    useMutation({
+      mutationFn: async (deleteTagDefinitions: boolean) => {
+        const { data, error } = await withMinDuration(
+          apiFetch.POST('/v1/tags/remove', {
+            body: { deleteTagDefinitions },
+          }),
+        )
+        if (error) throw error
+        return data
+      },
+    }),
+  )
+
   const {
     config,
     updateConfig,
     fetchConfig,
     error: configError,
   } = useConfigStore()
-
-  // Update local remove results when store results change
-  useEffect(() => {
-    if (removeTagsResults) {
-      setLocalRemoveResults(removeTagsResults)
-    }
-  }, [removeTagsResults])
 
   // Initialize form with default values
   const form = useForm<z.input<typeof TaggingConfigSchema>>({
@@ -175,11 +201,7 @@ export function useUserTags() {
           setIsTagDeletionComplete(false)
         }
 
-        // Clear loading state
-        useUtilitiesStore.setState((state) => ({
-          ...state,
-          loading: { ...state.loading, userTags: false },
-        }))
+        setIsInitialLoading(false)
       }, 500)
 
       return () => {
@@ -197,19 +219,14 @@ export function useUserTags() {
     if (configError && initialLoadRef.current) {
       console.warn('Config fetch failed, clearing loading state:', configError)
       initialLoadRef.current = false
-      useUtilitiesStore.setState((state) => ({
-        ...state,
-        loading: { ...state.loading, userTags: false },
-      }))
+      setIsInitialLoading(false)
     }
   }, [configError])
 
   // Handle form submission - mimicking DeleteSyncForm exactly
   const onSubmit = useCallback(
     async (data: z.input<typeof TaggingConfigSchema>) => {
-      // Set both states to maintain consistency with DeleteSyncForm
       setSaveStatus('loading')
-      setLoadingWithMinDuration(true)
 
       try {
         // Create a copy of the data
@@ -267,11 +284,9 @@ export function useUserTags() {
         setTimeout(() => {
           setSaveStatus('idle')
         }, 1000)
-      } finally {
-        setLoadingWithMinDuration(false)
       }
     },
-    [form, updateConfig, setLoadingWithMinDuration, fetchConfig],
+    [form, updateConfig, fetchConfig],
   )
 
   // Handle form cancellation
@@ -288,14 +303,14 @@ export function useUserTags() {
       // Clear previous remove results
       setLocalRemoveResults(null)
 
-      const result = await createUserTags()
+      const result = await createTagsMutation.mutateAsync()
       setLastActionResults(result)
 
       toast.success(result.message || 'User tags created successfully')
-    } catch (_err) {
-      // Error is already handled in the store and displayed via toast
+    } catch (err) {
+      toast.error(apiErrorMessage(err) ?? 'Failed to create user tags')
     }
-  }, [createUserTags])
+  }, [createTagsMutation.mutateAsync])
 
   // Sync tags operation
   const handleSyncTags = useCallback(async () => {
@@ -306,14 +321,14 @@ export function useUserTags() {
       // Clear previous remove results
       setLocalRemoveResults(null)
 
-      const result = await syncUserTags()
+      const result = await syncTagsMutation.mutateAsync()
       setLastActionResults(result)
 
       toast.success(result.message || 'User tags synced successfully')
-    } catch (_err) {
-      // Error is already handled in the store and displayed via toast
+    } catch (err) {
+      toast.error(apiErrorMessage(err) ?? 'Failed to sync user tags')
     }
-  }, [syncUserTags])
+  }, [syncTagsMutation.mutateAsync])
 
   // Clean up orphaned tags operation
   const handleCleanupTags = useCallback(async () => {
@@ -321,21 +336,21 @@ export function useUserTags() {
       // Clear previous remove results
       setLocalRemoveResults(null)
 
-      const result = await cleanupUserTags()
+      const result = await cleanupTagsMutation.mutateAsync()
       setLastActionResults(result)
 
       toast.success(result.message || 'Orphaned tags cleaned up successfully')
-    } catch (_err) {
-      // Error is already handled in the store and displayed via toast
+    } catch (err) {
+      toast.error(apiErrorMessage(err) ?? 'Failed to clean up orphaned tags')
     }
-  }, [cleanupUserTags])
+  }, [cleanupTagsMutation.mutateAsync])
 
-  // Show loading until we have config loaded - use utilities store loading state for consistent 500ms minimum
-  const isLoading = initialLoadRef.current && loading.userTags
+  // Show loading until config has loaded, with a consistent 500ms minimum
+  const isLoading = isInitialLoading
 
   const initiateRemoveTags = useCallback(() => {
     setShowDeleteTagsConfirmation(true)
-  }, [setShowDeleteTagsConfirmation])
+  }, [])
 
   const handleRemoveTags = useCallback(
     async (deleteTagDefinitions: boolean) => {
@@ -343,7 +358,8 @@ export function useUserTags() {
         // Reset completion state at the start of operation
         setIsTagDeletionComplete(false)
 
-        const result = await removeUserTags(deleteTagDefinitions)
+        const result =
+          await removeTagsMutation.mutateAsync(deleteTagDefinitions)
 
         // Set the local remove results
         setLocalRemoveResults(result)
@@ -362,12 +378,10 @@ export function useUserTags() {
         setIsTagDeletionComplete(false)
         setTagDefinitionsDeleted(false)
 
-        toast.error(
-          err instanceof Error ? err.message : 'Failed to remove user tags',
-        )
+        toast.error(apiErrorMessage(err) ?? 'Failed to remove user tags')
       }
     },
-    [removeUserTags],
+    [removeTagsMutation.mutateAsync],
   )
 
   return {
@@ -375,10 +389,14 @@ export function useUserTags() {
     // Use saveStatus instead of loading.userTags to match the DeleteSyncForm pattern
     isSaving: saveStatus === 'loading',
     isLoading,
-    isCreatingTags: loading.createUserTags,
-    isSyncingTags: loading.syncUserTags,
-    isCleaningTags: loading.cleanupUserTags,
-    error: error.userTags,
+    isCreatingTags: createTagsMutation.isPending,
+    isSyncingTags: syncTagsMutation.isPending,
+    isCleaningTags: cleanupTagsMutation.isPending,
+    error:
+      apiErrorMessage(createTagsMutation.error) ??
+      apiErrorMessage(syncTagsMutation.error) ??
+      apiErrorMessage(cleanupTagsMutation.error) ??
+      apiErrorMessage(removeTagsMutation.error),
     lastActionResults,
     lastRemoveResults: localRemoveResults,
     tagDefinitionsDeleted,
@@ -388,7 +406,7 @@ export function useUserTags() {
     handleCreateTags,
     handleSyncTags,
     handleCleanupTags,
-    isRemovingTags: loading.removeUserTags,
+    isRemovingTags: removeTagsMutation.isPending,
     showDeleteConfirmation: showDeleteTagsConfirmation,
     setShowDeleteConfirmation: setShowDeleteTagsConfirmation,
     initiateRemoveTags,

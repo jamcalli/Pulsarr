@@ -34,7 +34,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
+import { useDeleteSyncDryRunState } from '@/features/utilities/hooks/useDeleteSyncDryRun'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useWatchlistProgress } from '@/hooks/useProgress'
 
@@ -59,7 +59,8 @@ export function DeleteSyncDryRunModal({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { deleteSyncDryRunResults, loading } = useUtilitiesStore()
+  const { results: deleteSyncDryRunResults, isRunning } =
+    useDeleteSyncDryRunState()
   const [searchTerm, setSearchTerm] = useState('')
   const [showResults, setShowResults] = useState(false)
   const [showResultsContainer, setShowResultsContainer] = useState(false)
@@ -85,12 +86,7 @@ export function DeleteSyncDryRunModal({
 
   // Show results after all processing is complete
   useEffect(() => {
-    if (
-      open &&
-      !loading.deleteSyncDryRun &&
-      deleteSyncDryRunResults &&
-      !showResults
-    ) {
+    if (open && !isRunning && deleteSyncDryRunResults && !showResults) {
       // Animate a calculation progress for 1 second before showing results
       let progress = 0
       const interval = setInterval(() => {
@@ -105,7 +101,7 @@ export function DeleteSyncDryRunModal({
 
       return () => clearInterval(interval)
     }
-  }, [open, loading.deleteSyncDryRun, deleteSyncDryRunResults, showResults])
+  }, [open, isRunning, deleteSyncDryRunResults, showResults])
 
   const filterItems = (items: readonly MediaItem[] | undefined) => {
     if (!items) return []
@@ -141,7 +137,7 @@ export function DeleteSyncDryRunModal({
         open={open && !showResultsContainer}
         onOpenChange={(newOpen) => {
           // Only allow closing when not in loading state
-          if (!loading.deleteSyncDryRun && showResults) {
+          if (!isRunning && showResults) {
             onOpenChange(newOpen)
           }
         }}
@@ -150,13 +146,13 @@ export function DeleteSyncDryRunModal({
           className="sm:max-w-md [&>button]:hidden"
           onPointerDownOutside={(e) => {
             // Prevent closing on outside click during loading
-            if (loading.deleteSyncDryRun || !showResults) {
+            if (isRunning || !showResults) {
               e.preventDefault()
             }
           }}
           onEscapeKeyDown={(e) => {
             // Prevent closing with Escape key during loading
-            if (loading.deleteSyncDryRun || !showResults) {
+            if (isRunning || !showResults) {
               e.preventDefault()
             }
           }}
@@ -166,14 +162,14 @@ export function DeleteSyncDryRunModal({
               Delete Sync Analysis
             </DialogTitle>
             <DialogDescription>
-              {loading.deleteSyncDryRun
+              {isRunning
                 ? 'Analyzing your content to determine what would be removed...'
                 : 'Finalizing analysis...'}
             </DialogDescription>
           </DialogHeader>
 
           {/* Loading State */}
-          {loading.deleteSyncDryRun && (
+          {isRunning && (
             <div className="py-4 space-y-8">
               <div className="flex justify-center items-center py-4">
                 <LoaderCircle className="h-16 w-16 animate-spin text-foreground" />
@@ -210,7 +206,7 @@ export function DeleteSyncDryRunModal({
           )}
 
           {/* Analysis State */}
-          {!loading.deleteSyncDryRun && !showResults && (
+          {!isRunning && !showResults && (
             <div className="py-8 space-y-6">
               <div className="flex justify-center items-center py-4">
                 <LoaderCircle className="h-16 w-16 animate-spin text-foreground" />

@@ -7,21 +7,23 @@ import {
   SessionMonitoringConfigSchema,
   type SessionMonitoringFormData,
 } from '@/features/utilities/constants/session-monitoring'
-import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
+import {
+  invalidateSchedules,
+  useScheduleActions,
+  useSchedules,
+} from '@/features/utilities/hooks/useSchedules'
 import { useConfigStore } from '@/stores/configStore'
 
 export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export function useSessionMonitoringForm() {
   const { config, updateConfig } = useConfigStore()
+  const schedules = useSchedules().data
   const {
-    schedules,
-    fetchSchedules,
     toggleScheduleStatus,
     updateSessionMonitorSchedule,
     updateAutoResetSchedule,
-    setLoadingWithMinDuration,
-  } = useUtilitiesStore()
+  } = useScheduleActions()
 
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
   const [submittedValues, setSubmittedValues] =
@@ -201,7 +203,6 @@ export function useSessionMonitoringForm() {
     async (data: SessionMonitoringFormData) => {
       setSubmittedValues(data)
       setSaveStatus('loading')
-      setLoadingWithMinDuration(true)
 
       try {
         const minimumLoadingTime = new Promise((resolve) =>
@@ -233,7 +234,7 @@ export function useSessionMonitoringForm() {
           minimumLoadingTime,
         ])
 
-        await fetchSchedules()
+        await invalidateSchedules()
 
         setSaveStatus('success')
         toast.success('Session monitoring settings updated successfully')
@@ -258,18 +259,14 @@ export function useSessionMonitoringForm() {
           setSubmittedValues(null)
           setSaveStatus('idle')
         }, 1000)
-      } finally {
-        setLoadingWithMinDuration(false)
       }
     },
     [
-      setLoadingWithMinDuration,
       updateConfig,
       sessionMonitorSchedule,
       autoResetSchedule,
       handleUpdateSessionMonitorSchedule,
       handleUpdateAutoResetSchedule,
-      fetchSchedules,
       form,
     ],
   )

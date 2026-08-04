@@ -5,7 +5,7 @@ import {
   useApprovalConfiguration,
 } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
-import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
+import { invalidateSchedules } from '@/features/utilities/hooks/useSchedules'
 import { api } from '@/lib/api'
 
 /**
@@ -21,9 +21,6 @@ export function useApprovalSystem() {
 
   // Scheduler management hook for operational controls
   const scheduleHook = useApprovalScheduler()
-
-  // Utilities store for schedule management
-  const { fetchSchedules } = useUtilitiesStore()
 
   // Sync scheduler data into form when it changes
   useEffect(() => {
@@ -76,7 +73,7 @@ export function useApprovalSystem() {
 
         // Update local state and refresh schedules
         scheduleHook.handleApprovalIntervalChange(data.scheduleInterval)
-        await fetchSchedules()
+        await invalidateSchedules()
       } catch (err) {
         // Schedule update failed, but config was already saved successfully
         console.error(

@@ -86,7 +86,7 @@ export const deleteRollingMonitoredSchema = {
     'Remove a show from rolling monitoring and stop tracking its viewing activity',
   tags: ['Session Monitoring'],
   params: z.object({
-    id: z.string(),
+    id: z.coerce.number(),
   }),
   querystring: z.object({
     reset: z.string().optional(),
@@ -109,7 +109,7 @@ export const resetRollingMonitoredSchema = {
     'Reset a rolling monitored show back to its original monitoring state (pilot only or first season only)',
   tags: ['Session Monitoring'],
   params: z.object({
-    id: z.string(),
+    id: z.coerce.number(),
   }),
   response: {
     200: z.object({

@@ -76,7 +76,7 @@ export function useResetShowMutation() {
       mutationFn: async (id: number) => {
         const { data, error } = await apiFetch.POST(
           '/v1/session-monitoring/rolling-monitored/{id}/reset',
-          { params: { path: { id: String(id) } } },
+          { params: { path: { id } } },
         )
         if (error) throw error
         return data
@@ -94,7 +94,7 @@ export function useDeleteShowMutation() {
       mutationFn: async (id: number) => {
         const { data, error } = await apiFetch.DELETE(
           '/v1/session-monitoring/rolling-monitored/{id}',
-          { params: { path: { id: String(id) }, query: { reset: 'false' } } },
+          { params: { path: { id }, query: { reset: 'false' } } },
         )
         if (error) throw error
         return data

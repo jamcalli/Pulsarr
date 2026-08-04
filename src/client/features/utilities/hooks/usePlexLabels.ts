@@ -9,12 +9,19 @@ import {
   PlexLabelSyncConfigSchema,
 } from '@root/schemas/plex/label-sync-config.schema'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import { useMutation } from '@tanstack/react-query'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
-import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
+import {
+  invalidateSchedules,
+  useScheduleActions,
+  useSchedules,
+} from '@/features/utilities/hooks/useSchedules'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
+import { useMinLoadingMutation, withMinDuration } from '@/lib/useMinLoading'
 import { parseCronExpression } from '@/lib/utils'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -69,7 +76,7 @@ export function isRemoveLabelsResponse(
 /**
  * Provides state and handlers for managing Plex label synchronization configuration, scheduling, and related actions in a React application.
  *
- * This hook integrates with external stores to synchronize Plex label sync settings, manage schedules, and perform actions such as syncing, cleaning, and removing Plex labels. It exposes a validated form instance, state flags for loading and operation status, last operation results, label deletion status, schedule data, and handler functions for all supported operations. Designed for use in UI components that configure or control Plex label synchronization.
+ * This hook persists Plex label sync settings through the global configuration, manages the full sync schedule, and performs actions such as syncing, cleaning, and removing Plex labels. It exposes a validated form instance, state flags for loading and operation status, last operation results, label deletion status, schedule data, and handler functions for all supported operations. Designed for use in UI components that configure or control Plex label synchronization.
  *
  * @returns An object containing the form instance, state flags, last operation results, label deletion status, schedule information, and handler functions for Plex label configuration and actions.
  */
@@ -88,39 +95,52 @@ export function usePlexLabels() {
 
   const initialLoadRef = useRef(true)
 
-  const {
-    loading,
-    error,
-    syncPlexLabels,
-    cleanupPlexLabels,
-    removePlexLabelsResults,
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [
     showDeletePlexLabelsConfirmation,
     setShowDeletePlexLabelsConfirmation,
-    removePlexLabels,
-    toggleScheduleStatus,
-    updateSchedule,
-    fetchSchedules,
-    schedules,
-    setLoadingWithMinDuration, // Important - this is used in DeleteSyncForm
-  } = useUtilitiesStore()
+  ] = useState(false)
 
-  // Manually set loading state during initial load
-  useEffect(() => {
-    if (initialLoadRef.current) {
-      useUtilitiesStore.setState((state) => ({
-        ...state,
-        loading: { ...state.loading, plexLabels: true },
-      }))
-    }
-  }, [])
+  const schedules = useSchedules().data
+  const { toggleScheduleStatus, updateSchedule } = useScheduleActions()
+
+  const syncLabelsMutation = useMinLoadingMutation(
+    useMutation({
+      mutationFn: async () => {
+        const { data, error } = await withMinDuration(
+          apiFetch.POST('/v1/labels/sync'),
+        )
+        if (error) throw error
+        return data
+      },
+    }),
+  )
+
+  const cleanupLabelsMutation = useMinLoadingMutation(
+    useMutation({
+      mutationFn: async () => {
+        const { data, error } = await withMinDuration(
+          apiFetch.POST('/v1/labels/cleanup'),
+        )
+        if (error) throw error
+        return data
+      },
+    }),
+  )
+
+  const removeLabelsMutation = useMinLoadingMutation(
+    useMutation({
+      mutationFn: async () => {
+        const { data, error } = await withMinDuration(
+          apiFetch.DELETE('/v1/labels/remove'),
+        )
+        if (error) throw error
+        return data
+      },
+    }),
+  )
+
   const { config, updateConfig } = useConfigStore()
-
-  // Update local remove results when store results change
-  useEffect(() => {
-    if (removePlexLabelsResults) {
-      setLocalRemoveResults(removePlexLabelsResults)
-    }
-  }, [removePlexLabelsResults])
 
   // Get the plex-label-full-sync job from schedules
   const fullSyncJob = useMemo(() => {
@@ -210,11 +230,7 @@ export function usePlexLabels() {
           setIsLabelDeletionComplete(false)
         }
 
-        // Clear loading state
-        useUtilitiesStore.setState((state) => ({
-          ...state,
-          loading: { ...state.loading, plexLabels: false },
-        }))
+        setIsInitialLoading(false)
 
         setTimeout(() => {
           form.reset(form.getValues(), { keepDirty: false })
@@ -229,10 +245,7 @@ export function usePlexLabels() {
       const fallbackTimer = setTimeout(() => {
         if (initialLoadRef.current) {
           initialLoadRef.current = false
-          useUtilitiesStore.setState((state) => ({
-            ...state,
-            loading: { ...state.loading, plexLabels: false },
-          }))
+          setIsInitialLoading(false)
         }
       }, 3000) // 3 second fallback timeout
 
@@ -269,15 +282,6 @@ export function usePlexLabels() {
     },
     [],
   )
-
-  // Load schedules on mount if not already loaded
-  useEffect(() => {
-    if (!schedules && !loading.schedules) {
-      fetchSchedules().catch((err) => {
-        console.error('Failed to fetch schedules:', err)
-      })
-    }
-  }, [schedules, loading.schedules, fetchSchedules])
 
   // Handle time change for form integration (like Delete Sync)
   const handleTimeChange = useCallback(
@@ -328,21 +332,19 @@ export function usePlexLabels() {
         toast.error(errorMessage)
       } finally {
         // Refresh schedules to update UI state regardless of success/failure
-        await fetchSchedules().catch((fetchErr) => {
+        await invalidateSchedules().catch((fetchErr) => {
           console.error('Failed to refresh schedules after toggle:', fetchErr)
         })
         setIsTogglingFullSyncStatus(false)
       }
     },
-    [toggleScheduleStatus, fetchSchedules],
+    [toggleScheduleStatus],
   )
 
   // Handle form submission - using main config system
   const onSubmit = useCallback(
     async (data: PlexLabelsFormValues) => {
-      // Set both states to maintain consistency with DeleteSyncForm
       setSaveStatus('loading')
-      setLoadingWithMinDuration(true)
 
       try {
         // Transform the form data using the schema before using it
@@ -403,7 +405,7 @@ export function usePlexLabels() {
         ])
 
         // Refresh schedules to get updated data
-        await fetchSchedules()
+        await invalidateSchedules()
 
         // If we enable labeling, we can no longer edit the label format
         if (transformedData.enabled) {
@@ -435,18 +437,9 @@ export function usePlexLabels() {
         setTimeout(() => {
           setSaveStatus('idle')
         }, 1000)
-      } finally {
-        setLoadingWithMinDuration(false)
       }
     },
-    [
-      form,
-      updateConfig,
-      updateSchedule,
-      toggleScheduleStatus,
-      setLoadingWithMinDuration,
-      fetchSchedules,
-    ],
+    [form, updateConfig, updateSchedule, toggleScheduleStatus],
   )
 
   // Handle form cancellation
@@ -465,14 +458,14 @@ export function usePlexLabels() {
       // Clear previous remove results
       setLocalRemoveResults(null)
 
-      const result = await syncPlexLabels()
+      const result = await syncLabelsMutation.mutateAsync()
       setLastActionResults(result)
 
       toast.success(result.message || 'Pulsarr labels synced successfully')
-    } catch (_err) {
-      // Error is already handled in the store and displayed via toast
+    } catch (err) {
+      toast.error(apiErrorMessage(err) ?? 'Failed to sync Pulsarr labels')
     }
-  }, [syncPlexLabels])
+  }, [syncLabelsMutation.mutateAsync])
 
   // Clean up orphaned labels operation
   const handleCleanupLabels = useCallback(async () => {
@@ -480,30 +473,32 @@ export function usePlexLabels() {
       // Clear previous remove results
       setLocalRemoveResults(null)
 
-      const result = await cleanupPlexLabels()
+      const result = await cleanupLabelsMutation.mutateAsync()
       setLastActionResults(result)
 
       toast.success(
         result.message || 'Orphaned Pulsarr labels cleaned up successfully',
       )
-    } catch (_err) {
-      // Error is already handled in the store and displayed via toast
+    } catch (err) {
+      toast.error(
+        apiErrorMessage(err) ?? 'Failed to clean up orphaned Pulsarr labels',
+      )
     }
-  }, [cleanupPlexLabels])
+  }, [cleanupLabelsMutation.mutateAsync])
 
-  // Show loading until we have initial data - use utilities store loading state for consistent 500ms minimum
-  const isLoading = initialLoadRef.current && loading.plexLabels
+  // Show loading until initial config has loaded, with a 500ms minimum
+  const isLoading = isInitialLoading
 
   const initiateRemoveLabels = useCallback(() => {
     setShowDeletePlexLabelsConfirmation(true)
-  }, [setShowDeletePlexLabelsConfirmation])
+  }, [])
 
   const handleRemoveLabels = useCallback(async () => {
     try {
       // Reset completion state at the start of operation
       setIsLabelDeletionComplete(false)
 
-      const result = await removePlexLabels()
+      const result = await removeLabelsMutation.mutateAsync()
 
       // Set the local remove results
       setLocalRemoveResults(result)
@@ -519,11 +514,9 @@ export function usePlexLabels() {
       setIsLabelDeletionComplete(false)
       setLabelDefinitionsDeleted(false)
 
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to remove Pulsarr labels',
-      )
+      toast.error(apiErrorMessage(err) ?? 'Failed to remove Pulsarr labels')
     }
-  }, [removePlexLabels])
+  }, [removeLabelsMutation.mutateAsync])
 
   // Memoize lastResults to avoid referential churn
   const lastResults = useMemo(
@@ -542,7 +535,6 @@ export function usePlexLabels() {
   const handleToggle = useCallback(
     async (newEnabledState: boolean) => {
       setSaveStatus('loading')
-      setLoadingWithMinDuration(true)
 
       try {
         // Apply minimum loading time for better UX
@@ -597,11 +589,9 @@ export function usePlexLabels() {
 
         // Re-throw the error for the component to handle
         throw error
-      } finally {
-        setLoadingWithMinDuration(false)
       }
     },
-    [form, updateConfig, setLoadingWithMinDuration, config?.plexLabelSync],
+    [form, updateConfig, config?.plexLabelSync],
   )
 
   return {
@@ -610,9 +600,12 @@ export function usePlexLabels() {
     isSaving: saveStatus === 'loading',
     isToggling: saveStatus === 'loading' || isTogglingFullSyncStatus,
     isLoading,
-    isSyncingLabels: loading.syncPlexLabels,
-    isCleaningLabels: loading.cleanupPlexLabels,
-    error: error.plexLabels,
+    isSyncingLabels: syncLabelsMutation.isPending,
+    isCleaningLabels: cleanupLabelsMutation.isPending,
+    error:
+      apiErrorMessage(syncLabelsMutation.error) ??
+      apiErrorMessage(cleanupLabelsMutation.error) ??
+      apiErrorMessage(removeLabelsMutation.error),
     lastResults,
     lastActionResults,
     lastRemoveResults: localRemoveResults,
@@ -623,7 +616,7 @@ export function usePlexLabels() {
     handleToggle,
     handleSyncLabels,
     handleCleanupLabels,
-    isRemovingLabels: loading.removePlexLabels,
+    isRemovingLabels: removeLabelsMutation.isPending,
     showDeleteConfirmation: showDeletePlexLabelsConfirmation,
     setShowDeleteConfirmation: setShowDeletePlexLabelsConfirmation,
     initiateRemoveLabels,
