@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
-import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { useArrGenres } from '@/features/arr/useArrGenres'
+import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { useRadarrInstancesQuery } from '@/features/radarr/hooks/instance/useRadarrInstanceQueries'
 import { useConfigStore } from '@/stores/configStore'
 
