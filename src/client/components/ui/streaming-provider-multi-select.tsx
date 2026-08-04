@@ -2,9 +2,9 @@ import type { TmdbWatchProvider } from '@root/schemas/tmdb/tmdb.schema'
 import { useEffect, useState } from 'react'
 import type { ControllerRenderProps } from 'react-hook-form'
 import { MultiSelect } from '@/components/ui/multi-select'
+import { useConfig } from '@/hooks/useConfig'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
 import { apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 interface StreamingServicesFormValues {
   streamingServices: number[]
@@ -21,7 +21,7 @@ const StreamingProviderMultiSelect = ({
 }: StreamingProviderMultiSelectProps) => {
   const [providers, setProviders] = useState<TmdbWatchProvider[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const config = useConfigStore((state) => state.config)
+  const { config } = useConfig()
 
   useEffect(() => {
     const fetchProviders = async () => {

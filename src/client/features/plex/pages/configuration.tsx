@@ -57,12 +57,13 @@ import { usePlexConnection } from '@/features/plex/hooks/usePlexConnection'
 import { usePlexExistenceCheck } from '@/features/plex/hooks/usePlexExistenceCheck'
 import { usePlexRssFeeds } from '@/features/plex/hooks/usePlexRssFeeds'
 import { usePlexSetup } from '@/features/plex/hooks/usePlexSetup'
+import { useUserList } from '@/features/plex/hooks/usePlexUsers'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { usePlexServerDiscovery } from '@/features/utilities/hooks/usePlexServerDiscovery'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { useWatchlistProgress } from '@/hooks/useProgress'
-import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Displays the Plex Configuration page, allowing users to manage Plex integration settings.
@@ -70,9 +71,8 @@ import { useConfigStore } from '@/stores/configStore'
  * Provides an interface for configuring Plex tokens, generating RSS feeds, refreshing watchlist data, and viewing watchlist statistics for the current user and others. Includes responsive layout, loading skeletons, and visual feedback for asynchronous actions.
  */
 export default function PlexConfigurationPage() {
-  const config = useConfigStore((state) => state.config)
-  const initialize = useConfigStore((state) => state.initialize)
-  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const { config } = useConfig()
+  const { initialize } = useConfig()
   const { showSetupModal, setShowSetupModal } = usePlexSetup()
   const [showReauthDialog, setShowReauthDialog] = useState(false)
   const [showRemoveTokenModal, setShowRemoveTokenModal] = useState(false)
@@ -123,10 +123,10 @@ export default function PlexConfigurationPage() {
 
   // RSS feed state
   const { rssStatus, generateRssFeeds } = usePlexRssFeeds()
-  const isInitialized = useConfigStore((state) => state.isInitialized)
+  const { isInitialized } = useConfig()
 
   // Get user data to compute watchlist counts
-  const users = useConfigStore((state) => state.users)
+  const users = useUserList()
   const selfWatchlist = users?.find((user) => user.is_primary_token)
   const otherUsers = users?.filter((user) => !user.is_primary_token) || []
   const othersTotal = otherUsers.reduce(

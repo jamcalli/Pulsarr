@@ -1,10 +1,10 @@
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { useCallback } from 'react'
 import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
+import { useConfig } from '@/hooks/useConfig'
 import { queryClient } from '@/lib/queryClient'
 import { apiErrorMessage } from '@/lib/tanstackApi'
 import { useMinDuration } from '@/lib/useMinLoading'
-import { useConfigStore } from '@/stores/configStore'
 import {
   dashboardStatsKeys,
   useDashboardStatsQuery,
@@ -67,7 +67,7 @@ export function useDashboardStats(): DashboardStatsState {
   const limit = useDashboardStore((s) => s.limit)
   const setLimit = useDashboardStore((s) => s.setLimit)
 
-  const isConfigInitialized = useConfigStore((s) => s.isInitialized)
+  const { isInitialized: isConfigInitialized } = useConfig()
 
   const { data, isLoading, isFetching, error, dataUpdatedAt } =
     useDashboardStatsQuery()

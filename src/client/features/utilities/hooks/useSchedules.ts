@@ -10,7 +10,7 @@ import {
 } from '@/lib/useMinLoading'
 
 export const scheduleKeys = {
-  all: ['get', '/v1/scheduler/schedules'] as const,
+  all: $api.queryOptions('get', '/v1/scheduler/schedules').queryKey,
 }
 
 export function invalidateSchedules() {

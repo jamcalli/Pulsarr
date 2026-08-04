@@ -40,8 +40,8 @@ import {
   useUserTags,
 } from '@/features/utilities/hooks/useUserTags'
 import { UserTagsPageSkeleton } from '@/features/utilities/pages/user-tags-page-skeleton'
+import { useConfig } from '@/hooks/useConfig'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
-import { useConfigStore } from '@/stores/configStore'
 import { useProgressStore } from '@/stores/progressStore'
 
 /**
@@ -52,7 +52,7 @@ import { useProgressStore } from '@/stores/progressStore'
  * @returns The React element representing the user tag management interface.
  */
 export function UserTagsPage() {
-  const { config, initialize: configInitialize } = useConfigStore()
+  const { config, initialize: configInitialize } = useConfig()
 
   const {
     form,
@@ -84,7 +84,7 @@ export function UserTagsPage() {
   const sonarrRemovalProgress = useTaggingProgress('sonarr-tag-removal')
   const radarrRemovalProgress = useTaggingProgress('radarr-tag-removal')
 
-  // Initialize config store with minimum duration for consistent UX
+  // Initialize config with minimum duration for consistent UX
   const isInitializing = useInitializeWithMinDuration(configInitialize)
 
   // Initialize progress connection

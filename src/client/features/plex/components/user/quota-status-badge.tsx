@@ -3,8 +3,8 @@ import type {
   UserQuotaResponse,
 } from '@root/schemas/quota/quota.schema'
 import { Badge } from '@/components/ui/badge'
+import type { UserQuotas } from '@/features/plex/hooks/usePlexUsers'
 import { cn } from '@/lib/utils'
-import type { UserQuotas } from '@/stores/configStore'
 
 type QuotaWithStatus = UserQuotaResponse & Partial<QuotaStatusResponse>
 

@@ -23,7 +23,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
-import { useConfigStore } from '@/stores/configStore'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 
 interface AppriseFormProps {
   isInitialized: boolean
@@ -44,8 +44,7 @@ type AppriseFormSchema = z.infer<typeof appriseFormSchema>
  * @param isInitialized - Indicates whether the configuration is ready for editing.
  */
 export function AppriseForm({ isInitialized }: AppriseFormProps) {
-  const config = useConfigStore((state) => state.config)
-  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const { config } = useConfig()
   const [appriseStatus, setAppriseStatus] = React.useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')

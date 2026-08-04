@@ -45,9 +45,9 @@ import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sy
 import { DeleteSyncPageSkeleton } from '@/features/utilities/components/delete-sync/delete-sync-page-skeleton'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { useConfig } from '@/hooks/useConfig'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { formatScheduleDisplay } from '@/lib/utils'
-import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Renders the Delete Sync page, providing a user interface to configure, schedule, and manage automated deletion of media content based on watchlist or tag criteria.
@@ -87,11 +87,11 @@ export default function DeleteSyncPage() {
     setShowDryRunModal,
   } = useDeleteSync()
 
-  const { initialize: configInitialize } = useConfigStore()
+  const { initialize: configInitialize, isInitialized } = useConfig()
 
   const navigate = useNavigate()
 
-  // Initialize config store with minimum duration for consistent UX
+  // Initialize config with minimum duration for consistent UX
   const isInitializing = useInitializeWithMinDuration(configInitialize)
 
   // Determine status based on job state
@@ -115,7 +115,7 @@ export default function DeleteSyncPage() {
     )
   }
 
-  if (isInitializing || !deleteSyncJob) {
+  if (isInitializing || !isInitialized || !deleteSyncJob) {
     return <DeleteSyncPageSkeleton />
   }
 

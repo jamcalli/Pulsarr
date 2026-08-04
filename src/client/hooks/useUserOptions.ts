@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useConfigStore } from '@/stores/configStore'
+import { useUserList } from '@/features/plex/hooks/usePlexUsers'
 
 export interface UserOption {
   label: string
@@ -14,7 +14,7 @@ export interface UseUserOptionsResult {
 /**
  * Returns a memoized list of user options for select/multi-select components.
  *
- * Fetches users from configStore and formats them consistently:
+ * Formats users into select options:
  * - Label: "name (alias)" if alias exists, otherwise just "name"
  * - Value: user ID as string
  * - Sorted alphabetically by label
@@ -28,7 +28,7 @@ export interface UseUserOptionsResult {
  * ```
  */
 export function useUserOptions(): UseUserOptionsResult {
-  const users = useConfigStore((s) => s.users)
+  const users = useUserList()
 
   const options = useMemo(() => {
     if (!users) return []

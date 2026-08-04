@@ -50,9 +50,9 @@ import {
 } from '@/features/sonarr/store/constants'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { useConfig } from '@/hooks/useConfig'
 import { apiErrorMessage } from '@/lib/tanstackApi'
 import { cn } from '@/lib/utils'
-import { useConfigStore } from '@/stores/configStore'
 import SyncedInstancesSelect from '../selects/sonarr-synced-instance-select'
 import DeleteInstanceAlert from './delete-instance-alert'
 import InstanceCardSkeleton from './sonarr-card-skeleton'
@@ -81,7 +81,7 @@ export function InstanceCard({
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [isManualSync, setIsManualSync] = useState(false)
   const tagsSelectRef = useRef<TagsMultiSelectRef>(null)
-  const { config } = useConfigStore()
+  const { config } = useConfig()
   const isSessionMonitoringEnabled =
     config?.plexSessionMonitoring?.enabled || false
 

@@ -2,6 +2,10 @@ import type { UpdateSeparateQuotas } from '@root/schemas/quota/quota.schema'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import {
+  invalidateQuotaData,
+  type UserWithQuotaInfo,
+} from '@/features/plex/hooks/usePlexUsers'
+import {
   type QuotaEditStatus,
   QuotaFormSchema,
   type QuotaFormValues,
@@ -9,8 +13,6 @@ import {
 } from '@/features/plex/quota/form-schema'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
-import type { UserWithQuotaInfo } from '@/stores/configStore'
-import { useConfigStore } from '@/stores/configStore'
 
 interface SaveQuotaOptions {
   autoApproveHeld?: boolean
@@ -24,7 +26,6 @@ interface SaveQuotaOptions {
  * @returns An object containing the current save status, a function to save or update quotas, a setter for save status, and a function to fetch a user's quota status.
  */
 export function useQuotaManagement() {
-  const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)
   const [saveStatus, setSaveStatus] = useState<QuotaEditStatus>({
     type: 'idle',
   })
@@ -120,8 +121,7 @@ export function useQuotaManagement() {
           minimumLoadingTime,
         ])
 
-        // Refresh quota data from the store
-        await refreshQuotaData()
+        await invalidateQuotaData()
 
         setSaveStatus({
           type: 'success',
@@ -147,7 +147,7 @@ export function useQuotaManagement() {
         setSaveStatus({ type: 'idle' })
       }
     },
-    [updateSeparateQuotas, deleteQuota, refreshQuotaData],
+    [updateSeparateQuotas, deleteQuota],
   )
 
   return {

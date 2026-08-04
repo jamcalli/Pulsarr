@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { useShallow } from 'zustand/shallow'
 import { AnalyticsDashboard } from '@/features/dashboard/components/analytics-dashboard'
 import { PopularityRankings } from '@/features/dashboard/components/popularity-rankings'
 import { RecentRequests } from '@/features/dashboard/components/recent-requests'
@@ -7,12 +6,12 @@ import { StatsHeader } from '@/features/dashboard/components/stats-header'
 import { useDashboardSSE } from '@/features/dashboard/hooks/useDashboardSSE'
 import { useDashboardStats } from '@/features/dashboard/hooks/useDashboardStats'
 import { toast } from '@/hooks/use-toast'
-import { useConfigStore } from '@/stores/configStore'
+import { useConfig } from '@/hooks/useConfig'
 
 /**
  * Dashboard page that ensures configuration is initialized, surfaces config errors, and renders dashboard UI.
  *
- * Initializes the app configuration once on mount (if not already initialized), listens for configuration errors from the config store and shows a destructive toast for new errors, and provides a stable refresh handler that triggers stats refreshes and surfaces failures via toast. Renders the StatsHeader (with refresh button), PopularityRankings, and AnalyticsDashboard.
+ * Initializes the app configuration once on mount (if not already initialized), listens for configuration errors and shows a destructive toast for new errors, and provides a stable refresh handler that triggers stats refreshes and surfaces failures via toast. Renders the StatsHeader (with refresh button), PopularityRankings, and AnalyticsDashboard.
  *
  * @returns The Dashboard page React element.
  */
@@ -21,13 +20,11 @@ export function DashboardPage() {
   useDashboardSSE()
 
   const { refreshStats, isLoading, isRefreshing } = useDashboardStats()
-  const { configInitialize, isConfigInitialized, configError } = useConfigStore(
-    useShallow((state) => ({
-      configInitialize: state.initialize,
-      isConfigInitialized: state.isInitialized,
-      configError: state.error,
-    })),
-  )
+  const {
+    initialize: configInitialize,
+    isInitialized: isConfigInitialized,
+    error: configError,
+  } = useConfig()
 
   const hasInitialRefresh = useRef(false)
   const initInFlight = useRef(false)
@@ -57,7 +54,7 @@ export function DashboardPage() {
     }
   }, [configInitialize, isConfigInitialized])
 
-  // React to config errors from the store
+  // React to config errors
   useEffect(() => {
     if (!configError) return
     const msg =

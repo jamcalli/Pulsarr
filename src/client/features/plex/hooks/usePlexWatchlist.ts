@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+import {
+  invalidateUserData,
+  useOthersWatchlistInfo,
+  useSelfWatchlistInfo,
+} from '@/features/plex/hooks/usePlexUsers'
 import { apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 export type WatchlistStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -13,16 +17,8 @@ export type WatchlistStatus = 'idle' | 'loading' | 'success' | 'error'
  * @returns An object containing self and others watchlist data, their loading statuses, status setters, and a refresh function.
  */
 export function usePlexWatchlist() {
-  const fetchUserData = useConfigStore((state) => state.fetchUserData)
-  const getSelfWatchlistInfo = useConfigStore(
-    (state) => state.getSelfWatchlistInfo,
-  )
-  const getOthersWatchlistInfo = useConfigStore(
-    (state) => state.getOthersWatchlistInfo,
-  )
-
-  const selfWatchlist = getSelfWatchlistInfo()
-  const othersWatchlist = getOthersWatchlistInfo()
+  const selfWatchlist = useSelfWatchlistInfo()
+  const othersWatchlist = useOthersWatchlistInfo()
 
   const [selfWatchlistStatus, setSelfWatchlistStatus] =
     useState<WatchlistStatus>('idle')
@@ -51,7 +47,7 @@ export function usePlexWatchlist() {
       setOthersWatchlistStatus('success')
 
       // Refresh user data
-      await fetchUserData()
+      await invalidateUserData()
 
       toast.success('Watchlist data has been updated')
     } catch (_error) {

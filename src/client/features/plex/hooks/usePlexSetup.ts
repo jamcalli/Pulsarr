@@ -1,12 +1,10 @@
 import { useState } from 'react'
+import { invalidateUserData } from '@/features/plex/hooks/usePlexUsers'
+import { refreshRssFeeds, updateConfig } from '@/hooks/useConfig'
 import { apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 export function usePlexSetup() {
   const [showSetupModal, setShowSetupModal] = useState(false)
-  const updateConfig = useConfigStore((state) => state.updateConfig)
-  const fetchUserData = useConfigStore((state) => state.fetchUserData)
-  const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
 
   // Function to handle setting up a new Plex token
   const setupPlexToken = async (token: string) => {
@@ -27,7 +25,7 @@ export function usePlexSetup() {
     await refreshRssFeeds()
 
     // Refresh user data
-    await fetchUserData()
+    await invalidateUserData()
   }
 
   return {

@@ -17,7 +17,7 @@ import {
 } from '@/lib/useMinLoading'
 
 export const apiKeyKeys = {
-  all: ['get', '/v1/api-keys/api-keys'] as const,
+  all: $api.queryOptions('get', '/v1/api-keys/api-keys').queryKey,
 }
 
 function invalidateApiKeyCaches() {

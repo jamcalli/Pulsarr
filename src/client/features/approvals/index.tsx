@@ -18,9 +18,9 @@ import { useApprovalStats } from '@/features/approvals/hooks/useApprovalStats'
 import { useApprovals } from '@/features/approvals/hooks/useApprovals'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
+import { useConfig } from '@/hooks/useConfig'
 import { queryClient } from '@/lib/queryClient'
 import { apiErrorMessage } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 import { approvalStatsKeys } from './hooks/useApprovalStats'
 import { approvalKeys } from './hooks/useApprovals'
 
@@ -31,8 +31,8 @@ import { approvalKeys } from './hooks/useApprovals'
  * Modal and selection state managed via Zustand store.
  */
 export default function ApprovalsPage() {
-  const configInitialize = useConfigStore((state) => state.initialize)
-  const isConfigInitialized = useConfigStore((state) => state.isInitialized)
+  const { initialize: configInitialize } = useConfig()
+  const { isInitialized: isConfigInitialized } = useConfig()
 
   // Query hooks for data
   const {
@@ -77,7 +77,7 @@ export default function ApprovalsPage() {
   const tableRef = useRef<ApprovalTableRef>(null)
   const hasInitializedRef = useRef(false)
 
-  // Initialize config store on mount
+  // Initialize config on mount
   useEffect(() => {
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true

@@ -58,7 +58,13 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { UserAvatarSkeleton } from '@/components/ui/user-avatar-skeleton'
-import { useConfigStore } from '@/stores/configStore'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
+import {
+  type PrefDef,
+  parseBooleanRecord,
+  readPref,
+  writePref,
+} from '@/lib/prefs'
 
 // Navigation data
 const data = {
@@ -262,7 +268,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setFullscreenEnabled,
   } = useSettings()
   const [showLogoutAlert, setShowLogoutAlert] = React.useState(false)
-  const { currentUser, currentUserLoading, fetchCurrentUser } = useConfigStore()
+  const { currentUser, currentUserLoading } = useCurrentUser()
 
   // Memoized default sections to avoid recalculation
   const defaultSections = React.useMemo(
@@ -270,25 +276,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     [],
   )
 
+  const openSectionsPref = React.useMemo<PrefDef<Record<string, boolean>>>(
+    () => ({
+      key: 'sidebar-open-sections',
+      fallback: defaultSections,
+      parse: parseBooleanRecord,
+      serialize: JSON.stringify,
+    }),
+    [defaultSections],
+  )
+
   // Persistent collapsible state
   const [openSections, setOpenSections] = React.useState<
     Record<string, boolean>
-  >(() => {
-    try {
-      const saved = localStorage.getItem('sidebar-open-sections')
-      if (saved) {
-        return JSON.parse(saved)
-      }
-      return defaultSections
-    } catch {
-      return defaultSections
-    }
-  })
+  >(() => readPref(openSectionsPref))
 
-  // Save to localStorage whenever state changes
   React.useEffect(() => {
-    localStorage.setItem('sidebar-open-sections', JSON.stringify(openSections))
-  }, [openSections])
+    writePref(openSectionsPref, openSections)
+  }, [openSectionsPref, openSections])
 
   const toggleSection = React.useCallback((title: string) => {
     setOpenSections((prev) => ({ ...prev, [title]: !prev[title] }))
@@ -304,11 +309,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       setActiveSection('')
     }
   }, [location.pathname])
-
-  // Fetch current user data on mount
-  React.useEffect(() => {
-    fetchCurrentUser()
-  }, [fetchCurrentUser])
 
   // Memoized user avatar fallback to avoid string manipulation on every render
   const userAvatarFallback = React.useMemo(() => {

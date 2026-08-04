@@ -24,8 +24,8 @@ import { PlexNotificationsConfirmationModal } from '@/features/utilities/compone
 import { PlexNotificationsPageSkeleton } from '@/features/utilities/components/plex-notifications/plex-notifications-page-skeleton'
 import { usePlexNotifications } from '@/features/utilities/hooks/usePlexNotifications'
 import { usePlexServerDiscovery } from '@/features/utilities/hooks/usePlexServerDiscovery'
+import { useConfig } from '@/hooks/useConfig'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
-import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Renders the Plex Notifications configuration page, allowing users to manage Plex notification integration for all Radarr and Sonarr instances.
@@ -33,9 +33,9 @@ import { useConfigStore } from '@/stores/configStore'
  * Users can enter Plex connection details, discover and select available Plex servers, view the status of notifications for each Radarr and Sonarr instance, and remove all Plex notifications with confirmation. The page provides real-time feedback on configuration status and supports safe, validated updates.
  */
 export default function PlexNotificationsPage() {
-  const initialize = useConfigStore((state) => state.initialize)
+  const { initialize } = useConfig()
 
-  // Initialize config store with minimum duration for consistent UX
+  // Initialize config with minimum duration for consistent UX
   const isInitializing = useInitializeWithMinDuration(initialize)
 
   const {

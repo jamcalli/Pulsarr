@@ -47,9 +47,9 @@ import {
   usePlexLabels,
 } from '@/features/utilities/hooks/usePlexLabels'
 import { PlexLabelsPageSkeleton } from '@/features/utilities/pages/plex-labels-page-skeleton'
+import { useConfig } from '@/hooks/useConfig'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { formatScheduleDisplay } from '@/lib/utils'
-import { useConfigStore } from '@/stores/configStore'
 import { useProgressStore } from '@/stores/progressStore'
 
 /**
@@ -60,7 +60,7 @@ import { useProgressStore } from '@/stores/progressStore'
  * @returns A React element representing the Plex label management interface.
  */
 export function PlexLabelsPage() {
-  const { config, initialize: configInitialize } = useConfigStore()
+  const { config, initialize: configInitialize } = useConfig()
   const isInitializing = useInitializeWithMinDuration(configInitialize)
 
   const {

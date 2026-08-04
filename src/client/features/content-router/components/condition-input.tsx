@@ -23,8 +23,8 @@ import {
   MovieStatusOptions,
   SeriesStatusOptions,
 } from '@/features/content-router/types/route-types'
+import { useConfig } from '@/hooks/useConfig'
 import { useUserOptions } from '@/hooks/useUserOptions'
-import { useConfigStore } from '@/stores/configStore'
 
 interface FieldState {
   [key: string]: string | string[]
@@ -83,7 +83,7 @@ const StableTextInput = ({
 /**
  * Renders a dynamic input control for conditional filtering, selecting the appropriate input type and value handling based on the provided field, operator, and allowed value types.
  *
- * Supports text, number, range, single-select, and multi-select inputs for fields such as genre, user, year, certification, and language. Integrates with a global config store to fetch user data as needed and handles value parsing for both single and multi-value scenarios.
+ * Supports text, number, range, single-select, and multi-select inputs for fields such as genre, user, year, certification, and language. Handles value parsing for both single and multi-value scenarios.
  *
  * @returns The rendered input element for the specified field and operator, or null if required information is missing.
  */
@@ -112,10 +112,8 @@ function ConditionInput({
   // Get user options from shared hook
   const { options: userOptions } = useUserOptions()
 
-  // Initialize the config store if needed to fetch users
-  const fetchUserData = useConfigStore((state) => state.fetchUserData)
-  const isInitialized = useConfigStore((state) => state.isInitialized)
-  const initialize = useConfigStore((state) => state.initialize)
+  const { isInitialized } = useConfig()
+  const { initialize } = useConfig()
 
   useEffect(() => {
     const initializeStore = async () => {
@@ -123,14 +121,13 @@ function ConditionInput({
         if (!isInitialized) {
           await initialize()
         }
-        await fetchUserData()
       } catch (error) {
         console.error('Error initializing condition input:', error)
       }
     }
 
     initializeStore()
-  }, [initialize, isInitialized, fetchUserData])
+  }, [initialize, isInitialized])
 
   // Store handler functions to keep them stable between renders
   const handlers = useRef({

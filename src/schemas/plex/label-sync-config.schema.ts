@@ -36,9 +36,6 @@ export const PlexLabelSyncConfigSchema = z
       .describe(
         'Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode',
       ),
-    // Schedule fields for full sync automation
-    scheduleTime: z.coerce.date().optional(),
-    dayOfWeek: z.string(),
     // Tag syncing configuration
     tagSync: z.object({
       // Enable/disable tag syncing from Radarr/Sonarr instances

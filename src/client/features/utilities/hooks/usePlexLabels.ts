@@ -14,18 +14,25 @@ import { formatDistanceToNow, parseISO } from 'date-fns'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import type { z } from 'zod'
+import { z } from 'zod'
 import {
   invalidateSchedules,
   useScheduleActions,
   useSchedules,
 } from '@/features/utilities/hooks/useSchedules'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 import { useMinLoadingMutation, withMinDuration } from '@/lib/useMinLoading'
 import { parseCronExpression } from '@/lib/utils'
-import { useConfigStore } from '@/stores/configStore'
 
-export type PlexLabelsFormValues = z.input<typeof PlexLabelSyncConfigSchema>
+// Form-only schedule fields: the full sync schedule persists through the
+// scheduler API as a cron expression, not through config
+const PlexLabelsFormSchema = PlexLabelSyncConfigSchema.safeExtend({
+  scheduleTime: z.date().optional(),
+  dayOfWeek: z.string(),
+})
+
+export type PlexLabelsFormValues = z.input<typeof PlexLabelsFormSchema>
 
 // Union type for action results
 type ActionResult =
@@ -140,7 +147,7 @@ export function usePlexLabels() {
     }),
   )
 
-  const { config, updateConfig } = useConfigStore()
+  const { config } = useConfig()
 
   // Get the plex-label-full-sync job from schedules
   const fullSyncJob = useMemo(() => {
@@ -157,7 +164,7 @@ export function usePlexLabels() {
 
   // Initialize form with default values
   const form = useForm<PlexLabelsFormValues>({
-    resolver: zodResolver(PlexLabelSyncConfigSchema),
+    resolver: zodResolver(PlexLabelsFormSchema),
     mode: 'onChange',
     defaultValues: {
       enabled: false,
@@ -348,8 +355,13 @@ export function usePlexLabels() {
 
       try {
         // Transform the form data using the schema before using it
-        const transformedData = PlexLabelSyncConfigSchema.parse(data)
+        const transformedData = PlexLabelsFormSchema.parse(data)
         const formDataCopy = { ...transformedData }
+        const {
+          scheduleTime: _scheduleTime,
+          dayOfWeek: _dayOfWeek,
+          ...configData
+        } = transformedData
 
         // Create minimum loading time promise
         const minimumLoadingTime = new Promise((resolve) =>
@@ -358,7 +370,7 @@ export function usePlexLabels() {
 
         // Update config through main config system
         const updateConfigPromise = updateConfig({
-          plexLabelSync: formDataCopy,
+          plexLabelSync: configData,
         })
 
         // Handle schedule update based on scheduleTime
@@ -428,8 +440,7 @@ export function usePlexLabels() {
         setSaveStatus('idle')
       } catch (error) {
         console.error('Failed to save configuration:', error)
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to save settings'
+        const errorMessage = apiErrorMessage(error) ?? 'Failed to save settings'
 
         setSaveStatus('error')
         toast.error(errorMessage)
@@ -576,9 +587,8 @@ export function usePlexLabels() {
       } catch (error) {
         console.error('Failed to toggle Plex labeling:', error)
         const errorMessage =
-          error instanceof Error
-            ? error.message
-            : `Failed to ${newEnabledState ? 'enable' : 'disable'} Plex labeling`
+          apiErrorMessage(error) ??
+          `Failed to ${newEnabledState ? 'enable' : 'disable'} Plex labeling`
 
         setSaveStatus('error')
         toast.error(errorMessage)

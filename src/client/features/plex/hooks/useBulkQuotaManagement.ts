@@ -1,6 +1,7 @@
 import type { BulkQuotaOperation } from '@root/schemas/quota/quota.schema.js'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
+import { invalidateQuotaData } from '@/features/plex/hooks/usePlexUsers'
 import type {
   BulkQuotaFormData,
   QuotaEditStatus,
@@ -8,7 +9,6 @@ import type {
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Helper function to format success messages for bulk quota operations.
@@ -61,7 +61,6 @@ function buildQuotaPayload(
  * @returns An object with the current save status, a function to perform bulk quota operations, and a setter for the save status.
  */
 export function useBulkQuotaManagement() {
-  const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)
   const [saveStatus, setSaveStatus] = useState<QuotaEditStatus>({
     type: 'idle',
   })
@@ -162,8 +161,7 @@ export function useBulkQuotaManagement() {
           minimumLoadingTime,
         ])
 
-        // Refresh quota data from the store
-        await refreshQuotaData()
+        await invalidateQuotaData()
 
         setSaveStatus({
           type: 'success',
@@ -189,7 +187,7 @@ export function useBulkQuotaManagement() {
         setSaveStatus({ type: 'idle' })
       }
     },
-    [deleteQuotas, updateBulkQuotas, refreshQuotaData],
+    [deleteQuotas, updateBulkQuotas],
   )
 
   return {

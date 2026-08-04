@@ -25430,7 +25430,7 @@
         }
       }
     },
-    "/v1/config/": {
+    "/v1/config": {
       "get": {
         "operationId": "getConfig",
         "summary": "Get configuration",
@@ -25758,12 +25758,6 @@
                               "type": "boolean",
                               "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
                             },
-                            "scheduleTime": {
-                              "type": "string"
-                            },
-                            "dayOfWeek": {
-                              "type": "string"
-                            },
                             "tagSync": {
                               "type": "object",
                               "properties": {
@@ -25793,7 +25787,6 @@
                             "cleanupOrphanedLabels",
                             "removedLabelMode",
                             "autoResetOnScheduledSync",
-                            "dayOfWeek",
                             "tagSync"
                           ],
                           "additionalProperties": false
@@ -26598,12 +26591,6 @@
                         "type": "boolean",
                         "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
                       },
-                      "scheduleTime": {
-                        "type": "string"
-                      },
-                      "dayOfWeek": {
-                        "type": "string"
-                      },
                       "tagSync": {
                         "type": "object",
                         "properties": {
@@ -26631,7 +26618,6 @@
                       "cleanupOrphanedLabels",
                       "removedLabelMode",
                       "autoResetOnScheduledSync",
-                      "dayOfWeek",
                       "tagSync"
                     ]
                   },
@@ -26659,17 +26645,10 @@
                         "minimum": 1
                       },
                       "filterUsers": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        ]
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
                       },
                       "enableAutoReset": {
                         "type": "boolean"
@@ -26844,7 +26823,7 @@
                   },
                   "tmdbRegion": {
                     "type": "string",
-                    "pattern": "^[A-Za-z]{2}$"
+                    "pattern": "^[A-Z]{2}$"
                   },
                   "tagUsersInSonarr": {
                     "type": "boolean"
@@ -27256,12 +27235,6 @@
                               "type": "boolean",
                               "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
                             },
-                            "scheduleTime": {
-                              "type": "string"
-                            },
-                            "dayOfWeek": {
-                              "type": "string"
-                            },
                             "tagSync": {
                               "type": "object",
                               "properties": {
@@ -27291,7 +27264,6 @@
                             "cleanupOrphanedLabels",
                             "removedLabelMode",
                             "autoResetOnScheduledSync",
-                            "dayOfWeek",
                             "tagSync"
                           ],
                           "additionalProperties": false

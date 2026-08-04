@@ -1,13 +1,13 @@
 import type { BulkUpdateRequest } from '@root/schemas/users/users.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { invalidateUserData } from '@/features/plex/hooks/usePlexUsers'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type {
   PlexUserTableRow,
   PlexUserUpdates,
 } from '@/features/plex/store/types'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 export type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -17,7 +17,6 @@ export type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
  * Returns the current modal open state, a setter for modal visibility, the current update status, selected rows for editing, and functions to open the bulk edit modal and execute the bulk update operation.
  */
 export function usePlexBulkUpdate() {
-  const fetchUserData = useConfigStore((state) => state.fetchUserData)
   const [bulkEditModalOpen, setBulkEditModalOpen] = useState(false)
   const [updateStatus, setUpdateStatus] = useState<BulkUpdateStatus>('idle')
   const [selectedRows, setSelectedRows] = useState<PlexUserTableRow[]>([])
@@ -54,7 +53,7 @@ export function usePlexBulkUpdate() {
       )
 
       // Refresh user data
-      await fetchUserData()
+      await invalidateUserData()
 
       // Show success state then close
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY / 2))

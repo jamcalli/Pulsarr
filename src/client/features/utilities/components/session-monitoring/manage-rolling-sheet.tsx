@@ -238,7 +238,7 @@ export function ManageRollingSheet({
     },
   })
 
-  // Update table pageSize when localStorage value changes
+  // Sync table pageSize when the persisted preference changes
   React.useEffect(() => {
     table.setPageSize(pageSize)
   }, [pageSize, table])

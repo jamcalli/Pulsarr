@@ -4,16 +4,15 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { usePlexMobileStatus } from '@/hooks/notifications/usePlexMobileStatus'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { cn } from '@/lib/utils'
-import { useConfigStore } from '@/stores/configStore'
 
 interface PlexMobileFormProps {
   isInitialized: boolean
 }
 
 export function PlexMobileForm({ isInitialized }: PlexMobileFormProps) {
-  const config = useConfigStore((state) => state.config)
-  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const { config } = useConfig()
   const status = usePlexMobileStatus()
 
   const [isToggling, setIsToggling] = useState(false)

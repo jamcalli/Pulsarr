@@ -29,9 +29,9 @@ import {
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import type { UserStatus } from '@/features/plex/hooks/usePlexUser'
+import type { UserWatchlistInfo } from '@/features/plex/hooks/usePlexUsers'
 import { plexUserSchema } from '@/features/plex/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import type { UserWatchlistInfo } from '@/stores/configStore'
 
 interface FormContentProps {
   form: ReturnType<typeof useForm<z.input<typeof plexUserSchema>>>

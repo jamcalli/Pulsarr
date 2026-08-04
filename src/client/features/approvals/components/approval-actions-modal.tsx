@@ -30,8 +30,8 @@ import { ApprovalRequestInfo } from '@/features/approvals/components/approval-re
 import { ApprovalSonarrRoutingCard } from '@/features/approvals/components/approval-sonarr-routing-card'
 import { ApprovalStatusBadge } from '@/features/approvals/components/approval-status-badge'
 import { useApprovalModalActions } from '@/features/approvals/hooks/useApprovalModalActions'
+import { useUserList } from '@/features/plex/hooks/usePlexUsers'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { useConfigStore } from '@/stores/configStore'
 
 interface ApprovalActionsModalProps {
   request: ApprovalRequestResponse
@@ -109,7 +109,7 @@ export default function ApprovalActionsModal({
     isAnyActionInProgress,
   } = useApprovalModalActions({ request, onOpenChange })
 
-  const users = useConfigStore((state) => state.users)
+  const users = useUserList()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isDesktop = !isMobile
 

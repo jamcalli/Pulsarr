@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { useUserList } from '@/features/plex/hooks/usePlexUsers'
 import {
   type BulkExclusionScope,
   type BulkExclusionStatus,
@@ -23,10 +24,10 @@ import {
   useRemoveWatchlistExclusion,
 } from '@/features/utilities/hooks/useWatchlistExclusionMutations'
 import { useWatchlistExclusions } from '@/features/utilities/hooks/useWatchlistExclusions'
+import { useConfig } from '@/hooks/useConfig'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useUserOptions } from '@/hooks/useUserOptions'
 import { apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 interface WatchlistItemWithUser {
   title: string
@@ -40,8 +41,8 @@ interface WatchlistItemWithUser {
 }
 
 export function WatchlistExclusionsPage() {
-  const { isInitialized, initialize } = useConfigStore()
-  const users = useConfigStore((state) => state.users)
+  const { isInitialized, initialize } = useConfig()
+  const users = useUserList()
   const { options: realUserOptions } = useUserOptions()
   const isInitializing = useInitializeWithMinDuration(initialize)
 
@@ -126,10 +127,12 @@ export function WatchlistExclusionsPage() {
   }, [users])
 
   React.useEffect(() => {
-    if (isInitialized && !hasLoadedWatchlists) {
+    // Users load from a separate query - fetching before they arrive would
+    // latch hasLoadedWatchlists with an empty item list
+    if (isInitialized && users !== null && !hasLoadedWatchlists) {
       fetchAllWatchlistItems()
     }
-  }, [isInitialized, hasLoadedWatchlists, fetchAllWatchlistItems])
+  }, [isInitialized, users, hasLoadedWatchlists, fetchAllWatchlistItems])
 
   const tableData = React.useMemo<WatchlistExclusionTableRow[]>(() => {
     const perUserExclusionByUserAndKey = new Map<

@@ -30,7 +30,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useConfigStore } from '@/stores/configStore'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 
 // Frontend form schema with user-friendly validation (before conversion to milliseconds)
 const generalFormSchema = z.object({
@@ -66,8 +66,7 @@ const DEFAULT_NEW_EPISODE_THRESHOLD = 172800000 // 48 hours (2 days)
 export function GeneralSettingsForm({
   isInitialized,
 }: GeneralSettingsFormProps) {
-  const config = useConfigStore((state) => state.config)
-  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const { config } = useConfig()
   const [generalStatus, setGeneralStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')

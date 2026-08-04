@@ -11,9 +11,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
+import { invalidateConfig, updateConfig, useConfig } from '@/hooks/useConfig'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 import { useMinLoadingMutation, withMinDuration } from '@/lib/useMinLoading'
-import { useConfigStore } from '@/stores/configStore'
 
 // Union type for action results
 type ActionResult =
@@ -149,12 +149,7 @@ export function useUserTags() {
     }),
   )
 
-  const {
-    config,
-    updateConfig,
-    fetchConfig,
-    error: configError,
-  } = useConfigStore()
+  const { config, error: configError } = useConfig()
 
   // Initialize form with default values
   const form = useForm<z.input<typeof TaggingConfigSchema>>({
@@ -266,7 +261,7 @@ export function useUserTags() {
         form.reset(formDataCopy, { keepDirty: false })
 
         // Refresh the global config to ensure Delete Sync form gets the updated values
-        await fetchConfig()
+        await invalidateConfig()
 
         // Wait before setting status back to idle (exactly like DeleteSyncForm)
         await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -275,8 +270,7 @@ export function useUserTags() {
         setSaveStatus('idle')
       } catch (error) {
         console.error('Failed to save configuration:', error)
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to save settings'
+        const errorMessage = apiErrorMessage(error) ?? 'Failed to save settings'
 
         setSaveStatus('error')
         toast.error(errorMessage)
@@ -286,7 +280,7 @@ export function useUserTags() {
         }, 1000)
       }
     },
-    [form, updateConfig, fetchConfig],
+    [form],
   )
 
   // Handle form cancellation

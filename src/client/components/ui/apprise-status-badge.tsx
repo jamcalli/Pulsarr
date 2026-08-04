@@ -1,12 +1,12 @@
 import { Badge } from '@/components/ui/badge'
+import { useConfig } from '@/hooks/useConfig'
 import { cn } from '@/lib/utils'
-import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Displays a badge showing whether Apprise integration is enabled or disabled, with green for enabled and red for disabled.
  */
 export function AppriseStatusBadge() {
-  const config = useConfigStore(state => state.config)
+  const { config } = useConfig()
   
   // Get status directly from config
   const isEnabled = config?.enableApprise || false

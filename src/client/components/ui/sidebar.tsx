@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/tooltip"
 import { useMediaQuery } from "@/hooks/use-media-query"
 
+import { parseBoolean, readPref, writePref } from "@/lib/prefs"
 import { cn } from "@/lib/utils"
 
 const SIDEBAR_STORAGE_KEY = "vite-ui-sidebar-state"
@@ -82,14 +83,14 @@ function SidebarProvider({
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(() => {
-    try {
-      const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY)
-      return stored !== null ? stored === 'true' : defaultOpen
-    } catch {
-      return defaultOpen
-    }
-  })
+  const [_open, _setOpen] = React.useState(() =>
+    readPref({
+      key: SIDEBAR_STORAGE_KEY,
+      fallback: defaultOpen,
+      parse: parseBoolean,
+      serialize: String,
+    }),
+  )
   const open = openProp ?? _open
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
@@ -100,12 +101,15 @@ function SidebarProvider({
         _setOpen(openState)
       }
 
-      // This sets the localStorage to keep the sidebar state.
-      try {
-        localStorage.setItem(SIDEBAR_STORAGE_KEY, openState.toString())
-      } catch {
-        // Ignore localStorage errors
-      }
+      writePref(
+        {
+          key: SIDEBAR_STORAGE_KEY,
+          fallback: defaultOpen,
+          parse: parseBoolean,
+          serialize: String,
+        },
+        openState,
+      )
     },
     [setOpenProp, open],
   )

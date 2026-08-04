@@ -48,7 +48,7 @@ import {
   SONARR_MONITORING_OPTIONS,
 } from '@/features/sonarr/store/constants'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { useConfigStore } from '@/stores/configStore'
+import { useConfig } from '@/hooks/useConfig'
 
 const approvalRoutingSchema = z.object({
   qualityProfile: z.string().min(1, { error: 'Quality profile is required' }),
@@ -94,7 +94,7 @@ export function ApprovalSonarrRoutingCard({
 
   const { data: instances = [] } = useSonarrInstancesQuery()
 
-  const { config } = useConfigStore()
+  const { config } = useConfig()
   const isSessionMonitoringEnabled =
     config?.plexSessionMonitoring?.enabled || false
 

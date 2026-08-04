@@ -57,7 +57,12 @@ export function useVersionCheck(): VersionCheckResult {
   }
 
   useEffect(() => {
-    const notifiedVersion = sessionStorage.getItem(VERSION_TOAST_KEY)
+    let notifiedVersion: string | null = null
+    try {
+      notifiedVersion = sessionStorage.getItem(VERSION_TOAST_KEY)
+    } catch {
+      // Storage unavailable - fall through and show the toast
+    }
     if (
       versionInfo.updateAvailable &&
       versionInfo.latestVersion &&
@@ -66,7 +71,11 @@ export function useVersionCheck(): VersionCheckResult {
       const url = versionInfo.releaseUrl
       const latestVersion = versionInfo.latestVersion
       const timeoutId = setTimeout(() => {
-        sessionStorage.setItem(VERSION_TOAST_KEY, latestVersion)
+        try {
+          sessionStorage.setItem(VERSION_TOAST_KEY, latestVersion)
+        } catch {
+          // Storage unavailable - the toast may repeat next navigation
+        }
         toast(
           `A new version (v${latestVersion}) is available. You're running v${versionInfo.currentVersion}.`,
           {

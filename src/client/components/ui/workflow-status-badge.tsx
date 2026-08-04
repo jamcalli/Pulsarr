@@ -11,13 +11,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useConfig } from '@/hooks/useConfig'
 import { useWatchlistStatus } from '@/hooks/workflow/useWatchlistStatus'
 import {
   useStartWorkflow,
   useStopWorkflow,
 } from '@/hooks/workflow/useWorkflowMutations'
 import { cn } from '@/lib/utils'
-import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Renders a badge and controls for managing the watchlist workflow status.
@@ -32,7 +32,7 @@ export function WatchlistStatusBadge() {
     null,
   )
   const [showFirstStartDialog, setShowFirstStartDialog] = useState(false)
-  const config = useConfigStore((state) => state.config)
+  const { config } = useConfig()
 
   const {
     mutate: startWorkflow,

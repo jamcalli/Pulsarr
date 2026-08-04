@@ -11,7 +11,7 @@ import type { z } from 'zod'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.get(
-    '/',
+    '',
     {
       schema: {
         summary: 'Get configuration',
@@ -60,7 +60,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   )
 
   fastify.put(
-    '/',
+    '',
     {
       schema: {
         summary: 'Update configuration',

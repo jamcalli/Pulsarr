@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useConfigStore } from '@/stores/configStore'
+import { useConfig } from '@/hooks/useConfig'
 
 export function useNotificationsConfig() {
   const [isInitialized, setIsInitialized] = useState(false)
-  const config = useConfigStore((state) => state.config)
-  const initialize = useConfigStore((state) => state.initialize)
+  const { config } = useConfig()
+  const { initialize } = useConfig()
 
   useEffect(() => {
     initialize()

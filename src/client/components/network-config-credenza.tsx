@@ -25,9 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
-import { apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 type DeploymentType =
   | 'native-same'
@@ -105,7 +105,7 @@ export function NetworkConfigCredenza({
   onRetry,
   errorMessage,
 }: NetworkConfigCredenzaProps) {
-  const { config, updateConfig } = useConfigStore()
+  const { config } = useConfig()
 
   const [deploymentType, setDeploymentType] =
     useState<DeploymentType>('native-same')
@@ -179,9 +179,7 @@ export function NetworkConfigCredenza({
         onOpenChange(false)
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to save settings',
-      )
+      toast.error(apiErrorMessage(error) ?? 'Failed to save settings')
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
       setSaveStatus('idle')
     }

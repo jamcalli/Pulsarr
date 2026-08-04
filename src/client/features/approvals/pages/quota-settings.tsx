@@ -41,7 +41,7 @@ import { QuotaSettingsPageSkeleton } from '@/features/approvals/pages/quota-sett
 import type { ApprovalConfigurationFormData } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useQuotaSystem } from '@/features/plex/hooks/useQuotaSystem'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { useConfigStore } from '@/stores/configStore'
+import { useConfig } from '@/hooks/useConfig'
 
 /**
  * Helper function to get day name from day index
@@ -95,7 +95,7 @@ const formatScheduleDisplay = (
  */
 export default function QuotaSettingsPage() {
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const { isInitialized, initialize } = useConfigStore()
+  const { isInitialized, initialize } = useConfig()
 
   const {
     // Schedule management

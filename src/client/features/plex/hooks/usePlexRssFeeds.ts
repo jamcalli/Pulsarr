@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 export type RssStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -13,8 +13,7 @@ export type RssStatus = 'idle' | 'loading' | 'success' | 'error'
  * @returns An object containing rssFeeds (current RSS feed URLs), rssStatus (generation status), and generateRssFeeds (function to generate and refresh RSS feeds)
  */
 export function usePlexRssFeeds() {
-  const config = useConfigStore((state) => state.config)
-  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const { config } = useConfig()
   const [rssStatus, setRssStatus] = useState<RssStatus>('idle')
 
   const generateRssFeeds = async () => {

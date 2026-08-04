@@ -3,8 +3,8 @@ import { AlertCircle, Loader2 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { TmdbMetadataDisplay } from '@/components/tmdb-metadata-display'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { useConfig } from '@/hooks/useConfig'
 import { useTmdbMetadata } from '@/hooks/useTmdbMetadata'
-import { useConfigStore } from '@/stores/configStore'
 
 interface TmdbContentViewerProps {
   approvalRequest: ApprovalRequestResponse
@@ -17,7 +17,7 @@ interface TmdbContentViewerProps {
  * consistent TMDB information display across the application.
  */
 export function TmdbContentViewer({ approvalRequest }: TmdbContentViewerProps) {
-  const { config } = useConfigStore()
+  const { config } = useConfig()
 
   const tmdbMetadata = useTmdbMetadata({
     region: config?.tmdbRegion,

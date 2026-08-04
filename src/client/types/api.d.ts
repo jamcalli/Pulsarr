@@ -1828,7 +1828,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/config/": {
+    "/v1/config": {
         parameters: {
             query?: never;
             header?: never;
@@ -11472,8 +11472,6 @@ export interface operations {
                                 removedLabelPrefix: string;
                                 /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
                                 autoResetOnScheduledSync: boolean;
-                                scheduleTime?: string;
-                                dayOfWeek: string;
                                 tagSync: {
                                     enabled: boolean;
                                     syncRadarrTags: boolean;
@@ -11702,8 +11700,6 @@ export interface operations {
                         removedLabelPrefix?: string;
                         /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
                         autoResetOnScheduledSync: boolean;
-                        scheduleTime?: string;
-                        dayOfWeek: string;
                         tagSync: {
                             enabled: boolean;
                             syncRadarrTags: boolean;
@@ -11717,7 +11713,7 @@ export interface operations {
                         enabled: boolean;
                         pollingIntervalMinutes: number;
                         remainingEpisodes: number;
-                        filterUsers?: string | string[];
+                        filterUsers?: string[];
                         enableAutoReset?: boolean;
                         inactivityResetDays?: number;
                         autoResetIntervalHours?: number;
@@ -11889,8 +11885,6 @@ export interface operations {
                                 removedLabelPrefix: string;
                                 /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
                                 autoResetOnScheduledSync: boolean;
-                                scheduleTime?: string;
-                                dayOfWeek: string;
                                 tagSync: {
                                     enabled: boolean;
                                     syncRadarrTags: boolean;

@@ -12,12 +12,13 @@ import {
   useScheduleActions,
   useSchedules,
 } from '@/features/utilities/hooks/useSchedules'
-import { useConfigStore } from '@/stores/configStore'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export function useSessionMonitoringForm() {
-  const { config, updateConfig } = useConfigStore()
+  const { config } = useConfig()
   const schedules = useSchedules().data
   const {
     toggleScheduleStatus,
@@ -248,9 +249,8 @@ export function useSessionMonitoringForm() {
       } catch (error) {
         console.error('Failed to update session monitoring settings:', error)
         const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Failed to update session monitoring settings'
+          apiErrorMessage(error) ??
+          'Failed to update session monitoring settings'
 
         setSaveStatus('error')
         toast.error(errorMessage)

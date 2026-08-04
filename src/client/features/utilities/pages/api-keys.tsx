@@ -7,8 +7,8 @@ import { ApiKeysDeleteConfirmationModal } from '@/features/utilities/components/
 import { ApiKeysForm } from '@/features/utilities/components/api-keys/api-keys-form'
 import { ApiKeysSkeleton } from '@/features/utilities/components/api-keys/api-keys-skeleton'
 import { useApiKeys } from '@/features/utilities/hooks/useApiKeys'
+import { useConfig } from '@/hooks/useConfig'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
-import { useConfigStore } from '@/stores/configStore'
 
 const getUserFriendlyErrorMessage = (error: string) => {
   if (error.includes('network') || error.includes('fetch')) {
@@ -28,7 +28,7 @@ const getUserFriendlyErrorMessage = (error: string) => {
  * @returns The API keys management page as a React element.
  */
 export function ApiKeysPage() {
-  const { isInitialized, initialize } = useConfigStore()
+  const { isInitialized, initialize } = useConfig()
 
   const {
     form,
@@ -48,7 +48,7 @@ export function ApiKeysPage() {
     refreshApiKeys,
   } = useApiKeys()
 
-  // Initialize config store with minimum duration for consistent UX
+  // Initialize config with minimum duration for consistent UX
   const isInitializing = useInitializeWithMinDuration(initialize)
 
   const totalKeysCount = apiKeys.length

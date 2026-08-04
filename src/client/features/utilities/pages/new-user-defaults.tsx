@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { ConfigFull } from '@root/schemas/config/config.schema'
 import { HelpCircle, Loader2, Save, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -31,8 +32,8 @@ import {
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { validateWatchlistCap } from '@/features/plex/quota/form-schema'
 import { NewUserDefaultsPageSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-page-skeleton'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
-import { useConfigStore } from '@/stores/configStore'
 
 const newUserDefaultsSchema = z
   .object({
@@ -68,9 +69,7 @@ const newUserDefaultsSchema = z
 
 type NewUserDefaultsFormData = z.infer<typeof newUserDefaultsSchema>
 
-function buildFormValues(
-  config: ReturnType<typeof useConfigStore.getState>['config'],
-): NewUserDefaultsFormData {
+function buildFormValues(config: ConfigFull | null): NewUserDefaultsFormData {
   return {
     canSync: config?.newUserDefaultCanSync ?? true,
     requiresApproval: config?.newUserDefaultRequiresApproval ?? false,
@@ -95,7 +94,7 @@ function buildFormValues(
  * Provides a validated form and real-time status summary for setting default sync behavior, manual approval requirements, and quota limits for movies and shows. Allows administrators to save or cancel changes, with user feedback on success or failure.
  */
 export default function NewUserDefaultsPage() {
-  const { config, updateConfig, isInitialized, initialize } = useConfigStore()
+  const { config, isInitialized, initialize } = useConfig()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const submittingStartTime = useRef<number | null>(null)
   const isInitializing = useInitializeWithMinDuration(initialize)

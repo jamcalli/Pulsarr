@@ -13,8 +13,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 interface TmdbRegionSelectorProps {
   onRegionChange?: () => Promise<void>
@@ -29,7 +29,7 @@ interface TmdbRegionSelectorProps {
  * @param onRegionChange - Optional callback invoked after the region is changed, typically to refetch region-dependent data
  */
 export function TmdbRegionSelector({ onRegionChange }: TmdbRegionSelectorProps) {
-  const { config, updateConfig } = useConfigStore()
+  const { config } = useConfig()
   const [availableRegions, setAvailableRegions] = useState<TmdbRegion[]>([])
   const [loadingRegions, setLoadingRegions] = useState(false)
 

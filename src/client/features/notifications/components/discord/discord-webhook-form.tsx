@@ -23,8 +23,8 @@ import {
   type WebhookFormSchema,
   webhookFormSchema,
 } from '@/features/notifications/schemas/form-schemas'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 interface DiscordWebhookFormProps {
   isInitialized: boolean
@@ -38,8 +38,7 @@ interface DiscordWebhookFormProps {
  * @param isInitialized - Whether the configuration is ready for editing.
  */
 export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
-  const config = useConfigStore((state) => state.config)
-  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const { config } = useConfig()
   const [webhookStatus, setWebhookStatus] = React.useState<
     'idle' | 'loading' | 'testing' | 'success' | 'error'
   >('idle')

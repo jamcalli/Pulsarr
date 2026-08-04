@@ -5,8 +5,8 @@ import { useArrGenres } from '@/features/arr/useArrGenres'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
+import { useConfig } from '@/hooks/useConfig'
 import { apiErrorMessage } from '@/lib/tanstackApi'
-import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Displays the Sonarr Content Router page for managing content routing rules.
@@ -22,7 +22,7 @@ export default function SonarrContentRouterPage() {
   const { genres, handleGenreDropdownOpen } = useArrGenres()
 
   // Initialize config for session monitoring support
-  const configInitialize = useConfigStore((state) => state.initialize)
+  const { initialize: configInitialize } = useConfig()
 
   const hasInitializedRef = useRef(false)
 

@@ -25,11 +25,11 @@ import {
   useRollingShowsQuery,
   useRunSessionMonitorMutation,
 } from '@/features/utilities/hooks/useSessionMonitoringQueries'
+import { useConfig } from '@/hooks/useConfig'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
-import { useConfigStore } from '@/stores/configStore'
 
 export default function PlexSessionMonitoringPage() {
-  const { initialize, isInitialized } = useConfigStore()
+  const { initialize, isInitialized } = useConfig()
   const isInitializing = useInitializeWithMinDuration(initialize)
 
   const {
