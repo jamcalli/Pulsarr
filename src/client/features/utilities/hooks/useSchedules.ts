@@ -1,4 +1,5 @@
 import type { ScheduleUpdate } from '@root/schemas/scheduler/scheduler.schema'
+import { useCallback } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { queryClient } from '@/lib/queryClient'
 import { $api, apiFetch } from '@/lib/tanstackApi'
@@ -95,53 +96,62 @@ export function useScheduleActions() {
     }),
   )
 
-  const runScheduleNow = async (name: string) => {
-    try {
-      const data = await runMutation.mutateAsync(name)
-      return data.success
-    } catch (_err) {
-      return false
-    }
-  }
+  const runMutateAsync = runMutation.mutateAsync
+  const runScheduleNow = useCallback(
+    async (name: string) => {
+      try {
+        const data = await runMutateAsync(name)
+        return data.success
+      } catch (_err) {
+        return false
+      }
+    },
+    [runMutateAsync],
+  )
 
-  const toggleScheduleStatus = async (name: string, enabled: boolean) => {
-    try {
-      const data = await toggleMutation.mutateAsync({ name, enabled })
-      return data.success
-    } catch (_err) {
-      return false
-    }
-  }
+  const toggleMutateAsync = toggleMutation.mutateAsync
+  const toggleScheduleStatus = useCallback(
+    async (name: string, enabled: boolean) => {
+      try {
+        const data = await toggleMutateAsync({ name, enabled })
+        return data.success
+      } catch (_err) {
+        return false
+      }
+    },
+    [toggleMutateAsync],
+  )
 
-  const updateSchedule = async (
-    name: string,
-    scheduleUpdate: ScheduleUpdate,
-  ) => {
-    try {
-      const data = await updateMutation.mutateAsync({ name, scheduleUpdate })
-      return data.success
-    } catch (_err) {
-      return false
-    }
-  }
+  const updateMutateAsync = updateMutation.mutateAsync
+  const updateSchedule = useCallback(
+    async (name: string, scheduleUpdate: ScheduleUpdate) => {
+      try {
+        const data = await updateMutateAsync({ name, scheduleUpdate })
+        return data.success
+      } catch (_err) {
+        return false
+      }
+    },
+    [updateMutateAsync],
+  )
 
-  const updateSessionMonitorSchedule = (
-    scheduleName: string,
-    intervalMinutes: number,
-  ) =>
-    updateSchedule(scheduleName, {
-      type: 'interval',
-      config: { minutes: intervalMinutes },
-    })
+  const updateSessionMonitorSchedule = useCallback(
+    (scheduleName: string, intervalMinutes: number) =>
+      updateSchedule(scheduleName, {
+        type: 'interval',
+        config: { minutes: intervalMinutes },
+      }),
+    [updateSchedule],
+  )
 
-  const updateAutoResetSchedule = (
-    scheduleName: string,
-    intervalHours: number,
-  ) =>
-    updateSchedule(scheduleName, {
-      type: 'interval',
-      config: { hours: intervalHours },
-    })
+  const updateAutoResetSchedule = useCallback(
+    (scheduleName: string, intervalHours: number) =>
+      updateSchedule(scheduleName, {
+        type: 'interval',
+        config: { hours: intervalHours },
+      }),
+    [updateSchedule],
+  )
 
   return {
     runScheduleNow,
