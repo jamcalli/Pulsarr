@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { apiFetch } from '@/lib/tanstackApi'
 import { buildPosterUrl, type PosterContext } from '@/lib/poster-url'
+import { apiFetch } from '@/lib/tanstackApi'
 
 interface UsePosterUrlOptions {
   /** Normalized poster path from DB (fast path - no API call needed) */

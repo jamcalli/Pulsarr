@@ -25,8 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { apiFetch } from '@/lib/tanstackApi'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
+import { apiFetch } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
 
 type DeploymentType =
