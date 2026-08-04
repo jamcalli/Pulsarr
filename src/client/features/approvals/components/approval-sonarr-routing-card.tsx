@@ -36,17 +36,17 @@ import {
 import {
   QualityProfileSelect,
   RootFolderSelect,
-} from '@/features/sonarr/components/selects/sonarr-selects'
+} from '@/features/arr/arr-selects'
 import SyncedInstancesSelect from '@/features/sonarr/components/selects/sonarr-synced-instance-select'
 import {
   SERIES_TYPE_LABELS,
   SONARR_SERIES_TYPES,
 } from '@/features/sonarr/constants'
+import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import {
   API_KEY_PLACEHOLDER,
   SONARR_MONITORING_OPTIONS,
 } from '@/features/sonarr/store/constants'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -92,28 +92,8 @@ export function ApprovalSonarrRoutingCard({
   const isMobile = useMediaQuery('(max-width: 768px)')
   const tagsSelectRef = useRef<TagsMultiSelectRef>(null)
 
-  const instances = useSonarrStore((state) => state.instances)
-  const fetchInstances = useSonarrStore((state) => state.fetchInstances)
-  const fetchInstanceData = useSonarrStore((state) => state.fetchInstanceData)
+  const { data: instances = [] } = useSonarrInstancesQuery()
 
-  // Fetch instances when component mounts to ensure store is populated
-  useEffect(() => {
-    if (instances.length === 0) {
-      fetchInstances()
-    }
-  }, [instances.length, fetchInstances])
-
-  // Fetch specific instance data for quality profiles and root folders
-  useEffect(() => {
-    const targetInstance = instances.find((i) => i.id === instanceId)
-    if (
-      targetInstance &&
-      !targetInstance.data?.qualityProfiles &&
-      !targetInstance.data?.fetching
-    ) {
-      fetchInstanceData(instanceId.toString())
-    }
-  }, [instances, instanceId, fetchInstanceData])
   const { config } = useConfigStore()
   const isSessionMonitoringEnabled =
     config?.plexSessionMonitoring?.enabled || false
@@ -172,7 +152,9 @@ export function ApprovalSonarrRoutingCard({
     }
   }
 
-  const isConnectionValid = targetInstance?.apiKey !== API_KEY_PLACEHOLDER
+  const isConnectionValid =
+    targetInstance !== undefined &&
+    targetInstance.apiKey !== API_KEY_PLACEHOLDER
 
   return (
     <div className="space-y-4">
@@ -203,9 +185,9 @@ export function ApprovalSonarrRoutingCard({
                     </FormLabel>
                     <QualityProfileSelect
                       field={field}
+                      app="sonarr"
                       isConnectionValid={isConnectionValid}
                       selectedInstance={instanceId}
-                      instances={instances}
                       disabled={disabled}
                     />
                     <FormMessage />
@@ -224,9 +206,9 @@ export function ApprovalSonarrRoutingCard({
                     </FormLabel>
                     <RootFolderSelect
                       field={field}
+                      app="sonarr"
                       isConnectionValid={isConnectionValid}
                       selectedInstance={instanceId}
-                      instances={instances}
                       disabled={disabled}
                     />
                     <FormMessage />

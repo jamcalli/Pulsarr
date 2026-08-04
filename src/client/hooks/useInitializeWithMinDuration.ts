@@ -1,48 +1,39 @@
-import { useEffect, useRef, useState } from 'react'
-import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
+import { useEffect, useState } from 'react'
+import { useSpinDelay } from 'spin-delay'
+import { LOADER_SHOW_DELAY, MIN_LOADING_DELAY } from '@/lib/constants'
 
 /**
- * React hook that manages asynchronous initialization with a guaranteed minimum loading duration.
- *
- * Ensures that the initialization process takes at least the specified minimum time, providing a consistent loading experience.
+ * Runs an initialization function and reports whether its loading state
+ * should be visible: shown only when initialization outlasts
+ * LOADER_SHOW_DELAY, then held for at least MIN_LOADING_DELAY.
  *
  * @param initializeFn - An asynchronous function representing the initialization logic
- * @param minDuration - Optional minimum loading duration in milliseconds; defaults to a predefined constant
  * @returns A boolean indicating whether initialization is currently in progress
  */
 export function useInitializeWithMinDuration(
   initializeFn: () => Promise<void>,
-  minDuration = MIN_LOADING_DELAY,
 ) {
   const [isInitializing, setIsInitializing] = useState(true)
-  const initializationStartTime = useRef<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    const initializeWithMinDuration = async () => {
-      setIsInitializing(true)
-      initializationStartTime.current = Date.now()
-
-      try {
-        await initializeFn()
-
-        // Ensure minimum loading time for better UX
-        const elapsed = Date.now() - (initializationStartTime.current || 0)
-        const remaining = Math.max(0, minDuration - elapsed)
-        await new Promise((resolve) => setTimeout(resolve, remaining))
-      } finally {
+    setIsInitializing(true)
+    initializeFn()
+      .catch((error) => {
+        console.error('Initialization error:', error)
+      })
+      .finally(() => {
         if (!cancelled) {
           setIsInitializing(false)
-          initializationStartTime.current = null
         }
-      }
-    }
-
-    initializeWithMinDuration()
+      })
     return () => {
       cancelled = true
     }
-  }, [initializeFn, minDuration])
+  }, [initializeFn])
 
-  return isInitializing
+  return useSpinDelay(isInitializing, {
+    delay: LOADER_SHOW_DELAY,
+    minDuration: MIN_LOADING_DELAY,
+  })
 }

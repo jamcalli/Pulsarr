@@ -27,6 +27,7 @@ export function PopularityRankings({ onRefresh }: PopularityRankingsProps) {
     mostWatchedShows,
     mostWatchedMovies,
     loadingStates,
+    isRefreshing,
     errorStates,
     isLoading,
     lastRefreshed,
@@ -79,11 +80,11 @@ export function PopularityRankings({ onRefresh }: PopularityRankingsProps) {
         <MediaViewToggle view={view} onViewChange={setView} />
         <Button
           onClick={onRefresh}
-          disabled={isLoading}
+          disabled={isLoading || isRefreshing}
           variant="neutralnoShadow"
           className="flex items-center gap-2"
         >
-          {isLoading ? (
+          {isLoading || isRefreshing ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <RefreshCw className="h-4 w-4" />

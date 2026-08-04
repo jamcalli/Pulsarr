@@ -28,7 +28,7 @@ export function useRadarrInstanceForm({
       name: instance.name,
       baseUrl: instance.baseUrl,
       apiKey: instance.apiKey,
-      qualityProfile: instance.qualityProfile || '',
+      qualityProfile: instance.qualityProfile?.toString() || '',
       rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
       searchOnAdd:
@@ -60,7 +60,7 @@ export function useRadarrInstanceForm({
       name: instance.name,
       baseUrl: instance.baseUrl,
       apiKey: instance.apiKey,
-      qualityProfile: instance.qualityProfile || '',
+      qualityProfile: instance.qualityProfile?.toString() || '',
       rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
       searchOnAdd:
@@ -139,7 +139,7 @@ export function useRadarrInstanceForm({
           name: instance.name,
           baseUrl: instance.baseUrl,
           apiKey: instance.apiKey,
-          qualityProfile: instance.qualityProfile || '',
+          qualityProfile: instance.qualityProfile?.toString() || '',
           rootFolder: instance.rootFolder || '',
           bypassIgnored: instance.bypassIgnored,
           searchOnAdd:

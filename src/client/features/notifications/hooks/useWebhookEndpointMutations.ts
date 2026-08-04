@@ -1,13 +1,12 @@
-import {
-  type CreateWebhookEndpoint,
-  type TestWebhookEndpoint,
-  type UpdateWebhookEndpoint,
-  WebhookEndpointResponseSchema,
-  WebhookTestResponseSchema,
+import type {
+  CreateWebhookEndpoint,
+  TestWebhookEndpoint,
+  UpdateWebhookEndpoint,
 } from '@root/schemas/webhooks/webhook-endpoints.schema'
-import { apiClient } from '@/lib/apiClient'
+import { useMutation } from '@tanstack/react-query'
 import { queryClient } from '@/lib/queryClient'
-import { useAppMutation } from '@/lib/useAppQuery'
+import { apiFetch } from '@/lib/tanstackApi'
+import { useMinLoadingMutation } from '@/lib/useMinLoading'
 import { webhookEndpointKeys } from './useWebhookEndpointsQuery'
 
 function invalidateWebhookEndpointCaches() {
@@ -15,61 +14,88 @@ function invalidateWebhookEndpointCaches() {
 }
 
 export function useCreateWebhookEndpoint() {
-  return useAppMutation({
-    mutationFn: (data: CreateWebhookEndpoint) =>
-      apiClient.post(
-        '/v1/webhooks/endpoints',
-        data,
-        WebhookEndpointResponseSchema,
-      ),
-    onSuccess: () => {
-      invalidateWebhookEndpointCaches()
-    },
-  })
+  return useMinLoadingMutation(
+    useMutation({
+      mutationFn: async (body: CreateWebhookEndpoint) => {
+        const { data, error } = await apiFetch.POST('/v1/webhooks/endpoints', {
+          body,
+        })
+        if (error) throw error
+        return data
+      },
+      onSuccess: () => {
+        invalidateWebhookEndpointCaches()
+      },
+    }),
+  )
 }
 
 export function useUpdateWebhookEndpoint() {
-  return useAppMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateWebhookEndpoint }) =>
-      apiClient.put(
-        `/v1/webhooks/endpoints/${id}`,
-        data,
-        WebhookEndpointResponseSchema,
-      ),
-    onSuccess: () => {
-      invalidateWebhookEndpointCaches()
-    },
-  })
+  return useMinLoadingMutation(
+    useMutation({
+      mutationFn: async ({
+        id,
+        data: body,
+      }: {
+        id: number
+        data: UpdateWebhookEndpoint
+      }) => {
+        const { data, error } = await apiFetch.PUT(
+          '/v1/webhooks/endpoints/{id}',
+          { params: { path: { id } }, body },
+        )
+        if (error) throw error
+        return data
+      },
+      onSuccess: () => {
+        invalidateWebhookEndpointCaches()
+      },
+    }),
+  )
 }
 
 export function useDeleteWebhookEndpoint() {
-  return useAppMutation({
-    mutationFn: (id: number) =>
-      apiClient.delete<void>(`/v1/webhooks/endpoints/${id}`),
-    onSuccess: () => {
-      invalidateWebhookEndpointCaches()
-    },
-  })
+  return useMinLoadingMutation(
+    useMutation({
+      mutationFn: async (id: number) => {
+        const { error } = await apiFetch.DELETE('/v1/webhooks/endpoints/{id}', {
+          params: { path: { id } },
+        })
+        if (error) throw error
+      },
+      onSuccess: () => {
+        invalidateWebhookEndpointCaches()
+      },
+    }),
+  )
 }
 
 export function useTestWebhookEndpoint() {
-  return useAppMutation({
-    mutationFn: (data: TestWebhookEndpoint & { name?: string }) =>
-      apiClient.post(
-        '/v1/webhooks/endpoints/test',
-        data,
-        WebhookTestResponseSchema,
-      ),
-  })
+  return useMinLoadingMutation(
+    useMutation({
+      mutationFn: async (body: TestWebhookEndpoint & { name?: string }) => {
+        const { data, error } = await apiFetch.POST(
+          '/v1/webhooks/endpoints/test',
+          { body },
+        )
+        if (error) throw error
+        return data
+      },
+    }),
+  )
 }
 
 export function useTestExistingWebhookEndpoint() {
-  return useAppMutation({
-    mutationFn: (id: number) =>
-      apiClient.post(
-        `/v1/webhooks/endpoints/${id}/test`,
-        {},
-        WebhookTestResponseSchema,
-      ),
-  })
+  return useMinLoadingMutation(
+    useMutation({
+      mutationFn: async (id: number) => {
+        const { data, error } = await apiFetch.POST(
+          '/v1/webhooks/endpoints/{id}/test',
+          { params: { path: { id } } },
+        )
+        if (error) throw error
+        return data
+      },
+    }),
+  )
 }

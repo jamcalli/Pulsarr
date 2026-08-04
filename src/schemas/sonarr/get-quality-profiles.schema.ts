@@ -1,3 +1,4 @@
+import { QualityProfileResourceSchema } from '@root/schemas/common/arr-resources.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
@@ -14,7 +15,7 @@ export const InstanceInfoSchema = z.object({
 export const QualityProfilesResponseSchema = z.object({
   success: z.boolean(),
   instance: InstanceInfoSchema,
-  qualityProfiles: z.array(z.any()),
+  qualityProfiles: z.array(QualityProfileResourceSchema),
 })
 
 export type Querystring = z.infer<typeof QuerystringSchema>

@@ -8,6 +8,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import type { ArrApp } from '@/features/arr/types'
+import { useArrInstanceData } from '@/features/arr/useArrInstanceData'
 
 type SelectFieldProps = {
   onChange: (value: string) => void
@@ -16,38 +18,35 @@ type SelectFieldProps = {
 }
 
 interface SelectsProps {
+  app: ArrApp
   isConnectionValid: boolean
   selectedInstance: number
-  instances: Array<{
-    id: number
-    data?: {
-      qualityProfiles?: Array<{ id: number; name: string }>
-      rootFolders?: Array<{ path: string }>
-    }
-  }>
   disabled?: boolean
 }
 
 /**
  * Displays a dropdown for selecting a quality profile from the currently selected instance.
  *
- * Shows a loading skeleton while quality profiles are being loaded. The select is disabled if the connection is invalid or if the `disabled` prop is set. Options are dynamically generated from the selected instance's available quality profiles.
+ * Shows a loading skeleton while quality profiles are being fetched. The dropdown is
+ * disabled if the connection is invalid or if the `disabled` prop is true.
  */
 export function QualityProfileSelect({
   field,
+  app,
   isConnectionValid,
   selectedInstance,
-  instances,
   disabled = false,
 }: {
   field: SelectFieldProps
 } & SelectsProps) {
-  const currentInstance = instances.find((i) => i.id === selectedInstance)
-  const selectedProfile = currentInstance?.data?.qualityProfiles?.find(
+  const { qualityProfiles, isLoading } = useArrInstanceData(
+    app,
+    selectedInstance,
+    isConnectionValid,
+  )
+  const selectedProfile = qualityProfiles.find(
     (p) => p.id.toString() === field.value?.toString(),
   )
-
-  const isLoading = currentInstance && !currentInstance?.data?.qualityProfiles
 
   if (isLoading) {
     return <Skeleton className="h-10 w-full" />
@@ -76,7 +75,7 @@ export function QualityProfileSelect({
         </SelectTrigger>
       </FormControl>
       <SelectContent>
-        {currentInstance?.data?.qualityProfiles?.map((profile) => (
+        {qualityProfiles.map((profile) => (
           <SelectItem
             key={profile.id}
             value={profile.id.toString()}
@@ -91,25 +90,26 @@ export function QualityProfileSelect({
 }
 
 /**
- * Displays a dropdown select for choosing a root folder from the currently selected instance.
+ * Displays a dropdown for selecting a root folder from the currently selected instance.
  *
- * Shows a loading skeleton while root folder data is being fetched. The select is disabled if the connection is invalid or if explicitly disabled. Options are populated from the available root folders of the selected instance.
+ * Shows a loading skeleton while root folders are being fetched. The dropdown is
+ * disabled if the connection is invalid or if the `disabled` prop is true.
  */
 export function RootFolderSelect({
   field,
+  app,
   isConnectionValid,
   selectedInstance,
-  instances,
   disabled = false,
 }: {
   field: SelectFieldProps
 } & SelectsProps) {
-  const currentInstance = instances.find((i) => i.id === selectedInstance)
-  const selectedFolder = currentInstance?.data?.rootFolders?.find(
-    (f) => f.path === field.value,
+  const { rootFolders, isLoading } = useArrInstanceData(
+    app,
+    selectedInstance,
+    isConnectionValid,
   )
-
-  const isLoading = currentInstance && !currentInstance?.data?.rootFolders
+  const selectedFolder = rootFolders.find((f) => f.path === field.value)
 
   if (isLoading) {
     return <Skeleton className="h-10 w-full" />
@@ -138,7 +138,7 @@ export function RootFolderSelect({
         </SelectTrigger>
       </FormControl>
       <SelectContent>
-        {currentInstance?.data?.rootFolders?.map((folder) => (
+        {rootFolders.map((folder) => (
           <SelectItem
             key={folder.path}
             value={folder.path}

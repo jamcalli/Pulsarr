@@ -59,6 +59,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { API_KEY_PLACEHOLDER } from '@/features/arr/constants'
+import { useArrInstanceData } from '@/features/arr/useArrInstanceData'
 import ConditionGroupComponent from '@/features/content-router/components/condition-group'
 import { ContentRouterContext } from '@/features/content-router/hooks/useContentRouter'
 import {
@@ -650,6 +652,14 @@ const AccordionRouteCard = ({
   const selectedInstance = useMemo(
     () => instances.find((inst) => inst.id === targetInstanceId),
     [instances, targetInstanceId],
+  )
+
+  const instanceData = useArrInstanceData(
+    contentType,
+    targetInstanceId,
+    Boolean(
+      selectedInstance && selectedInstance.apiKey !== API_KEY_PLACEHOLDER,
+    ),
   )
 
   // We don't need this effect as the same logic is already in handleInstanceChange
@@ -1415,32 +1425,32 @@ const AccordionRouteCard = ({
                                 value={field.value || ''}
                                 onValueChange={field.onChange}
                                 disabled={
-                                  !selectedInstance?.data?.rootFolders?.length
+                                  instanceData.isLoading ||
+                                  !instanceData.rootFolders.length
                                 }
                               >
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue
                                       placeholder={
-                                        !selectedInstance?.data?.rootFolders
-                                          ?.length
-                                          ? 'N/A'
-                                          : 'Select root folder'
+                                        instanceData.isLoading
+                                          ? 'Loading...'
+                                          : !instanceData.rootFolders.length
+                                            ? 'N/A'
+                                            : 'Select root folder'
                                       }
                                     />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {selectedInstance?.data?.rootFolders?.map(
-                                    (folder: { path: string }) => (
-                                      <SelectItem
-                                        key={folder.path}
-                                        value={folder.path}
-                                      >
-                                        {folder.path}
-                                      </SelectItem>
-                                    ),
-                                  )}
+                                  {instanceData.rootFolders.map((folder) => (
+                                    <SelectItem
+                                      key={folder.path}
+                                      value={folder.path}
+                                    >
+                                      {folder.path}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -1472,25 +1482,26 @@ const AccordionRouteCard = ({
                                 value={field.value?.toString() || ''}
                                 onValueChange={field.onChange}
                                 disabled={
-                                  !selectedInstance?.data?.qualityProfiles
-                                    ?.length
+                                  instanceData.isLoading ||
+                                  !instanceData.qualityProfiles.length
                                 }
                               >
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue
                                       placeholder={
-                                        !selectedInstance?.data?.qualityProfiles
-                                          ?.length
-                                          ? 'N/A'
-                                          : 'Select quality profile'
+                                        instanceData.isLoading
+                                          ? 'Loading...'
+                                          : !instanceData.qualityProfiles.length
+                                            ? 'N/A'
+                                            : 'Select quality profile'
                                       }
                                     />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {selectedInstance?.data?.qualityProfiles?.map(
-                                    (profile: { id: number; name: string }) => (
+                                  {instanceData.qualityProfiles.map(
+                                    (profile) => (
                                       <SelectItem
                                         key={profile.id}
                                         value={profile.id.toString()}

@@ -1,32 +1,8 @@
-import type { QualityProfile, RootFolder } from '@root/types/radarr.types'
-
-export interface RadarrInstanceData {
-  rootFolders?: RootFolder[]
-  qualityProfiles?: QualityProfile[]
-  fetching?: boolean
-}
-
-export interface RadarrInstance {
-  id: number
-  name: string
-  baseUrl: string
-  apiKey: string
-  qualityProfile?: string
-  rootFolder?: string
-  bypassIgnored: boolean
-  searchOnAdd: boolean
-  minimumAvailability?: 'announced' | 'inCinemas' | 'released'
-  monitor?: 'movieOnly' | 'movieAndCollection' | 'none'
-  tags: string[]
-  isDefault: boolean
-  syncedInstances?: number[]
-  skipDefaultRoutingWhenNoMatch?: boolean
-  data?: RadarrInstanceData
-}
+import type { RadarrInstanceResponse } from '@root/schemas/radarr/radarr-instance.schema'
 
 export interface UseRadarrInstanceFormProps {
-  instance: RadarrInstance
-  instances: RadarrInstance[]
+  instance: RadarrInstanceResponse
+  instances: RadarrInstanceResponse[]
   isNew?: boolean
   isConnectionValid: boolean
 }
@@ -39,37 +15,4 @@ export interface RadarrConnectionValues {
   rootFolder?: string
 }
 
-// Extended with form-specific fields
-export interface RadarrInstanceFormValues extends RadarrConnectionValues {
-  bypassIgnored: boolean
-  searchOnAdd: boolean
-  minimumAvailability?: 'announced' | 'inCinemas' | 'released'
-  monitor?: 'movieOnly' | 'movieAndCollection' | 'none'
-  tags: string[]
-  isDefault: boolean
-  syncedInstances?: number[]
-  skipDefaultRoutingWhenNoMatch?: boolean
-  _connectionTested?: boolean
-  _originalBaseUrl?: string
-  _originalApiKey?: string
-}
-
 export type ConnectionStatus = 'idle' | 'loading' | 'success' | 'error'
-
-export interface GenreRoute {
-  id?: number
-  name: string
-  genre: string
-  radarrInstanceId: number
-  rootFolder: string
-  qualityProfile: string
-}
-
-export interface TempRoute {
-  tempId: string
-  name: string
-  genre: string
-  radarrInstanceId: number
-  rootFolder: string
-  qualityProfile: string
-}

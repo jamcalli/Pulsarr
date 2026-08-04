@@ -1,4 +1,4 @@
-import type { QualityProfile, RootFolder } from '@root/types/sonarr.types'
+import type { SonarrInstanceResponse } from '@root/schemas/sonarr/sonarr-instance.schema'
 
 export type SonarrMonitoringType =
   | 'unknown'
@@ -19,35 +19,9 @@ export type SonarrMonitoringType =
   | 'none'
   | 'skip'
 
-export interface SonarrInstanceData {
-  rootFolders?: RootFolder[]
-  qualityProfiles?: QualityProfile[]
-  fetching?: boolean
-}
-
-export interface SonarrInstance {
-  id: number
-  name: string
-  baseUrl: string
-  apiKey: string
-  qualityProfile?: string
-  rootFolder?: string
-  bypassIgnored: boolean
-  seasonMonitoring: string
-  monitorNewItems?: 'all' | 'none'
-  searchOnAdd: boolean
-  createSeasonFolders?: boolean
-  tags: string[]
-  isDefault: boolean
-  syncedInstances?: number[]
-  seriesType?: 'standard' | 'anime' | 'daily'
-  skipDefaultRoutingWhenNoMatch?: boolean
-  data?: SonarrInstanceData
-}
-
 export interface UseSonarrInstanceFormProps {
-  instance: SonarrInstance
-  instances: SonarrInstance[]
+  instance: SonarrInstanceResponse
+  instances: SonarrInstanceResponse[]
   isNew?: boolean
   isConnectionValid: boolean
 }
@@ -60,38 +34,4 @@ export interface SonarrConnectionValues {
   rootFolder?: string
 }
 
-export interface SonarrInstanceFormValues extends SonarrConnectionValues {
-  bypassIgnored: boolean
-  seasonMonitoring: SonarrMonitoringType
-  monitorNewItems: 'all' | 'none'
-  searchOnAdd: boolean
-  createSeasonFolders?: boolean
-  tags: string[]
-  isDefault: boolean
-  syncedInstances?: number[]
-  seriesType?: 'standard' | 'anime' | 'daily'
-  skipDefaultRoutingWhenNoMatch?: boolean
-  _connectionTested?: boolean
-  _originalBaseUrl?: string
-  _originalApiKey?: string
-}
-
 export type ConnectionStatus = 'idle' | 'loading' | 'success' | 'error'
-
-export interface GenreRoute {
-  id?: number
-  name: string
-  genre: string
-  sonarrInstanceId: number
-  rootFolder: string
-  qualityProfile: string
-}
-
-export interface TempRoute {
-  tempId: string
-  name: string
-  genre: string
-  sonarrInstanceId: number
-  rootFolder: string
-  qualityProfile: string
-}

@@ -9,8 +9,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
+import { useRadarrInstancesQuery } from '@/features/radarr/hooks/instance/useRadarrInstanceQueries'
 import { useRadarrSyncProgress } from '@/features/radarr/hooks/instance/useRadarrSyncProgress'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import { api } from '@/lib/api'
 
 interface RadarrSyncModalProps {
@@ -42,7 +42,7 @@ export function RadarrSyncModal({
   const [syncCompleted, setSyncCompleted] = useState(false)
   const [overallProgress, setOverallProgress] = useState(0)
 
-  const allInstances = useRadarrStore((state) => state.instances)
+  const { data: allInstances = [] } = useRadarrInstancesQuery()
   const instanceNamesRef = useRef<Record<number, string>>({})
   const isSingleInstance = syncedInstances.length === 1
 

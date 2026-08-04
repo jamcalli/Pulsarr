@@ -1,35 +1,25 @@
 import { Network } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { NetworkConfigCredenza } from '@/components/network-config-credenza'
 import { Button } from '@/components/ui/button'
+import { PageError } from '@/components/ui/page-error'
 import RadarrPageSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
 import { InstanceCard as RadarrInstanceCard } from '@/features/radarr/components/instance/radarr-instance-card'
+import { useRadarrInstancesQuery } from '@/features/radarr/hooks/instance/useRadarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 /**
  * Renders the management page for configuring and maintaining Radarr instances.
  *
- * Provides an interface to view, add, and edit Radarr connections, handling loading and initialization states, and distinguishing between placeholder and real instances.
- *
  * @returns The React component for the Radarr Instances management page.
  */
 export default function RadarrInstancesPage() {
-  const instances = useRadarrStore((state) => state.instances)
-  const instancesLoading = useRadarrStore((state) => state.instancesLoading)
-  const isInitialized = useRadarrStore((state) => state.isInitialized)
-  const initialize = useRadarrStore((state) => state.initialize)
+  const { data, isLoading, isError, error, refetch } = useRadarrInstancesQuery()
+  const instances = data ?? []
 
-  const hasInitializedRef = useRef(false)
   const [showInstanceCard, setShowInstanceCard] = useState(false)
   const [showNetworkConfig, setShowNetworkConfig] = useState(false)
-
-  useEffect(() => {
-    if (!hasInitializedRef.current) {
-      initialize(true)
-      hasInitializedRef.current = true
-    }
-  }, [initialize])
 
   const addInstance = () => {
     setShowInstanceCard(true)
@@ -42,11 +32,20 @@ export default function RadarrInstancesPage() {
     (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
   )
 
-  if (!isInitialized) {
-    return null
+  if (isError) {
+    return (
+      <PageError
+        message={apiErrorMessage(error) ?? 'Failed to load Radarr instances'}
+        onRetry={() => refetch()}
+      />
+    )
   }
 
-  if (instancesLoading && hasRealInstances) {
+  if (data === undefined) {
+    return <RadarrPageSkeleton />
+  }
+
+  if (isLoading && hasRealInstances) {
     return <RadarrPageSkeleton />
   }
 
@@ -98,11 +97,13 @@ export default function RadarrInstancesPage() {
                     apiKey: '',
                     bypassIgnored: false,
                     minimumAvailability: 'announced',
+                    monitor: 'movieOnly',
                     searchOnAdd: true,
                     tags: [],
                     isDefault: !hasRealInstances,
                     qualityProfile: '',
                     rootFolder: '',
+                    skipDefaultRoutingWhenNoMatch: false,
                   }}
                   setShowInstanceCard={setShowInstanceCard}
                 />

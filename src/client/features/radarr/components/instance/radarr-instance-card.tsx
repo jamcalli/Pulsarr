@@ -1,3 +1,4 @@
+import type { RadarrInstanceResponse } from '@root/schemas/radarr/radarr-instance.schema'
 import { HelpCircle, RefreshCw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -30,27 +31,26 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  QualityProfileSelect,
+  RootFolderSelect,
+} from '@/features/arr/arr-selects'
 import DeleteInstanceAlert from '@/features/radarr/components/instance/delete-instance-alert'
 import InstanceCardSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
 import ConnectionSettings from '@/features/radarr/components/instance/radarr-connection-settings'
 import { RadarrSyncModal } from '@/features/radarr/components/instance/radarr-sync-modal'
-import {
-  QualityProfileSelect,
-  RootFolderSelect,
-} from '@/features/radarr/components/selects/radarr-selects'
 import SyncedInstancesSelect from '@/features/radarr/components/selects/radarr-synced-instance-select'
 import { useRadarrConnection } from '@/features/radarr/hooks/instance/useRadarrConnection'
 import { useRadarrInstance } from '@/features/radarr/hooks/instance/useRadarrInstance'
 import { useRadarrInstanceForm } from '@/features/radarr/hooks/instance/useRadarrInstanceForms'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
-import type { RadarrInstance } from '@/features/radarr/types/types'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 import { cn } from '@/lib/utils'
 
 interface InstanceCardProps {
-  instance: RadarrInstance
+  instance: RadarrInstanceResponse
   setShowInstanceCard?: (show: boolean) => void
 }
 
@@ -72,23 +72,14 @@ export function InstanceCard({
   const [isManualSync, setIsManualSync] = useState(false)
   const tagsSelectRef = useRef<TagsMultiSelectRef>(null)
 
-  const instances = useRadarrStore((state) => state.instances)
-  const instancesLoading = useRadarrStore((state) => state.instancesLoading)
-  const setLoadingWithMinDuration = useRadarrStore(
-    (state) => state.setLoadingWithMinDuration,
-  )
-
-  const {
-    instances: allInstances,
-    updateInstance,
-    deleteInstance,
-  } = useRadarrInstance(instance.id)
+  const { instances, updateInstance, deleteInstance, isUpdating } =
+    useRadarrInstance(instance.id)
 
   const {
     testStatus,
     saveStatus,
     isConnectionValid,
-    isNavigationTest,
+    isNavigationTesting,
     needsConfiguration,
     webhookError,
     setWebhookError,
@@ -100,7 +91,7 @@ export function InstanceCard({
 
   const { form, resetForm, cardRef } = useRadarrInstanceForm({
     instance,
-    instances: allInstances,
+    instances,
     isNew: instance.id === -1,
     isConnectionValid,
   })
@@ -141,7 +132,6 @@ export function InstanceCard({
     }
 
     setSaveStatus('loading')
-    setLoadingWithMinDuration(true)
 
     try {
       const minimumLoadingTime = new Promise((resolve) =>
@@ -171,30 +161,10 @@ export function InstanceCard({
     } catch (error) {
       setSaveStatus('error')
 
+      const errorMessage =
+        apiErrorMessage(error) ?? 'Failed to update Radarr configuration'
+
       // Check for specific error about default instance
-      // Get the error message either from a direct Error object or from a fetch() response
-      let errorMessage = error instanceof Error ? error.message : String(error)
-
-      // Try to extract message from response data if it's a fetch error
-      try {
-        if (
-          error instanceof Response ||
-          (typeof error === 'object' &&
-            error &&
-            'status' in error &&
-            error.status === 400)
-        ) {
-          const data = await (error as Response).json()
-          errorMessage = data.message || errorMessage
-        }
-      } catch (_e) {
-        // If we can't parse the error as JSON, just use the error message we already have
-      }
-
-      console.log('Radarr error handling in component:', {
-        errorMessage,
-        error,
-      }) // Debug log
       const isDefaultError = errorMessage.includes('default')
 
       toast.error(
@@ -215,7 +185,6 @@ export function InstanceCard({
         })
       }
     } finally {
-      setLoadingWithMinDuration(false)
       setSaveStatus('idle')
     }
   }
@@ -237,7 +206,7 @@ export function InstanceCard({
 
   // Refresh tags for the specified instance
 
-  if (instancesLoading && instance.id !== -1 && isNavigationTest.current) {
+  if (isNavigationTesting && instance.id !== -1) {
     return <InstanceCardSkeleton />
   }
 
@@ -283,7 +252,7 @@ export function InstanceCard({
           <EditableCardHeader
             title={form.watch('name')}
             isNew={instance.id === -1}
-            isSaving={saveStatus === 'loading' || instancesLoading}
+            isSaving={saveStatus === 'loading' || isUpdating}
             isDirty={form.formState.isDirty || needsConfiguration}
             isValid={form.formState.isValid && isConnectionValid}
             badge={instance.isDefault ? { text: 'Default' } : undefined}
@@ -336,9 +305,9 @@ export function InstanceCard({
                           </div>
                           <QualityProfileSelect
                             field={field}
+                            app="radarr"
                             isConnectionValid={isConnectionValid}
                             selectedInstance={instance.id}
-                            instances={instances}
                           />
                           <FormMessage />
                         </FormItem>
@@ -370,9 +339,9 @@ export function InstanceCard({
                           </div>
                           <RootFolderSelect
                             field={field}
+                            app="radarr"
                             isConnectionValid={isConnectionValid}
                             selectedInstance={instance.id}
-                            instances={instances}
                           />
                           <FormMessage />
                         </FormItem>

@@ -1,70 +1,48 @@
 import { useEffect, useRef } from 'react'
+import { PageError } from '@/components/ui/page-error'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
+import { useArrGenres } from '@/features/arr/useArrGenres'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
+import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Displays the Sonarr Content Router page for managing content routing rules.
  *
- * Initializes Sonarr and configuration stores on mount, loads instance and genre data as needed, and renders a tabbed interface for configuring routing rules. The page is rendered only after all required data is loaded.
- *
  * @returns The Sonarr Content Router page component.
  */
 export default function SonarrContentRouterPage() {
-  const instances = useSonarrStore((state) => state.instances)
-  const genres = useSonarrStore((state) => state.genres)
-  const fetchGenres = useSonarrStore((state) => state.fetchGenres)
-  const instancesLoading = useSonarrStore((state) => state.instancesLoading)
-  const isInitialized = useSonarrStore((state) => state.isInitialized)
-  const initialize = useSonarrStore((state) => state.initialize)
-  const fetchInstanceData = useSonarrStore((state) => state.fetchInstanceData)
+  const { data, isLoading, isError, error, refetch } = useSonarrInstancesQuery()
+  // Placeholder instances are unconfigured - routing to them cannot work
+  const instances = (data ?? []).filter(
+    (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
+  )
+  const { genres, handleGenreDropdownOpen } = useArrGenres()
 
-  // Add config store initialization for session monitoring support
+  // Initialize config for session monitoring support
   const configInitialize = useConfigStore((state) => state.initialize)
 
   const hasInitializedRef = useRef(false)
 
   useEffect(() => {
-    const initializeData = async () => {
-      if (!hasInitializedRef.current) {
-        await initialize(true)
-        configInitialize() // Initialize config store for session monitoring
-
-        // Ensure instance data is fetched for all valid instances
-        const validInstances = instances.filter(
-          (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
-        )
-
-        await Promise.all(
-          validInstances.map((instance) =>
-            fetchInstanceData(instance.id.toString()),
-          ),
-        )
-
-        hasInitializedRef.current = true
-      }
+    if (!hasInitializedRef.current) {
+      configInitialize() // Initialize config for session monitoring
+      hasInitializedRef.current = true
     }
+  }, [configInitialize])
 
-    initializeData()
-  }, [initialize, fetchInstanceData, instances, configInitialize])
-
-  const handleGenreDropdownOpen = async () => {
-    if (!genres.length) {
-      await fetchGenres()
-    }
+  if (isError) {
+    return (
+      <PageError
+        message={apiErrorMessage(error) ?? 'Failed to load Sonarr instances'}
+        onRetry={() => refetch()}
+      />
+    )
   }
 
-  const hasRealInstances = instances.some(
-    (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
-  )
-
-  if (!isInitialized) {
-    return null
-  }
-
-  if (instancesLoading && hasRealInstances) {
+  if (data === undefined || isLoading) {
     return null
   }
 

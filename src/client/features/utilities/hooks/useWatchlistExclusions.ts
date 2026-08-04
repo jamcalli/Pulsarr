@@ -1,40 +1,17 @@
-import {
-  type GetWatchlistExclusionsResponse,
-  GetWatchlistExclusionsResponseSchema,
-} from '@root/schemas/watchlist-exclusions/watchlist-exclusions.schema'
-import { apiClient } from '@/lib/apiClient'
-import { useAppQuery } from '@/lib/useAppQuery'
+import { $api } from '@/lib/tanstackApi'
+import { useMinLoading } from '@/lib/useMinLoading'
 
 /**
- * Query key factory for watchlist exclusion queries.
- * Centralized key management enables targeted cache invalidation.
+ * Key prefix for the watchlist exclusions list query. The trailing slash
+ * matches the registered route path in the OpenAPI spec.
  */
 export const watchlistExclusionKeys = {
-  all: ['watchlist-exclusions'] as const,
-  lists: () => [...watchlistExclusionKeys.all, 'list'] as const,
+  all: $api.queryOptions('get', '/v1/watchlist-exclusions/').queryKey,
 }
 
 /**
- * React Query hook for fetching all watchlist exclusions.
- *
- * Uses `useAppQuery` wrapper which enforces minimum loading duration
- * for consistent skeleton loader behavior.
- *
- * @returns Query result with the list of exclusions, loading state, and error
- *
- * @example
- * ```typescript
- * const { data, isLoading, error } = useWatchlistExclusions()
- * const exclusions = data?.exclusions ?? []
- * ```
+ * Fetches all watchlist exclusions.
  */
 export function useWatchlistExclusions() {
-  return useAppQuery<GetWatchlistExclusionsResponse>({
-    queryKey: watchlistExclusionKeys.lists(),
-    queryFn: () =>
-      apiClient.get(
-        '/v1/watchlist-exclusions',
-        GetWatchlistExclusionsResponseSchema,
-      ),
-  })
+  return useMinLoading($api.useQuery('get', '/v1/watchlist-exclusions/'))
 }

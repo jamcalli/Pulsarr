@@ -35,10 +35,10 @@ import {
 import {
   QualityProfileSelect,
   RootFolderSelect,
-} from '@/features/radarr/components/selects/radarr-selects'
+} from '@/features/arr/arr-selects'
 import SyncedInstancesSelect from '@/features/radarr/components/selects/radarr-synced-instance-select'
+import { useRadarrInstancesQuery } from '@/features/radarr/hooks/instance/useRadarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 const approvalRoutingSchema = z.object({
@@ -88,28 +88,7 @@ export function ApprovalRadarrRoutingCard({
   const isMobile = useMediaQuery('(max-width: 768px)')
   const tagsSelectRef = useRef<TagsMultiSelectRef>(null)
 
-  const instances = useRadarrStore((state) => state.instances)
-  const fetchInstances = useRadarrStore((state) => state.fetchInstances)
-  const fetchInstanceData = useRadarrStore((state) => state.fetchInstanceData)
-
-  // Fetch instances when component mounts to ensure store is populated
-  useEffect(() => {
-    if (instances.length === 0) {
-      fetchInstances()
-    }
-  }, [instances.length, fetchInstances])
-
-  // Fetch specific instance data for quality profiles and root folders
-  useEffect(() => {
-    const targetInstance = instances.find((i) => i.id === instanceId)
-    if (
-      targetInstance &&
-      !targetInstance.data?.qualityProfiles &&
-      !targetInstance.data?.fetching
-    ) {
-      fetchInstanceData(instanceId.toString())
-    }
-  }, [instances, instanceId, fetchInstanceData])
+  const { data: instances = [] } = useRadarrInstancesQuery()
 
   // Find the target instance
   const targetInstance = instances.find((i) => i.id === instanceId)
@@ -170,7 +149,9 @@ export function ApprovalRadarrRoutingCard({
     }
   }
 
-  const isConnectionValid = targetInstance?.apiKey !== API_KEY_PLACEHOLDER
+  const isConnectionValid =
+    targetInstance !== undefined &&
+    targetInstance.apiKey !== API_KEY_PLACEHOLDER
 
   return (
     <div className="space-y-4">
@@ -201,9 +182,9 @@ export function ApprovalRadarrRoutingCard({
                     </FormLabel>
                     <QualityProfileSelect
                       field={field}
+                      app="radarr"
                       isConnectionValid={isConnectionValid}
                       selectedInstance={instanceId}
-                      instances={instances}
                       disabled={disabled}
                     />
                     <FormMessage />
@@ -222,9 +203,9 @@ export function ApprovalRadarrRoutingCard({
                     </FormLabel>
                     <RootFolderSelect
                       field={field}
+                      app="radarr"
                       isConnectionValid={isConnectionValid}
                       selectedInstance={instanceId}
-                      instances={instances}
                       disabled={disabled}
                     />
                     <FormMessage />

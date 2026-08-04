@@ -161,7 +161,7 @@ export interface RadarrConfiguration {
   monitor?: RadarrMonitorType
 }
 
-export interface RootFolder {
+export type RootFolder = {
   path: string
   accessible: boolean
   freeSpace: number
@@ -169,7 +169,7 @@ export interface RootFolder {
   id: number
 }
 
-export interface QualityProfile {
+export type QualityProfile = {
   name: string
   upgradeAllowed: boolean
   cutoff: number

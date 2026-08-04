@@ -19,6 +19,7 @@ import { useApprovals } from '@/features/approvals/hooks/useApprovals'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
 import { queryClient } from '@/lib/queryClient'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
 import { approvalStatsKeys } from './hooks/useApprovalStats'
 import { approvalKeys } from './hooks/useApprovals'
@@ -171,14 +172,17 @@ export default function ApprovalsPage() {
   }
 
   // Combined loading state
-  const isLoading = !isConfigInitialized || approvalsLoading || statsLoading
+  const isLoading =
+    !isConfigInitialized ||
+    approvalsLoading ||
+    statsLoading ||
+    approvalsData === undefined ||
+    statsData === undefined
 
   // Show error state
   if (approvalsError && !isLoading) {
     const errorMessage =
-      approvalsError instanceof Error
-        ? approvalsError.message
-        : 'Failed to load approvals'
+      apiErrorMessage(approvalsError) ?? 'Failed to load approvals'
     return (
       <div>
         <div className="flex justify-between items-center mb-4">
