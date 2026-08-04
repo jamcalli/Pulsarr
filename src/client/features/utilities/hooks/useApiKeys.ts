@@ -71,7 +71,9 @@ export function useApiKeys() {
           const { [id]: _removed, ...rest } = prev
           return rest
         })
-        setShowDeleteConfirmation(null)
+        setShowDeleteConfirmation((current) =>
+          current === id ? null : current,
+        )
         invalidateApiKeyCaches()
       },
     }),
