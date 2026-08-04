@@ -5,8 +5,8 @@ import { useArrGenres } from '@/features/arr/useArrGenres'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
-import { useConfigStore } from '@/stores/configStore'
 import { apiErrorMessage } from '@/lib/tanstackApi'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Displays the Sonarr Content Router page for managing content routing rules.

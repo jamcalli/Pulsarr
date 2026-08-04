@@ -5,8 +5,8 @@ import { useArrGenres } from '@/features/arr/useArrGenres'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { useRadarrInstancesQuery } from '@/features/radarr/hooks/instance/useRadarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
-import { useConfigStore } from '@/stores/configStore'
 import { apiErrorMessage } from '@/lib/tanstackApi'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Renders the Radarr Content Router configuration page for managing content routing rules.

@@ -7,8 +7,8 @@ import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-car
 import { InstanceCard } from '@/features/sonarr/components/instance/sonarr-instance-card'
 import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
-import { useConfigStore } from '@/stores/configStore'
 import { apiErrorMessage } from '@/lib/tanstackApi'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Renders the page for managing Sonarr instances, enabling users to add, view, and configure their Sonarr connections.
