@@ -45,9 +45,13 @@ export function useMinLoadingMutation<T extends { isPending: boolean }>(
  * not just the pending flag.
  */
 export async function withMinDuration<T>(promise: Promise<T>): Promise<T> {
-  const [result] = await Promise.all([
-    promise,
-    new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY)),
-  ])
-  return result
+  const delay = new Promise<void>((resolve) =>
+    setTimeout(resolve, MIN_LOADING_DELAY),
+  )
+
+  try {
+    return await promise
+  } finally {
+    await delay
+  }
 }

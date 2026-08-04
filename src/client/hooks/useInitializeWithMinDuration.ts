@@ -17,11 +17,16 @@ export function useInitializeWithMinDuration(
 
   useEffect(() => {
     let cancelled = false
-    initializeFn().finally(() => {
-      if (!cancelled) {
-        setIsInitializing(false)
-      }
-    })
+    setIsInitializing(true)
+    initializeFn()
+      .catch((error) => {
+        console.error('Initialization error:', error)
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsInitializing(false)
+        }
+      })
     return () => {
       cancelled = true
     }
