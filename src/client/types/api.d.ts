@@ -24,147 +24,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sync/instance/{instanceId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sync specific instance
-         * @description Synchronize watchlist items to a specific Radarr or Sonarr instance
-         */
-        post: operations["syncInstance"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/sync/all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sync all instances
-         * @description Synchronize watchlist items to all configured Radarr and Sonarr instances
-         */
-        post: operations["syncAllInstances"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/tags/create": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create user tags
-         * @description Create user tags in Sonarr and Radarr instances
-         */
-        post: operations["createUserTags"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/tags/sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sync user tags
-         * @description Synchronize content with user tags in Sonarr and Radarr instances
-         */
-        post: operations["syncUserTags"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/tags/cleanup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cleanup orphaned tags
-         * @description Clean up orphaned user tags from instances
-         */
-        post: operations["cleanupOrphanedTags"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/tags/cleanup-orphaned-refs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cleanup orphaned tag references
-         * @description Remove references to non-existent tags from movies and series
-         */
-        post: operations["cleanupOrphanedTagReferences"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/tags/remove": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Remove all user tags
-         * @description Remove all user tags from media and optionally delete tag definitions
-         */
-        post: operations["removeAllUserTags"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/watchlist-exclusions": {
+    "/v1/api-keys/api-keys": {
         parameters: {
             query?: never;
             header?: never;
@@ -172,43 +32,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get all watchlist exclusions
-         * @description Retrieve all watchlist exclusions with user information
+         * Get API keys
+         * @description Retrieve all active API keys
          */
-        get: operations["getAllWatchlistExclusions"];
+        get: operations["getApiKeys"];
         put?: never;
         /**
-         * Create watchlist exclusion
-         * @description Create watchlist exclusion records for a key and set of users
+         * Create API key
+         * @description Create a new API key for authentication
          */
-        post: operations["createWatchlistExclusion"];
+        post: operations["createApiKey"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/watchlist-exclusions/user/{userId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get user watchlist exclusions
-         * @description Retrieve all watchlist exclusions for a specific user
-         */
-        get: operations["getUserWatchlistExclusions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/watchlist-exclusions/{id}": {
+    "/v1/api-keys/api-keys/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -219,10 +59,226 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Remove watchlist exclusion
-         * @description Remove a watchlist exclusion by ID
+         * Revoke API key
+         * @description Revoke an API key by ID
          */
-        delete: operations["removeWatchlistExclusion"];
+        delete: operations["revokeApiKey"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/approval/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get approval requests
+         * @description Retrieve approval requests with optional filtering
+         */
+        get: operations["getApprovalRequests"];
+        put?: never;
+        /**
+         * Create approval request
+         * @description Create a new approval request for content routing
+         */
+        post: operations["createApprovalRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/approval/requests/bulk/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk approve requests
+         * @description Approve multiple approval requests in batch
+         */
+        post: operations["bulkApproveRequests"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/approval/requests/bulk/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Bulk delete requests
+         * @description Delete multiple approval requests in batch
+         */
+        delete: operations["bulkDeleteRequests"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/approval/requests/bulk/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk reject requests
+         * @description Reject multiple approval requests in batch
+         */
+        post: operations["bulkRejectRequests"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/approval/requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get approval request by ID
+         * @description Retrieve a specific approval request by its ID
+         */
+        get: operations["getApprovalRequestById"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete approval request
+         * @description Permanently delete an approval request from database
+         */
+        delete: operations["deleteApprovalRequest"];
+        options?: never;
+        head?: never;
+        /**
+         * Update approval request
+         * @description Update an approval request (approve, reject, or modify)
+         */
+        patch: operations["updateApprovalRequest"];
+        trace?: never;
+    };
+    "/v1/approval/requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve and execute request
+         * @description Approve an approval request and execute the proposed routing
+         */
+        post: operations["approveAndExecuteRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/approval/requests/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject approval request
+         * @description Reject an approval request (marks as rejected)
+         */
+        post: operations["rejectApprovalRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/approval/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get approval statistics
+         * @description Get statistics about approval requests
+         */
+        get: operations["getApprovalStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get configuration
+         * @description Retrieve the current application configuration settings
+         */
+        get: operations["getConfig"];
+        /**
+         * Update configuration
+         * @description Update the application configuration settings
+         */
+        put: operations["updateConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/config/resync-arr-webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resync arr webhooks
+         * @description Re-register Pulsarr webhooks in all configured Radarr and Sonarr instances using the current network settings
+         */
+        post: operations["resyncArrWebhooks"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -292,26 +348,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/content-router/rules/type/{type}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get router rules by type
-         * @description Retrieve content router rules filtered by specific type
-         */
-        get: operations["getRouterRulesByType"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/content-router/rules/target": {
         parameters: {
             query?: never;
@@ -324,6 +360,46 @@ export interface paths {
          * @description Retrieve content router rules for a specific target instance
          */
         get: operations["getRouterRulesByTarget"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/content-router/rules/target/{targetType}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get router rules by target type
+         * @description Retrieve content router rules filtered by target application type
+         */
+        get: operations["getRouterRulesByTargetType"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/content-router/rules/type/{type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get router rules by type
+         * @description Retrieve content router rules filtered by specific type
+         */
+        get: operations["getRouterRulesByType"];
         put?: never;
         post?: never;
         delete?: never;
@@ -360,26 +436,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/content-router/rules/target/{targetType}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get router rules by target type
-         * @description Retrieve content router rules filtered by target application type
-         */
-        get: operations["getRouterRulesByTargetType"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/content-router/rules/{id}/toggle": {
         parameters: {
             query?: never;
@@ -400,59 +456,7 @@ export interface paths {
         patch: operations["toggleRouterRule"];
         trace?: never;
     };
-    "/v1/scheduler/schedules": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get all job schedules
-         * @description Retrieve all configured job schedules and their status
-         */
-        get: operations["getAllSchedules"];
-        put?: never;
-        /**
-         * Create job schedule
-         * @description Create a new job schedule or update an existing one
-         */
-        post: operations["createSchedule"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/scheduler/schedules/{name}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get job schedule by name
-         * @description Retrieve a specific job schedule by its name
-         */
-        get: operations["getScheduleByName"];
-        /**
-         * Update job schedule
-         * @description Update an existing job schedule configuration
-         */
-        put: operations["updateSchedule"];
-        post?: never;
-        /**
-         * Delete job schedule
-         * @description Delete a job schedule by its name
-         */
-        delete: operations["deleteSchedule"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/scheduler/schedules/{name}/run": {
+    "/v1/labels/cleanup": {
         parameters: {
             query?: never;
             header?: never;
@@ -462,17 +466,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Run job immediately
-         * @description Execute a scheduled job immediately
+         * Cleanup orphaned plex labels
+         * @description Clean up orphaned plex labels and expired pending syncs
          */
-        post: operations["runJobNow"];
+        post: operations["cleanupOrphanedPlexLabels"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/scheduler/schedules/{name}/toggle": {
+    "/v1/labels/remove": {
         parameters: {
             query?: never;
             header?: never;
@@ -482,17 +486,17 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Remove Pulsarr labels from Plex content
+         * @description Remove all Pulsarr-created labels from Plex content while preserving other labels
+         */
+        delete: operations["removePulsarrPlexLabels"];
         options?: never;
         head?: never;
-        /**
-         * Toggle job schedule
-         * @description Enable or disable a job schedule
-         */
-        patch: operations["toggleSchedule"];
+        patch?: never;
         trace?: never;
     };
-    "/v1/scheduler/schedules/delete-sync/dry-run": {
+    "/v1/labels/sync": {
         parameters: {
             query?: never;
             header?: never;
@@ -502,10 +506,50 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Dry-run delete sync
-         * @description Perform a dry-run of the delete sync job to preview what would be deleted
+         * Sync plex labels
+         * @description Synchronize plex labels for all watchlist content. Will automatically reset labels first if enabled in configuration.
          */
-        post: operations["dryRunDeleteSync"];
+        post: operations["syncPlexLabels"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/logs/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream log entries
+         * @description Server-Sent Events stream for real-time log entries. Establishes an SSE connection to receive tail lines and live updates from the application log file. Supports an optional text filter and an initial tail size.
+         */
+        get: operations["streamLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/metadata/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh metadata for all watchlist items
+         * @description Forces a refresh of metadata (posters, GUIDs, genres) for all existing watchlist items by re-fetching data from Plex API
+         */
+        post: operations["refreshMetadata"];
         delete?: never;
         options?: never;
         head?: never;
@@ -592,7 +636,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/system/update-status": {
+    "/v1/plex/cancel-friend-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a Plex friend request
+         * @description Removes a friend or cancels a pending sent friend request via the Plex removeFriend mutation
+         */
+        post: operations["cancelPlexFriendRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plex/configure-notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Configure Plex notifications
+         * @description Configure Plex webhook notifications for Radarr and Sonarr instances
+         */
+        post: operations["configurePlexNotifications"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plex/discover-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Discover Plex servers
+         * @description Discover available Plex servers using a user token
+         */
+        post: operations["discoverPlexServers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plex/generate-rss-feeds": {
         parameters: {
             query?: never;
             header?: never;
@@ -600,10 +704,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get cached Pulsarr update status
-         * @description Returns the most recent cached Pulsarr release check from the update-check service. The actual GitHub fetch happens server-side on an hourly cron.
+         * Generate RSS feeds
+         * @description Generate RSS feed URLs for Plex watchlists
          */
-        get: operations["getUpdateStatus"];
+        get: operations["generateRssFeeds"];
         put?: never;
         post?: never;
         delete?: never;
@@ -612,7 +716,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/session-monitoring/rolling-monitored": {
+    "/v1/plex/genres": {
         parameters: {
             query?: never;
             header?: never;
@@ -620,10 +724,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get rolling monitored shows
-         * @description Retrieve all shows currently being monitored by the rolling monitoring system
+         * Get watchlist genres
+         * @description Retrieve all genres from watchlist items
          */
-        get: operations["getRollingMonitoredShows"];
+        get: operations["getWatchlistGenres"];
         put?: never;
         post?: never;
         delete?: never;
@@ -632,67 +736,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/session-monitoring/run": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Run session monitor manually
-         * @description Manually trigger the Plex session monitoring process to check for viewing activity and update rolling monitored shows
-         */
-        post: operations["runSessionMonitor"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/session-monitoring/rolling-monitored/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete rolling monitored show
-         * @description Remove a show from rolling monitoring and stop tracking its viewing activity
-         */
-        delete: operations["deleteRollingMonitoredShow"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/session-monitoring/rolling-monitored/{id}/reset": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reset rolling monitored show
-         * @description Reset a rolling monitored show back to its original monitoring state (pilot only or first season only)
-         */
-        post: operations["resetRollingMonitoredShow"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/session-monitoring/rolling-monitored/inactive": {
+    "/v1/plex/notification-status": {
         parameters: {
             query?: never;
             header?: never;
@@ -700,10 +744,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get inactive rolling monitored shows
-         * @description Retrieve rolling monitored shows that have been inactive for a specified number of days
+         * Get Plex notification status
+         * @description Check if Plex notifications are configured for Radarr and Sonarr instances
          */
-        get: operations["getInactiveRollingMonitoredShows"];
+        get: operations["getPlexNotificationStatus"];
         put?: never;
         post?: never;
         delete?: never;
@@ -712,27 +756,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/session-monitoring/rolling-monitored/reset-inactive": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reset inactive rolling monitored shows
-         * @description Reset all rolling monitored shows that have been inactive for a specified number of days
-         */
-        post: operations["resetInactiveRollingMonitoredShows"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/session-monitoring/sonarr-shows": {
+    "/v1/plex/others-watchlist-token": {
         parameters: {
             query?: never;
             header?: never;
@@ -740,10 +764,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Sonarr shows with enrollment status
-         * @description Retrieve all Pulsarr-tracked Sonarr shows with their rolling monitoring enrollment status
+         * Get others watchlist tokens
+         * @description Retrieve watchlist items from other Plex users
          */
-        get: operations["getSonarrShows"];
+        get: operations["getOthersWatchlistTokens"];
         put?: never;
         post?: never;
         delete?: never;
@@ -752,7 +776,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/session-monitoring/rolling-monitored/bulk": {
+    "/v1/plex/pin": {
         parameters: {
             query?: never;
             header?: never;
@@ -762,77 +786,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Bulk manage rolling monitored shows
-         * @description Enroll new shows into rolling monitoring and/or change the monitoring type of already-enrolled shows in bulk
+         * Generate Plex PIN for authentication
+         * @description Generates a PIN that users can enter at plex.tv/link to authorize Pulsarr access to their Plex account
          */
-        post: operations["bulkManageRollingMonitoredShows"];
+        post: operations["generatePlexPin"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/labels/sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sync plex labels
-         * @description Synchronize plex labels for all watchlist content. Will automatically reset labels first if enabled in configuration.
-         */
-        post: operations["syncPlexLabels"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/labels/cleanup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cleanup orphaned plex labels
-         * @description Clean up orphaned plex labels and expired pending syncs
-         */
-        post: operations["cleanupOrphanedPlexLabels"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/labels/remove": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Remove Pulsarr labels from Plex content
-         * @description Remove all Pulsarr-created labels from Plex content while preserving other labels
-         */
-        delete: operations["removePulsarrPlexLabels"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/progress/": {
+    "/v1/plex/pin/{pinId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -840,10 +804,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Stream progress events
-         * @description Server-Sent Events stream for real-time progress updates. This endpoint establishes an SSE connection to receive progress updates for various operations like watchlist syncing, delete sync analysis, etc.
+         * Poll Plex PIN for auth token
+         * @description Checks if the user has completed authorization at plex.tv/link. Returns authToken when authorized.
          */
-        get: operations["streamProgress"];
+        get: operations["pollPlexPin"];
         put?: never;
         post?: never;
         delete?: never;
@@ -852,7 +816,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/approval/requests": {
+    "/v1/plex/ping": {
         parameters: {
             query?: never;
             header?: never;
@@ -860,82 +824,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get approval requests
-         * @description Retrieve approval requests with optional filtering
+         * Test Plex server connection
+         * @description Verifies connectivity to the configured Plex server
          */
-        get: operations["getApprovalRequests"];
-        put?: never;
-        /**
-         * Create approval request
-         * @description Create a new approval request for content routing
-         */
-        post: operations["createApprovalRequest"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/approval/requests/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get approval request by ID
-         * @description Retrieve a specific approval request by its ID
-         */
-        get: operations["getApprovalRequestById"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete approval request
-         * @description Permanently delete an approval request from database
-         */
-        delete: operations["deleteApprovalRequest"];
-        options?: never;
-        head?: never;
-        /**
-         * Update approval request
-         * @description Update an approval request (approve, reject, or modify)
-         */
-        patch: operations["updateApprovalRequest"];
-        trace?: never;
-    };
-    "/v1/approval/requests/{id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reject approval request
-         * @description Reject an approval request (marks as rejected)
-         */
-        post: operations["rejectApprovalRequest"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/approval/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get approval statistics
-         * @description Get statistics about approval requests
-         */
-        get: operations["getApprovalStats"];
+        get: operations["pingPlex"];
         put?: never;
         post?: never;
         delete?: never;
@@ -944,67 +836,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/approval/requests/{id}/approve": {
+    "/v1/plex/plex-pass-status": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
-         * Approve and execute request
-         * @description Approve an approval request and execute the proposed routing
+         * Get Plex Pass status
+         * @description Returns whether the admin Plex account has an active Plex Pass subscription
          */
-        post: operations["approveAndExecuteRequest"];
+        get: operations["getPlexPassStatus"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/approval/requests/bulk/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Bulk approve requests
-         * @description Approve multiple approval requests in batch
-         */
-        post: operations["bulkApproveRequests"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/approval/requests/bulk/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Bulk reject requests
-         * @description Reject multiple approval requests in batch
-         */
-        post: operations["bulkRejectRequests"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/approval/requests/bulk/delete": {
+    "/v1/plex/remove-notifications": {
         parameters: {
             query?: never;
             header?: never;
@@ -1015,16 +867,16 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Bulk delete requests
-         * @description Delete multiple approval requests in batch
+         * Remove Plex notifications
+         * @description Remove Plex webhook notifications from Radarr and Sonarr instances
          */
-        delete: operations["bulkDeleteRequests"];
+        delete: operations["removePlexNotifications"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/webhooks/endpoints": {
+    "/v1/plex/rss-watchlist": {
         parameters: {
             query?: never;
             header?: never;
@@ -1032,250 +884,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List webhook endpoints
-         * @description Retrieve all configured webhook endpoints
+         * Parse RSS watchlists
+         * @description Parse and process RSS feed watchlist items
          */
-        get: operations["listWebhookEndpoints"];
-        put?: never;
-        /**
-         * Create webhook endpoint
-         * @description Create a new webhook endpoint
-         */
-        post: operations["createWebhookEndpoint"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/webhooks/endpoints/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get webhook endpoint
-         * @description Retrieve a single webhook endpoint by ID
-         */
-        get: operations["getWebhookEndpoint"];
-        /**
-         * Update webhook endpoint
-         * @description Update an existing webhook endpoint
-         */
-        put: operations["updateWebhookEndpoint"];
-        post?: never;
-        /**
-         * Delete webhook endpoint
-         * @description Delete a webhook endpoint
-         */
-        delete: operations["deleteWebhookEndpoint"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/webhooks/endpoints/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Test webhook endpoint
-         * @description Test a webhook endpoint by sending a test payload (use before saving)
-         */
-        post: operations["testWebhookEndpoint"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/webhooks/endpoints/{id}/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Test existing webhook endpoint
-         * @description Test an existing webhook endpoint by ID
-         */
-        post: operations["testExistingWebhookEndpoint"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/webhooks/event-types": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List webhook event types
-         * @description List all available webhook event types with descriptions
-         */
-        get: operations["listWebhookEventTypes"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/radarr/tags": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Radarr tags
-         * @description Retrieve tags from a Radarr instance
-         */
-        get: operations["getRadarrTags"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/radarr/create-tag": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Radarr tag
-         * @description Create a new tag in a Radarr instance
-         */
-        post: operations["createRadarrTag"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/radarr/instances": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Radarr instances
-         * @description Retrieve all configured Radarr instances
-         */
-        get: operations["getRadarrInstances"];
-        put?: never;
-        /**
-         * Create Radarr instance
-         * @description Create a new Radarr instance configuration
-         */
-        post: operations["createRadarrInstance"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/radarr/instances/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Update Radarr instance
-         * @description Update an existing Radarr instance configuration
-         */
-        put: operations["updateRadarrInstance"];
-        post?: never;
-        /**
-         * Delete Radarr instance
-         * @description Delete a Radarr instance configuration
-         */
-        delete: operations["deleteRadarrInstance"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/radarr/test-connection": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Test Radarr connection
-         * @description Test connectivity to a Radarr instance with provided credentials
-         */
-        post: operations["testRadarrConnection"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/radarr/quality-profiles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Radarr quality profiles
-         * @description Retrieve quality profiles from a Radarr instance
-         */
-        get: operations["getRadarrQualityProfiles"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/radarr/root-folders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Radarr root folders
-         * @description Retrieve root folders from a Radarr instance
-         */
-        get: operations["getRadarrRootFolders"];
+        get: operations["parseRssWatchlists"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1324,166 +936,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/plex/pin": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Generate Plex PIN for authentication
-         * @description Generates a PIN that users can enter at plex.tv/link to authorize Pulsarr access to their Plex account
-         */
-        post: operations["generatePlexPin"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/plex/pin/{pinId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Poll Plex PIN for auth token
-         * @description Checks if the user has completed authorization at plex.tv/link. Returns authToken when authorized.
-         */
-        get: operations["pollPlexPin"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/plex/rss-watchlist": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Parse RSS watchlists
-         * @description Parse and process RSS feed watchlist items
-         */
-        get: operations["parseRssWatchlists"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/plex/plex-pass-status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Plex Pass status
-         * @description Returns whether the admin Plex account has an active Plex Pass subscription
-         */
-        get: operations["getPlexPassStatus"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/plex/others-watchlist-token": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get others watchlist tokens
-         * @description Retrieve watchlist items from other Plex users
-         */
-        get: operations["getOthersWatchlistTokens"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/plex/cancel-friend-request": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cancel a Plex friend request
-         * @description Removes a friend or cancels a pending sent friend request via the Plex removeFriend mutation
-         */
-        post: operations["cancelPlexFriendRequest"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/plex/generate-rss-feeds": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Generate RSS feeds
-         * @description Generate RSS feed URLs for Plex watchlists
-         */
-        get: operations["generateRssFeeds"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/plex/discover-servers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Discover Plex servers
-         * @description Discover available Plex servers using a user token
-         */
-        post: operations["discoverPlexServers"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/plex/user-status": {
         parameters: {
             query?: never;
@@ -1504,7 +956,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/plex/genres": {
+    "/v1/progress/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1512,10 +964,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get watchlist genres
-         * @description Retrieve all genres from watchlist items
+         * Stream progress events
+         * @description Server-Sent Events stream for real-time progress updates. This endpoint establishes an SSE connection to receive progress updates for various operations like watchlist syncing, delete sync analysis, etc.
          */
-        get: operations["getWatchlistGenres"];
+        get: operations["streamProgress"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1524,7 +976,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/plex/remove-notifications": {
+    "/v1/quota/stats/daily": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get daily usage statistics
+         * @description Get daily usage statistics for a user
+         */
+        get: operations["getDailyUsageStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/quota/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get quota usage history
+         * @description Get quota usage history for a user
+         */
+        get: operations["getQuotaUsageHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/quota/usage/cleanup": {
         parameters: {
             query?: never;
             header?: never;
@@ -1535,318 +1027,10 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Remove Plex notifications
-         * @description Remove Plex webhook notifications from Radarr and Sonarr instances
+         * Cleanup old quota usage
+         * @description Clean up old quota usage records
          */
-        delete: operations["removePlexNotifications"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/plex/notification-status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Plex notification status
-         * @description Check if Plex notifications are configured for Radarr and Sonarr instances
-         */
-        get: operations["getPlexNotificationStatus"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/plex/configure-notifications": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Configure Plex notifications
-         * @description Configure Plex webhook notifications for Radarr and Sonarr instances
-         */
-        post: operations["configurePlexNotifications"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/plex/ping": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Test Plex server connection
-         * @description Verifies connectivity to the configured Plex server
-         */
-        get: operations["pingPlex"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/tmdb/metadata/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get TMDB metadata by GUID
-         * @description Accepts GUID format IDs (tmdb:123, tvdb:456) and resolves to fetch TMDB metadata
-         */
-        get: operations["getTmdbMetadataByGuid"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/tmdb/movie/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get movie metadata from TMDB
-         * @description Fetch TMDB movie metadata including overview, ratings, and watch providers
-         */
-        get: operations["getTmdbMovieMetadata"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/tmdb/tv/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get TV show metadata from TMDB
-         * @description Fetch TMDB TV show metadata including overview, ratings, and watch providers
-         */
-        get: operations["getTmdbTvMetadata"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/tmdb/regions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get available TMDB regions
-         * @description Fetch list of regions/countries that have watch provider data available in TMDB
-         */
-        get: operations["getTmdbRegions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/tmdb/providers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get streaming providers
-         * @description Fetch list of streaming service providers available for the configured region. Results are cached for 24 hours.
-         */
-        get: operations["getTmdbProviders"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/watchlist-workflow/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start watchlist workflow
-         * @description Start the watchlist processing workflow
-         */
-        post: operations["startWatchlistWorkflow"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/watchlist-workflow/stop": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Stop watchlist workflow
-         * @description Stop the currently running watchlist processing workflow
-         */
-        post: operations["stopWatchlistWorkflow"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/watchlist-workflow/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get watchlist workflow status
-         * @description Retrieve the current status of the watchlist processing workflow
-         */
-        get: operations["getWatchlistWorkflowStatus"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/api-keys/api-keys": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get API keys
-         * @description Retrieve all active API keys
-         */
-        get: operations["getApiKeys"];
-        put?: never;
-        /**
-         * Create API key
-         * @description Create a new API key for authentication
-         */
-        post: operations["createApiKey"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/api-keys/api-keys/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Revoke API key
-         * @description Revoke an API key by ID
-         */
-        delete: operations["revokeApiKey"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/config/resync-arr-webhooks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Resync arr webhooks
-         * @description Re-register Pulsarr webhooks in all configured Radarr and Sonarr instances using the current network settings
-         */
-        post: operations["resyncArrWebhooks"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get configuration
-         * @description Retrieve the current application configuration settings
-         */
-        get: operations["getConfig"];
-        /**
-         * Update configuration
-         * @description Update the application configuration settings
-         */
-        put: operations["updateConfig"];
-        post?: never;
-        delete?: never;
+        delete: operations["cleanupOldQuotaUsage"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1870,6 +1054,46 @@ export interface paths {
          * @description Create a quota configuration for a user
          */
         post: operations["createUserQuota"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/quota/users/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Bulk quota operations
+         * @description Perform bulk quota operations on multiple users (update or delete)
+         */
+        patch: operations["bulkQuotaOperations"];
+        trace?: never;
+    };
+    "/v1/quota/users/status/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get quota status for multiple users
+         * @description Get current quota status for multiple users in a single request
+         */
+        post: operations["getBulkUserQuotaStatus"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1964,26 +1188,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/quota/users/status/bulk": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Get quota status for multiple users
-         * @description Get current quota status for multiple users in a single request
-         */
-        post: operations["getBulkUserQuotaStatus"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/quota/users/{userId}/usage": {
         parameters: {
             query?: never;
@@ -2004,7 +1208,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/quota/usage": {
+    "/v1/radarr/create-tag": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Radarr tag
+         * @description Create a new tag in a Radarr instance
+         */
+        post: operations["createRadarrTag"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radarr/instances": {
         parameters: {
             query?: never;
             header?: never;
@@ -2012,10 +1236,58 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get quota usage history
-         * @description Get quota usage history for a user
+         * Get Radarr instances
+         * @description Retrieve all configured Radarr instances
          */
-        get: operations["getQuotaUsageHistory"];
+        get: operations["getRadarrInstances"];
+        put?: never;
+        /**
+         * Create Radarr instance
+         * @description Create a new Radarr instance configuration
+         */
+        post: operations["createRadarrInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radarr/instances/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Radarr instance
+         * @description Update an existing Radarr instance configuration
+         */
+        put: operations["updateRadarrInstance"];
+        post?: never;
+        /**
+         * Delete Radarr instance
+         * @description Delete a Radarr instance configuration
+         */
+        delete: operations["deleteRadarrInstance"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radarr/quality-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Radarr quality profiles
+         * @description Retrieve quality profiles from a Radarr instance
+         */
+        get: operations["getRadarrQualityProfiles"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2024,7 +1296,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/quota/stats/daily": {
+    "/v1/radarr/root-folders": {
         parameters: {
             query?: never;
             header?: never;
@@ -2032,10 +1304,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get daily usage statistics
-         * @description Get daily usage statistics for a user
+         * Get Radarr root folders
+         * @description Retrieve root folders from a Radarr instance
          */
-        get: operations["getDailyUsageStats"];
+        get: operations["getRadarrRootFolders"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2044,7 +1316,139 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/quota/users/bulk": {
+    "/v1/radarr/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Radarr tags
+         * @description Retrieve tags from a Radarr instance
+         */
+        get: operations["getRadarrTags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/radarr/test-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Radarr connection
+         * @description Test connectivity to a Radarr instance with provided credentials
+         */
+        post: operations["testRadarrConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/scheduler/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get all job schedules
+         * @description Retrieve all configured job schedules and their status
+         */
+        get: operations["getAllSchedules"];
+        put?: never;
+        /**
+         * Create job schedule
+         * @description Create a new job schedule or update an existing one
+         */
+        post: operations["createSchedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/scheduler/schedules/delete-sync/dry-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dry-run delete sync
+         * @description Perform a dry-run of the delete sync job to preview what would be deleted
+         */
+        post: operations["dryRunDeleteSync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/scheduler/schedules/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get job schedule by name
+         * @description Retrieve a specific job schedule by its name
+         */
+        get: operations["getScheduleByName"];
+        /**
+         * Update job schedule
+         * @description Update an existing job schedule configuration
+         */
+        put: operations["updateSchedule"];
+        post?: never;
+        /**
+         * Delete job schedule
+         * @description Delete a job schedule by its name
+         */
+        delete: operations["deleteSchedule"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/scheduler/schedules/{name}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run job immediately
+         * @description Execute a scheduled job immediately
+         */
+        post: operations["runJobNow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/scheduler/schedules/{name}/toggle": {
         parameters: {
             query?: never;
             header?: never;
@@ -2058,13 +1462,93 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Bulk quota operations
-         * @description Perform bulk quota operations on multiple users (update or delete)
+         * Toggle job schedule
+         * @description Enable or disable a job schedule
          */
-        patch: operations["bulkQuotaOperations"];
+        patch: operations["toggleSchedule"];
         trace?: never;
     };
-    "/v1/quota/usage/cleanup": {
+    "/v1/session-monitoring/rolling-monitored": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get rolling monitored shows
+         * @description Retrieve all shows currently being monitored by the rolling monitoring system
+         */
+        get: operations["getRollingMonitoredShows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/session-monitoring/rolling-monitored/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk manage rolling monitored shows
+         * @description Enroll new shows into rolling monitoring and/or change the monitoring type of already-enrolled shows in bulk
+         */
+        post: operations["bulkManageRollingMonitoredShows"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/session-monitoring/rolling-monitored/inactive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get inactive rolling monitored shows
+         * @description Retrieve rolling monitored shows that have been inactive for a specified number of days
+         */
+        get: operations["getInactiveRollingMonitoredShows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/session-monitoring/rolling-monitored/reset-inactive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset inactive rolling monitored shows
+         * @description Reset all rolling monitored shows that have been inactive for a specified number of days
+         */
+        post: operations["resetInactiveRollingMonitoredShows"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/session-monitoring/rolling-monitored/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2075,76 +1559,16 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Cleanup old quota usage
-         * @description Clean up old quota usage records
+         * Delete rolling monitored show
+         * @description Remove a show from rolling monitoring and stop tracking its viewing activity
          */
-        delete: operations["cleanupOldQuotaUsage"];
+        delete: operations["deleteRollingMonitoredShow"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/users/bulk": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Bulk update users
-         * @description Update multiple users with the same changes in bulk
-         */
-        patch: operations["bulkUpdateUsers"];
-        trace?: never;
-    };
-    "/v1/users/alias-readiness": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Check alias readiness for tag/label naming
-         * @description Checks sync-enabled users for missing or duplicate aliases before switching to alias-based naming
-         */
-        get: operations["getAliasReadiness"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get current user information
-         * @description Retrieve information about the currently authenticated user, including Plex avatar if available
-         */
-        get: operations["getCurrentUser"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/logout": {
+    "/v1/session-monitoring/rolling-monitored/{id}/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -2154,57 +1578,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * User logout
-         * @description End the current user session and destroy authentication
+         * Reset rolling monitored show
+         * @description Reset a rolling monitored show back to its original monitoring state (pilot only or first season only)
          */
-        post: operations["logoutUser"];
+        post: operations["resetRollingMonitoredShow"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/users/{userId}/watchlist": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get user watchlist items
-         * @description Fetch all watchlist items for a specific user by their ID
-         */
-        get: operations["getUserWatchlist"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/update-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Update user password
-         * @description Change the current user password by providing current and new password
-         */
-        put: operations["updateUserPassword"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/create-admin": {
+    "/v1/session-monitoring/run": {
         parameters: {
             query?: never;
             header?: never;
@@ -2214,37 +1598,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Create admin user
-         * @description Create the first admin user account for the system
+         * Run session monitor manually
+         * @description Manually trigger the Plex session monitoring process to check for viewing activity and update rolling monitored shows
          */
-        post: operations["createAdminUser"];
+        post: operations["runSessionMonitor"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/users/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * User login
-         * @description Authenticate user by email/username and password
-         */
-        post: operations["loginUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/users/list": {
+    "/v1/session-monitoring/sonarr-shows": {
         parameters: {
             query?: never;
             header?: never;
@@ -2252,414 +1616,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get users list
-         * @description Retrieve a list of all users
+         * Get Sonarr shows with enrollment status
+         * @description Retrieve all Pulsarr-tracked Sonarr shows with their rolling monitoring enrollment status
          */
-        get: operations["getUsersList"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/users/list/with-counts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get users with watchlist counts
-         * @description Retrieve a list of all users including their watchlist item counts
-         */
-        get: operations["getUsersWithCounts"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create user
-         * @description Create a new user with the provided information
-         */
-        post: operations["createUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/users/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get user by ID
-         * @description Retrieve a specific user by their ID
-         */
-        get: operations["getUserById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Update user
-         * @description Update an existing user by ID
-         */
-        patch: operations["updateUser"];
-        trace?: never;
-    };
-    "/v1/users/check": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Check authentication status
-         * @description Lightweight endpoint to verify the current session is authenticated
-         */
-        get: operations["checkAuth"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/recent-requests": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get recent requests
-         * @description Retrieve recent requests for the dashboard carousel, combining pending approvals and routed watchlist items
-         */
-        get: operations["getRecentRequests"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get all dashboard statistics
-         * @description Retrieve comprehensive dashboard statistics including genres, content, users, and activity
-         */
-        get: operations["getAllDashboardStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/instance-content": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get instance content breakdown
-         * @description Retrieve content distribution across different instances
-         */
-        get: operations["getInstanceContentBreakdown"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/genres": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get top genres
-         * @description Retrieve the most popular genres from watchlists
-         */
-        get: operations["getTopGenres"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/shows": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get most watched shows
-         * @description Retrieve the most watchlisted TV shows with optional date filtering and pagination
-         */
-        get: operations["getMostWatchedShows"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/movies": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get most watched movies
-         * @description Retrieve the most watchlisted movies with optional date filtering and pagination
-         */
-        get: operations["getMostWatchedMovies"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get top users
-         * @description Retrieve users with the most watchlist items
-         */
-        get: operations["getTopUsers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/activity": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get recent activity
-         * @description Retrieve recent activity statistics for a specified time period
-         */
-        get: operations["getRecentActivity"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/availability": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get availability time stats
-         * @description Retrieve average time from adding to availability statistics
-         */
-        get: operations["getAvailabilityStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/grabbed-to-notified": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get grabbed to notified time stats
-         * @description Retrieve average time from grabbed to notified statistics
-         */
-        get: operations["getGrabbedToNotifiedStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/status-transitions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get status transition metrics
-         * @description Retrieve detailed status transition time metrics
-         */
-        get: operations["getStatusTransitions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/status-flow": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get status flow data
-         * @description Retrieve status flow data for visualization
-         */
-        get: operations["getStatusFlow"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/stats/notifications": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get notification statistics
-         * @description Retrieve notification statistics for a specified time period
-         */
-        get: operations["getNotificationStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/logs/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Stream log entries
-         * @description Server-Sent Events stream for real-time log entries. Establishes an SSE connection to receive tail lines and live updates from the application log file. Supports an optional text filter and an initial tail size.
-         */
-        get: operations["streamLogs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/metadata/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Refresh metadata for all watchlist items
-         * @description Forces a refresh of metadata (posters, GUIDs, genres) for all existing watchlist items by re-fetching data from Plex API
-         */
-        post: operations["refreshMetadata"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/sonarr/tags": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Sonarr tags
-         * @description Retrieve tags from a Sonarr instance
-         */
-        get: operations["getSonarrTags"];
+        get: operations["getSonarrShows"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2682,46 +1642,6 @@ export interface paths {
          * @description Create a new tag in a Sonarr instance
          */
         post: operations["createSonarrTag"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/sonarr/test-connection": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Test Sonarr connection
-         * @description Test connectivity to a Sonarr instance with provided credentials
-         */
-        post: operations["testSonarrConnection"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/sonarr/quality-profiles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Sonarr quality profiles
-         * @description Retrieve quality profiles from a Sonarr instance
-         */
-        get: operations["getSonarrQualityProfiles"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2776,6 +1696,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/sonarr/quality-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sonarr quality profiles
+         * @description Retrieve quality profiles from a Sonarr instance
+         */
+        get: operations["getSonarrQualityProfiles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/sonarr/root-folders": {
         parameters: {
             query?: never;
@@ -2788,6 +1728,1066 @@ export interface paths {
          * @description Retrieve root folders from a Sonarr instance
          */
         get: operations["getSonarrRootFolders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sonarr/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sonarr tags
+         * @description Retrieve tags from a Sonarr instance
+         */
+        get: operations["getSonarrTags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sonarr/test-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Sonarr connection
+         * @description Test connectivity to a Sonarr instance with provided credentials
+         */
+        post: operations["testSonarrConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get recent activity
+         * @description Retrieve recent activity statistics for a specified time period
+         */
+        get: operations["getRecentActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get all dashboard statistics
+         * @description Retrieve comprehensive dashboard statistics including genres, content, users, and activity
+         */
+        get: operations["getAllDashboardStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get availability time stats
+         * @description Retrieve average time from adding to availability statistics
+         */
+        get: operations["getAvailabilityStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/genres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get top genres
+         * @description Retrieve the most popular genres from watchlists
+         */
+        get: operations["getTopGenres"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/grabbed-to-notified": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get grabbed to notified time stats
+         * @description Retrieve average time from grabbed to notified statistics
+         */
+        get: operations["getGrabbedToNotifiedStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/instance-content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get instance content breakdown
+         * @description Retrieve content distribution across different instances
+         */
+        get: operations["getInstanceContentBreakdown"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/movies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get most watched movies
+         * @description Retrieve the most watchlisted movies with optional date filtering and pagination
+         */
+        get: operations["getMostWatchedMovies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get notification statistics
+         * @description Retrieve notification statistics for a specified time period
+         */
+        get: operations["getNotificationStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/recent-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get recent requests
+         * @description Retrieve recent requests for the dashboard carousel, combining pending approvals and routed watchlist items
+         */
+        get: operations["getRecentRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/shows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get most watched shows
+         * @description Retrieve the most watchlisted TV shows with optional date filtering and pagination
+         */
+        get: operations["getMostWatchedShows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/status-flow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get status flow data
+         * @description Retrieve status flow data for visualization
+         */
+        get: operations["getStatusFlow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/status-transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get status transition metrics
+         * @description Retrieve detailed status transition time metrics
+         */
+        get: operations["getStatusTransitions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stats/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get top users
+         * @description Retrieve users with the most watchlist items
+         */
+        get: operations["getTopUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sync/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync all instances
+         * @description Synchronize watchlist items to all configured Radarr and Sonarr instances
+         */
+        post: operations["syncAllInstances"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sync/instance/{instanceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync specific instance
+         * @description Synchronize watchlist items to a specific Radarr or Sonarr instance
+         */
+        post: operations["syncInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/system/update-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get cached Pulsarr update status
+         * @description Returns the most recent cached Pulsarr release check from the update-check service. The actual GitHub fetch happens server-side on an hourly cron.
+         */
+        get: operations["getUpdateStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tags/cleanup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cleanup orphaned tags
+         * @description Clean up orphaned user tags from instances
+         */
+        post: operations["cleanupOrphanedTags"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tags/cleanup-orphaned-refs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cleanup orphaned tag references
+         * @description Remove references to non-existent tags from movies and series
+         */
+        post: operations["cleanupOrphanedTagReferences"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tags/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create user tags
+         * @description Create user tags in Sonarr and Radarr instances
+         */
+        post: operations["createUserTags"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tags/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove all user tags
+         * @description Remove all user tags from media and optionally delete tag definitions
+         */
+        post: operations["removeAllUserTags"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tags/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync user tags
+         * @description Synchronize content with user tags in Sonarr and Radarr instances
+         */
+        post: operations["syncUserTags"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tmdb/metadata/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get TMDB metadata by GUID
+         * @description Accepts GUID format IDs (tmdb:123, tvdb:456) and resolves to fetch TMDB metadata
+         */
+        get: operations["getTmdbMetadataByGuid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tmdb/movie/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get movie metadata from TMDB
+         * @description Fetch TMDB movie metadata including overview, ratings, and watch providers
+         */
+        get: operations["getTmdbMovieMetadata"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tmdb/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get streaming providers
+         * @description Fetch list of streaming service providers available for the configured region. Results are cached for 24 hours.
+         */
+        get: operations["getTmdbProviders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tmdb/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get available TMDB regions
+         * @description Fetch list of regions/countries that have watch provider data available in TMDB
+         */
+        get: operations["getTmdbRegions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tmdb/tv/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get TV show metadata from TMDB
+         * @description Fetch TMDB TV show metadata including overview, ratings, and watch providers
+         */
+        get: operations["getTmdbTvMetadata"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/alias-readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check alias readiness for tag/label naming
+         * @description Checks sync-enabled users for missing or duplicate aliases before switching to alias-based naming
+         */
+        get: operations["getAliasReadiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Bulk update users
+         * @description Update multiple users with the same changes in bulk
+         */
+        patch: operations["bulkUpdateUsers"];
+        trace?: never;
+    };
+    "/v1/users/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check authentication status
+         * @description Lightweight endpoint to verify the current session is authenticated
+         */
+        get: operations["checkAuth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/create-admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create admin user
+         * @description Create the first admin user account for the system
+         */
+        post: operations["createAdminUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * User login
+         * @description Authenticate user by email/username and password
+         */
+        post: operations["loginUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * User logout
+         * @description End the current user session and destroy authentication
+         */
+        post: operations["logoutUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get current user information
+         * @description Retrieve information about the currently authenticated user, including Plex avatar if available
+         */
+        get: operations["getCurrentUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/update-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update user password
+         * @description Change the current user password by providing current and new password
+         */
+        put: operations["updateUserPassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create user
+         * @description Create a new user with the provided information
+         */
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/users/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get users list
+         * @description Retrieve a list of all users
+         */
+        get: operations["getUsersList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/users/list/with-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get users with watchlist counts
+         * @description Retrieve a list of all users including their watchlist item counts
+         */
+        get: operations["getUsersWithCounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user by ID
+         * @description Retrieve a specific user by their ID
+         */
+        get: operations["getUserById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update user
+         * @description Update an existing user by ID
+         */
+        patch: operations["updateUser"];
+        trace?: never;
+    };
+    "/v1/users/{userId}/watchlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user watchlist items
+         * @description Fetch all watchlist items for a specific user by their ID
+         */
+        get: operations["getUserWatchlist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/watchlist-exclusions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get all watchlist exclusions
+         * @description Retrieve all watchlist exclusions with user information
+         */
+        get: operations["getAllWatchlistExclusions"];
+        put?: never;
+        /**
+         * Create watchlist exclusion
+         * @description Create watchlist exclusion records for a key and set of users
+         */
+        post: operations["createWatchlistExclusion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/watchlist-exclusions/user/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user watchlist exclusions
+         * @description Retrieve all watchlist exclusions for a specific user
+         */
+        get: operations["getUserWatchlistExclusions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/watchlist-exclusions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove watchlist exclusion
+         * @description Remove a watchlist exclusion by ID
+         */
+        delete: operations["removeWatchlistExclusion"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/watchlist-workflow/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start watchlist workflow
+         * @description Start the watchlist processing workflow
+         */
+        post: operations["startWatchlistWorkflow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/watchlist-workflow/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get watchlist workflow status
+         * @description Retrieve the current status of the watchlist processing workflow
+         */
+        get: operations["getWatchlistWorkflowStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/watchlist-workflow/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop watchlist workflow
+         * @description Stop the currently running watchlist processing workflow
+         */
+        post: operations["stopWatchlistWorkflow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/endpoints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List webhook endpoints
+         * @description Retrieve all configured webhook endpoints
+         */
+        get: operations["listWebhookEndpoints"];
+        put?: never;
+        /**
+         * Create webhook endpoint
+         * @description Create a new webhook endpoint
+         */
+        post: operations["createWebhookEndpoint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/endpoints/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test webhook endpoint
+         * @description Test a webhook endpoint by sending a test payload (use before saving)
+         */
+        post: operations["testWebhookEndpoint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/endpoints/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get webhook endpoint
+         * @description Retrieve a single webhook endpoint by ID
+         */
+        get: operations["getWebhookEndpoint"];
+        /**
+         * Update webhook endpoint
+         * @description Update an existing webhook endpoint
+         */
+        put: operations["updateWebhookEndpoint"];
+        post?: never;
+        /**
+         * Delete webhook endpoint
+         * @description Delete a webhook endpoint
+         */
+        delete: operations["deleteWebhookEndpoint"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/endpoints/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test existing webhook endpoint
+         * @description Test an existing webhook endpoint by ID
+         */
+        post: operations["testExistingWebhookEndpoint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/event-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List webhook event types
+         * @description List all available webhook event types with descriptions
+         */
+        get: operations["listWebhookEventTypes"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3044,62 +3044,7 @@ export interface operations {
             };
         };
     };
-    syncInstance: {
-        parameters: {
-            query: {
-                type: "radarr" | "sonarr";
-            };
-            header?: never;
-            path: {
-                instanceId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        itemsCopied: number;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    syncAllInstances: {
+    getApiKeys: {
         parameters: {
             query?: never;
             header?: never;
@@ -3115,343 +3060,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        radarr: {
+                        success: boolean;
+                        message: string;
+                        apiKeys: {
                             id: number;
                             name: string;
-                            itemsCopied: number;
-                        }[];
-                        sonarr: {
-                            id: number;
-                            name: string;
-                            itemsCopied: number;
-                        }[];
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    createUserTags: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        mode: "create";
-                        sonarr: {
-                            created: number;
-                            skipped: number;
-                            failed: number;
-                            instances: number;
-                        };
-                        radarr: {
-                            created: number;
-                            skipped: number;
-                            failed: number;
-                            instances: number;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    syncUserTags: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        mode: "sync";
-                        sonarr: {
-                            tagged: number;
-                            skipped: number;
-                            failed: number;
-                        };
-                        radarr: {
-                            tagged: number;
-                            skipped: number;
-                            failed: number;
-                        };
-                        orphanedCleanup?: {
-                            radarr: {
-                                removed: number;
-                                skipped: number;
-                                failed: number;
-                                instances: number;
-                            };
-                            sonarr: {
-                                removed: number;
-                                skipped: number;
-                                failed: number;
-                                instances: number;
-                            };
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    cleanupOrphanedTags: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        radarr: {
-                            removed: number;
-                            skipped: number;
-                            failed: number;
-                            instances: number;
-                        };
-                        sonarr: {
-                            removed: number;
-                            skipped: number;
-                            failed: number;
-                            instances: number;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    cleanupOrphanedTagReferences: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        radarr: {
-                            [key: string]: {
-                                instanceName: string;
-                                itemsScanned: number;
-                                orphanedTagsFound: number;
-                                itemsUpdated: number;
-                                error?: string;
-                            };
-                        };
-                        sonarr: {
-                            [key: string]: {
-                                instanceName: string;
-                                itemsScanned: number;
-                                orphanedTagsFound: number;
-                                itemsUpdated: number;
-                                error?: string;
-                            };
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    removeAllUserTags: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @default false */
-                    deleteTagDefinitions?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        mode: "remove";
-                        sonarr: {
-                            itemsProcessed: number;
-                            itemsUpdated: number;
-                            tagsRemoved: number;
-                            tagsDeleted: number;
-                            failed: number;
-                            instances: number;
-                        };
-                        radarr: {
-                            itemsProcessed: number;
-                            itemsUpdated: number;
-                            tagsRemoved: number;
-                            tagsDeleted: number;
-                            failed: number;
-                            instances: number;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getAllWatchlistExclusions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        exclusions: {
-                            id: number;
-                            user_id: number;
                             key: string;
-                            title: string;
-                            type: string;
-                            guids: string[];
-                            excluded_at: string;
-                            username: string;
+                            user_id: number;
+                            created_at: string;
+                            is_active: boolean;
                         }[];
                     };
                 };
@@ -3472,7 +3089,7 @@ export interface operations {
             };
         };
     };
-    createWatchlistExclusion: {
+    createApiKey: {
         parameters: {
             query?: never;
             header?: never;
@@ -3482,12 +3099,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    key: string;
-                    userIds: number[];
-                    title: string;
-                    type: string;
-                    /** @default [] */
-                    guids?: string[];
+                    name: string;
                 };
             };
         };
@@ -3501,7 +3113,14 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        created: number;
+                        apiKey: {
+                            id: number;
+                            name: string;
+                            key: string;
+                            user_id: number;
+                            created_at: string;
+                            is_active: boolean;
+                        };
                     };
                 };
             };
@@ -3535,55 +3154,7 @@ export interface operations {
             };
         };
     };
-    getUserWatchlistExclusions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        exclusions: {
-                            id: number;
-                            user_id: number;
-                            key: string;
-                            title: string;
-                            type: string;
-                            guids: string[];
-                            excluded_at: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    removeWatchlistExclusion: {
+    revokeApiKey: {
         parameters: {
             query?: never;
             header?: never;
@@ -3625,2982 +3196,6 @@ export interface operations {
                         statusCode: number;
                         code: string;
                         error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getRouterPlugins: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        plugins: {
-                            name: string;
-                            description: string;
-                            priority: number;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getPluginMetadata: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        evaluators: {
-                            name: string;
-                            description: string;
-                            priority: number;
-                            /** @default [] */
-                            supportedFields: {
-                                name: string;
-                                description: string;
-                                valueTypes: string[];
-                            }[];
-                            /** @default {} */
-                            supportedOperators: {
-                                [key: string]: {
-                                    name: string;
-                                    description: string;
-                                    valueTypes: string[];
-                                    valueFormat?: string;
-                                }[];
-                            };
-                            /** @enum {string} */
-                            contentType?: "radarr" | "sonarr" | "both";
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getAllRouterRules: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rules: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    createRouterRule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name: string;
-                    /** @enum {string} */
-                    target_type: "sonarr" | "radarr";
-                    target_instance_id: number | null;
-                    condition?: {
-                        field: string;
-                        /** @enum {string} */
-                        operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                        value: string | number | boolean | string[] | number[] | {
-                            id: string | number;
-                            name: string;
-                        } | {
-                            id: string | number;
-                            name: string;
-                        } | (string | number)[] | {
-                            min?: number;
-                            max?: number;
-                        } | {
-                            rating?: number | number[] | {
-                                min?: number;
-                                max?: number;
-                            };
-                            votes?: number | number[] | {
-                                min?: number;
-                                max?: number;
-                            };
-                        } | (null);
-                        /** @default false */
-                        negate?: boolean;
-                        _cid?: string;
-                    } | {
-                        /** @enum {string} */
-                        operator: "AND" | "OR";
-                        conditions: ({
-                            field: string;
-                            /** @enum {string} */
-                            operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                            value: string | number | boolean | string[] | number[] | {
-                                id: string | number;
-                                name: string;
-                            } | {
-                                id: string | number;
-                                name: string;
-                            } | (string | number)[] | {
-                                min?: number;
-                                max?: number;
-                            } | {
-                                rating?: number | number[] | {
-                                    min?: number;
-                                    max?: number;
-                                };
-                                votes?: number | number[] | {
-                                    min?: number;
-                                    max?: number;
-                                };
-                            } | (null);
-                            /** @default false */
-                            negate?: boolean;
-                            _cid?: string;
-                        } | {
-                            /** @enum {string} */
-                            operator: "AND" | "OR";
-                            conditions: unknown[];
-                            /** @default false */
-                            negate?: boolean;
-                            _cid?: string;
-                        })[];
-                        /** @default false */
-                        negate?: boolean;
-                        _cid?: string;
-                    };
-                    root_folder?: string;
-                    quality_profile?: number | string;
-                    tags?: string[];
-                    order?: number;
-                    enabled?: boolean;
-                    search_on_add?: boolean | null;
-                    /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                    season_monitoring?: string | null;
-                    /**
-                     * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                     * @enum {string|null}
-                     */
-                    series_type?: "standard" | "anime" | "daily" | null;
-                    /**
-                     * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                     * @enum {string|null}
-                     */
-                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                    always_require_approval?: boolean;
-                    bypass_user_quotas?: boolean;
-                    approval_reason?: string;
-                    exclude_from_routing?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rule: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getRouterRulesByType: {
-        parameters: {
-            query?: {
-                enabledOnly?: string;
-            };
-            header?: never;
-            path: {
-                type: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rules: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getRouterRulesByTarget: {
-        parameters: {
-            query: {
-                targetType: "sonarr" | "radarr";
-                instanceId: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rules: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getRouterRuleById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rule: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    updateRouterRule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name?: string;
-                    /** @enum {string} */
-                    target_type?: "sonarr" | "radarr";
-                    target_instance_id?: number | null;
-                    condition?: {
-                        field: string;
-                        /** @enum {string} */
-                        operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                        value: string | number | boolean | string[] | number[] | {
-                            id: string | number;
-                            name: string;
-                        } | {
-                            id: string | number;
-                            name: string;
-                        } | (string | number)[] | {
-                            min?: number;
-                            max?: number;
-                        } | {
-                            rating?: number | number[] | {
-                                min?: number;
-                                max?: number;
-                            };
-                            votes?: number | number[] | {
-                                min?: number;
-                                max?: number;
-                            };
-                        } | (null);
-                        /** @default false */
-                        negate?: boolean;
-                        _cid?: string;
-                    } | {
-                        /** @enum {string} */
-                        operator: "AND" | "OR";
-                        conditions: ({
-                            field: string;
-                            /** @enum {string} */
-                            operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                            value: string | number | boolean | string[] | number[] | {
-                                id: string | number;
-                                name: string;
-                            } | {
-                                id: string | number;
-                                name: string;
-                            } | (string | number)[] | {
-                                min?: number;
-                                max?: number;
-                            } | {
-                                rating?: number | number[] | {
-                                    min?: number;
-                                    max?: number;
-                                };
-                                votes?: number | number[] | {
-                                    min?: number;
-                                    max?: number;
-                                };
-                            } | (null);
-                            /** @default false */
-                            negate?: boolean;
-                            _cid?: string;
-                        } | {
-                            /** @enum {string} */
-                            operator: "AND" | "OR";
-                            conditions: unknown[];
-                            /** @default false */
-                            negate?: boolean;
-                            _cid?: string;
-                        })[];
-                        /** @default false */
-                        negate?: boolean;
-                        _cid?: string;
-                    };
-                    root_folder?: string;
-                    quality_profile?: number | string;
-                    tags?: string[];
-                    order?: number;
-                    enabled?: boolean;
-                    search_on_add?: boolean | null;
-                    /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                    season_monitoring?: string | null;
-                    /**
-                     * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                     * @enum {string|null}
-                     */
-                    series_type?: "standard" | "anime" | "daily" | null;
-                    /**
-                     * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                     * @enum {string|null}
-                     */
-                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                    always_require_approval?: boolean;
-                    bypass_user_quotas?: boolean;
-                    approval_reason?: string;
-                    exclude_from_routing?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rule: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    deleteRouterRule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getRouterRulesByTargetType: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                targetType: "sonarr" | "radarr";
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rules: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    toggleRouterRule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    enabled: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getAllSchedules: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": ({
-                        id: number;
-                        name: string;
-                        /** @enum {string} */
-                        type: "interval";
-                        config: {
-                            days?: number;
-                            hours?: number;
-                            minutes?: number;
-                            seconds?: number;
-                            runImmediately?: boolean;
-                        };
-                        enabled: boolean;
-                        last_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        next_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        created_at: string;
-                        updated_at: string;
-                    } | {
-                        id: number;
-                        name: string;
-                        /** @enum {string} */
-                        type: "cron";
-                        config: {
-                            expression: string;
-                        };
-                        enabled: boolean;
-                        last_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        next_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        created_at: string;
-                        updated_at: string;
-                    })[];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    createSchedule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @enum {string} */
-                    type: "interval";
-                    name: string;
-                    config: {
-                        days?: number;
-                        hours?: number;
-                        minutes?: number;
-                        seconds?: number;
-                        runImmediately?: boolean;
-                    };
-                    /** @default true */
-                    enabled?: boolean;
-                } | {
-                    /** @enum {string} */
-                    type: "cron";
-                    name: string;
-                    config: {
-                        expression: string;
-                    };
-                    /** @default true */
-                    enabled?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getScheduleByName: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id: number;
-                        name: string;
-                        /** @enum {string} */
-                        type: "interval";
-                        config: {
-                            days?: number;
-                            hours?: number;
-                            minutes?: number;
-                            seconds?: number;
-                            runImmediately?: boolean;
-                        };
-                        enabled: boolean;
-                        last_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        next_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        created_at: string;
-                        updated_at: string;
-                    } | {
-                        id: number;
-                        name: string;
-                        /** @enum {string} */
-                        type: "cron";
-                        config: {
-                            expression: string;
-                        };
-                        enabled: boolean;
-                        last_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        next_run: {
-                            time: string;
-                            /** @enum {string} */
-                            status: "completed" | "failed" | "pending";
-                            error?: string;
-                            estimated?: boolean;
-                        } | null;
-                        created_at: string;
-                        updated_at: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    updateSchedule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @enum {string} */
-                    type: "interval";
-                    config?: {
-                        days?: number;
-                        hours?: number;
-                        minutes?: number;
-                        seconds?: number;
-                        runImmediately?: boolean;
-                    };
-                    enabled?: boolean;
-                } | {
-                    /** @enum {string} */
-                    type: "cron";
-                    config?: {
-                        expression: string;
-                    };
-                    enabled?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    deleteSchedule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    runJobNow: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    toggleSchedule: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    enabled: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    dryRunDeleteSync: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        results: {
-                            total: {
-                                deleted: number;
-                                skipped: number;
-                                processed: number;
-                                protected?: number;
-                            };
-                            movies: {
-                                deleted: number;
-                                skipped: number;
-                                protected?: number;
-                                readonly items: {
-                                    title: string;
-                                    guid: string;
-                                    instance: string;
-                                }[];
-                            };
-                            shows: {
-                                deleted: number;
-                                skipped: number;
-                                protected?: number;
-                                readonly items: {
-                                    title: string;
-                                    guid: string;
-                                    instance: string;
-                                }[];
-                            };
-                            safetyTriggered?: boolean;
-                            safetyMessage?: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    startDiscordBot: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @enum {string} */
-                        status: "running" | "stopped" | "starting" | "stopping" | "unknown";
-                        message?: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    stopDiscordBot: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @enum {string} */
-                        status: "running" | "stopped" | "starting" | "stopping" | "unknown";
-                        message?: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    validateDiscordWebhooks: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    webhookUrls: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        valid: boolean;
-                        urls: {
-                            url: string;
-                            valid: boolean;
-                            error?: string;
-                        }[];
-                        duplicateCount?: number;
-                        message?: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    processMediaWebhook: {
-        parameters: {
-            query?: {
-                instanceId?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @enum {string} */
-                    eventType: "Test";
-                    instanceName: string;
-                } | ({
-                    /** @enum {string} */
-                    eventType: "Download";
-                    instanceName: string;
-                    series: {
-                        id?: number;
-                        title: string;
-                        tvdbId: number;
-                        tags?: string[];
-                    };
-                    episodes: {
-                        episodeNumber: number;
-                        seasonNumber: number;
-                        title: string;
-                        overview?: string;
-                        airDateUtc: string;
-                    }[];
-                    episodeFile: {
-                        id: number;
-                        relativePath: string;
-                        quality: string;
-                        qualityVersion: number;
-                        size: number;
-                    };
-                } | {
-                    /** @enum {string} */
-                    eventType: "Download";
-                    instanceName: string;
-                    series: {
-                        id?: number;
-                        title: string;
-                        tvdbId: number;
-                        tags?: string[];
-                    };
-                    episodes: {
-                        episodeNumber: number;
-                        seasonNumber: number;
-                        title: string;
-                        overview?: string;
-                        airDateUtc: string;
-                    }[];
-                    episodeFiles: {
-                        id: number;
-                        relativePath: string;
-                        quality: string;
-                        qualityVersion: number;
-                        size: number;
-                    }[];
-                    release: {
-                        releaseType: string;
-                    };
-                    fileCount: number;
-                }) | {
-                    instanceName: string;
-                    movie: {
-                        title: string;
-                        tmdbId: number;
-                        tags?: string[];
-                    };
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getUpdateStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        currentVersion: string;
-                        latestVersion: string | null;
-                        updateAvailable: boolean;
-                        releaseUrl: string | null;
-                        releaseName: string | null;
-                        releaseBody: string | null;
-                        releaseBodyHtml: string | null;
-                        publishedAt: string | null;
-                        lastCheckedAt: string | null;
-                        lastError: string | null;
-                        /** @enum {string} */
-                        status: "ok" | "pending" | "rate_limited" | "error";
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getRollingMonitoredShows: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        shows: {
-                            id: number;
-                            sonarr_series_id: number;
-                            tvdb_id?: string | null;
-                            imdb_id?: string | null;
-                            show_title: string;
-                            /** @enum {string} */
-                            monitoring_type: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
-                            current_monitored_season: number;
-                            last_watched_season: number;
-                            last_watched_episode: number;
-                            last_session_date?: string | null;
-                            sonarr_instance_id: number;
-                            plex_user_id?: string | null;
-                            plex_username?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                            last_updated_at: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    runSessionMonitor: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        result: {
-                            processedSessions: number;
-                            triggeredSearches: number;
-                            errors: string[];
-                            rollingUpdates: {
-                                showTitle: string;
-                                /** @enum {string} */
-                                action: "expanded_to_season" | "expanded_to_next_season" | "switched_to_all";
-                                details: string;
-                            }[];
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    deleteRollingMonitoredShow: {
-        parameters: {
-            query?: {
-                reset?: string;
-            };
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    resetRollingMonitoredShow: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getInactiveRollingMonitoredShows: {
-        parameters: {
-            query?: {
-                inactivityDays?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        shows: {
-                            id: number;
-                            sonarr_series_id: number;
-                            tvdb_id?: string | null;
-                            imdb_id?: string | null;
-                            show_title: string;
-                            /** @enum {string} */
-                            monitoring_type: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
-                            current_monitored_season: number;
-                            last_watched_season: number;
-                            last_watched_episode: number;
-                            last_session_date?: string | null;
-                            sonarr_instance_id: number;
-                            plex_user_id?: string | null;
-                            plex_username?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                            last_updated_at: string;
-                        }[];
-                        inactivityDays: number;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    resetInactiveRollingMonitoredShows: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    inactivityDays?: number;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        resetCount: number;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getSonarrShows: {
-        parameters: {
-            query?: {
-                instanceId?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        shows: {
-                            watchlistId: number;
-                            sonarrInstanceId: number;
-                            sonarrSeriesId: number;
-                            title: string;
-                            guids: string[];
-                            rollingShowId: number | null;
-                            /** @enum {string|null} */
-                            monitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling" | null;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    bulkManageRollingMonitoredShows: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    shows: {
-                        sonarrSeriesId: number;
-                        sonarrInstanceId: number;
-                        title: string;
-                        guids: string[];
-                        rollingShowId: number | null;
-                    }[];
-                    /** @enum {string} */
-                    monitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
-                    resetMonitoring?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        enrolled: number;
-                        modified: number;
-                        skipped: number;
-                        failed: number;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    syncPlexLabels: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        mode: "sync";
-                        results: {
-                            processed: number;
-                            updated: number;
-                            failed: number;
-                            pending: number;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    cleanupOrphanedPlexLabels: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        pending: {
-                            removed: number;
-                            failed: number;
-                        };
-                        orphaned: {
-                            removed: number;
-                            failed: number;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    removePulsarrPlexLabels: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        mode: "remove";
-                        results: {
-                            processed: number;
-                            removed: number;
-                            failed: number;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    streamProgress: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @description SSE stream of progress events */
                         message: string;
                     };
                 };
@@ -6941,6 +3536,239 @@ export interface operations {
             };
             /** @description Default Response */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    bulkApproveRequests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    requestIds: number[];
+                    notes?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        result: {
+                            successful: number;
+                            failed: number[];
+                            errors: string[];
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    bulkDeleteRequests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    requestIds: number[];
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        result: {
+                            successful: number;
+                            failed: number[];
+                            errors: string[];
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    bulkRejectRequests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    requestIds: number[];
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        result: {
+                            successful: number;
+                            failed: number[];
+                            errors: string[];
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7437,6 +4265,107 @@ export interface operations {
             };
         };
     };
+    approveAndExecuteRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    notes?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
     rejectApprovalRequest: {
         parameters: {
             query?: never;
@@ -7550,3803 +4479,6 @@ export interface operations {
                             auto_approved: number;
                             totalRequests: number;
                         };
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    approveAndExecuteRequest: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    notes?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    bulkApproveRequests: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    requestIds: number[];
-                    notes?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        result: {
-                            successful: number;
-                            failed: number[];
-                            errors: string[];
-                            total: number;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    bulkRejectRequests: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    requestIds: number[];
-                    reason?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        result: {
-                            successful: number;
-                            failed: number[];
-                            errors: string[];
-                            total: number;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    bulkDeleteRequests: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    requestIds: number[];
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        result: {
-                            successful: number;
-                            failed: number[];
-                            errors: string[];
-                            total: number;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    listWebhookEndpoints: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: {
-                            id: number;
-                            name: string;
-                            url: string;
-                            authHeaderName: string | null;
-                            authHeaderValue: string | null;
-                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                            enabled: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    createWebhookEndpoint: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name: string;
-                    url: string;
-                    authHeaderName?: string;
-                    authHeaderValue?: string;
-                    eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                    /** @default true */
-                    enabled?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: {
-                            id: number;
-                            name: string;
-                            url: string;
-                            authHeaderName: string | null;
-                            authHeaderValue: string | null;
-                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                            enabled: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getWebhookEndpoint: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: {
-                            id: number;
-                            name: string;
-                            url: string;
-                            authHeaderName: string | null;
-                            authHeaderValue: string | null;
-                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                            enabled: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    updateWebhookEndpoint: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name?: string;
-                    url?: string;
-                    authHeaderName?: string | null;
-                    authHeaderValue?: string | null;
-                    eventTypes?: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                    enabled?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: {
-                            id: number;
-                            name: string;
-                            url: string;
-                            authHeaderName: string | null;
-                            authHeaderValue: string | null;
-                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
-                            enabled: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    deleteWebhookEndpoint: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    testWebhookEndpoint: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    url: string;
-                    authHeaderName?: string;
-                    authHeaderValue?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        statusCode?: number;
-                        error?: string;
-                        responseTime: number;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    testExistingWebhookEndpoint: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        statusCode?: number;
-                        error?: string;
-                        responseTime: number;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    listWebhookEventTypes: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: {
-                            /** @enum {string} */
-                            type: "media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached";
-                            description: string;
-                        }[];
-                    };
-                };
-            };
-        };
-    };
-    getRadarrTags: {
-        parameters: {
-            query: {
-                instanceId: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        tags: {
-                            id: number;
-                            label: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    createRadarrTag: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    instanceId: number;
-                    label: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id: number;
-                        label: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getRadarrInstances: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        name: string;
-                        /** Format: uri */
-                        baseUrl: string;
-                        apiKey: string;
-                        qualityProfile?: (string | number) | null;
-                        rootFolder?: string | null;
-                        /** @default false */
-                        bypassIgnored: boolean;
-                        /** @default true */
-                        searchOnAdd: boolean;
-                        /**
-                         * @default released
-                         * @enum {string}
-                         */
-                        minimumAvailability: "announced" | "inCinemas" | "released";
-                        /**
-                         * @default movieOnly
-                         * @enum {string}
-                         */
-                        monitor: "movieOnly" | "movieAndCollection" | "none";
-                        /** @default [] */
-                        tags: string[];
-                        /** @default false */
-                        isDefault: boolean;
-                        syncedInstances?: number[];
-                        /** @default false */
-                        skipDefaultRoutingWhenNoMatch: boolean;
-                        id: number;
-                    }[];
-                };
-            };
-        };
-    };
-    createRadarrInstance: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name: string;
-                    /** Format: uri */
-                    baseUrl: string;
-                    apiKey: string;
-                    qualityProfile?: (string | number) | null;
-                    rootFolder?: string | null;
-                    /** @default false */
-                    bypassIgnored?: boolean;
-                    /** @default true */
-                    searchOnAdd?: boolean;
-                    /**
-                     * @default released
-                     * @enum {string}
-                     */
-                    minimumAvailability?: "announced" | "inCinemas" | "released";
-                    /**
-                     * @default movieOnly
-                     * @enum {string}
-                     */
-                    monitor?: "movieOnly" | "movieAndCollection" | "none";
-                    /** @default [] */
-                    tags?: string[];
-                    /** @default false */
-                    isDefault?: boolean;
-                    syncedInstances?: number[];
-                    /** @default false */
-                    skipDefaultRoutingWhenNoMatch?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id: number;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    updateRadarrInstance: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name?: string;
-                    /** Format: uri */
-                    baseUrl?: string;
-                    apiKey?: string;
-                    qualityProfile?: (string | number) | null;
-                    rootFolder?: string | null;
-                    bypassIgnored?: boolean;
-                    searchOnAdd?: boolean;
-                    /** @enum {string} */
-                    minimumAvailability?: "announced" | "inCinemas" | "released";
-                    /** @enum {string} */
-                    monitor?: "movieOnly" | "movieAndCollection" | "none";
-                    tags?: string[];
-                    isDefault?: boolean;
-                    syncedInstances?: number[];
-                    skipDefaultRoutingWhenNoMatch?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    deleteRadarrInstance: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    testRadarrConnection: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    baseUrl: string;
-                    apiKey: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getRadarrQualityProfiles: {
-        parameters: {
-            query: {
-                instanceId: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        qualityProfiles: ({
-                            id: number;
-                            name: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getRadarrRootFolders: {
-        parameters: {
-            query: {
-                instanceId: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        instance: {
-                            id: number;
-                            name: string;
-                            baseUrl: string;
-                        };
-                        rootFolders: ({
-                            id: number;
-                            path: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getSelfWatchlistItems: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        total: number;
-                        users: {
-                            user: {
-                                watchlistId: string;
-                                username: string;
-                            };
-                            watchlist: {
-                                title: string;
-                                plexKey?: string;
-                                type: string;
-                                thumb?: string;
-                                guids: string[];
-                                genres: string[];
-                            }[];
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    sendPlexFriendRequest: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    uuid: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    generatePlexPin: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id: number;
-                        code: string;
-                        qr: string;
-                        expiresAt: string;
-                        clientId: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    pollPlexPin: {
-        parameters: {
-            query: {
-                clientId: string;
-            };
-            header?: never;
-            path: {
-                pinId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        authToken: string | null;
-                        expiresIn: number;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    parseRssWatchlists: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        self: {
-                            total: number;
-                            users: {
-                                user: {
-                                    watchlistId: string;
-                                    username: string;
-                                    userId: number;
-                                };
-                                watchlist: {
-                                    title: string;
-                                    plexKey: string;
-                                    type: string;
-                                    thumb: string;
-                                    guids: string[];
-                                    genres: string[];
-                                    /** @enum {string} */
-                                    status: "pending";
-                                }[];
-                            }[];
-                        };
-                        friends: {
-                            total: number;
-                            users: {
-                                user: {
-                                    watchlistId: string;
-                                    username: string;
-                                    userId: number;
-                                };
-                                watchlist: {
-                                    title: string;
-                                    plexKey: string;
-                                    type: string;
-                                    thumb: string;
-                                    guids: string[];
-                                    genres: string[];
-                                    /** @enum {string} */
-                                    status: "pending";
-                                }[];
-                            }[];
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getPlexPassStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        hasPlexPass: boolean;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getOthersWatchlistTokens: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        total: number;
-                        users: {
-                            user: {
-                                watchlistId: string;
-                                username: string;
-                            };
-                            watchlist: {
-                                title: string;
-                                plexKey?: string;
-                                type: string;
-                                thumb?: string;
-                                guids: string[];
-                                genres: string[];
-                            }[];
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    cancelPlexFriendRequest: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    uuid: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    generateRssFeeds: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        self: string;
-                        friends: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    discoverPlexServers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    plexToken: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message?: string;
-                        servers: {
-                            name: string;
-                            host: string;
-                            port: number;
-                            useSsl: boolean;
-                            local: boolean;
-                            description?: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getPlexUserStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        users: {
-                            uuid: string;
-                            username: string;
-                            avatar: string;
-                            displayName: string;
-                            /** @enum {string} */
-                            status: "friend" | "server_only" | "pending_sent" | "pending_received" | "friend_only" | "self" | "managed";
-                            friendCreatedAt: string | null;
-                            pendingSince: string | null;
-                        }[];
-                        untracked: {
-                            uuid: string;
-                            username: string;
-                            avatar: string;
-                            /** @enum {string} */
-                            status: "friend" | "server_only" | "pending_sent" | "pending_received" | "friend_only" | "self" | "managed";
-                            pendingSince: string | null;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getWatchlistGenres: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        genres: string[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    removePlexNotifications: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        results: {
-                            radarr: {
-                                id: number;
-                                name: string;
-                                success: boolean;
-                                message: string;
-                            }[];
-                            sonarr: {
-                                id: number;
-                                name: string;
-                                success: boolean;
-                                message: string;
-                            }[];
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getPlexNotificationStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        results: {
-                            radarr: {
-                                id: number;
-                                name: string;
-                                success: boolean;
-                                message: string;
-                            }[];
-                            sonarr: {
-                                id: number;
-                                name: string;
-                                success: boolean;
-                                message: string;
-                            }[];
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    configurePlexNotifications: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    plexToken: string;
-                    plexHost: string;
-                    /** @default 32400 */
-                    plexPort?: number;
-                    /** @default false */
-                    useSsl?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        results: {
-                            radarr: {
-                                id: number;
-                                name: string;
-                                success: boolean;
-                                message: string;
-                            }[];
-                            sonarr: {
-                                id: number;
-                                name: string;
-                                success: boolean;
-                                message: string;
-                            }[];
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    pingPlex: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getTmdbMetadataByGuid: {
-        parameters: {
-            query?: {
-                region?: string;
-                type?: "movie" | "show";
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        metadata: {
-                            details: {
-                                adult: boolean;
-                                backdrop_path: string | null;
-                                belongs_to_collection: {
-                                    id: number;
-                                    name: string;
-                                    poster_path: string | null;
-                                    backdrop_path: string | null;
-                                } | null;
-                                budget: number;
-                                genres: {
-                                    id: number;
-                                    name: string;
-                                }[];
-                                homepage: string | "" | (null);
-                                id: number;
-                                imdb_id: string | null;
-                                origin_country: string[];
-                                original_language: string;
-                                original_title: string;
-                                overview: string | null;
-                                popularity: number;
-                                poster_path: string | null;
-                                production_companies: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                production_countries: {
-                                    iso_3166_1: string;
-                                    name: string;
-                                }[];
-                                release_date: string;
-                                revenue: number;
-                                runtime: number | null;
-                                spoken_languages: {
-                                    english_name: string;
-                                    iso_639_1: string;
-                                    name: string;
-                                }[];
-                                status: string;
-                                tagline: string | null;
-                                title: string;
-                                video: boolean;
-                                vote_average: number;
-                                vote_count: number;
-                            };
-                            watchProviders?: {
-                                link?: string;
-                                flatrate?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                rent?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                buy?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                            };
-                            radarrRatings?: {
-                                imdb?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                tmdb?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                metacritic?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                rottenTomatoes?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                trakt?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                            };
-                            plexRatings?: {
-                                imdb?: {
-                                    rating: number;
-                                    votes: number | null;
-                                };
-                                rtCritic?: number;
-                                rtAudience?: number;
-                                tmdb?: number;
-                            };
-                        } | {
-                            details: {
-                                adult: boolean;
-                                backdrop_path: string | null;
-                                created_by: {
-                                    id: number;
-                                    credit_id: string;
-                                    name: string;
-                                    original_name: string;
-                                    gender: number;
-                                    profile_path: string | null;
-                                }[];
-                                episode_run_time: number[];
-                                first_air_date: string | null;
-                                genres: {
-                                    id: number;
-                                    name: string;
-                                }[];
-                                homepage: string | "" | (null);
-                                id: number;
-                                in_production: boolean;
-                                languages: string[];
-                                last_air_date: string | null;
-                                last_episode_to_air: {
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    vote_average: number;
-                                    vote_count: number;
-                                    air_date: string;
-                                    episode_number: number;
-                                    episode_type: string;
-                                    production_code: string | null;
-                                    runtime: number | null;
-                                    season_number: number;
-                                    show_id: number;
-                                    still_path: string | null;
-                                } | null;
-                                name: string;
-                                next_episode_to_air: {
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    vote_average: number;
-                                    vote_count: number;
-                                    air_date: string;
-                                    episode_number: number;
-                                    episode_type: string;
-                                    production_code: string | null;
-                                    runtime: number | null;
-                                    season_number: number;
-                                    show_id: number;
-                                    still_path: string | null;
-                                } | null;
-                                networks: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                number_of_episodes: number;
-                                number_of_seasons: number;
-                                origin_country: string[];
-                                original_language: string;
-                                original_name: string;
-                                overview: string | null;
-                                popularity: number;
-                                poster_path: string | null;
-                                production_companies: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                production_countries: {
-                                    iso_3166_1: string;
-                                    name: string;
-                                }[];
-                                seasons: {
-                                    air_date: string | null;
-                                    episode_count: number;
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    poster_path: string | null;
-                                    season_number: number;
-                                    vote_average: number;
-                                }[];
-                                spoken_languages: {
-                                    english_name: string;
-                                    iso_639_1: string;
-                                    name: string;
-                                }[];
-                                status: string;
-                                tagline: string | null;
-                                type: string;
-                                vote_average: number;
-                                vote_count: number;
-                            };
-                            watchProviders?: {
-                                link?: string;
-                                flatrate?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                rent?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                buy?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                            };
-                            plexRatings?: {
-                                imdb?: {
-                                    rating: number;
-                                    votes: number | null;
-                                };
-                                rtCritic?: number;
-                                rtAudience?: number;
-                                tmdb?: number;
-                            };
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getTmdbMovieMetadata: {
-        parameters: {
-            query?: {
-                region?: string;
-                type?: "movie" | "show";
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        metadata: {
-                            details: {
-                                adult: boolean;
-                                backdrop_path: string | null;
-                                belongs_to_collection: {
-                                    id: number;
-                                    name: string;
-                                    poster_path: string | null;
-                                    backdrop_path: string | null;
-                                } | null;
-                                budget: number;
-                                genres: {
-                                    id: number;
-                                    name: string;
-                                }[];
-                                homepage: string | "" | (null);
-                                id: number;
-                                imdb_id: string | null;
-                                origin_country: string[];
-                                original_language: string;
-                                original_title: string;
-                                overview: string | null;
-                                popularity: number;
-                                poster_path: string | null;
-                                production_companies: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                production_countries: {
-                                    iso_3166_1: string;
-                                    name: string;
-                                }[];
-                                release_date: string;
-                                revenue: number;
-                                runtime: number | null;
-                                spoken_languages: {
-                                    english_name: string;
-                                    iso_639_1: string;
-                                    name: string;
-                                }[];
-                                status: string;
-                                tagline: string | null;
-                                title: string;
-                                video: boolean;
-                                vote_average: number;
-                                vote_count: number;
-                            };
-                            watchProviders?: {
-                                link?: string;
-                                flatrate?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                rent?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                buy?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                            };
-                            radarrRatings?: {
-                                imdb?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                tmdb?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                metacritic?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                rottenTomatoes?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                trakt?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                            };
-                            plexRatings?: {
-                                imdb?: {
-                                    rating: number;
-                                    votes: number | null;
-                                };
-                                rtCritic?: number;
-                                rtAudience?: number;
-                                tmdb?: number;
-                            };
-                        } | {
-                            details: {
-                                adult: boolean;
-                                backdrop_path: string | null;
-                                created_by: {
-                                    id: number;
-                                    credit_id: string;
-                                    name: string;
-                                    original_name: string;
-                                    gender: number;
-                                    profile_path: string | null;
-                                }[];
-                                episode_run_time: number[];
-                                first_air_date: string | null;
-                                genres: {
-                                    id: number;
-                                    name: string;
-                                }[];
-                                homepage: string | "" | (null);
-                                id: number;
-                                in_production: boolean;
-                                languages: string[];
-                                last_air_date: string | null;
-                                last_episode_to_air: {
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    vote_average: number;
-                                    vote_count: number;
-                                    air_date: string;
-                                    episode_number: number;
-                                    episode_type: string;
-                                    production_code: string | null;
-                                    runtime: number | null;
-                                    season_number: number;
-                                    show_id: number;
-                                    still_path: string | null;
-                                } | null;
-                                name: string;
-                                next_episode_to_air: {
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    vote_average: number;
-                                    vote_count: number;
-                                    air_date: string;
-                                    episode_number: number;
-                                    episode_type: string;
-                                    production_code: string | null;
-                                    runtime: number | null;
-                                    season_number: number;
-                                    show_id: number;
-                                    still_path: string | null;
-                                } | null;
-                                networks: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                number_of_episodes: number;
-                                number_of_seasons: number;
-                                origin_country: string[];
-                                original_language: string;
-                                original_name: string;
-                                overview: string | null;
-                                popularity: number;
-                                poster_path: string | null;
-                                production_companies: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                production_countries: {
-                                    iso_3166_1: string;
-                                    name: string;
-                                }[];
-                                seasons: {
-                                    air_date: string | null;
-                                    episode_count: number;
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    poster_path: string | null;
-                                    season_number: number;
-                                    vote_average: number;
-                                }[];
-                                spoken_languages: {
-                                    english_name: string;
-                                    iso_639_1: string;
-                                    name: string;
-                                }[];
-                                status: string;
-                                tagline: string | null;
-                                type: string;
-                                vote_average: number;
-                                vote_count: number;
-                            };
-                            watchProviders?: {
-                                link?: string;
-                                flatrate?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                rent?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                buy?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                            };
-                            plexRatings?: {
-                                imdb?: {
-                                    rating: number;
-                                    votes: number | null;
-                                };
-                                rtCritic?: number;
-                                rtAudience?: number;
-                                tmdb?: number;
-                            };
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getTmdbTvMetadata: {
-        parameters: {
-            query?: {
-                region?: string;
-                type?: "movie" | "show";
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        metadata: {
-                            details: {
-                                adult: boolean;
-                                backdrop_path: string | null;
-                                belongs_to_collection: {
-                                    id: number;
-                                    name: string;
-                                    poster_path: string | null;
-                                    backdrop_path: string | null;
-                                } | null;
-                                budget: number;
-                                genres: {
-                                    id: number;
-                                    name: string;
-                                }[];
-                                homepage: string | "" | (null);
-                                id: number;
-                                imdb_id: string | null;
-                                origin_country: string[];
-                                original_language: string;
-                                original_title: string;
-                                overview: string | null;
-                                popularity: number;
-                                poster_path: string | null;
-                                production_companies: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                production_countries: {
-                                    iso_3166_1: string;
-                                    name: string;
-                                }[];
-                                release_date: string;
-                                revenue: number;
-                                runtime: number | null;
-                                spoken_languages: {
-                                    english_name: string;
-                                    iso_639_1: string;
-                                    name: string;
-                                }[];
-                                status: string;
-                                tagline: string | null;
-                                title: string;
-                                video: boolean;
-                                vote_average: number;
-                                vote_count: number;
-                            };
-                            watchProviders?: {
-                                link?: string;
-                                flatrate?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                rent?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                buy?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                            };
-                            radarrRatings?: {
-                                imdb?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                tmdb?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                metacritic?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                rottenTomatoes?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                trakt?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                            };
-                            plexRatings?: {
-                                imdb?: {
-                                    rating: number;
-                                    votes: number | null;
-                                };
-                                rtCritic?: number;
-                                rtAudience?: number;
-                                tmdb?: number;
-                            };
-                        } | {
-                            details: {
-                                adult: boolean;
-                                backdrop_path: string | null;
-                                created_by: {
-                                    id: number;
-                                    credit_id: string;
-                                    name: string;
-                                    original_name: string;
-                                    gender: number;
-                                    profile_path: string | null;
-                                }[];
-                                episode_run_time: number[];
-                                first_air_date: string | null;
-                                genres: {
-                                    id: number;
-                                    name: string;
-                                }[];
-                                homepage: string | "" | (null);
-                                id: number;
-                                in_production: boolean;
-                                languages: string[];
-                                last_air_date: string | null;
-                                last_episode_to_air: {
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    vote_average: number;
-                                    vote_count: number;
-                                    air_date: string;
-                                    episode_number: number;
-                                    episode_type: string;
-                                    production_code: string | null;
-                                    runtime: number | null;
-                                    season_number: number;
-                                    show_id: number;
-                                    still_path: string | null;
-                                } | null;
-                                name: string;
-                                next_episode_to_air: {
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    vote_average: number;
-                                    vote_count: number;
-                                    air_date: string;
-                                    episode_number: number;
-                                    episode_type: string;
-                                    production_code: string | null;
-                                    runtime: number | null;
-                                    season_number: number;
-                                    show_id: number;
-                                    still_path: string | null;
-                                } | null;
-                                networks: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                number_of_episodes: number;
-                                number_of_seasons: number;
-                                origin_country: string[];
-                                original_language: string;
-                                original_name: string;
-                                overview: string | null;
-                                popularity: number;
-                                poster_path: string | null;
-                                production_companies: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                production_countries: {
-                                    iso_3166_1: string;
-                                    name: string;
-                                }[];
-                                seasons: {
-                                    air_date: string | null;
-                                    episode_count: number;
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    poster_path: string | null;
-                                    season_number: number;
-                                    vote_average: number;
-                                }[];
-                                spoken_languages: {
-                                    english_name: string;
-                                    iso_639_1: string;
-                                    name: string;
-                                }[];
-                                status: string;
-                                tagline: string | null;
-                                type: string;
-                                vote_average: number;
-                                vote_count: number;
-                            };
-                            watchProviders?: {
-                                link?: string;
-                                flatrate?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                rent?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                buy?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                            };
-                            plexRatings?: {
-                                imdb?: {
-                                    rating: number;
-                                    votes: number | null;
-                                };
-                                rtCritic?: number;
-                                rtAudience?: number;
-                                tmdb?: number;
-                            };
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getTmdbRegions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        regions: {
-                            code: string;
-                            name: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getTmdbProviders: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        region: string;
-                        providers: {
-                            display_priority: number;
-                            logo_path: string | null;
-                            provider_id: number;
-                            provider_name: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    startWatchlistWorkflow: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    autoStart?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @enum {string} */
-                        status: "running" | "stopped" | "starting" | "stopping";
-                        message?: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    stopWatchlistWorkflow: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @enum {string} */
-                        status: "running" | "stopped" | "starting" | "stopping";
-                        message?: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getWatchlistWorkflowStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @enum {string} */
-                        status: "running" | "stopped" | "starting" | "stopping";
-                        message?: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getApiKeys: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        apiKeys: {
-                            id: number;
-                            name: string;
-                            key: string;
-                            user_id: number;
-                            created_at: string;
-                            is_active: boolean;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    createApiKey: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        apiKey: {
-                            id: number;
-                            name: string;
-                            key: string;
-                            user_id: number;
-                            created_at: string;
-                            is_active: boolean;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    revokeApiKey: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    resyncArrWebhooks: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        radarr: {
-                            instanceId: number;
-                            name: string;
-                            success: boolean;
-                            message: string;
-                        }[];
-                        sonarr: {
-                            instanceId: number;
-                            name: string;
-                            success: boolean;
-                            message: string;
-                        }[];
                     };
                 };
             };
@@ -12019,6 +5151,3138 @@ export interface operations {
             };
         };
     };
+    resyncArrWebhooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        radarr: {
+                            instanceId: number;
+                            name: string;
+                            success: boolean;
+                            message: string;
+                        }[];
+                        sonarr: {
+                            instanceId: number;
+                            name: string;
+                            success: boolean;
+                            message: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getRouterPlugins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        plugins: {
+                            name: string;
+                            description: string;
+                            priority: number;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getPluginMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        evaluators: {
+                            name: string;
+                            description: string;
+                            priority: number;
+                            /** @default [] */
+                            supportedFields: {
+                                name: string;
+                                description: string;
+                                valueTypes: string[];
+                            }[];
+                            /** @default {} */
+                            supportedOperators: {
+                                [key: string]: {
+                                    name: string;
+                                    description: string;
+                                    valueTypes: string[];
+                                    valueFormat?: string;
+                                }[];
+                            };
+                            /** @enum {string} */
+                            contentType?: "radarr" | "sonarr" | "both";
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getAllRouterRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        rules: {
+                            name: string;
+                            /** @enum {string} */
+                            target_type: "sonarr" | "radarr";
+                            target_instance_id: number | null;
+                            condition?: {
+                                field: string;
+                                /** @enum {string} */
+                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                value: string | number | boolean | string[] | number[] | {
+                                    id: string | number;
+                                    name: string;
+                                } | {
+                                    id: string | number;
+                                    name: string;
+                                } | (string | number)[] | {
+                                    min?: number;
+                                    max?: number;
+                                } | {
+                                    rating?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                    votes?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                } | (null);
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            } | {
+                                /** @enum {string} */
+                                operator: "AND" | "OR";
+                                conditions: ({
+                                    field: string;
+                                    /** @enum {string} */
+                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                    value: string | number | boolean | string[] | number[] | {
+                                        id: string | number;
+                                        name: string;
+                                    } | {
+                                        id: string | number;
+                                        name: string;
+                                    } | (string | number)[] | {
+                                        min?: number;
+                                        max?: number;
+                                    } | {
+                                        rating?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                        votes?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                    } | (null);
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                } | {
+                                    /** @enum {string} */
+                                    operator: "AND" | "OR";
+                                    conditions: unknown[];
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                })[];
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            };
+                            root_folder?: string;
+                            quality_profile?: number | string;
+                            tags?: string[];
+                            order?: number;
+                            enabled?: boolean;
+                            search_on_add?: boolean | null;
+                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+                            season_monitoring?: string | null;
+                            /**
+                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            series_type?: "standard" | "anime" | "daily" | null;
+                            /**
+                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                            always_require_approval?: boolean;
+                            bypass_user_quotas?: boolean;
+                            approval_reason?: string;
+                            exclude_from_routing?: boolean;
+                            id: number;
+                            created_at: string;
+                            updated_at: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    createRouterRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @enum {string} */
+                    target_type: "sonarr" | "radarr";
+                    target_instance_id: number | null;
+                    condition?: {
+                        field: string;
+                        /** @enum {string} */
+                        operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                        value: string | number | boolean | string[] | number[] | {
+                            id: string | number;
+                            name: string;
+                        } | {
+                            id: string | number;
+                            name: string;
+                        } | (string | number)[] | {
+                            min?: number;
+                            max?: number;
+                        } | {
+                            rating?: number | number[] | {
+                                min?: number;
+                                max?: number;
+                            };
+                            votes?: number | number[] | {
+                                min?: number;
+                                max?: number;
+                            };
+                        } | (null);
+                        /** @default false */
+                        negate?: boolean;
+                        _cid?: string;
+                    } | {
+                        /** @enum {string} */
+                        operator: "AND" | "OR";
+                        conditions: ({
+                            field: string;
+                            /** @enum {string} */
+                            operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                            value: string | number | boolean | string[] | number[] | {
+                                id: string | number;
+                                name: string;
+                            } | {
+                                id: string | number;
+                                name: string;
+                            } | (string | number)[] | {
+                                min?: number;
+                                max?: number;
+                            } | {
+                                rating?: number | number[] | {
+                                    min?: number;
+                                    max?: number;
+                                };
+                                votes?: number | number[] | {
+                                    min?: number;
+                                    max?: number;
+                                };
+                            } | (null);
+                            /** @default false */
+                            negate?: boolean;
+                            _cid?: string;
+                        } | {
+                            /** @enum {string} */
+                            operator: "AND" | "OR";
+                            conditions: unknown[];
+                            /** @default false */
+                            negate?: boolean;
+                            _cid?: string;
+                        })[];
+                        /** @default false */
+                        negate?: boolean;
+                        _cid?: string;
+                    };
+                    root_folder?: string;
+                    quality_profile?: number | string;
+                    tags?: string[];
+                    order?: number;
+                    enabled?: boolean;
+                    search_on_add?: boolean | null;
+                    /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+                    season_monitoring?: string | null;
+                    /**
+                     * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
+                     * @enum {string|null}
+                     */
+                    series_type?: "standard" | "anime" | "daily" | null;
+                    /**
+                     * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
+                     * @enum {string|null}
+                     */
+                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                    always_require_approval?: boolean;
+                    bypass_user_quotas?: boolean;
+                    approval_reason?: string;
+                    exclude_from_routing?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        rule: {
+                            name: string;
+                            /** @enum {string} */
+                            target_type: "sonarr" | "radarr";
+                            target_instance_id: number | null;
+                            condition?: {
+                                field: string;
+                                /** @enum {string} */
+                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                value: string | number | boolean | string[] | number[] | {
+                                    id: string | number;
+                                    name: string;
+                                } | {
+                                    id: string | number;
+                                    name: string;
+                                } | (string | number)[] | {
+                                    min?: number;
+                                    max?: number;
+                                } | {
+                                    rating?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                    votes?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                } | (null);
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            } | {
+                                /** @enum {string} */
+                                operator: "AND" | "OR";
+                                conditions: ({
+                                    field: string;
+                                    /** @enum {string} */
+                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                    value: string | number | boolean | string[] | number[] | {
+                                        id: string | number;
+                                        name: string;
+                                    } | {
+                                        id: string | number;
+                                        name: string;
+                                    } | (string | number)[] | {
+                                        min?: number;
+                                        max?: number;
+                                    } | {
+                                        rating?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                        votes?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                    } | (null);
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                } | {
+                                    /** @enum {string} */
+                                    operator: "AND" | "OR";
+                                    conditions: unknown[];
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                })[];
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            };
+                            root_folder?: string;
+                            quality_profile?: number | string;
+                            tags?: string[];
+                            order?: number;
+                            enabled?: boolean;
+                            search_on_add?: boolean | null;
+                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+                            season_monitoring?: string | null;
+                            /**
+                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            series_type?: "standard" | "anime" | "daily" | null;
+                            /**
+                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                            always_require_approval?: boolean;
+                            bypass_user_quotas?: boolean;
+                            approval_reason?: string;
+                            exclude_from_routing?: boolean;
+                            id: number;
+                            created_at: string;
+                            updated_at: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getRouterRulesByTarget: {
+        parameters: {
+            query: {
+                targetType: "sonarr" | "radarr";
+                instanceId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        rules: {
+                            name: string;
+                            /** @enum {string} */
+                            target_type: "sonarr" | "radarr";
+                            target_instance_id: number | null;
+                            condition?: {
+                                field: string;
+                                /** @enum {string} */
+                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                value: string | number | boolean | string[] | number[] | {
+                                    id: string | number;
+                                    name: string;
+                                } | {
+                                    id: string | number;
+                                    name: string;
+                                } | (string | number)[] | {
+                                    min?: number;
+                                    max?: number;
+                                } | {
+                                    rating?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                    votes?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                } | (null);
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            } | {
+                                /** @enum {string} */
+                                operator: "AND" | "OR";
+                                conditions: ({
+                                    field: string;
+                                    /** @enum {string} */
+                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                    value: string | number | boolean | string[] | number[] | {
+                                        id: string | number;
+                                        name: string;
+                                    } | {
+                                        id: string | number;
+                                        name: string;
+                                    } | (string | number)[] | {
+                                        min?: number;
+                                        max?: number;
+                                    } | {
+                                        rating?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                        votes?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                    } | (null);
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                } | {
+                                    /** @enum {string} */
+                                    operator: "AND" | "OR";
+                                    conditions: unknown[];
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                })[];
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            };
+                            root_folder?: string;
+                            quality_profile?: number | string;
+                            tags?: string[];
+                            order?: number;
+                            enabled?: boolean;
+                            search_on_add?: boolean | null;
+                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+                            season_monitoring?: string | null;
+                            /**
+                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            series_type?: "standard" | "anime" | "daily" | null;
+                            /**
+                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                            always_require_approval?: boolean;
+                            bypass_user_quotas?: boolean;
+                            approval_reason?: string;
+                            exclude_from_routing?: boolean;
+                            id: number;
+                            created_at: string;
+                            updated_at: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getRouterRulesByTargetType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                targetType: "sonarr" | "radarr";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        rules: {
+                            name: string;
+                            /** @enum {string} */
+                            target_type: "sonarr" | "radarr";
+                            target_instance_id: number | null;
+                            condition?: {
+                                field: string;
+                                /** @enum {string} */
+                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                value: string | number | boolean | string[] | number[] | {
+                                    id: string | number;
+                                    name: string;
+                                } | {
+                                    id: string | number;
+                                    name: string;
+                                } | (string | number)[] | {
+                                    min?: number;
+                                    max?: number;
+                                } | {
+                                    rating?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                    votes?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                } | (null);
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            } | {
+                                /** @enum {string} */
+                                operator: "AND" | "OR";
+                                conditions: ({
+                                    field: string;
+                                    /** @enum {string} */
+                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                    value: string | number | boolean | string[] | number[] | {
+                                        id: string | number;
+                                        name: string;
+                                    } | {
+                                        id: string | number;
+                                        name: string;
+                                    } | (string | number)[] | {
+                                        min?: number;
+                                        max?: number;
+                                    } | {
+                                        rating?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                        votes?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                    } | (null);
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                } | {
+                                    /** @enum {string} */
+                                    operator: "AND" | "OR";
+                                    conditions: unknown[];
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                })[];
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            };
+                            root_folder?: string;
+                            quality_profile?: number | string;
+                            tags?: string[];
+                            order?: number;
+                            enabled?: boolean;
+                            search_on_add?: boolean | null;
+                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+                            season_monitoring?: string | null;
+                            /**
+                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            series_type?: "standard" | "anime" | "daily" | null;
+                            /**
+                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                            always_require_approval?: boolean;
+                            bypass_user_quotas?: boolean;
+                            approval_reason?: string;
+                            exclude_from_routing?: boolean;
+                            id: number;
+                            created_at: string;
+                            updated_at: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getRouterRulesByType: {
+        parameters: {
+            query?: {
+                enabledOnly?: string;
+            };
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        rules: {
+                            name: string;
+                            /** @enum {string} */
+                            target_type: "sonarr" | "radarr";
+                            target_instance_id: number | null;
+                            condition?: {
+                                field: string;
+                                /** @enum {string} */
+                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                value: string | number | boolean | string[] | number[] | {
+                                    id: string | number;
+                                    name: string;
+                                } | {
+                                    id: string | number;
+                                    name: string;
+                                } | (string | number)[] | {
+                                    min?: number;
+                                    max?: number;
+                                } | {
+                                    rating?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                    votes?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                } | (null);
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            } | {
+                                /** @enum {string} */
+                                operator: "AND" | "OR";
+                                conditions: ({
+                                    field: string;
+                                    /** @enum {string} */
+                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                    value: string | number | boolean | string[] | number[] | {
+                                        id: string | number;
+                                        name: string;
+                                    } | {
+                                        id: string | number;
+                                        name: string;
+                                    } | (string | number)[] | {
+                                        min?: number;
+                                        max?: number;
+                                    } | {
+                                        rating?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                        votes?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                    } | (null);
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                } | {
+                                    /** @enum {string} */
+                                    operator: "AND" | "OR";
+                                    conditions: unknown[];
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                })[];
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            };
+                            root_folder?: string;
+                            quality_profile?: number | string;
+                            tags?: string[];
+                            order?: number;
+                            enabled?: boolean;
+                            search_on_add?: boolean | null;
+                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+                            season_monitoring?: string | null;
+                            /**
+                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            series_type?: "standard" | "anime" | "daily" | null;
+                            /**
+                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                            always_require_approval?: boolean;
+                            bypass_user_quotas?: boolean;
+                            approval_reason?: string;
+                            exclude_from_routing?: boolean;
+                            id: number;
+                            created_at: string;
+                            updated_at: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getRouterRuleById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        rule: {
+                            name: string;
+                            /** @enum {string} */
+                            target_type: "sonarr" | "radarr";
+                            target_instance_id: number | null;
+                            condition?: {
+                                field: string;
+                                /** @enum {string} */
+                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                value: string | number | boolean | string[] | number[] | {
+                                    id: string | number;
+                                    name: string;
+                                } | {
+                                    id: string | number;
+                                    name: string;
+                                } | (string | number)[] | {
+                                    min?: number;
+                                    max?: number;
+                                } | {
+                                    rating?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                    votes?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                } | (null);
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            } | {
+                                /** @enum {string} */
+                                operator: "AND" | "OR";
+                                conditions: ({
+                                    field: string;
+                                    /** @enum {string} */
+                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                    value: string | number | boolean | string[] | number[] | {
+                                        id: string | number;
+                                        name: string;
+                                    } | {
+                                        id: string | number;
+                                        name: string;
+                                    } | (string | number)[] | {
+                                        min?: number;
+                                        max?: number;
+                                    } | {
+                                        rating?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                        votes?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                    } | (null);
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                } | {
+                                    /** @enum {string} */
+                                    operator: "AND" | "OR";
+                                    conditions: unknown[];
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                })[];
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            };
+                            root_folder?: string;
+                            quality_profile?: number | string;
+                            tags?: string[];
+                            order?: number;
+                            enabled?: boolean;
+                            search_on_add?: boolean | null;
+                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+                            season_monitoring?: string | null;
+                            /**
+                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            series_type?: "standard" | "anime" | "daily" | null;
+                            /**
+                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                            always_require_approval?: boolean;
+                            bypass_user_quotas?: boolean;
+                            approval_reason?: string;
+                            exclude_from_routing?: boolean;
+                            id: number;
+                            created_at: string;
+                            updated_at: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    updateRouterRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    /** @enum {string} */
+                    target_type?: "sonarr" | "radarr";
+                    target_instance_id?: number | null;
+                    condition?: {
+                        field: string;
+                        /** @enum {string} */
+                        operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                        value: string | number | boolean | string[] | number[] | {
+                            id: string | number;
+                            name: string;
+                        } | {
+                            id: string | number;
+                            name: string;
+                        } | (string | number)[] | {
+                            min?: number;
+                            max?: number;
+                        } | {
+                            rating?: number | number[] | {
+                                min?: number;
+                                max?: number;
+                            };
+                            votes?: number | number[] | {
+                                min?: number;
+                                max?: number;
+                            };
+                        } | (null);
+                        /** @default false */
+                        negate?: boolean;
+                        _cid?: string;
+                    } | {
+                        /** @enum {string} */
+                        operator: "AND" | "OR";
+                        conditions: ({
+                            field: string;
+                            /** @enum {string} */
+                            operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                            value: string | number | boolean | string[] | number[] | {
+                                id: string | number;
+                                name: string;
+                            } | {
+                                id: string | number;
+                                name: string;
+                            } | (string | number)[] | {
+                                min?: number;
+                                max?: number;
+                            } | {
+                                rating?: number | number[] | {
+                                    min?: number;
+                                    max?: number;
+                                };
+                                votes?: number | number[] | {
+                                    min?: number;
+                                    max?: number;
+                                };
+                            } | (null);
+                            /** @default false */
+                            negate?: boolean;
+                            _cid?: string;
+                        } | {
+                            /** @enum {string} */
+                            operator: "AND" | "OR";
+                            conditions: unknown[];
+                            /** @default false */
+                            negate?: boolean;
+                            _cid?: string;
+                        })[];
+                        /** @default false */
+                        negate?: boolean;
+                        _cid?: string;
+                    };
+                    root_folder?: string;
+                    quality_profile?: number | string;
+                    tags?: string[];
+                    order?: number;
+                    enabled?: boolean;
+                    search_on_add?: boolean | null;
+                    /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+                    season_monitoring?: string | null;
+                    /**
+                     * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
+                     * @enum {string|null}
+                     */
+                    series_type?: "standard" | "anime" | "daily" | null;
+                    /**
+                     * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
+                     * @enum {string|null}
+                     */
+                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                    always_require_approval?: boolean;
+                    bypass_user_quotas?: boolean;
+                    approval_reason?: string;
+                    exclude_from_routing?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        rule: {
+                            name: string;
+                            /** @enum {string} */
+                            target_type: "sonarr" | "radarr";
+                            target_instance_id: number | null;
+                            condition?: {
+                                field: string;
+                                /** @enum {string} */
+                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                value: string | number | boolean | string[] | number[] | {
+                                    id: string | number;
+                                    name: string;
+                                } | {
+                                    id: string | number;
+                                    name: string;
+                                } | (string | number)[] | {
+                                    min?: number;
+                                    max?: number;
+                                } | {
+                                    rating?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                    votes?: number | number[] | {
+                                        min?: number;
+                                        max?: number;
+                                    };
+                                } | (null);
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            } | {
+                                /** @enum {string} */
+                                operator: "AND" | "OR";
+                                conditions: ({
+                                    field: string;
+                                    /** @enum {string} */
+                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+                                    value: string | number | boolean | string[] | number[] | {
+                                        id: string | number;
+                                        name: string;
+                                    } | {
+                                        id: string | number;
+                                        name: string;
+                                    } | (string | number)[] | {
+                                        min?: number;
+                                        max?: number;
+                                    } | {
+                                        rating?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                        votes?: number | number[] | {
+                                            min?: number;
+                                            max?: number;
+                                        };
+                                    } | (null);
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                } | {
+                                    /** @enum {string} */
+                                    operator: "AND" | "OR";
+                                    conditions: unknown[];
+                                    /** @default false */
+                                    negate: boolean;
+                                    _cid?: string;
+                                })[];
+                                /** @default false */
+                                negate: boolean;
+                                _cid?: string;
+                            };
+                            root_folder?: string;
+                            quality_profile?: number | string;
+                            tags?: string[];
+                            order?: number;
+                            enabled?: boolean;
+                            search_on_add?: boolean | null;
+                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+                            season_monitoring?: string | null;
+                            /**
+                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            series_type?: "standard" | "anime" | "daily" | null;
+                            /**
+                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
+                             * @enum {string|null}
+                             */
+                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                            always_require_approval?: boolean;
+                            bypass_user_quotas?: boolean;
+                            approval_reason?: string;
+                            exclude_from_routing?: boolean;
+                            id: number;
+                            created_at: string;
+                            updated_at: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    deleteRouterRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    toggleRouterRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    enabled: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    cleanupOrphanedPlexLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        pending: {
+                            removed: number;
+                            failed: number;
+                        };
+                        orphaned: {
+                            removed: number;
+                            failed: number;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    removePulsarrPlexLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        mode: "remove";
+                        results: {
+                            processed: number;
+                            removed: number;
+                            failed: number;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    syncPlexLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        mode: "sync";
+                        results: {
+                            processed: number;
+                            updated: number;
+                            failed: number;
+                            pending: number;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    streamLogs: {
+        parameters: {
+            query?: {
+                /** @description Number of recent log lines to send initially. Defaults to 100. */
+                tail?: number;
+                /** @description Whether to follow the log file for new entries. Defaults to true. */
+                follow?: boolean;
+                /** @description Optional string filter to match against log messages (max 512 chars). */
+                filter?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description SSE stream of log entries */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    refreshMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        totalItems: number;
+                        selfItems: number;
+                        othersItems: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    startDiscordBot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        /** @enum {string} */
+                        status: "running" | "stopped" | "starting" | "stopping" | "unknown";
+                        message?: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    stopDiscordBot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        /** @enum {string} */
+                        status: "running" | "stopped" | "starting" | "stopping" | "unknown";
+                        message?: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    validateDiscordWebhooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    webhookUrls: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        valid: boolean;
+                        urls: {
+                            url: string;
+                            valid: boolean;
+                            error?: string;
+                        }[];
+                        duplicateCount?: number;
+                        message?: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    processMediaWebhook: {
+        parameters: {
+            query?: {
+                instanceId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    eventType: "Test";
+                    instanceName: string;
+                } | ({
+                    /** @enum {string} */
+                    eventType: "Download";
+                    instanceName: string;
+                    series: {
+                        id?: number;
+                        title: string;
+                        tvdbId: number;
+                        tags?: string[];
+                    };
+                    episodes: {
+                        episodeNumber: number;
+                        seasonNumber: number;
+                        title: string;
+                        overview?: string;
+                        airDateUtc: string;
+                    }[];
+                    episodeFile: {
+                        id: number;
+                        relativePath: string;
+                        quality: string;
+                        qualityVersion: number;
+                        size: number;
+                    };
+                } | {
+                    /** @enum {string} */
+                    eventType: "Download";
+                    instanceName: string;
+                    series: {
+                        id?: number;
+                        title: string;
+                        tvdbId: number;
+                        tags?: string[];
+                    };
+                    episodes: {
+                        episodeNumber: number;
+                        seasonNumber: number;
+                        title: string;
+                        overview?: string;
+                        airDateUtc: string;
+                    }[];
+                    episodeFiles: {
+                        id: number;
+                        relativePath: string;
+                        quality: string;
+                        qualityVersion: number;
+                        size: number;
+                    }[];
+                    release: {
+                        releaseType: string;
+                    };
+                    fileCount: number;
+                }) | {
+                    instanceName: string;
+                    movie: {
+                        title: string;
+                        tmdbId: number;
+                        tags?: string[];
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    cancelPlexFriendRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    uuid: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    configurePlexNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plexToken: string;
+                    plexHost: string;
+                    /** @default 32400 */
+                    plexPort?: number;
+                    /** @default false */
+                    useSsl?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        results: {
+                            radarr: {
+                                id: number;
+                                name: string;
+                                success: boolean;
+                                message: string;
+                            }[];
+                            sonarr: {
+                                id: number;
+                                name: string;
+                                success: boolean;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    discoverPlexServers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plexToken: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message?: string;
+                        servers: {
+                            name: string;
+                            host: string;
+                            port: number;
+                            useSsl: boolean;
+                            local: boolean;
+                            description?: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    generateRssFeeds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        self: string;
+                        friends: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getWatchlistGenres: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        genres: string[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getPlexNotificationStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        results: {
+                            radarr: {
+                                id: number;
+                                name: string;
+                                success: boolean;
+                                message: string;
+                            }[];
+                            sonarr: {
+                                id: number;
+                                name: string;
+                                success: boolean;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getOthersWatchlistTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        total: number;
+                        users: {
+                            user: {
+                                watchlistId: string;
+                                username: string;
+                            };
+                            watchlist: {
+                                title: string;
+                                plexKey?: string;
+                                type: string;
+                                thumb?: string;
+                                guids: string[];
+                                genres: string[];
+                            }[];
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    generatePlexPin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: number;
+                        code: string;
+                        qr: string;
+                        expiresAt: string;
+                        clientId: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    pollPlexPin: {
+        parameters: {
+            query: {
+                clientId: string;
+            };
+            header?: never;
+            path: {
+                pinId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        authToken: string | null;
+                        expiresIn: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    pingPlex: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getPlexPassStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        hasPlexPass: boolean;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    removePlexNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        results: {
+                            radarr: {
+                                id: number;
+                                name: string;
+                                success: boolean;
+                                message: string;
+                            }[];
+                            sonarr: {
+                                id: number;
+                                name: string;
+                                success: boolean;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    parseRssWatchlists: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        self: {
+                            total: number;
+                            users: {
+                                user: {
+                                    watchlistId: string;
+                                    username: string;
+                                    userId: number;
+                                };
+                                watchlist: {
+                                    title: string;
+                                    plexKey: string;
+                                    type: string;
+                                    thumb: string;
+                                    guids: string[];
+                                    genres: string[];
+                                    /** @enum {string} */
+                                    status: "pending";
+                                }[];
+                            }[];
+                        };
+                        friends: {
+                            total: number;
+                            users: {
+                                user: {
+                                    watchlistId: string;
+                                    username: string;
+                                    userId: number;
+                                };
+                                watchlist: {
+                                    title: string;
+                                    plexKey: string;
+                                    type: string;
+                                    thumb: string;
+                                    guids: string[];
+                                    genres: string[];
+                                    /** @enum {string} */
+                                    status: "pending";
+                                }[];
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getSelfWatchlistItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        total: number;
+                        users: {
+                            user: {
+                                watchlistId: string;
+                                username: string;
+                            };
+                            watchlist: {
+                                title: string;
+                                plexKey?: string;
+                                type: string;
+                                thumb?: string;
+                                guids: string[];
+                                genres: string[];
+                            }[];
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    sendPlexFriendRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    uuid: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getPlexUserStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        users: {
+                            uuid: string;
+                            username: string;
+                            avatar: string;
+                            displayName: string;
+                            /** @enum {string} */
+                            status: "friend" | "server_only" | "pending_sent" | "pending_received" | "friend_only" | "self" | "managed";
+                            friendCreatedAt: string | null;
+                            pendingSince: string | null;
+                        }[];
+                        untracked: {
+                            uuid: string;
+                            username: string;
+                            avatar: string;
+                            /** @enum {string} */
+                            status: "friend" | "server_only" | "pending_sent" | "pending_received" | "friend_only" | "self" | "managed";
+                            pendingSince: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    streamProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description SSE stream of progress events */
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getDailyUsageStats: {
+        parameters: {
+            query: {
+                userId: number;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        dailyStats: {
+                            date: string;
+                            movies: number;
+                            shows: number;
+                            total: number;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getQuotaUsageHistory: {
+        parameters: {
+            query: {
+                userId: number;
+                startDate?: string;
+                endDate?: string;
+                contentType?: "movie" | "show";
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        quotaUsage: {
+                            userId: number;
+                            /** @enum {string} */
+                            contentType: "movie" | "show";
+                            requestDate: string;
+                        }[];
+                        total: number;
+                        limit: number;
+                        offset: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    cleanupOldQuotaUsage: {
+        parameters: {
+            query?: {
+                olderThanDays?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
     getUsersWithQuotas: {
         parameters: {
             query?: never;
@@ -12138,6 +8402,158 @@ export interface operations {
             };
             /** @description Default Response */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    bulkQuotaOperations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    userIds: number[];
+                    /** @enum {string} */
+                    operation: "update" | "delete";
+                    movieQuota?: {
+                        /** @enum {string} */
+                        quotaType?: "daily" | "weekly_rolling" | "monthly";
+                        quotaLimit?: number;
+                        bypassApproval?: boolean;
+                        watchlistCap?: number | null;
+                        enabled: boolean;
+                    };
+                    showQuota?: {
+                        /** @enum {string} */
+                        quotaType?: "daily" | "weekly_rolling" | "monthly";
+                        quotaLimit?: number;
+                        bypassApproval?: boolean;
+                        watchlistCap?: number | null;
+                        enabled: boolean;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        processedCount: number;
+                        failedIds?: number[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getBulkUserQuotaStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    userIds: number[];
+                    /** @enum {string} */
+                    contentType?: "movie" | "show";
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        quotaStatuses: {
+                            userId: number;
+                            quotaStatus: {
+                                /** @enum {string} */
+                                quotaType: "daily" | "weekly_rolling" | "monthly";
+                                quotaLimit: number;
+                                currentUsage: number;
+                                exceeded: boolean;
+                                /** Format: date-time */
+                                resetDate: string | null;
+                                bypassApproval: boolean;
+                                watchlistCap: number | null;
+                                watchlistUsage: number | null;
+                                watchlistCapExceeded: boolean;
+                            } | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12506,81 +8922,6 @@ export interface operations {
             };
         };
     };
-    getBulkUserQuotaStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    userIds: number[];
-                    /** @enum {string} */
-                    contentType?: "movie" | "show";
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        quotaStatuses: {
-                            userId: number;
-                            quotaStatus: {
-                                /** @enum {string} */
-                                quotaType: "daily" | "weekly_rolling" | "monthly";
-                                quotaLimit: number;
-                                currentUsage: number;
-                                exceeded: boolean;
-                                /** Format: date-time */
-                                resetDate: string | null;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                                watchlistUsage: number | null;
-                                watchlistCapExceeded: boolean;
-                            } | null;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
     recordQuotaUsage: {
         parameters: {
             query?: never;
@@ -12629,106 +8970,7 @@ export interface operations {
             };
         };
     };
-    getQuotaUsageHistory: {
-        parameters: {
-            query: {
-                userId: number;
-                startDate?: string;
-                endDate?: string;
-                contentType?: "movie" | "show";
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        quotaUsage: {
-                            userId: number;
-                            /** @enum {string} */
-                            contentType: "movie" | "show";
-                            requestDate: string;
-                        }[];
-                        total: number;
-                        limit: number;
-                        offset: number;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getDailyUsageStats: {
-        parameters: {
-            query: {
-                userId: number;
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        dailyStats: {
-                            date: string;
-                            movies: number;
-                            shows: number;
-                            total: number;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    bulkQuotaOperations: {
+    createRadarrTag: {
         parameters: {
             query?: never;
             header?: never;
@@ -12738,25 +8980,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    userIds: number[];
-                    /** @enum {string} */
-                    operation: "update" | "delete";
-                    movieQuota?: {
-                        /** @enum {string} */
-                        quotaType?: "daily" | "weekly_rolling" | "monthly";
-                        quotaLimit?: number;
-                        bypassApproval?: boolean;
-                        watchlistCap?: number | null;
-                        enabled: boolean;
-                    };
-                    showQuota?: {
-                        /** @enum {string} */
-                        quotaType?: "daily" | "weekly_rolling" | "monthly";
-                        quotaLimit?: number;
-                        bypassApproval?: boolean;
-                        watchlistCap?: number | null;
-                        enabled: boolean;
-                    };
+                    instanceId: number;
+                    label: string;
                 };
             };
         };
@@ -12768,344 +8993,8 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        success: boolean;
-                        message: string;
-                        processedCount: number;
-                        failedIds?: number[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    cleanupOldQuotaUsage: {
-        parameters: {
-            query?: {
-                olderThanDays?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    bulkUpdateUsers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    userIds: number[];
-                    updates: {
-                        name?: string;
-                        apprise?: string | null;
-                        alias?: string | null;
-                        discord_id?: string | null;
-                        notify_apprise?: boolean;
-                        notify_discord?: boolean;
-                        notify_discord_mention?: boolean;
-                        notify_plex_mobile?: boolean;
-                        can_sync?: boolean;
-                        requires_approval?: boolean;
-                    };
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        updatedCount: number;
-                        failedIds?: number[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getAliasReadiness: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        missingAliasCount: number;
-                        duplicateAliasCount: number;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getCurrentUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        user: {
-                            id: number;
-                            username: string;
-                            email: string;
-                            role: string;
-                            avatar: string | null;
-                            plexConnected: boolean;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    logoutUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": Record<string, never>;
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getUserWatchlist: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        data: {
-                            user: {
-                                id: number;
-                                name: string;
-                            };
-                            watchlistItems: {
-                                title: string;
-                                key: string;
-                                type: string;
-                                thumb: string | null;
-                                guids: string[];
-                                genres: string[];
-                                /** @enum {string} */
-                                status: "pending" | "requested" | "grabbed" | "notified";
-                                added: string | null;
-                            }[];
-                            total: number;
-                        };
+                        id: number;
+                        label: string;
                     };
                 };
             };
@@ -13153,1055 +9042,9 @@ export interface operations {
             };
         };
     };
-    updateUserPassword: {
+    getRadarrInstances: {
         parameters: {
             query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    currentPassword: string;
-                    newPassword: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    createAdminUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: email */
-                    email: string;
-                    username: string;
-                    password: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    loginUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    login: string;
-                    password: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message?: string;
-                        username: string;
-                        redirectTo?: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getUsersList: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        users: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getUsersWithCounts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        users: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                            watchlist_count: number;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    createUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name: string;
-                    apprise: string | null;
-                    alias: string | null;
-                    discord_id: string | null;
-                    notify_apprise: boolean;
-                    notify_discord: boolean;
-                    notify_discord_mention: boolean;
-                    notify_plex_mobile: boolean;
-                    can_sync: boolean;
-                    requires_approval: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        user: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getUserById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        user: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    updateUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name?: string;
-                    apprise?: string | null;
-                    alias?: string | null;
-                    discord_id?: string | null;
-                    notify_apprise?: boolean;
-                    notify_discord?: boolean;
-                    notify_discord_mention?: boolean;
-                    notify_plex_mobile?: boolean;
-                    can_sync?: boolean;
-                    requires_approval?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        user: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    checkAuth: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        authenticated: true;
-                    };
-                };
-            };
-            /** @description Default Response */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getRecentRequests: {
-        parameters: {
-            query?: {
-                limit?: number;
-                status?: "pending_approval" | "pending" | "requested" | "available";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        items: {
-                            id: number;
-                            /** @enum {string} */
-                            source: "approval" | "watchlist";
-                            title: string;
-                            /** @enum {string} */
-                            contentType: "movie" | "show";
-                            guids: string[];
-                            thumb: string | null;
-                            /** @enum {string} */
-                            status: "pending_approval" | "pending" | "requested" | "available";
-                            userId: number;
-                            userName: string;
-                            createdAt: string;
-                            primaryInstance: {
-                                id: number;
-                                name: string;
-                                /** @enum {string} */
-                                instanceType: "radarr" | "sonarr";
-                                /** @enum {string} */
-                                status: "pending" | "requested" | "available";
-                            } | null;
-                            allInstances: {
-                                id: number;
-                                name: string;
-                                /** @enum {string} */
-                                instanceType: "radarr" | "sonarr";
-                                /** @enum {string} */
-                                status: "pending" | "requested" | "available";
-                            }[];
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getAllDashboardStats: {
-        parameters: {
-            query?: {
-                limit?: number;
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        top_genres: {
-                            genre: string;
-                            count: number;
-                        }[];
-                        most_watched_shows: {
-                            title: string;
-                            count: number;
-                            thumb: string | null;
-                            guids?: string[];
-                            /** @enum {string} */
-                            content_type?: "movie" | "show";
-                            users?: string[];
-                        }[];
-                        most_watched_movies: {
-                            title: string;
-                            count: number;
-                            thumb: string | null;
-                            guids?: string[];
-                            /** @enum {string} */
-                            content_type?: "movie" | "show";
-                            users?: string[];
-                        }[];
-                        top_users: {
-                            name: string;
-                            count: number;
-                        }[];
-                        status_distribution: {
-                            status: string;
-                            count: number;
-                        }[];
-                        content_type_distribution: {
-                            type: string;
-                            count: number;
-                        }[];
-                        recent_activity: {
-                            new_watchlist_items: number;
-                            status_changes: number;
-                            notifications_sent: number;
-                        };
-                        instance_activity: {
-                            instance_id: number;
-                            /** @enum {string} */
-                            instance_type: "sonarr" | "radarr";
-                            name: string;
-                            item_count: number;
-                        }[];
-                        availability_times: {
-                            content_type: string;
-                            avg_days: number;
-                            min_days: number;
-                            max_days: number;
-                            count: number;
-                        }[];
-                        grabbed_to_notified_times: {
-                            content_type: string;
-                            avg_days: number;
-                            min_days: number;
-                            max_days: number;
-                            count: number;
-                        }[];
-                        status_transitions?: {
-                            from_status: string;
-                            to_status: string;
-                            content_type: string;
-                            avg_days: number;
-                            min_days: number;
-                            max_days: number;
-                            count: number;
-                        }[];
-                        status_flow?: {
-                            from_status: string;
-                            to_status: string;
-                            content_type: string;
-                            count: number;
-                            avg_days: number;
-                        }[];
-                        notification_stats?: {
-                            total_notifications: number;
-                            by_type: {
-                                type: string;
-                                count: number;
-                            }[];
-                            by_channel: {
-                                channel: string;
-                                count: number;
-                            }[];
-                            by_user: {
-                                user_name: string;
-                                count: number;
-                            }[];
-                        };
-                        instance_content_breakdown?: {
-                            id: number;
-                            name: string;
-                            /** @enum {string} */
-                            type: "sonarr" | "radarr";
-                            total_items: number;
-                            primary_items: number;
-                            by_status: {
-                                status: string;
-                                count: number;
-                            }[];
-                            by_content_type: {
-                                content_type: string;
-                                count: number;
-                            }[];
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getInstanceContentBreakdown: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        instances: {
-                            id: number;
-                            name: string;
-                            /** @enum {string} */
-                            type: "sonarr" | "radarr";
-                            total_items: number;
-                            primary_items: number;
-                            by_status: {
-                                status: string;
-                                count: number;
-                            }[];
-                            by_content_type: {
-                                content_type: string;
-                                count: number;
-                            }[];
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getTopGenres: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        genre: string;
-                        count: number;
-                    }[];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getMostWatchedShows: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        title: string;
-                        count: number;
-                        thumb: string | null;
-                        guids?: string[];
-                        /** @enum {string} */
-                        content_type?: "movie" | "show";
-                        users?: string[];
-                    }[];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getMostWatchedMovies: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        title: string;
-                        count: number;
-                        thumb: string | null;
-                        guids?: string[];
-                        /** @enum {string} */
-                        content_type?: "movie" | "show";
-                        users?: string[];
-                    }[];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getTopUsers: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -14216,417 +9059,284 @@ export interface operations {
                 content: {
                     "application/json": {
                         name: string;
-                        count: number;
+                        /** Format: uri */
+                        baseUrl: string;
+                        apiKey: string;
+                        qualityProfile?: (string | number) | null;
+                        rootFolder?: string | null;
+                        /** @default false */
+                        bypassIgnored: boolean;
+                        /** @default true */
+                        searchOnAdd: boolean;
+                        /**
+                         * @default released
+                         * @enum {string}
+                         */
+                        minimumAvailability: "announced" | "inCinemas" | "released";
+                        /**
+                         * @default movieOnly
+                         * @enum {string}
+                         */
+                        monitor: "movieOnly" | "movieAndCollection" | "none";
+                        /** @default [] */
+                        tags: string[];
+                        /** @default false */
+                        isDefault: boolean;
+                        syncedInstances?: number[];
+                        /** @default false */
+                        skipDefaultRoutingWhenNoMatch: boolean;
+                        id: number;
                     }[];
                 };
             };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
         };
     };
-    getRecentActivity: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        new_watchlist_items: number;
-                        status_changes: number;
-                        notifications_sent: number;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getAvailabilityStats: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        content_type: string;
-                        avg_days: number;
-                        min_days: number;
-                        max_days: number;
-                        count: number;
-                    }[];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getGrabbedToNotifiedStats: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        content_type: string;
-                        avg_days: number;
-                        min_days: number;
-                        max_days: number;
-                        count: number;
-                    }[];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getStatusTransitions: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        from_status: string;
-                        to_status: string;
-                        content_type: string;
-                        avg_days: number;
-                        min_days: number;
-                        max_days: number;
-                        count: number;
-                    }[];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getStatusFlow: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        from_status: string;
-                        to_status: string;
-                        content_type: string;
-                        count: number;
-                        avg_days: number;
-                    }[];
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    getNotificationStats: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        total_notifications: number;
-                        by_type: {
-                            type: string;
-                            count: number;
-                        }[];
-                        by_channel: {
-                            channel: string;
-                            count: number;
-                        }[];
-                        by_user: {
-                            user_name: string;
-                            count: number;
-                        }[];
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    streamLogs: {
-        parameters: {
-            query?: {
-                /** @description Number of recent log lines to send initially. Defaults to 100. */
-                tail?: number;
-                /** @description Whether to follow the log file for new entries. Defaults to true. */
-                follow?: boolean;
-                /** @description Optional string filter to match against log messages (max 512 chars). */
-                filter?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @description SSE stream of log entries */
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    refreshMetadata: {
+    createRadarrInstance: {
         parameters: {
             query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** Format: uri */
+                    baseUrl: string;
+                    apiKey: string;
+                    qualityProfile?: (string | number) | null;
+                    rootFolder?: string | null;
+                    /** @default false */
+                    bypassIgnored?: boolean;
+                    /** @default true */
+                    searchOnAdd?: boolean;
+                    /**
+                     * @default released
+                     * @enum {string}
+                     */
+                    minimumAvailability?: "announced" | "inCinemas" | "released";
+                    /**
+                     * @default movieOnly
+                     * @enum {string}
+                     */
+                    monitor?: "movieOnly" | "movieAndCollection" | "none";
+                    /** @default [] */
+                    tags?: string[];
+                    /** @default false */
+                    isDefault?: boolean;
+                    syncedInstances?: number[];
+                    /** @default false */
+                    skipDefaultRoutingWhenNoMatch?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    updateRadarrInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    /** Format: uri */
+                    baseUrl?: string;
+                    apiKey?: string;
+                    qualityProfile?: (string | number) | null;
+                    rootFolder?: string | null;
+                    bypassIgnored?: boolean;
+                    searchOnAdd?: boolean;
+                    /** @enum {string} */
+                    minimumAvailability?: "announced" | "inCinemas" | "released";
+                    /** @enum {string} */
+                    monitor?: "movieOnly" | "movieAndCollection" | "none";
+                    tags?: string[];
+                    isDefault?: boolean;
+                    syncedInstances?: number[];
+                    skipDefaultRoutingWhenNoMatch?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    deleteRadarrInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getRadarrQualityProfiles: {
+        parameters: {
+            query: {
+                instanceId: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -14641,10 +9351,45 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
+                        instance: {
+                            id: number;
+                            name: string;
+                            baseUrl: string;
+                        };
+                        qualityProfiles: ({
+                            id: number;
+                            name: string;
+                        } & {
+                            [key: string]: unknown;
+                        })[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
                         message: string;
-                        totalItems: number;
-                        selfItems: number;
-                        othersItems: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
                     };
                 };
             };
@@ -14664,7 +9409,84 @@ export interface operations {
             };
         };
     };
-    getSonarrTags: {
+    getRadarrRootFolders: {
+        parameters: {
+            query: {
+                instanceId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        instance: {
+                            id: number;
+                            name: string;
+                            baseUrl: string;
+                        };
+                        rootFolders: ({
+                            id: number;
+                            path: string;
+                        } & {
+                            [key: string]: unknown;
+                        })[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getRadarrTags: {
         parameters: {
             query: {
                 instanceId: number;
@@ -14739,79 +9561,7 @@ export interface operations {
             };
         };
     };
-    createSonarrTag: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    instanceId: number;
-                    label: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id: number;
-                        label: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
-                };
-            };
-        };
-    };
-    testSonarrConnection: {
+    testRadarrConnection: {
         parameters: {
             query?: never;
             header?: never;
@@ -14855,10 +9605,697 @@ export interface operations {
             };
         };
     };
-    getSonarrQualityProfiles: {
+    getAllSchedules: {
         parameters: {
-            query: {
-                instanceId: number;
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": ({
+                        id: number;
+                        name: string;
+                        /** @enum {string} */
+                        type: "interval";
+                        config: {
+                            days?: number;
+                            hours?: number;
+                            minutes?: number;
+                            seconds?: number;
+                            runImmediately?: boolean;
+                        };
+                        enabled: boolean;
+                        last_run: {
+                            time: string;
+                            /** @enum {string} */
+                            status: "completed" | "failed" | "pending";
+                            error?: string;
+                            estimated?: boolean;
+                        } | null;
+                        next_run: {
+                            time: string;
+                            /** @enum {string} */
+                            status: "completed" | "failed" | "pending";
+                            error?: string;
+                            estimated?: boolean;
+                        } | null;
+                        created_at: string;
+                        updated_at: string;
+                    } | {
+                        id: number;
+                        name: string;
+                        /** @enum {string} */
+                        type: "cron";
+                        config: {
+                            expression: string;
+                        };
+                        enabled: boolean;
+                        last_run: {
+                            time: string;
+                            /** @enum {string} */
+                            status: "completed" | "failed" | "pending";
+                            error?: string;
+                            estimated?: boolean;
+                        } | null;
+                        next_run: {
+                            time: string;
+                            /** @enum {string} */
+                            status: "completed" | "failed" | "pending";
+                            error?: string;
+                            estimated?: boolean;
+                        } | null;
+                        created_at: string;
+                        updated_at: string;
+                    })[];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    createSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    type: "interval";
+                    name: string;
+                    config: {
+                        days?: number;
+                        hours?: number;
+                        minutes?: number;
+                        seconds?: number;
+                        runImmediately?: boolean;
+                    };
+                    /** @default true */
+                    enabled?: boolean;
+                } | {
+                    /** @enum {string} */
+                    type: "cron";
+                    name: string;
+                    config: {
+                        expression: string;
+                    };
+                    /** @default true */
+                    enabled?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    dryRunDeleteSync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        results: {
+                            total: {
+                                deleted: number;
+                                skipped: number;
+                                processed: number;
+                                protected?: number;
+                            };
+                            movies: {
+                                deleted: number;
+                                skipped: number;
+                                protected?: number;
+                                readonly items: {
+                                    title: string;
+                                    guid: string;
+                                    instance: string;
+                                }[];
+                            };
+                            shows: {
+                                deleted: number;
+                                skipped: number;
+                                protected?: number;
+                                readonly items: {
+                                    title: string;
+                                    guid: string;
+                                    instance: string;
+                                }[];
+                            };
+                            safetyTriggered?: boolean;
+                            safetyMessage?: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getScheduleByName: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: number;
+                        name: string;
+                        /** @enum {string} */
+                        type: "interval";
+                        config: {
+                            days?: number;
+                            hours?: number;
+                            minutes?: number;
+                            seconds?: number;
+                            runImmediately?: boolean;
+                        };
+                        enabled: boolean;
+                        last_run: {
+                            time: string;
+                            /** @enum {string} */
+                            status: "completed" | "failed" | "pending";
+                            error?: string;
+                            estimated?: boolean;
+                        } | null;
+                        next_run: {
+                            time: string;
+                            /** @enum {string} */
+                            status: "completed" | "failed" | "pending";
+                            error?: string;
+                            estimated?: boolean;
+                        } | null;
+                        created_at: string;
+                        updated_at: string;
+                    } | {
+                        id: number;
+                        name: string;
+                        /** @enum {string} */
+                        type: "cron";
+                        config: {
+                            expression: string;
+                        };
+                        enabled: boolean;
+                        last_run: {
+                            time: string;
+                            /** @enum {string} */
+                            status: "completed" | "failed" | "pending";
+                            error?: string;
+                            estimated?: boolean;
+                        } | null;
+                        next_run: {
+                            time: string;
+                            /** @enum {string} */
+                            status: "completed" | "failed" | "pending";
+                            error?: string;
+                            estimated?: boolean;
+                        } | null;
+                        created_at: string;
+                        updated_at: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    updateSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    type: "interval";
+                    config?: {
+                        days?: number;
+                        hours?: number;
+                        minutes?: number;
+                        seconds?: number;
+                        runImmediately?: boolean;
+                    };
+                    enabled?: boolean;
+                } | {
+                    /** @enum {string} */
+                    type: "cron";
+                    config?: {
+                        expression: string;
+                    };
+                    enabled?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    deleteSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    runJobNow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    toggleSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    enabled: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getRollingMonitoredShows: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        shows: {
+                            id: number;
+                            sonarr_series_id: number;
+                            tvdb_id?: string | null;
+                            imdb_id?: string | null;
+                            show_title: string;
+                            /** @enum {string} */
+                            monitoring_type: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
+                            current_monitored_season: number;
+                            last_watched_season: number;
+                            last_watched_episode: number;
+                            last_session_date?: string | null;
+                            sonarr_instance_id: number;
+                            plex_user_id?: string | null;
+                            plex_username?: string | null;
+                            created_at: string;
+                            updated_at: string;
+                            last_updated_at: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    bulkManageRollingMonitoredShows: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    shows: {
+                        sonarrSeriesId: number;
+                        sonarrInstanceId: number;
+                        title: string;
+                        guids: string[];
+                        rollingShowId: number | null;
+                    }[];
+                    /** @enum {string} */
+                    monitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
+                    resetMonitoring?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        enrolled: number;
+                        modified: number;
+                        skipped: number;
+                        failed: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getInactiveRollingMonitoredShows: {
+        parameters: {
+            query?: {
+                inactivityDays?: number;
             };
             header?: never;
             path?: never;
@@ -14874,17 +10311,317 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        instance: {
+                        shows: {
                             id: number;
-                            name: string;
-                            baseUrl: string;
+                            sonarr_series_id: number;
+                            tvdb_id?: string | null;
+                            imdb_id?: string | null;
+                            show_title: string;
+                            /** @enum {string} */
+                            monitoring_type: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
+                            current_monitored_season: number;
+                            last_watched_season: number;
+                            last_watched_episode: number;
+                            last_session_date?: string | null;
+                            sonarr_instance_id: number;
+                            plex_user_id?: string | null;
+                            plex_username?: string | null;
+                            created_at: string;
+                            updated_at: string;
+                            last_updated_at: string;
+                        }[];
+                        inactivityDays: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    resetInactiveRollingMonitoredShows: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    inactivityDays?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        resetCount: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    deleteRollingMonitoredShow: {
+        parameters: {
+            query?: {
+                reset?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    resetRollingMonitoredShow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    runSessionMonitor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        result: {
+                            processedSessions: number;
+                            triggeredSearches: number;
+                            errors: string[];
+                            rollingUpdates: {
+                                showTitle: string;
+                                /** @enum {string} */
+                                action: "expanded_to_season" | "expanded_to_next_season" | "switched_to_all";
+                                details: string;
+                            }[];
                         };
-                        qualityProfiles: ({
-                            id: number;
-                            name: string;
-                        } & {
-                            [key: string]: unknown;
-                        })[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getSonarrShows: {
+        parameters: {
+            query?: {
+                instanceId?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        shows: {
+                            watchlistId: number;
+                            sonarrInstanceId: number;
+                            sonarrSeriesId: number;
+                            title: string;
+                            guids: string[];
+                            rollingShowId: number | null;
+                            /** @enum {string|null} */
+                            monitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling" | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    createSonarrTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    instanceId: number;
+                    label: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: number;
+                        label: string;
                     };
                 };
             };
@@ -15232,6 +10969,83 @@ export interface operations {
             };
         };
     };
+    getSonarrQualityProfiles: {
+        parameters: {
+            query: {
+                instanceId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        instance: {
+                            id: number;
+                            name: string;
+                            baseUrl: string;
+                        };
+                        qualityProfiles: ({
+                            id: number;
+                            name: string;
+                        } & {
+                            [key: string]: unknown;
+                        })[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
     getSonarrRootFolders: {
         parameters: {
             query: {
@@ -15304,6 +11118,4192 @@ export interface operations {
                         code: string;
                         error: string;
                         message: string;
+                    };
+                };
+            };
+        };
+    };
+    getSonarrTags: {
+        parameters: {
+            query: {
+                instanceId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        instance: {
+                            id: number;
+                            name: string;
+                            baseUrl: string;
+                        };
+                        tags: {
+                            id: number;
+                            label: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    testSonarrConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    baseUrl: string;
+                    apiKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getRecentActivity: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        new_watchlist_items: number;
+                        status_changes: number;
+                        notifications_sent: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getAllDashboardStats: {
+        parameters: {
+            query?: {
+                limit?: number;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        top_genres: {
+                            genre: string;
+                            count: number;
+                        }[];
+                        most_watched_shows: {
+                            title: string;
+                            count: number;
+                            thumb: string | null;
+                            guids?: string[];
+                            /** @enum {string} */
+                            content_type?: "movie" | "show";
+                            users?: string[];
+                        }[];
+                        most_watched_movies: {
+                            title: string;
+                            count: number;
+                            thumb: string | null;
+                            guids?: string[];
+                            /** @enum {string} */
+                            content_type?: "movie" | "show";
+                            users?: string[];
+                        }[];
+                        top_users: {
+                            name: string;
+                            count: number;
+                        }[];
+                        status_distribution: {
+                            status: string;
+                            count: number;
+                        }[];
+                        content_type_distribution: {
+                            type: string;
+                            count: number;
+                        }[];
+                        recent_activity: {
+                            new_watchlist_items: number;
+                            status_changes: number;
+                            notifications_sent: number;
+                        };
+                        instance_activity: {
+                            instance_id: number;
+                            /** @enum {string} */
+                            instance_type: "sonarr" | "radarr";
+                            name: string;
+                            item_count: number;
+                        }[];
+                        availability_times: {
+                            content_type: string;
+                            avg_days: number;
+                            min_days: number;
+                            max_days: number;
+                            count: number;
+                        }[];
+                        grabbed_to_notified_times: {
+                            content_type: string;
+                            avg_days: number;
+                            min_days: number;
+                            max_days: number;
+                            count: number;
+                        }[];
+                        status_transitions?: {
+                            from_status: string;
+                            to_status: string;
+                            content_type: string;
+                            avg_days: number;
+                            min_days: number;
+                            max_days: number;
+                            count: number;
+                        }[];
+                        status_flow?: {
+                            from_status: string;
+                            to_status: string;
+                            content_type: string;
+                            count: number;
+                            avg_days: number;
+                        }[];
+                        notification_stats?: {
+                            total_notifications: number;
+                            by_type: {
+                                type: string;
+                                count: number;
+                            }[];
+                            by_channel: {
+                                channel: string;
+                                count: number;
+                            }[];
+                            by_user: {
+                                user_name: string;
+                                count: number;
+                            }[];
+                        };
+                        instance_content_breakdown?: {
+                            id: number;
+                            name: string;
+                            /** @enum {string} */
+                            type: "sonarr" | "radarr";
+                            total_items: number;
+                            primary_items: number;
+                            by_status: {
+                                status: string;
+                                count: number;
+                            }[];
+                            by_content_type: {
+                                content_type: string;
+                                count: number;
+                            }[];
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getAvailabilityStats: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        content_type: string;
+                        avg_days: number;
+                        min_days: number;
+                        max_days: number;
+                        count: number;
+                    }[];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getTopGenres: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        genre: string;
+                        count: number;
+                    }[];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getGrabbedToNotifiedStats: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        content_type: string;
+                        avg_days: number;
+                        min_days: number;
+                        max_days: number;
+                        count: number;
+                    }[];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getInstanceContentBreakdown: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        instances: {
+                            id: number;
+                            name: string;
+                            /** @enum {string} */
+                            type: "sonarr" | "radarr";
+                            total_items: number;
+                            primary_items: number;
+                            by_status: {
+                                status: string;
+                                count: number;
+                            }[];
+                            by_content_type: {
+                                content_type: string;
+                                count: number;
+                            }[];
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getMostWatchedMovies: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        title: string;
+                        count: number;
+                        thumb: string | null;
+                        guids?: string[];
+                        /** @enum {string} */
+                        content_type?: "movie" | "show";
+                        users?: string[];
+                    }[];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getNotificationStats: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        total_notifications: number;
+                        by_type: {
+                            type: string;
+                            count: number;
+                        }[];
+                        by_channel: {
+                            channel: string;
+                            count: number;
+                        }[];
+                        by_user: {
+                            user_name: string;
+                            count: number;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getRecentRequests: {
+        parameters: {
+            query?: {
+                limit?: number;
+                status?: "pending_approval" | "pending" | "requested" | "available";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        items: {
+                            id: number;
+                            /** @enum {string} */
+                            source: "approval" | "watchlist";
+                            title: string;
+                            /** @enum {string} */
+                            contentType: "movie" | "show";
+                            guids: string[];
+                            thumb: string | null;
+                            /** @enum {string} */
+                            status: "pending_approval" | "pending" | "requested" | "available";
+                            userId: number;
+                            userName: string;
+                            createdAt: string;
+                            primaryInstance: {
+                                id: number;
+                                name: string;
+                                /** @enum {string} */
+                                instanceType: "radarr" | "sonarr";
+                                /** @enum {string} */
+                                status: "pending" | "requested" | "available";
+                            } | null;
+                            allInstances: {
+                                id: number;
+                                name: string;
+                                /** @enum {string} */
+                                instanceType: "radarr" | "sonarr";
+                                /** @enum {string} */
+                                status: "pending" | "requested" | "available";
+                            }[];
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getMostWatchedShows: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        title: string;
+                        count: number;
+                        thumb: string | null;
+                        guids?: string[];
+                        /** @enum {string} */
+                        content_type?: "movie" | "show";
+                        users?: string[];
+                    }[];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getStatusFlow: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        from_status: string;
+                        to_status: string;
+                        content_type: string;
+                        count: number;
+                        avg_days: number;
+                    }[];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getStatusTransitions: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        from_status: string;
+                        to_status: string;
+                        content_type: string;
+                        avg_days: number;
+                        min_days: number;
+                        max_days: number;
+                        count: number;
+                    }[];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getTopUsers: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        name: string;
+                        count: number;
+                    }[];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    syncAllInstances: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        radarr: {
+                            id: number;
+                            name: string;
+                            itemsCopied: number;
+                        }[];
+                        sonarr: {
+                            id: number;
+                            name: string;
+                            itemsCopied: number;
+                        }[];
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    syncInstance: {
+        parameters: {
+            query: {
+                type: "radarr" | "sonarr";
+            };
+            header?: never;
+            path: {
+                instanceId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        itemsCopied: number;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getUpdateStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        currentVersion: string;
+                        latestVersion: string | null;
+                        updateAvailable: boolean;
+                        releaseUrl: string | null;
+                        releaseName: string | null;
+                        releaseBody: string | null;
+                        releaseBodyHtml: string | null;
+                        publishedAt: string | null;
+                        lastCheckedAt: string | null;
+                        lastError: string | null;
+                        /** @enum {string} */
+                        status: "ok" | "pending" | "rate_limited" | "error";
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    cleanupOrphanedTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        radarr: {
+                            removed: number;
+                            skipped: number;
+                            failed: number;
+                            instances: number;
+                        };
+                        sonarr: {
+                            removed: number;
+                            skipped: number;
+                            failed: number;
+                            instances: number;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    cleanupOrphanedTagReferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        radarr: {
+                            [key: string]: {
+                                instanceName: string;
+                                itemsScanned: number;
+                                orphanedTagsFound: number;
+                                itemsUpdated: number;
+                                error?: string;
+                            };
+                        };
+                        sonarr: {
+                            [key: string]: {
+                                instanceName: string;
+                                itemsScanned: number;
+                                orphanedTagsFound: number;
+                                itemsUpdated: number;
+                                error?: string;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    createUserTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        mode: "create";
+                        sonarr: {
+                            created: number;
+                            skipped: number;
+                            failed: number;
+                            instances: number;
+                        };
+                        radarr: {
+                            created: number;
+                            skipped: number;
+                            failed: number;
+                            instances: number;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    removeAllUserTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @default false */
+                    deleteTagDefinitions?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        mode: "remove";
+                        sonarr: {
+                            itemsProcessed: number;
+                            itemsUpdated: number;
+                            tagsRemoved: number;
+                            tagsDeleted: number;
+                            failed: number;
+                            instances: number;
+                        };
+                        radarr: {
+                            itemsProcessed: number;
+                            itemsUpdated: number;
+                            tagsRemoved: number;
+                            tagsDeleted: number;
+                            failed: number;
+                            instances: number;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    syncUserTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        mode: "sync";
+                        sonarr: {
+                            tagged: number;
+                            skipped: number;
+                            failed: number;
+                        };
+                        radarr: {
+                            tagged: number;
+                            skipped: number;
+                            failed: number;
+                        };
+                        orphanedCleanup?: {
+                            radarr: {
+                                removed: number;
+                                skipped: number;
+                                failed: number;
+                                instances: number;
+                            };
+                            sonarr: {
+                                removed: number;
+                                skipped: number;
+                                failed: number;
+                                instances: number;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getTmdbMetadataByGuid: {
+        parameters: {
+            query?: {
+                region?: string;
+                type?: "movie" | "show";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        metadata: {
+                            details: {
+                                adult: boolean;
+                                backdrop_path: string | null;
+                                belongs_to_collection: {
+                                    id: number;
+                                    name: string;
+                                    poster_path: string | null;
+                                    backdrop_path: string | null;
+                                } | null;
+                                budget: number;
+                                genres: {
+                                    id: number;
+                                    name: string;
+                                }[];
+                                homepage: string | "" | (null);
+                                id: number;
+                                imdb_id: string | null;
+                                origin_country: string[];
+                                original_language: string;
+                                original_title: string;
+                                overview: string | null;
+                                popularity: number;
+                                poster_path: string | null;
+                                production_companies: {
+                                    id: number;
+                                    logo_path: string | null;
+                                    name: string;
+                                    origin_country: string;
+                                }[];
+                                production_countries: {
+                                    iso_3166_1: string;
+                                    name: string;
+                                }[];
+                                release_date: string;
+                                revenue: number;
+                                runtime: number | null;
+                                spoken_languages: {
+                                    english_name: string;
+                                    iso_639_1: string;
+                                    name: string;
+                                }[];
+                                status: string;
+                                tagline: string | null;
+                                title: string;
+                                video: boolean;
+                                vote_average: number;
+                                vote_count: number;
+                            };
+                            watchProviders?: {
+                                link?: string;
+                                flatrate?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                                rent?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                                buy?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                            };
+                            radarrRatings?: {
+                                imdb?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                                tmdb?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                                metacritic?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                                rottenTomatoes?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                                trakt?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                            };
+                            plexRatings?: {
+                                imdb?: {
+                                    rating: number;
+                                    votes: number | null;
+                                };
+                                rtCritic?: number;
+                                rtAudience?: number;
+                                tmdb?: number;
+                            };
+                        } | {
+                            details: {
+                                adult: boolean;
+                                backdrop_path: string | null;
+                                created_by: {
+                                    id: number;
+                                    credit_id: string;
+                                    name: string;
+                                    original_name: string;
+                                    gender: number;
+                                    profile_path: string | null;
+                                }[];
+                                episode_run_time: number[];
+                                first_air_date: string | null;
+                                genres: {
+                                    id: number;
+                                    name: string;
+                                }[];
+                                homepage: string | "" | (null);
+                                id: number;
+                                in_production: boolean;
+                                languages: string[];
+                                last_air_date: string | null;
+                                last_episode_to_air: {
+                                    id: number;
+                                    name: string;
+                                    overview: string | null;
+                                    vote_average: number;
+                                    vote_count: number;
+                                    air_date: string;
+                                    episode_number: number;
+                                    episode_type: string;
+                                    production_code: string | null;
+                                    runtime: number | null;
+                                    season_number: number;
+                                    show_id: number;
+                                    still_path: string | null;
+                                } | null;
+                                name: string;
+                                next_episode_to_air: {
+                                    id: number;
+                                    name: string;
+                                    overview: string | null;
+                                    vote_average: number;
+                                    vote_count: number;
+                                    air_date: string;
+                                    episode_number: number;
+                                    episode_type: string;
+                                    production_code: string | null;
+                                    runtime: number | null;
+                                    season_number: number;
+                                    show_id: number;
+                                    still_path: string | null;
+                                } | null;
+                                networks: {
+                                    id: number;
+                                    logo_path: string | null;
+                                    name: string;
+                                    origin_country: string;
+                                }[];
+                                number_of_episodes: number;
+                                number_of_seasons: number;
+                                origin_country: string[];
+                                original_language: string;
+                                original_name: string;
+                                overview: string | null;
+                                popularity: number;
+                                poster_path: string | null;
+                                production_companies: {
+                                    id: number;
+                                    logo_path: string | null;
+                                    name: string;
+                                    origin_country: string;
+                                }[];
+                                production_countries: {
+                                    iso_3166_1: string;
+                                    name: string;
+                                }[];
+                                seasons: {
+                                    air_date: string | null;
+                                    episode_count: number;
+                                    id: number;
+                                    name: string;
+                                    overview: string | null;
+                                    poster_path: string | null;
+                                    season_number: number;
+                                    vote_average: number;
+                                }[];
+                                spoken_languages: {
+                                    english_name: string;
+                                    iso_639_1: string;
+                                    name: string;
+                                }[];
+                                status: string;
+                                tagline: string | null;
+                                type: string;
+                                vote_average: number;
+                                vote_count: number;
+                            };
+                            watchProviders?: {
+                                link?: string;
+                                flatrate?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                                rent?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                                buy?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                            };
+                            plexRatings?: {
+                                imdb?: {
+                                    rating: number;
+                                    votes: number | null;
+                                };
+                                rtCritic?: number;
+                                rtAudience?: number;
+                                tmdb?: number;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getTmdbMovieMetadata: {
+        parameters: {
+            query?: {
+                region?: string;
+                type?: "movie" | "show";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        metadata: {
+                            details: {
+                                adult: boolean;
+                                backdrop_path: string | null;
+                                belongs_to_collection: {
+                                    id: number;
+                                    name: string;
+                                    poster_path: string | null;
+                                    backdrop_path: string | null;
+                                } | null;
+                                budget: number;
+                                genres: {
+                                    id: number;
+                                    name: string;
+                                }[];
+                                homepage: string | "" | (null);
+                                id: number;
+                                imdb_id: string | null;
+                                origin_country: string[];
+                                original_language: string;
+                                original_title: string;
+                                overview: string | null;
+                                popularity: number;
+                                poster_path: string | null;
+                                production_companies: {
+                                    id: number;
+                                    logo_path: string | null;
+                                    name: string;
+                                    origin_country: string;
+                                }[];
+                                production_countries: {
+                                    iso_3166_1: string;
+                                    name: string;
+                                }[];
+                                release_date: string;
+                                revenue: number;
+                                runtime: number | null;
+                                spoken_languages: {
+                                    english_name: string;
+                                    iso_639_1: string;
+                                    name: string;
+                                }[];
+                                status: string;
+                                tagline: string | null;
+                                title: string;
+                                video: boolean;
+                                vote_average: number;
+                                vote_count: number;
+                            };
+                            watchProviders?: {
+                                link?: string;
+                                flatrate?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                                rent?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                                buy?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                            };
+                            radarrRatings?: {
+                                imdb?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                                tmdb?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                                metacritic?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                                rottenTomatoes?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                                trakt?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                            };
+                            plexRatings?: {
+                                imdb?: {
+                                    rating: number;
+                                    votes: number | null;
+                                };
+                                rtCritic?: number;
+                                rtAudience?: number;
+                                tmdb?: number;
+                            };
+                        } | {
+                            details: {
+                                adult: boolean;
+                                backdrop_path: string | null;
+                                created_by: {
+                                    id: number;
+                                    credit_id: string;
+                                    name: string;
+                                    original_name: string;
+                                    gender: number;
+                                    profile_path: string | null;
+                                }[];
+                                episode_run_time: number[];
+                                first_air_date: string | null;
+                                genres: {
+                                    id: number;
+                                    name: string;
+                                }[];
+                                homepage: string | "" | (null);
+                                id: number;
+                                in_production: boolean;
+                                languages: string[];
+                                last_air_date: string | null;
+                                last_episode_to_air: {
+                                    id: number;
+                                    name: string;
+                                    overview: string | null;
+                                    vote_average: number;
+                                    vote_count: number;
+                                    air_date: string;
+                                    episode_number: number;
+                                    episode_type: string;
+                                    production_code: string | null;
+                                    runtime: number | null;
+                                    season_number: number;
+                                    show_id: number;
+                                    still_path: string | null;
+                                } | null;
+                                name: string;
+                                next_episode_to_air: {
+                                    id: number;
+                                    name: string;
+                                    overview: string | null;
+                                    vote_average: number;
+                                    vote_count: number;
+                                    air_date: string;
+                                    episode_number: number;
+                                    episode_type: string;
+                                    production_code: string | null;
+                                    runtime: number | null;
+                                    season_number: number;
+                                    show_id: number;
+                                    still_path: string | null;
+                                } | null;
+                                networks: {
+                                    id: number;
+                                    logo_path: string | null;
+                                    name: string;
+                                    origin_country: string;
+                                }[];
+                                number_of_episodes: number;
+                                number_of_seasons: number;
+                                origin_country: string[];
+                                original_language: string;
+                                original_name: string;
+                                overview: string | null;
+                                popularity: number;
+                                poster_path: string | null;
+                                production_companies: {
+                                    id: number;
+                                    logo_path: string | null;
+                                    name: string;
+                                    origin_country: string;
+                                }[];
+                                production_countries: {
+                                    iso_3166_1: string;
+                                    name: string;
+                                }[];
+                                seasons: {
+                                    air_date: string | null;
+                                    episode_count: number;
+                                    id: number;
+                                    name: string;
+                                    overview: string | null;
+                                    poster_path: string | null;
+                                    season_number: number;
+                                    vote_average: number;
+                                }[];
+                                spoken_languages: {
+                                    english_name: string;
+                                    iso_639_1: string;
+                                    name: string;
+                                }[];
+                                status: string;
+                                tagline: string | null;
+                                type: string;
+                                vote_average: number;
+                                vote_count: number;
+                            };
+                            watchProviders?: {
+                                link?: string;
+                                flatrate?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                                rent?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                                buy?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                            };
+                            plexRatings?: {
+                                imdb?: {
+                                    rating: number;
+                                    votes: number | null;
+                                };
+                                rtCritic?: number;
+                                rtAudience?: number;
+                                tmdb?: number;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getTmdbProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        region: string;
+                        providers: {
+                            display_priority: number;
+                            logo_path: string | null;
+                            provider_id: number;
+                            provider_name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getTmdbRegions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        regions: {
+                            code: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getTmdbTvMetadata: {
+        parameters: {
+            query?: {
+                region?: string;
+                type?: "movie" | "show";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        metadata: {
+                            details: {
+                                adult: boolean;
+                                backdrop_path: string | null;
+                                belongs_to_collection: {
+                                    id: number;
+                                    name: string;
+                                    poster_path: string | null;
+                                    backdrop_path: string | null;
+                                } | null;
+                                budget: number;
+                                genres: {
+                                    id: number;
+                                    name: string;
+                                }[];
+                                homepage: string | "" | (null);
+                                id: number;
+                                imdb_id: string | null;
+                                origin_country: string[];
+                                original_language: string;
+                                original_title: string;
+                                overview: string | null;
+                                popularity: number;
+                                poster_path: string | null;
+                                production_companies: {
+                                    id: number;
+                                    logo_path: string | null;
+                                    name: string;
+                                    origin_country: string;
+                                }[];
+                                production_countries: {
+                                    iso_3166_1: string;
+                                    name: string;
+                                }[];
+                                release_date: string;
+                                revenue: number;
+                                runtime: number | null;
+                                spoken_languages: {
+                                    english_name: string;
+                                    iso_639_1: string;
+                                    name: string;
+                                }[];
+                                status: string;
+                                tagline: string | null;
+                                title: string;
+                                video: boolean;
+                                vote_average: number;
+                                vote_count: number;
+                            };
+                            watchProviders?: {
+                                link?: string;
+                                flatrate?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                                rent?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                                buy?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                            };
+                            radarrRatings?: {
+                                imdb?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                                tmdb?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                                metacritic?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                                rottenTomatoes?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                                trakt?: {
+                                    votes: number;
+                                    value: number;
+                                    /** @enum {string} */
+                                    type: "user" | "critic";
+                                };
+                            };
+                            plexRatings?: {
+                                imdb?: {
+                                    rating: number;
+                                    votes: number | null;
+                                };
+                                rtCritic?: number;
+                                rtAudience?: number;
+                                tmdb?: number;
+                            };
+                        } | {
+                            details: {
+                                adult: boolean;
+                                backdrop_path: string | null;
+                                created_by: {
+                                    id: number;
+                                    credit_id: string;
+                                    name: string;
+                                    original_name: string;
+                                    gender: number;
+                                    profile_path: string | null;
+                                }[];
+                                episode_run_time: number[];
+                                first_air_date: string | null;
+                                genres: {
+                                    id: number;
+                                    name: string;
+                                }[];
+                                homepage: string | "" | (null);
+                                id: number;
+                                in_production: boolean;
+                                languages: string[];
+                                last_air_date: string | null;
+                                last_episode_to_air: {
+                                    id: number;
+                                    name: string;
+                                    overview: string | null;
+                                    vote_average: number;
+                                    vote_count: number;
+                                    air_date: string;
+                                    episode_number: number;
+                                    episode_type: string;
+                                    production_code: string | null;
+                                    runtime: number | null;
+                                    season_number: number;
+                                    show_id: number;
+                                    still_path: string | null;
+                                } | null;
+                                name: string;
+                                next_episode_to_air: {
+                                    id: number;
+                                    name: string;
+                                    overview: string | null;
+                                    vote_average: number;
+                                    vote_count: number;
+                                    air_date: string;
+                                    episode_number: number;
+                                    episode_type: string;
+                                    production_code: string | null;
+                                    runtime: number | null;
+                                    season_number: number;
+                                    show_id: number;
+                                    still_path: string | null;
+                                } | null;
+                                networks: {
+                                    id: number;
+                                    logo_path: string | null;
+                                    name: string;
+                                    origin_country: string;
+                                }[];
+                                number_of_episodes: number;
+                                number_of_seasons: number;
+                                origin_country: string[];
+                                original_language: string;
+                                original_name: string;
+                                overview: string | null;
+                                popularity: number;
+                                poster_path: string | null;
+                                production_companies: {
+                                    id: number;
+                                    logo_path: string | null;
+                                    name: string;
+                                    origin_country: string;
+                                }[];
+                                production_countries: {
+                                    iso_3166_1: string;
+                                    name: string;
+                                }[];
+                                seasons: {
+                                    air_date: string | null;
+                                    episode_count: number;
+                                    id: number;
+                                    name: string;
+                                    overview: string | null;
+                                    poster_path: string | null;
+                                    season_number: number;
+                                    vote_average: number;
+                                }[];
+                                spoken_languages: {
+                                    english_name: string;
+                                    iso_639_1: string;
+                                    name: string;
+                                }[];
+                                status: string;
+                                tagline: string | null;
+                                type: string;
+                                vote_average: number;
+                                vote_count: number;
+                            };
+                            watchProviders?: {
+                                link?: string;
+                                flatrate?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                                rent?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                                buy?: {
+                                    display_priority: number;
+                                    logo_path: string | null;
+                                    provider_id: number;
+                                    provider_name: string;
+                                }[];
+                            };
+                            plexRatings?: {
+                                imdb?: {
+                                    rating: number;
+                                    votes: number | null;
+                                };
+                                rtCritic?: number;
+                                rtAudience?: number;
+                                tmdb?: number;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getAliasReadiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        missingAliasCount: number;
+                        duplicateAliasCount: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    bulkUpdateUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    userIds: number[];
+                    updates: {
+                        name?: string;
+                        apprise?: string | null;
+                        alias?: string | null;
+                        discord_id?: string | null;
+                        notify_apprise?: boolean;
+                        notify_discord?: boolean;
+                        notify_discord_mention?: boolean;
+                        notify_plex_mobile?: boolean;
+                        can_sync?: boolean;
+                        requires_approval?: boolean;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        updatedCount: number;
+                        failedIds?: number[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    checkAuth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        authenticated: true;
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    createAdminUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: email */
+                    email: string;
+                    username: string;
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    loginUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    login: string;
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message?: string;
+                        username: string;
+                        redirectTo?: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    logoutUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getCurrentUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        user: {
+                            id: number;
+                            username: string;
+                            email: string;
+                            role: string;
+                            avatar: string | null;
+                            plexConnected: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    updateUserPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    currentPassword: string;
+                    newPassword: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    apprise: string | null;
+                    alias: string | null;
+                    discord_id: string | null;
+                    notify_apprise: boolean;
+                    notify_discord: boolean;
+                    notify_discord_mention: boolean;
+                    notify_plex_mobile: boolean;
+                    can_sync: boolean;
+                    requires_approval: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        user: {
+                            id: number;
+                            name: string;
+                            apprise: string | null;
+                            alias: string | null;
+                            discord_id: string | null;
+                            notify_apprise: boolean;
+                            notify_discord: boolean;
+                            notify_discord_mention: boolean;
+                            notify_plex_mobile: boolean;
+                            can_sync: boolean;
+                            requires_approval: boolean;
+                            is_primary_token: boolean;
+                            plex_uuid?: string | null;
+                            avatar?: string | null;
+                            display_name?: string | null;
+                            friend_created_at?: string | null;
+                            created_at: string;
+                            updated_at: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getUsersList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        users: {
+                            id: number;
+                            name: string;
+                            apprise: string | null;
+                            alias: string | null;
+                            discord_id: string | null;
+                            notify_apprise: boolean;
+                            notify_discord: boolean;
+                            notify_discord_mention: boolean;
+                            notify_plex_mobile: boolean;
+                            can_sync: boolean;
+                            requires_approval: boolean;
+                            is_primary_token: boolean;
+                            plex_uuid?: string | null;
+                            avatar?: string | null;
+                            display_name?: string | null;
+                            friend_created_at?: string | null;
+                            created_at: string;
+                            updated_at: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getUsersWithCounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        users: {
+                            id: number;
+                            name: string;
+                            apprise: string | null;
+                            alias: string | null;
+                            discord_id: string | null;
+                            notify_apprise: boolean;
+                            notify_discord: boolean;
+                            notify_discord_mention: boolean;
+                            notify_plex_mobile: boolean;
+                            can_sync: boolean;
+                            requires_approval: boolean;
+                            is_primary_token: boolean;
+                            plex_uuid?: string | null;
+                            avatar?: string | null;
+                            display_name?: string | null;
+                            friend_created_at?: string | null;
+                            created_at: string;
+                            updated_at: string;
+                            watchlist_count: number;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getUserById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        user: {
+                            id: number;
+                            name: string;
+                            apprise: string | null;
+                            alias: string | null;
+                            discord_id: string | null;
+                            notify_apprise: boolean;
+                            notify_discord: boolean;
+                            notify_discord_mention: boolean;
+                            notify_plex_mobile: boolean;
+                            can_sync: boolean;
+                            requires_approval: boolean;
+                            is_primary_token: boolean;
+                            plex_uuid?: string | null;
+                            avatar?: string | null;
+                            display_name?: string | null;
+                            friend_created_at?: string | null;
+                            created_at: string;
+                            updated_at: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    apprise?: string | null;
+                    alias?: string | null;
+                    discord_id?: string | null;
+                    notify_apprise?: boolean;
+                    notify_discord?: boolean;
+                    notify_discord_mention?: boolean;
+                    notify_plex_mobile?: boolean;
+                    can_sync?: boolean;
+                    requires_approval?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        user: {
+                            id: number;
+                            name: string;
+                            apprise: string | null;
+                            alias: string | null;
+                            discord_id: string | null;
+                            notify_apprise: boolean;
+                            notify_discord: boolean;
+                            notify_discord_mention: boolean;
+                            notify_plex_mobile: boolean;
+                            can_sync: boolean;
+                            requires_approval: boolean;
+                            is_primary_token: boolean;
+                            plex_uuid?: string | null;
+                            avatar?: string | null;
+                            display_name?: string | null;
+                            friend_created_at?: string | null;
+                            created_at: string;
+                            updated_at: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getUserWatchlist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            user: {
+                                id: number;
+                                name: string;
+                            };
+                            watchlistItems: {
+                                title: string;
+                                key: string;
+                                type: string;
+                                thumb: string | null;
+                                guids: string[];
+                                genres: string[];
+                                /** @enum {string} */
+                                status: "pending" | "requested" | "grabbed" | "notified";
+                                added: string | null;
+                            }[];
+                            total: number;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getAllWatchlistExclusions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        exclusions: {
+                            id: number;
+                            user_id: number;
+                            key: string;
+                            title: string;
+                            type: string;
+                            guids: string[];
+                            excluded_at: string;
+                            username: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    createWatchlistExclusion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    key: string;
+                    userIds: number[];
+                    title: string;
+                    type: string;
+                    /** @default [] */
+                    guids?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        created: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getUserWatchlistExclusions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        exclusions: {
+                            id: number;
+                            user_id: number;
+                            key: string;
+                            title: string;
+                            type: string;
+                            guids: string[];
+                            excluded_at: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    removeWatchlistExclusion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    startWatchlistWorkflow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    autoStart?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        /** @enum {string} */
+                        status: "running" | "stopped" | "starting" | "stopping";
+                        message?: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getWatchlistWorkflowStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        /** @enum {string} */
+                        status: "running" | "stopped" | "starting" | "stopping";
+                        message?: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    stopWatchlistWorkflow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        /** @enum {string} */
+                        status: "running" | "stopped" | "starting" | "stopping";
+                        message?: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    listWebhookEndpoints: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: {
+                            id: number;
+                            name: string;
+                            url: string;
+                            authHeaderName: string | null;
+                            authHeaderValue: string | null;
+                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
+                            enabled: boolean;
+                            createdAt: string;
+                            updatedAt: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    createWebhookEndpoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    url: string;
+                    authHeaderName?: string;
+                    authHeaderValue?: string;
+                    eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
+                    /** @default true */
+                    enabled?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: {
+                            id: number;
+                            name: string;
+                            url: string;
+                            authHeaderName: string | null;
+                            authHeaderValue: string | null;
+                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
+                            enabled: boolean;
+                            createdAt: string;
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    testWebhookEndpoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    url: string;
+                    authHeaderName?: string;
+                    authHeaderValue?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        statusCode?: number;
+                        error?: string;
+                        responseTime: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    getWebhookEndpoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: {
+                            id: number;
+                            name: string;
+                            url: string;
+                            authHeaderName: string | null;
+                            authHeaderValue: string | null;
+                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
+                            enabled: boolean;
+                            createdAt: string;
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    updateWebhookEndpoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    url?: string;
+                    authHeaderName?: string | null;
+                    authHeaderValue?: string | null;
+                    eventTypes?: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
+                    enabled?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: {
+                            id: number;
+                            name: string;
+                            url: string;
+                            authHeaderName: string | null;
+                            authHeaderValue: string | null;
+                            eventTypes: ("media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached")[];
+                            enabled: boolean;
+                            createdAt: string;
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    deleteWebhookEndpoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    testExistingWebhookEndpoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        statusCode?: number;
+                        error?: string;
+                        responseTime: number;
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        statusCode: number;
+                        code: string;
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+        };
+    };
+    listWebhookEventTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: {
+                            /** @enum {string} */
+                            type: "media.available" | "watchlist.added" | "watchlist.removed" | "approval.created" | "approval.resolved" | "approval.auto" | "delete_sync.completed" | "user.created" | "quota.cap_reached";
+                            description: string;
+                        }[];
                     };
                 };
             };
