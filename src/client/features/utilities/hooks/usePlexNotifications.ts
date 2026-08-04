@@ -47,8 +47,12 @@ export function usePlexNotifications() {
   // Populate Plex token from config store when config changes
   useEffect(() => {
     const token = config?.plexTokens?.[0] || ''
-    // resetField keeps the token in the reset baseline so cancel doesn't clear it
-    form.resetField('plexToken', { defaultValue: token })
+    // reset (unlike resetField) works before fields register, and it puts the
+    // token in the reset baseline so cancel doesn't clear it
+    form.reset(
+      { ...form.getValues(), plexToken: token },
+      { keepDirtyValues: true },
+    )
   }, [config?.plexTokens, form])
 
   // Function to fetch current notification status
