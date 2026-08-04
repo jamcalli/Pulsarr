@@ -8,20 +8,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
-import { api } from '@/lib/api'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
-
-// Extended status response type with config
-interface ExtendedPlexNotificationStatusResponse
-  extends PlexNotificationStatusResponse {
-  config?: {
-    plexToken?: string
-    plexHost?: string
-    plexPort?: number
-    useSsl?: boolean
-  }
-}
 
 export type PlexNotificationsFormValues = z.input<
   typeof PlexNotificationConfigSchema
@@ -41,7 +30,7 @@ export function usePlexNotifications() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [lastResults, setLastResults] = useState<
-    PlexNotificationResponse | ExtendedPlexNotificationStatusResponse | null
+    PlexNotificationResponse | PlexNotificationStatusResponse | null
   >(null)
 
   // Initialize form with default values
@@ -58,7 +47,11 @@ export function usePlexNotifications() {
   // Populate Plex token from config store when config changes
   useEffect(() => {
     const token = config?.plexTokens?.[0] || ''
-    form.setValue('plexToken', token)
+    // reset works on unregistered fields and bakes the token into the cancel baseline
+    form.reset(
+      { ...form.formState.defaultValues, plexToken: token },
+      { keepDirtyValues: true },
+    )
   }, [config?.plexTokens, form])
 
   // Function to fetch current notification status
@@ -71,38 +64,20 @@ export function usePlexNotifications() {
     const timeoutId = setTimeout(() => controller.abort(), 5000)
 
     try {
-      const response = await fetch(api('/v1/plex/notification-status'), {
-        signal,
-      })
+      const { data: results, error: fetchError } = await apiFetch.GET(
+        '/v1/plex/notification-status',
+        { signal },
+      )
+      if (fetchError) throw fetchError
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(
-          errorData.message || 'Failed to fetch Plex notification status',
-        )
-      }
-
-      const results: ExtendedPlexNotificationStatusResponse =
-        await response.json()
       setLastResults(results)
-
-      // If we have current settings after removal (shouldn't happen, but just in case),
-      // update the form
-      if (results.success && results.config) {
-        form.reset({
-          plexToken: results.config.plexToken ?? config?.plexTokens?.[0] ?? '',
-          plexHost: results.config.plexHost ?? '',
-          plexPort: results.config.plexPort ?? 32400,
-          useSsl: results.config.useSsl ?? false,
-        })
-      }
     } catch (error) {
       // Just log the error, don't show to user since this is a background refresh
       console.error('Error fetching notification status after deletion:', error)
     } finally {
       clearTimeout(timeoutId)
     }
-  }, [form, config?.plexTokens])
+  }, [])
 
   // Fetch current notification status on mount
   useEffect(() => {
@@ -120,53 +95,23 @@ export function usePlexNotifications() {
           setTimeout(resolve, MIN_LOADING_DELAY),
         )
 
-        // Execute fetch with the abort signal
-        const responsePromise = fetch(api('/v1/plex/notification-status'), {
-          signal,
-        })
-
         // Wait for both the response and the minimum loading time
-        const [response] = await Promise.all([
-          responsePromise,
+        const [{ data: results, error: fetchError }] = await Promise.all([
+          apiFetch.GET('/v1/plex/notification-status', { signal }),
           minimumLoadingTime,
         ])
 
-        // Check if the request was aborted before proceeding
-        if (signal.aborted) return
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(
-            errorData.message || 'Failed to fetch Plex notification status',
-          )
-        }
-
-        const results: ExtendedPlexNotificationStatusResponse =
-          await response.json()
-
         // Check if the request was aborted before setting state
         if (signal.aborted) return
+        if (fetchError) throw fetchError
 
         setLastResults(results)
-
-        // If we have current settings, populate the form
-        if (results.success && results.config) {
-          form.reset({
-            plexToken:
-              results.config.plexToken ?? config?.plexTokens?.[0] ?? '',
-            plexHost: results.config.plexHost ?? '',
-            plexPort: results.config.plexPort ?? 32400,
-            useSsl: results.config.useSsl ?? false,
-          })
-        }
       } catch (err) {
         // Don't update state if the request was aborted or component unmounted
         if (signal.aborted) return
 
         const errorMessage =
-          err instanceof Error
-            ? err.message
-            : 'Failed to fetch Plex notification status'
+          apiErrorMessage(err) ?? 'Failed to fetch Plex notification status'
 
         setError(errorMessage)
       } finally {
@@ -206,30 +151,16 @@ export function usePlexNotifications() {
           setTimeout(resolve, MIN_LOADING_DELAY),
         )
 
-        // Send the request to configure Plex notifications with abort signal
-        const responsePromise = fetch(api('/v1/plex/configure-notifications'), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(transformedData),
-          signal: signal, // Add the abort signal to the fetch request
-        })
-
         // Wait for both the response and the minimum loading time
-        const [response] = await Promise.all([
-          responsePromise,
+        const [{ data: results, error: fetchError }] = await Promise.all([
+          apiFetch.POST('/v1/plex/configure-notifications', {
+            body: transformedData,
+            signal,
+          }),
           minimumLoadingTime,
         ])
+        if (fetchError) throw fetchError
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(
-            errorData.message || 'Failed to configure Plex notifications',
-          )
-        }
-
-        const results: PlexNotificationResponse = await response.json()
         setLastResults(results)
 
         if (results.success) {
@@ -253,9 +184,7 @@ export function usePlexNotifications() {
         } else {
           // Handle other errors
           const errorMessage =
-            err instanceof Error
-              ? err.message
-              : 'Failed to configure Plex notifications'
+            apiErrorMessage(err) ?? 'Failed to configure Plex notifications'
 
           setError(errorMessage)
 
@@ -269,26 +198,10 @@ export function usePlexNotifications() {
     [form],
   )
 
-  // Handle form cancellation - reset to last saved values from server
+  // Handle form cancellation - discard edits back to the last saved values
   const handleCancel = useCallback(() => {
-    if (lastResults && 'config' in lastResults && lastResults.config) {
-      form.reset({
-        plexToken:
-          lastResults.config.plexToken ?? config?.plexTokens?.[0] ?? '',
-        plexHost: lastResults.config.plexHost ?? '',
-        plexPort: lastResults.config.plexPort ?? 32400,
-        useSsl: lastResults.config.useSsl ?? false,
-      })
-    } else {
-      // No saved config, reset to defaults with current token
-      form.reset({
-        plexToken: config?.plexTokens?.[0] ?? '',
-        plexHost: '',
-        plexPort: 32400,
-        useSsl: false,
-      })
-    }
-  }, [form, lastResults, config?.plexTokens])
+    form.reset()
+  }, [form])
 
   // Handle deletion of Plex notifications
   const handleDelete = useCallback(async () => {
@@ -308,26 +221,13 @@ export function usePlexNotifications() {
         setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
-      // Send the request to remove Plex notifications with abort signal
-      const responsePromise = fetch(api('/v1/plex/remove-notifications'), {
-        method: 'DELETE',
-        signal: signal, // Add the abort signal to the fetch request
-      })
-
       // Wait for both the response and the minimum loading time
-      const [response] = await Promise.all([
-        responsePromise,
+      const [{ data: results, error: fetchError }] = await Promise.all([
+        apiFetch.DELETE('/v1/plex/remove-notifications', { signal }),
         minimumLoadingTime,
       ])
+      if (fetchError) throw fetchError
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(
-          errorData.message || 'Failed to remove Plex notifications',
-        )
-      }
-
-      const results: PlexNotificationResponse = await response.json()
       setLastResults(results)
 
       if (results.success) {
@@ -349,9 +249,7 @@ export function usePlexNotifications() {
       } else {
         // Handle other errors
         const errorMessage =
-          err instanceof Error
-            ? err.message
-            : 'Failed to remove Plex notifications'
+          apiErrorMessage(err) ?? 'Failed to remove Plex notifications'
 
         setError(errorMessage)
 

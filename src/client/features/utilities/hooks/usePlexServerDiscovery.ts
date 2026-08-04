@@ -1,7 +1,7 @@
 import type { PlexServer } from '@root/schemas/plex/discover-servers.schema'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 /**
  * A hook for discovering Plex servers using a token
@@ -36,24 +36,15 @@ export function usePlexServerDiscovery() {
     const timeoutId = setTimeout(() => controller.abort(), 15000)
 
     try {
-      const response = await fetch(api('/v1/plex/discover-servers'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ plexToken: token }),
-        signal: controller.signal,
-      })
+      const { data, error: fetchError } = await apiFetch.POST(
+        '/v1/plex/discover-servers',
+        { body: { plexToken: token }, signal: controller.signal },
+      )
 
       // Clear the timeout since we got a response
       clearTimeout(timeoutId)
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to discover Plex servers')
-      }
-
-      const data = await response.json()
+      if (fetchError) throw fetchError
 
       if (data.success && data.servers && data.servers.length > 0) {
         setServers(data.servers)
@@ -78,7 +69,7 @@ export function usePlexServerDiscovery() {
 
       // Handle other errors
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to discover Plex servers'
+        apiErrorMessage(err) ?? 'Failed to discover Plex servers'
 
       setError(errorMessage)
       toast.error(errorMessage)

@@ -1,9 +1,4 @@
-import type {
-  PendingHeldCountResponse,
-  QuotaStatusGetResponse,
-  UpdateSeparateQuotas,
-  UserQuotaUpdateResponse,
-} from '@root/schemas/quota/quota.schema'
+import type { UpdateSeparateQuotas } from '@root/schemas/quota/quota.schema'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -13,7 +8,7 @@ import {
   transformQuotaFormToAPI,
 } from '@/features/plex/quota/form-schema'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -36,19 +31,11 @@ export function useQuotaManagement() {
 
   const updateSeparateQuotas = useCallback(
     async (userId: number, quotaData: UpdateSeparateQuotas) => {
-      const response = await fetch(api(`/v1/quota/users/${userId}/separate`), {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(quotaData),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to update separate quotas: ${response.status}`)
-      }
-
-      const result: UserQuotaUpdateResponse = await response.json()
+      const { data: result, error } = await apiFetch.PATCH(
+        '/v1/quota/users/{userId}/separate',
+        { params: { path: { userId } }, body: quotaData },
+      )
+      if (error) throw error
 
       return result.userQuotas
     },
@@ -57,16 +44,13 @@ export function useQuotaManagement() {
 
   const deleteQuota = useCallback(
     async (userId: number, autoApproveHeld = false) => {
-      const params = autoApproveHeld ? '?autoApproveHeld=true' : ''
-      const response = await fetch(api(`/v1/quota/users/${userId}${params}`), {
-        method: 'DELETE',
+      const { error } = await apiFetch.DELETE('/v1/quota/users/{userId}', {
+        params: {
+          path: { userId },
+          query: autoApproveHeld ? { autoApproveHeld: 'true' } : undefined,
+        },
       })
-
-      if (!response.ok) {
-        throw new Error(`Failed to delete quota: ${response.status}`)
-      }
-
-      await response.json()
+      if (error) throw error
 
       return true
     },
@@ -74,27 +58,21 @@ export function useQuotaManagement() {
   )
 
   const getQuotaStatus = useCallback(async (userId: number) => {
-    const response = await fetch(api(`/v1/quota/users/${userId}/status`))
-
-    if (!response.ok) {
-      throw new Error(`Failed to get quota status: ${response.status}`)
-    }
-
-    const result: QuotaStatusGetResponse = await response.json()
+    const { data: result, error } = await apiFetch.GET(
+      '/v1/quota/users/{userId}/status',
+      { params: { path: { userId } } },
+    )
+    if (error) throw error
 
     return result.quotaStatus
   }, [])
 
   const getPendingHeldCount = useCallback(async (userId: number) => {
-    const response = await fetch(
-      api(`/v1/quota/users/${userId}/pending-held-count`),
+    const { data: result, error } = await apiFetch.GET(
+      '/v1/quota/users/{userId}/pending-held-count',
+      { params: { path: { userId } } },
     )
-
-    if (!response.ok) {
-      throw new Error(`Failed to get pending held count: ${response.status}`)
-    }
-
-    const result: PendingHeldCountResponse = await response.json()
+    if (error) throw error
 
     return { movieCount: result.movieCount, showCount: result.showCount }
   }, [])
@@ -160,8 +138,7 @@ export function useQuotaManagement() {
       } catch (error) {
         console.error('Error saving quota:', error)
 
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to save quota'
+        const errorMessage = apiErrorMessage(error) ?? 'Failed to save quota'
         setSaveStatus({ type: 'error', message: errorMessage })
 
         toast.error(errorMessage)

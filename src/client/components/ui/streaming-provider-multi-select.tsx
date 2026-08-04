@@ -1,10 +1,9 @@
-import type { ProvidersResponse } from '@root/schemas/tmdb/get-providers.schema'
 import type { TmdbWatchProvider } from '@root/schemas/tmdb/tmdb.schema'
 import { useEffect, useState } from 'react'
 import type { ControllerRenderProps } from 'react-hook-form'
 import { MultiSelect } from '@/components/ui/multi-select'
-import { api } from '@/lib/api'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
+import { apiFetch } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
 
 interface StreamingServicesFormValues {
@@ -36,11 +35,9 @@ const StreamingProviderMultiSelect = ({
 
         // Fetch providers operation
         const fetchOperation = async () => {
-          const response = await fetch(api('/v1/tmdb/providers'))
-          if (!response.ok) {
-            throw new Error(`Failed to fetch providers: ${response.status}`)
-          }
-          const data: ProvidersResponse = await response.json()
+          const { data, error } = await apiFetch.GET('/v1/tmdb/providers')
+          if (error) throw error
+
           if (data.success && data.providers) {
             setProviders(data.providers)
           }

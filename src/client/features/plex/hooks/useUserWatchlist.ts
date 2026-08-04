@@ -1,7 +1,7 @@
 import type { GetUserWatchlistResponse } from '@root/schemas/users/watchlist.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 /**
  * React hook for managing the state and data fetching of a user's watchlist in a UI component.
@@ -24,17 +24,17 @@ export function useUserWatchlist() {
     setError(null)
 
     try {
-      const response = await fetch(api(`/v1/users/${userId}/watchlist`))
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to fetch user watchlist')
-      }
+      const { data, error: fetchError } = await apiFetch.GET(
+        '/v1/users/{userId}/watchlist',
+        { params: { path: { userId } } },
+      )
+      if (fetchError) throw fetchError
 
-      const data: GetUserWatchlistResponse = await response.json()
       setWatchlistData(data.data)
     } catch (err) {
-      const error =
-        err instanceof Error ? err : new Error('Unknown error occurred')
+      const error = new Error(
+        apiErrorMessage(err) ?? 'Failed to fetch user watchlist',
+      )
       setError(error)
       toast.error(error.message)
     } finally {

@@ -28124,7 +28124,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "number"
             },
             "in": "path",
             "name": "userId",
@@ -28328,7 +28328,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "number"
             },
             "in": "path",
             "name": "userId",
@@ -28507,7 +28507,7 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "number"
             },
             "in": "path",
             "name": "userId",
@@ -28584,7 +28584,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "number"
             },
             "in": "path",
             "name": "userId",
@@ -28746,7 +28746,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "number"
             },
             "in": "path",
             "name": "userId",
@@ -28931,7 +28931,7 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "number"
             },
             "in": "path",
             "name": "userId",
@@ -29290,7 +29290,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "number"
             },
             "in": "path",
             "name": "userId",
@@ -30420,7 +30420,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "number"
             },
             "in": "path",
             "name": "userId",

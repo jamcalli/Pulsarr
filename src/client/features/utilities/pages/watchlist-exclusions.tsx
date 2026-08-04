@@ -1,4 +1,3 @@
-import type { GetUserWatchlistResponse } from '@root/schemas/users/watchlist.schema'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
@@ -26,7 +25,7 @@ import {
 import { useWatchlistExclusions } from '@/features/utilities/hooks/useWatchlistExclusions'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useUserOptions } from '@/hooks/useUserOptions'
-import { api } from '@/lib/api'
+import { apiFetch } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
 
 interface WatchlistItemWithUser {
@@ -102,9 +101,11 @@ export function WatchlistExclusionsPage() {
     const results = await Promise.all(
       usersWithItems.map(async (user) => {
         try {
-          const response = await fetch(api(`/v1/users/${user.id}/watchlist`))
-          if (!response.ok) return []
-          const data: GetUserWatchlistResponse = await response.json()
+          const { data, error } = await apiFetch.GET(
+            '/v1/users/{userId}/watchlist',
+            { params: { path: { userId: user.id } } },
+          )
+          if (error) return []
           return data.data.watchlistItems.map((item) => ({
             title: item.title,
             key: item.key,

@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PlexPinAuth } from '@/features/plex/components/setup/plex-pin-auth'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { useWatchlistProgress } from '@/hooks/useProgress'
-import { api } from '@/lib/api'
+import { apiFetch } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
 
 interface SetupModalProps {
@@ -116,20 +116,16 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         const verifyMinLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, 500),
         )
-        const [plexPingResponse] = await Promise.all([
-          fetch(api('/v1/plex/ping'), {
-            method: 'GET',
-          }),
+        const [{ error: pingError }] = await Promise.all([
+          apiFetch.GET('/v1/plex/ping'),
           verifyMinLoadingTime,
         ])
 
-        if (!plexPingResponse.ok) {
+        if (pingError) {
           // Rollback: restore the previous tokens (preserves existing valid token)
           await updateConfig({ plexTokens: existingTokens })
           throw new Error('Failed to verify Plex token')
         }
-
-        await plexPingResponse.json()
 
         setCurrentStep('syncing')
 
@@ -138,15 +134,12 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
           setTimeout(resolve, 500),
         )
         try {
-          const [watchlistResponse] = await Promise.all([
-            fetch(api('/v1/plex/self-watchlist-token'), {
-              method: 'GET',
-              headers: { Accept: 'application/json' },
-            }),
+          const [{ error: watchlistError }] = await Promise.all([
+            apiFetch.GET('/v1/plex/self-watchlist-token'),
             selfMinLoadingTime,
           ])
 
-          if (!watchlistResponse.ok) {
+          if (watchlistError) {
             throw new Error('Failed to sync watchlist')
           }
         } catch (syncError) {
@@ -166,15 +159,12 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
           setTimeout(resolve, 500),
         )
         try {
-          const [othersResponse] = await Promise.all([
-            fetch(api('/v1/plex/others-watchlist-token'), {
-              method: 'GET',
-              headers: { Accept: 'application/json' },
-            }),
+          const [{ error: othersError }] = await Promise.all([
+            apiFetch.GET('/v1/plex/others-watchlist-token'),
             othersMinLoadingTime,
           ])
 
-          if (!othersResponse.ok) {
+          if (othersError) {
             throw new Error('Failed to sync others watchlist')
           }
         } catch (syncError) {

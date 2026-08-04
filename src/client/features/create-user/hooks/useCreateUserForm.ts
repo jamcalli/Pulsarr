@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 /**
  * Hook for managing the "create admin user" form: validation, submission, and simple UI state.
@@ -55,19 +55,11 @@ export function useCreateUserForm() {
       const { confirmPassword: _, ...submitData } = data
 
       try {
-        const response = await fetch(api('/v1/users/create-admin'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(submitData),
+        const { error } = await apiFetch.POST('/v1/users/create-admin', {
+          body: submitData,
         })
 
-        const responseData = response.ok
-          ? await response.json()
-          : await response.json().catch(() => ({
-              message: response.statusText || 'Failed to create user',
-            }))
-
-        if (response.ok) {
+        if (!error) {
           setStatus('success')
           toast.success('User created successfully!')
 
@@ -76,7 +68,7 @@ export function useCreateUserForm() {
           }, 1000)
         } else {
           setStatus('idle')
-          setBackendError(responseData.message || 'Failed to create user.')
+          setBackendError(apiErrorMessage(error) || 'Failed to create user.')
         }
       } catch (error) {
         console.error('Create user error:', error)

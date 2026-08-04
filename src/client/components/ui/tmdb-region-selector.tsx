@@ -1,4 +1,4 @@
-import type { TmdbRegion, TmdbRegionsSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
+import type { TmdbRegion } from '@root/schemas/tmdb/tmdb.schema'
 import { Globe } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import {
@@ -13,7 +13,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { api } from '@/lib/api'
+import { apiFetch } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
 
 interface TmdbRegionSelectorProps {
@@ -40,8 +40,8 @@ export function TmdbRegionSelector({ onRegionChange }: TmdbRegionSelectorProps) 
 
       setLoadingRegions(true)
       try {
-        const response = await fetch(api('/v1/tmdb/regions'))
-        const data: TmdbRegionsSuccessResponse = await response.json()
+        const { data, error } = await apiFetch.GET('/v1/tmdb/regions')
+        if (error) throw error
 
         if (data.success && data.regions) {
           const sortedRegions = data.regions.sort((a, b) =>

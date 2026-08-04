@@ -1,4 +1,4 @@
-import { api } from '@/lib/api'
+import { apiFetch } from '@/lib/tanstackApi'
 import { router } from '@/router/router'
 
 export const MAX_SSE_RECONNECT_ATTEMPTS = 5
@@ -24,7 +24,7 @@ export async function checkAuthStatus(): Promise<boolean> {
   const timeout = setTimeout(() => controller.abort(), 5000)
 
   try {
-    const response = await fetch(api('/v1/users/check'), {
+    const { response } = await apiFetch.GET('/v1/users/check', {
       signal: controller.signal,
     })
     if (response.status === 401) {

@@ -1,13 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import {
-  CreateTagResponseSchema as RadarrCreateTagResponseSchema,
-  ErrorSchema as RadarrErrorSchema,
-} from '@root/schemas/radarr/create-tag.schema'
 import { TagLabelSchema } from '@root/schemas/shared/tag-validation.schema'
-import {
-  CreateTagResponseSchema as SonarrCreateTagResponseSchema,
-  ErrorSchema as SonarrErrorSchema,
-} from '@root/schemas/sonarr/create-tag.schema'
 import { Check, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -31,7 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 // Status type for tracking the dialog state
 type SaveStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -120,70 +112,34 @@ export function TagCreationDialog({
         label: values.label,
       }
 
-      const response = await fetch(api(`/v1/${instanceType}/create-tag`), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      })
+      const { error: fetchError } =
+        instanceType === 'sonarr'
+          ? await apiFetch.POST('/v1/sonarr/create-tag', { body: requestBody })
+          : await apiFetch.POST('/v1/radarr/create-tag', { body: requestBody })
 
       await minimumLoadingTime
 
-      const raw = await response.text()
-      let parsed: unknown
-      try {
-        parsed = raw ? JSON.parse(raw) : undefined
-      } catch {
-        parsed = undefined
+      if (fetchError) {
+        throw new Error(apiErrorMessage(fetchError) ?? 'Failed to create tag')
       }
 
-      // Use proper schema parsing instead of manual casting
-      const responseSchema =
-        instanceType === 'sonarr'
-          ? SonarrCreateTagResponseSchema
-          : RadarrCreateTagResponseSchema
-      const errorSchema =
-        instanceType === 'sonarr' ? SonarrErrorSchema : RadarrErrorSchema
+      // Format the instance name for the toast
+      const systemType = instanceType === 'radarr' ? 'Radarr' : 'Sonarr'
+      const displayName = instanceName
+        ? `${systemType} instance "${instanceName}"`
+        : systemType
 
-      const data = response.ok
-        ? response.status === 204
-          ? ({ success: true, data: undefined } as const)
-          : responseSchema.safeParse(parsed)
-        : errorSchema.safeParse(parsed ?? { message: response.statusText })
+      toast.success(
+        `Tag "${values.label}" created successfully in ${displayName}`,
+      )
 
-      if (response.ok) {
-        if (data.success) {
-          // Format the instance name for the toast
-          const systemType = instanceType === 'radarr' ? 'Radarr' : 'Sonarr'
-          const displayName = instanceName
-            ? `${systemType} instance "${instanceName}"`
-            : systemType
+      setSaveStatus('success')
 
-          toast.success(
-            `Tag "${values.label}" created successfully in ${displayName}`,
-          )
-
-          setSaveStatus('success')
-
-          // Brief success state before closing
-          setTimeout(() => {
-            handleOpenChange(false)
-            onSuccess()
-          }, 250)
-        } else {
-          throw new Error('Invalid response format')
-        }
-      } else {
-        const message =
-          data.success &&
-          data.data &&
-          'message' in data.data &&
-          typeof data.data.message === 'string'
-            ? data.data.message
-            : response.statusText || 'Failed to create tag'
-        throw new Error(message)
-      }
+      // Brief success state before closing
+      setTimeout(() => {
+        handleOpenChange(false)
+        onSuccess()
+      }, 250)
     } catch (error) {
       console.error('Error creating tag:', error)
       toast.error(

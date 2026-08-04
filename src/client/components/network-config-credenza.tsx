@@ -25,8 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { api } from '@/lib/api'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
+import { apiFetch } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
 
 type DeploymentType =
@@ -84,13 +84,11 @@ interface NetworkConfigCredenzaProps {
 }
 
 async function resyncArrWebhooks(): Promise<WebhookResyncResponse> {
-  const response = await fetch(api('/v1/config/resync-arr-webhooks'), {
-    method: 'POST',
-  })
-  if (!response.ok) {
+  const { data, error } = await apiFetch.POST('/v1/config/resync-arr-webhooks')
+  if (error) {
     throw new Error('Failed to update webhooks in Radarr and Sonarr')
   }
-  return (await response.json()) as WebhookResyncResponse
+  return data
 }
 
 type ResyncFailure = WebhookResyncInstanceResult & { app: string }

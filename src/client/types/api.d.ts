@@ -12163,7 +12163,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                userId: string;
+                userId: number;
             };
             cookie?: never;
         };
@@ -12227,7 +12227,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                userId: string;
+                userId: number;
             };
             cookie?: never;
         };
@@ -12266,7 +12266,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                userId: string;
+                userId: number;
             };
             cookie?: never;
         };
@@ -12338,7 +12338,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                userId: string;
+                userId: number;
             };
             cookie?: never;
         };
@@ -12379,7 +12379,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                userId: string;
+                userId: number;
             };
             cookie?: never;
         };
@@ -12465,7 +12465,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                userId: string;
+                userId: number;
             };
             cookie?: never;
         };
@@ -12592,7 +12592,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                userId: string;
+                userId: number;
             };
             cookie?: never;
         };
@@ -13079,7 +13079,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                userId: string;
+                userId: number;
             };
             cookie?: never;
         };

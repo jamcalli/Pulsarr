@@ -1,13 +1,10 @@
 import type {
   ContentRouterRule,
-  ContentRouterRuleListResponse,
-  ContentRouterRuleResponse,
-  ContentRouterRuleToggle,
   ContentRouterRuleUpdate,
 } from '@root/schemas/content-router/content-router.schema'
 import { createContext, useCallback, useState } from 'react'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 export interface UseContentRouterParams {
   targetType: 'radarr' | 'sonarr'
@@ -41,15 +38,11 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch(
-        api(`/v1/content-router/rules/target/${targetType}`),
+      const { data, error: fetchError } = await apiFetch.GET(
+        '/v1/content-router/rules/target/{targetType}',
+        { params: { path: { targetType } } },
       )
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${targetType} routing rules`)
-      }
-
-      const data: ContentRouterRuleListResponse = await response.json()
+      if (fetchError) throw fetchError
 
       setRules(data.rules)
 
@@ -60,7 +53,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
 
       return data.rules
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      const errorMessage = apiErrorMessage(err) ?? 'Unknown error'
       setError(errorMessage)
       toast.error(
         `Failed to fetch ${targetType} routing rules: ${errorMessage}`,
@@ -81,27 +74,18 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       setError(null)
 
       try {
-        const response = await fetch(api('/v1/content-router/rules'), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(rule),
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to create routing rule')
-        }
-
-        const data: ContentRouterRuleResponse = await response.json()
+        const { data, error: fetchError } = await apiFetch.POST(
+          '/v1/content-router/rules',
+          { body: rule },
+        )
+        if (fetchError) throw fetchError
 
         // Update rules state with the new rule
         setRules((prevRules) => [...prevRules, data.rule])
 
         return data.rule
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error'
+        const errorMessage = apiErrorMessage(err) ?? 'Unknown error'
         setError(errorMessage)
         throw err
       }
@@ -117,19 +101,20 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       setError(null)
 
       try {
-        const response = await fetch(api(`/v1/content-router/rules/${id}`), {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
+        // ContentRouterRuleUpdate is the schema's output type where
+        // quality_profile can be null, but the wire contract only accepts
+        // number/string/omitted - map null to omitted
+        const { data, error: fetchError } = await apiFetch.PUT(
+          '/v1/content-router/rules/{id}',
+          {
+            params: { path: { id } },
+            body: {
+              ...updates,
+              quality_profile: updates.quality_profile ?? undefined,
+            },
           },
-          body: JSON.stringify(updates),
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to update routing rule')
-        }
-
-        const data: ContentRouterRuleResponse = await response.json()
+        )
+        if (fetchError) throw fetchError
 
         // Update the rule in the local state
         setRules((prevRules) =>
@@ -138,8 +123,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
 
         return data.rule
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error'
+        const errorMessage = apiErrorMessage(err) ?? 'Unknown error'
         setError(errorMessage)
         throw err
       }
@@ -155,13 +139,11 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
     setError(null)
 
     try {
-      const response = await fetch(api(`/v1/content-router/rules/${id}`), {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete routing rule')
-      }
+      const { error: fetchError } = await apiFetch.DELETE(
+        '/v1/content-router/rules/{id}',
+        { params: { path: { id } } },
+      )
+      if (fetchError) throw fetchError
 
       // Update local state
       setRules((prevRules) => prevRules.filter((rule) => rule.id !== id))
@@ -170,7 +152,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
 
       return true
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      const errorMessage = apiErrorMessage(err) ?? 'Unknown error'
       setError(errorMessage)
       toast.error(`Failed to delete routing rule: ${errorMessage}`)
       throw err
@@ -189,33 +171,18 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
         prevRules.map((rule) => (rule.id === id ? { ...rule, enabled } : rule)),
       )
 
-      const toggleData: ContentRouterRuleToggle = { enabled }
-      const response = await fetch(
-        api(`/v1/content-router/rules/${id}/toggle`),
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(toggleData),
-        },
+      const { error: fetchError } = await apiFetch.PATCH(
+        '/v1/content-router/rules/{id}/toggle',
+        { params: { path: { id } }, body: { enabled } },
       )
 
-      if (!response.ok) {
-        // Revert on non-2xx status
-        setRules((prevRules) =>
-          prevRules.map((rule) =>
-            rule.id === id ? { ...rule, enabled: !enabled } : rule,
-          ),
-        )
-        throw new Error('Failed to toggle routing rule')
-      }
+      if (fetchError) throw fetchError
 
       toast.success(
         `Routing rule ${enabled ? 'enabled' : 'disabled'} successfully`,
       )
     } catch (error) {
-      // Revert on network / runtime error as well
+      // Revert the optimistic update on any failure
       setRules((prevRules) =>
         prevRules.map((rule) =>
           rule.id === id ? { ...rule, enabled: !enabled } : rule,

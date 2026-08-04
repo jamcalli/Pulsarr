@@ -1,8 +1,6 @@
-import type { OthersWatchlistSuccess } from '@root/schemas/plex/others-watchlist-token.schema'
-import type { SelfWatchlistSuccess } from '@root/schemas/plex/self-watchlist-token.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { apiFetch } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
 
 export type WatchlistStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -40,24 +38,14 @@ export function usePlexWatchlist() {
         setTimeout(resolve, 500),
       )
 
-      const [selfResponse, othersResponse] = await Promise.all([
-        fetch(api('/v1/plex/self-watchlist-token')),
-        fetch(api('/v1/plex/others-watchlist-token')),
+      const [selfResult, othersResult] = await Promise.all([
+        apiFetch.GET('/v1/plex/self-watchlist-token'),
+        apiFetch.GET('/v1/plex/others-watchlist-token'),
         minimumLoadingTime,
       ])
 
-      // Get the response data to make sure it's valid
-      if (!selfResponse.ok || !othersResponse.ok) {
-        throw new Error('Failed to fetch watchlist data')
-      }
-
-      // Convert responses to their proper types
-      const selfData: SelfWatchlistSuccess = await selfResponse.json()
-      const othersData: OthersWatchlistSuccess = await othersResponse.json()
-
-      if (!selfData || !othersData) {
-        throw new Error('Invalid watchlist data received')
-      }
+      if (selfResult.error) throw selfResult.error
+      if (othersResult.error) throw othersResult.error
 
       setSelfWatchlistStatus('success')
       setOthersWatchlistStatus('success')

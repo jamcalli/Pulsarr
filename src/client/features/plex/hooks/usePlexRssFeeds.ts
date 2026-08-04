@@ -1,7 +1,6 @@
-import type { RssFeedsSuccess } from '@root/schemas/plex/generate-rss-feeds.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 import { useConfigStore } from '@/stores/configStore'
 
 export type RssStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -25,21 +24,11 @@ export function usePlexRssFeeds() {
         setTimeout(resolve, 500),
       )
 
-      const [response] = await Promise.all([
-        fetch(api('/v1/plex/generate-rss-feeds')),
+      const [{ data, error: fetchError }] = await Promise.all([
+        apiFetch.GET('/v1/plex/generate-rss-feeds'),
         minimumLoadingTime,
       ])
-
-      if (!response.ok) {
-        // Try to extract error message from response body
-        const errorData = await response.json().catch(() => null)
-        const errorMessage =
-          errorData?.message || 'Failed to generate RSS feeds'
-        throw new Error(errorMessage)
-      }
-
-      // Parse the response as the success schema type
-      const data: RssFeedsSuccess = await response.json()
+      if (fetchError) throw fetchError
 
       // Validate response payload before updating config
       const self = typeof data.self === 'string' ? data.self.trim() : ''
@@ -67,11 +56,7 @@ export function usePlexRssFeeds() {
     } catch (error) {
       console.error('RSS generation error:', error)
       setRssStatus('error')
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Failed to generate RSS feed URLs',
-      )
+      toast.error(apiErrorMessage(error) ?? 'Failed to generate RSS feed URLs')
     }
   }
 
