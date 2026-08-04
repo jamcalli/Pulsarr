@@ -27,7 +27,7 @@ export function useTablePagination(tableKey: string, defaultPageSize = 20) {
 
   const setPageSize = useCallback(
     (newPageSize: number) => {
-      if (newPageSize > 0 && newPageSize <= 100) {
+      if (Number.isInteger(newPageSize) && newPageSize > 0 && newPageSize <= 100) {
         setPageSizePref(newPageSize)
       } else {
         console.warn(`Invalid page size for ${tableKey}:`, newPageSize)

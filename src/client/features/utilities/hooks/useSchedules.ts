@@ -42,9 +42,7 @@ export function useScheduleActions() {
         if (error) throw error
         return data
       },
-      onSuccess: () => {
-        invalidateSchedules()
-      },
+      onSuccess: () => invalidateSchedules(),
     }),
   )
 
@@ -66,9 +64,7 @@ export function useScheduleActions() {
         if (error) throw error
         return data
       },
-      onSuccess: () => {
-        invalidateSchedules()
-      },
+      onSuccess: () => invalidateSchedules(),
     }),
   )
 
@@ -90,9 +86,7 @@ export function useScheduleActions() {
         if (error) throw error
         return data
       },
-      onSuccess: () => {
-        invalidateSchedules()
-      },
+      onSuccess: () => invalidateSchedules(),
     }),
   )
 

@@ -101,6 +101,8 @@ export function usePlexLabels() {
   >('idle')
 
   const initialLoadRef = useRef(true)
+  // set only after form hydration - the fallback timer can clear initialLoadRef first
+  const hydratedRef = useRef(false)
 
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [
@@ -216,9 +218,7 @@ export function usePlexLabels() {
   useEffect(() => {
     if (
       config?.plexLabelSync &&
-      (initialLoadRef.current ||
-        scheduleTime !== undefined ||
-        dayOfWeek !== '*')
+      (!hydratedRef.current || scheduleTime !== undefined || dayOfWeek !== '*')
     ) {
       // Add minimum 500ms display time for initial loading
       const minimumLoadingTime = new Promise((resolve) =>
@@ -230,6 +230,7 @@ export function usePlexLabels() {
         minimumLoadingTime, // New timing enforcement
       ]).then(() => {
         initialLoadRef.current = false
+        hydratedRef.current = true
 
         // Reset label definitions deleted state if labeling is enabled
         if (config?.plexLabelSync?.enabled) {

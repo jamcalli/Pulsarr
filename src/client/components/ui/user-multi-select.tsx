@@ -22,7 +22,7 @@ export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
   const { isInitialized } = useConfig()
   const { initialize } = useConfig()
   const [isLoading, setIsLoading] = useState(false)
-  const { options } = useUserOptions()
+  const { options, isLoading: usersLoading } = useUserOptions()
 
   useEffect(() => {
     const initializeStore = async () => {
@@ -57,10 +57,12 @@ export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
         field.onChange(values.length === 1 ? values[0] : values)
       }}
       defaultValue={Array.isArray(field.value) ? field.value : field.value ? [field.value] : []}
-      placeholder={isLoading ? 'Loading users...' : 'Select user(s)'}
+      placeholder={
+        isLoading || usersLoading ? 'Loading users...' : 'Select user(s)'
+      }
       modalPopover={true}
       maxCount={2}
-      disabled={disabled || isLoading}
+      disabled={disabled || isLoading || usersLoading}
     />
   )
 }

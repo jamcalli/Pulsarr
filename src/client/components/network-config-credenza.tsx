@@ -138,6 +138,7 @@ export function NetworkConfigCredenza({
   }
 
   const handleSave = async () => {
+    if (!config) return
     setSaveStatus('loading')
     setResyncFailures([])
     try {
@@ -307,7 +308,7 @@ export function NetworkConfigCredenza({
             type="button"
             variant="default"
             onClick={handleSave}
-            disabled={saveStatus !== 'idle'}
+            disabled={!config || saveStatus !== 'idle'}
             className="min-w-30 flex items-center justify-center gap-2"
           >
             {saveStatus === 'loading' ? (

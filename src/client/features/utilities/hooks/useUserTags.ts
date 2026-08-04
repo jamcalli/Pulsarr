@@ -221,6 +221,11 @@ export function useUserTags() {
   // Handle form submission - mimicking DeleteSyncForm exactly
   const onSubmit = useCallback(
     async (data: z.input<typeof TaggingConfigSchema>) => {
+      // saving before config loads would overwrite server settings with defaults
+      if (!config) {
+        toast.error('Configuration has not loaded - cannot save tag settings')
+        return
+      }
       setSaveStatus('loading')
 
       try {
@@ -280,7 +285,7 @@ export function useUserTags() {
         }, 1000)
       }
     },
-    [form],
+    [form, config],
   )
 
   // Handle form cancellation
@@ -387,6 +392,7 @@ export function useUserTags() {
     isSyncingTags: syncTagsMutation.isPending,
     isCleaningTags: cleanupTagsMutation.isPending,
     error:
+      configError ??
       apiErrorMessage(createTagsMutation.error) ??
       apiErrorMessage(syncTagsMutation.error) ??
       apiErrorMessage(cleanupTagsMutation.error) ??
