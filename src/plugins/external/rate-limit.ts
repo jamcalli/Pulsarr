@@ -6,6 +6,8 @@ const createRateLimitConfig = (fastify: FastifyInstance) => {
   return {
     max: fastify.config.rateLimitMax,
     timeWindow: '1 minute',
+    // the default generator crashes on aborted sockets where req.ip is undefined
+    keyGenerator: (req: FastifyRequest) => req.ip ?? 'unknown',
     allowList: (req: FastifyRequest) => {
       // Skip rate limiting for static assets (handles both root and prefixed paths)
       // Use pathname only to prevent query string manipulation bypasses

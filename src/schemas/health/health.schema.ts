@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const HealthCheckResponseSchema = z.object({
   status: z.enum(['healthy', 'unhealthy']),
-  timestamp: z.string().datetime(),
+  timestamp: z.iso.datetime(),
   checks: z.object({
     database: z.enum(['ok', 'failed']),
   }),

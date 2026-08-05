@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 /**
  * A persisted UI preference: a storage key, a typed fallback, and a
@@ -42,6 +42,11 @@ export function writePref<T>(def: PrefDef<T>, value: T): void {
  */
 export function usePref<T>(def: PrefDef<T>): [T, (value: T) => void] {
   const [value, setValue] = useState<T>(() => readPref(def))
+
+  // useState initializes only once - reload when the def changes keys
+  useEffect(() => {
+    setValue(readPref(def))
+  }, [def])
 
   const set = useCallback(
     (next: T) => {
