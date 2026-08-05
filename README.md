@@ -128,11 +128,9 @@ See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/in
 
 ## Transparency
 
-Pulsarr started in early 2024 while I was home with a newborn, wanting to explore what AI coding tools could actually do. Watchlistarr had some bugs I wanted to fix, but it was written in Scala and I had no idea how to work with it, so I used AI to help me rewrite it in TypeScript instead. I threw together a basic UI, posted it, and didn't think much of it. The conversation around AI-assisted development has shifted a lot since then, and I think it's important to be upfront about how this project is built.
+Pulsarr began as a TypeScript rewrite of Watchlistarr. It's developed with AI assistance, but every decision about architecture, features, and direction is human-made, and everything is reviewed before it ships. It has since grown with contributions from others in the community.
 
-I'm not a software engineer by trade and I used this project as a way to learn. I didn't expect it to become what it is. Over the past 16 months I've kept developing, supporting, and iterating on it using my own judgment and research, with AI tools playing a role throughout. Every decision about architecture, features, and direction is my own, and everything is reviewed before it ships. If you ever spot anything I've missed or that's cause for concern, please reach out.
-
-I take security seriously. Renovate keeps dependencies current, auth follows Fastify best practices, and all endpoints are protected by default. I'm always learning and welcome the feedback.
+Security is a priority: Renovate keeps dependencies current, auth follows Fastify best practices, and all endpoints are protected by default. If you notice a problem or have a security concern, please reach out.
 
 ## Contributing
 
