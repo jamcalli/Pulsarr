@@ -289,6 +289,16 @@
       "allowedVersions": "< 7.0.0"
     },
     {
+      "description": "codegen typescript must satisfy openapi-typescript's ^5.x peer (TS5 JS compiler API; native TS has none until 7.1) - root typescript is unaffected",
+      "matchFileNames": [
+        "scripts/openapi-codegen/package.json"
+      ],
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "allowedVersions": "< 6.0.0"
+    },
+    {
       "description": "Ignore regular updates for docs dependencies but keep security alerts",
       "matchFileNames": [
         "docs/**"
