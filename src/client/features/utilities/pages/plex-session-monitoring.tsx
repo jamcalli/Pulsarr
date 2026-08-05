@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
+import { PageError } from '@/components/ui/page-error'
 import { PlexSSEStatusBadge } from '@/components/ui/plex-sse-status-badge'
 import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
@@ -25,12 +26,12 @@ import {
   useRollingShowsQuery,
   useRunSessionMonitorMutation,
 } from '@/features/utilities/hooks/useSessionMonitoringQueries'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
-import { useConfigStore } from '@/stores/configStore'
+import { useConfig } from '@/hooks/useConfig'
+import { useShowLoading } from '@/lib/useMinLoading'
 
 export default function PlexSessionMonitoringPage() {
-  const { initialize, isInitialized } = useConfigStore()
-  const isInitializing = useInitializeWithMinDuration(initialize)
+  const { initialize, isInitialized, error: configError } = useConfig()
+  const isInitializing = useShowLoading(!isInitialized)
 
   const {
     form,
@@ -115,6 +116,14 @@ export default function PlexSessionMonitoringPage() {
     return isEnabled ? 'enabled' : 'disabled'
   }
 
+  if (configError && !isInitialized) {
+    return <PageError message={configError} onRetry={() => initialize(true)} />
+  }
+
+  if (!isInitialized && !isInitializing) {
+    return null
+  }
+
   return (
     <div>
       <UtilitySectionHeader
@@ -125,7 +134,7 @@ export default function PlexSessionMonitoringPage() {
         <PlexSSEStatusBadge />
       </UtilitySectionHeader>
 
-      {!isInitialized || isInitializing ? (
+      {isInitializing ? (
         <PlexSessionMonitoringPageSkeleton />
       ) : (
         <div className="space-y-6">

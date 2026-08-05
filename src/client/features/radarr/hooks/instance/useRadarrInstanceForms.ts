@@ -28,7 +28,7 @@ export function useRadarrInstanceForm({
       name: instance.name,
       baseUrl: instance.baseUrl,
       apiKey: instance.apiKey,
-      qualityProfile: instance.qualityProfile || '',
+      qualityProfile: instance.qualityProfile?.toString() || '',
       rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
       searchOnAdd:
@@ -40,6 +40,8 @@ export function useRadarrInstanceForm({
         ? instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
         : instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
+      skipDefaultRoutingWhenNoMatch:
+        instance.skipDefaultRoutingWhenNoMatch ?? false,
       _originalBaseUrl: instance.baseUrl,
       _originalApiKey: instance.apiKey,
     },
@@ -58,7 +60,7 @@ export function useRadarrInstanceForm({
       name: instance.name,
       baseUrl: instance.baseUrl,
       apiKey: instance.apiKey,
-      qualityProfile: instance.qualityProfile || '',
+      qualityProfile: instance.qualityProfile?.toString() || '',
       rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
       searchOnAdd:
@@ -68,6 +70,8 @@ export function useRadarrInstanceForm({
       tags: instance.tags,
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
+      skipDefaultRoutingWhenNoMatch:
+        instance.skipDefaultRoutingWhenNoMatch ?? false,
       _originalBaseUrl: instance.baseUrl,
       _originalApiKey: instance.apiKey,
     })
@@ -135,7 +139,7 @@ export function useRadarrInstanceForm({
           name: instance.name,
           baseUrl: instance.baseUrl,
           apiKey: instance.apiKey,
-          qualityProfile: instance.qualityProfile || '',
+          qualityProfile: instance.qualityProfile?.toString() || '',
           rootFolder: instance.rootFolder || '',
           bypassIgnored: instance.bypassIgnored,
           searchOnAdd:
@@ -145,6 +149,8 @@ export function useRadarrInstanceForm({
           tags: instance.tags,
           isDefault: instance.isDefault,
           syncedInstances: instance.syncedInstances || [],
+          skipDefaultRoutingWhenNoMatch:
+            instance.skipDefaultRoutingWhenNoMatch ?? false,
           _originalBaseUrl: instance.baseUrl,
           _originalApiKey: instance.apiKey,
         })

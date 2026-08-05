@@ -1,11 +1,7 @@
-import {
-  type UpdateStatusResponse,
-  UpdateStatusResponseSchema,
-} from '@root/schemas/system/update-status.schema'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
-import { apiClient } from '@/lib/apiClient'
-import { useAppQuery } from '@/lib/useAppQuery'
+import { $api } from '@/lib/tanstackApi'
+import { useMinLoading } from '@/lib/useMinLoading'
 
 export interface VersionCheckResult {
   updateAvailable: boolean
@@ -27,29 +23,27 @@ const FIFTEEN_MINUTES = 15 * 60 * 1000
 // Poll quickly until it resolves, then settle into the normal cadence.
 const PENDING_POLL = 5 * 1000
 
-export const versionCheckKeys = {
-  all: ['version-check'] as const,
-  status: () => [...versionCheckKeys.all, 'status'] as const,
-}
-
-async function fetchUpdateStatus(): Promise<UpdateStatusResponse> {
-  return apiClient.get('/v1/system/update-status', UpdateStatusResponseSchema)
-}
-
 export function useVersionCheck(): VersionCheckResult {
   const {
     data: status,
     isLoading,
     isError,
-  } = useAppQuery({
-    queryKey: versionCheckKeys.status(),
-    queryFn: fetchUpdateStatus,
-    staleTime: FIFTEEN_MINUTES,
-    refetchInterval: (query) =>
-      query.state.data?.status === 'pending' ? PENDING_POLL : FIFTEEN_MINUTES,
-    refetchOnWindowFocus: false,
-    retry: false,
-  })
+  } = useMinLoading(
+    $api.useQuery(
+      'get',
+      '/v1/system/update-status',
+      {},
+      {
+        staleTime: FIFTEEN_MINUTES,
+        refetchInterval: (query) =>
+          query.state.data?.status === 'pending'
+            ? PENDING_POLL
+            : FIFTEEN_MINUTES,
+        refetchOnWindowFocus: false,
+        retry: false,
+      },
+    ),
+  )
 
   const versionInfo = {
     updateAvailable: status?.updateAvailable ?? false,
@@ -63,7 +57,12 @@ export function useVersionCheck(): VersionCheckResult {
   }
 
   useEffect(() => {
-    const notifiedVersion = sessionStorage.getItem(VERSION_TOAST_KEY)
+    let notifiedVersion: string | null = null
+    try {
+      notifiedVersion = sessionStorage.getItem(VERSION_TOAST_KEY)
+    } catch {
+      // Storage unavailable - fall through and show the toast
+    }
     if (
       versionInfo.updateAvailable &&
       versionInfo.latestVersion &&
@@ -72,7 +71,11 @@ export function useVersionCheck(): VersionCheckResult {
       const url = versionInfo.releaseUrl
       const latestVersion = versionInfo.latestVersion
       const timeoutId = setTimeout(() => {
-        sessionStorage.setItem(VERSION_TOAST_KEY, latestVersion)
+        try {
+          sessionStorage.setItem(VERSION_TOAST_KEY, latestVersion)
+        } catch {
+          // Storage unavailable - the toast may repeat next navigation
+        }
         toast(
           `A new version (v${latestVersion}) is available. You're running v${versionInfo.currentVersion}.`,
           {

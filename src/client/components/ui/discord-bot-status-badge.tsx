@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useDiscordStatus } from '@/hooks/notifications/useDiscordStatus'
-import { api } from '@/lib/api'
+import { apiFetch } from '@/lib/tanstackApi'
 import { cn } from '@/lib/utils'
 
 /**
@@ -45,22 +45,18 @@ export function DiscordStatusBadge() {
       const minimumLoadingTime = new Promise(resolve => setTimeout(resolve, 500))
       
       if (status === 'running') {
-        const response = await fetch(api('/v1/notifications/discordstop'), { method: 'POST' })
+        const { error } = await apiFetch.POST('/v1/notifications/discordstop')
         await minimumLoadingTime
         
-        if (!response.ok) {
-          throw new Error(`Failed to stop Discord bot: ${response.status}`)
-        }
+        if (error) throw error
         
         // Success toast for stopping
         toast.success('Discord bot has been stopped successfully')
       } else {
-        const response = await fetch(api('/v1/notifications/discordstart'), { method: 'POST' })
+        const { error } = await apiFetch.POST('/v1/notifications/discordstart')
         await minimumLoadingTime
         
-        if (!response.ok) {
-          throw new Error(`Failed to start Discord bot: ${response.status}`)
-        }
+        if (error) throw error
         
         // Success toast for starting
         toast.success('Discord bot has been started successfully')

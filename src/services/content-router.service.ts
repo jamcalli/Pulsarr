@@ -17,6 +17,7 @@ import type {
   RoutingContext,
   RoutingDecision,
   RoutingEvaluator,
+  TargetInstancesResult,
 } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import { isArrAlreadyAddedError } from '@utils/arr-error.js'
@@ -639,6 +640,39 @@ export class ContentRouterService {
           `Failed to enrich metadata for "${item.title}"`,
         )
         // Continue with original item if enrichment fails
+      }
+    }
+
+    // Step 1.5: Absolute veto - if any enabled, matching conditional rule for
+    // this target type has exclude_from_routing set, content is never routed,
+    // regardless of what any other rule (higher or lower priority) matches.
+    // This must run before evaluators build any RoutingDecisions and before
+    // Step 3's default-instance fallback, so an excluded match is never
+    // confused with "no rule matched at all".
+    for (const rule of allRouterRules) {
+      if (!rule.enabled) continue
+      if (rule.type !== 'conditional') continue
+      if (rule.target_type !== targetType) continue
+      if (!rule.exclude_from_routing) continue
+      if (!rule.criteria?.condition) continue
+
+      try {
+        const isMatch = this.evaluateCondition(
+          rule.criteria.condition,
+          enrichedItem,
+          context,
+        )
+        if (isMatch) {
+          this.log.info(
+            `"${item.title}" excluded from routing by rule "${rule.name}"`,
+          )
+          return { routedInstances: [], routingDetails: [] }
+        }
+      } catch (error) {
+        this.log.error(
+          { error },
+          `Error evaluating exclude rule ${rule.id} for "${item.title}"`,
+        )
       }
     }
 
@@ -1824,7 +1858,8 @@ export class ContentRouterService {
   ): Promise<number[]> {
     try {
       // Get all instances that should be routed to (using shared logic)
-      const instanceIds = await this.getDefaultRoutingInstanceIds(contentType)
+      const { instanceIds } =
+        await this.getDefaultRoutingInstanceIds(contentType)
       if (instanceIds.length === 0) {
         return []
       }
@@ -1948,6 +1983,10 @@ export class ContentRouterService {
       for (const rule of allRouterRules) {
         if (!rule.enabled) continue
         if (rule.target_type !== expectedTargetType) continue
+        // Exclude rules never route content, so approval semantics don't
+        // apply - they're vetoed upstream in routeContent() before approval
+        // checks would even run for genuinely excluded content.
+        if (rule.exclude_from_routing) continue
 
         // Check if this rule matches the current context
         if (rule.criteria && typeof rule.criteria === 'object') {
@@ -2093,9 +2132,11 @@ export class ContentRouterService {
   /**
    * Gets default instance IDs for a specific content type
    */
-  private async getDefaultInstanceIds(
-    contentType: 'movie' | 'show',
-  ): Promise<{ instanceIds: number[]; error?: string }> {
+  private async getDefaultInstanceIds(contentType: 'movie' | 'show'): Promise<{
+    instanceIds: number[]
+    error?: string
+    skipReason?: 'default-skip'
+  }> {
     try {
       const instanceIds: number[] = []
 
@@ -2103,6 +2144,13 @@ export class ContentRouterService {
         const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
         if (!defaultInstance) {
           return { instanceIds: [], error: 'No default Radarr instance found' }
+        }
+
+        if (defaultInstance.skipDefaultRoutingWhenNoMatch) {
+          this.log.debug(
+            `Default routing disabled on default Radarr instance "${defaultInstance.name}" — skipping movie with no matching router rule`,
+          )
+          return { instanceIds: [], skipReason: 'default-skip' }
         }
 
         instanceIds.push(defaultInstance.id)
@@ -2123,6 +2171,13 @@ export class ContentRouterService {
         const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
         if (!defaultInstance) {
           return { instanceIds: [], error: 'No default Sonarr instance found' }
+        }
+
+        if (defaultInstance.skipDefaultRoutingWhenNoMatch) {
+          this.log.debug(
+            `Default routing disabled on default Sonarr instance "${defaultInstance.name}" — skipping show with no matching router rule`,
+          )
+          return { instanceIds: [], skipReason: 'default-skip' }
         }
 
         instanceIds.push(defaultInstance.id)
@@ -2164,19 +2219,22 @@ export class ContentRouterService {
    */
   private async getDefaultRoutingInstanceIds(
     contentType: 'movie' | 'show',
-  ): Promise<number[]> {
+  ): Promise<TargetInstancesResult> {
     try {
       const result = await this.getDefaultInstanceIds(contentType)
       if (result.error) {
         this.log.warn(result.error)
       }
-      return result.instanceIds
+      return {
+        instanceIds: result.instanceIds,
+        skipReason: result.skipReason,
+      }
     } catch (error) {
       this.log.error(
         { error },
         `Error in getting default routing instances for ${contentType}`,
       )
-      return []
+      return { instanceIds: [] }
     }
   }
 
@@ -2192,7 +2250,8 @@ export class ContentRouterService {
     contentType: 'movie' | 'show',
   ): Promise<RoutingDecision[]> {
     try {
-      const instanceIds = await this.getDefaultRoutingInstanceIds(contentType)
+      const { instanceIds } =
+        await this.getDefaultRoutingInstanceIds(contentType)
       if (instanceIds.length === 0) {
         return []
       }
@@ -2781,12 +2840,13 @@ export class ContentRouterService {
    *
    * @param item - The content item to evaluate
    * @param context - Routing context with user information and content type
-   * @returns Promise resolving to array of instance IDs that would be targeted
+   * @returns Promise resolving to target instance IDs, with a skipReason when
+   *   an empty list is deliberate (skip toggle or exclude rule)
    */
   async getTargetInstances(
     item: ContentItem,
     context: RoutingContext,
-  ): Promise<number[]> {
+  ): Promise<TargetInstancesResult> {
     const contentType = context.contentType
 
     try {
@@ -2851,6 +2911,15 @@ export class ContentRouterService {
               context,
             )
 
+            if (matches && rule.exclude_from_routing) {
+              // Absolute veto - this content is excluded from routing
+              // entirely, regardless of any other matching rule.
+              this.log.info(
+                `"${item.title}" excluded from routing by rule "${rule.name}"`,
+              )
+              return { instanceIds: [], skipReason: 'excluded' }
+            }
+
             if (matches && rule.target_instance_id) {
               // This rule matches, add its target instance
               targetInstanceIds.add(rule.target_instance_id)
@@ -2869,12 +2938,12 @@ export class ContentRouterService {
 
       // If routing rules matched, return those target instances
       if (targetInstanceIds.size > 0) {
-        return [...targetInstanceIds]
+        return { instanceIds: [...targetInstanceIds] }
       }
 
       // No routing rules matched - check if we should use sync target
       if (context.syncing && context.syncTargetInstanceId !== undefined) {
-        return [context.syncTargetInstanceId]
+        return { instanceIds: [context.syncTargetInstanceId] }
       }
 
       // No routing rules matched, fall back to default instance(s)
@@ -2886,16 +2955,10 @@ export class ContentRouterService {
       )
       // On error, check if we should use sync target before falling back to defaults
       if (context.syncing && context.syncTargetInstanceId !== undefined) {
-        return [context.syncTargetInstanceId]
+        return { instanceIds: [context.syncTargetInstanceId] }
       }
 
-      // Fall back to default instance
-      if (contentType === 'movie') {
-        const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
-        return defaultInstance ? [defaultInstance.id] : []
-      }
-      const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
-      return defaultInstance ? [defaultInstance.id] : []
+      return await this.getDefaultRoutingInstanceIds(contentType)
     }
   }
 }

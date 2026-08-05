@@ -63,7 +63,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { useSonarrShowsQuery } from '@/features/utilities/hooks/useSessionMonitoringQueries'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useTablePagination } from '@/hooks/use-table-pagination'
@@ -91,7 +91,7 @@ export function ManageRollingSheet({
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isDesktop = !isMobile
 
-  const instances = useSonarrStore((s) => s.instances)
+  const { data: instances = [] } = useSonarrInstancesQuery()
   const isMultiInstance = instances.length > 1
 
   // Data fetching
@@ -238,7 +238,7 @@ export function ManageRollingSheet({
     },
   })
 
-  // Update table pageSize when localStorage value changes
+  // Sync table pageSize when the persisted preference changes
   React.useEffect(() => {
     table.setPageSize(pageSize)
   }, [pageSize, table])

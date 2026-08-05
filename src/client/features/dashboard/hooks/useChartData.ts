@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '@/lib/tanstackApi'
 import { useDashboardStatsQuery } from './useDashboardStatsQuery'
 
 /**
@@ -14,7 +15,7 @@ export function useStatusTransitionData() {
   return {
     data: data?.status_transitions ?? [],
     isLoading,
-    error: error instanceof Error ? error.message : null,
+    error: apiErrorMessage(error),
   }
 }
 
@@ -27,7 +28,7 @@ export function useContentDistributionData() {
   return {
     data: data?.content_type_distribution ?? [],
     isLoading,
-    error: error instanceof Error ? error.message : null,
+    error: apiErrorMessage(error),
   }
 }
 
@@ -43,7 +44,7 @@ export function useNotificationStatsData() {
   return {
     data: data?.notification_stats,
     isLoading,
-    error: error instanceof Error ? error.message : null,
+    error: apiErrorMessage(error),
   }
 }
 
@@ -58,7 +59,7 @@ export function useTopGenresData() {
   return {
     data: data?.top_genres ?? [],
     isLoading,
-    error: error instanceof Error ? error.message : null,
+    error: apiErrorMessage(error),
   }
 }
 
@@ -74,7 +75,7 @@ export function useGrabbedToNotifiedData() {
   return {
     data: data?.grabbed_to_notified_times ?? [],
     isLoading,
-    error: error instanceof Error ? error.message : null,
+    error: apiErrorMessage(error),
   }
 }
 
@@ -92,6 +93,6 @@ export function useInstanceContentData() {
   return {
     data: data?.instance_content_breakdown ?? [],
     isLoading,
-    error: error instanceof Error ? error.message : null,
+    error: apiErrorMessage(error),
   }
 }

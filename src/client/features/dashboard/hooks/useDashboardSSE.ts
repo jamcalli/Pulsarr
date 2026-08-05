@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import { dashboardStatsKeys } from '@/features/dashboard/hooks/useDashboardStatsQuery'
+import { recentRequestsKeys } from '@/features/dashboard/hooks/useRecentRequests'
 import { queryClient } from '@/lib/queryClient'
 import { useProgressStore } from '@/stores/progressStore'
 
@@ -16,8 +18,8 @@ export function useDashboardSSE(): void {
 
   useEffect(() => {
     const unsubscribe = subscribeToType('approval', () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      queryClient.invalidateQueries({ queryKey: ['recent-requests'] })
+      queryClient.invalidateQueries({ queryKey: dashboardStatsKeys.all })
+      queryClient.invalidateQueries({ queryKey: recentRequestsKeys.all })
     })
 
     return unsubscribe

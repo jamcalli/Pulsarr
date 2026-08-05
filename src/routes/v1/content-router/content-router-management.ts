@@ -266,19 +266,22 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const ruleData = request.body
+        const excludeFromRouting = ruleData.exclude_from_routing ?? false
 
         const builtRule = RuleBuilder.createRule({
           name: ruleData.name,
           target_type: ruleData.target_type,
-          target_instance_id: ruleData.target_instance_id,
+          target_instance_id: excludeFromRouting
+            ? null
+            : ruleData.target_instance_id,
           condition: ruleData.condition || {
             operator: 'AND',
             conditions: [],
             negate: false,
           },
-          root_folder: ruleData.root_folder,
-          quality_profile: ruleData.quality_profile,
-          tags: ruleData.tags,
+          root_folder: excludeFromRouting ? null : ruleData.root_folder,
+          quality_profile: excludeFromRouting ? null : ruleData.quality_profile,
+          tags: excludeFromRouting ? [] : ruleData.tags,
           order: ruleData.order ?? 50,
           enabled: ruleData.enabled ?? true,
           search_on_add: ruleData.search_on_add,
@@ -288,6 +291,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           always_require_approval: ruleData.always_require_approval ?? false,
           bypass_user_quotas: ruleData.bypass_user_quotas ?? false,
           approval_reason: ruleData.approval_reason,
+          exclude_from_routing: excludeFromRouting,
         })
 
         const formattedRuleData: Omit<
@@ -312,6 +316,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           always_require_approval: ruleData.always_require_approval ?? false,
           bypass_user_quotas: ruleData.bypass_user_quotas ?? false,
           approval_reason: ruleData.approval_reason,
+          exclude_from_routing: ruleData.exclude_from_routing ?? false,
         }
 
         const createdRule = await fastify.db.createRouterRule(formattedRuleData)
@@ -399,6 +404,25 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
+        const effectiveExclude =
+          updates.exclude_from_routing ?? existingRule.exclude_from_routing
+        const effectiveTargetInstanceId =
+          updates.target_instance_id !== undefined
+            ? updates.target_instance_id
+            : existingRule.target_instance_id
+
+        if (!effectiveExclude && effectiveTargetInstanceId == null) {
+          return reply.badRequest(
+            'target_instance_id is required unless exclude_from_routing is true',
+          )
+        }
+
+        if (effectiveExclude && effectiveTargetInstanceId != null) {
+          return reply.badRequest(
+            'target_instance_id must be null when exclude_from_routing is true',
+          )
+        }
+
         const updatesAsRouterRule: Partial<
           Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>
         > = {}
@@ -430,6 +454,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           updatesAsRouterRule.bypass_user_quotas = updates.bypass_user_quotas
         if (updates.approval_reason !== undefined)
           updatesAsRouterRule.approval_reason = updates.approval_reason
+        if (updates.exclude_from_routing !== undefined)
+          updatesAsRouterRule.exclude_from_routing =
+            updates.exclude_from_routing
 
         if (updates.quality_profile !== undefined)
           updatesAsRouterRule.quality_profile = updates.quality_profile
@@ -451,6 +478,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           if (updates.root_folder === undefined)
             updatesAsRouterRule.root_folder = null
           if (updates.tags === undefined) updatesAsRouterRule.tags = []
+        }
+
+        // Exclude rules must not retain instance-scoped fields
+        if (effectiveExclude) {
+          updatesAsRouterRule.quality_profile = null
+          updatesAsRouterRule.root_folder = null
+          updatesAsRouterRule.tags = []
         }
 
         if (updates.condition) {

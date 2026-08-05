@@ -45,9 +45,9 @@ import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sy
 import { DeleteSyncPageSkeleton } from '@/features/utilities/components/delete-sync/delete-sync-page-skeleton'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useConfig } from '@/hooks/useConfig'
+import { useShowLoading } from '@/lib/useMinLoading'
 import { formatScheduleDisplay } from '@/lib/utils'
-import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Renders the Delete Sync page, providing a user interface to configure, schedule, and manage automated deletion of media content based on watchlist or tag criteria.
@@ -87,12 +87,16 @@ export default function DeleteSyncPage() {
     setShowDryRunModal,
   } = useDeleteSync()
 
-  const { initialize: configInitialize } = useConfigStore()
+  const {
+    initialize: configInitialize,
+    isInitialized,
+    error: configError,
+  } = useConfig()
 
   const navigate = useNavigate()
 
-  // Initialize config store with minimum duration for consistent UX
-  const isInitializing = useInitializeWithMinDuration(configInitialize)
+  // Initialize config with minimum duration for consistent UX
+  const isInitializing = useShowLoading(!isInitialized)
 
   // Determine status based on job state
   const getStatus = () => {
@@ -115,7 +119,21 @@ export default function DeleteSyncPage() {
     )
   }
 
-  if (isInitializing || !deleteSyncJob) {
+  if (configError && !isInitialized) {
+    return (
+      <PageError message={configError} onRetry={() => configInitialize(true)} />
+    )
+  }
+
+  if (isInitializing) {
+    return <DeleteSyncPageSkeleton />
+  }
+
+  if (!isInitialized) {
+    return null
+  }
+
+  if (!deleteSyncJob) {
     return <DeleteSyncPageSkeleton />
   }
 

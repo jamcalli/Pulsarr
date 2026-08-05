@@ -18,8 +18,9 @@ import { useApprovalStats } from '@/features/approvals/hooks/useApprovalStats'
 import { useApprovals } from '@/features/approvals/hooks/useApprovals'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
+import { useConfig } from '@/hooks/useConfig'
 import { queryClient } from '@/lib/queryClient'
-import { useConfigStore } from '@/stores/configStore'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 import { approvalStatsKeys } from './hooks/useApprovalStats'
 import { approvalKeys } from './hooks/useApprovals'
 
@@ -30,8 +31,11 @@ import { approvalKeys } from './hooks/useApprovals'
  * Modal and selection state managed via Zustand store.
  */
 export default function ApprovalsPage() {
-  const configInitialize = useConfigStore((state) => state.initialize)
-  const isConfigInitialized = useConfigStore((state) => state.isInitialized)
+  const {
+    initialize: configInitialize,
+    isInitialized: isConfigInitialized,
+    error: configError,
+  } = useConfig()
 
   // Query hooks for data
   const {
@@ -76,7 +80,7 @@ export default function ApprovalsPage() {
   const tableRef = useRef<ApprovalTableRef>(null)
   const hasInitializedRef = useRef(false)
 
-  // Initialize config store on mount
+  // Initialize config on mount
   useEffect(() => {
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true
@@ -171,14 +175,23 @@ export default function ApprovalsPage() {
   }
 
   // Combined loading state
-  const isLoading = !isConfigInitialized || approvalsLoading || statsLoading
+  const isLoading =
+    !isConfigInitialized ||
+    approvalsLoading ||
+    statsLoading ||
+    approvalsData === undefined ||
+    statsData === undefined
+
+  if (configError && !isConfigInitialized) {
+    return (
+      <PageError message={configError} onRetry={() => configInitialize(true)} />
+    )
+  }
 
   // Show error state
   if (approvalsError && !isLoading) {
     const errorMessage =
-      approvalsError instanceof Error
-        ? approvalsError.message
-        : 'Failed to load approvals'
+      apiErrorMessage(approvalsError) ?? 'Failed to load approvals'
     return (
       <div>
         <div className="flex justify-between items-center mb-4">

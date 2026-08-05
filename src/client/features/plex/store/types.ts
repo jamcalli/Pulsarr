@@ -7,7 +7,7 @@ import type {
   UpdateUser,
 } from '@root/schemas/users/users.schema'
 import type { Row } from '@tanstack/react-table'
-import type { UserWithQuotaInfo } from '@/stores/configStore'
+import type { UserWithQuotaInfo } from '@/features/plex/hooks/usePlexUsers'
 
 export interface PlexConnectionValues {
   plexToken: string

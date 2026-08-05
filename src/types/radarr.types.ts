@@ -161,15 +161,15 @@ export interface RadarrConfiguration {
   monitor?: RadarrMonitorType
 }
 
-export interface RootFolder {
+export type RootFolder = {
   path: string
   accessible: boolean
-  freeSpace: number
+  freeSpace: number | null
   unmappedFolders: unknown[]
   id: number
 }
 
-export interface QualityProfile {
+export type QualityProfile = {
   name: string
   upgradeAllowed: boolean
   cutoff: number
@@ -222,6 +222,7 @@ export interface RadarrInstance {
   searchOnAdd?: boolean
   minimumAvailability?: MinimumAvailability
   monitor?: RadarrMonitorType
+  skipDefaultRoutingWhenNoMatch?: boolean
   data?: {
     qualityProfiles?: Array<{ id: number; name: string }>
     rootFolders?: Array<{ path: string }>

@@ -1,8 +1,7 @@
-import type { RssFeedsSuccess } from '@root/schemas/plex/generate-rss-feeds.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
-import { useConfigStore } from '@/stores/configStore'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 export type RssStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -14,8 +13,7 @@ export type RssStatus = 'idle' | 'loading' | 'success' | 'error'
  * @returns An object containing rssFeeds (current RSS feed URLs), rssStatus (generation status), and generateRssFeeds (function to generate and refresh RSS feeds)
  */
 export function usePlexRssFeeds() {
-  const config = useConfigStore((state) => state.config)
-  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const { config } = useConfig()
   const [rssStatus, setRssStatus] = useState<RssStatus>('idle')
 
   const generateRssFeeds = async () => {
@@ -25,21 +23,11 @@ export function usePlexRssFeeds() {
         setTimeout(resolve, 500),
       )
 
-      const [response] = await Promise.all([
-        fetch(api('/v1/plex/generate-rss-feeds')),
+      const [{ data, error: fetchError }] = await Promise.all([
+        apiFetch.GET('/v1/plex/generate-rss-feeds'),
         minimumLoadingTime,
       ])
-
-      if (!response.ok) {
-        // Try to extract error message from response body
-        const errorData = await response.json().catch(() => null)
-        const errorMessage =
-          errorData?.message || 'Failed to generate RSS feeds'
-        throw new Error(errorMessage)
-      }
-
-      // Parse the response as the success schema type
-      const data: RssFeedsSuccess = await response.json()
+      if (fetchError) throw fetchError
 
       // Validate response payload before updating config
       const self = typeof data.self === 'string' ? data.self.trim() : ''
@@ -67,11 +55,7 @@ export function usePlexRssFeeds() {
     } catch (error) {
       console.error('RSS generation error:', error)
       setRssStatus('error')
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Failed to generate RSS feed URLs',
-      )
+      toast.error(apiErrorMessage(error) ?? 'Failed to generate RSS feed URLs')
     }
   }
 

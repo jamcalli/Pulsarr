@@ -7,21 +7,24 @@ import {
   SessionMonitoringConfigSchema,
   type SessionMonitoringFormData,
 } from '@/features/utilities/constants/session-monitoring'
-import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
-import { useConfigStore } from '@/stores/configStore'
+import {
+  invalidateSchedules,
+  useScheduleActions,
+  useSchedules,
+} from '@/features/utilities/hooks/useSchedules'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export function useSessionMonitoringForm() {
-  const { config, updateConfig } = useConfigStore()
+  const { config } = useConfig()
+  const schedules = useSchedules().data
   const {
-    schedules,
-    fetchSchedules,
     toggleScheduleStatus,
     updateSessionMonitorSchedule,
     updateAutoResetSchedule,
-    setLoadingWithMinDuration,
-  } = useUtilitiesStore()
+  } = useScheduleActions()
 
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
   const [submittedValues, setSubmittedValues] =
@@ -201,7 +204,6 @@ export function useSessionMonitoringForm() {
     async (data: SessionMonitoringFormData) => {
       setSubmittedValues(data)
       setSaveStatus('loading')
-      setLoadingWithMinDuration(true)
 
       try {
         const minimumLoadingTime = new Promise((resolve) =>
@@ -233,7 +235,7 @@ export function useSessionMonitoringForm() {
           minimumLoadingTime,
         ])
 
-        await fetchSchedules()
+        await invalidateSchedules()
 
         setSaveStatus('success')
         toast.success('Session monitoring settings updated successfully')
@@ -247,9 +249,8 @@ export function useSessionMonitoringForm() {
       } catch (error) {
         console.error('Failed to update session monitoring settings:', error)
         const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Failed to update session monitoring settings'
+          apiErrorMessage(error) ??
+          'Failed to update session monitoring settings'
 
         setSaveStatus('error')
         toast.error(errorMessage)
@@ -258,18 +259,14 @@ export function useSessionMonitoringForm() {
           setSubmittedValues(null)
           setSaveStatus('idle')
         }, 1000)
-      } finally {
-        setLoadingWithMinDuration(false)
       }
     },
     [
-      setLoadingWithMinDuration,
       updateConfig,
       sessionMonitorSchedule,
       autoResetSchedule,
       handleUpdateSessionMonitorSchedule,
       handleUpdateAutoResetSchedule,
-      fetchSchedules,
       form,
     ],
   )

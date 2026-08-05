@@ -33,7 +33,7 @@ export interface RouterRule {
     condition: Condition | ConditionGroup
   }
   target_type: 'sonarr' | 'radarr'
-  target_instance_id: number
+  target_instance_id: number | null
   root_folder?: string | null
   quality_profile?: number | null
   tags?: string[]
@@ -48,6 +48,8 @@ export interface RouterRule {
   always_require_approval?: boolean
   bypass_user_quotas?: boolean
   approval_reason?: string | null
+  // When true, content matching this rule is never routed to Radarr/Sonarr
+  exclude_from_routing?: boolean
   created_at: string
   updated_at: string
 }
@@ -59,6 +61,13 @@ export interface RoutingContext {
   itemKey: string
   syncing?: boolean
   syncTargetInstanceId?: number
+}
+
+export interface TargetInstancesResult {
+  instanceIds: number[]
+  // Set when an empty list is a deliberate outcome (skip toggle or exclude
+  // rule) rather than a misconfiguration
+  skipReason?: 'default-skip' | 'excluded'
 }
 
 export interface RoutingDecision {

@@ -22,7 +22,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
-import { useConfigStore } from '@/stores/configStore'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 
 // Extract Discord bot fields from backend API schema and add validation
 const ApiDiscordBotSchema = ConfigUpdateSchema.pick({
@@ -42,13 +42,12 @@ interface DiscordBotFormProps {
 /****
  * Renders a form for configuring Discord bot integration, enabling users to set, update, or clear the bot token and client ID with schema-based validation and real-time feedback.
  *
- * The form synchronizes with a global configuration store, provides contextual tooltips, and displays toast notifications for successful or failed updates. Users can submit changes, reset the form to current settings, or clear all Discord bot configuration values with confirmation.
+ * The form synchronizes with the global configuration, provides contextual tooltips, and displays toast notifications for successful or failed updates. Users can submit changes, reset the form to current settings, or clear all Discord bot configuration values with confirmation.
  *
  * @param isInitialized - Whether the form is ready for user interaction.
  */
 export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
-  const config = useConfigStore((state) => state.config)
-  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const { config } = useConfig()
   const [discordBotStatus, setDiscordBotStatus] = React.useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')

@@ -25,9 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { api } from '@/lib/api'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
-import { useConfigStore } from '@/stores/configStore'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 type DeploymentType =
   | 'native-same'
@@ -84,13 +84,11 @@ interface NetworkConfigCredenzaProps {
 }
 
 async function resyncArrWebhooks(): Promise<WebhookResyncResponse> {
-  const response = await fetch(api('/v1/config/resync-arr-webhooks'), {
-    method: 'POST',
-  })
-  if (!response.ok) {
+  const { data, error } = await apiFetch.POST('/v1/config/resync-arr-webhooks')
+  if (error) {
     throw new Error('Failed to update webhooks in Radarr and Sonarr')
   }
-  return (await response.json()) as WebhookResyncResponse
+  return data
 }
 
 type ResyncFailure = WebhookResyncInstanceResult & { app: string }
@@ -107,7 +105,7 @@ export function NetworkConfigCredenza({
   onRetry,
   errorMessage,
 }: NetworkConfigCredenzaProps) {
-  const { config, updateConfig } = useConfigStore()
+  const { config } = useConfig()
 
   const [deploymentType, setDeploymentType] =
     useState<DeploymentType>('native-same')
@@ -140,6 +138,7 @@ export function NetworkConfigCredenza({
   }
 
   const handleSave = async () => {
+    if (!config) return
     setSaveStatus('loading')
     setResyncFailures([])
     try {
@@ -181,9 +180,7 @@ export function NetworkConfigCredenza({
         onOpenChange(false)
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to save settings',
-      )
+      toast.error(apiErrorMessage(error) ?? 'Failed to save settings')
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
       setSaveStatus('idle')
     }
@@ -311,7 +308,7 @@ export function NetworkConfigCredenza({
             type="button"
             variant="default"
             onClick={handleSave}
-            disabled={saveStatus !== 'idle'}
+            disabled={!config || saveStatus !== 'idle'}
             className="min-w-30 flex items-center justify-center gap-2"
           >
             {saveStatus === 'loading' ? (

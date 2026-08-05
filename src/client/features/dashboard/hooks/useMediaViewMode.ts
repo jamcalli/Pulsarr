@@ -1,37 +1,26 @@
-import { useCallback, useState } from 'react'
+import { useMemo } from 'react'
+import { type PrefDef, parseOneOf, usePref } from '@/lib/prefs'
 
 export type MediaViewMode = 'carousel' | 'list'
+
+const parseViewMode = parseOneOf(['carousel', 'list'])
 
 /** Persisted desktop view mode for a dashboard section (mobile always lists). */
 export function useMediaViewMode(
   viewKey: string,
   defaultView: MediaViewMode = 'carousel',
 ) {
-  const storageKey = `pulsarr-${viewKey}-view`
-
-  const [view, setViewState] = useState<MediaViewMode>(() => {
-    try {
-      const stored = localStorage.getItem(storageKey)
-      if (stored === 'carousel' || stored === 'list') {
-        return stored
-      }
-    } catch (error) {
-      console.warn(`Failed to load view mode for ${viewKey}:`, error)
-    }
-    return defaultView
-  })
-
-  const setView = useCallback(
-    (newView: MediaViewMode) => {
-      try {
-        localStorage.setItem(storageKey, newView)
-      } catch (error) {
-        console.error(`Failed to save view mode for ${viewKey}:`, error)
-      }
-      setViewState(newView)
-    },
-    [storageKey, viewKey],
+  const def = useMemo<PrefDef<MediaViewMode>>(
+    () => ({
+      key: `pulsarr-${viewKey}-view`,
+      fallback: defaultView,
+      parse: parseViewMode,
+      serialize: (value) => value,
+    }),
+    [viewKey, defaultView],
   )
+
+  const [view, setView] = usePref(def)
 
   return { view, setView }
 }

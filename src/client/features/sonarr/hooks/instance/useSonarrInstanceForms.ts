@@ -31,7 +31,7 @@ export function useSonarrInstanceForm({
       name: instance.name,
       baseUrl: instance.baseUrl,
       apiKey: instance.apiKey,
-      qualityProfile: instance.qualityProfile || '',
+      qualityProfile: instance.qualityProfile?.toString() || '',
       rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
       seasonMonitoring: instance.seasonMonitoring as SonarrMonitoringType,
@@ -48,6 +48,8 @@ export function useSonarrInstanceForm({
         : instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
       seriesType: instance.seriesType || 'standard',
+      skipDefaultRoutingWhenNoMatch:
+        instance.skipDefaultRoutingWhenNoMatch ?? false,
       _originalBaseUrl: instance.baseUrl,
       _originalApiKey: instance.apiKey,
     },
@@ -66,7 +68,7 @@ export function useSonarrInstanceForm({
       name: instance.name,
       baseUrl: instance.baseUrl,
       apiKey: instance.apiKey,
-      qualityProfile: instance.qualityProfile || '',
+      qualityProfile: instance.qualityProfile?.toString() || '',
       rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
       seasonMonitoring: instance.seasonMonitoring as SonarrMonitoringType,
@@ -81,6 +83,8 @@ export function useSonarrInstanceForm({
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
       seriesType: instance.seriesType || 'standard',
+      skipDefaultRoutingWhenNoMatch:
+        instance.skipDefaultRoutingWhenNoMatch ?? false,
       _originalBaseUrl: instance.baseUrl,
       _originalApiKey: instance.apiKey,
     })
@@ -148,7 +152,7 @@ export function useSonarrInstanceForm({
           name: instance.name,
           baseUrl: instance.baseUrl,
           apiKey: instance.apiKey,
-          qualityProfile: instance.qualityProfile || '',
+          qualityProfile: instance.qualityProfile?.toString() || '',
           rootFolder: instance.rootFolder || '',
           bypassIgnored: instance.bypassIgnored,
           seasonMonitoring: instance.seasonMonitoring as SonarrMonitoringType,
@@ -163,6 +167,8 @@ export function useSonarrInstanceForm({
           isDefault: instance.isDefault,
           syncedInstances: instance.syncedInstances || [],
           seriesType: instance.seriesType || 'standard',
+          skipDefaultRoutingWhenNoMatch:
+            instance.skipDefaultRoutingWhenNoMatch ?? false,
           _originalBaseUrl: instance.baseUrl,
           _originalApiKey: instance.apiKey,
         })

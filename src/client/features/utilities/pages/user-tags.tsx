@@ -20,6 +20,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PageError } from '@/components/ui/page-error'
 import { Progress } from '@/components/ui/progress'
 import { Select } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
@@ -40,8 +41,8 @@ import {
   useUserTags,
 } from '@/features/utilities/hooks/useUserTags'
 import { UserTagsPageSkeleton } from '@/features/utilities/pages/user-tags-page-skeleton'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
-import { useConfigStore } from '@/stores/configStore'
+import { useConfig } from '@/hooks/useConfig'
+import { useShowLoading } from '@/lib/useMinLoading'
 import { useProgressStore } from '@/stores/progressStore'
 
 /**
@@ -52,7 +53,11 @@ import { useProgressStore } from '@/stores/progressStore'
  * @returns The React element representing the user tag management interface.
  */
 export function UserTagsPage() {
-  const { config, initialize: configInitialize } = useConfigStore()
+  const {
+    config,
+    initialize: configInitialize,
+    error: configError,
+  } = useConfig()
 
   const {
     form,
@@ -84,8 +89,8 @@ export function UserTagsPage() {
   const sonarrRemovalProgress = useTaggingProgress('sonarr-tag-removal')
   const radarrRemovalProgress = useTaggingProgress('radarr-tag-removal')
 
-  // Initialize config store with minimum duration for consistent UX
-  const isInitializing = useInitializeWithMinDuration(configInitialize)
+  // Initialize config with minimum duration for consistent UX
+  const isInitializing = useShowLoading(!config)
 
   // Initialize progress connection
   useEffect(() => {
@@ -132,8 +137,18 @@ export function UserTagsPage() {
     setShowAliasCredenza(false)
   }, [form])
 
-  if (isInitializing || isLoading || !config) {
+  if (configError && !config) {
+    return (
+      <PageError message={configError} onRetry={() => configInitialize(true)} />
+    )
+  }
+
+  if (isInitializing || isLoading) {
     return <UserTagsPageSkeleton />
+  }
+
+  if (!config) {
+    return null
   }
 
   return (

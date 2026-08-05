@@ -41,6 +41,7 @@ describe('content-router-formatter', () => {
         always_require_approval: false,
         bypass_user_quotas: false,
         approval_reason: 'Test reason',
+        exclude_from_routing: false,
       })
 
       const result = formatRule(rule)
@@ -63,6 +64,7 @@ describe('content-router-formatter', () => {
         always_require_approval: false,
         bypass_user_quotas: false,
         approval_reason: 'Test reason',
+        exclude_from_routing: false,
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-02T00:00:00Z',
       })

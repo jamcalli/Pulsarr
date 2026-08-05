@@ -47,6 +47,7 @@ export function formatRule(
       always_require_approval: rule.always_require_approval ?? false,
       bypass_user_quotas: rule.bypass_user_quotas ?? false,
       approval_reason: rule.approval_reason || undefined,
+      exclude_from_routing: rule.exclude_from_routing ?? false,
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }
@@ -81,6 +82,7 @@ export function formatRule(
       always_require_approval: rule.always_require_approval ?? false,
       bypass_user_quotas: rule.bypass_user_quotas ?? false,
       approval_reason: rule.approval_reason || undefined,
+      exclude_from_routing: rule.exclude_from_routing ?? false,
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }

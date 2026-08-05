@@ -658,12 +658,16 @@ export class DatabaseService {
       }
     }
 
-    // If setting as default, make all other instances non-default
+    // If setting as default, make all other instances non-default. Synced
+    // instances only apply to the default, so clear them on demotion
     if (newDefaultStatus === true) {
-      await trx(tableName).whereNot('id', instanceId).update({
-        is_default: false,
-        updated_at: this.timestamp,
-      })
+      await trx(tableName)
+        .whereNot('id', instanceId)
+        .update({
+          is_default: false,
+          synced_instances: JSON.stringify([]),
+          updated_at: this.timestamp,
+        })
     }
 
     // Final safety check - at least one instance must be default at the end
@@ -698,7 +702,7 @@ export class DatabaseService {
     type: string
     criteria: string | Record<string, unknown>
     target_type: 'sonarr' | 'radarr'
-    target_instance_id: number
+    target_instance_id: number | null
     root_folder?: string | null
     quality_profile?: number | null
     tags?: string | string[]
@@ -711,6 +715,7 @@ export class DatabaseService {
     always_require_approval?: number | boolean
     bypass_user_quotas?: number | boolean
     approval_reason?: string | null
+    exclude_from_routing?: number | boolean
     created_at: string
     updated_at: string
     [key: string]: unknown
@@ -724,6 +729,7 @@ export class DatabaseService {
       always_require_approval: Boolean(rule.always_require_approval ?? false),
       bypass_user_quotas: Boolean(rule.bypass_user_quotas ?? false),
       approval_reason: rule.approval_reason ?? null,
+      exclude_from_routing: Boolean(rule.exclude_from_routing ?? false),
       criteria:
         typeof rule.criteria === 'string'
           ? this.safeJsonParse(
@@ -741,235 +747,6 @@ export class DatabaseService {
           ? this.safeJsonParse(rule.metadata, null, 'router_rule.metadata')
           : rule.metadata
         : null,
-    }
-  }
-
-  // Helper to validate condition structure
-  public readonly VALID_OPERATORS = [
-    'equals',
-    'notEquals',
-    'contains',
-    'notContains',
-    'in',
-    'notIn',
-    'greaterThan',
-    'lessThan',
-    'between',
-    'regex',
-  ]
-
-  /**
-   * Validates a condition or condition group for structure and content
-   *
-   * This helper checks that conditions have the correct structure and contain
-   * valid values for their operators. It performs recursive validation of
-   * nested condition groups with depth limiting to prevent stack overflows.
-   *
-   * @param condition - The condition or condition group to validate
-   * @param depth - Current recursion depth (for preventing stack overflow)
-   * @returns Object indicating if the condition is valid and any error message
-   */
-  public validateCondition(
-    condition: Condition | ConditionGroup,
-    depth = 0,
-  ): { valid: boolean; error?: string } {
-    try {
-      // Prevent excessive nesting that could cause stack overflow
-      if (depth > 20) {
-        return {
-          valid: false,
-          error: 'Maximum condition nesting depth exceeded (20 levels)',
-        }
-      }
-
-      // Check if it's a condition group
-      if ('operator' in condition && 'conditions' in condition) {
-        // Validate group operator
-        const operator = condition.operator.toUpperCase()
-        if (!['AND', 'OR'].includes(operator)) {
-          return {
-            valid: false,
-            error: `Invalid group operator: ${condition.operator}. Expected 'AND' or 'OR'.`,
-          }
-        }
-
-        // Check if conditions is an array
-        if (!Array.isArray(condition.conditions)) {
-          return { valid: false, error: 'conditions must be an array' }
-        }
-
-        // Check if conditions array is empty
-        if (condition.conditions.length === 0) {
-          return {
-            valid: false,
-            error: 'condition group must have at least one condition',
-          }
-        }
-
-        // Recursively validate all conditions in the group with incremented depth
-        for (const subCondition of condition.conditions) {
-          const result = this.validateCondition(subCondition, depth + 1)
-          if (!result.valid) return result
-        }
-
-        return { valid: true }
-      }
-
-      // Check if it's a simple condition
-      if (
-        'field' in condition &&
-        'operator' in condition &&
-        'value' in condition
-      ) {
-        // Validate field
-        if (typeof condition.field !== 'string' || !condition.field.trim()) {
-          return { valid: false, error: 'field must be a non-empty string' }
-        }
-
-        // Validate operator against canonical list
-        if (!this.VALID_OPERATORS.includes(condition.operator)) {
-          return {
-            valid: false,
-            error: `Invalid operator: ${condition.operator}. Valid operators are: ${this.VALID_OPERATORS.join(', ')}`,
-          }
-        }
-
-        // Validate value based on operator type
-        if (condition.value === undefined || condition.value === null) {
-          return { valid: false, error: 'value cannot be undefined or null' }
-        }
-
-        // For array operators, check that value is a non-empty array
-        if (['in', 'notIn'].includes(condition.operator)) {
-          if (!Array.isArray(condition.value)) {
-            return {
-              valid: false,
-              error: `Value for ${condition.operator} operator must be an array`,
-            }
-          }
-          if (condition.value.length === 0) {
-            return {
-              valid: false,
-              error: `Value for ${condition.operator} operator cannot be an empty array`,
-            }
-          }
-        }
-
-        // For scalar operators, ensure the value is meaningful
-        if (
-          ['equals', 'notEquals', 'contains', 'notContains'].includes(
-            condition.operator,
-          )
-        ) {
-          if (
-            typeof condition.value === 'string' &&
-            condition.value.trim() === ''
-          ) {
-            return {
-              valid: false,
-              error: `Value for ${condition.operator} operator cannot be an empty string`,
-            }
-          }
-        }
-
-        // Special validation for regex operator
-        if (condition.operator === 'regex') {
-          if (
-            typeof condition.value !== 'string' ||
-            condition.value.trim() === ''
-          ) {
-            return {
-              valid: false,
-              error:
-                'Value for regex operator must be a non-empty string containing a valid pattern',
-            }
-          }
-          try {
-            // Attempt to compile the pattern to catch syntax errors early
-            new RegExp(condition.value)
-          } catch (error) {
-            return {
-              valid: false,
-              error: `Invalid regular expression pattern: ${(error as Error).message}`,
-            }
-          }
-        }
-
-        // For numeric comparison operators, ensure value is a number
-        if (['greaterThan', 'lessThan'].includes(condition.operator)) {
-          if (typeof condition.value !== 'number') {
-            return {
-              valid: false,
-              error: `Value for ${condition.operator} operator must be a number`,
-            }
-          }
-        }
-
-        // For between operator, validate the range object structure
-        if (condition.operator === 'between') {
-          if (typeof condition.value !== 'object' || condition.value === null) {
-            return {
-              valid: false,
-              error:
-                'Value for between operator must be an object with min and/or max properties',
-            }
-          }
-
-          interface RangeValue {
-            min?: number
-            max?: number
-          }
-
-          const rangeValue = condition.value as RangeValue
-
-          // Check for missing bounds
-          if (!('min' in rangeValue) && !('max' in rangeValue)) {
-            return {
-              valid: false,
-              error:
-                'Range comparison requires at least min or max to be specified',
-            }
-          }
-
-          // Validate numeric types
-          if ('min' in rangeValue && typeof rangeValue.min !== 'number') {
-            return {
-              valid: false,
-              error: 'min value must be a number',
-            }
-          }
-
-          if ('max' in rangeValue && typeof rangeValue.max !== 'number') {
-            return {
-              valid: false,
-              error: 'max value must be a number',
-            }
-          }
-
-          // Validate range logic when both bounds are present
-          if (
-            rangeValue.min !== undefined &&
-            rangeValue.max !== undefined &&
-            rangeValue.min > rangeValue.max
-          ) {
-            return {
-              valid: false,
-              error:
-                'Invalid range: min value cannot be greater than max value',
-            }
-          }
-        }
-
-        return { valid: true }
-      }
-
-      return { valid: false, error: 'Invalid condition structure' }
-    } catch (error) {
-      return {
-        valid: false,
-        error:
-          error instanceof Error ? error.message : 'Unknown validation error',
-      }
     }
   }
 

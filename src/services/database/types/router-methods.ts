@@ -1,12 +1,4 @@
-import type {
-  RadarrMovieLookupResponse,
-  SonarrSeriesLookupResponse,
-} from '@root/types/content-lookup.types.js'
-import type {
-  Condition,
-  ConditionGroup,
-  RouterRule,
-} from '@root/types/router.types.js'
+import type { RouterRule } from '@root/types/router.types.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
@@ -100,47 +92,6 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the updated router rule
      */
     toggleRouterRule(id: number, enabled: boolean): Promise<RouterRule>
-
-    /**
-     * Creates a conditional router rule with condition groups
-     * @param rule - Rule data with condition groups
-     * @returns Promise resolving to the created router rule
-     */
-    createConditionalRule(rule: {
-      name: string
-      target_type: 'sonarr' | 'radarr'
-      target_instance_id: number
-      condition: Condition | ConditionGroup
-      root_folder?: string | null
-      quality_profile?: number | null
-      order?: number
-      enabled?: boolean
-      metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
-      search_on_add?: boolean
-      season_monitoring?: string
-    }): Promise<RouterRule>
-
-    /**
-     * Updates a conditional router rule
-     * @param id - ID of the router rule to update
-     * @param updates - Partial updates including condition groups
-     * @returns Promise resolving to the updated router rule
-     */
-    updateConditionalRule(
-      id: number,
-      updates: {
-        name?: string
-        condition?: Condition | ConditionGroup
-        target_instance_id?: number
-        root_folder?: string | null
-        quality_profile?: number | null
-        order?: number
-        enabled?: boolean
-        metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
-        search_on_add?: boolean
-        season_monitoring?: string
-      },
-    ): Promise<RouterRule>
 
     /**
      * Checks if any router rules exist in the database

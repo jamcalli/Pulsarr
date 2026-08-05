@@ -1,9 +1,14 @@
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { useCallback } from 'react'
 import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
+import { useConfig } from '@/hooks/useConfig'
 import { queryClient } from '@/lib/queryClient'
-import { useConfigStore } from '@/stores/configStore'
-import { useDashboardStatsQuery } from './useDashboardStatsQuery'
+import { apiErrorMessage } from '@/lib/tanstackApi'
+import { useMinDuration } from '@/lib/useMinLoading'
+import {
+  dashboardStatsKeys,
+  useDashboardStatsQuery,
+} from './useDashboardStatsQuery'
 
 // Re-export presets from store for convenience
 export {
@@ -35,6 +40,7 @@ interface DashboardStatsState {
   limit: number
   setLimit: (limit: number) => void
   refreshStats: () => Promise<void>
+  isRefreshing: boolean
 }
 
 /**
@@ -61,26 +67,35 @@ export function useDashboardStats(): DashboardStatsState {
   const limit = useDashboardStore((s) => s.limit)
   const setLimit = useDashboardStore((s) => s.setLimit)
 
-  const isConfigInitialized = useConfigStore((s) => s.isInitialized)
+  const { isInitialized: isConfigInitialized } = useConfig()
 
-  const { data, isLoading, error, dataUpdatedAt } = useDashboardStatsQuery()
+  const { data, isLoading, isFetching, error, dataUpdatedAt } =
+    useDashboardStatsQuery()
 
-  const errorMessage = error instanceof Error ? error.message : null
+  const errorMessage = apiErrorMessage(error)
 
-  // Reset clears cache and refetches, showing skeleton loader again
+  // Refetches in the background - existing cards stay visible instead of
+  // resetting to skeletons
   const refreshStats = useCallback(async () => {
-    await queryClient.resetQueries({ queryKey: ['dashboard-stats'] })
+    await queryClient.invalidateQueries({ queryKey: dashboardStatsKeys.all })
   }, [])
 
+  const isRefreshing = useMinDuration(isFetching && data !== undefined)
+
+  // Cards must not show their empty states before the first load completes -
+  // "no data" is only knowable once data exists
+  const hasData = data !== undefined
+
   return {
-    isLoading: !isConfigInitialized || isLoading,
+    isLoading: !isConfigInitialized || isLoading || !hasData,
+    isRefreshing,
     lastRefreshed: dataUpdatedAt ? new Date(dataUpdatedAt) : null,
     mostWatchedShows: data?.most_watched_shows ?? null,
     mostWatchedMovies: data?.most_watched_movies ?? null,
     loadingStates: {
-      all: isLoading,
-      shows: isLoading,
-      movies: isLoading,
+      all: isLoading || !hasData,
+      shows: isLoading || !hasData,
+      movies: isLoading || !hasData,
     },
     errorStates: {
       all: errorMessage,

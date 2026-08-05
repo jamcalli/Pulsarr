@@ -74,6 +74,10 @@ export const QuotaUsageResponseSchema = z.object({
   requestDate: z.string(), // YYYY-MM-DD format
 })
 
+export const QuotaUserIdParamsSchema = z.object({
+  userId: z.coerce.number(),
+})
+
 export const GetQuotaUsageQuerySchema = z.object({
   userId: z.coerce.number(),
   startDate: z

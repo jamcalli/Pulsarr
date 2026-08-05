@@ -8,7 +8,7 @@ import { MultiSelect } from '@/components/ui/multi-select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 interface TagOption {
   label: string
@@ -111,12 +111,16 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
       // No minimum loading time - match the timing of quality profile and root folder selects
       // Both use natural loading timing based on network requests
 
-      const response = await fetch(
-        api(`/v1/${instanceType}/tags?instanceId=${instanceId}`),
-        { signal }
-      )
+      const requestOptions = {
+        params: { query: { instanceId } },
+        signal,
+      }
+      const { data, error, response } =
+        instanceType === 'sonarr'
+          ? await apiFetch.GET('/v1/sonarr/tags', requestOptions)
+          : await apiFetch.GET('/v1/radarr/tags', requestOptions)
 
-      if (!response.ok) {
+      if (error) {
         // If it's a 404 error and we had previous values, clear them and continue
         if (response.status === 404 && field.value && Array.isArray(field.value) && field.value.length > 0) {
           // Reset field value since the tags no longer exist
@@ -133,26 +137,18 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
           setTags([]);
           return;
         }
-        throw new Error(`Request failed: ${response.status} ${response.statusText}`)
+        throw new Error(
+          apiErrorMessage(error) ?? `Failed to fetch ${instanceType} tags`,
+        )
       }
 
-      const data = await response.json()
-
-      if ('success' in data && data.success && Array.isArray(data.tags)) {
-        const tagOptions = data.tags.map((tag: { id: number; label: string }) => ({
-          label: tag.label,
-          value: tag.id.toString()
-        }))
-        if (!signal.aborted) {
-          setTags(tagOptions)
-          tagsLoadedRef.current = true
-        }
-      } else {
-        console.error(`Failed to fetch ${instanceType} tags:`, data)
-        const errorMessage = 'message' in data ? data.message : `Failed to fetch ${instanceType} tags`
-        if (!signal.aborted) {
-          setLoadError(errorMessage as string)
-        }
+      const tagOptions = data.tags.map((tag) => ({
+        label: tag.label,
+        value: tag.id.toString()
+      }))
+      if (!signal.aborted) {
+        setTags(tagOptions)
+        tagsLoadedRef.current = true
       }
     } catch (error) {
       // Don't log abort errors - these are expected when component unmounts during fetch

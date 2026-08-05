@@ -1,3 +1,4 @@
+import type { SonarrInstanceResponse } from '@root/schemas/sonarr/sonarr-instance.schema'
 import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import { HelpCircle, RefreshCw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -31,11 +32,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { SonarrSyncModal } from '@/features/sonarr/components/instance/sonarr-sync-modal'
 import {
   QualityProfileSelect,
   RootFolderSelect,
-} from '@/features/sonarr/components/selects/sonarr-selects'
+} from '@/features/arr/arr-selects'
+import { SonarrSyncModal } from '@/features/sonarr/components/instance/sonarr-sync-modal'
 import {
   SERIES_TYPE_LABELS,
   SONARR_SERIES_TYPES,
@@ -48,18 +49,17 @@ import {
   SONARR_MONITORING_OPTIONS,
 } from '@/features/sonarr/store/constants'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
-import type { SonarrInstance } from '@/features/sonarr/types/types'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { useConfig } from '@/hooks/useConfig'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 import { cn } from '@/lib/utils'
-import { useConfigStore } from '@/stores/configStore'
 import SyncedInstancesSelect from '../selects/sonarr-synced-instance-select'
 import DeleteInstanceAlert from './delete-instance-alert'
 import InstanceCardSkeleton from './sonarr-card-skeleton'
 import ConnectionSettings from './sonarr-connection-settings'
 
 interface InstanceCardProps {
-  instance: SonarrInstance
+  instance: SonarrInstanceResponse
   setShowInstanceCard?: (show: boolean) => void
 }
 
@@ -81,26 +81,18 @@ export function InstanceCard({
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [isManualSync, setIsManualSync] = useState(false)
   const tagsSelectRef = useRef<TagsMultiSelectRef>(null)
-  const instances = useSonarrStore((state) => state.instances)
-  const instancesLoading = useSonarrStore((state) => state.instancesLoading)
-  const setLoadingWithMinDuration = useSonarrStore(
-    (state) => state.setLoadingWithMinDuration,
-  )
-  const { config } = useConfigStore()
+  const { config } = useConfig()
   const isSessionMonitoringEnabled =
     config?.plexSessionMonitoring?.enabled || false
 
-  const {
-    instances: allInstances,
-    updateInstance,
-    deleteInstance,
-  } = useSonarrInstance(instance.id)
+  const { instances, updateInstance, deleteInstance, isUpdating } =
+    useSonarrInstance(instance.id)
 
   const {
     testStatus,
     saveStatus,
     isConnectionValid,
-    isNavigationTest,
+    isNavigationTesting,
     needsConfiguration,
     webhookError,
     setWebhookError,
@@ -112,7 +104,7 @@ export function InstanceCard({
 
   const { form, resetForm, cardRef } = useSonarrInstanceForm({
     instance,
-    instances: allInstances,
+    instances,
     isNew: instance.id === -1,
     isConnectionValid,
   })
@@ -153,7 +145,6 @@ export function InstanceCard({
     }
 
     setSaveStatus('loading')
-    setLoadingWithMinDuration(true)
 
     try {
       const minimumLoadingTime = new Promise((resolve) =>
@@ -183,30 +174,10 @@ export function InstanceCard({
     } catch (error) {
       setSaveStatus('error')
 
+      const errorMessage =
+        apiErrorMessage(error) ?? 'Failed to update Sonarr configuration'
+
       // Check for specific error about default instance
-      // Get the error message either from a direct Error object or from a fetch() response
-      let errorMessage = error instanceof Error ? error.message : String(error)
-
-      // Try to extract message from response data if it's a fetch error
-      try {
-        if (
-          error instanceof Response ||
-          (typeof error === 'object' &&
-            error &&
-            'status' in error &&
-            error.status === 400)
-        ) {
-          const data = await (error as Response).json()
-          errorMessage = data.message || errorMessage
-        }
-      } catch (_e) {
-        // If we can't parse the error as JSON, just use the error message we already have
-      }
-
-      console.log('Sonarr error handling in component:', {
-        errorMessage,
-        error,
-      }) // Debug log
       const isDefaultError = errorMessage.includes('default')
 
       toast.error(
@@ -227,7 +198,6 @@ export function InstanceCard({
         })
       }
     } finally {
-      setLoadingWithMinDuration(false)
       setSaveStatus('idle')
     }
   }
@@ -247,7 +217,7 @@ export function InstanceCard({
     }
   }
 
-  if (instancesLoading && instance.id !== -1 && isNavigationTest.current) {
+  if (isNavigationTesting && instance.id !== -1) {
     return <InstanceCardSkeleton />
   }
 
@@ -293,7 +263,7 @@ export function InstanceCard({
           <EditableCardHeader
             title={form.watch('name')}
             isNew={instance.id === -1}
-            isSaving={saveStatus === 'loading' || instancesLoading}
+            isSaving={saveStatus === 'loading' || isUpdating}
             isDirty={form.formState.isDirty || needsConfiguration}
             isValid={form.formState.isValid && isConnectionValid}
             badge={instance.isDefault ? { text: 'Default' } : undefined}
@@ -327,14 +297,28 @@ export function InstanceCard({
                       name="qualityProfile"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground">
-                            Quality Profile
-                          </FormLabel>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-foreground">
+                              Quality Profile
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  The default quality profile used when adding
+                                  content to this instance, unless a route
+                                  overrides it.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
                           <QualityProfileSelect
                             field={field}
+                            app="sonarr"
                             isConnectionValid={isConnectionValid}
                             selectedInstance={instance.id}
-                            instances={instances}
                           />
                           <FormMessage />
                         </FormItem>
@@ -347,14 +331,28 @@ export function InstanceCard({
                       name="rootFolder"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground">
-                            Root Folder
-                          </FormLabel>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-foreground">
+                              Root Folder
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  The default root folder used when adding
+                                  content to this instance, unless a route
+                                  overrides it.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
                           <RootFolderSelect
                             field={field}
+                            app="sonarr"
                             isConnectionValid={isConnectionValid}
                             selectedInstance={instance.id}
-                            instances={instances}
                           />
                           <FormMessage />
                         </FormItem>
@@ -745,7 +743,8 @@ export function InstanceCard({
                             <TooltipContent>
                               <p className="max-w-xs">
                                 The default instance will receive all content
-                                when no specific routing rules apply. Only one
+                                when no specific routing rules apply, unless
+                                Skip Content if No Match is enabled. Only one
                                 instance can be set as default at a time.
                               </p>
                             </TooltipContent>
@@ -766,6 +765,57 @@ export function InstanceCard({
                       </FormItem>
                     )}
                   />
+                  {form.watch('isDefault') && (
+                    <FormField
+                      control={form.control}
+                      name="skipDefaultRoutingWhenNoMatch"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-foreground">
+                              Skip Content if No Match
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs space-y-2">
+                                  <p className="text-xs italic text-muted-foreground">
+                                    Only applies while this is the default
+                                    instance.
+                                  </p>
+                                  <p>
+                                    When <strong>OFF</strong>, shows that match
+                                    none of your content router routes still
+                                    fall back to this instance and will be
+                                    routed and sent to Sonarr.
+                                  </p>
+                                  <p>
+                                    When <strong>ON</strong>, shows that match
+                                    none of your content router routes will be
+                                    skipped and not sent to Sonarr.
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <div className="flex h-10 items-center gap-2 px-3 py-2">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                disabled={!isConnectionValid}
+                              />
+                            </FormControl>
+                            <span className="text-sm text-foreground">
+                              Skip unmatched content
+                            </span>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </form>
             </Form>

@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
-import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
+import { useRunDeleteSyncDryRun } from '@/features/utilities/hooks/useDeleteSyncDryRun'
+import { useScheduleActions } from '@/features/utilities/hooks/useSchedules'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 /**
  * Manages state and actions for the delete synchronization feature.
@@ -32,8 +34,8 @@ import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
  * @returns An object containing state variables and action handlers for delete synchronization.
  */
 export function useDeleteSyncActions() {
-  const { runDryDeleteSync, runScheduleNow, toggleScheduleStatus } =
-    useUtilitiesStore()
+  const { runScheduleNow, toggleScheduleStatus } = useScheduleActions()
+  const dryRunMutation = useRunDeleteSyncDryRun()
 
   const [isDryRunLoading, setIsDryRunLoading] = useState(false)
   const [dryRunError, setDryRunError] = useState<string | null>(null)
@@ -144,12 +146,11 @@ export function useDeleteSyncActions() {
 
     try {
       // Start dry run process. Showing progress in the modal
-      await runDryDeleteSync()
+      await dryRunMutation.mutateAsync()
 
       toast.success('Dry run completed successfully')
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to run dry run'
+      const errorMessage = apiErrorMessage(err) ?? 'Failed to run dry run'
       setDryRunError(errorMessage)
       toast.error(errorMessage)
       // Close the modal on error after a short delay
@@ -159,7 +160,7 @@ export function useDeleteSyncActions() {
     } finally {
       setIsDryRunLoading(false)
     }
-  }, [runDryDeleteSync])
+  }, [dryRunMutation.mutateAsync])
 
   return {
     isDryRunLoading,

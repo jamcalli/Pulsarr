@@ -5,8 +5,8 @@ import {
   useApprovalConfiguration,
 } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
-import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
-import { api } from '@/lib/api'
+import { invalidateSchedules } from '@/features/utilities/hooks/useSchedules'
+import { apiFetch } from '@/lib/tanstackApi'
 
 /**
  * Combines approval configuration form management with scheduling controls in a single React hook.
@@ -21,9 +21,6 @@ export function useApprovalSystem() {
 
   // Scheduler management hook for operational controls
   const scheduleHook = useApprovalScheduler()
-
-  // Utilities store for schedule management
-  const { fetchSchedules } = useUtilitiesStore()
 
   // Sync scheduler data into form when it changes
   useEffect(() => {
@@ -57,26 +54,22 @@ export function useApprovalSystem() {
       try {
         const cronExpression = `0 */${data.scheduleInterval} * * *`
 
-        const response = await fetch(
-          api('/v1/scheduler/schedules/approval-maintenance'),
-          {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'cron',
-              config: { expression: cronExpression },
-              enabled: true,
-            }),
+        const { error } = await apiFetch.PUT('/v1/scheduler/schedules/{name}', {
+          params: { path: { name: 'approval-maintenance' } },
+          body: {
+            type: 'cron',
+            config: { expression: cronExpression },
+            enabled: true,
           },
-        )
+        })
 
-        if (!response.ok) {
+        if (error) {
           throw new Error('Failed to update approval maintenance schedule')
         }
 
         // Update local state and refresh schedules
         scheduleHook.handleApprovalIntervalChange(data.scheduleInterval)
-        await fetchSchedules()
+        await invalidateSchedules()
       } catch (err) {
         // Schedule update failed, but config was already saved successfully
         console.error(

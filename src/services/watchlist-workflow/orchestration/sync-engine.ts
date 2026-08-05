@@ -36,6 +36,7 @@ export interface SyncResult {
   skippedDueToMissingIds: number
   skippedDueToWatchlistCap: number
   skippedDueToExclusion: number
+  skippedDueToRouting: number
 }
 
 /**
@@ -84,6 +85,7 @@ export async function syncWatchlistItems(
         skippedDueToMissingIds: 0,
         skippedDueToWatchlistCap: 0,
         skippedDueToExclusion: 0,
+        skippedDueToRouting: 0,
       }
     }
 
@@ -105,6 +107,7 @@ export async function syncWatchlistItems(
         skippedDueToMissingIds: 0,
         skippedDueToWatchlistCap: 0,
         skippedDueToExclusion: 0,
+        skippedDueToRouting: 0,
       }
     }
 
@@ -127,6 +130,7 @@ export async function syncWatchlistItems(
           skippedDueToMissingIds: 0,
           skippedDueToWatchlistCap: 0,
           skippedDueToExclusion: 0,
+          skippedDueToRouting: 0,
         }
       }
     }
@@ -193,6 +197,7 @@ export async function syncWatchlistItems(
     let skippedDueToMissingIds = 0
     let skippedDueToWatchlistCap = 0
     let skippedDueToExclusion = 0
+    let skippedDueToRouting = 0
     const skippedItems: { shows: string[]; movies: string[] } = {
       shows: [],
       movies: [],
@@ -337,7 +342,11 @@ export async function syncWatchlistItems(
                 deps,
               )
 
-              return { type: 'show', added: result.routed }
+              return {
+                type: 'show',
+                added: result.routed,
+                skippedReason: result.skippedReason,
+              }
             }
             // Process movies
             if (item.type === 'movie') {
@@ -378,7 +387,11 @@ export async function syncWatchlistItems(
                 deps,
               )
 
-              return { type: 'movie', added: result.routed }
+              return {
+                type: 'movie',
+                added: result.routed,
+                skippedReason: result.skippedReason,
+              }
             }
 
             return { type: 'unknown' }
@@ -404,6 +417,12 @@ export async function syncWatchlistItems(
           showsAdded++
         } else if (value.type === 'movie' && value.added) {
           moviesAdded++
+        } else if (
+          (value.type === 'show' || value.type === 'movie') &&
+          (value.skippedReason === 'default-skip' ||
+            value.skippedReason === 'excluded')
+        ) {
+          skippedDueToRouting++
         } else if (value.type === 'skipped') {
           if (value.reason === 'user_setting') {
             skippedDueToUserSetting++
@@ -453,6 +472,7 @@ export async function syncWatchlistItems(
       skippedDueToMissingIds,
       skippedDueToWatchlistCap,
       skippedDueToExclusion,
+      skippedDueToRouting,
     }
 
     deps.logger.info(
@@ -463,6 +483,7 @@ export async function syncWatchlistItems(
         skippedDueToMissingIds: summary.skippedDueToMissingIds,
         skippedDueToWatchlistCap: summary.skippedDueToWatchlistCap,
         skippedDueToExclusion: summary.skippedDueToExclusion,
+        skippedDueToRouting: summary.skippedDueToRouting,
       },
       'Watchlist sync completed',
     )

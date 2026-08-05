@@ -1,5 +1,6 @@
 import {
   ApprovalErrorSchema,
+  ApprovalIdParamsSchema,
   ApprovalRequestCreateResponseSchema,
   ApprovalRequestsListResponseSchema,
   ApprovalRequestUpdateResponseSchema,
@@ -239,11 +240,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Get approval request by ID',
         operationId: 'getApprovalRequestById',
         description: 'Retrieve a specific approval request by its ID',
-        params: z.object({
-          id: z
-            .string()
-            .regex(/^\d+$/, { error: 'id must be a numeric string' }),
-        }),
+        params: ApprovalIdParamsSchema,
         response: {
           200: ApprovalRequestCreateResponseSchema,
           400: ApprovalErrorSchema,
@@ -255,10 +252,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const requestId = Number.parseInt(request.params.id, 10)
-        if (Number.isNaN(requestId)) {
-          return reply.badRequest('Invalid request id')
-        }
+        const requestId = request.params.id
         const approvalRequest = await fastify.db.getApprovalRequest(requestId)
 
         if (!approvalRequest) {
@@ -304,11 +298,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Update approval request',
         operationId: 'updateApprovalRequest',
         description: 'Update an approval request (approve, reject, or modify)',
-        params: z.object({
-          id: z
-            .string()
-            .regex(/^\d+$/, { error: 'id must be a numeric string' }),
-        }),
+        params: ApprovalIdParamsSchema,
         body: UpdateApprovalRequestSchema,
         response: {
           200: ApprovalRequestUpdateResponseSchema,
@@ -329,10 +319,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.unauthorized('User not authenticated')
         }
 
-        const requestId = Number.parseInt(request.params.id, 10)
-        if (Number.isNaN(requestId)) {
-          return reply.badRequest('Invalid request id')
-        }
+        const requestId = request.params.id
 
         const existingRequest = await fastify.db.getApprovalRequest(requestId)
         if (!existingRequest) {
@@ -481,11 +468,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Delete approval request',
         operationId: 'deleteApprovalRequest',
         description: 'Permanently delete an approval request from database',
-        params: z.object({
-          id: z
-            .string()
-            .regex(/^\d+$/, { error: 'id must be a numeric string' }),
-        }),
+        params: ApprovalIdParamsSchema,
         response: {
           200: ApprovalSuccessResponseSchema,
           400: ApprovalErrorSchema,
@@ -497,10 +480,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const requestId = Number.parseInt(request.params.id, 10)
-        if (Number.isNaN(requestId)) {
-          return reply.badRequest('Invalid request id')
-        }
+        const requestId = request.params.id
 
         const deleted =
           await fastify.approvalService.deleteApprovalRequest(requestId)
@@ -531,11 +511,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Reject approval request',
         operationId: 'rejectApprovalRequest',
         description: 'Reject an approval request (marks as rejected)',
-        params: z.object({
-          id: z
-            .string()
-            .regex(/^\d+$/, { error: 'id must be a numeric string' }),
-        }),
+        params: ApprovalIdParamsSchema,
         body: z.object({
           reason: z.string().optional(),
         }),
@@ -551,10 +527,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const requestId = Number.parseInt(request.params.id, 10)
-        if (Number.isNaN(requestId)) {
-          return reply.badRequest('Invalid request id')
-        }
+        const requestId = request.params.id
         const { reason } = request.body
         const rejectedBy = request.session.user?.id
         if (!rejectedBy) {
@@ -640,11 +613,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'approveAndExecuteRequest',
         description:
           'Approve an approval request and execute the proposed routing',
-        params: z.object({
-          id: z
-            .string()
-            .regex(/^\d+$/, { error: 'id must be a numeric string' }),
-        }),
+        params: ApprovalIdParamsSchema,
         body: z.object({
           notes: z.string().optional(),
         }),
@@ -661,10 +630,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const requestId = Number.parseInt(request.params.id, 10)
-        if (Number.isNaN(requestId)) {
-          return reply.badRequest('Invalid request id')
-        }
+        const requestId = request.params.id
         const { notes } = request.body
         const approvedBy = request.session.user?.id
         if (!approvedBy) {

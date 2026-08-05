@@ -1,7 +1,9 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import type { ApprovalStatus } from '@root/types/approval.types'
+import { z } from 'zod'
 import { create } from 'zustand'
-import { devtools, persist } from 'zustand/middleware'
+import { devtools } from 'zustand/middleware'
+import { type PrefDef, readPref, writePref } from '@/lib/prefs'
 
 /**
  * Filter state for approval requests.
@@ -92,94 +94,167 @@ const DEFAULT_FILTERS: ApprovalFilters = {
 
 const DEFAULT_PAGE_SIZE = 20
 
+const persistedPrefsSchema = z.object({
+  filters: z
+    .object({
+      status: z
+        .array(
+          z.enum([
+            'pending',
+            'approved',
+            'rejected',
+            'expired',
+            'auto_approved',
+          ]),
+        )
+        .catch([]),
+      userId: z.array(z.number()).catch([]),
+      contentType: z.array(z.enum(['movie', 'show'])).catch([]),
+      triggeredBy: z
+        .array(
+          z.enum([
+            'quota_exceeded',
+            'router_rule',
+            'manual_flag',
+            'content_criteria',
+          ]),
+        )
+        .catch([]),
+      search: z.string().catch(''),
+    })
+    .catch(DEFAULT_FILTERS),
+  pageSize: z.number().int().min(1).max(100).catch(DEFAULT_PAGE_SIZE),
+  sortBy: z
+    .enum([
+      'contentTitle',
+      'userName',
+      'status',
+      'triggeredBy',
+      'createdAt',
+      'expiresAt',
+    ])
+    .catch('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).catch('desc'),
+})
+
+type PersistedApprovalsPrefs = z.infer<typeof persistedPrefsSchema>
+
+const approvalsPrefsDef: PrefDef<PersistedApprovalsPrefs> = {
+  key: 'pulsarr-approvals-store',
+  fallback: {
+    filters: DEFAULT_FILTERS,
+    pageSize: DEFAULT_PAGE_SIZE,
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  },
+  parse: (raw) => {
+    try {
+      const parsed = JSON.parse(raw)
+      // Values written by the old zustand persist middleware are wrapped
+      // in { state, version }
+      const source =
+        typeof parsed === 'object' && parsed !== null && 'state' in parsed
+          ? parsed.state
+          : parsed
+      const result = persistedPrefsSchema.safeParse(source)
+      return result.success ? result.data : undefined
+    } catch {
+      return undefined
+    }
+  },
+  serialize: JSON.stringify,
+}
+
+const initialPrefs = readPref(approvalsPrefsDef)
+
 export const useApprovalsStore = create<ApprovalsUIState>()(
-  devtools(
-    persist(
-      (set) => ({
-        // Server-side filters
-        filters: DEFAULT_FILTERS,
-        setFilters: (newFilters) =>
-          set((state) => ({
-            filters: { ...state.filters, ...newFilters },
-            pageIndex: 0, // Reset to first page when filters change
-          })),
-        resetFilters: () =>
-          set({
-            filters: DEFAULT_FILTERS,
-            pageIndex: 0,
-          }),
+  devtools((set) => {
+    const persistPrefs = (state: {
+      filters: ApprovalFilters
+      pageSize: number
+      sortBy: ApprovalSortBy
+      sortOrder: SortOrder
+    }) => {
+      writePref(approvalsPrefsDef, {
+        filters: state.filters,
+        pageSize: state.pageSize,
+        sortBy: state.sortBy,
+        sortOrder: state.sortOrder,
+      })
+    }
 
-        // Server-side pagination
-        pageIndex: 0,
-        pageSize: DEFAULT_PAGE_SIZE,
-        setPageIndex: (index) => set({ pageIndex: index }),
-        setPageSize: (size) => set({ pageSize: size, pageIndex: 0 }),
-
-        // Server-side sorting
-        sortBy: 'createdAt' as ApprovalSortBy,
-        sortOrder: 'desc' as SortOrder,
-        setSorting: (sortBy, sortOrder) => set({ sortBy, sortOrder }),
-
-        // Individual action modal
-        selectedRequest: null,
-        setSelectedRequest: (request) => set({ selectedRequest: request }),
-        isActionsModalOpen: false,
-        setActionsModalOpen: (open) => set({ isActionsModalOpen: open }),
-
-        // Bulk action modal
-        isBulkModalOpen: false,
-        setBulkModalOpen: (open) => set({ isBulkModalOpen: open }),
-        selectedRequests: [],
-        setSelectedRequests: (requests) => set({ selectedRequests: requests }),
-        bulkActionType: null,
-        setBulkActionType: (type) => set({ bulkActionType: type }),
-
-        openActionsModal: (request) =>
-          set({
-            selectedRequest: request,
-            isActionsModalOpen: true,
-          }),
-        closeActionsModal: () =>
-          set({
-            isActionsModalOpen: false,
-            selectedRequest: null,
-          }),
-
-        openBulkModal: (requests, action) =>
-          set({
-            selectedRequests: requests,
-            bulkActionType: action,
-            isBulkModalOpen: true,
-          }),
-        closeBulkModal: () =>
-          set({
-            isBulkModalOpen: false,
-            selectedRequests: [],
-            bulkActionType: null,
-          }),
-      }),
-      {
-        name: 'pulsarr-approvals-store',
-        partialize: (state) => ({
-          filters: state.filters,
-          pageSize: state.pageSize,
-          sortBy: state.sortBy,
-          sortOrder: state.sortOrder,
+    return {
+      // Server-side filters
+      filters: initialPrefs.filters,
+      setFilters: (newFilters) =>
+        set((state) => {
+          const filters = { ...state.filters, ...newFilters }
+          persistPrefs({ ...state, filters })
+          // Reset to first page when filters change
+          return { filters, pageIndex: 0 }
         }),
-        // Merge persisted state with defaults to handle schema migrations
-        merge: (persisted, current) => {
-          const persistedState = persisted as Partial<ApprovalsUIState>
-          return {
-            ...current,
-            ...persistedState,
-            // Ensure filters always have all required fields with defaults
-            filters: {
-              ...DEFAULT_FILTERS,
-              ...persistedState.filters,
-            },
-          }
-        },
-      },
-    ),
-  ),
+      resetFilters: () =>
+        set((state) => {
+          persistPrefs({ ...state, filters: DEFAULT_FILTERS })
+          return { filters: DEFAULT_FILTERS, pageIndex: 0 }
+        }),
+
+      // Server-side pagination
+      pageIndex: 0,
+      pageSize: initialPrefs.pageSize,
+      setPageIndex: (index) => set({ pageIndex: index }),
+      setPageSize: (size) =>
+        set((state) => {
+          persistPrefs({ ...state, pageSize: size })
+          return { pageSize: size, pageIndex: 0 }
+        }),
+
+      // Server-side sorting
+      sortBy: initialPrefs.sortBy,
+      sortOrder: initialPrefs.sortOrder,
+      setSorting: (sortBy, sortOrder) =>
+        set((state) => {
+          persistPrefs({ ...state, sortBy, sortOrder })
+          return { sortBy, sortOrder }
+        }),
+
+      // Individual action modal
+      selectedRequest: null,
+      setSelectedRequest: (request) => set({ selectedRequest: request }),
+      isActionsModalOpen: false,
+      setActionsModalOpen: (open) => set({ isActionsModalOpen: open }),
+
+      // Bulk action modal
+      isBulkModalOpen: false,
+      setBulkModalOpen: (open) => set({ isBulkModalOpen: open }),
+      selectedRequests: [],
+      setSelectedRequests: (requests) => set({ selectedRequests: requests }),
+      bulkActionType: null,
+      setBulkActionType: (type) => set({ bulkActionType: type }),
+
+      openActionsModal: (request) =>
+        set({
+          selectedRequest: request,
+          isActionsModalOpen: true,
+        }),
+      closeActionsModal: () =>
+        set({
+          isActionsModalOpen: false,
+          selectedRequest: null,
+        }),
+
+      openBulkModal: (requests, action) =>
+        set({
+          selectedRequests: requests,
+          bulkActionType: action,
+          isBulkModalOpen: true,
+        }),
+      closeBulkModal: () =>
+        set({
+          isBulkModalOpen: false,
+          selectedRequests: [],
+          bulkActionType: null,
+        }),
+    }
+  }),
 )

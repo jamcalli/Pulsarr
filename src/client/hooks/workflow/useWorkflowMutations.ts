@@ -1,55 +1,39 @@
-import {
-  type StartWorkflowBody,
-  type WatchlistWorkflowResponse,
-  WatchlistWorkflowResponseSchema,
-} from '@root/schemas/watchlist-workflow/watchlist-workflow.schema'
-import { apiClient } from '@/lib/apiClient'
-import { useAppMutation } from '@/lib/useAppQuery'
+import type { StartWorkflowBody } from '@root/schemas/watchlist-workflow/watchlist-workflow.schema'
+import { useMutation } from '@tanstack/react-query'
+import { apiFetch } from '@/lib/tanstackApi'
+import { useMinLoadingMutation } from '@/lib/useMinLoading'
 
 /**
  * Mutation hook for starting the watchlist workflow.
- *
- * @example
- * ```typescript
- * const { mutate: startWorkflow, isPending } = useStartWorkflow()
- *
- * startWorkflow({ autoStart: true }, {
- *   onSuccess: (data) => toast.success(data.message),
- *   onError: (error) => toast.error(error.message),
- * })
- * ```
  */
 export function useStartWorkflow() {
-  return useAppMutation<WatchlistWorkflowResponse, Error, StartWorkflowBody>({
-    mutationFn: (body) =>
-      apiClient.post(
-        '/v1/watchlist-workflow/start',
-        body ?? {},
-        WatchlistWorkflowResponseSchema,
-      ),
-  })
+  return useMinLoadingMutation(
+    useMutation({
+      mutationFn: async (body: StartWorkflowBody) => {
+        const { data, error } = await apiFetch.POST(
+          '/v1/watchlist-workflow/start',
+          { body: body ?? {} },
+        )
+        if (error) throw error
+        return data
+      },
+    }),
+  )
 }
 
 /**
  * Mutation hook for stopping the watchlist workflow.
- *
- * @example
- * ```typescript
- * const { mutate: stopWorkflow, isPending } = useStopWorkflow()
- *
- * stopWorkflow(undefined, {
- *   onSuccess: () => toast.success('Workflow stopped'),
- *   onError: (error) => toast.error(error.message),
- * })
- * ```
  */
 export function useStopWorkflow() {
-  return useAppMutation<WatchlistWorkflowResponse, Error, void>({
-    mutationFn: () =>
-      apiClient.post(
-        '/v1/watchlist-workflow/stop',
-        {},
-        WatchlistWorkflowResponseSchema,
-      ),
-  })
+  return useMinLoadingMutation(
+    useMutation({
+      mutationFn: async () => {
+        const { data, error } = await apiFetch.POST(
+          '/v1/watchlist-workflow/stop',
+        )
+        if (error) throw error
+        return data
+      },
+    }),
+  )
 }

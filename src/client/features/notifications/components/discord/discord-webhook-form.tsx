@@ -23,8 +23,8 @@ import {
   type WebhookFormSchema,
   webhookFormSchema,
 } from '@/features/notifications/schemas/form-schemas'
-import { api } from '@/lib/api'
-import { useConfigStore } from '@/stores/configStore'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 interface DiscordWebhookFormProps {
   isInitialized: boolean
@@ -38,8 +38,7 @@ interface DiscordWebhookFormProps {
  * @param isInitialized - Whether the configuration is ready for editing.
  */
 export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
-  const config = useConfigStore((state) => state.config)
-  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const { config } = useConfig()
   const [webhookStatus, setWebhookStatus] = React.useState<
     'idle' | 'loading' | 'testing' | 'success' | 'error'
   >('idle')
@@ -120,29 +119,17 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
       }
 
       // Call our backend validation endpoint
-      const response = await fetch(api('/v1/notifications/validatewebhook'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ webhookUrls: trimmed }),
-      })
+      const { data: result, error: fetchError } = await apiFetch.POST(
+        '/v1/notifications/validatewebhook',
+        { body: { webhookUrls: trimmed } },
+      )
 
-      if (!response.ok) {
-        let message = 'Error validating webhooks'
-        try {
-          const errorData = await response.json()
-          message = errorData?.message ?? message
-        } catch (_) {
-          // Ignore JSON parse failures and use default message
-        }
+      if (fetchError) {
         return {
           valid: false,
-          error: message,
+          error: apiErrorMessage(fetchError) ?? 'Error validating webhooks',
         }
       }
-
-      const result = await response.json()
 
       // Map the server response to the expected format
       if (!result.valid) {

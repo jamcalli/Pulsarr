@@ -30,6 +30,8 @@ export interface RouteContentResult {
   /** Reason if skipped */
   skippedReason?:
     | 'no-target'
+    | 'default-skip'
+    | 'excluded'
     | 'exists-in-target'
     | 'exists-on-plex'
     | 'no-instances-available'
@@ -264,12 +266,18 @@ export async function routeShow(
     syncing: false,
   }
 
-  const targetInstanceIds = await deps.contentRouter.getTargetInstances(
-    sonarrItem,
-    context,
-  )
+  const { instanceIds: targetInstanceIds, skipReason } =
+    await deps.contentRouter.getTargetInstances(sonarrItem, context)
 
   if (targetInstanceIds.length === 0) {
+    // Deliberate skip (skip toggle or exclude rule) - use debug level to
+    // avoid log spam during reconciliation; warn only when unexplained
+    if (skipReason) {
+      deps.logger.debug(
+        `Show ${tempItem.title} not routed (${skipReason}), skipping`,
+      )
+      return { routed: false, skippedReason: skipReason }
+    }
     deps.logger.warn(
       `No target instances available for show ${tempItem.title}, skipping`,
     )
@@ -402,12 +410,18 @@ export async function routeMovie(
     syncing: false,
   }
 
-  const targetInstanceIds = await deps.contentRouter.getTargetInstances(
-    radarrItem,
-    context,
-  )
+  const { instanceIds: targetInstanceIds, skipReason } =
+    await deps.contentRouter.getTargetInstances(radarrItem, context)
 
   if (targetInstanceIds.length === 0) {
+    // Deliberate skip (skip toggle or exclude rule) - use debug level to
+    // avoid log spam during reconciliation; warn only when unexplained
+    if (skipReason) {
+      deps.logger.debug(
+        `Movie ${tempItem.title} not routed (${skipReason}), skipping`,
+      )
+      return { routed: false, skippedReason: skipReason }
+    }
     deps.logger.warn(
       `No target instances available for movie ${tempItem.title}, skipping`,
     )

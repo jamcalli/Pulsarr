@@ -10,7 +10,7 @@ import {
   CredenzaHeader,
   CredenzaTitle,
 } from '@/components/ui/credenza';
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 interface LogoutAlertProps {
   open: boolean;
@@ -30,28 +30,21 @@ export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch(api('/v1/users/logout'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({}),
+      const { data, error } = await apiFetch.POST('/v1/users/logout', {
+        body: {},
       });
-      
-      const data = response.ok 
-        ? await response.json()
-        : await response.json().catch(() => ({ success: false, message: response.statusText }));
-      
-      if (response.ok && data.success) {
+
+      if (!error && data.success) {
         toast.success(data.message || 'Successfully logged out');
         navigate('/login');
       } else {
         // Close the logout dialog
         onOpenChange(false);
-        
+
         // Show the error message from the server
-        toast.error(data.message || 'Failed to log out. Please try again.');
+        toast.error(
+          apiErrorMessage(error) || 'Failed to log out. Please try again.',
+        );
       }
     } catch (error) {
       console.error('Logout error:', error);

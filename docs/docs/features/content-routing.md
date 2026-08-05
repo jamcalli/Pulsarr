@@ -51,6 +51,22 @@ Each rule can configure special behaviors:
 | **Require Approval** | Force content matching this rule to require admin approval |
 | **Bypass Quotas** | Allow content to skip user quota limits |
 | **Approval Reason** | Custom message shown when approval is required |
+| **Exclude from Routing** | Never send matching content to Radarr/Sonarr (absolute veto) |
+
+:::tip Exclude Rules
+An exclude rule wins over all other matching rules regardless of priority weight. Use it to block specific content (e.g. a genre or user) even when another rule would otherwise route it.
+:::
+
+## Default Instance Fallback
+
+When no routing rule matches, content falls back to the default Sonarr or Radarr instance. On each instance card, the **Skip Content if No Match** toggle (visible only while that instance is the default) controls this behavior:
+
+| Setting           | Behavior                                                   |
+| ----------------- | ---------------------------------------------------------- |
+| **OFF** (default) | Unmatched content is sent to the default instance          |
+| **ON**            | Unmatched content is skipped and not sent to that instance |
+
+Radarr and Sonarr defaults are configured independently — enabling skip on one does not affect the other.
 
 ## Instance Overrides
 
@@ -110,7 +126,7 @@ Anime Rule 2 → Anime-Sonarr-4K (priority 90)
 Both rules fire for anime content, sending to both instances with their respective configurations.
 
 :::tip Priority Behavior
-Priorities only matter when multiple rules target the *same* instance. The highest priority rule wins and applies its settings. Rules targeting *different* instances all execute independently.
+Priorities only matter when multiple rules target the *same* instance. The highest priority rule wins and applies its settings. Rules targeting *different* instances all execute independently. Exclude rules always take precedence over normal rules regardless of priority weight.
 :::
 
 For multi-instance synchronization features, see [Multi-Instance Support](multi-instance-support).

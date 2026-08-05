@@ -1,9 +1,11 @@
-import type { OthersWatchlistSuccess } from '@root/schemas/plex/others-watchlist-token.schema'
-import type { SelfWatchlistSuccess } from '@root/schemas/plex/self-watchlist-token.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
-import { useConfigStore } from '@/stores/configStore'
+import {
+  invalidateUserData,
+  useOthersWatchlistInfo,
+  useSelfWatchlistInfo,
+} from '@/features/plex/hooks/usePlexUsers'
+import { apiFetch } from '@/lib/tanstackApi'
 
 export type WatchlistStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -15,16 +17,8 @@ export type WatchlistStatus = 'idle' | 'loading' | 'success' | 'error'
  * @returns An object containing self and others watchlist data, their loading statuses, status setters, and a refresh function.
  */
 export function usePlexWatchlist() {
-  const fetchUserData = useConfigStore((state) => state.fetchUserData)
-  const getSelfWatchlistInfo = useConfigStore(
-    (state) => state.getSelfWatchlistInfo,
-  )
-  const getOthersWatchlistInfo = useConfigStore(
-    (state) => state.getOthersWatchlistInfo,
-  )
-
-  const selfWatchlist = getSelfWatchlistInfo()
-  const othersWatchlist = getOthersWatchlistInfo()
+  const selfWatchlist = useSelfWatchlistInfo()
+  const othersWatchlist = useOthersWatchlistInfo()
 
   const [selfWatchlistStatus, setSelfWatchlistStatus] =
     useState<WatchlistStatus>('idle')
@@ -40,30 +34,20 @@ export function usePlexWatchlist() {
         setTimeout(resolve, 500),
       )
 
-      const [selfResponse, othersResponse] = await Promise.all([
-        fetch(api('/v1/plex/self-watchlist-token')),
-        fetch(api('/v1/plex/others-watchlist-token')),
+      const [selfResult, othersResult] = await Promise.all([
+        apiFetch.GET('/v1/plex/self-watchlist-token'),
+        apiFetch.GET('/v1/plex/others-watchlist-token'),
         minimumLoadingTime,
       ])
 
-      // Get the response data to make sure it's valid
-      if (!selfResponse.ok || !othersResponse.ok) {
-        throw new Error('Failed to fetch watchlist data')
-      }
-
-      // Convert responses to their proper types
-      const selfData: SelfWatchlistSuccess = await selfResponse.json()
-      const othersData: OthersWatchlistSuccess = await othersResponse.json()
-
-      if (!selfData || !othersData) {
-        throw new Error('Invalid watchlist data received')
-      }
+      if (selfResult.error) throw selfResult.error
+      if (othersResult.error) throw othersResult.error
 
       setSelfWatchlistStatus('success')
       setOthersWatchlistStatus('success')
 
       // Refresh user data
-      await fetchUserData()
+      await invalidateUserData()
 
       toast.success('Watchlist data has been updated')
     } catch (_error) {

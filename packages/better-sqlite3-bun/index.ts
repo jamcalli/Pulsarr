@@ -2,6 +2,7 @@ import { Database as BunDatabase } from 'bun:sqlite'
 
 interface DatabaseOptions {
   readonly?: boolean
+  fileMustExist?: boolean
   timeout?: number
   verbose?: (sql: string) => void
 }
@@ -15,29 +16,36 @@ class Statement {
   private stmt: ReturnType<BunDatabase['prepare']>
   private verbose?: (sql: string) => void
   private boundParams?: unknown[]
-  private rawMode: boolean
+  private rawMode = false
 
   constructor(
     stmt: ReturnType<BunDatabase['prepare']>,
     verbose?: (sql: string) => void,
-    boundParams?: unknown[],
-    rawMode = false,
   ) {
     this.stmt = stmt
     this.verbose = verbose
-    this.boundParams = boundParams
-    this.rawMode = rawMode
   }
 
   get reader(): boolean {
     return this.stmt.columnNames.length > 0
   }
 
+  // better-sqlite3 treats params passed after bind() as an error
+  private resolveParams(params: unknown[]): unknown[] {
+    if (this.boundParams) {
+      if (params.length > 0) {
+        throw new TypeError('This statement already has bound parameters')
+      }
+      return this.boundParams
+    }
+    return params
+  }
+
   run(...params: unknown[]): RunResult {
     if (this.verbose) {
       this.verbose(this.stmt.toString())
     }
-    const finalParams = this.boundParams || params
+    const finalParams = this.resolveParams(params)
     const result = this.stmt.run(...finalParams)
     return {
       changes: result.changes,
@@ -49,7 +57,7 @@ class Statement {
     if (this.verbose) {
       this.verbose(this.stmt.toString())
     }
-    const finalParams = this.boundParams || params
+    const finalParams = this.resolveParams(params)
     if (this.rawMode) {
       const results = this.stmt.values(...finalParams) as unknown[][]
       return results[0]
@@ -61,7 +69,7 @@ class Statement {
     if (this.verbose) {
       this.verbose(this.stmt.toString())
     }
-    const finalParams = this.boundParams || params
+    const finalParams = this.resolveParams(params)
     if (this.rawMode) {
       return this.stmt.values(...finalParams) as unknown[][]
     }
@@ -74,7 +82,7 @@ class Statement {
     if (this.verbose) {
       this.verbose(this.stmt.toString())
     }
-    const finalParams = this.boundParams || params
+    const finalParams = this.resolveParams(params)
     if (this.rawMode) {
       // Bun has no streaming API for arrays - must buffer
       const results = this.stmt.values(...finalParams) as unknown[][]
@@ -89,38 +97,57 @@ class Statement {
     }
   }
 
-  bind(...params: unknown[]): Statement {
-    return new Statement(this.stmt, this.verbose, params, this.rawMode)
+  bind(...params: unknown[]): this {
+    if (this.boundParams) {
+      throw new TypeError(
+        'The bind() method can only be invoked once per statement object',
+      )
+    }
+    this.boundParams = params
+    return this
   }
 
-  raw(enabled = true): Statement {
-    return new Statement(this.stmt, this.verbose, this.boundParams, enabled)
+  raw(toggle = true): this {
+    this.rawMode = toggle !== false
+    return this
+  }
+
+  safeIntegers(toggle = true): this {
+    this.stmt.safeIntegers(toggle !== false)
+    return this
   }
 }
 
 class Database {
   private db: BunDatabase
   private verbose?: (sql: string) => void
+  private safeIntegersDefault = false
 
   constructor(path: string, options: DatabaseOptions = {}) {
+    // better-sqlite3 defaults to a 5s busy timeout; Bun's constructor has
+    // no timeout option and its busy_timeout default is 0
+    const timeout = options.timeout ?? 5000
+    if (!Number.isFinite(timeout) || timeout < 0) {
+      throw new TypeError('timeout must be a non-negative finite number')
+    }
+
     this.db = new BunDatabase(path, {
       readwrite: !options.readonly,
       readonly: options.readonly,
-      create: true,
+      // better-sqlite3 never creates in readonly mode and throws on a
+      // missing file when fileMustExist is set
+      create: !options.readonly && !options.fileMustExist,
     })
     this.verbose = options.verbose
 
-    // Apply busy timeout via PRAGMA (Bun's constructor doesn't support timeout directly)
-    if (options.timeout !== undefined) {
-      if (!Number.isFinite(options.timeout) || options.timeout < 0) {
-        throw new TypeError('timeout must be a non-negative finite number')
-      }
-      this.db.exec(`PRAGMA busy_timeout = ${options.timeout}`)
-    }
+    this.db.exec(`PRAGMA busy_timeout = ${timeout}`)
   }
 
   prepare(sql: string): Statement {
     const stmt = this.db.prepare(sql)
+    if (this.safeIntegersDefault) {
+      stmt.safeIntegers(true)
+    }
     return new Statement(stmt, this.verbose)
   }
 
@@ -139,6 +166,11 @@ class Database {
 
   transaction<T extends (...args: unknown[]) => unknown>(fn: T): T {
     return this.db.transaction(fn) as unknown as T
+  }
+
+  defaultSafeIntegers(toggle = true): this {
+    this.safeIntegersDefault = toggle !== false
+    return this
   }
 }
 

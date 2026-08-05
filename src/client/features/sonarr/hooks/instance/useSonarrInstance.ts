@@ -1,37 +1,43 @@
 import { useCallback } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
+import {
+  useDeleteSonarrInstanceMutation,
+  useSonarrInstancesQuery,
+  useUpdateSonarrInstanceMutation,
+} from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 
 /**
- * React hook for managing a specific Sonarr instance by ID, providing access to instance data and handlers for updating, deleting, and fetching instance information.
+ * React hook for managing a specific Sonarr instance by ID, providing access to instance data and handlers for updating and deleting it.
  *
  * If the last real Sonarr instance is deleted, it is replaced with a default placeholder configuration to ensure at least one instance remains.
  *
  * @param instanceId - The ID of the Sonarr instance to manage.
- * @returns An object containing the current instance, all instances, and functions to update, delete, and fetch data for the specified instance.
+ * @returns An object containing the current instance, all instances, pending states, and functions to update and delete the specified instance.
  */
 export function useSonarrInstance(instanceId: number) {
-  const instance = useSonarrStore((state) =>
-    state.instances.find((i) => i.id === instanceId),
-  )
-  const instances = useSonarrStore((state) => state.instances)
-  const updateInstance = useSonarrStore((state) => state.updateInstance)
-  const deleteInstance = useSonarrStore((state) => state.deleteInstance)
-  const fetchInstanceData = useSonarrStore((state) => state.fetchInstanceData)
-  const fetchInstances = useSonarrStore((state) => state.fetchInstances)
+  const instancesQuery = useSonarrInstancesQuery()
+  const instances = instancesQuery.data ?? []
+  const instance = instances.find((i) => i.id === instanceId)
+  const updateMutation = useUpdateSonarrInstanceMutation()
+  const deleteMutation = useDeleteSonarrInstanceMutation()
+  const { mutateAsync: updateAsync } = updateMutation
+  const { mutateAsync: deleteAsync } = deleteMutation
 
   const handleUpdateInstance = useCallback(
     async (data: SonarrInstanceSchema) => {
-      await updateInstance(instanceId, {
-        ...data,
-        name: data.name.trim(),
-        syncedInstances: data.syncedInstances || [],
+      await updateAsync({
+        id: instanceId,
+        updates: {
+          ...data,
+          name: data.name.trim(),
+          syncedInstances: data.syncedInstances || [],
+        },
       })
     },
-    [instanceId, updateInstance],
+    [instanceId, updateAsync],
   )
 
   const handleDeleteInstance = useCallback(
@@ -62,7 +68,7 @@ export function useSonarrInstance(instanceId: number) {
             seriesType: 'standard',
           }
 
-          await updateInstance(instanceId, defaultInstance)
+          await updateAsync({ id: instanceId, updates: defaultInstance })
 
           form.reset(defaultInstance, {
             keepDirty: false,
@@ -72,12 +78,11 @@ export function useSonarrInstance(instanceId: number) {
             keepErrors: false,
           })
         } else {
-          await deleteInstance(instanceId)
+          await deleteAsync(instanceId)
         }
 
         setIsConnectionValid(false)
         setTestStatus('idle')
-        await fetchInstances()
 
         toast.success(
           isLastRealInstance
@@ -85,11 +90,15 @@ export function useSonarrInstance(instanceId: number) {
             : 'Sonarr instance has been deleted',
         )
       } catch (error) {
-        toast.error('Failed to delete instance')
+        toast.error(
+          isLastRealInstance
+            ? 'Failed to clear Sonarr configuration'
+            : 'Failed to delete instance',
+        )
         throw error
       }
     },
-    [instanceId, instances, updateInstance, deleteInstance, fetchInstances],
+    [instanceId, instances, updateAsync, deleteAsync],
   )
 
   return {
@@ -97,6 +106,7 @@ export function useSonarrInstance(instanceId: number) {
     instances,
     updateInstance: handleUpdateInstance,
     deleteInstance: handleDeleteInstance,
-    fetchInstanceData: () => fetchInstanceData(instanceId.toString()),
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   }
 }

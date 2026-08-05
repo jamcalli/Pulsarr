@@ -2,27 +2,25 @@ import { Network } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NetworkConfigCredenza } from '@/components/network-config-credenza'
 import { Button } from '@/components/ui/button'
+import { PageError } from '@/components/ui/page-error'
 import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-card-skeleton'
 import { InstanceCard } from '@/features/sonarr/components/instance/sonarr-instance-card'
+import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSonarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
-import { useConfigStore } from '@/stores/configStore'
+import { useConfig } from '@/hooks/useConfig'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 /**
  * Renders the page for managing Sonarr instances, enabling users to add, view, and configure their Sonarr connections.
  *
- * Initializes both Sonarr and configuration stores on mount, manages loading and initialization states, and conditionally displays UI for adding new instances or listing existing ones.
- *
  * @returns The React component for the Sonarr Instances management page.
  */
 export default function SonarrInstancesPage() {
-  const instances = useSonarrStore((state) => state.instances)
-  const instancesLoading = useSonarrStore((state) => state.instancesLoading)
-  const isInitialized = useSonarrStore((state) => state.isInitialized)
-  const initialize = useSonarrStore((state) => state.initialize)
+  const { data, isLoading, isError, error, refetch } = useSonarrInstancesQuery()
+  const instances = data ?? []
 
-  // Add config store initialization for session monitoring support
-  const configInitialize = useConfigStore((state) => state.initialize)
+  // Initialize config for session monitoring support
+  const { initialize: configInitialize } = useConfig()
 
   const hasInitializedRef = useRef(false)
   const [showInstanceCard, setShowInstanceCard] = useState(false)
@@ -30,11 +28,10 @@ export default function SonarrInstancesPage() {
 
   useEffect(() => {
     if (!hasInitializedRef.current) {
-      initialize(true)
-      configInitialize() // Initialize config store for session monitoring
+      configInitialize() // Initialize config for session monitoring
       hasInitializedRef.current = true
     }
-  }, [initialize, configInitialize])
+  }, [configInitialize])
 
   const addInstance = () => {
     setShowInstanceCard(true)
@@ -43,15 +40,24 @@ export default function SonarrInstancesPage() {
   const isPlaceholderInstance =
     instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
 
-  if (!isInitialized) {
-    return null
-  }
-
   const hasRealInstances = instances.some(
     (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
   )
 
-  if (instancesLoading && hasRealInstances) {
+  if (isError && data === undefined) {
+    return (
+      <PageError
+        message={apiErrorMessage(error) ?? 'Failed to load Sonarr instances'}
+        onRetry={() => refetch()}
+      />
+    )
+  }
+
+  if (data === undefined) {
+    return <SonarrPageSkeleton />
+  }
+
+  if (isLoading && hasRealInstances) {
     return <SonarrPageSkeleton />
   }
 
@@ -107,9 +113,11 @@ export default function SonarrInstancesPage() {
                     searchOnAdd: true,
                     createSeasonFolders: false,
                     tags: [],
-                    isDefault: instances.length === 0,
+                    isDefault: !hasRealInstances,
                     qualityProfile: '',
                     rootFolder: '',
+                    seriesType: 'standard',
+                    skipDefaultRoutingWhenNoMatch: false,
                   }}
                   setShowInstanceCard={setShowInstanceCard}
                 />

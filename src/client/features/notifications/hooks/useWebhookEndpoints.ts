@@ -66,10 +66,11 @@ export interface WebhookEndpointFormValues {
 export function useWebhookEndpoints() {
   // React Query hooks
   const {
-    data: endpoints = [],
+    data,
     isLoading: isFetchLoading,
     error: fetchError,
   } = useWebhookEndpointsQuery()
+  const endpoints = data ?? []
 
   const createMutation = useCreateWebhookEndpoint()
   const updateMutation = useUpdateWebhookEndpoint()
@@ -258,7 +259,7 @@ export function useWebhookEndpoints() {
           closeModal()
         }, 1000)
       } catch (error) {
-        // Error is already handled by apiClient and React Query
+        // Errors are surfaced by the mutation hooks
         console.error('Failed to save webhook endpoint:', error)
       }
     },
@@ -314,7 +315,8 @@ export function useWebhookEndpoints() {
   return {
     // Data state (React Query)
     endpoints,
-    isLoading: isFetchLoading,
+    // Empty state is only knowable once data exists
+    isLoading: isFetchLoading || data === undefined,
     error: fetchError,
 
     // Mutations (React Query)

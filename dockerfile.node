@@ -1,5 +1,5 @@
 # Build stage: full install + compile (Node.js for Synology/legacy kernel compatibility)
-FROM node:24.18.0-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS builder
+FROM node:24.19.0-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS builder
 WORKDIR /app
 
 ARG TMDBAPIKEY
@@ -11,8 +11,8 @@ ENV tmdbApiKey=${TMDBAPIKEY}
 # - Replace bun commands with npm/node equivalents
 COPY package.json ./package.json.bak
 RUN cat package.json.bak \
-    | sed 's|"file:packages/better-sqlite3-bun"|"12.11.1"|' \
-    | sed '/"better-sqlite3":/a\    "tsx": "^4.23.1",' \
+    | sed 's|"file:packages/better-sqlite3-bun"|"13.0.2"|' \
+    | sed '/"better-sqlite3":/a\    "tsx": "^4.23.5",' \
     | sed 's|bun run build:server|npm run build:server|g' \
     | sed 's|bun run clean:server|npm run clean:server|g' \
     | sed 's|bun run clean:client|npm run clean:client|g' \
@@ -36,7 +36,7 @@ RUN npm prune --omit=dev && \
            node_modules/rolldown node_modules/@rolldown
 
 # Final runtime image
-FROM node:24.18.0-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd
+FROM node:24.19.0-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43
 WORKDIR /app
 
 # tini for proper PID 1 zombie reaping, wget for healthcheck, su-exec for privilege drop

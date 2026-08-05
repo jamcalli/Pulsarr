@@ -13,7 +13,7 @@ import { AspectRatio } from '@/components/ui/aspect-ratio'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { TmdbRegionSelector } from '@/components/ui/tmdb-region-selector'
-import { useConfigStore } from '@/stores/configStore'
+import { useConfig } from '@/hooks/useConfig'
 
 interface TmdbMetadataDisplayProps {
   data: TmdbMetadataSuccessResponse
@@ -38,7 +38,7 @@ export function TmdbMetadataDisplay({
     'radarrRatings' in metadata ? metadata.radarrRatings : undefined
   const plexRatings =
     'plexRatings' in metadata ? metadata.plexRatings : undefined
-  const config = useConfigStore((state) => state.config)
+  const { config } = useConfig()
 
   // Check if it's movie or TV show based on the presence of 'title' vs 'name'
   const isMovie = 'title' in details

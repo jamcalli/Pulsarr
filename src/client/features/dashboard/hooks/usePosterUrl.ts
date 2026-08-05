@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { api } from '@/lib/api'
 import { buildPosterUrl, type PosterContext } from '@/lib/poster-url'
+import { apiFetch } from '@/lib/tanstackApi'
 
 interface UsePosterUrlOptions {
   /** Normalized poster path from DB (fast path - no API call needed) */
@@ -100,22 +100,14 @@ export function usePosterUrl({
 
     const fetchPoster = async () => {
       try {
-        const queryParams = new URLSearchParams({ type: contentType })
-        const response = await fetch(
-          api(
-            `/v1/tmdb/metadata/${encodeURIComponent(guidToUse)}?${queryParams}`,
-          ),
-          {
-            signal: abortController.signal,
-            headers: { Accept: 'application/json' },
-          },
-        )
+        const { data, error } = await apiFetch.GET('/v1/tmdb/metadata/{id}', {
+          params: { path: { id: guidToUse }, query: { type: contentType } },
+          signal: abortController.signal,
+        })
 
-        if (!response.ok) {
+        if (error) {
           throw new Error('Failed to fetch metadata')
         }
-
-        const data = await response.json()
         const posterPath = data?.metadata?.details?.poster_path
 
         if (posterPath) {

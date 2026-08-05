@@ -1,14 +1,14 @@
 import type { BulkQuotaOperation } from '@root/schemas/quota/quota.schema.js'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
+import { invalidateQuotaData } from '@/features/plex/hooks/usePlexUsers'
 import type {
   BulkQuotaFormData,
   QuotaEditStatus,
 } from '@/features/plex/quota/form-schema'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
-import { api } from '@/lib/api'
-import { useConfigStore } from '@/stores/configStore'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 /**
  * Helper function to format success messages for bulk quota operations.
@@ -61,28 +61,16 @@ function buildQuotaPayload(
  * @returns An object with the current save status, a function to perform bulk quota operations, and a setter for the save status.
  */
 export function useBulkQuotaManagement() {
-  const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)
   const [saveStatus, setSaveStatus] = useState<QuotaEditStatus>({
     type: 'idle',
   })
 
   const deleteQuotas = useCallback(async (userIds: number[]) => {
-    const response = await fetch(api('/v1/quota/users/bulk'), {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userIds,
-        operation: 'delete',
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`Bulk delete operation failed: ${response.status}`)
-    }
-
-    const result = await response.json()
+    const { data: result, error } = await apiFetch.PATCH(
+      '/v1/quota/users/bulk',
+      { body: { userIds, operation: 'delete' as const } },
+    )
+    if (error) throw error
 
     return {
       successful: userIds.filter((id) => !result.failedIds?.includes(id)),
@@ -114,19 +102,11 @@ export function useBulkQuotaManagement() {
         formData.showWatchlistCap,
       )
 
-      const response = await fetch(api('/v1/quota/users/bulk'), {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(bulkQuotaData),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Bulk update operation failed: ${response.status}`)
-      }
-
-      const result = await response.json()
+      const { data: result, error } = await apiFetch.PATCH(
+        '/v1/quota/users/bulk',
+        { body: bulkQuotaData },
+      )
+      if (error) throw error
 
       return {
         successful: userIds.filter((id) => !result.failedIds?.includes(id)),
@@ -181,8 +161,7 @@ export function useBulkQuotaManagement() {
           minimumLoadingTime,
         ])
 
-        // Refresh quota data from the store
-        await refreshQuotaData()
+        await invalidateQuotaData()
 
         setSaveStatus({
           type: 'success',
@@ -199,8 +178,7 @@ export function useBulkQuotaManagement() {
       } catch (error) {
         console.error('Error performing bulk quota operation:', error)
 
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to update quotas'
+        const errorMessage = apiErrorMessage(error) ?? 'Failed to update quotas'
         setSaveStatus({ type: 'error', message: errorMessage })
 
         toast.error(errorMessage)
@@ -209,7 +187,7 @@ export function useBulkQuotaManagement() {
         setSaveStatus({ type: 'idle' })
       }
     },
-    [deleteQuotas, updateBulkQuotas, refreshQuotaData],
+    [deleteQuotas, updateBulkQuotas],
   )
 
   return {

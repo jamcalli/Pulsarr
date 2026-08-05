@@ -42,7 +42,7 @@ interface FormatItem {
   score: number
 }
 
-export interface QualityProfile {
+export type QualityProfile = {
   id: number
   name: string
   upgradeAllowed: boolean
@@ -54,11 +54,10 @@ export interface QualityProfile {
   formatItems: FormatItem[]
 }
 
-export interface RootFolder {
+export type RootFolder = {
   path: string
   accessible: boolean
-  freeSpace: number
-  totalSpace: number
+  freeSpace: number | null
   id: number
 }
 
@@ -293,6 +292,7 @@ export interface SonarrInstance {
   searchOnAdd?: boolean
   seriesType?: 'standard' | 'anime' | 'daily'
   createSeasonFolders?: boolean
+  skipDefaultRoutingWhenNoMatch?: boolean
   data?: {
     qualityProfiles?: Array<{ id: number; name: string }>
     rootFolders?: Array<{ path: string }>

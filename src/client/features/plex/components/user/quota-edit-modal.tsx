@@ -34,6 +34,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
+import type { UserWithQuotaInfo } from '@/features/plex/hooks/usePlexUsers'
 import {
   type QuotaEditStatus,
   type QuotaFormData,
@@ -41,7 +42,6 @@ import {
   type QuotaFormValues,
 } from '@/features/plex/quota/form-schema'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import type { UserWithQuotaInfo } from '@/stores/configStore'
 
 function QuotaSectionFields({
   contentType,

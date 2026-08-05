@@ -1,65 +1,48 @@
 import { useEffect, useRef } from 'react'
+import { PageError } from '@/components/ui/page-error'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
+import { useArrGenres } from '@/features/arr/useArrGenres'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
+import { useRadarrInstancesQuery } from '@/features/radarr/hooks/instance/useRadarrInstanceQueries'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
+import { useConfig } from '@/hooks/useConfig'
+import { apiErrorMessage } from '@/lib/tanstackApi'
 
 /**
- * Renders the Radarr Content Router configuration page, initializing Radarr instances and genres on mount and displaying the routing rule management UI when data is ready.
- *
- * Fetches data for valid Radarr instances and only renders the tabbed interface for managing content routing rules after initialization and loading are complete. Returns `null` while initialization or data loading is in progress.
+ * Renders the Radarr Content Router configuration page for managing content routing rules.
  *
  * @returns The React component for the Radarr Content Router page.
  */
 export default function RadarrContentRouterPage() {
-  const instances = useRadarrStore((state) => state.instances)
-  const genres = useRadarrStore((state) => state.genres)
-  const fetchGenres = useRadarrStore((state) => state.fetchGenres)
-  const instancesLoading = useRadarrStore((state) => state.instancesLoading)
-  const isInitialized = useRadarrStore((state) => state.isInitialized)
-  const initialize = useRadarrStore((state) => state.initialize)
-  const fetchInstanceData = useRadarrStore((state) => state.fetchInstanceData)
+  const { data, isLoading, isError, error, refetch } = useRadarrInstancesQuery()
+  // Placeholder instances are unconfigured - routing to them cannot work
+  const instances = (data ?? []).filter(
+    (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
+  )
+  const { genres, handleGenreDropdownOpen } = useArrGenres()
+
+  // Route cards read session-monitoring config, so it must be initialized here
+  const { initialize: configInitialize } = useConfig()
 
   const hasInitializedRef = useRef(false)
 
   useEffect(() => {
-    const initializeData = async () => {
-      if (!hasInitializedRef.current) {
-        await initialize(true)
-
-        // Ensure instance data is fetched for all valid instances
-        const validInstances = instances.filter(
-          (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
-        )
-
-        await Promise.all(
-          validInstances.map((instance) =>
-            fetchInstanceData(instance.id.toString()),
-          ),
-        )
-
-        hasInitializedRef.current = true
-      }
+    if (!hasInitializedRef.current) {
+      configInitialize()
+      hasInitializedRef.current = true
     }
+  }, [configInitialize])
 
-    initializeData()
-  }, [initialize, fetchInstanceData, instances])
-
-  const handleGenreDropdownOpen = async () => {
-    if (!genres.length) {
-      await fetchGenres()
-    }
+  if (isError && data === undefined) {
+    return (
+      <PageError
+        message={apiErrorMessage(error) ?? 'Failed to load Radarr instances'}
+        onRetry={() => refetch()}
+      />
+    )
   }
 
-  const hasRealInstances = instances.some(
-    (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
-  )
-
-  if (!isInitialized) {
-    return null
-  }
-
-  if (instancesLoading && hasRealInstances) {
+  if (data === undefined || isLoading) {
     return null
   }
 

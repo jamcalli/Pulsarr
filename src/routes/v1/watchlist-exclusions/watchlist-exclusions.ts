@@ -13,7 +13,7 @@ import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Create Watchlist Exclusion
   fastify.post(
-    '/',
+    '',
     {
       schema: {
         summary: 'Create watchlist exclusion',
@@ -57,7 +57,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // Get All Watchlist Exclusions
   fastify.get(
-    '/',
+    '',
     {
       schema: {
         summary: 'Get all watchlist exclusions',

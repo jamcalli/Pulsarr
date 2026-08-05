@@ -1,13 +1,13 @@
 import type { BulkUpdateRequest } from '@root/schemas/users/users.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { invalidateUserData } from '@/features/plex/hooks/usePlexUsers'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type {
   PlexUserTableRow,
   PlexUserUpdates,
 } from '@/features/plex/store/types'
-import { api } from '@/lib/api'
-import { useConfigStore } from '@/stores/configStore'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 export type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -17,7 +17,6 @@ export type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
  * Returns the current modal open state, a setter for modal visibility, the current update status, selected rows for editing, and functions to open the bulk edit modal and execute the bulk update operation.
  */
 export function usePlexBulkUpdate() {
-  const fetchUserData = useConfigStore((state) => state.fetchUserData)
   const [bulkEditModalOpen, setBulkEditModalOpen] = useState(false)
   const [updateStatus, setUpdateStatus] = useState<BulkUpdateStatus>('idle')
   const [selectedRows, setSelectedRows] = useState<PlexUserTableRow[]>([])
@@ -42,23 +41,11 @@ export function usePlexBulkUpdate() {
         updates,
       }
 
-      const [response] = await Promise.all([
-        fetch(api('/v1/users/bulk'), {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        }),
+      const [{ data: result, error: fetchError }] = await Promise.all([
+        apiFetch.PATCH('/v1/users/bulk', { body: requestBody }),
         minimumLoadingTime,
       ])
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to update users')
-      }
-
-      const result = await response.json()
+      if (fetchError) throw fetchError
 
       setUpdateStatus('success')
       toast.success(
@@ -66,7 +53,7 @@ export function usePlexBulkUpdate() {
       )
 
       // Refresh user data
-      await fetchUserData()
+      await invalidateUserData()
 
       // Show success state then close
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY / 2))
@@ -79,9 +66,7 @@ export function usePlexBulkUpdate() {
     } catch (error) {
       console.error('Bulk update error:', error)
       setUpdateStatus('error')
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to update users',
-      )
+      toast.error(apiErrorMessage(error) ?? 'Failed to update users')
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
       setUpdateStatus('idle')
     }

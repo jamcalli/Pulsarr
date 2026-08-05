@@ -391,14 +391,7 @@ export const ConfigUpdateSchema = z
         enabled: z.boolean(),
         pollingIntervalMinutes: z.number().min(1),
         remainingEpisodes: z.number().min(1),
-        filterUsers: z
-          .union([z.string(), z.array(z.string())])
-          .transform((val) => {
-            // Always convert to array or return undefined
-            if (!val) return undefined
-            return Array.isArray(val) ? val : [val]
-          })
-          .optional(),
+        filterUsers: z.array(z.string()).optional(),
         // Rolling monitoring reset settings
         enableAutoReset: z.boolean().optional(),
         inactivityResetDays: z.number().min(1).max(365).optional(),
@@ -474,10 +467,9 @@ export const ConfigUpdateSchema = z
     tmdbRegion: z
       .string()
       .trim()
-      .regex(/^[A-Za-z]{2}$/, {
-        error: 'Region must be exactly 2 letters (A–Z)',
+      .regex(/^[A-Z]{2}$/, {
+        error: 'Region must be exactly 2 uppercase letters (A-Z)',
       })
-      .transform((s) => s.toUpperCase())
       .optional(),
     // User Tags Configuration - flat properties following new pattern
     tagUsersInSonarr: z.boolean().optional(),

@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { PlexTokenSchema } from '@/features/plex/store/schemas'
 import { plexTokenSchema } from '@/features/plex/store/schemas'
-import { useConfigStore } from '@/stores/configStore'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 
 export type ConnectionStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -18,8 +18,7 @@ export type ConnectionStatus = 'idle' | 'loading' | 'success' | 'error'
  * @returns An object containing the form instance, initialization and loading flags, connection status, a status setter, and handlers for updating or removing the Plex token.
  */
 export function usePlexConnection() {
-  const config = useConfigStore((state) => state.config)
-  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const { config } = useConfig()
   const [isInitialized, setIsInitialized] = useState(false)
   const [status, setStatus] = useState<ConnectionStatus>('idle')
   const [isLoading, setIsLoading] = useState(true)

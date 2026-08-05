@@ -9,9 +9,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
+import { useRadarrInstancesQuery } from '@/features/radarr/hooks/instance/useRadarrInstanceQueries'
 import { useRadarrSyncProgress } from '@/features/radarr/hooks/instance/useRadarrSyncProgress'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 interface RadarrSyncModalProps {
   open: boolean
@@ -42,7 +42,7 @@ export function RadarrSyncModal({
   const [syncCompleted, setSyncCompleted] = useState(false)
   const [overallProgress, setOverallProgress] = useState(0)
 
-  const allInstances = useRadarrStore((state) => state.instances)
+  const { data: allInstances = [] } = useRadarrInstancesQuery()
   const instanceNamesRef = useRef<Record<number, string>>({})
   const isSingleInstance = syncedInstances.length === 1
 
@@ -136,23 +136,21 @@ export function RadarrSyncModal({
         try {
           const instanceToSync = syncedInstances[currentInstanceIndex]
 
-          const response = await fetch(
-            api(`/v1/sync/instance/${instanceToSync}?type=radarr`),
+          const { error } = await apiFetch.POST(
+            '/v1/sync/instance/{instanceId}',
             {
-              method: 'POST',
+              params: {
+                path: { instanceId: instanceToSync },
+                query: { type: 'radarr' },
+              },
             },
           )
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || 'Failed to sync instance')
-          }
+          if (error) throw error
         } catch (error) {
           console.error('Error syncing instance:', error)
           toast.error(
-            error instanceof Error
-              ? error.message
-              : 'An error occurred during synchronization',
+            apiErrorMessage(error) ??
+              'An error occurred during synchronization',
           )
         } finally {
           const nextIndex = currentInstanceIndex + 1

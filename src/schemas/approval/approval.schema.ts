@@ -64,6 +64,10 @@ export const RouterDecisionSchema = z.object({
 })
 
 // Approval request schemas
+export const ApprovalIdParamsSchema = z.object({
+  id: z.coerce.number(),
+})
+
 export const CreateApprovalRequestSchema = z.object({
   userId: z.number(),
   contentType: z.enum(['movie', 'show']),
@@ -261,6 +265,7 @@ export type RouterDecision = z.infer<typeof RouterDecisionSchema>
 export type ProposedRouting = NonNullable<
   NonNullable<RouterDecision['approval']>['proposedRouting']
 >
+export type ApprovalIdParams = z.infer<typeof ApprovalIdParamsSchema>
 export type CreateApprovalRequest = z.infer<typeof CreateApprovalRequestSchema>
 export type UpdateApprovalRequest = z.infer<typeof UpdateApprovalRequestSchema>
 export type ApprovalRequestResponse = z.infer<

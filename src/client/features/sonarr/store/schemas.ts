@@ -24,6 +24,7 @@ const baseObjectSchema = z.object({
   isDefault: z.boolean(),
   syncedInstances: z.array(z.number()).optional(),
   seriesType: z.enum(['standard', 'anime', 'daily']).default('standard'),
+  skipDefaultRoutingWhenNoMatch: z.boolean().default(false),
   _connectionTested: z.boolean().optional(),
   _originalBaseUrl: z.string().optional(),
   _originalApiKey: z.string().optional(),

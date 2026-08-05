@@ -1,9 +1,6 @@
-import type {
-  PlexPinPollResponse,
-  PlexPinResponse,
-} from '@root/schemas/plex/pin.schema'
+import type { PlexPinResponse } from '@root/schemas/plex/pin.schema'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api } from '@/lib/api'
+import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 
 export type PlexPinStatus =
   | 'idle'
@@ -47,21 +44,14 @@ export function usePlexPinAuth() {
     setToken(null)
 
     try {
-      const response = await fetch(api('/v1/plex/pin'), {
-        method: 'POST',
-        headers: { Accept: 'application/json' },
-      })
+      const { data, error: fetchError } = await apiFetch.POST('/v1/plex/pin')
+      if (fetchError) throw fetchError
 
-      if (!response.ok) {
-        throw new Error('Failed to generate PIN')
-      }
-
-      const data: PlexPinResponse = await response.json()
       activePinIdRef.current = data.id
       setPin(data)
       setStatus('waiting')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(apiErrorMessage(err) ?? 'Failed to generate PIN')
       setStatus('error')
     }
   }, [stopPolling])
@@ -72,18 +62,19 @@ export function usePlexPinAuth() {
     // Poll immediately once
     const poll = async () => {
       try {
-        const params = new URLSearchParams({ clientId: pin.clientId })
-        const response = await fetch(
-          api(`/v1/plex/pin/${pin.id}?${params.toString()}`),
-          { headers: { Accept: 'application/json' } },
+        const { data, error: fetchError } = await apiFetch.GET(
+          '/v1/plex/pin/{pinId}',
+          {
+            params: {
+              path: { pinId: pin.id },
+              query: { clientId: pin.clientId },
+            },
+          },
         )
-
-        if (!response.ok) return
+        if (fetchError) return
 
         // Guard against stale responses from previous PIN
         if (activePinIdRef.current !== pin.id) return
-
-        const data: PlexPinPollResponse = await response.json()
 
         if (data.authToken) {
           setToken(data.authToken)

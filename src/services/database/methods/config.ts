@@ -189,8 +189,6 @@ export async function getConfig(
             removedLabelMode?: 'remove' | 'keep' | 'special-label'
             removedLabelPrefix?: string
             autoResetOnScheduledSync?: boolean
-            scheduleTime?: string
-            dayOfWeek?: string
             tagSync?: {
               enabled?: boolean
               syncRadarrTags?: boolean
@@ -207,8 +205,6 @@ export async function getConfig(
         removedLabelMode: 'remove' as const,
         removedLabelPrefix: 'pulsarr:removed',
         autoResetOnScheduledSync: false,
-        scheduleTime: undefined,
-        dayOfWeek: '*',
         ...parsed,
         // Handle nested tagSync object separately to preserve defaults
         tagSync: {
@@ -359,8 +355,6 @@ export async function createConfig(
               config.plexLabelSync.removedLabelPrefix || 'pulsarr:removed',
             autoResetOnScheduledSync:
               config.plexLabelSync.autoResetOnScheduledSync ?? false,
-            scheduleTime: config.plexLabelSync.scheduleTime,
-            dayOfWeek: config.plexLabelSync.dayOfWeek || '*',
             tagSync: {
               enabled: config.plexLabelSync.tagSync?.enabled ?? false,
               syncRadarrTags:

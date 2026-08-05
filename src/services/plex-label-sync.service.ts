@@ -53,8 +53,6 @@ export class PlexLabelSyncService {
         removedLabelMode: 'remove' as const,
         removedLabelPrefix: 'pulsarr:removed',
         autoResetOnScheduledSync: false,
-        scheduleTime: undefined,
-        dayOfWeek: '*',
         tagSync: {
           enabled: false,
           syncRadarrTags: true,

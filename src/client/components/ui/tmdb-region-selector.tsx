@@ -1,4 +1,4 @@
-import type { TmdbRegion, TmdbRegionsSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
+import type { TmdbRegion } from '@root/schemas/tmdb/tmdb.schema'
 import { Globe } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import {
@@ -13,8 +13,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { api } from '@/lib/api'
-import { useConfigStore } from '@/stores/configStore'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
+import { apiFetch } from '@/lib/tanstackApi'
 
 interface TmdbRegionSelectorProps {
   onRegionChange?: () => Promise<void>
@@ -29,7 +29,7 @@ interface TmdbRegionSelectorProps {
  * @param onRegionChange - Optional callback invoked after the region is changed, typically to refetch region-dependent data
  */
 export function TmdbRegionSelector({ onRegionChange }: TmdbRegionSelectorProps) {
-  const { config, updateConfig } = useConfigStore()
+  const { config } = useConfig()
   const [availableRegions, setAvailableRegions] = useState<TmdbRegion[]>([])
   const [loadingRegions, setLoadingRegions] = useState(false)
 
@@ -40,8 +40,8 @@ export function TmdbRegionSelector({ onRegionChange }: TmdbRegionSelectorProps) 
 
       setLoadingRegions(true)
       try {
-        const response = await fetch(api('/v1/tmdb/regions'))
-        const data: TmdbRegionsSuccessResponse = await response.json()
+        const { data, error } = await apiFetch.GET('/v1/tmdb/regions')
+        if (error) throw error
 
         if (data.success && data.regions) {
           const sortedRegions = data.regions.sort((a, b) =>

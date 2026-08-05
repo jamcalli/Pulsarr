@@ -1,13 +1,11 @@
 import type {
   RecentRequestItem,
   RecentRequestStatus,
-  RecentRequestsResponse,
 } from '@root/schemas/dashboard/recent-requests.schema'
-import { RecentRequestsResponseSchema } from '@root/schemas/dashboard/recent-requests.schema'
 import { keepPreviousData } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
-import { apiClient } from '@/lib/apiClient'
-import { useAppQuery } from '@/lib/useAppQuery'
+import { $api, apiErrorMessage } from '@/lib/tanstackApi'
+import { useMinLoading } from '@/lib/useMinLoading'
 
 const POLLING_INTERVAL = 30_000 // 30 seconds
 
@@ -26,6 +24,24 @@ export function getLimitLabel(limit: number): string {
 }
 
 export type StatusFilterValue = 'all' | RecentRequestStatus
+
+/**
+ * Key prefix covering every params variant of the recent requests query.
+ */
+export const recentRequestsKeys = {
+  all: $api.queryOptions('get', '/v1/stats/recent-requests').queryKey,
+}
+
+const STATUS_VALUES: readonly string[] = [
+  'pending_approval',
+  'pending',
+  'requested',
+  'available',
+]
+
+function toStatusFilter(value: string): StatusFilterValue {
+  return STATUS_VALUES.includes(value) ? (value as RecentRequestStatus) : 'all'
+}
 
 interface UseRecentRequestsOptions {
   initialLimit?: LimitPreset
@@ -54,29 +70,29 @@ export function useRecentRequests(
   options: UseRecentRequestsOptions = {},
 ): UseRecentRequestsReturn {
   const [limit, setLimit] = useState<number>(options.initialLimit ?? 10)
-  const [status, setStatus] = useState<string>(options.status ?? 'all')
+  const [status, setStatus] = useState<StatusFilterValue>(
+    options.status ?? 'all',
+  )
 
-  const queryKey = ['recent-requests', { limit, status }]
-
-  const { data, isLoading, error, refetch } =
-    useAppQuery<RecentRequestsResponse>({
-      queryKey,
-      placeholderData: keepPreviousData,
-      refetchInterval: POLLING_INTERVAL,
-      refetchOnWindowFocus: true,
-      queryFn: () => {
-        const searchParams = new URLSearchParams({
-          limit: limit.toString(),
-        })
-        if (status !== 'all') {
-          searchParams.set('status', status)
-        }
-        return apiClient.get(
-          `/v1/stats/recent-requests?${searchParams}`,
-          RecentRequestsResponseSchema,
-        )
+  const { data, isLoading, error, refetch } = useMinLoading(
+    $api.useQuery(
+      'get',
+      '/v1/stats/recent-requests',
+      {
+        params: {
+          query: {
+            limit,
+            ...(status !== 'all' ? { status } : {}),
+          },
+        },
       },
-    })
+      {
+        placeholderData: keepPreviousData,
+        refetchInterval: POLLING_INTERVAL,
+        refetchOnWindowFocus: true,
+      },
+    ),
+  )
 
   const handleRefetch = useCallback(async () => {
     await refetch()
@@ -84,10 +100,13 @@ export function useRecentRequests(
 
   return {
     items: data?.items ?? [],
-    isLoading,
-    error: error instanceof Error ? error.message : null,
+    // Empty state is only knowable once data exists
+    isLoading: isLoading || data === undefined,
+    error: apiErrorMessage(error),
     status,
-    setStatus,
+    setStatus: useCallback((value: string) => {
+      setStatus(toStatusFilter(value))
+    }, []),
     limit,
     setLimit,
     refetch: handleRefetch,
