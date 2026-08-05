@@ -282,6 +282,13 @@
       "allowedVersions": "< 3.0.0"
     },
     {
+      "description": "Pin react-table to v8 until the table components are migrated to the v9 API",
+      "matchPackageNames": [
+        "@tanstack/react-table"
+      ],
+      "allowedVersions": "< 9.0.0"
+    },
+    {
       "description": "undici override must track discord.js's v6 pin - block majors until discord.js moves to undici 7+",
       "matchPackageNames": [
         "undici"
