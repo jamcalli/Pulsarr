@@ -289,6 +289,13 @@
       "allowedVersions": "< 9.0.0"
     },
     {
+      "description": "openapi-react-query 1.0.0 is a deprecated bad publish with a stale openapi-fetch peer range - npm latest is 0.5.x",
+      "matchPackageNames": [
+        "openapi-react-query"
+      ],
+      "allowedVersions": "< 1.0.0"
+    },
+    {
       "description": "undici override must track discord.js's v6 pin - block majors until discord.js moves to undici 7+",
       "matchPackageNames": [
         "undici"
