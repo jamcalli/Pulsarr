@@ -56,6 +56,24 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api/bulk-approve-requests",
+          label: "Bulk approve requests",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/bulk-delete-requests",
+          label: "Bulk delete requests",
+          className: "api-method delete",
+        },
+        {
+          type: "doc",
+          id: "api/bulk-reject-requests",
+          label: "Bulk reject requests",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
           id: "api/get-approval-request-by-id",
           label: "Get approval request by ID",
           className: "api-method get",
@@ -74,6 +92,12 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api/approve-and-execute-request",
+          label: "Approve and execute request",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
           id: "api/reject-approval-request",
           label: "Reject approval request",
           className: "api-method post",
@@ -83,30 +107,6 @@ const sidebar: SidebarsConfig = {
           id: "api/get-approval-stats",
           label: "Get approval statistics",
           className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/approve-and-execute-request",
-          label: "Approve and execute request",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/bulk-approve-requests",
-          label: "Bulk approve requests",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/bulk-reject-requests",
-          label: "Bulk reject requests",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/bulk-delete-requests",
-          label: "Bulk delete requests",
-          className: "api-method delete",
         },
       ],
     },
@@ -132,9 +132,9 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/update-user-password",
-          label: "Update user password",
-          className: "api-method put",
+          id: "api/login-user",
+          label: "User login",
+          className: "api-method post",
         },
         {
           type: "doc",
@@ -144,9 +144,9 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/login-user",
-          label: "User login",
-          className: "api-method post",
+          id: "api/update-user-password",
+          label: "Update user password",
+          className: "api-method put",
         },
       ],
     },
@@ -160,12 +160,6 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/resync-arr-webhooks",
-          label: "Resync arr webhooks",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
           id: "api/get-config",
           label: "Get configuration",
           className: "api-method get",
@@ -175,6 +169,12 @@ const sidebar: SidebarsConfig = {
           id: "api/update-config",
           label: "Update configuration",
           className: "api-method put",
+        },
+        {
+          type: "doc",
+          id: "api/resync-arr-webhooks",
+          label: "Resync arr webhooks",
+          className: "api-method post",
         },
       ],
     },
@@ -212,14 +212,20 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-router-rules-by-type",
-          label: "Get router rules by type",
+          id: "api/get-router-rules-by-target",
+          label: "Get router rules by target",
           className: "api-method get",
         },
         {
           type: "doc",
-          id: "api/get-router-rules-by-target",
-          label: "Get router rules by target",
+          id: "api/get-router-rules-by-target-type",
+          label: "Get router rules by target type",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-router-rules-by-type",
+          label: "Get router rules by type",
           className: "api-method get",
         },
         {
@@ -239,12 +245,6 @@ const sidebar: SidebarsConfig = {
           id: "api/delete-router-rule",
           label: "Delete router rule",
           className: "api-method delete",
-        },
-        {
-          type: "doc",
-          id: "api/get-router-rules-by-target-type",
-          label: "Get router rules by target type",
-          className: "api-method get",
         },
         {
           type: "doc",
@@ -298,12 +298,6 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/sync-plex-labels",
-          label: "Sync plex labels",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
           id: "api/cleanup-orphaned-plex-labels",
           label: "Cleanup orphaned plex labels",
           className: "api-method post",
@@ -313,6 +307,12 @@ const sidebar: SidebarsConfig = {
           id: "api/remove-pulsarr-plex-labels",
           label: "Remove Pulsarr labels from Plex content",
           className: "api-method delete",
+        },
+        {
+          type: "doc",
+          id: "api/sync-plex-labels",
+          label: "Sync plex labels",
+          className: "api-method post",
         },
       ],
     },
@@ -392,9 +392,45 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
+          id: "api/cancel-plex-friend-request",
+          label: "Cancel a Plex friend request",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
           id: "api/configure-plex-notifications",
           label: "Configure Plex notifications",
           className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/discover-plex-servers",
+          label: "Discover Plex servers",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/generate-rss-feeds",
+          label: "Generate RSS feeds",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-watchlist-genres",
+          label: "Get watchlist genres",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-plex-notification-status",
+          label: "Get Plex notification status",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-others-watchlist-tokens",
+          label: "Get others watchlist tokens",
+          className: "api-method get",
         },
         {
           type: "doc",
@@ -410,8 +446,14 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-others-watchlist-tokens",
-          label: "Get others watchlist tokens",
+          id: "api/ping-plex",
+          label: "Test Plex server connection",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-plex-pass-status",
+          label: "Get Plex Pass status",
           className: "api-method get",
         },
         {
@@ -422,21 +464,9 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/send-plex-friend-request",
-          label: "Send a Plex friend request",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/generate-rss-feeds",
-          label: "Generate RSS feeds",
+          id: "api/parse-rss-watchlists",
+          label: "Parse RSS watchlists",
           className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/discover-plex-servers",
-          label: "Discover Plex servers",
-          className: "api-method post",
         },
         {
           type: "doc",
@@ -446,39 +476,9 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-plex-notification-status",
-          label: "Get Plex notification status",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/ping-plex",
-          label: "Test Plex server connection",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-watchlist-genres",
-          label: "Get watchlist genres",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/parse-rss-watchlists",
-          label: "Parse RSS watchlists",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/cancel-plex-friend-request",
-          label: "Cancel a Plex friend request",
+          id: "api/send-plex-friend-request",
+          label: "Send a Plex friend request",
           className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/get-plex-pass-status",
-          label: "Get Plex Pass status",
-          className: "api-method get",
         },
         {
           type: "doc",
@@ -514,6 +514,24 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
+          id: "api/get-daily-usage-stats",
+          label: "Get daily usage statistics",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-quota-usage-history",
+          label: "Get quota usage history",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/cleanup-old-quota-usage",
+          label: "Cleanup old quota usage",
+          className: "api-method delete",
+        },
+        {
+          type: "doc",
           id: "api/create-user-quota",
           label: "Create user quota",
           className: "api-method post",
@@ -523,6 +541,18 @@ const sidebar: SidebarsConfig = {
           id: "api/get-users-with-quotas",
           label: "Get all users with quotas",
           className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/bulk-quota-operations",
+          label: "Bulk quota operations",
+          className: "api-method patch",
+        },
+        {
+          type: "doc",
+          id: "api/get-bulk-user-quota-status",
+          label: "Get quota status for multiple users",
+          className: "api-method post",
         },
         {
           type: "doc",
@@ -562,39 +592,9 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-bulk-user-quota-status",
-          label: "Get quota status for multiple users",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
           id: "api/record-quota-usage",
           label: "Record quota usage",
           className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/get-quota-usage-history",
-          label: "Get quota usage history",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-daily-usage-stats",
-          label: "Get daily usage statistics",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/bulk-quota-operations",
-          label: "Bulk quota operations",
-          className: "api-method patch",
-        },
-        {
-          type: "doc",
-          id: "api/cleanup-old-quota-usage",
-          label: "Cleanup old quota usage",
-          className: "api-method delete",
         },
       ],
     },
@@ -606,6 +606,12 @@ const sidebar: SidebarsConfig = {
         id: "api/radarr",
       },
       items: [
+        {
+          type: "doc",
+          id: "api/create-radarr-tag",
+          label: "Create Radarr tag",
+          className: "api-method post",
+        },
         {
           type: "doc",
           id: "api/get-radarr-instances",
@@ -632,8 +638,8 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-radarr-tags",
-          label: "Get Radarr tags",
+          id: "api/get-radarr-quality-profiles",
+          label: "Get Radarr quality profiles",
           className: "api-method get",
         },
         {
@@ -644,20 +650,14 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-radarr-quality-profiles",
-          label: "Get Radarr quality profiles",
+          id: "api/get-radarr-tags",
+          label: "Get Radarr tags",
           className: "api-method get",
         },
         {
           type: "doc",
           id: "api/test-radarr-connection",
           label: "Test Radarr connection",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/create-radarr-tag",
-          label: "Create Radarr tag",
           className: "api-method post",
         },
       ],
@@ -680,6 +680,12 @@ const sidebar: SidebarsConfig = {
           type: "doc",
           id: "api/create-schedule",
           label: "Create job schedule",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/dry-run-delete-sync",
+          label: "Dry-run delete sync",
           className: "api-method post",
         },
         {
@@ -712,12 +718,6 @@ const sidebar: SidebarsConfig = {
           label: "Toggle job schedule",
           className: "api-method patch",
         },
-        {
-          type: "doc",
-          id: "api/dry-run-delete-sync",
-          label: "Dry-run delete sync",
-          className: "api-method post",
-        },
       ],
     },
     {
@@ -736,20 +736,8 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/run-session-monitor",
-          label: "Run session monitor manually",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/delete-rolling-monitored-show",
-          label: "Delete rolling monitored show",
-          className: "api-method delete",
-        },
-        {
-          type: "doc",
-          id: "api/reset-rolling-monitored-show",
-          label: "Reset rolling monitored show",
+          id: "api/bulk-manage-rolling-monitored-shows",
+          label: "Bulk manage rolling monitored shows",
           className: "api-method post",
         },
         {
@@ -766,15 +754,27 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-sonarr-shows",
-          label: "Get Sonarr shows with enrollment status",
-          className: "api-method get",
+          id: "api/delete-rolling-monitored-show",
+          label: "Delete rolling monitored show",
+          className: "api-method delete",
         },
         {
           type: "doc",
-          id: "api/bulk-manage-rolling-monitored-shows",
-          label: "Bulk manage rolling monitored shows",
+          id: "api/reset-rolling-monitored-show",
+          label: "Reset rolling monitored show",
           className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/run-session-monitor",
+          label: "Run session monitor manually",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/get-sonarr-shows",
+          label: "Get Sonarr shows with enrollment status",
+          className: "api-method get",
         },
       ],
     },
@@ -788,15 +788,9 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/get-sonarr-tags",
-          label: "Get Sonarr tags",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-sonarr-root-folders",
-          label: "Get Sonarr root folders",
-          className: "api-method get",
+          id: "api/create-sonarr-tag",
+          label: "Create Sonarr tag",
+          className: "api-method post",
         },
         {
           type: "doc",
@@ -830,14 +824,20 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/test-sonarr-connection",
-          label: "Test Sonarr connection",
-          className: "api-method post",
+          id: "api/get-sonarr-root-folders",
+          label: "Get Sonarr root folders",
+          className: "api-method get",
         },
         {
           type: "doc",
-          id: "api/create-sonarr-tag",
-          label: "Create Sonarr tag",
+          id: "api/get-sonarr-tags",
+          label: "Get Sonarr tags",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/test-sonarr-connection",
+          label: "Test Sonarr connection",
           className: "api-method post",
         },
       ],
@@ -852,44 +852,14 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/get-all-dashboard-stats",
-          label: "Get all dashboard statistics",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-instance-content-breakdown",
-          label: "Get instance content breakdown",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-top-genres",
-          label: "Get top genres",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-most-watched-shows",
-          label: "Get most watched shows",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-most-watched-movies",
-          label: "Get most watched movies",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-top-users",
-          label: "Get top users",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
           id: "api/get-recent-activity",
           label: "Get recent activity",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-all-dashboard-stats",
+          label: "Get all dashboard statistics",
           className: "api-method get",
         },
         {
@@ -900,20 +870,26 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api/get-top-genres",
+          label: "Get top genres",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
           id: "api/get-grabbed-to-notified-stats",
           label: "Get grabbed to notified time stats",
           className: "api-method get",
         },
         {
           type: "doc",
-          id: "api/get-status-transitions",
-          label: "Get status transition metrics",
+          id: "api/get-instance-content-breakdown",
+          label: "Get instance content breakdown",
           className: "api-method get",
         },
         {
           type: "doc",
-          id: "api/get-status-flow",
-          label: "Get status flow data",
+          id: "api/get-most-watched-movies",
+          label: "Get most watched movies",
           className: "api-method get",
         },
         {
@@ -928,6 +904,30 @@ const sidebar: SidebarsConfig = {
           label: "Get recent requests",
           className: "api-method get",
         },
+        {
+          type: "doc",
+          id: "api/get-most-watched-shows",
+          label: "Get most watched shows",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-status-flow",
+          label: "Get status flow data",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-status-transitions",
+          label: "Get status transition metrics",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-top-users",
+          label: "Get top users",
+          className: "api-method get",
+        },
       ],
     },
     {
@@ -940,14 +940,14 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/sync-instance",
-          label: "Sync specific instance",
+          id: "api/sync-all-instances",
+          label: "Sync all instances",
           className: "api-method post",
         },
         {
           type: "doc",
-          id: "api/sync-all-instances",
-          label: "Sync all instances",
+          id: "api/sync-instance",
+          label: "Sync specific instance",
           className: "api-method post",
         },
       ],
@@ -984,18 +984,6 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/create-user-tags",
-          label: "Create user tags",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "api/sync-user-tags",
-          label: "Sync user tags",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
           id: "api/cleanup-orphaned-tags",
           label: "Cleanup orphaned tags",
           className: "api-method post",
@@ -1008,8 +996,20 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api/create-user-tags",
+          label: "Create user tags",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
           id: "api/remove-all-user-tags",
           label: "Remove all user tags",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/sync-user-tags",
+          label: "Sync user tags",
           className: "api-method post",
         },
       ],
@@ -1024,12 +1024,6 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/get-tmdb-providers",
-          label: "Get streaming providers",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
           id: "api/get-tmdb-metadata-by-guid",
           label: "Get TMDB metadata by GUID",
           className: "api-method get",
@@ -1042,14 +1036,20 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-tmdb-tv-metadata",
-          label: "Get TV show metadata from TMDB",
+          id: "api/get-tmdb-providers",
+          label: "Get streaming providers",
           className: "api-method get",
         },
         {
           type: "doc",
           id: "api/get-tmdb-regions",
           label: "Get available TMDB regions",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-tmdb-tv-metadata",
+          label: "Get TV show metadata from TMDB",
           className: "api-method get",
         },
       ],
@@ -1064,9 +1064,39 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
+          id: "api/get-alias-readiness",
+          label: "Check alias readiness for tag/label naming",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/bulk-update-users",
+          label: "Bulk update users",
+          className: "api-method patch",
+        },
+        {
+          type: "doc",
+          id: "api/get-current-user",
+          label: "Get current user information",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
           id: "api/create-user",
           label: "Create user",
           className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/get-users-list",
+          label: "Get users list",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-users-with-counts",
+          label: "Get users with watchlist counts",
+          className: "api-method get",
         },
         {
           type: "doc",
@@ -1084,36 +1114,6 @@ const sidebar: SidebarsConfig = {
           type: "doc",
           id: "api/get-user-watchlist",
           label: "Get user watchlist items",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-users-list",
-          label: "Get users list",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-users-with-counts",
-          label: "Get users with watchlist counts",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/get-alias-readiness",
-          label: "Check alias readiness for tag/label naming",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/bulk-update-users",
-          label: "Bulk update users",
-          className: "api-method patch",
-        },
-        {
-          type: "doc",
-          id: "api/get-current-user",
-          label: "Get current user information",
           className: "api-method get",
         },
       ],
@@ -1134,15 +1134,15 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/stop-watchlist-workflow",
-          label: "Stop watchlist workflow",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
           id: "api/get-watchlist-workflow-status",
           label: "Get watchlist workflow status",
           className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/stop-watchlist-workflow",
+          label: "Stop watchlist workflow",
+          className: "api-method post",
         },
       ],
     },
@@ -1168,6 +1168,12 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api/test-webhook-endpoint",
+          label: "Test webhook endpoint",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
           id: "api/get-webhook-endpoint",
           label: "Get webhook endpoint",
           className: "api-method get",
@@ -1183,12 +1189,6 @@ const sidebar: SidebarsConfig = {
           id: "api/delete-webhook-endpoint",
           label: "Delete webhook endpoint",
           className: "api-method delete",
-        },
-        {
-          type: "doc",
-          id: "api/test-webhook-endpoint",
-          label: "Test webhook endpoint",
-          className: "api-method post",
         },
         {
           type: "doc",
