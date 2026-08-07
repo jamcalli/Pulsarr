@@ -2981,12 +2981,14 @@ export interface webhooks {
 }
 export interface components {
     schemas: {
-        /** HttpError */
-        "def-0": {
-            statusCode?: number;
-            code?: string;
-            error?: string;
-            message?: string;
+        /** @description Standard error response */
+        Error: {
+            /** @description HTTP status code */
+            statusCode: number;
+            /** @description HTTP status text */
+            error: string;
+            /** @description Error detail, replaced with a generic string for 5xx */
+            message: string;
         };
     };
     responses: never;
@@ -3022,6 +3024,15 @@ export interface operations {
                             database: "ok" | "failed";
                         };
                     };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3073,18 +3084,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3130,12 +3145,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3144,12 +3163,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3178,12 +3192,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3192,12 +3210,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3323,12 +3336,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3337,12 +3354,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3526,12 +3538,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3540,12 +3547,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3554,12 +3565,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3604,12 +3610,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3618,12 +3619,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3632,12 +3637,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3646,12 +3646,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3695,12 +3690,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3709,12 +3708,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3759,12 +3753,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3773,12 +3762,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3787,12 +3780,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3907,12 +3895,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3921,12 +3904,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3935,12 +3922,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3974,12 +3956,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3988,12 +3965,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4002,12 +3983,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -4185,12 +4161,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4199,12 +4170,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4213,12 +4179,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4227,12 +4188,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4241,12 +4206,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4255,12 +4215,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -4300,12 +4255,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4314,12 +4264,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4328,12 +4273,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4342,12 +4291,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4356,12 +4300,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -4401,12 +4340,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4415,12 +4349,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4429,12 +4358,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4443,12 +4376,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -4482,18 +4410,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -4700,12 +4632,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4714,12 +4641,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4728,12 +4659,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5113,12 +5039,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -5127,12 +5048,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -5141,12 +5066,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5183,18 +5103,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5224,18 +5148,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5282,18 +5210,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5417,18 +5349,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5656,12 +5592,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -5670,12 +5610,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5802,18 +5737,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5945,12 +5884,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -5959,12 +5902,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6092,18 +6030,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6235,12 +6177,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6249,12 +6195,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6484,12 +6425,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6498,12 +6434,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6512,12 +6452,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6551,12 +6486,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6565,12 +6504,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6610,12 +6544,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6624,12 +6562,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6669,12 +6602,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6683,12 +6620,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6727,12 +6659,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6741,12 +6677,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6786,12 +6717,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6800,12 +6735,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6838,6 +6768,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     refreshMetadata: {
@@ -6864,18 +6803,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6909,12 +6852,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6923,12 +6870,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6962,12 +6904,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6976,12 +6922,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7026,12 +6967,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7040,12 +6985,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7145,12 +7085,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7159,12 +7094,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7173,12 +7112,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7216,12 +7150,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7230,12 +7168,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7292,12 +7225,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7306,12 +7243,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7357,12 +7289,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7371,12 +7298,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7385,12 +7307,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7399,12 +7316,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7413,12 +7334,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7427,12 +7343,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7464,12 +7375,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7478,12 +7393,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7509,18 +7419,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7566,12 +7480,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7580,12 +7498,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7630,12 +7543,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7644,12 +7561,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7678,18 +7590,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7719,18 +7635,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7755,18 +7675,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7791,18 +7715,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7848,12 +7776,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7862,12 +7794,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7931,18 +7858,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7987,12 +7918,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -8001,12 +7936,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8044,12 +7974,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -8058,12 +7992,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8106,18 +8035,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8141,6 +8074,15 @@ export interface operations {
                         /** @description SSE stream of progress events */
                         message: string;
                     };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8181,12 +8123,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8234,12 +8180,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8267,18 +8217,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8314,18 +8268,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8392,12 +8350,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -8406,12 +8359,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8469,12 +8426,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -8483,12 +8444,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8544,12 +8500,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -8558,12 +8518,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8620,12 +8575,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8661,12 +8620,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8733,12 +8696,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8768,18 +8735,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8858,12 +8829,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8906,18 +8881,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8960,12 +8939,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9004,12 +8987,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9018,12 +8996,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9032,12 +9014,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9087,6 +9064,15 @@ export interface operations {
                         skipDefaultRoutingWhenNoMatch: boolean;
                         id: number;
                     }[];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9149,12 +9135,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9163,12 +9144,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9177,12 +9162,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9232,12 +9212,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9246,12 +9221,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9260,12 +9230,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9274,12 +9248,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9308,12 +9277,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9322,12 +9295,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9371,12 +9339,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9385,12 +9348,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9399,12 +9366,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9448,12 +9410,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9462,12 +9419,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9476,12 +9437,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9523,12 +9479,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9537,12 +9488,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9551,12 +9506,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9589,18 +9539,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9677,18 +9631,22 @@ export interface operations {
                     })[];
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9740,18 +9698,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9813,12 +9775,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9827,12 +9793,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9917,12 +9878,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9931,12 +9896,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9992,12 +9952,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10006,12 +9970,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10045,12 +10004,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10059,12 +10022,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10098,12 +10056,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10112,12 +10074,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10157,12 +10114,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10171,12 +10132,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10226,12 +10182,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10282,12 +10242,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10340,12 +10304,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10384,12 +10352,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10425,12 +10397,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10439,12 +10406,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10478,12 +10449,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10492,12 +10458,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10539,12 +10509,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10587,12 +10561,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10631,12 +10609,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10645,12 +10618,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10659,12 +10636,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10718,6 +10690,15 @@ export interface operations {
                         skipDefaultRoutingWhenNoMatch: boolean;
                         id: number;
                     }[];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10784,12 +10765,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10798,12 +10774,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10812,12 +10792,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10869,12 +10844,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10883,12 +10853,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10897,12 +10862,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10911,12 +10880,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10945,12 +10909,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10959,12 +10927,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11008,12 +10971,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11022,12 +10980,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11036,12 +10998,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11085,12 +11042,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11099,12 +11051,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11113,12 +11069,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11160,12 +11111,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11174,12 +11120,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11188,12 +11138,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11226,18 +11171,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11272,12 +11221,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11286,12 +11239,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11431,12 +11379,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11445,12 +11397,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11487,12 +11434,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11501,12 +11452,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11540,12 +11486,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11554,12 +11504,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11596,12 +11541,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11610,12 +11559,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11656,18 +11600,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11708,12 +11656,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11722,12 +11674,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11772,12 +11719,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11786,12 +11737,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11850,18 +11796,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11902,12 +11852,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11916,12 +11870,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11958,12 +11907,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11972,12 +11925,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12016,12 +11964,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -12030,12 +11982,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12069,12 +12016,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -12083,12 +12034,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12123,18 +12069,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12170,12 +12120,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -12184,12 +12138,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12225,18 +12174,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12274,18 +12227,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12329,18 +12286,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12380,18 +12341,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12442,18 +12407,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12505,18 +12474,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12794,12 +12767,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -12808,12 +12776,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -12822,12 +12794,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -12836,12 +12803,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13119,12 +13081,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13133,12 +13090,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13147,12 +13108,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13161,12 +13117,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13199,18 +13150,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13219,12 +13174,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13254,18 +13204,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13274,12 +13228,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13557,12 +13506,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13571,12 +13515,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13585,12 +13533,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13599,12 +13542,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13632,18 +13570,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13695,12 +13637,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13709,12 +13655,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13746,12 +13687,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13792,12 +13737,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13838,12 +13787,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13852,12 +13805,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13893,12 +13841,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13907,12 +13859,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13952,12 +13899,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13966,12 +13917,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14009,12 +13955,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14023,12 +13964,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14037,12 +13982,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14109,12 +14049,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14123,12 +14067,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14174,18 +14113,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14232,18 +14175,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14297,12 +14244,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14311,12 +14262,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14385,12 +14331,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14399,12 +14340,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14413,12 +14358,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14470,12 +14410,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14484,12 +14419,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14498,12 +14437,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14539,18 +14473,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14594,12 +14532,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14608,12 +14550,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14650,18 +14587,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14690,12 +14631,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14704,12 +14649,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14749,12 +14689,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14763,12 +14707,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14796,18 +14735,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14841,12 +14784,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14855,12 +14802,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14897,18 +14839,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14963,12 +14909,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14977,12 +14927,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -15018,18 +14963,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -15074,12 +15023,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -15088,12 +15041,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -15149,12 +15097,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -15163,12 +15115,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -15202,12 +15149,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -15216,12 +15167,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -15257,12 +15203,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -15271,12 +15221,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -15305,6 +15250,15 @@ export interface operations {
                             description: string;
                         }[];
                     };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };

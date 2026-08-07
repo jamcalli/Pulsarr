@@ -1,11 +1,16 @@
 import { z } from 'zod'
 
-// Generic error schema - matches Fastify Sensible HttpError structure
-export const ErrorSchema = z.object({
-  statusCode: z.number(),
-  code: z.string(),
-  error: z.string(),
-  message: z.string().min(1),
-})
+export const ErrorSchema = z
+  .object({
+    statusCode: z.number().meta({ description: 'HTTP status code' }),
+    error: z.string().meta({ description: 'HTTP status text' }),
+    message: z.string().meta({
+      description: 'Error detail, replaced with a generic string for 5xx',
+    }),
+  })
+  .meta({
+    id: 'Error',
+    description: 'Standard error response',
+  })
 
 export type ErrorResponse = z.infer<typeof ErrorSchema>

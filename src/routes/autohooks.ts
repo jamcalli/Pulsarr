@@ -24,6 +24,12 @@ export default async function (fastify: FastifyInstance) {
     'Computed public API paths for authentication bypass',
   )
 
+  // Invoked only on the rejection paths below, so it counts failed auth only
+  const unauthenticatedLimiter = fastify.rateLimit({
+    max: 20,
+    timeWindow: '1 minute',
+  })
+
   fastify.addHook('onRequest', async (request, reply) => {
     const urlWithoutQuery = request.url.split('?')[0]
 
@@ -67,6 +73,7 @@ export default async function (fastify: FastifyInstance) {
         return
       } catch (_error) {
         // Invalid API key
+        await unauthenticatedLimiter.call(fastify, request, reply)
         return reply.unauthorized('Invalid API key')
       }
     }
@@ -97,6 +104,7 @@ export default async function (fastify: FastifyInstance) {
 
     // Regular session authentication check for all other cases
     if (!request.session.user) {
+      await unauthenticatedLimiter.call(fastify, request, reply)
       return reply.unauthorized(
         'You must be authenticated to access this route.',
       )

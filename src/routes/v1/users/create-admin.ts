@@ -9,6 +9,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.post(
     '/create-admin',
     {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '1 minute',
+        },
+      },
       schema: {
         security: [],
         summary: 'Create admin user',

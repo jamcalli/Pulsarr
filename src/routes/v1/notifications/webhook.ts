@@ -39,6 +39,17 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.post(
     '/webhook',
     {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: '1 minute',
+          allowList: (request) =>
+            safeSecretCompare(
+              request.headers['x-pulsarr-secret'],
+              fastify.config.webhookSecret,
+            ),
+        },
+      },
       schema: {
         security: [{ webhookSecretAuth: [] }],
         summary: 'Process media webhook',

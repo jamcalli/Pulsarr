@@ -25,7 +25,7 @@
     "test:coverage": "bun run --bun vitest run --coverage",
     "fix": "biome format --write . && biome lint --write .",
     "fix:unsafe": "biome check --write --unsafe .",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p src/client/tsconfig.json",
+    "typecheck": "bun run typecheck:server && bun run typecheck:client && bun run typecheck:scripts && bun run typecheck:tests",
     "typecheck:server": "tsc --noEmit",
     "typecheck:client": "tsc --noEmit -p src/client/tsconfig.json",
     "typecheck:tests": "tsc --noEmit -p test/tsconfig.json",
