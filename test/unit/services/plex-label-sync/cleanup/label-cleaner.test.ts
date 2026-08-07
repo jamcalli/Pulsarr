@@ -77,8 +77,6 @@ describe('label-cleaner', () => {
       removedLabelMode: 'remove',
       removedLabelPrefix: 'pulsarr:removed',
       autoResetOnScheduledSync: false,
-      scheduleTime: undefined,
-      dayOfWeek: '*',
       tagSync: {
         enabled: false,
         syncRadarrTags: false,

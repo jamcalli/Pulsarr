@@ -1,4 +1,3 @@
-import type { ErrorResponse } from '@root/schemas/common/error.schema.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 
@@ -10,34 +9,15 @@ async function notFoundHandler(fastify: FastifyInstance) {
   fastify.setNotFoundHandler(
     {
       preHandler: fastify.rateLimit({
-        max: 3,
-        timeWindow: 500,
+        max: 10,
+        timeWindow: '1 minute',
       }),
     },
-    (request, reply) => {
-      request.log.warn(
-        {
-          request: {
-            id: request.id,
-            method: request.method,
-            path: request.url.split('?')[0],
-          },
-        },
-        'Resource not found',
-      )
-      reply.code(404)
-      const response: ErrorResponse = {
-        statusCode: 404,
-        code: 'NOT_FOUND',
-        error: 'Not Found',
-        message: 'Resource not found',
-      }
-      return response
-    },
+    (_request, reply) => reply.notFound('Resource not found'),
   )
 }
 
 export default fp(notFoundHandler, {
   name: 'not-found',
-  dependencies: ['@fastify/rate-limit'],
+  dependencies: ['@fastify/rate-limit', '@fastify/sensible'],
 })

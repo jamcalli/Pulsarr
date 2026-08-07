@@ -9,6 +9,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.post(
     '/login',
     {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '1 minute',
+        },
+      },
       schema: {
         security: [],
         summary: 'User login',
