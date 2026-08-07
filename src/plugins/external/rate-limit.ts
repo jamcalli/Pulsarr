@@ -1,4 +1,4 @@
-import fastifyRateLimit from '@fastify/rate-limit'
+import fastifyRateLimit, { normalizeIP } from '@fastify/rate-limit'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
 
@@ -6,8 +6,10 @@ const createRateLimitConfig = (fastify: FastifyInstance) => {
   return {
     max: fastify.config.rateLimitMax,
     timeWindow: '1 minute',
-    // the default generator crashes on aborted sockets where req.ip is undefined
-    keyGenerator: (req: FastifyRequest) => req.ip ?? 'unknown',
+    // the default generator crashes on aborted sockets where req.ip is undefined,
+    // and a custom generator skips the plugin's /64 collapsing, so apply it here
+    keyGenerator: (req: FastifyRequest) =>
+      req.ip ? normalizeIP(req.ip, 64) : 'unknown',
     allowList: (req: FastifyRequest) => {
       // Skip rate limiting for static assets (handles both root and prefixed paths)
       // Use pathname only to prevent query string manipulation bypasses

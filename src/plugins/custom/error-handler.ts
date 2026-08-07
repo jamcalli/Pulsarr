@@ -1,3 +1,5 @@
+import { STATUS_CODES } from 'node:http'
+import type { ErrorResponse } from '@root/schemas/common/error.schema.js'
 import type { FastifyError, FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 
@@ -38,11 +40,23 @@ async function errorHandler(fastify: FastifyInstance) {
       request.log.error(logData, 'Internal server error occurred')
     }
 
-    return isClientError ? reply.send(err) : reply.internalServerError()
+    const payload: ErrorResponse = isClientError
+      ? {
+          statusCode: sc,
+          error: STATUS_CODES[sc] ?? 'Error',
+          message: err.message,
+        }
+      : {
+          statusCode: 500,
+          error: 'Internal Server Error',
+          message: 'Internal Server Error',
+        }
+
+    reply.code(payload.statusCode)
+    return payload
   })
 }
 
 export default fp(errorHandler, {
   name: 'error-handler',
-  dependencies: ['@fastify/sensible'],
 })

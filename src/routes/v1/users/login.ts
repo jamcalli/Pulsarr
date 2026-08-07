@@ -11,7 +11,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     {
       config: {
         rateLimit: {
-          max: 5,
+          max: 3,
           timeWindow: '1 minute',
         },
       },

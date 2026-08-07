@@ -18,7 +18,7 @@ const hit = (
   app: FastifyInstance,
   url: string,
   ip: string,
-  method: 'GET' | 'POST' = 'GET',
+  method: 'GET' | 'POST' | 'PUT' = 'GET',
   headers: Record<string, string> = {},
 ) => app.inject({ method, url, remoteAddress: ip, headers })
 
@@ -27,7 +27,7 @@ const statusesFor = async (
   url: string,
   ip: string,
   count: number,
-  method: 'GET' | 'POST' = 'GET',
+  method: 'GET' | 'POST' | 'PUT' = 'GET',
   headers: Record<string, string> = {},
 ) => {
   const codes: number[] = []
@@ -36,6 +36,37 @@ const statusesFor = async (
     codes.push(res.statusCode)
   }
   return codes
+}
+
+const ADMIN = {
+  email: 'ratelimit@test.local',
+  username: 'ratelimitAdmin',
+  password: 'sup3rsecret',
+}
+
+// A real cookie session, not the auth-disabled bypass: bypass builds its session
+// inside autohooks, which never runs for unmatched paths
+let signInCount = 0
+const signIn = async (app: FastifyInstance) => {
+  signInCount += 1
+  const setupIp = `10.99.0.${signInCount}`
+  await app.inject({
+    method: 'POST',
+    url: '/v1/users/create-admin',
+    remoteAddress: setupIp,
+    payload: ADMIN,
+  })
+  const res = await app.inject({
+    method: 'POST',
+    url: '/v1/users/login',
+    remoteAddress: setupIp,
+    payload: { login: ADMIN.email, password: ADMIN.password },
+  })
+  const cookie = res.cookies[0]
+  if (!cookie) {
+    throw new Error(`login failed: ${res.statusCode} ${res.body}`)
+  }
+  return `${cookie.name}=${cookie.value}`
 }
 
 describe('Rate limiting', () => {
@@ -60,51 +91,117 @@ describe('Rate limiting', () => {
   })
 
   describe('unauthenticated /v1 requests', () => {
-    it('limits after 20 rejections and returns 429 rather than 401', async () => {
-      const codes = await statusesFor(app, '/v1/users', '10.10.0.1', 22)
+    // Replying 401 from the auth hook skips the route-level limiter, so these
+    // requests used to be counted by nothing at all
+    it('counts failed auth against the configured global limit', async () => {
+      const max = String(app.config.rateLimitMax)
+      const first = await hit(app, '/v1/config', '10.10.0.1')
+      const second = await hit(app, '/v1/config', '10.10.0.1')
 
-      expect(codes.slice(0, 20).every((c) => c === 401)).toBe(true)
-      expect(codes[20]).toBe(429)
-      expect(codes[21]).toBe(429)
+      expect(first.statusCode).toBe(401)
+      expect(first.headers['x-ratelimit-limit']).toBe(max)
+      expect(second.headers['x-ratelimit-remaining']).toBe(
+        String(app.config.rateLimitMax - 2),
+      )
     })
 
-    it('limits invalid API keys on the same bucket', async () => {
+    it('counts invalid API keys against the same bucket', async () => {
+      const res = await hit(app, '/v1/config', '10.10.0.2', 'GET', {
+        'x-api-key': 'not-a-real-key',
+      })
+
+      expect(res.statusCode).toBe(401)
+      expect(res.headers['x-ratelimit-limit']).toBe(
+        String(app.config.rateLimitMax),
+      )
+    })
+
+    it('counts authenticated traffic against the same bucket', async () => {
+      const cookie = await signIn(app)
+      const res = await hit(app, '/v1/config', '10.10.0.3', 'GET', { cookie })
+
+      expect(res.statusCode).toBe(200)
+      expect(res.headers['x-ratelimit-limit']).toBe(
+        String(app.config.rateLimitMax),
+      )
+    })
+
+    // A single prefix would otherwise get one bucket per address
+    it('collapses IPv6 addresses to their /64', async () => {
+      const first = await hit(app, '/v1/config', '2001:db8:1:1::1')
+      const sameSubnet = await hit(app, '/v1/config', '2001:db8:1:1::2')
+      const otherSubnet = await hit(app, '/v1/config', '2001:db8:1:2::1')
+
+      expect(first.headers['x-ratelimit-remaining']).toBe(
+        String(app.config.rateLimitMax - 1),
+      )
+      expect(sameSubnet.headers['x-ratelimit-remaining']).toBe(
+        String(app.config.rateLimitMax - 2),
+      )
+      expect(otherSubnet.headers['x-ratelimit-remaining']).toBe(
+        String(app.config.rateLimitMax - 1),
+      )
+    })
+
+    it('treats IPv4-mapped IPv6 as the same bucket as plain IPv4', async () => {
+      const mapped = await hit(app, '/v1/config', '::ffff:10.10.0.8')
+      const plain = await hit(app, '/v1/config', '10.10.0.8')
+
+      expect(mapped.headers['x-ratelimit-remaining']).toBe(
+        String(app.config.rateLimitMax - 1),
+      )
+      expect(plain.headers['x-ratelimit-remaining']).toBe(
+        String(app.config.rateLimitMax - 2),
+      )
+    })
+
+    it('eventually returns 429 rather than 401', async () => {
       const codes = await statusesFor(
         app,
-        '/v1/users',
-        '10.10.0.2',
-        22,
-        'GET',
-        {
-          'x-api-key': 'not-a-real-key',
-        },
+        '/v1/config',
+        '10.10.0.4',
+        app.config.rateLimitMax + 2,
       )
 
-      expect(codes.slice(0, 20).every((c) => c === 401)).toBe(true)
-      expect(codes[20]).toBe(429)
-    })
-
-    it('does not limit authenticated traffic', async () => {
-      app.config.authenticationMethod = 'disabled'
-      const codes = await statusesFor(app, '/v1/users', '10.10.0.3', 30)
-
-      expect(codes.some((c) => c === 429)).toBe(false)
+      expect(
+        codes.slice(0, app.config.rateLimitMax).every((c) => c === 401),
+      ).toBe(true)
+      expect(codes[app.config.rateLimitMax]).toBe(429)
+      expect(codes.at(-1)).toBe(429)
     })
   })
 
-  describe('public credential endpoints', () => {
-    it('limits login after 5 attempts', async () => {
+  describe('credential endpoints', () => {
+    it('limits login after 3 attempts', async () => {
       const codes = await statusesFor(
         app,
         '/v1/users/login',
-        '10.10.0.4',
-        7,
+        '10.10.0.5',
+        5,
         'POST',
       )
 
-      expect(codes.slice(0, 5).every((c) => c !== 429)).toBe(true)
-      expect(codes[5]).toBe(429)
-      expect(codes[6]).toBe(429)
+      expect(codes.slice(0, 3).every((c) => c !== 429)).toBe(true)
+      expect(codes[3]).toBe(429)
+      expect(codes[4]).toBe(429)
+    })
+
+    // Only reachable once authenticated, so the tighter bucket only applies
+    // there - an anonymous caller is rejected by the auth hook first
+    it('limits password changes after 3 attempts', async () => {
+      const cookie = await signIn(app)
+      const codes = await statusesFor(
+        app,
+        '/v1/users/update-password',
+        '10.10.0.9',
+        5,
+        'PUT',
+        { cookie },
+      )
+
+      expect(codes.slice(0, 3).every((c) => c !== 429)).toBe(true)
+      expect(codes[3]).toBe(429)
+      expect(codes[4]).toBe(429)
     })
 
     it('limits create-admin after 5 attempts', async () => {
@@ -192,8 +289,8 @@ describe('Rate limiting', () => {
 
   describe('429 response shape', () => {
     it('matches the shared Error schema', async () => {
-      await statusesFor(app, '/v1/users', '10.10.0.7', 21)
-      const res = await hit(app, '/v1/users', '10.10.0.7')
+      await statusesFor(app, '/v1/users/login', '10.10.0.7', 4, 'POST')
+      const res = await hit(app, '/v1/users/login', '10.10.0.7', 'POST')
 
       expect(res.statusCode).toBe(429)
       expect(JSON.parse(res.body)).toEqual({
