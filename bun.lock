@@ -40,7 +40,7 @@
         "zod": "^4.0.17",
       },
       "devDependencies": {
-        "@biomejs/biome": "^2.5.6",
+        "@biomejs/biome": "^2.5.7",
         "@commitlint/cli": "^21.0.0",
         "@commitlint/config-conventional": "^21.0.0",
         "@epic-web/invariant": "^1.0.0",
