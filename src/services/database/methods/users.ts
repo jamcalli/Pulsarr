@@ -382,6 +382,22 @@ export async function createAdminUser(
 }
 
 /**
+ * Retrieves an admin user by ID.
+ *
+ * @param id - The admin user ID to search for.
+ * @returns The matching admin user if found; otherwise, undefined.
+ */
+export async function getAdminUserById(
+  this: DatabaseService,
+  id: number,
+): Promise<AdminUser | undefined> {
+  return await this.knex('admin_users')
+    .select('id', 'username', 'email', 'password', 'role')
+    .where({ id })
+    .first()
+}
+
+/**
  * Retrieves an admin user by email address using a case-insensitive match.
  *
  * @param email - The email address to search for.
@@ -425,27 +441,73 @@ export async function hasAdminUsers(this: DatabaseService): Promise<boolean> {
 }
 
 /**
- * Updates the password for an admin user matching the given email address, using a case-insensitive comparison.
+ * Updates the password for an admin user by ID.
  *
- * @param email - The email address of the admin user to update
+ * @param id - The ID of the admin user to update
  * @param hashedPassword - The new hashed password to set
- * @returns True if the password was updated for at least one user; false if no matching user was found or an error occurred
+ * @returns True if the password was updated; false if no matching user was found or an error occurred
  */
 export async function updateAdminPassword(
   this: DatabaseService,
-  email: string,
+  id: number,
   hashedPassword: string,
 ): Promise<boolean> {
   try {
-    const updated = await this.knex('admin_users')
-      .whereRaw('LOWER(email) = LOWER(?)', [email])
-      .update({
-        password: hashedPassword,
-        updated_at: this.timestamp,
-      })
+    const updated = await this.knex('admin_users').where({ id }).update({
+      password: hashedPassword,
+      updated_at: this.timestamp,
+    })
     return updated > 0
   } catch (error) {
     this.log.error({ error }, 'Error updating admin password:')
+    return false
+  }
+}
+
+/**
+ * Updates the email for an admin user by ID.
+ *
+ * @param id - The ID of the admin user to update
+ * @param newEmail - The new email address to set
+ * @returns True if the email was updated; false if no matching user was found or an error occurred
+ */
+export async function updateAdminEmail(
+  this: DatabaseService,
+  id: number,
+  newEmail: string,
+): Promise<boolean> {
+  try {
+    const updated = await this.knex('admin_users').where({ id }).update({
+      email: newEmail,
+      updated_at: this.timestamp,
+    })
+    return updated > 0
+  } catch (error) {
+    this.log.error({ error }, 'Error updating admin email:')
+    return false
+  }
+}
+
+/**
+ * Updates the username for an admin user by ID.
+ *
+ * @param id - The ID of the admin user to update
+ * @param newUsername - The new username to set
+ * @returns True if the username was updated; false if no matching user was found or an error occurred
+ */
+export async function updateAdminUsername(
+  this: DatabaseService,
+  id: number,
+  newUsername: string,
+): Promise<boolean> {
+  try {
+    const updated = await this.knex('admin_users').where({ id }).update({
+      username: newUsername,
+      updated_at: this.timestamp,
+    })
+    return updated > 0
+  } catch (error) {
+    this.log.error({ error }, 'Error updating admin username:')
     return false
   }
 }

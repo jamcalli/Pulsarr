@@ -55,6 +55,7 @@ const RadarrContentRouterPage = lazy(
   () => import('@/features/radarr/pages/radarr-content-router'),
 )
 const NotFoundPage = lazy(() => import('@/features/not-found'))
+const AccountSettingsPage = lazy(() => import('@/features/account'))
 
 const LoadingFallback = () => null
 
@@ -191,6 +192,16 @@ export const router = createBrowserRouter(
             <AuthenticatedLayout>
               <Suspense fallback={<LoadingFallback />}>
                 <DashboardPage />
+              </Suspense>
+            </AuthenticatedLayout>
+          ),
+        },
+        {
+          path: 'account',
+          element: (
+            <AuthenticatedLayout>
+              <Suspense fallback={<LoadingFallback />}>
+                <AccountSettingsPage />
               </Suspense>
             </AuthenticatedLayout>
           ),

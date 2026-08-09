@@ -89,6 +89,13 @@ declare module '@services/database.service.js' {
     }): Promise<boolean>
 
     /**
+     * Retrieves an admin user by ID
+     * @param id - ID of the admin user
+     * @returns Promise resolving to the admin user if found, undefined otherwise
+     */
+    getAdminUserById(id: number): Promise<AdminUser | undefined>
+
+    /**
      * Retrieves an admin user by email
      * @param email - Email address of the admin user
      * @returns Promise resolving to the admin user if found, undefined otherwise
@@ -110,11 +117,27 @@ declare module '@services/database.service.js' {
 
     /**
      * Updates an admin user's password
-     * @param email - Email address of the admin user
+     * @param id - ID of the admin user
      * @param hashedPassword - New hashed password
      * @returns Promise resolving to true if password was updated, false otherwise
      */
-    updateAdminPassword(email: string, hashedPassword: string): Promise<boolean>
+    updateAdminPassword(id: number, hashedPassword: string): Promise<boolean>
+
+    /**
+     * Updates an admin user's email
+     * @param id - ID of the admin user
+     * @param newEmail - New email address
+     * @returns Promise resolving to true if email was updated, false otherwise
+     */
+    updateAdminEmail(id: number, newEmail: string): Promise<boolean>
+
+    /**
+     * Updates an admin user's username
+     * @param id - ID of the admin user
+     * @param newUsername - New username
+     * @returns Promise resolving to true if username was updated, false otherwise
+     */
+    updateAdminUsername(id: number, newUsername: string): Promise<boolean>
 
     /**
      * Checks if any users have sync disabled

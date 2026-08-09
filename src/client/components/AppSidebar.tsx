@@ -17,6 +17,7 @@ import {
   Sparkles,
   Sun,
   Tv,
+  UserCog,
   Wrench,
 } from 'lucide-react'
 
@@ -652,6 +653,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => navigate('/account')}>
+                      <UserCog className="mr-2 h-4 w-4" />
+                      <span>Account settings</span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setShowLogoutAlert(true)}>
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Log out</span>
