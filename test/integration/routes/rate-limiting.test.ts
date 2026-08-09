@@ -116,14 +116,22 @@ describe('Rate limiting', () => {
       )
     })
 
-    it('counts authenticated traffic against the same bucket', async () => {
+    it('counts authenticated and unauthenticated traffic in one bucket', async () => {
       const cookie = await signIn(app)
-      const res = await hit(app, '/v1/config', '10.10.0.3', 'GET', { cookie })
+      const ip = '10.10.0.3'
 
-      expect(res.statusCode).toBe(200)
-      expect(res.headers['x-ratelimit-limit']).toBe(
+      const unauthenticated = await hit(app, '/v1/config', ip)
+      const authenticated = await hit(app, '/v1/config', ip, 'GET', { cookie })
+
+      expect(unauthenticated.statusCode).toBe(401)
+      expect(authenticated.statusCode).toBe(200)
+      expect(authenticated.headers['x-ratelimit-limit']).toBe(
         String(app.config.rateLimitMax),
       )
+      // The 401 must have consumed from the same bucket the 200 reports on
+      expect(
+        Number(authenticated.headers['x-ratelimit-remaining']),
+      ).toBeLessThan(Number(unauthenticated.headers['x-ratelimit-remaining']))
     })
 
     // A single prefix would otherwise get one bucket per address
