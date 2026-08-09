@@ -60,18 +60,23 @@ const VALID_SEASON_MONITORING = new Set([
 ])
 
 // Base schemas for conditions
-export const ComparisonOperatorSchema = z.enum([
-  'equals',
-  'notEquals',
-  'contains',
-  'notContains',
-  'in',
-  'notIn',
-  'greaterThan',
-  'lessThan',
-  'between',
-  'regex',
-])
+export const ComparisonOperatorSchema = z
+  .enum([
+    'equals',
+    'notEquals',
+    'contains',
+    'notContains',
+    'in',
+    'notIn',
+    'greaterThan',
+    'lessThan',
+    'between',
+    'regex',
+  ])
+  .meta({
+    id: 'ConditionOperator',
+    description: 'Comparison operator applied to a condition value',
+  })
 
 // Define the criteria schemas first
 export const UserCriteriaSchema = z.object({
@@ -117,20 +122,25 @@ const ImdbCompoundValueSchema = z
     message: 'At least one of rating or votes must be provided',
   })
 
-export const ConditionValueSchema = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-  z.array(z.string()),
-  z.array(z.number()),
-  UserCriteriaSchema,
-  GenreCriteriaSchema,
-  z.array(z.union([z.string(), z.number()])),
-  // Range object for "between" operator - validation handled by isNonEmptyValue in ConditionSchema
-  z.object({ min: z.number().optional(), max: z.number().optional() }),
-  ImdbCompoundValueSchema,
-  z.null(),
-])
+export const ConditionValueSchema = z
+  .union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.array(z.string()),
+    z.array(z.number()),
+    UserCriteriaSchema,
+    GenreCriteriaSchema,
+    z.array(z.union([z.string(), z.number()])),
+    // Range object for "between" operator - validation handled by isNonEmptyValue in ConditionSchema
+    z.object({ min: z.number().optional(), max: z.number().optional() }),
+    ImdbCompoundValueSchema,
+    z.null(),
+  ])
+  .meta({
+    id: 'ConditionValue',
+    description: 'Value shapes accepted by router conditions',
+  })
 
 // Then define the interfaces
 export interface ICondition {
@@ -173,6 +183,10 @@ export const ConditionSchema = z
         'Invalid or unsafe regex pattern. Must be valid syntax without catastrophic backtracking.',
     },
   )
+  .meta({
+    id: 'RouterCondition',
+    description: 'A single field comparison in a router rule',
+  })
 
 export interface IConditionGroup {
   operator: 'AND' | 'OR'
@@ -250,6 +264,10 @@ export const ConditionGroupSchema = z
     message:
       'Condition groups cannot contain circular references or exceed maximum nesting depth (20)',
   })
+  .meta({
+    id: 'RouterConditionGroup',
+    description: 'Boolean grouping of router conditions, nestable to 20 levels',
+  })
 
 // Base router rule schema
 export const BaseRouterRuleSchema = z.object({
@@ -313,8 +331,8 @@ const QualityProfileInputSchema = z
   })
   .pipe(z.number().nullable().optional())
 
-// Schema for creating a new rule
-// Update-side target-type checks live in the route handler since updates may omit target_type
+// Schema for creating or replacing a rule. PUT is a full replace, so one
+// schema owns every cross-field invariant for both verbs
 export const ContentRouterRuleSchema = BaseRouterRuleSchema.extend({
   quality_profile: QualityProfileInputSchema,
 })
@@ -341,12 +359,12 @@ export const ContentRouterRuleSchema = BaseRouterRuleSchema.extend({
         'target_instance_id must be null when exclude_from_routing is true',
     },
   )
-
-// Schema for updating an existing rule
-export const ContentRouterRuleUpdateSchema =
-  BaseRouterRuleSchema.partial().extend({
-    quality_profile: QualityProfileInputSchema,
+  .meta({
+    id: 'RouterRulePayload',
+    description: 'Full router rule payload used to create or replace a rule',
   })
+
+export const ContentRouterRuleUpdateSchema = ContentRouterRuleSchema
 
 // Schema for toggling a rule
 export const ContentRouterRuleToggleSchema = z.object({
@@ -358,6 +376,9 @@ export const RouterRuleSchema = BaseRouterRuleSchema.extend({
   id: z.number(),
   created_at: z.string(),
   updated_at: z.string(),
+}).meta({
+  id: 'RouterRule',
+  description: 'A stored content router rule',
 })
 
 export const ContentRouterRuleResponseSchema = z.object({

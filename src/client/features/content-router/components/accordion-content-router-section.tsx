@@ -2,8 +2,6 @@ import type {
   ComparisonOperator,
   Condition,
   ConditionGroup,
-  ContentRouterRule,
-  ContentRouterRuleUpdate,
 } from '@root/schemas/content-router/content-router.schema'
 import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
@@ -21,6 +19,10 @@ import { generateUUID } from '@/features/content-router/utils/utils'
 import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapter'
 import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
 import { apiErrorMessage } from '@/lib/tanstackApi'
+import type { components } from '@/types/api.js'
+
+type RouterRule = components['schemas']['RouterRule']
+type RouterRulePayload = components['schemas']['RouterRulePayload']
 
 // Define possible value types for criteria
 type CriteriaValue =
@@ -44,15 +46,15 @@ interface Criteria {
   [key: string]: CriteriaValue | undefined
 }
 
-// Extended ContentRouterRule to include condition and type
-interface ExtendedContentRouterRule extends ContentRouterRule {
+// Extended RouterRule to include condition and type
+interface ExtendedRouterRule extends RouterRule {
   type?: string
   criteria?: Criteria
 }
 
 // More specific type for temporary rules
 interface TempRule
-  extends Partial<Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>> {
+  extends Partial<Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>> {
   tempId: string
   name: string
   type?: string
@@ -99,11 +101,11 @@ const createConditionGroupFromCondition = (
 
 // Move the conversion function outside the component
 const convertToStandardCondition = (
-  rule: ContentRouterRule | TempRule,
-): ExtendedContentRouterRule => {
+  rule: RouterRule | TempRule,
+): ExtendedRouterRule => {
   // Create a new object to avoid mutating the input
-  const ruleWithCondition = { ...rule } as ExtendedContentRouterRule
-  const extendedRule = rule as ExtendedContentRouterRule
+  const ruleWithCondition = { ...rule } as ExtendedRouterRule
+  const extendedRule = rule as ExtendedRouterRule
 
   if (extendedRule.condition) {
     if (isCondition(extendedRule.condition)) {
@@ -238,7 +240,7 @@ const AccordionContentRouterSection = ({
   const isMounted = useRef(false)
 
   const [editedFormValues, setEditedFormValues] = useState<{
-    [key: string]: ContentRouterRuleUpdate
+    [key: string]: RouterRulePayload
   }>({})
 
   const skeletonIds = useMemo(
@@ -300,27 +302,24 @@ const AccordionContentRouterSection = ({
   )
 
   // Store form values before updating
-  const storeFormValues = useCallback(
-    (id: string, data: ContentRouterRuleUpdate) => {
-      setEditedFormValues((prev) => ({
-        ...prev,
-        [id]: data,
-      }))
-    },
-    [],
-  )
+  const storeFormValues = useCallback((id: string, data: RouterRulePayload) => {
+    setEditedFormValues((prev) => ({
+      ...prev,
+      [id]: data,
+    }))
+  }, [])
 
   const handleSaveNewRule = useCallback(
     async (
       tempId: string,
-      data: Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>,
+      data: Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>,
     ) => {
       // Only set loading state for this specific operation
       setSavingRules((prev) => ({ ...prev, [tempId]: true }))
 
       try {
         // Store current form values
-        storeFormValues(tempId, data as ContentRouterRuleUpdate)
+        storeFormValues(tempId, data as RouterRulePayload)
 
         // Convert quality_profile to the expected format
         const modifiedData = {
@@ -368,7 +367,7 @@ const AccordionContentRouterSection = ({
   )
 
   const handleUpdateRule = useCallback(
-    async (id: number, data: ContentRouterRuleUpdate) => {
+    async (id: number, data: RouterRulePayload) => {
       // Only set loading state for this specific rule update
       setSavingRules((prev) => ({ ...prev, [id]: true }))
 
@@ -463,10 +462,8 @@ const AccordionContentRouterSection = ({
   )
 
   const renderRouteCard = useCallback(
-    (rule: ContentRouterRule | TempRule, isNew = false) => {
-      const ruleId = isNew
-        ? (rule as TempRule).tempId
-        : (rule as ContentRouterRule).id
+    (rule: RouterRule | TempRule, isNew = false) => {
+      const ruleId = isNew ? (rule as TempRule).tempId : (rule as RouterRule).id
 
       const isToggling = false
 
@@ -474,7 +471,7 @@ const AccordionContentRouterSection = ({
       const ruleIndex = preparedRules.findIndex((r) =>
         isNew
           ? 'tempId' in r && r.tempId === (rule as TempRule).tempId
-          : 'id' in r && r.id === (rule as ContentRouterRule).id,
+          : 'id' in r && r.id === (rule as RouterRule).id,
       )
 
       const ruleWithCondition =
@@ -499,19 +496,16 @@ const AccordionContentRouterSection = ({
             condition: mergedRule.condition as ConditionGroup | undefined,
           }}
           isNew={isNew}
-          onSave={async (data: ContentRouterRule | ContentRouterRuleUpdate) => {
+          onSave={async (data: RouterRule | RouterRulePayload) => {
             if (isNew) {
               return handleSaveNewRule(
                 (rule as TempRule).tempId,
-                data as Omit<
-                  ContentRouterRule,
-                  'id' | 'created_at' | 'updated_at'
-                >,
+                data as Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>,
               )
             }
             return handleUpdateRule(
-              (rule as ContentRouterRule).id,
-              data as ContentRouterRuleUpdate,
+              (rule as RouterRule).id,
+              data as RouterRulePayload,
             )
           }}
           onCancel={() => {
@@ -522,8 +516,7 @@ const AccordionContentRouterSection = ({
           onRemove={
             isNew
               ? undefined
-              : () =>
-                  setDeleteConfirmationRuleId((rule as ContentRouterRule).id)
+              : () => setDeleteConfirmationRuleId((rule as RouterRule).id)
           }
           onToggleEnabled={handleToggleRuleEnabled}
           isSaving={!!savingRules[ruleId.toString()]}

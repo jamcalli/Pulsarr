@@ -422,7 +422,7 @@ export interface paths {
         get: operations["getRouterRuleById"];
         /**
          * Update router rule
-         * @description Update an existing content router rule by its ID
+         * @description Replace an existing content router rule by its ID. The full rule payload is required - fields left out are cleared, not preserved.
          */
         put: operations["updateRouterRule"];
         post?: never;
@@ -2981,6 +2981,187 @@ export interface webhooks {
 }
 export interface components {
     schemas: {
+        /**
+         * @description Comparison operator applied to a condition value
+         * @enum {string}
+         */
+        ConditionOperator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+        /** @description Value shapes accepted by router conditions */
+        ConditionValue: string | number | boolean | string[] | number[] | {
+            id: string | number;
+            name: string;
+        } | {
+            id: string | number;
+            name: string;
+        } | (string | number)[] | {
+            min?: number;
+            max?: number;
+        } | {
+            rating?: number | number[] | {
+                min?: number;
+                max?: number;
+            };
+            votes?: number | number[] | {
+                min?: number;
+                max?: number;
+            };
+        } | (null);
+        /** @description Value shapes accepted by router conditions */
+        ConditionValueOutput: string | number | boolean | string[] | number[] | {
+            id: string | number;
+            name: string;
+        } | {
+            id: string | number;
+            name: string;
+        } | (string | number)[] | {
+            min?: number;
+            max?: number;
+        } | {
+            rating?: number | number[] | {
+                min?: number;
+                max?: number;
+            };
+            votes?: number | number[] | {
+                min?: number;
+                max?: number;
+            };
+        } | (null);
+        /** @description Field and operator metadata an evaluator contributes to the rule builder */
+        EvaluatorMetadata: {
+            name: string;
+            description: string;
+            priority: number;
+            /** @default [] */
+            supportedFields: {
+                name: string;
+                description: string;
+                valueTypes: string[];
+            }[];
+            /** @default {} */
+            supportedOperators: {
+                [key: string]: {
+                    name: string;
+                    description: string;
+                    valueTypes: string[];
+                    valueFormat?: string;
+                }[];
+            };
+            /** @enum {string} */
+            contentType?: "radarr" | "sonarr" | "both";
+        };
+        /** @description A single field comparison in a router rule */
+        RouterCondition: {
+            field: string;
+            operator: components["schemas"]["ConditionOperator"];
+            value: components["schemas"]["ConditionValue"];
+            /** @default false */
+            negate: boolean;
+            _cid?: string;
+        };
+        /** @description Boolean grouping of router conditions, nestable to 20 levels */
+        RouterConditionGroup: {
+            /** @enum {string} */
+            operator: "AND" | "OR";
+            conditions: (components["schemas"]["RouterCondition"] | {
+                /** @enum {string} */
+                operator: "AND" | "OR";
+                conditions: unknown[];
+                /** @default false */
+                negate: boolean;
+                _cid?: string;
+            })[];
+            /** @default false */
+            negate: boolean;
+            _cid?: string;
+        };
+        /** @description Boolean grouping of router conditions, nestable to 20 levels */
+        RouterConditionGroupOutput: {
+            /** @enum {string} */
+            operator: "AND" | "OR";
+            conditions: (components["schemas"]["RouterConditionOutput"] | {
+                /** @enum {string} */
+                operator: "AND" | "OR";
+                conditions: unknown[];
+                /** @default false */
+                negate: boolean;
+                _cid?: string;
+            })[];
+            /** @default false */
+            negate: boolean;
+            _cid?: string;
+        };
+        /** @description A single field comparison in a router rule */
+        RouterConditionOutput: {
+            field: string;
+            operator: components["schemas"]["ConditionOperator"];
+            value: components["schemas"]["ConditionValueOutput"];
+            /** @default false */
+            negate: boolean;
+            _cid?: string;
+        };
+        /** @description A stored content router rule */
+        RouterRule: {
+            name: string;
+            /** @enum {string} */
+            target_type: "sonarr" | "radarr";
+            target_instance_id: number | null;
+            condition?: components["schemas"]["RouterConditionOutput"] | components["schemas"]["RouterConditionGroupOutput"];
+            root_folder?: string;
+            quality_profile?: number | string;
+            tags?: string[];
+            order?: number;
+            enabled?: boolean;
+            search_on_add?: boolean | null;
+            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+            season_monitoring?: string | null;
+            /**
+             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
+             * @enum {string|null}
+             */
+            series_type?: "standard" | "anime" | "daily" | null;
+            /**
+             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
+             * @enum {string|null}
+             */
+            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+            always_require_approval?: boolean;
+            bypass_user_quotas?: boolean;
+            approval_reason?: string;
+            exclude_from_routing?: boolean;
+            id: number;
+            created_at: string;
+            updated_at: string;
+        };
+        /** @description Full router rule payload used to create or replace a rule */
+        RouterRulePayload: {
+            name: string;
+            /** @enum {string} */
+            target_type: "sonarr" | "radarr";
+            target_instance_id: number | null;
+            condition?: components["schemas"]["RouterCondition"] | components["schemas"]["RouterConditionGroup"];
+            root_folder?: string;
+            quality_profile?: number | string;
+            tags?: string[];
+            order?: number;
+            enabled?: boolean;
+            search_on_add?: boolean | null;
+            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+            season_monitoring?: string | null;
+            /**
+             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
+             * @enum {string|null}
+             */
+            series_type?: "standard" | "anime" | "daily" | null;
+            /**
+             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
+             * @enum {string|null}
+             */
+            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+            always_require_approval?: boolean;
+            bypass_user_quotas?: boolean;
+            approval_reason?: string;
+            exclude_from_routing?: boolean;
+        };
         /** HttpError */
         "def-0": {
             statusCode?: number;
@@ -5257,28 +5438,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        evaluators: {
-                            name: string;
-                            description: string;
-                            priority: number;
-                            /** @default [] */
-                            supportedFields: {
-                                name: string;
-                                description: string;
-                                valueTypes: string[];
-                            }[];
-                            /** @default {} */
-                            supportedOperators: {
-                                [key: string]: {
-                                    name: string;
-                                    description: string;
-                                    valueTypes: string[];
-                                    valueFormat?: string;
-                                }[];
-                            };
-                            /** @enum {string} */
-                            contentType?: "radarr" | "sonarr" | "both";
-                        }[];
+                        evaluators: components["schemas"]["EvaluatorMetadata"][];
                     };
                 };
             };
@@ -5316,104 +5476,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        rules: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
+                        rules: components["schemas"]["RouterRule"][];
                     };
                 };
             };
@@ -5440,103 +5503,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Full router rule payload used to create or replace a rule */
         requestBody: {
             content: {
-                "application/json": {
-                    name: string;
-                    /** @enum {string} */
-                    target_type: "sonarr" | "radarr";
-                    target_instance_id: number | null;
-                    condition?: {
-                        field: string;
-                        /** @enum {string} */
-                        operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                        value: string | number | boolean | string[] | number[] | {
-                            id: string | number;
-                            name: string;
-                        } | {
-                            id: string | number;
-                            name: string;
-                        } | (string | number)[] | {
-                            min?: number;
-                            max?: number;
-                        } | {
-                            rating?: number | number[] | {
-                                min?: number;
-                                max?: number;
-                            };
-                            votes?: number | number[] | {
-                                min?: number;
-                                max?: number;
-                            };
-                        } | (null);
-                        /** @default false */
-                        negate?: boolean;
-                        _cid?: string;
-                    } | {
-                        /** @enum {string} */
-                        operator: "AND" | "OR";
-                        conditions: ({
-                            field: string;
-                            /** @enum {string} */
-                            operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                            value: string | number | boolean | string[] | number[] | {
-                                id: string | number;
-                                name: string;
-                            } | {
-                                id: string | number;
-                                name: string;
-                            } | (string | number)[] | {
-                                min?: number;
-                                max?: number;
-                            } | {
-                                rating?: number | number[] | {
-                                    min?: number;
-                                    max?: number;
-                                };
-                                votes?: number | number[] | {
-                                    min?: number;
-                                    max?: number;
-                                };
-                            } | (null);
-                            /** @default false */
-                            negate?: boolean;
-                            _cid?: string;
-                        } | {
-                            /** @enum {string} */
-                            operator: "AND" | "OR";
-                            conditions: unknown[];
-                            /** @default false */
-                            negate?: boolean;
-                            _cid?: string;
-                        })[];
-                        /** @default false */
-                        negate?: boolean;
-                        _cid?: string;
-                    };
-                    root_folder?: string;
-                    quality_profile?: number | string;
-                    tags?: string[];
-                    order?: number;
-                    enabled?: boolean;
-                    search_on_add?: boolean | null;
-                    /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                    season_monitoring?: string | null;
-                    /**
-                     * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                     * @enum {string|null}
-                     */
-                    series_type?: "standard" | "anime" | "daily" | null;
-                    /**
-                     * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                     * @enum {string|null}
-                     */
-                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                    always_require_approval?: boolean;
-                    bypass_user_quotas?: boolean;
-                    approval_reason?: string;
-                    exclude_from_routing?: boolean;
-                };
+                "application/json": components["schemas"]["RouterRulePayload"];
             };
         };
         responses: {
@@ -5549,104 +5519,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        rule: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        };
+                        rule: components["schemas"]["RouterRule"];
                     };
                 };
             };
@@ -5701,104 +5574,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        rules: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
+                        rules: components["schemas"]["RouterRule"][];
                     };
                 };
             };
@@ -5838,104 +5614,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        rules: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
+                        rules: components["schemas"]["RouterRule"][];
                     };
                 };
             };
@@ -5991,104 +5670,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        rules: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
+                        rules: components["schemas"]["RouterRule"][];
                     };
                 };
             };
@@ -6128,104 +5710,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        rule: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        };
+                        rule: components["schemas"]["RouterRule"];
                     };
                 };
             };
@@ -6268,103 +5753,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Full router rule payload used to create or replace a rule */
         requestBody: {
             content: {
-                "application/json": {
-                    name?: string;
-                    /** @enum {string} */
-                    target_type?: "sonarr" | "radarr";
-                    target_instance_id?: number | null;
-                    condition?: {
-                        field: string;
-                        /** @enum {string} */
-                        operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                        value: string | number | boolean | string[] | number[] | {
-                            id: string | number;
-                            name: string;
-                        } | {
-                            id: string | number;
-                            name: string;
-                        } | (string | number)[] | {
-                            min?: number;
-                            max?: number;
-                        } | {
-                            rating?: number | number[] | {
-                                min?: number;
-                                max?: number;
-                            };
-                            votes?: number | number[] | {
-                                min?: number;
-                                max?: number;
-                            };
-                        } | (null);
-                        /** @default false */
-                        negate?: boolean;
-                        _cid?: string;
-                    } | {
-                        /** @enum {string} */
-                        operator: "AND" | "OR";
-                        conditions: ({
-                            field: string;
-                            /** @enum {string} */
-                            operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                            value: string | number | boolean | string[] | number[] | {
-                                id: string | number;
-                                name: string;
-                            } | {
-                                id: string | number;
-                                name: string;
-                            } | (string | number)[] | {
-                                min?: number;
-                                max?: number;
-                            } | {
-                                rating?: number | number[] | {
-                                    min?: number;
-                                    max?: number;
-                                };
-                                votes?: number | number[] | {
-                                    min?: number;
-                                    max?: number;
-                                };
-                            } | (null);
-                            /** @default false */
-                            negate?: boolean;
-                            _cid?: string;
-                        } | {
-                            /** @enum {string} */
-                            operator: "AND" | "OR";
-                            conditions: unknown[];
-                            /** @default false */
-                            negate?: boolean;
-                            _cid?: string;
-                        })[];
-                        /** @default false */
-                        negate?: boolean;
-                        _cid?: string;
-                    };
-                    root_folder?: string;
-                    quality_profile?: number | string;
-                    tags?: string[];
-                    order?: number;
-                    enabled?: boolean;
-                    search_on_add?: boolean | null;
-                    /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                    season_monitoring?: string | null;
-                    /**
-                     * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                     * @enum {string|null}
-                     */
-                    series_type?: "standard" | "anime" | "daily" | null;
-                    /**
-                     * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                     * @enum {string|null}
-                     */
-                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                    always_require_approval?: boolean;
-                    bypass_user_quotas?: boolean;
-                    approval_reason?: string;
-                    exclude_from_routing?: boolean;
-                };
+                "application/json": components["schemas"]["RouterRulePayload"];
             };
         };
         responses: {
@@ -6377,104 +5769,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        rule: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        };
+                        rule: components["schemas"]["RouterRule"];
                     };
                 };
             };

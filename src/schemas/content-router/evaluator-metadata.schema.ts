@@ -17,16 +17,22 @@ export const OperatorInfoSchema = z.object({
 })
 
 // Schema for evaluator metadata
-export const EvaluatorMetadataSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  priority: z.number(),
-  supportedFields: z.array(FieldInfoSchema).default([]),
-  supportedOperators: z
-    .record(z.string(), z.array(OperatorInfoSchema))
-    .default({}),
-  contentType: z.enum(['radarr', 'sonarr', 'both']).optional(),
-})
+export const EvaluatorMetadataSchema = z
+  .object({
+    name: z.string(),
+    description: z.string(),
+    priority: z.number(),
+    supportedFields: z.array(FieldInfoSchema).default([]),
+    supportedOperators: z
+      .record(z.string(), z.array(OperatorInfoSchema))
+      .default({}),
+    contentType: z.enum(['radarr', 'sonarr', 'both']).optional(),
+  })
+  .meta({
+    id: 'EvaluatorMetadata',
+    description:
+      'Field and operator metadata an evaluator contributes to the rule builder',
+  })
 
 // Response schema for evaluator metadata
 export const EvaluatorMetadataResponseSchema = z.object({

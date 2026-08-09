@@ -21,7 +21,7 @@ src/schemas/**/*.schema.ts   (Zod route schemas - source of truth)
 
 ## Adding or changing an endpoint
 
-1. **Write the Zod route schema** in `src/schemas/<feature>/<name>.schema.ts`. Include `operationId`, `tags`, `summary`, and typed `response` entries - these drive both the docs and the generated client types. Export inferred types for anything the client needs by name.
+1. **Write the Zod route schema** in `src/schemas/<feature>/<name>.schema.ts`. Include `operationId`, `tags`, `summary`, and typed `response` entries - these drive both the docs and the generated client types. Give reused or client-consumed shapes a `.meta({ id, description })` so they become named components (`.meta()` only - `.describe()` chained after it destroys the id). Inferred types are for server-side use; the client gets its types from the generated contract instead.
 
 2. **Wire the route** in `src/routes/v1/...` using the schema (`FastifyPluginAsyncZodOpenApi` pattern - copy a sibling route).
 
@@ -49,6 +49,16 @@ src/schemas/**/*.schema.ts   (Zod route schemas - source of truth)
    ```
 
    Paths, params, request bodies, and response shapes are all checked against the generated types - a typo or a stale type is a compile error, not a runtime surprise.
+
+   When client code needs to name a shape (props, state, payload builders), alias the named component locally in the file that uses it:
+
+   ```typescript
+   import type { components } from '@/types/api.js'
+
+   type RouterRule = components['schemas']['RouterRule']
+   ```
+
+   Do not import `z.infer` types from `@root/schemas` into the client - they carry the schema's output types, which diverge from the wire contract on transformed fields. If the shape has no named component yet, add a `.meta({ id })` to its schema and regenerate.
 
 5. **Verify and commit everything together:** `bun run typecheck`, then commit the schema, route, `openapi.json`, and `api.d.ts` in the same commit so the contract never drifts from the code.
 
