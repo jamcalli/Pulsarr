@@ -1,4 +1,5 @@
 import type { RouterRule } from '@root/types/router.types.js'
+import type { ContentRouterRuleUpdate } from '@schemas/content-router/content-router.schema.js'
 import {
   ContentRouterRuleErrorSchema,
   ContentRouterRuleListResponseSchema,
@@ -12,7 +13,6 @@ import { formatRule } from '@utils/content-router-formatter.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
-import type { ContentRouterRuleUpdate } from '@schemas/content-router/content-router.schema.js'
 
 /**
  * Maps a validated rule payload to its stored shape. PUT is a full replace,
