@@ -291,6 +291,9 @@ describe('routeContent gates', () => {
       expect(routeItemToRadarr).not.toHaveBeenCalled()
       expect(await getApprovalRequests()).toHaveLength(0)
       expect(await getQuotaUsageCount()).toBe(0)
+      expect(
+        fastify.notifications.sendWatchlistCapReached,
+      ).toHaveBeenCalledTimes(1)
     })
 
     it('does not consume quota when routing lands nowhere (skip flag on)', async () => {

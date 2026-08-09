@@ -310,16 +310,13 @@ const AccordionContentRouterSection = ({
   }, [])
 
   const handleSaveNewRule = useCallback(
-    async (
-      tempId: string,
-      data: Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>,
-    ) => {
+    async (tempId: string, data: RouterRulePayload) => {
       // Only set loading state for this specific operation
       setSavingRules((prev) => ({ ...prev, [tempId]: true }))
 
       try {
         // Store current form values
-        storeFormValues(tempId, data as RouterRulePayload)
+        storeFormValues(tempId, data)
 
         // Convert quality_profile to the expected format
         const modifiedData = {
@@ -500,7 +497,7 @@ const AccordionContentRouterSection = ({
             if (isNew) {
               return handleSaveNewRule(
                 (rule as TempRule).tempId,
-                data as Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>,
+                data as RouterRulePayload,
               )
             }
             return handleUpdateRule(

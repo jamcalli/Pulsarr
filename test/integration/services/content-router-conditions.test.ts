@@ -236,7 +236,7 @@ describe('routeContent condition evaluation', () => {
       expect(result.routedInstances).toEqual([1])
     })
 
-    it('warns and skips a rule whose condition field no evaluator owns', async () => {
+    it('skips a rule whose condition field no evaluator owns', async () => {
       await insertRule({
         operator: 'AND',
         negate: false,

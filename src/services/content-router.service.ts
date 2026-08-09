@@ -898,6 +898,8 @@ export class ContentRouterService {
           { error },
           `Error syncing "${item.title}" to instance ${syncTargetInstanceId}`,
         )
+        // Rethrow so sync callers can tell an add failure from a rule block
+        throw error
       }
 
       return { routedInstances, routingDetails: [] }
@@ -948,6 +950,8 @@ export class ContentRouterService {
         { error },
         `Error routing "${item.title}" to sync target instance ${syncTargetInstanceId}`,
       )
+      // Rethrow so sync callers can tell an add failure from a rule block
+      throw error
     }
 
     return { routedInstances, routingDetails: [] }

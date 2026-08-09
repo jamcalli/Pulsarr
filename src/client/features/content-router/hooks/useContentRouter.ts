@@ -67,29 +67,26 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
   /**
    * Create a new routing rule
    */
-  const createRule = useCallback(
-    async (rule: Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>) => {
-      setError(null)
+  const createRule = useCallback(async (rule: RouterRulePayload) => {
+    setError(null)
 
-      try {
-        const { data, error: fetchError } = await apiFetch.POST(
-          '/v1/content-router/rules',
-          { body: rule },
-        )
-        if (fetchError) throw fetchError
+    try {
+      const { data, error: fetchError } = await apiFetch.POST(
+        '/v1/content-router/rules',
+        { body: rule },
+      )
+      if (fetchError) throw fetchError
 
-        // Update rules state with the new rule
-        setRules((prevRules) => [...prevRules, data.rule])
+      // Update rules state with the new rule
+      setRules((prevRules) => [...prevRules, data.rule])
 
-        return data.rule
-      } catch (err) {
-        const errorMessage = apiErrorMessage(err) ?? 'Unknown error'
-        setError(errorMessage)
-        throw err
-      }
-    },
-    [],
-  )
+      return data.rule
+    } catch (err) {
+      const errorMessage = apiErrorMessage(err) ?? 'Unknown error'
+      setError(errorMessage)
+      throw err
+    }
+  }, [])
 
   /**
    * Update an existing routing rule

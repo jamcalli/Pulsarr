@@ -110,6 +110,7 @@ describe('Content Router Rules API', () => {
         payload: { monitor: 'movieAndCollection' },
       })
       expect(putRes.statusCode).toBe(400)
+      expect(putRes.json().message).toContain('name')
     })
 
     it('clears fields omitted from the update payload', async () => {
@@ -524,6 +525,7 @@ describe('Content Router Rules API', () => {
         },
       })
       expect(putRes.statusCode).toBe(400)
+      expect(putRes.json().message).toMatch(/quality_profile|root_folder/)
     })
 
     it('rejects an exclude update that keeps a target instance', async () => {
@@ -544,6 +546,9 @@ describe('Content Router Rules API', () => {
         },
       })
       expect(putRes.statusCode).toBe(400)
+      expect(putRes.json().message).toContain(
+        'target_instance_id must be null when exclude_from_routing is true',
+      )
     })
 
     it('rejects clearing exclude without supplying a target instance', async () => {
@@ -568,6 +573,9 @@ describe('Content Router Rules API', () => {
         },
       })
       expect(putRes.statusCode).toBe(400)
+      expect(putRes.json().message).toContain(
+        'target_instance_id is required unless exclude_from_routing is true',
+      )
     })
   })
 })

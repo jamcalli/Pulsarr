@@ -97,9 +97,16 @@ export function evaluateRules(
   const decisions: RoutingDecision[] = []
   for (const rule of applicableRules) {
     if (rule.exclude_from_routing) continue
-    // A RoutingDecision always requires a real target instance
+    // A RoutingDecision always requires a real target instance. The API
+    // rejects this combination, so only legacy rows can hit it
     const instanceId = rule.target_instance_id
-    if (instanceId == null) continue
+    if (instanceId == null) {
+      log.warn(
+        { ruleId: rule.id, ruleName: rule.name },
+        'Router rule has no target instance and does not exclude - skipping',
+      )
+      continue
+    }
     if (!matches(rule)) continue
 
     decisions.push({
