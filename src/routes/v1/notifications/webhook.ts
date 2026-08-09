@@ -17,7 +17,7 @@ import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
  * Timing-safe string comparison to prevent timing attacks.
  * Pads shorter string to match length before comparison.
  */
-function safeSecretCompare(
+export function safeSecretCompare(
   provided: string | string[] | undefined,
   expected: string,
 ): boolean {
