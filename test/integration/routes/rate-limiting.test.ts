@@ -172,36 +172,36 @@ describe('Rate limiting', () => {
   })
 
   describe('credential endpoints', () => {
-    it('limits login after 3 attempts', async () => {
+    it('limits login after 5 attempts', async () => {
       const codes = await statusesFor(
         app,
         '/v1/users/login',
         '10.10.0.5',
-        5,
+        7,
         'POST',
       )
 
-      expect(codes.slice(0, 3).every((c) => c !== 429)).toBe(true)
-      expect(codes[3]).toBe(429)
-      expect(codes[4]).toBe(429)
+      expect(codes.slice(0, 5).every((c) => c !== 429)).toBe(true)
+      expect(codes[5]).toBe(429)
+      expect(codes[6]).toBe(429)
     })
 
     // Only reachable once authenticated, so the tighter bucket only applies
     // there - an anonymous caller is rejected by the auth hook first
-    it('limits password changes after 3 attempts', async () => {
+    it('limits password changes after 5 attempts', async () => {
       const cookie = await signIn(app)
       const codes = await statusesFor(
         app,
         '/v1/users/update-password',
         '10.10.0.9',
-        5,
+        7,
         'PUT',
         { cookie },
       )
 
-      expect(codes.slice(0, 3).every((c) => c !== 429)).toBe(true)
-      expect(codes[3]).toBe(429)
-      expect(codes[4]).toBe(429)
+      expect(codes.slice(0, 5).every((c) => c !== 429)).toBe(true)
+      expect(codes[5]).toBe(429)
+      expect(codes[6]).toBe(429)
     })
 
     it('limits create-admin after 5 attempts', async () => {
@@ -289,7 +289,7 @@ describe('Rate limiting', () => {
 
   describe('429 response shape', () => {
     it('matches the shared Error schema', async () => {
-      await statusesFor(app, '/v1/users/login', '10.10.0.7', 4, 'POST')
+      await statusesFor(app, '/v1/users/login', '10.10.0.7', 5, 'POST')
       const res = await hit(app, '/v1/users/login', '10.10.0.7', 'POST')
 
       expect(res.statusCode).toBe(429)

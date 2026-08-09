@@ -61,7 +61,16 @@ const sortKeys = (obj: Record<string, unknown>): Record<string, unknown> =>
     Object.entries(obj).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
   )
 
-const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const
+const HTTP_METHODS = [
+  'get',
+  'post',
+  'put',
+  'patch',
+  'delete',
+  'head',
+  'options',
+  'trace',
+] as const
 
 const RATE_LIMITED_RESPONSE = {
   description: 'Rate limit exceeded',
@@ -72,7 +81,8 @@ const RATE_LIMITED_RESPONSE = {
   },
 }
 
-// The rate limiter is global, so every operation can return 429
+// Every operation can return 429: unmatched routes share the global bucket
+// and route-level overrides (login, webhook with a bad secret) emit their own
 function addRateLimitResponses(paths: Record<string, unknown>): void {
   for (const pathItem of Object.values(paths)) {
     if (typeof pathItem !== 'object' || pathItem === null) continue
@@ -87,7 +97,7 @@ function addRateLimitResponses(paths: Record<string, unknown>): void {
 
       const byStatus = responses as Record<string, unknown>
       if (!byStatus['429']) {
-        byStatus['429'] = RATE_LIMITED_RESPONSE
+        byStatus['429'] = structuredClone(RATE_LIMITED_RESPONSE)
       }
     }
   }

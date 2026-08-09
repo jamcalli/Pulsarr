@@ -374,6 +374,7 @@
           },
           "message": {
             "type": "string",
+            "minLength": 1,
             "description": "Error detail, replaced with a generic string for 5xx"
           }
         },
