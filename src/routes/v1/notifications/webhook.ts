@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto'
+import { PROBE_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import type {
   RadarrPayload,
   SonarrPayload,
@@ -41,8 +42,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     {
       config: {
         rateLimit: {
-          max: 10,
-          timeWindow: '1 minute',
+          ...PROBE_RATE_LIMIT,
+          // Valid-secret senders are exempt - never throttle a legitimate
+          // import burst; the bucket only binds bad or missing secrets
           allowList: (request) =>
             safeSecretCompare(
               request.headers['x-pulsarr-secret'],

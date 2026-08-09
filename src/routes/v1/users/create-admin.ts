@@ -1,3 +1,4 @@
+import { CREDENTIAL_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import {
   CreateAdminErrorSchema,
   CreateAdminResponseSchema,
@@ -10,10 +11,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     '/create-admin',
     {
       config: {
-        rateLimit: {
-          max: 5,
-          timeWindow: '1 minute',
-        },
+        rateLimit: CREDENTIAL_RATE_LIMIT,
       },
       schema: {
         security: [],

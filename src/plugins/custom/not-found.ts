@@ -1,3 +1,4 @@
+import { PROBE_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 
@@ -8,10 +9,7 @@ import fp from 'fastify-plugin'
 async function notFoundHandler(fastify: FastifyInstance) {
   fastify.setNotFoundHandler(
     {
-      preHandler: fastify.rateLimit({
-        max: 10,
-        timeWindow: '1 minute',
-      }),
+      preHandler: fastify.rateLimit(PROBE_RATE_LIMIT),
     },
     (_request, reply) => reply.notFound('Resource not found'),
   )
