@@ -81,8 +81,8 @@ export default fp(
           await fastify.updateConfig(mergedConfig)
 
           if (dbConfig._isReady) {
-            fastify.log.debug('DB config was ready, updating ready state')
-            await fastify.updateConfig({ _isReady: true })
+            fastify.log.debug('DB config was ready, enabling boot auto-start')
+            fastify.markConfigReady()
           } else {
             fastify.log.debug('DB config was not ready')
           }

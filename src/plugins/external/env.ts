@@ -508,6 +508,8 @@ declare module 'fastify' {
   interface FastifyInstance {
     config: Config
     updateConfig(config: Partial<Config>): Promise<Config>
+    /** Resolves waitForConfig when _isReady was true at boot. Not for runtime API updates. */
+    markConfigReady(): void
     waitForConfig(): Promise<void>
   }
 }
@@ -704,16 +706,18 @@ export default fp(
 
     fastify.decorate('updateConfig', async (newConfig: Partial<Config>) => {
       const updatedConfig = { ...fastify.config, ...newConfig }
+      fastify.config = updatedConfig
+      return updatedConfig
+    })
 
-      if (newConfig._isReady === true && resolveReady) {
-        fastify.log.info('Config is now ready, resolving waitForConfig promise')
+    fastify.decorate('markConfigReady', () => {
+      if (resolveReady) {
+        fastify.log.info(
+          'Config is ready at boot, resolving waitForConfig promise',
+        )
         resolveReady()
         resolveReady = null
       }
-
-      fastify.config = updatedConfig
-
-      return updatedConfig
     })
 
     fastify.decorate('waitForConfig', () => {
