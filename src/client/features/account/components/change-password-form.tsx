@@ -10,8 +10,8 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { LoginErrorMessage } from '@/features/auth/components/login-error'
 import { useChangePasswordForm } from '@/features/account/hooks/useChangePasswordForm'
+import { LoginErrorMessage } from '@/features/auth/components/login-error'
 
 export function ChangePasswordForm() {
   const { form, status, backendError, canSubmit, onSubmit } =
@@ -51,11 +51,7 @@ export function ChangePasswordForm() {
             <FormItem>
               <FormLabel>New password</FormLabel>
               <FormControl>
-                <Input
-                  {...field}
-                  type="password"
-                  autoComplete="new-password"
-                />
+                <Input {...field} type="password" autoComplete="new-password" />
               </FormControl>
               <FormDescription className="text-xs text-main-foreground/60">
                 Minimum 8 characters
@@ -71,11 +67,7 @@ export function ChangePasswordForm() {
             <FormItem>
               <FormLabel>Confirm new password</FormLabel>
               <FormControl>
-                <Input
-                  {...field}
-                  type="password"
-                  autoComplete="new-password"
-                />
+                <Input {...field} type="password" autoComplete="new-password" />
               </FormControl>
               <FormMessage />
             </FormItem>

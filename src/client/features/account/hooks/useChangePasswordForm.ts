@@ -44,7 +44,9 @@ export function useChangePasswordForm() {
 
   const onSubmit = useCallback(
     async (data: ChangePasswordForm) => {
-      const currentPasswordResult = PasswordSchema.safeParse(data.currentPassword)
+      const currentPasswordResult = PasswordSchema.safeParse(
+        data.currentPassword,
+      )
       if (!currentPasswordResult.success) {
         form.setError('currentPassword', {
           message:
@@ -81,7 +83,9 @@ export function useChangePasswordForm() {
           setTimeout(() => setStatus('idle'), 1000)
         } else {
           setStatus('idle')
-          setBackendError(apiErrorMessage(error) || 'Failed to update password.')
+          setBackendError(
+            apiErrorMessage(error) || 'Failed to update password.',
+          )
         }
       } catch (error) {
         console.error('Change password error:', error)

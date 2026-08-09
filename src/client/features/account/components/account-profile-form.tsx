@@ -14,8 +14,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { LoginErrorMessage } from '@/features/auth/components/login-error'
 import { useUpdateProfileForm } from '@/features/account/hooks/useUpdateProfileForm'
+import { LoginErrorMessage } from '@/features/auth/components/login-error'
 
 interface AccountProfileFormProps {
   currentEmail: string
