@@ -1,8 +1,9 @@
-import { Check, Loader2 } from 'lucide-react'
+import { Check, Loader2, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -13,7 +14,11 @@ import { LoginErrorMessage } from '@/features/auth/components/login-error'
 import { useChangePasswordForm } from '@/features/account/hooks/useChangePasswordForm'
 
 export function ChangePasswordForm() {
-  const { form, status, backendError, onSubmit } = useChangePasswordForm()
+  const { form, status, backendError, canSubmit, onSubmit } =
+    useChangePasswordForm()
+
+  const isSubmitDisabled =
+    !canSubmit || status === 'loading' || status === 'success'
 
   return (
     <Form {...form}>
@@ -52,6 +57,9 @@ export function ChangePasswordForm() {
                   autoComplete="new-password"
                 />
               </FormControl>
+              <FormDescription className="text-xs text-main-foreground/60">
+                Minimum 8 characters
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -76,17 +84,21 @@ export function ChangePasswordForm() {
         {backendError && <LoginErrorMessage message={backendError} />}
         <Button
           type="submit"
-          disabled={status === 'loading' || status === 'success'}
+          variant={canSubmit ? 'blue' : 'neutralnoShadow'}
+          disabled={isSubmitDisabled}
         >
-          {status === 'loading' && (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {status === 'loading' ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : status === 'success' ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Save className="h-4 w-4" />
           )}
-          {status === 'success' && <Check className="mr-2 h-4 w-4" />}
           {status === 'loading'
             ? 'Updating...'
             : status === 'success'
               ? 'Updated'
-              : 'Update password'}
+              : 'Update Password'}
         </Button>
       </form>
     </Form>

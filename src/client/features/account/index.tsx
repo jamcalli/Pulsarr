@@ -40,8 +40,8 @@ export default function AccountSettingsPage() {
           <CardHeader>
             <CardTitle>Profile</CardTitle>
             <CardDescription>
-              Update your email address or username. Your current password is
-              required to confirm changes.
+              Click the edit button next to your email or username to make
+              changes. Your current password is required to confirm updates.
             </CardDescription>
           </CardHeader>
           <CardContent>
