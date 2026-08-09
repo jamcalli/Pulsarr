@@ -95,6 +95,24 @@ describe('routeContent gates', () => {
     }
   }
 
+  const insertSecondRadarrInstance = async (
+    overrides: Record<string, unknown> = {},
+  ): Promise<void> => {
+    await getTestDatabase()('radarr_instances').insert({
+      id: 2,
+      name: 'Second Radarr',
+      base_url: 'http://test-radarr-2:7878',
+      api_key: 'test_radarr_api_key_2',
+      quality_profile: '1',
+      root_folder: '/data/movies2',
+      is_default: false,
+      is_enabled: true,
+      tags: JSON.stringify([]),
+      synced_instances: JSON.stringify([]),
+      ...overrides,
+    })
+  }
+
   beforeAll(async () => {
     fastify = await build()
     await fastify.ready()
@@ -202,18 +220,7 @@ describe('routeContent gates', () => {
 
     it('proposes the synced-instance tail on default-routing approval requests', async () => {
       const knex = getTestDatabase()
-      await knex('radarr_instances').insert({
-        id: 2,
-        name: 'Synced Radarr',
-        base_url: 'http://test-radarr-2:7878',
-        api_key: 'test_radarr_api_key_2',
-        quality_profile: '1',
-        root_folder: '/data/movies2',
-        is_default: false,
-        is_enabled: true,
-        tags: JSON.stringify([]),
-        synced_instances: JSON.stringify([]),
-      })
+      await insertSecondRadarrInstance()
       await knex('radarr_instances')
         .where('id', 1)
         .update('synced_instances', JSON.stringify([2]))
@@ -381,21 +388,8 @@ describe('routeContent gates', () => {
     const seedSyncedInstance = async (
       syncedInstances: number[],
     ): Promise<void> => {
-      const knex = getTestDatabase()
-      await knex('radarr_instances').insert({
-        id: 2,
-        name: 'Synced Radarr',
-        base_url: 'http://test-radarr-2:7878',
-        api_key: 'test_radarr_api_key_2',
-        quality_profile: '1',
-        root_folder: '/data/movies2',
-        monitor: 'none',
-        is_default: false,
-        is_enabled: true,
-        tags: JSON.stringify([]),
-        synced_instances: JSON.stringify([]),
-      })
-      await knex('radarr_instances')
+      await insertSecondRadarrInstance({ monitor: 'none' })
+      await getTestDatabase()('radarr_instances')
         .where('id', 1)
         .update('synced_instances', JSON.stringify(syncedInstances))
     }
@@ -568,19 +562,7 @@ describe('routeContent gates', () => {
     })
 
     it('routes to multiple matched instances in priority order without duplicates', async () => {
-      const knex = getTestDatabase()
-      await knex('radarr_instances').insert({
-        id: 2,
-        name: 'Second Radarr',
-        base_url: 'http://test-radarr-2:7878',
-        api_key: 'test_radarr_api_key_2',
-        quality_profile: '1',
-        root_folder: '/data/movies2',
-        is_default: false,
-        is_enabled: true,
-        tags: JSON.stringify([]),
-        synced_instances: JSON.stringify([]),
-      })
+      await insertSecondRadarrInstance()
       await seedComedyRule({ id: 50, order: 10, target_instance_id: 1 })
       await seedComedyRule({
         id: 51,
@@ -604,6 +586,120 @@ describe('routeContent gates', () => {
       // Higher order value wins; instance 2 matched twice but routes once
       expect(result.routedInstances).toEqual([2, 1])
       expect(routeItemToRadarr).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('sync operations (routeSyncTarget)', () => {
+    const syncRoute = (item: ContentItem, key: string) =>
+      fastify.contentRouter.routeContent(item, key, {
+        userId: 1,
+        userName: 'Test User',
+        syncing: true,
+        syncTargetInstanceId: 2,
+      })
+
+    it('routes with the matching rule settings and bypasses the gates', async () => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({ target_instance_id: 2 })
+      await seedUserQuota(getTestDatabase(), {
+        user_id: 1,
+        content_type: 'movie',
+        quota_limit: 1,
+      })
+
+      const result = await syncRoute(comedyMovie, 'sync-matched-key')
+
+      expect(result.routedInstances).toEqual([2])
+      const args = routeItemToRadarr.mock.calls[0]
+      expect(args[3]).toBe(2)
+      expect(args[4]).toBe(true)
+      expect(args[5]).toBe('/data/comedy')
+      expect(args[10]).toBe('movieAndCollection')
+
+      // Sync is internal data movement - no approval records, no quota
+      expect(await getApprovalRequests()).toHaveLength(0)
+      expect(await getQuotaUsageCount()).toBe(0)
+    })
+
+    it('blocks the sync when rules route the content elsewhere', async () => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({ target_instance_id: 1 })
+
+      const result = await syncRoute(comedyMovie, 'sync-elsewhere-key')
+
+      expect(result.routedInstances).toEqual([])
+      expect(routeItemToRadarr).not.toHaveBeenCalled()
+    })
+
+    it('blocks the sync when rules target the instance but none matched', async () => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({
+        target_instance_id: 2,
+        criteria: JSON.stringify({
+          condition: {
+            negate: false,
+            operator: 'AND',
+            conditions: [
+              {
+                field: 'genres',
+                value: 'Drama',
+                negate: false,
+                operator: 'contains',
+              },
+            ],
+          },
+        }),
+      })
+
+      const result = await syncRoute(comedyMovie, 'sync-unmatched-key')
+
+      expect(result.routedInstances).toEqual([])
+      expect(routeItemToRadarr).not.toHaveBeenCalled()
+    })
+
+    it('routes with instance defaults when no rule governs the sync target', async () => {
+      await insertSecondRadarrInstance()
+      // Seeded Drama rules target instance 1 only, comedy matches none
+
+      const result = await syncRoute(comedyMovie, 'sync-ungoverned-key')
+
+      expect(result.routedInstances).toEqual([2])
+      const args = routeItemToRadarr.mock.calls[0]
+      expect(args[3]).toBe(2)
+      expect(args[4]).toBe(true)
+      // No settings passed - the manager resolves the instance's own defaults
+      expect(args[5]).toBeUndefined()
+      expect(await getQuotaUsageCount()).toBe(0)
+    })
+
+    it('routes straight to the sync target when no rules exist at all', async () => {
+      await insertSecondRadarrInstance()
+      await getTestDatabase()('router_rules').del()
+      fastify.contentRouter.clearRouterRulesCache()
+
+      const result = await syncRoute(comedyMovie, 'sync-no-rules-key')
+
+      expect(result.routedInstances).toEqual([2])
+      expect(routeItemToRadarr).toHaveBeenCalledTimes(1)
+    })
+
+    it('propagates add failures instead of reporting a rule block', async () => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({ target_instance_id: 2 })
+      routeItemToRadarr.mockRejectedValueOnce(new Error('Radarr unavailable'))
+
+      await expect(
+        syncRoute(comedyMovie, 'sync-fail-matched-key'),
+      ).rejects.toThrow('Radarr unavailable')
+    })
+
+    it('propagates add failures on the ungoverned path too', async () => {
+      await insertSecondRadarrInstance()
+      routeItemToRadarr.mockRejectedValueOnce(new Error('Radarr unavailable'))
+
+      await expect(
+        syncRoute(comedyMovie, 'sync-fail-ungoverned-key'),
+      ).rejects.toThrow('Radarr unavailable')
     })
   })
 

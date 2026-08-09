@@ -275,46 +275,6 @@ export class ContentRouterService {
           )
         : false
 
-    // Sync with no rules at all: nothing to resolve - route straight to the
-    // sync target (sync bypasses the gates entirely)
-    if (
-      !hasAnyRules &&
-      options.syncing &&
-      options.syncTargetInstanceId !== undefined
-    ) {
-      this.log.debug(
-        `No routing rules exist during sync, using sync target instance ${options.syncTargetInstanceId} for "${item.title}"`,
-      )
-
-      try {
-        if (contentType === 'movie') {
-          await this.fastify.radarrManager.routeItemToRadarr(
-            item as RadarrItem,
-            key,
-            options.userId,
-            options.syncTargetInstanceId,
-            options.syncing,
-          )
-        } else {
-          await this.fastify.sonarrManager.routeItemToSonarr(
-            item as SonarrItem,
-            key,
-            options.userId,
-            options.syncTargetInstanceId,
-            options.syncing,
-          )
-        }
-        routedInstances.push(options.syncTargetInstanceId)
-      } catch (error) {
-        this.log.error(
-          { error },
-          `Error routing "${item.title}" to sync target instance ${options.syncTargetInstanceId}`,
-        )
-        throw error
-      }
-      return { routedInstances, routingDetails: [] }
-    }
-
     // Prepare context for evaluators with all the information they need
     const context: RoutingContext = {
       userId: options.userId,
