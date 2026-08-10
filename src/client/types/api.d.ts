@@ -3005,7 +3005,7 @@ export interface components {
                 min?: number;
                 max?: number;
             };
-        } | (null);
+        } | null;
         /** @description Value shapes accepted by router conditions */
         ConditionValueOutput: string | number | boolean | string[] | number[] | {
             id: string | number;
@@ -3025,7 +3025,7 @@ export interface components {
                 min?: number;
                 max?: number;
             };
-        } | (null);
+        } | null;
         /** @description Standard error response */
         Error: {
             /** @description HTTP status code */
@@ -3123,16 +3123,10 @@ export interface components {
             search_on_add?: boolean | null;
             /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
             season_monitoring?: string | null;
-            /**
-             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-             * @enum {string|null}
-             */
-            series_type?: "standard" | "anime" | "daily" | null;
-            /**
-             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-             * @enum {string|null}
-             */
-            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+            /** @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error. */
+            series_type?: ("standard" | "anime" | "daily") | null;
+            /** @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error. */
+            monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
             always_require_approval?: boolean;
             bypass_user_quotas?: boolean;
             approval_reason?: string;
@@ -3156,16 +3150,10 @@ export interface components {
             search_on_add?: boolean | null;
             /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
             season_monitoring?: string | null;
-            /**
-             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-             * @enum {string|null}
-             */
-            series_type?: "standard" | "anime" | "daily" | null;
-            /**
-             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-             * @enum {string|null}
-             */
-            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+            /** @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error. */
+            series_type?: ("standard" | "anime" | "daily") | null;
+            /** @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error. */
+            monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
             always_require_approval?: boolean;
             bypass_user_quotas?: boolean;
             approval_reason?: string;
@@ -3440,18 +3428,16 @@ export interface operations {
                                     instanceId: number;
                                     /** @enum {string} */
                                     instanceType: "radarr" | "sonarr";
-                                    qualityProfile?: number | string | (null);
+                                    qualityProfile?: number | string | null;
                                     rootFolder?: string | null;
                                     tags?: string[];
                                     priority: number;
                                     searchOnAdd?: boolean | null;
                                     seasonMonitoring?: string | null;
-                                    /** @enum {string|null} */
-                                    seriesType?: "standard" | "anime" | "daily" | null;
+                                    seriesType?: ("standard" | "anime" | "daily") | null;
                                     /** @enum {string} */
                                     minimumAvailability?: "announced" | "inCinemas" | "released";
-                                    /** @enum {string|null} */
-                                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                    monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                     syncedInstances?: number[];
                                 };
                                 approval?: {
@@ -3472,18 +3458,16 @@ export interface operations {
                                         instanceId: number;
                                         /** @enum {string} */
                                         instanceType: "radarr" | "sonarr";
-                                        qualityProfile?: number | string | (null);
+                                        qualityProfile?: number | string | null;
                                         rootFolder?: string | null;
                                         tags?: string[];
                                         priority: number;
                                         searchOnAdd?: boolean | null;
                                         seasonMonitoring?: string | null;
-                                        /** @enum {string|null} */
-                                        seriesType?: "standard" | "anime" | "daily" | null;
+                                        seriesType?: ("standard" | "anime" | "daily") | null;
                                         /** @enum {string} */
                                         minimumAvailability?: "announced" | "inCinemas" | "released";
-                                        /** @enum {string|null} */
-                                        monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                        monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                         syncedInstances?: number[];
                                     };
                                 };
@@ -3563,18 +3547,16 @@ export interface operations {
                             instanceId: number;
                             /** @enum {string} */
                             instanceType: "radarr" | "sonarr";
-                            qualityProfile?: number | string | (null);
+                            qualityProfile?: number | string | null;
                             rootFolder?: string | null;
                             tags?: string[];
                             priority: number;
                             searchOnAdd?: boolean | null;
                             seasonMonitoring?: string | null;
-                            /** @enum {string|null} */
-                            seriesType?: "standard" | "anime" | "daily" | null;
+                            seriesType?: ("standard" | "anime" | "daily") | null;
                             /** @enum {string} */
                             minimumAvailability?: "announced" | "inCinemas" | "released";
-                            /** @enum {string|null} */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                            monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                             syncedInstances?: number[];
                         };
                         approval?: {
@@ -3595,18 +3577,16 @@ export interface operations {
                                 instanceId: number;
                                 /** @enum {string} */
                                 instanceType: "radarr" | "sonarr";
-                                qualityProfile?: number | string | (null);
+                                qualityProfile?: number | string | null;
                                 rootFolder?: string | null;
                                 tags?: string[];
                                 priority: number;
                                 searchOnAdd?: boolean | null;
                                 seasonMonitoring?: string | null;
-                                /** @enum {string|null} */
-                                seriesType?: "standard" | "anime" | "daily" | null;
+                                seriesType?: ("standard" | "anime" | "daily") | null;
                                 /** @enum {string} */
                                 minimumAvailability?: "announced" | "inCinemas" | "released";
-                                /** @enum {string|null} */
-                                monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                 syncedInstances?: number[];
                             };
                         };
@@ -3645,18 +3625,16 @@ export interface operations {
                                     instanceId: number;
                                     /** @enum {string} */
                                     instanceType: "radarr" | "sonarr";
-                                    qualityProfile?: number | string | (null);
+                                    qualityProfile?: number | string | null;
                                     rootFolder?: string | null;
                                     tags?: string[];
                                     priority: number;
                                     searchOnAdd?: boolean | null;
                                     seasonMonitoring?: string | null;
-                                    /** @enum {string|null} */
-                                    seriesType?: "standard" | "anime" | "daily" | null;
+                                    seriesType?: ("standard" | "anime" | "daily") | null;
                                     /** @enum {string} */
                                     minimumAvailability?: "announced" | "inCinemas" | "released";
-                                    /** @enum {string|null} */
-                                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                    monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                     syncedInstances?: number[];
                                 };
                                 approval?: {
@@ -3677,18 +3655,16 @@ export interface operations {
                                         instanceId: number;
                                         /** @enum {string} */
                                         instanceType: "radarr" | "sonarr";
-                                        qualityProfile?: number | string | (null);
+                                        qualityProfile?: number | string | null;
                                         rootFolder?: string | null;
                                         tags?: string[];
                                         priority: number;
                                         searchOnAdd?: boolean | null;
                                         seasonMonitoring?: string | null;
-                                        /** @enum {string|null} */
-                                        seriesType?: "standard" | "anime" | "daily" | null;
+                                        seriesType?: ("standard" | "anime" | "daily") | null;
                                         /** @enum {string} */
                                         minimumAvailability?: "announced" | "inCinemas" | "released";
-                                        /** @enum {string|null} */
-                                        monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                        monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                         syncedInstances?: number[];
                                     };
                                 };
@@ -4002,18 +3978,16 @@ export interface operations {
                                     instanceId: number;
                                     /** @enum {string} */
                                     instanceType: "radarr" | "sonarr";
-                                    qualityProfile?: number | string | (null);
+                                    qualityProfile?: number | string | null;
                                     rootFolder?: string | null;
                                     tags?: string[];
                                     priority: number;
                                     searchOnAdd?: boolean | null;
                                     seasonMonitoring?: string | null;
-                                    /** @enum {string|null} */
-                                    seriesType?: "standard" | "anime" | "daily" | null;
+                                    seriesType?: ("standard" | "anime" | "daily") | null;
                                     /** @enum {string} */
                                     minimumAvailability?: "announced" | "inCinemas" | "released";
-                                    /** @enum {string|null} */
-                                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                    monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                     syncedInstances?: number[];
                                 };
                                 approval?: {
@@ -4034,18 +4008,16 @@ export interface operations {
                                         instanceId: number;
                                         /** @enum {string} */
                                         instanceType: "radarr" | "sonarr";
-                                        qualityProfile?: number | string | (null);
+                                        qualityProfile?: number | string | null;
                                         rootFolder?: string | null;
                                         tags?: string[];
                                         priority: number;
                                         searchOnAdd?: boolean | null;
                                         seasonMonitoring?: string | null;
-                                        /** @enum {string|null} */
-                                        seriesType?: "standard" | "anime" | "daily" | null;
+                                        seriesType?: ("standard" | "anime" | "daily") | null;
                                         /** @enum {string} */
                                         minimumAvailability?: "announced" | "inCinemas" | "released";
-                                        /** @enum {string|null} */
-                                        monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                        monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                         syncedInstances?: number[];
                                     };
                                 };
@@ -4191,18 +4163,16 @@ export interface operations {
                             instanceId: number;
                             /** @enum {string} */
                             instanceType: "radarr" | "sonarr";
-                            qualityProfile?: number | string | (null);
+                            qualityProfile?: number | string | null;
                             rootFolder?: string | null;
                             tags?: string[];
                             priority: number;
                             searchOnAdd?: boolean | null;
                             seasonMonitoring?: string | null;
-                            /** @enum {string|null} */
-                            seriesType?: "standard" | "anime" | "daily" | null;
+                            seriesType?: ("standard" | "anime" | "daily") | null;
                             /** @enum {string} */
                             minimumAvailability?: "announced" | "inCinemas" | "released";
-                            /** @enum {string|null} */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                            monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                             syncedInstances?: number[];
                         };
                         approval?: {
@@ -4223,18 +4193,16 @@ export interface operations {
                                 instanceId: number;
                                 /** @enum {string} */
                                 instanceType: "radarr" | "sonarr";
-                                qualityProfile?: number | string | (null);
+                                qualityProfile?: number | string | null;
                                 rootFolder?: string | null;
                                 tags?: string[];
                                 priority: number;
                                 searchOnAdd?: boolean | null;
                                 seasonMonitoring?: string | null;
-                                /** @enum {string|null} */
-                                seriesType?: "standard" | "anime" | "daily" | null;
+                                seriesType?: ("standard" | "anime" | "daily") | null;
                                 /** @enum {string} */
                                 minimumAvailability?: "announced" | "inCinemas" | "released";
-                                /** @enum {string|null} */
-                                monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                 syncedInstances?: number[];
                             };
                         };
@@ -4268,18 +4236,16 @@ export interface operations {
                                     instanceId: number;
                                     /** @enum {string} */
                                     instanceType: "radarr" | "sonarr";
-                                    qualityProfile?: number | string | (null);
+                                    qualityProfile?: number | string | null;
                                     rootFolder?: string | null;
                                     tags?: string[];
                                     priority: number;
                                     searchOnAdd?: boolean | null;
                                     seasonMonitoring?: string | null;
-                                    /** @enum {string|null} */
-                                    seriesType?: "standard" | "anime" | "daily" | null;
+                                    seriesType?: ("standard" | "anime" | "daily") | null;
                                     /** @enum {string} */
                                     minimumAvailability?: "announced" | "inCinemas" | "released";
-                                    /** @enum {string|null} */
-                                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                    monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                     syncedInstances?: number[];
                                 };
                                 approval?: {
@@ -4300,18 +4266,16 @@ export interface operations {
                                         instanceId: number;
                                         /** @enum {string} */
                                         instanceType: "radarr" | "sonarr";
-                                        qualityProfile?: number | string | (null);
+                                        qualityProfile?: number | string | null;
                                         rootFolder?: string | null;
                                         tags?: string[];
                                         priority: number;
                                         searchOnAdd?: boolean | null;
                                         seasonMonitoring?: string | null;
-                                        /** @enum {string|null} */
-                                        seriesType?: "standard" | "anime" | "daily" | null;
+                                        seriesType?: ("standard" | "anime" | "daily") | null;
                                         /** @enum {string} */
                                         minimumAvailability?: "announced" | "inCinemas" | "released";
-                                        /** @enum {string|null} */
-                                        monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                        monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                         syncedInstances?: number[];
                                     };
                                 };
@@ -4627,7 +4591,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         success: true;
                         config: {
                             id: number;
@@ -5034,7 +4998,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         success: true;
                         config: {
                             id: number;
@@ -5938,7 +5902,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        /** @enum {string} */
+                        /** @constant */
                         mode: "remove";
                         results: {
                             processed: number;
@@ -5995,7 +5959,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        /** @enum {string} */
+                        /** @constant */
                         mode: "sync";
                         results: {
                             processed: number;
@@ -6297,11 +6261,11 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
+                    /** @constant */
                     eventType: "Test";
                     instanceName: string;
                 } | ({
-                    /** @enum {string} */
+                    /** @constant */
                     eventType: "Download";
                     instanceName: string;
                     series: {
@@ -6325,7 +6289,7 @@ export interface operations {
                         size: number;
                     };
                 } | {
-                    /** @enum {string} */
+                    /** @constant */
                     eventType: "Download";
                     instanceName: string;
                     series: {
@@ -7125,7 +7089,7 @@ export interface operations {
                                     thumb: string;
                                     guids: string[];
                                     genres: string[];
-                                    /** @enum {string} */
+                                    /** @constant */
                                     status: "pending";
                                 }[];
                             }[];
@@ -7145,7 +7109,7 @@ export interface operations {
                                     thumb: string;
                                     guids: string[];
                                     genres: string[];
-                                    /** @enum {string} */
+                                    /** @constant */
                                     status: "pending";
                                 }[];
                             }[];
@@ -7778,7 +7742,6 @@ export interface operations {
                                 quotaLimit: number;
                                 currentUsage: number;
                                 exceeded: boolean;
-                                /** Format: date-time */
                                 resetDate: string | null;
                                 bypassApproval: boolean;
                                 watchlistCap: number | null;
@@ -8166,7 +8129,6 @@ export interface operations {
                             quotaLimit: number;
                             currentUsage: number;
                             exceeded: boolean;
-                            /** Format: date-time */
                             resetDate: string | null;
                             bypassApproval: boolean;
                             watchlistCap: number | null;
@@ -8872,7 +8834,7 @@ export interface operations {
                     "application/json": ({
                         id: number;
                         name: string;
-                        /** @enum {string} */
+                        /** @constant */
                         type: "interval";
                         config: {
                             days?: number;
@@ -8901,7 +8863,7 @@ export interface operations {
                     } | {
                         id: number;
                         name: string;
-                        /** @enum {string} */
+                        /** @constant */
                         type: "cron";
                         config: {
                             expression: string;
@@ -8956,7 +8918,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
+                    /** @constant */
                     type: "interval";
                     name: string;
                     config: {
@@ -8969,7 +8931,7 @@ export interface operations {
                     /** @default true */
                     enabled?: boolean;
                 } | {
-                    /** @enum {string} */
+                    /** @constant */
                     type: "cron";
                     name: string;
                     config: {
@@ -9113,7 +9075,7 @@ export interface operations {
                     "application/json": {
                         id: number;
                         name: string;
-                        /** @enum {string} */
+                        /** @constant */
                         type: "interval";
                         config: {
                             days?: number;
@@ -9142,7 +9104,7 @@ export interface operations {
                     } | {
                         id: number;
                         name: string;
-                        /** @enum {string} */
+                        /** @constant */
                         type: "cron";
                         config: {
                             expression: string;
@@ -9208,7 +9170,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
+                    /** @constant */
                     type: "interval";
                     config?: {
                         days?: number;
@@ -9219,7 +9181,7 @@ export interface operations {
                     };
                     enabled?: boolean;
                 } | {
-                    /** @enum {string} */
+                    /** @constant */
                     type: "cron";
                     config?: {
                         expression: string;
@@ -9844,8 +9806,7 @@ export interface operations {
                             title: string;
                             guids: string[];
                             rollingShowId: number | null;
-                            /** @enum {string|null} */
-                            monitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling" | null;
+                            monitoringType: ("pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling") | null;
                         }[];
                     };
                 };
@@ -11619,7 +11580,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        /** @enum {string} */
+                        /** @constant */
                         mode: "create";
                         sonarr: {
                             created: number;
@@ -11681,7 +11642,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        /** @enum {string} */
+                        /** @constant */
                         mode: "remove";
                         sonarr: {
                             itemsProcessed: number;
@@ -11740,7 +11701,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        /** @enum {string} */
+                        /** @constant */
                         mode: "sync";
                         sonarr: {
                             tagged: number;
@@ -11816,18 +11777,18 @@ export interface operations {
                             details: {
                                 adult: boolean;
                                 backdrop_path: string | null;
-                                belongs_to_collection: {
+                                belongs_to_collection: ({
                                     id: number;
                                     name: string;
                                     poster_path: string | null;
                                     backdrop_path: string | null;
-                                } | null;
+                                } | null) | null;
                                 budget: number;
                                 genres: {
                                     id: number;
                                     name: string;
                                 }[];
-                                homepage: string | "" | (null);
+                                homepage: string | "" | null;
                                 id: number;
                                 imdb_id: string | null;
                                 origin_country: string[];
@@ -11941,7 +11902,7 @@ export interface operations {
                                     id: number;
                                     name: string;
                                 }[];
-                                homepage: string | "" | (null);
+                                homepage: string | "" | null;
                                 id: number;
                                 in_production: boolean;
                                 languages: string[];
@@ -12130,18 +12091,18 @@ export interface operations {
                             details: {
                                 adult: boolean;
                                 backdrop_path: string | null;
-                                belongs_to_collection: {
+                                belongs_to_collection: ({
                                     id: number;
                                     name: string;
                                     poster_path: string | null;
                                     backdrop_path: string | null;
-                                } | null;
+                                } | null) | null;
                                 budget: number;
                                 genres: {
                                     id: number;
                                     name: string;
                                 }[];
-                                homepage: string | "" | (null);
+                                homepage: string | "" | null;
                                 id: number;
                                 imdb_id: string | null;
                                 origin_country: string[];
@@ -12255,7 +12216,7 @@ export interface operations {
                                     id: number;
                                     name: string;
                                 }[];
-                                homepage: string | "" | (null);
+                                homepage: string | "" | null;
                                 id: number;
                                 in_production: boolean;
                                 languages: string[];
@@ -12555,18 +12516,18 @@ export interface operations {
                             details: {
                                 adult: boolean;
                                 backdrop_path: string | null;
-                                belongs_to_collection: {
+                                belongs_to_collection: ({
                                     id: number;
                                     name: string;
                                     poster_path: string | null;
                                     backdrop_path: string | null;
-                                } | null;
+                                } | null) | null;
                                 budget: number;
                                 genres: {
                                     id: number;
                                     name: string;
                                 }[];
-                                homepage: string | "" | (null);
+                                homepage: string | "" | null;
                                 id: number;
                                 imdb_id: string | null;
                                 origin_country: string[];
@@ -12680,7 +12641,7 @@ export interface operations {
                                     id: number;
                                     name: string;
                                 }[];
-                                homepage: string | "" | (null);
+                                homepage: string | "" | null;
                                 id: number;
                                 in_production: boolean;
                                 languages: string[];
@@ -12971,7 +12932,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         authenticated: true;
                     };
                 };
@@ -14118,7 +14079,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         success: true;
                         data: {
                             id: number;
@@ -14182,7 +14143,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         success: true;
                         data: {
                             id: number;
@@ -14296,7 +14257,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         success: true;
                         data: {
                             id: number;
@@ -14370,7 +14331,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         success: true;
                         data: {
                             id: number;
@@ -14537,7 +14498,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         success: true;
                         data: {
                             /** @enum {string} */
