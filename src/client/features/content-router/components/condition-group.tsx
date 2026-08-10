@@ -3,7 +3,6 @@ import type {
   Condition,
   ConditionGroup,
 } from '@root/schemas/content-router/content-router.schema'
-import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
 import { HelpCircle, LayoutList, PlusCircle, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
@@ -28,6 +27,9 @@ import {
   isConditionGroup,
 } from '@/features/content-router/types/route-types'
 import { generateUUID } from '@/features/content-router/utils/utils'
+import type { components } from '@/types/api.js'
+
+type EvaluatorMetadata = components['schemas']['EvaluatorMetadata']
 
 interface ConditionGroupComponentProps {
   value: ConditionGroup

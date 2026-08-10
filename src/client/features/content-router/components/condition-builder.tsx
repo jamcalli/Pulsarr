@@ -3,7 +3,6 @@ import type {
   Condition,
   ConditionValue,
 } from '@root/schemas/content-router/content-router.schema'
-import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
 import { HelpCircle, Trash2 } from 'lucide-react'
 import { useCallback, useContext, useId, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
@@ -27,6 +26,9 @@ import ConditionInput from '@/features/content-router/components/condition-input
 import { ContentRouterContext } from '@/features/content-router/hooks/useContentRouter'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
+import type { components } from '@/types/api.js'
+
+type EvaluatorMetadata = components['schemas']['EvaluatorMetadata']
 
 /** Format field names for display (e.g., "rtCriticRating" → "RT Critic Rating") */
 const FIELD_LABELS: Record<string, string> = {

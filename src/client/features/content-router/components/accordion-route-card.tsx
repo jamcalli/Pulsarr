@@ -4,7 +4,6 @@ import type {
   ConditionValue,
   IConditionGroup,
 } from '@root/schemas/content-router/content-router.schema'
-import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
 import type { RadarrInstance } from '@root/types/radarr.types'
 import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type { SonarrInstance } from '@root/types/sonarr.types'
@@ -73,6 +72,7 @@ import type { components } from '@/types/api.js'
 
 type RouterRule = components['schemas']['RouterRule']
 type RouterRulePayload = components['schemas']['RouterRulePayload']
+type EvaluatorMetadata = components['schemas']['EvaluatorMetadata']
 
 // Define criteria interface to match backend schema
 interface Criteria {
