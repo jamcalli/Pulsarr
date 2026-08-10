@@ -63,7 +63,7 @@ export function isSameServerEndpoint(
     try {
       const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(url)
       const u = hasScheme ? new URL(url) : new URL(`http://${url}`)
-      // u.host preserves IPv6 brackets and the port when present
+      // u.host preserves IPv6 brackets and any non-default port
       const protocol = u.protocol.toLowerCase()
       const host = u.host.toLowerCase()
       return `${protocol}//${host}`
