@@ -9,15 +9,15 @@ import fp from 'fastify-plugin'
  */
 async function errorHandler(fastify: FastifyInstance) {
   fastify.setErrorHandler((err: FastifyError, request, reply) => {
-    const sc = err.statusCode
-    // Only a well-formed 4xx is safe to pass through - anything else could leak internals
-    const isClientError =
-      typeof sc === 'number' &&
-      Number.isInteger(sc) &&
-      sc >= 400 &&
-      sc < 500 &&
-      typeof err.message === 'string' &&
-      err.message.length > 0
+    const raw = err.statusCode
+    const statusCode =
+      typeof raw === 'number' &&
+      Number.isInteger(raw) &&
+      raw >= 400 &&
+      raw < 600
+        ? raw
+        : 500
+    const statusText = STATUS_CODES[statusCode] ?? 'Error'
 
     // Avoid logging query/params to prevent leaking tokens/PII
     const logData = {
@@ -31,28 +31,27 @@ async function errorHandler(fastify: FastifyInstance) {
       },
     }
 
-    // Use appropriate log level based on status code
-    if (isClientError && sc === 401) {
+    if (statusCode === 401) {
       request.log.warn(logData, 'Authentication required')
-    } else if (isClientError) {
+    } else if (statusCode < 500) {
       request.log.warn(logData, 'Client error occurred')
     } else {
       request.log.error(logData, 'Internal server error occurred')
     }
 
-    const payload: ErrorResponse = isClientError
-      ? {
-          statusCode: sc,
-          error: STATUS_CODES[sc] ?? 'Error',
-          message: err.message,
-        }
-      : {
-          statusCode: 500,
-          error: 'Internal Server Error',
-          message: 'Internal Server Error',
-        }
+    // only 4xx string messages are safe to echo; anything else may leak internals
+    const safeMessage =
+      statusCode < 500 && typeof err.message === 'string' && err.message
+        ? err.message
+        : statusText
 
-    reply.code(payload.statusCode)
+    const payload: ErrorResponse = {
+      statusCode,
+      error: statusText,
+      message: safeMessage,
+    }
+
+    reply.code(statusCode)
     return payload
   })
 }
