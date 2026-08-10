@@ -27,6 +27,11 @@ export default defineConfig({
       include: ['src/**/*.ts'],
     },
     globalSetup: './test/setup/global-setup.ts',
+    // Run setup files in array order so the bun-writable-ended shim installs
+    // before anything else. Sequential is the current default, this pins it
+    sequence: {
+      setupFiles: 'list',
+    },
     setupFiles: [
       './test/setup/bun-writable-ended.ts',
       './test/setup/msw-setup.ts',
