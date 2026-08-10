@@ -116,6 +116,23 @@ describe('Rate limiting', () => {
       )
     })
 
+    // The invalid-key limiter runs inside the API-key catch block, a different
+    // path than the session rejection - its 429 must still supersede the 401
+    it('returns 429 over 401 on the invalid API key path', async () => {
+      const codes = await statusesFor(
+        app,
+        '/v1/config',
+        '10.10.0.10',
+        app.config.rateLimitMax + 2,
+        'GET',
+        { 'x-api-key': 'not-a-real-key' },
+      )
+
+      expect(codes[app.config.rateLimitMax - 1]).toBe(401)
+      expect(codes[app.config.rateLimitMax]).toBe(429)
+      expect(codes.at(-1)).toBe(429)
+    })
+
     it('counts authenticated and unauthenticated traffic in one bucket', async () => {
       const cookie = await signIn(app)
       const ip = '10.10.0.3'
