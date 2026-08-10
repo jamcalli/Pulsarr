@@ -28,6 +28,7 @@
         "fastify": "^5.6.1",
         "fastify-sse-v2": "^4.2.1",
         "fastify-zod-openapi": "^5.5.0",
+        "ipaddr.js": "^2.1.0",
         "knex": "^3.1.0",
         "p-limit": "^7.1.0",
         "pg": "^8.16.0",
