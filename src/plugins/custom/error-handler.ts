@@ -1,3 +1,4 @@
+import { STATUS_CODES } from 'node:http'
 import type { ErrorResponse } from '@root/schemas/common/error.schema.js'
 import type { FastifyError, FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
@@ -8,7 +9,16 @@ import fp from 'fastify-plugin'
  */
 async function errorHandler(fastify: FastifyInstance) {
   fastify.setErrorHandler((err: FastifyError, request, reply) => {
-    const statusCode = err.statusCode ?? 500
+    const sc = err.statusCode
+    // Only a well-formed 4xx is safe to pass through - anything else could leak internals
+    const isClientError =
+      typeof sc === 'number' &&
+      Number.isInteger(sc) &&
+      sc >= 400 &&
+      sc < 500 &&
+      typeof err.message === 'string' &&
+      err.message.length > 0
+
     // Avoid logging query/params to prevent leaking tokens/PII
     const logData = {
       err,
@@ -22,27 +32,27 @@ async function errorHandler(fastify: FastifyInstance) {
     }
 
     // Use appropriate log level based on status code
-    if (statusCode === 401) {
+    if (isClientError && sc === 401) {
       request.log.warn(logData, 'Authentication required')
-    } else if (statusCode >= 500) {
-      request.log.error(logData, 'Internal server error occurred')
-    } else {
+    } else if (isClientError) {
       request.log.warn(logData, 'Client error occurred')
+    } else {
+      request.log.error(logData, 'Internal server error occurred')
     }
-    reply.code(statusCode)
-    const isServerError = statusCode >= 500
-    const payload: ErrorResponse = {
-      statusCode,
-      code: err.code || 'GENERIC_ERROR',
-      error: isServerError
-        ? 'Internal Server Error'
-        : 'error' in err && typeof err.error === 'string'
-          ? err.error
-          : 'Client Error',
-      message: isServerError
-        ? 'Internal Server Error'
-        : err.message || 'An error occurred',
-    }
+
+    const payload: ErrorResponse = isClientError
+      ? {
+          statusCode: sc,
+          error: STATUS_CODES[sc] ?? 'Error',
+          message: err.message,
+        }
+      : {
+          statusCode: 500,
+          error: 'Internal Server Error',
+          message: 'Internal Server Error',
+        }
+
+    reply.code(payload.statusCode)
     return payload
   })
 }

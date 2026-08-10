@@ -38,11 +38,13 @@ jobs:
       - name: Run Biome
         run: biome ci .
       - name: TypeScript Check - Server
-        run: tsc --noEmit
+        run: bun run typecheck:server
       - name: TypeScript Check - Client
-        run: tsc --noEmit -p src/client/tsconfig.json
+        run: bun run typecheck:client
       - name: TypeScript Check - Scripts
-        run: tsc --noEmit -p scripts/tsconfig.json
+        run: bun run typecheck:scripts
+      - name: TypeScript Check - Tests
+        run: bun run typecheck:tests
       - name: OpenAPI Contract Drift Check
         run: |
           bun run openapi:dev
