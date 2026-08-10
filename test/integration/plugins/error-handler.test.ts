@@ -49,6 +49,20 @@ describe('error handler', () => {
     app.get('/boom/object-message', () => {
       throw makeError({ statusCode: 400, message: { detail: 'not a string' } })
     })
+    app.get('/boom/unavailable', (_req, reply) =>
+      reply.serviceUnavailable(
+        'TMDB responded with 500 at http://internal:8080',
+      ),
+    )
+    app.get('/boom/timeout', (_req, reply) =>
+      reply.gatewayTimeout('upstream timed out'),
+    )
+    app.get('/boom/bad-gateway', () => {
+      throw makeError({
+        statusCode: 502,
+        message: 'driver crashed at /srv/db.sqlite',
+      })
+    })
 
     await app.ready()
   })
@@ -118,13 +132,41 @@ describe('error handler', () => {
     })
   })
 
-  it('masks 4xx errors with an empty or non-string message as 500', async () => {
+  it('falls back to status text when a 4xx message is empty or not a string', async () => {
     const empty = await app.inject({ url: '/boom/empty-message' })
     const object = await app.inject({ url: '/boom/object-message' })
 
-    expect(empty.statusCode).toBe(500)
-    expect(empty.json().message).toBe('Internal Server Error')
-    expect(object.statusCode).toBe(500)
-    expect(object.json().message).toBe('Internal Server Error')
+    expect(empty.statusCode).toBe(400)
+    expect(empty.json().message).toBe('Bad Request')
+    expect(object.statusCode).toBe(400)
+    expect(object.json().message).toBe('Bad Request')
+    expect(object.body).not.toContain('not a string')
+  })
+
+  it('preserves a deliberate 503 while masking its message', async () => {
+    const res = await app.inject({ url: '/boom/unavailable' })
+
+    expect(res.statusCode).toBe(503)
+    expect(res.json()).toEqual({
+      statusCode: 503,
+      error: 'Service Unavailable',
+      message: 'Service Unavailable',
+    })
+    expect(res.body).not.toContain('internal:8080')
+  })
+
+  it('preserves a deliberate 504', async () => {
+    const res = await app.inject({ url: '/boom/timeout' })
+
+    expect(res.statusCode).toBe(504)
+    expect(res.json().error).toBe('Gateway Timeout')
+  })
+
+  it('preserves a thrown 502 while masking its message', async () => {
+    const res = await app.inject({ url: '/boom/bad-gateway' })
+
+    expect(res.statusCode).toBe(502)
+    expect(res.json().message).toBe('Bad Gateway')
+    expect(res.body).not.toContain('db.sqlite')
   })
 })
