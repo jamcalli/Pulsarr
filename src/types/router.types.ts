@@ -180,14 +180,6 @@ export interface RoutingEvaluator {
   // Whether this evaluator can handle this content
   canEvaluate(item: ContentItem, context: RoutingContext): Promise<boolean>
 
-  // Main evaluation method - rules are pre-filtered by content-router
-  // Optional: only conditional-evaluator implements this, others use evaluateCondition
-  evaluate?(
-    item: ContentItem,
-    context: RoutingContext,
-    rules: RouterRule[], // Pre-filtered rules for this evaluator
-  ): Promise<RoutingDecision[] | null>
-
   // For conditional evaluator support
   evaluateCondition?(
     condition: Condition | ConditionGroup,

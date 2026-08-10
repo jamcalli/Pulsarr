@@ -1,10 +1,10 @@
-import type {
-  ContentRouterRule,
-  ContentRouterRuleUpdate,
-} from '@root/schemas/content-router/content-router.schema'
 import { createContext, useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
+import type { components } from '@/types/api.js'
+
+type RouterRule = components['schemas']['RouterRule']
+type RouterRulePayload = components['schemas']['RouterRulePayload']
 
 export interface UseContentRouterParams {
   targetType: 'radarr' | 'sonarr'
@@ -28,7 +28,7 @@ export const ContentRouterContext =
  */
 export function useContentRouter({ targetType }: UseContentRouterParams) {
   const [isLoading, setIsLoading] = useState(false)
-  const [rules, setRules] = useState<ContentRouterRule[]>([])
+  const [rules, setRules] = useState<RouterRule[]>([])
   const [error, setError] = useState<string | null>(null)
 
   /**
@@ -67,51 +67,40 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
   /**
    * Create a new routing rule
    */
-  const createRule = useCallback(
-    async (
-      rule: Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>,
-    ) => {
-      setError(null)
+  const createRule = useCallback(async (rule: RouterRulePayload) => {
+    setError(null)
 
-      try {
-        const { data, error: fetchError } = await apiFetch.POST(
-          '/v1/content-router/rules',
-          { body: rule },
-        )
-        if (fetchError) throw fetchError
+    try {
+      const { data, error: fetchError } = await apiFetch.POST(
+        '/v1/content-router/rules',
+        { body: rule },
+      )
+      if (fetchError) throw fetchError
 
-        // Update rules state with the new rule
-        setRules((prevRules) => [...prevRules, data.rule])
+      // Update rules state with the new rule
+      setRules((prevRules) => [...prevRules, data.rule])
 
-        return data.rule
-      } catch (err) {
-        const errorMessage = apiErrorMessage(err) ?? 'Unknown error'
-        setError(errorMessage)
-        throw err
-      }
-    },
-    [],
-  )
+      return data.rule
+    } catch (err) {
+      const errorMessage = apiErrorMessage(err) ?? 'Unknown error'
+      setError(errorMessage)
+      throw err
+    }
+  }, [])
 
   /**
    * Update an existing routing rule
    */
   const updateRule = useCallback(
-    async (id: number, updates: ContentRouterRuleUpdate) => {
+    async (id: number, updates: RouterRulePayload) => {
       setError(null)
 
       try {
-        // ContentRouterRuleUpdate is the schema's output type where
-        // quality_profile can be null, but the wire contract only accepts
-        // number/string/omitted - map null to omitted
         const { data, error: fetchError } = await apiFetch.PUT(
           '/v1/content-router/rules/{id}',
           {
             params: { path: { id } },
-            body: {
-              ...updates,
-              quality_profile: updates.quality_profile ?? undefined,
-            },
+            body: updates,
           },
         )
         if (fetchError) throw fetchError

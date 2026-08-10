@@ -25,7 +25,7 @@
     "test:coverage": "bun run --bun vitest run --coverage",
     "fix": "biome format --write . && biome lint --write .",
     "fix:unsafe": "biome check --write --unsafe .",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p src/client/tsconfig.json",
+    "typecheck": "bun run typecheck:server && bun run typecheck:client && bun run typecheck:scripts && bun run typecheck:tests",
     "typecheck:server": "tsc --noEmit",
     "typecheck:client": "tsc --noEmit -p src/client/tsconfig.json",
     "typecheck:tests": "tsc --noEmit -p test/tsconfig.json",
@@ -111,7 +111,7 @@
     "undici": "^6.27.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.6",
+    "@biomejs/biome": "^2.5.7",
     "@commitlint/cli": "^21.0.0",
     "@commitlint/config-conventional": "^21.0.0",
     "@epic-web/invariant": "^1.0.0",

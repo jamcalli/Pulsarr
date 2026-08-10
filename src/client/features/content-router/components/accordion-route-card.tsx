@@ -2,8 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import type {
   ConditionGroup,
   ConditionValue,
-  ContentRouterRule,
-  ContentRouterRuleUpdate,
   IConditionGroup,
 } from '@root/schemas/content-router/content-router.schema'
 import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
@@ -71,6 +69,10 @@ import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
 import { useConfig } from '@/hooks/useConfig'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 import { cn } from '@/lib/utils'
+import type { components } from '@/types/api.js'
+
+type RouterRule = components['schemas']['RouterRule']
+type RouterRulePayload = components['schemas']['RouterRulePayload']
 
 // Define criteria interface to match backend schema
 interface Criteria {
@@ -82,10 +84,9 @@ interface Criteria {
   [key: string]: ConditionValue | ConditionGroup | undefined
 }
 
-// Extended ContentRouterRule to include criteria and type
+// Extended RouterRule to include criteria and type
 // quality_profile allows null since the update schema coerces unparseable strings to null
-interface ExtendedContentRouterRule
-  extends Omit<ContentRouterRule, 'quality_profile'> {
+interface ExtendedRouterRule extends Omit<RouterRule, 'quality_profile'> {
   type?: string
   criteria?: Criteria
   condition?: ConditionGroup
@@ -187,10 +188,10 @@ function normalizeSeriesType(
 }
 
 interface AccordionRouteCardProps {
-  route: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>
+  route: ExtendedRouterRule | Partial<ExtendedRouterRule>
   isNew?: boolean
   onCancel: () => void
-  onSave: (data: ContentRouterRule | ContentRouterRuleUpdate) => Promise<void>
+  onSave: (data: RouterRule | RouterRulePayload) => Promise<void>
   onRemove?: () => void
   onToggleEnabled?: (id: number, enabled: boolean) => Promise<void>
   isSaving: boolean
@@ -240,7 +241,7 @@ const AccordionRouteCard = ({
 
   const getRouteId = useCallback(
     (
-      routeObj: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>,
+      routeObj: ExtendedRouterRule | Partial<ExtendedRouterRule>,
       isNewRoute: boolean,
     ): string | number | null => {
       if ('id' in routeObj && routeObj.id !== undefined) {
@@ -270,9 +271,7 @@ const AccordionRouteCard = ({
   // Create a default initial condition group for new routes
   const getInitialConditionValue = useCallback(
     (
-      sourceRoute?:
-        | ExtendedContentRouterRule
-        | Partial<ExtendedContentRouterRule>,
+      sourceRoute?: ExtendedRouterRule | Partial<ExtendedRouterRule>,
     ): ConditionGroup => {
       // Check if source route has condition
       if (sourceRoute?.condition) {
@@ -301,7 +300,7 @@ const AccordionRouteCard = ({
   // Helper function to build default values
   const buildDefaultValues = useCallback(
     (
-      routeObj: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>,
+      routeObj: ExtendedRouterRule | Partial<ExtendedRouterRule>,
       instancesList: Array<RadarrInstance | SonarrInstance>,
       routeContentType: 'radarr' | 'sonarr',
     ) => {
@@ -663,7 +662,7 @@ const AccordionRouteCard = ({
     try {
       // For new routes (creating a route)
       if (isNew) {
-        const routeData: ContentRouterRuleUpdate = {
+        const routeData: RouterRulePayload = {
           name: data.name,
           target_type: contentType,
           target_instance_id: data.exclude_from_routing
@@ -697,8 +696,9 @@ const AccordionRouteCard = ({
       }
       // For existing routes (updating a route)
       else {
-        const updatePayload: ContentRouterRuleUpdate = {
+        const updatePayload: RouterRulePayload = {
           name: data.name,
+          target_type: contentType,
           condition: normalizeConditionGroup(data.condition),
           target_instance_id: data.exclude_from_routing
             ? null

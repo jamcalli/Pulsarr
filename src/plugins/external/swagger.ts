@@ -61,6 +61,48 @@ const sortKeys = (obj: Record<string, unknown>): Record<string, unknown> =>
     Object.entries(obj).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
   )
 
+const HTTP_METHODS = [
+  'get',
+  'post',
+  'put',
+  'patch',
+  'delete',
+  'head',
+  'options',
+  'trace',
+] as const
+
+const RATE_LIMITED_RESPONSE = {
+  description: 'Rate limit exceeded',
+  content: {
+    'application/json': {
+      schema: { $ref: '#/components/schemas/Error' },
+    },
+  },
+}
+
+// Every operation can return 429: unmatched routes share the global bucket
+// and route-level overrides (login, webhook with a bad secret) emit their own
+function addRateLimitResponses(paths: Record<string, unknown>): void {
+  for (const pathItem of Object.values(paths)) {
+    if (typeof pathItem !== 'object' || pathItem === null) continue
+    const operations = pathItem as Record<string, unknown>
+
+    for (const method of HTTP_METHODS) {
+      const operation = operations[method]
+      if (typeof operation !== 'object' || operation === null) continue
+
+      const responses = (operation as Record<string, unknown>).responses
+      if (typeof responses !== 'object' || responses === null) continue
+
+      const byStatus = responses as Record<string, unknown>
+      if (!byStatus['429']) {
+        byStatus['429'] = structuredClone(RATE_LIMITED_RESPONSE)
+      }
+    }
+  }
+}
+
 const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
   const urlObject = new URL(fastify.config.baseUrl)
 
@@ -263,6 +305,7 @@ const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
       // Route autoload follows filesystem enumeration order, which varies
       // across machines - sort so spec generation is deterministic
       if (spec.paths) {
+        addRateLimitResponses(spec.paths as Record<string, unknown>)
         spec.paths = sortKeys(spec.paths as Record<string, unknown>)
       }
       const components = spec.components as Record<string, unknown> | undefined

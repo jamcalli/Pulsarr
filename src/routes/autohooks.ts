@@ -24,6 +24,11 @@ export default async function (fastify: FastifyInstance) {
     'Computed public API paths for authentication bypass',
   )
 
+  // No options means the configured global limit and its store. Replying 401
+  // from this hook skips the route-level limiter, so without this failed auth
+  // is never counted at all.
+  const globalLimiter = fastify.rateLimit()
+
   fastify.addHook('onRequest', async (request, reply) => {
     const urlWithoutQuery = request.url.split('?')[0]
 
@@ -67,6 +72,7 @@ export default async function (fastify: FastifyInstance) {
         return
       } catch (_error) {
         // Invalid API key
+        await globalLimiter.call(fastify, request, reply)
         return reply.unauthorized('Invalid API key')
       }
     }
@@ -97,6 +103,7 @@ export default async function (fastify: FastifyInstance) {
 
     // Regular session authentication check for all other cases
     if (!request.session.user) {
+      await globalLimiter.call(fastify, request, reply)
       return reply.unauthorized(
         'You must be authenticated to access this route.',
       )
