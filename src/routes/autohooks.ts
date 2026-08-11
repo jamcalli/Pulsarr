@@ -4,63 +4,55 @@ import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance } from 'fastify'
 
 export default async function (fastify: FastifyInstance) {
-  // Public API paths that don't require authentication
+  // API paths reachable without auth: login and create-admin bootstrap the
+  // admin session; the webhook validates its own shared secret in the route
   const publicApiPaths = [
     '/v1/users/login',
     '/v1/users/create-admin',
     '/v1/notifications/webhook',
   ]
 
-  // Compute full public paths with basePath prefix at startup
   const basePath = normalizeBasePath(fastify.config.basePath)
-  const fullPublicApiPaths = publicApiPaths.map((path) =>
-    basePath === '/' ? path : `${basePath}${path}`,
+  // Exact match only - no public route has subpaths
+  const fullPublicApiPaths = new Set(
+    publicApiPaths.map((path) =>
+      basePath === '/' ? path : `${basePath}${path}`,
+    ),
   )
-  // v1Prefix without trailing slash to properly match both /v1 and /v1/...
+  // v1Prefix without trailing slash so both exact /v1 and /v1/... match below
   const v1Prefix = basePath === '/' ? '/v1' : `${basePath}/v1`
 
   fastify.log.debug(
-    { basePath, fullPublicApiPaths },
-    'Computed public API paths for authentication bypass',
+    { basePath, publicApiPaths: [...fullPublicApiPaths] },
+    'Computed public API paths',
   )
 
-  // No options means the configured global limit and its store. Replying 401
-  // from this hook skips the route-level limiter, so without this failed auth
-  // is never counted at all.
+  // No options means the configured global limit and its store. A 401 reply
+  // from this hook never reaches route-level limiters, so failed auth has to
+  // be counted here or not at all.
   const globalLimiter = fastify.rateLimit()
 
   fastify.addHook('onRequest', async (request, reply) => {
     const urlWithoutQuery = request.url.split('?')[0]
 
-    // Skip auth for non-API routes (SPA routes handle their own auth/redirects)
-    // Match both exact /v1 and any /v1/... path to prevent auth bypass
+    // Auth only guards the API; everything else is the SPA shell and assets,
+    // where the client redirects unauthenticated users itself. Exact /v1 must
+    // match too, or a route mounted at the bare prefix would skip auth.
     const isApiRoute =
       urlWithoutQuery === v1Prefix || urlWithoutQuery.startsWith(`${v1Prefix}/`)
     if (!isApiRoute) {
       return
     }
 
-    // Skip authentication for public API paths
-    const isPublicPath = fullPublicApiPaths.some(
-      (fullPath) =>
-        urlWithoutQuery === fullPath ||
-        urlWithoutQuery.startsWith(`${fullPath}/`),
-    )
-
-    if (isPublicPath) {
+    if (fullPublicApiPaths.has(urlWithoutQuery)) {
       return
     }
 
-    // Check for API key authentication first (no bypass for API keys)
-    const apiKeyHeader = request.headers['x-api-key']
-    const apiKey =
-      typeof apiKeyHeader === 'string'
-        ? apiKeyHeader
-        : Array.isArray(apiKeyHeader)
-          ? apiKeyHeader[0]
-          : undefined
-
-    if (apiKey && apiKey.length > 0) {
+    // Presented credentials are always validated - an invalid key is rejected
+    // even when bypass would allow the request, so a revoked key fails loudly
+    // instead of silently downgrading to the temp admin identity
+    const rawApiKey = request.headers['x-api-key']
+    if (rawApiKey && rawApiKey.length > 0) {
       try {
         await new Promise<void>((resolve, reject) => {
           fastify.verifyApiKey(request, reply, (err) => {
@@ -68,16 +60,22 @@ export default async function (fastify: FastifyInstance) {
             else resolve()
           })
         })
-        // Valid API key, allow access
         return
-      } catch (_error) {
-        // Invalid API key
+      } catch (error) {
+        // 401 means bad credentials; anything else (e.g. session plugin
+        // failure) is a server error for the error handler
+        const statusCode = (error as Error & { statusCode?: number }).statusCode
+        if (statusCode !== 401) {
+          throw error
+        }
         await globalLimiter.call(fastify, request, reply)
         return reply.unauthorized('Invalid API key')
       }
     }
 
-    // Check if session auth should be bypassed based on config and IP
+    // Config-based bypass: auth disabled globally, or local IP with
+    // requiredExceptLocal. A real logged-in session keeps its own identity;
+    // only anonymous requests get the temp admin session.
     const { shouldBypass, isAuthDisabled, isLocalBypass } = getAuthBypassStatus(
       fastify,
       request,
@@ -101,7 +99,7 @@ export default async function (fastify: FastifyInstance) {
       return
     }
 
-    // Regular session authentication check for all other cases
+    // Everything else requires a logged-in session
     if (!request.session.user) {
       await globalLimiter.call(fastify, request, reply)
       return reply.unauthorized(
