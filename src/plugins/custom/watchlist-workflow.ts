@@ -47,13 +47,14 @@ export default fp(
       clearInterval(statusInterval)
     })
 
-    // Auto-start workflow when config is ready
     const startWorkflow = async () => {
       try {
-        fastify.log.debug('Waiting for config to be ready...')
-        await fastify.waitForConfig()
+        // _isReady is final here - the database plugin loads config before this plugin registers
+        if (!fastify.config._isReady) {
+          fastify.log.debug('Auto-start disabled, skipping workflow start')
+          return
+        }
 
-        // Check if workflow is already running or starting before attempting to start
         const currentStatus = watchlistWorkflow.getStatus()
         if (currentStatus === 'running' || currentStatus === 'starting') {
           fastify.log.info(

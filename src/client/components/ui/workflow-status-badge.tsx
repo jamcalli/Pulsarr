@@ -51,13 +51,7 @@ export function WatchlistStatusBadge() {
   const handleAutoStartChange = useCallback(async (checked: boolean) => {
     setIsTogglingAutoStart(true)
     try {
-      const minimumLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
-      )
-      await Promise.all([
-        updateConfig({ _isReady: checked }),
-        minimumLoadingTime,
-      ])
+      await updateConfig({ _isReady: checked })
       toast.success(`Auto-Start ${checked ? 'enabled' : 'disabled'}`)
     } catch {
       toast.error(`Failed to ${checked ? 'enable' : 'disable'} Auto-Start`)

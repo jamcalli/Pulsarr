@@ -32,7 +32,7 @@ describe('Config _isReady persistence', () => {
   })
 
   it('persists _isReady: false via PUT /v1/config', async () => {
-    // The boot auto-start latch must not fire on runtime config writes
+    // runtime _isReady writes must never start the workflow
     app.watchlistWorkflow.startWorkflow = vi.fn().mockResolvedValue(undefined)
 
     const enableRes = await app.inject({
@@ -82,6 +82,60 @@ describe('Config _isReady persistence', () => {
       method: 'POST',
       url: '/v1/watchlist-workflow/start',
       payload: { autoStart: false },
+    })
+    expect(startRes.statusCode).toBe(200)
+    expect(app.watchlistWorkflow.startWorkflow).toHaveBeenCalledTimes(1)
+    expect(app.config._isReady).toBe(false)
+
+    const knex = getTestDatabase()
+    const row = await knex('configs').where({ id: 1 }).first()
+    expect(row).toBeDefined()
+    expect(Boolean(row?._isReady)).toBe(false)
+  })
+
+  it('persists _isReady: true when starting with autoStart: true', async () => {
+    const disableRes = await app.inject({
+      method: 'PUT',
+      url: '/v1/config',
+      payload: { _isReady: false },
+    })
+    expect(disableRes.statusCode).toBe(200)
+    expect(app.config._isReady).toBe(false)
+
+    app.watchlistWorkflow.getStatus = vi.fn().mockReturnValue('stopped')
+    app.watchlistWorkflow.startWorkflow = vi.fn().mockResolvedValue(undefined)
+
+    const startRes = await app.inject({
+      method: 'POST',
+      url: '/v1/watchlist-workflow/start',
+      payload: { autoStart: true },
+    })
+    expect(startRes.statusCode).toBe(200)
+    expect(app.watchlistWorkflow.startWorkflow).toHaveBeenCalledTimes(1)
+    expect(app.config._isReady).toBe(true)
+
+    const knex = getTestDatabase()
+    const row = await knex('configs').where({ id: 1 }).first()
+    expect(row).toBeDefined()
+    expect(Boolean(row?._isReady)).toBe(true)
+  })
+
+  it('leaves _isReady unchanged when starting without autoStart', async () => {
+    const disableRes = await app.inject({
+      method: 'PUT',
+      url: '/v1/config',
+      payload: { _isReady: false },
+    })
+    expect(disableRes.statusCode).toBe(200)
+    expect(app.config._isReady).toBe(false)
+
+    app.watchlistWorkflow.getStatus = vi.fn().mockReturnValue('stopped')
+    app.watchlistWorkflow.startWorkflow = vi.fn().mockResolvedValue(undefined)
+
+    const startRes = await app.inject({
+      method: 'POST',
+      url: '/v1/watchlist-workflow/start',
+      payload: {},
     })
     expect(startRes.statusCode).toBe(200)
     expect(app.watchlistWorkflow.startWorkflow).toHaveBeenCalledTimes(1)
