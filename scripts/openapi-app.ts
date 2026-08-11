@@ -96,10 +96,6 @@ export default async function openapiApp(
       } catch {}
       try {
         // @ts-expect-error Stub for OpenAPI generation
-        fastify.decorate('markConfigReady', () => {})
-      } catch {}
-      try {
-        // @ts-expect-error Stub for OpenAPI generation
         fastify.decorate('compare', () => {})
       } catch {}
       try {
