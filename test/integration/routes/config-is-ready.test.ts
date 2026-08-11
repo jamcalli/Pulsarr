@@ -32,6 +32,9 @@ describe('Config _isReady persistence', () => {
   })
 
   it('persists _isReady: false via PUT /v1/config', async () => {
+    // The boot auto-start latch must not fire on runtime config writes
+    app.watchlistWorkflow.startWorkflow = vi.fn().mockResolvedValue(undefined)
+
     const enableRes = await app.inject({
       method: 'PUT',
       url: '/v1/config',
@@ -60,6 +63,7 @@ describe('Config _isReady persistence', () => {
     const row = await knex('configs').where({ id: 1 }).first()
     expect(row).toBeDefined()
     expect(Boolean(row?._isReady)).toBe(false)
+    expect(app.watchlistWorkflow.startWorkflow).not.toHaveBeenCalled()
   })
 
   it('persists _isReady: false when starting with autoStart: false', async () => {
