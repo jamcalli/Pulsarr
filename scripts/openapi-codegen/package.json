@@ -3,7 +3,7 @@
   "private": true,
   "description": "Isolated env for openapi-typescript, which needs the TypeScript 5 compiler API - the root project is on the native TS 7 compiler which does not expose it",
   "scripts": {
-    "generate": "openapi-typescript ../../docs/static/openapi.json -o ../../src/client/types/api.d.ts"
+    "generate": "openapi-typescript ../../docs/static/openapi.json -o ../../src/client/types/api.d.ts --default-non-nullable=false"
   },
   "dependencies": {
     "openapi-typescript": "^7.13.0",

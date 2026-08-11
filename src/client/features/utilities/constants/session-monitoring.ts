@@ -1,6 +1,6 @@
-import type { Config } from '@root/schemas/config/config.schema'
 import type { UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
+import type { components } from '@/types/api.js'
 
 // Extract the session monitoring configuration schema from the backend config
 export const SessionMonitoringConfigSchema = z.object({
@@ -28,7 +28,7 @@ export type SessionMonitoringFormData = z.input<
 
 // Re-export the backend config type for compatibility
 export type PlexSessionMonitoringConfig = NonNullable<
-  Config['plexSessionMonitoring']
+  components['schemas']['ConfigUpdatePayload']['plexSessionMonitoring']
 >
 
 // Common props interface for session monitoring components
