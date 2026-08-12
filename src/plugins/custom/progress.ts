@@ -1,4 +1,4 @@
-import { ProgressService } from '@services/event-emitter.service.js'
+import { ProgressService } from '@services/progress.service.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 

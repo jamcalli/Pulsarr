@@ -5841,8 +5841,8 @@ export interface operations {
                 /** @description Number of recent log lines to send initially. Defaults to 100. */
                 tail?: number;
                 /** @description Whether to follow the log file for new entries. Defaults to true. */
-                follow?: boolean;
-                /** @description Optional string filter to match against log messages (max 512 chars). */
+                follow?: string;
+                /** @description Optional string filter to match against log messages (max 512 chars). Applies within the tail window of recent lines, so older matches are not backfilled and fewer than tail lines may be returned. */
                 filter?: string;
             };
             header?: never;
