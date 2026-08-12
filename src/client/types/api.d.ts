@@ -3026,6 +3026,334 @@ export interface components {
                 max?: number;
             };
         } | null;
+        /** @description Complete application configuration; server-internal secrets are never included */
+        Config: {
+            id: number;
+            created_at: string;
+            updated_at: string;
+            baseUrl?: string;
+            port?: number;
+            dbPath?: string;
+            cookieSecured: boolean;
+            /** @enum {string} */
+            logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
+            /** @description Shutdown grace period in milliseconds */
+            closeGraceDelay?: number;
+            rateLimitMax?: number;
+            queueProcessDelaySeconds: number;
+            discordWebhookUrl?: string;
+            discordBotToken?: string;
+            discordClientId?: string;
+            enableApprise: boolean;
+            appriseUrl: string;
+            systemAppriseUrl?: string;
+            appriseEmailSender?: string;
+            publicContentNotifications: {
+                enabled: boolean;
+                discordWebhookUrls: string;
+                discordWebhookUrlsMovies: string;
+                discordWebhookUrlsShows: string;
+                appriseUrls: string;
+                appriseUrlsMovies: string;
+                appriseUrlsShows: string;
+            };
+            plexMobileEnabled: boolean;
+            /** @enum {string} */
+            deletionMode: "watchlist" | "tag-based";
+            /** @description Notification queue wait time in milliseconds */
+            queueWaitTime: number;
+            /** @description New episode notification threshold in milliseconds */
+            newEpisodeThreshold: number;
+            /** @enum {string} */
+            notifyOnUpdate: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
+            notifyOnAvailability: boolean;
+            /** @description Pending webhook retry interval in seconds */
+            pendingWebhookRetryInterval: number;
+            /** @description Pending webhook expiry age in minutes */
+            pendingWebhookMaxAge: number;
+            /** @description Expired webhook cleanup interval in seconds */
+            pendingWebhookCleanupInterval: number;
+            tmdbRegion: string;
+            /** @description Plex authentication tokens */
+            plexTokens: string[];
+            skipFriendSync: boolean;
+            plexServerUrl?: string;
+            skipIfExistsOnPlex: boolean;
+            deleteMovie: boolean;
+            deleteEndedShow: boolean;
+            deleteContinuingShow: boolean;
+            deleteFiles: boolean;
+            respectUserSyncSetting: boolean;
+            /** @enum {string} */
+            deleteSyncNotify: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            /** @enum {string} */
+            approvalNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            /** @enum {string} */
+            watchlistCapNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            watchlistCapNotifyUser: boolean;
+            /** @enum {string} */
+            watchlistAddNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            deleteSyncNotifyOnlyOnDeletion: boolean;
+            maxDeletionPrevention?: number;
+            deleteSyncTrackedOnly: boolean;
+            deleteSyncCleanupApprovals: boolean;
+            deleteSyncRequiredTagRegex: string;
+            enablePlexPlaylistProtection: boolean;
+            plexProtectionPlaylistName: string;
+            plexLabelSync: {
+                enabled: boolean;
+                labelPrefix: string;
+                /**
+                 * @default username
+                 * @enum {string}
+                 */
+                labelNamingSource: "username" | "alias";
+                concurrencyLimit: number;
+                cleanupOrphanedLabels: boolean;
+                /**
+                 * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
+                 * @enum {string}
+                 */
+                removedLabelMode: "remove" | "keep" | "special-label";
+                /**
+                 * @description Prefix for special labels indicating removed users
+                 * @default pulsarr:removed
+                 */
+                removedLabelPrefix?: string;
+                /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
+                autoResetOnScheduledSync: boolean;
+                tagSync: {
+                    enabled: boolean;
+                    syncRadarrTags: boolean;
+                    syncSonarrTags: boolean;
+                };
+            };
+            selfRss?: string;
+            friendsRss?: string;
+            tagUsersInSonarr: boolean;
+            tagUsersInRadarr: boolean;
+            cleanupOrphanedTags: boolean;
+            tagPrefix: string;
+            /** @enum {string} */
+            tagNamingSource: "username" | "alias";
+            /** @enum {string} */
+            removedTagMode: "remove" | "keep" | "special-tag";
+            removedTagPrefix: string;
+            tagMigration?: components["schemas"]["TagMigrationOutput"];
+            plexSessionMonitoring?: {
+                enabled: boolean;
+                pollingIntervalMinutes: number;
+                remainingEpisodes: number;
+                filterUsers?: string[];
+                enableAutoReset?: boolean;
+                inactivityResetDays?: number;
+                autoResetIntervalHours?: number;
+                enableProgressiveCleanup?: boolean;
+            };
+            newUserDefaultCanSync: boolean;
+            newUserDefaultRequiresApproval: boolean;
+            newUserDefaultMovieQuotaEnabled: boolean;
+            /** @enum {string} */
+            newUserDefaultMovieQuotaType: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultMovieQuotaLimit: number;
+            newUserDefaultMovieBypassApproval: boolean;
+            newUserDefaultMovieWatchlistCap: number | null;
+            newUserDefaultShowQuotaEnabled: boolean;
+            /** @enum {string} */
+            newUserDefaultShowQuotaType: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultShowQuotaLimit: number;
+            newUserDefaultShowBypassApproval: boolean;
+            newUserDefaultShowWatchlistCap: number | null;
+            quotaSettings: {
+                cleanup: {
+                    enabled: boolean;
+                    retentionDays: number;
+                };
+                weeklyRolling: {
+                    resetDays: number;
+                };
+                monthly: {
+                    resetDay: number;
+                    /** @enum {string} */
+                    handleMonthEnd: "last-day" | "skip-month" | "next-month";
+                };
+            };
+            approvalExpiration: {
+                enabled: boolean;
+                defaultExpirationHours: number;
+                /** @enum {string} */
+                expirationAction: "expire" | "auto_approve";
+                autoApproveOnQuotaAvailable: boolean;
+                quotaExceededExpirationHours?: number;
+                routerRuleExpirationHours?: number;
+                manualFlagExpirationHours?: number;
+                contentCriteriaExpirationHours?: number;
+                cleanupExpiredDays: number;
+            };
+            /** @description Auto-start the watchlist workflow on next boot; surfaced as the Auto-Start toggle */
+            _isReady: boolean;
+        };
+        /** @description Configuration response envelope */
+        ConfigResponse: {
+            /** @constant */
+            success: true;
+            config: components["schemas"]["Config"];
+        };
+        /** @description Writable configuration fields; server-internal settings are rejected */
+        ConfigUpdatePayload: {
+            baseUrl?: string | "";
+            port?: number;
+            dbPath?: string;
+            cookieSecured?: boolean;
+            /** @enum {string} */
+            logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
+            closeGraceDelay?: number;
+            rateLimitMax?: number;
+            queueProcessDelaySeconds?: number;
+            discordWebhookUrl?: string;
+            discordBotToken?: string;
+            discordClientId?: string;
+            systemAppriseUrl?: string;
+            appriseEmailSender?: string;
+            publicContentNotifications?: {
+                enabled: boolean;
+                discordWebhookUrls?: string;
+                discordWebhookUrlsMovies?: string;
+                discordWebhookUrlsShows?: string;
+                appriseUrls?: string;
+                appriseUrlsMovies?: string;
+                appriseUrlsShows?: string;
+            };
+            plexMobileEnabled?: boolean;
+            queueWaitTime?: number;
+            newEpisodeThreshold?: number;
+            /** @enum {string} */
+            notifyOnUpdate?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
+            notifyOnAvailability?: boolean;
+            pendingWebhookRetryInterval?: number;
+            pendingWebhookMaxAge?: number;
+            pendingWebhookCleanupInterval?: number;
+            /** @description Plex authentication tokens */
+            plexTokens?: string[];
+            skipFriendSync?: boolean;
+            deleteMovie?: boolean;
+            deleteEndedShow?: boolean;
+            deleteContinuingShow?: boolean;
+            deleteFiles?: boolean;
+            respectUserSyncSetting?: boolean;
+            /** @enum {string} */
+            deleteSyncNotify?: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            /** @enum {string} */
+            approvalNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            /** @enum {string} */
+            watchlistCapNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            watchlistCapNotifyUser?: boolean;
+            /** @enum {string} */
+            watchlistAddNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            deleteSyncNotifyOnlyOnDeletion?: boolean;
+            maxDeletionPrevention?: number;
+            /** @enum {string} */
+            deletionMode?: "watchlist" | "tag-based";
+            removedTagPrefix?: string;
+            deleteSyncRequiredTagRegex?: string;
+            deleteSyncTrackedOnly?: boolean;
+            deleteSyncCleanupApprovals?: boolean;
+            /** @enum {string} */
+            removedTagMode?: "remove" | "keep" | "special-tag";
+            enablePlexPlaylistProtection?: boolean;
+            plexProtectionPlaylistName?: string;
+            plexServerUrl?: string | "";
+            skipIfExistsOnPlex?: boolean;
+            plexLabelSync?: {
+                enabled: boolean;
+                labelPrefix: string;
+                /**
+                 * @default username
+                 * @enum {string}
+                 */
+                labelNamingSource?: "username" | "alias";
+                concurrencyLimit: number;
+                cleanupOrphanedLabels: boolean;
+                /**
+                 * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
+                 * @enum {string}
+                 */
+                removedLabelMode: "remove" | "keep" | "special-label";
+                /**
+                 * @description Prefix for special labels indicating removed users
+                 * @default pulsarr:removed
+                 */
+                removedLabelPrefix?: string;
+                /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
+                autoResetOnScheduledSync: boolean;
+                tagSync: {
+                    enabled: boolean;
+                    syncRadarrTags: boolean;
+                    syncSonarrTags: boolean;
+                };
+            };
+            selfRss?: string;
+            friendsRss?: string;
+            _isReady?: boolean;
+            plexSessionMonitoring?: {
+                enabled: boolean;
+                pollingIntervalMinutes: number;
+                remainingEpisodes: number;
+                filterUsers?: string[];
+                enableAutoReset?: boolean;
+                inactivityResetDays?: number;
+                autoResetIntervalHours?: number;
+                enableProgressiveCleanup?: boolean;
+            };
+            newUserDefaultCanSync?: boolean;
+            newUserDefaultRequiresApproval?: boolean;
+            newUserDefaultMovieQuotaEnabled?: boolean;
+            /** @enum {string} */
+            newUserDefaultMovieQuotaType?: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultMovieQuotaLimit?: number;
+            newUserDefaultMovieBypassApproval?: boolean;
+            newUserDefaultMovieWatchlistCap?: number | null;
+            newUserDefaultShowQuotaEnabled?: boolean;
+            /** @enum {string} */
+            newUserDefaultShowQuotaType?: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultShowQuotaLimit?: number;
+            newUserDefaultShowBypassApproval?: boolean;
+            newUserDefaultShowWatchlistCap?: number | null;
+            quotaSettings?: {
+                cleanup?: {
+                    enabled?: boolean;
+                    retentionDays?: number;
+                };
+                weeklyRolling?: {
+                    resetDays?: number;
+                };
+                monthly?: {
+                    resetDay?: number;
+                    /** @enum {string} */
+                    handleMonthEnd?: "last-day" | "skip-month" | "next-month";
+                };
+            };
+            approvalExpiration?: {
+                enabled?: boolean;
+                defaultExpirationHours?: number;
+                /** @enum {string} */
+                expirationAction?: "expire" | "auto_approve";
+                autoApproveOnQuotaAvailable?: boolean;
+                quotaExceededExpirationHours?: number;
+                routerRuleExpirationHours?: number;
+                manualFlagExpirationHours?: number;
+                contentCriteriaExpirationHours?: number;
+                cleanupExpiredDays?: number;
+            };
+            tmdbRegion?: string;
+            tagUsersInSonarr?: boolean;
+            tagUsersInRadarr?: boolean;
+            cleanupOrphanedTags?: boolean;
+            tagPrefix?: string;
+            /** @enum {string} */
+            tagNamingSource?: "username" | "alias";
+            tagMigration?: components["schemas"]["TagMigration"];
+        };
         /** @description Standard error response */
         Error: {
             /** @description HTTP status code */
@@ -3064,7 +3392,7 @@ export interface components {
             operator: components["schemas"]["ConditionOperator"];
             value: components["schemas"]["ConditionValue"];
             /** @default false */
-            negate: boolean;
+            negate?: boolean;
             _cid?: string;
         };
         /** @description Boolean grouping of router conditions, nestable to 20 levels */
@@ -3076,11 +3404,11 @@ export interface components {
                 operator: "AND" | "OR";
                 conditions: unknown[];
                 /** @default false */
-                negate: boolean;
+                negate?: boolean;
                 _cid?: string;
             })[];
             /** @default false */
-            negate: boolean;
+            negate?: boolean;
             _cid?: string;
         };
         /** @description Boolean grouping of router conditions, nestable to 20 levels */
@@ -3158,6 +3486,38 @@ export interface components {
             bypass_user_quotas?: boolean;
             approval_reason?: string;
             exclude_from_routing?: boolean;
+        };
+        /** @description Tag format migration status per Radarr/Sonarr instance */
+        TagMigration: {
+            radarr: {
+                [key: string]: components["schemas"]["TagMigrationEntry"];
+            };
+            sonarr: {
+                [key: string]: components["schemas"]["TagMigrationEntry"];
+            };
+        };
+        /** @description Migration result for a single instance */
+        TagMigrationEntry: {
+            completed: boolean;
+            migratedAt: string;
+            tagsMigrated: number;
+            contentUpdated: number;
+        };
+        /** @description Migration result for a single instance */
+        TagMigrationEntryOutput: {
+            completed: boolean;
+            migratedAt: string;
+            tagsMigrated: number;
+            contentUpdated: number;
+        };
+        /** @description Tag format migration status per Radarr/Sonarr instance */
+        TagMigrationOutput: {
+            radarr: {
+                [key: string]: components["schemas"]["TagMigrationEntryOutput"];
+            };
+            sonarr: {
+                [key: string]: components["schemas"]["TagMigrationEntryOutput"];
+            };
         };
     };
     responses: never;
@@ -4590,185 +4950,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        success: true;
-                        config: {
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                            baseUrl?: string;
-                            port?: number;
-                            dbPath?: string;
-                            cookieSecured: boolean;
-                            /** @enum {string} */
-                            logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
-                            closeGraceDelay?: number;
-                            rateLimitMax?: number;
-                            queueProcessDelaySeconds: number;
-                            discordWebhookUrl?: string;
-                            discordBotToken?: string;
-                            discordClientId?: string;
-                            enableApprise: boolean;
-                            appriseUrl: string;
-                            systemAppriseUrl?: string;
-                            appriseEmailSender?: string;
-                            publicContentNotifications: {
-                                enabled: boolean;
-                                discordWebhookUrls: string;
-                                discordWebhookUrlsMovies: string;
-                                discordWebhookUrlsShows: string;
-                                appriseUrls: string;
-                                appriseUrlsMovies: string;
-                                appriseUrlsShows: string;
-                            };
-                            plexMobileEnabled: boolean;
-                            /** @enum {string} */
-                            deletionMode: "watchlist" | "tag-based";
-                            queueWaitTime: number;
-                            newEpisodeThreshold: number;
-                            /** @enum {string} */
-                            notifyOnUpdate: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
-                            notifyOnAvailability: boolean;
-                            pendingWebhookRetryInterval: number;
-                            pendingWebhookMaxAge: number;
-                            pendingWebhookCleanupInterval: number;
-                            tmdbRegion: string;
-                            plexTokens: string[];
-                            skipFriendSync: boolean;
-                            plexServerUrl?: string;
-                            skipIfExistsOnPlex: boolean;
-                            deleteMovie: boolean;
-                            deleteEndedShow: boolean;
-                            deleteContinuingShow: boolean;
-                            deleteFiles: boolean;
-                            respectUserSyncSetting: boolean;
-                            /** @enum {string} */
-                            deleteSyncNotify: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            /** @enum {string} */
-                            approvalNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            /** @enum {string} */
-                            watchlistCapNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            watchlistCapNotifyUser: boolean;
-                            /** @enum {string} */
-                            watchlistAddNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            deleteSyncNotifyOnlyOnDeletion: boolean;
-                            maxDeletionPrevention?: number;
-                            deleteSyncTrackedOnly: boolean;
-                            deleteSyncCleanupApprovals: boolean;
-                            deleteSyncRequiredTagRegex: string;
-                            enablePlexPlaylistProtection: boolean;
-                            plexProtectionPlaylistName: string;
-                            plexLabelSync: {
-                                enabled: boolean;
-                                labelPrefix: string;
-                                /**
-                                 * @default username
-                                 * @enum {string}
-                                 */
-                                labelNamingSource: "username" | "alias";
-                                concurrencyLimit: number;
-                                cleanupOrphanedLabels: boolean;
-                                /**
-                                 * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
-                                 * @enum {string}
-                                 */
-                                removedLabelMode: "remove" | "keep" | "special-label";
-                                /**
-                                 * @description Prefix for special labels indicating removed users
-                                 * @default pulsarr:removed
-                                 */
-                                removedLabelPrefix: string;
-                                /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
-                                autoResetOnScheduledSync: boolean;
-                                tagSync: {
-                                    enabled: boolean;
-                                    syncRadarrTags: boolean;
-                                    syncSonarrTags: boolean;
-                                };
-                            };
-                            selfRss?: string;
-                            friendsRss?: string;
-                            tagUsersInSonarr: boolean;
-                            tagUsersInRadarr: boolean;
-                            cleanupOrphanedTags: boolean;
-                            tagPrefix: string;
-                            /** @enum {string} */
-                            tagNamingSource: "username" | "alias";
-                            /** @enum {string} */
-                            removedTagMode: "remove" | "keep" | "special-tag";
-                            removedTagPrefix: string;
-                            tagMigration?: {
-                                radarr: {
-                                    [key: string]: {
-                                        completed: boolean;
-                                        migratedAt: string;
-                                        tagsMigrated: number;
-                                        contentUpdated: number;
-                                    };
-                                };
-                                sonarr: {
-                                    [key: string]: {
-                                        completed: boolean;
-                                        migratedAt: string;
-                                        tagsMigrated: number;
-                                        contentUpdated: number;
-                                    };
-                                };
-                            };
-                            plexSessionMonitoring?: {
-                                enabled: boolean;
-                                pollingIntervalMinutes: number;
-                                remainingEpisodes: number;
-                                filterUsers?: string[];
-                                enableAutoReset?: boolean;
-                                inactivityResetDays?: number;
-                                autoResetIntervalHours?: number;
-                                enableProgressiveCleanup?: boolean;
-                            };
-                            newUserDefaultCanSync: boolean;
-                            newUserDefaultRequiresApproval: boolean;
-                            newUserDefaultMovieQuotaEnabled: boolean;
-                            /** @enum {string} */
-                            newUserDefaultMovieQuotaType: "daily" | "weekly_rolling" | "monthly";
-                            newUserDefaultMovieQuotaLimit: number;
-                            newUserDefaultMovieBypassApproval: boolean;
-                            newUserDefaultMovieWatchlistCap: number | null;
-                            newUserDefaultShowQuotaEnabled: boolean;
-                            /** @enum {string} */
-                            newUserDefaultShowQuotaType: "daily" | "weekly_rolling" | "monthly";
-                            newUserDefaultShowQuotaLimit: number;
-                            newUserDefaultShowBypassApproval: boolean;
-                            newUserDefaultShowWatchlistCap: number | null;
-                            quotaSettings: {
-                                cleanup: {
-                                    enabled: boolean;
-                                    retentionDays: number;
-                                };
-                                weeklyRolling: {
-                                    resetDays: number;
-                                };
-                                monthly: {
-                                    resetDay: number;
-                                    /** @enum {string} */
-                                    handleMonthEnd: "last-day" | "skip-month" | "next-month";
-                                };
-                            };
-                            approvalExpiration: {
-                                enabled: boolean;
-                                defaultExpirationHours: number;
-                                /** @enum {string} */
-                                expirationAction: "expire" | "auto_approve";
-                                autoApproveOnQuotaAvailable: boolean;
-                                quotaExceededExpirationHours?: number;
-                                routerRuleExpirationHours?: number;
-                                manualFlagExpirationHours?: number;
-                                contentCriteriaExpirationHours?: number;
-                                cleanupExpiredDays: number;
-                            };
-                            _isReady: boolean;
-                        };
-                    };
+                    "application/json": components["schemas"]["ConfigResponse"];
                 };
             };
             /** @description Default Response */
@@ -4816,178 +4998,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Writable configuration fields; server-internal settings are rejected */
         requestBody: {
             content: {
-                "application/json": {
-                    baseUrl?: string | "";
-                    port?: number;
-                    dbPath?: string;
-                    cookieSecured?: boolean;
-                    /** @enum {string} */
-                    logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
-                    closeGraceDelay?: number;
-                    rateLimitMax?: number;
-                    queueProcessDelaySeconds?: number;
-                    discordWebhookUrl?: string;
-                    discordBotToken?: string;
-                    discordClientId?: string;
-                    systemAppriseUrl?: string;
-                    appriseEmailSender?: string;
-                    publicContentNotifications?: {
-                        enabled: boolean;
-                        discordWebhookUrls?: string;
-                        discordWebhookUrlsMovies?: string;
-                        discordWebhookUrlsShows?: string;
-                        appriseUrls?: string;
-                        appriseUrlsMovies?: string;
-                        appriseUrlsShows?: string;
-                    };
-                    plexMobileEnabled?: boolean;
-                    queueWaitTime?: number;
-                    newEpisodeThreshold?: number;
-                    /** @enum {string} */
-                    notifyOnUpdate?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
-                    notifyOnAvailability?: boolean;
-                    pendingWebhookRetryInterval?: number;
-                    pendingWebhookMaxAge?: number;
-                    pendingWebhookCleanupInterval?: number;
-                    plexTokens?: string[];
-                    skipFriendSync?: boolean;
-                    deleteMovie?: boolean;
-                    deleteEndedShow?: boolean;
-                    deleteContinuingShow?: boolean;
-                    deleteFiles?: boolean;
-                    respectUserSyncSetting?: boolean;
-                    /** @enum {string} */
-                    deleteSyncNotify?: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                    /** @enum {string} */
-                    approvalNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                    /** @enum {string} */
-                    watchlistCapNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                    watchlistCapNotifyUser?: boolean;
-                    /** @enum {string} */
-                    watchlistAddNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                    deleteSyncNotifyOnlyOnDeletion?: boolean;
-                    maxDeletionPrevention?: number;
-                    /** @enum {string} */
-                    deletionMode?: "watchlist" | "tag-based";
-                    removedTagPrefix?: string;
-                    deleteSyncRequiredTagRegex?: string;
-                    deleteSyncTrackedOnly?: boolean;
-                    deleteSyncCleanupApprovals?: boolean;
-                    /** @enum {string} */
-                    removedTagMode?: "remove" | "keep" | "special-tag";
-                    enablePlexPlaylistProtection?: boolean;
-                    plexProtectionPlaylistName?: string;
-                    plexServerUrl?: string | "";
-                    skipIfExistsOnPlex?: boolean;
-                    plexLabelSync?: {
-                        enabled: boolean;
-                        labelPrefix: string;
-                        /**
-                         * @default username
-                         * @enum {string}
-                         */
-                        labelNamingSource?: "username" | "alias";
-                        concurrencyLimit: number;
-                        cleanupOrphanedLabels: boolean;
-                        /**
-                         * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
-                         * @enum {string}
-                         */
-                        removedLabelMode: "remove" | "keep" | "special-label";
-                        /**
-                         * @description Prefix for special labels indicating removed users
-                         * @default pulsarr:removed
-                         */
-                        removedLabelPrefix?: string;
-                        /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
-                        autoResetOnScheduledSync: boolean;
-                        tagSync: {
-                            enabled: boolean;
-                            syncRadarrTags: boolean;
-                            syncSonarrTags: boolean;
-                        };
-                    };
-                    selfRss?: string;
-                    friendsRss?: string;
-                    _isReady?: boolean;
-                    plexSessionMonitoring?: {
-                        enabled: boolean;
-                        pollingIntervalMinutes: number;
-                        remainingEpisodes: number;
-                        filterUsers?: string[];
-                        enableAutoReset?: boolean;
-                        inactivityResetDays?: number;
-                        autoResetIntervalHours?: number;
-                        enableProgressiveCleanup?: boolean;
-                    };
-                    newUserDefaultCanSync?: boolean;
-                    newUserDefaultRequiresApproval?: boolean;
-                    newUserDefaultMovieQuotaEnabled?: boolean;
-                    /** @enum {string} */
-                    newUserDefaultMovieQuotaType?: "daily" | "weekly_rolling" | "monthly";
-                    newUserDefaultMovieQuotaLimit?: number;
-                    newUserDefaultMovieBypassApproval?: boolean;
-                    newUserDefaultMovieWatchlistCap?: number | null;
-                    newUserDefaultShowQuotaEnabled?: boolean;
-                    /** @enum {string} */
-                    newUserDefaultShowQuotaType?: "daily" | "weekly_rolling" | "monthly";
-                    newUserDefaultShowQuotaLimit?: number;
-                    newUserDefaultShowBypassApproval?: boolean;
-                    newUserDefaultShowWatchlistCap?: number | null;
-                    quotaSettings?: {
-                        cleanup?: {
-                            enabled?: boolean;
-                            retentionDays?: number;
-                        };
-                        weeklyRolling?: {
-                            resetDays?: number;
-                        };
-                        monthly?: {
-                            resetDay?: number;
-                            /** @enum {string} */
-                            handleMonthEnd?: "last-day" | "skip-month" | "next-month";
-                        };
-                    };
-                    approvalExpiration?: {
-                        enabled?: boolean;
-                        defaultExpirationHours?: number;
-                        /** @enum {string} */
-                        expirationAction?: "expire" | "auto_approve";
-                        autoApproveOnQuotaAvailable?: boolean;
-                        quotaExceededExpirationHours?: number;
-                        routerRuleExpirationHours?: number;
-                        manualFlagExpirationHours?: number;
-                        contentCriteriaExpirationHours?: number;
-                        cleanupExpiredDays?: number;
-                    };
-                    tmdbRegion?: string;
-                    tagUsersInSonarr?: boolean;
-                    tagUsersInRadarr?: boolean;
-                    cleanupOrphanedTags?: boolean;
-                    tagPrefix?: string;
-                    /** @enum {string} */
-                    tagNamingSource?: "username" | "alias";
-                    tagMigration?: {
-                        radarr: {
-                            [key: string]: {
-                                completed: boolean;
-                                migratedAt: string;
-                                tagsMigrated: number;
-                                contentUpdated: number;
-                            };
-                        };
-                        sonarr: {
-                            [key: string]: {
-                                completed: boolean;
-                                migratedAt: string;
-                                tagsMigrated: number;
-                                contentUpdated: number;
-                            };
-                        };
-                    };
-                };
+                "application/json": components["schemas"]["ConfigUpdatePayload"];
             };
         };
         responses: {
@@ -4997,185 +5011,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        success: true;
-                        config: {
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                            baseUrl?: string;
-                            port?: number;
-                            dbPath?: string;
-                            cookieSecured: boolean;
-                            /** @enum {string} */
-                            logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
-                            closeGraceDelay?: number;
-                            rateLimitMax?: number;
-                            queueProcessDelaySeconds: number;
-                            discordWebhookUrl?: string;
-                            discordBotToken?: string;
-                            discordClientId?: string;
-                            enableApprise: boolean;
-                            appriseUrl: string;
-                            systemAppriseUrl?: string;
-                            appriseEmailSender?: string;
-                            publicContentNotifications: {
-                                enabled: boolean;
-                                discordWebhookUrls: string;
-                                discordWebhookUrlsMovies: string;
-                                discordWebhookUrlsShows: string;
-                                appriseUrls: string;
-                                appriseUrlsMovies: string;
-                                appriseUrlsShows: string;
-                            };
-                            plexMobileEnabled: boolean;
-                            /** @enum {string} */
-                            deletionMode: "watchlist" | "tag-based";
-                            queueWaitTime: number;
-                            newEpisodeThreshold: number;
-                            /** @enum {string} */
-                            notifyOnUpdate: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
-                            notifyOnAvailability: boolean;
-                            pendingWebhookRetryInterval: number;
-                            pendingWebhookMaxAge: number;
-                            pendingWebhookCleanupInterval: number;
-                            tmdbRegion: string;
-                            plexTokens: string[];
-                            skipFriendSync: boolean;
-                            plexServerUrl?: string;
-                            skipIfExistsOnPlex: boolean;
-                            deleteMovie: boolean;
-                            deleteEndedShow: boolean;
-                            deleteContinuingShow: boolean;
-                            deleteFiles: boolean;
-                            respectUserSyncSetting: boolean;
-                            /** @enum {string} */
-                            deleteSyncNotify: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            /** @enum {string} */
-                            approvalNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            /** @enum {string} */
-                            watchlistCapNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            watchlistCapNotifyUser: boolean;
-                            /** @enum {string} */
-                            watchlistAddNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            deleteSyncNotifyOnlyOnDeletion: boolean;
-                            maxDeletionPrevention?: number;
-                            deleteSyncTrackedOnly: boolean;
-                            deleteSyncCleanupApprovals: boolean;
-                            deleteSyncRequiredTagRegex: string;
-                            enablePlexPlaylistProtection: boolean;
-                            plexProtectionPlaylistName: string;
-                            plexLabelSync: {
-                                enabled: boolean;
-                                labelPrefix: string;
-                                /**
-                                 * @default username
-                                 * @enum {string}
-                                 */
-                                labelNamingSource: "username" | "alias";
-                                concurrencyLimit: number;
-                                cleanupOrphanedLabels: boolean;
-                                /**
-                                 * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
-                                 * @enum {string}
-                                 */
-                                removedLabelMode: "remove" | "keep" | "special-label";
-                                /**
-                                 * @description Prefix for special labels indicating removed users
-                                 * @default pulsarr:removed
-                                 */
-                                removedLabelPrefix: string;
-                                /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
-                                autoResetOnScheduledSync: boolean;
-                                tagSync: {
-                                    enabled: boolean;
-                                    syncRadarrTags: boolean;
-                                    syncSonarrTags: boolean;
-                                };
-                            };
-                            selfRss?: string;
-                            friendsRss?: string;
-                            tagUsersInSonarr: boolean;
-                            tagUsersInRadarr: boolean;
-                            cleanupOrphanedTags: boolean;
-                            tagPrefix: string;
-                            /** @enum {string} */
-                            tagNamingSource: "username" | "alias";
-                            /** @enum {string} */
-                            removedTagMode: "remove" | "keep" | "special-tag";
-                            removedTagPrefix: string;
-                            tagMigration?: {
-                                radarr: {
-                                    [key: string]: {
-                                        completed: boolean;
-                                        migratedAt: string;
-                                        tagsMigrated: number;
-                                        contentUpdated: number;
-                                    };
-                                };
-                                sonarr: {
-                                    [key: string]: {
-                                        completed: boolean;
-                                        migratedAt: string;
-                                        tagsMigrated: number;
-                                        contentUpdated: number;
-                                    };
-                                };
-                            };
-                            plexSessionMonitoring?: {
-                                enabled: boolean;
-                                pollingIntervalMinutes: number;
-                                remainingEpisodes: number;
-                                filterUsers?: string[];
-                                enableAutoReset?: boolean;
-                                inactivityResetDays?: number;
-                                autoResetIntervalHours?: number;
-                                enableProgressiveCleanup?: boolean;
-                            };
-                            newUserDefaultCanSync: boolean;
-                            newUserDefaultRequiresApproval: boolean;
-                            newUserDefaultMovieQuotaEnabled: boolean;
-                            /** @enum {string} */
-                            newUserDefaultMovieQuotaType: "daily" | "weekly_rolling" | "monthly";
-                            newUserDefaultMovieQuotaLimit: number;
-                            newUserDefaultMovieBypassApproval: boolean;
-                            newUserDefaultMovieWatchlistCap: number | null;
-                            newUserDefaultShowQuotaEnabled: boolean;
-                            /** @enum {string} */
-                            newUserDefaultShowQuotaType: "daily" | "weekly_rolling" | "monthly";
-                            newUserDefaultShowQuotaLimit: number;
-                            newUserDefaultShowBypassApproval: boolean;
-                            newUserDefaultShowWatchlistCap: number | null;
-                            quotaSettings: {
-                                cleanup: {
-                                    enabled: boolean;
-                                    retentionDays: number;
-                                };
-                                weeklyRolling: {
-                                    resetDays: number;
-                                };
-                                monthly: {
-                                    resetDay: number;
-                                    /** @enum {string} */
-                                    handleMonthEnd: "last-day" | "skip-month" | "next-month";
-                                };
-                            };
-                            approvalExpiration: {
-                                enabled: boolean;
-                                defaultExpirationHours: number;
-                                /** @enum {string} */
-                                expirationAction: "expire" | "auto_approve";
-                                autoApproveOnQuotaAvailable: boolean;
-                                quotaExceededExpirationHours?: number;
-                                routerRuleExpirationHours?: number;
-                                manualFlagExpirationHours?: number;
-                                contentCriteriaExpirationHours?: number;
-                                cleanupExpiredDays: number;
-                            };
-                            _isReady: boolean;
-                        };
-                    };
+                    "application/json": components["schemas"]["ConfigResponse"];
                 };
             };
             /** @description Default Response */
