@@ -210,7 +210,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         // Config writes can change notification channel statuses
-        fastify.notifications.emitStatusEvents()
+        try {
+          fastify.notifications.emitStatusEvents()
+        } catch (error) {
+          fastify.log.error(
+            { error },
+            'Failed to emit status events after config update',
+          )
+        }
 
         const mergedConfig: z.infer<typeof ConfigFullSchema> = {
           ...savedConfig,

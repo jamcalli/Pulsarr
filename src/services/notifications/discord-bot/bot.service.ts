@@ -174,6 +174,7 @@ export class DiscordBotService {
 
   // intermediate starting/stopping states must notify too, not just final states
   private setBotStatus(status: BotStatus): void {
+    if (this.botStatus === status) return
     this.botStatus = status
     this.statusChangeCallback?.()
   }

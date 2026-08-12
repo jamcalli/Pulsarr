@@ -75,6 +75,27 @@ describe('sseStream', () => {
     await stream.return(undefined)
   })
 
+  it('awaits a promise-returning replay and keeps live events queued behind it', async () => {
+    const source = makeSource<string>()
+    const replayGate = deferred<string[]>()
+    const stream = sseStream<string>({
+      signal: new AbortController().signal,
+      replay: () => replayGate.promise,
+      next: source.next,
+      serialize,
+    })
+
+    // live event arriving while replay is still pending must not be lost
+    source.push('c')
+    replayGate.resolve(['a', 'b'])
+
+    expect((await stream.next()).value).toEqual({ data: 'a' })
+    expect((await stream.next()).value).toEqual({ data: 'b' })
+    expect((await stream.next()).value).toEqual({ data: 'c' })
+
+    await stream.return(undefined)
+  })
+
   it('emits keep-alive comments while idle without re-invoking next()', async () => {
     const source = makeSource<string>()
     const stream = sseStream<string>({
