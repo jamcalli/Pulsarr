@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { Config } from '@root/schemas/config/config.schema'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -7,6 +6,9 @@ import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { PlexTokenSchema } from '@/features/plex/store/schemas'
 import { plexTokenSchema } from '@/features/plex/store/schemas'
 import { updateConfig, useConfig } from '@/hooks/useConfig'
+import type { components } from '@/types/api.js'
+
+type ConfigUpdatePayload = components['schemas']['ConfigUpdatePayload']
 
 export type ConnectionStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -51,7 +53,7 @@ export function usePlexConnection() {
         setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
-      const configUpdate: Partial<Config> = {
+      const configUpdate: Partial<ConfigUpdatePayload> = {
         plexTokens: [data.plexToken],
       }
 
@@ -76,7 +78,7 @@ export function usePlexConnection() {
       )
 
       // Create a config update with empty plexTokens array
-      const configUpdate: Partial<Config> = {
+      const configUpdate: Partial<ConfigUpdatePayload> = {
         plexTokens: [],
       }
 

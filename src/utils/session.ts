@@ -1,12 +1,11 @@
 import type { FastifyRequest } from 'fastify'
 
 /**
- * Sets a fixed admin user in the session to simulate authentication bypass.
+ * Populates the session with the admin user for auth-bypassed requests.
  *
- * @remark
- * Use only when authentication is disabled or bypassed, such as for local development or trusted IPs. The session user is assigned static admin credentials.
- *
- * @param request - The Fastify request object with session support.
+ * This is a single-admin app and the admin is always user id 1, so the
+ * hardcoded id attributes bypassed requests to the same user row as real
+ * logins.
  */
 export function createTemporaryAdminSession(request: FastifyRequest): void {
   request.session.user = {

@@ -1,14 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import {
-  type Config,
-  ConfigUpdateSchema,
-} from '@root/schemas/config/config.schema'
+import { ConfigUpdateSchema } from '@root/schemas/config/config.schema'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { updateConfig, useConfig } from '@/hooks/useConfig'
+import type { components } from '@/types/api.js'
 
 // Pick Plex existence check fields from the backend ConfigUpdateSchema
 const plexExistenceCheckFormSchema = ConfigUpdateSchema.pick({
@@ -53,7 +51,9 @@ export function usePlexExistenceCheck() {
         setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
-      const configUpdate: Partial<Config> = {
+      const configUpdate: Partial<
+        components['schemas']['ConfigUpdatePayload']
+      > = {
         skipIfExistsOnPlex: data.skipIfExistsOnPlex,
         plexServerUrl: data.plexServerUrl || '',
       }

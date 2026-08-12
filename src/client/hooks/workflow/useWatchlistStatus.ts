@@ -1,38 +1,18 @@
-import type { ProgressEvent } from '@root/types/progress.types'
-import { useCallback, useEffect, useState } from 'react'
-import { useProgressStore } from '@/stores/progressStore'
+import { useSystemStatusEvent } from '@/hooks/useSystemStatus'
 
 /**
- * React hook that returns the current watchlist workflow status, synchronization mode, and RSS availability.
- *
- * Subscribes to system events to keep these values updated in real time.
+ * Tracks the watchlist workflow status from the progress stream.
  *
  * @returns An object containing `status`, `syncMode`, and `rssAvailable`.
  */
 export function useWatchlistStatus() {
-  const [status, setStatus] = useState<string>('unknown')
-  const [syncMode, setSyncMode] = useState<'polling' | 'rss'>('polling')
-  const [rssAvailable, setRssAvailable] = useState<boolean>(false)
-  const subscribeToType = useProgressStore(state => state.subscribeToType)
+  const metadata = useSystemStatusEvent('watchlist-workflow-status')?.metadata
 
-  const handleEvent = useCallback((event: ProgressEvent) => {
-    if (event.type === 'system' && event.message?.startsWith('Watchlist workflow status:')) {
-      const workflowStatus = event.message.replace('Watchlist workflow status:', '').trim()
-      setStatus(workflowStatus)
-      
-      if (event.metadata && 'syncMode' in event.metadata && 'rssAvailable' in event.metadata) {
-        setSyncMode(event.metadata.syncMode)
-        setRssAvailable(event.metadata.rssAvailable)
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    const unsubscribe = subscribeToType('system', handleEvent)
-    return () => {
-      unsubscribe()
-    }
-  }, [subscribeToType, handleEvent])
+  const status = metadata && 'status' in metadata ? metadata.status : 'unknown'
+  const syncMode =
+    metadata && 'syncMode' in metadata ? metadata.syncMode : 'polling'
+  const rssAvailable =
+    metadata && 'rssAvailable' in metadata ? metadata.rssAvailable : false
 
   return { status, syncMode, rssAvailable }
 }

@@ -459,17 +459,17 @@ describe('ContentRouterService Integration', () => {
 
       expect(evaluators.length).toBeGreaterThan(0)
 
-      // Verify conditional evaluator is loaded with evaluate() method
+      // Verify conditional evaluator is loaded (metadata-only, no evaluate())
       const conditionalEvaluator = evaluators.find(
         (e: unknown) =>
           typeof e === 'object' &&
           e !== null &&
           'name' in e &&
           (e as { name: string }).name === 'Conditional Router',
-      ) as { name: string; evaluate?: unknown } | undefined
+      ) as { name: string; supportedFields?: unknown[] } | undefined
 
       expect(conditionalEvaluator).toBeDefined()
-      expect(typeof conditionalEvaluator?.evaluate).toBe('function')
+      expect(conditionalEvaluator?.supportedFields).toBeDefined()
 
       // Verify field evaluators are loaded with evaluateCondition() method
       const genreEvaluator = evaluators.find(

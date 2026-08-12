@@ -1,8 +1,7 @@
 import {
   ConfigErrorSchema,
   type ConfigFullSchema,
-  ConfigGetResponseSchema,
-  ConfigUpdateResponseSchema,
+  ConfigResponseSchema,
   ConfigUpdateSchema,
 } from '@root/schemas/config/config.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
@@ -18,7 +17,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'getConfig',
         description: 'Retrieve the current application configuration settings',
         response: {
-          200: ConfigGetResponseSchema,
+          200: ConfigResponseSchema,
           400: ConfigErrorSchema,
           404: ConfigErrorSchema,
           500: ConfigErrorSchema,
@@ -43,7 +42,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           appriseUrl: fastify.config.appriseUrl,
         }
 
-        const response: z.infer<typeof ConfigGetResponseSchema> = {
+        const response: z.infer<typeof ConfigResponseSchema> = {
           success: true,
           config: mergedConfig,
         }
@@ -68,7 +67,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Update the application configuration settings',
         body: ConfigUpdateSchema,
         response: {
-          200: ConfigUpdateResponseSchema,
+          200: ConfigResponseSchema,
           400: ConfigErrorSchema,
           404: ConfigErrorSchema,
           500: ConfigErrorSchema,
@@ -210,13 +209,23 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
+        // Config writes can change notification channel statuses
+        try {
+          fastify.notifications.emitStatusEvents()
+        } catch (error) {
+          fastify.log.error(
+            { error },
+            'Failed to emit status events after config update',
+          )
+        }
+
         const mergedConfig: z.infer<typeof ConfigFullSchema> = {
           ...savedConfig,
           enableApprise: fastify.config.enableApprise,
           appriseUrl: fastify.config.appriseUrl,
         }
 
-        const response: z.infer<typeof ConfigUpdateResponseSchema> = {
+        const response: z.infer<typeof ConfigResponseSchema> = {
           success: true,
           config: mergedConfig,
         }

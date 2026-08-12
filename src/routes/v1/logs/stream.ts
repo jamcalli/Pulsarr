@@ -6,9 +6,8 @@ import {
   LogStreamResponseSchema,
 } from '@schemas/logs/logs.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import { sseStream } from '@utils/sse-stream.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
-
-const KEEP_ALIVE_INTERVAL = 30_000
 
 const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.get(
@@ -52,91 +51,40 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
       })
 
+      const emitter = logService.getEventEmitter()
+
+      const matchesFilter = (entry: LogEntry) =>
+        !filter || entry.message.toLowerCase().includes(filter.toLowerCase())
+
+      // once() per call keeps logs lossy under pressure - entries arriving mid-yield drop instead of buffering against a slow client
+      const nextLogEntry = async (): Promise<LogEntry | undefined> => {
+        while (!abortController.signal.aborted) {
+          const [entry] = (await once(emitter, 'log', {
+            signal: abortController.signal,
+          })) as [LogEntry]
+          if (matchesFilter(entry)) {
+            return entry
+          }
+        }
+        return undefined
+      }
+
       return reply.sse(
         (async function* source() {
           try {
-            if (tail > 0) {
-              const tailEntries = await logService.getTailLines(tail, filter)
-
-              for (const entry of tailEntries) {
-                yield {
-                  id: randomUUID(),
-                  data: JSON.stringify(entry),
-                }
-              }
-            }
-
-            if (follow) {
-              const emitter = logService.getEventEmitter()
-
-              while (!abortController.signal.aborted) {
-                // Use a per-iteration AbortController for the once() call
-                // This prevents listener accumulation when keep-alive wins the race
-                const iterationAbort = new AbortController()
-
-                // Named handler so we can remove it after each iteration
-                const onConnectionAbort = () => iterationAbort.abort()
-                abortController.signal.addEventListener(
-                  'abort',
-                  onConnectionAbort,
-                )
-
-                // Race between log event and keep-alive timeout
-                const logPromise = once(emitter, 'log', {
-                  signal: iterationAbort.signal,
-                })
-
-                let keepAliveTimer: NodeJS.Timeout | null = null
-                const keepAlivePromise = new Promise<'keepalive'>((resolve) => {
-                  keepAliveTimer = setTimeout(
-                    () => resolve('keepalive'),
-                    KEEP_ALIVE_INTERVAL,
-                  )
-                })
-
-                let result: Awaited<typeof logPromise> | 'keepalive'
-                try {
-                  result = await Promise.race([logPromise, keepAlivePromise])
-                } finally {
-                  // Always clean up to prevent listener accumulation
-                  abortController.signal.removeEventListener(
-                    'abort',
-                    onConnectionAbort,
-                  )
-                  if (keepAliveTimer) {
-                    clearTimeout(keepAliveTimer)
-                  }
-                }
-
-                if (result === 'keepalive') {
-                  // Abort the once() listener to prevent accumulation
-                  iterationAbort.abort()
-                  // Swallow the expected AbortError from the aborted once() listener
-                  logPromise.catch(() => {})
-                  // Send SSE comment as keep-alive (not visible to client as data)
-                  yield { comment: 'keep-alive' }
-                  continue
-                }
-
-                const logEntry = result[0] as LogEntry
-
-                if (
-                  filter &&
-                  !logEntry.message.toLowerCase().includes(filter.toLowerCase())
-                ) {
-                  continue
-                }
-
-                yield {
-                  id: randomUUID(),
-                  data: JSON.stringify(logEntry),
-                }
-              }
-            }
+            yield* sseStream<LogEntry>({
+              signal: abortController.signal,
+              replay:
+                tail > 0
+                  ? () => logService.getTailLines(tail, filter)
+                  : undefined,
+              next: follow ? nextLogEntry : async () => undefined,
+              serialize: (entry) => ({
+                id: randomUUID(),
+                data: JSON.stringify(entry),
+              }),
+            })
           } catch (error) {
-            if (error instanceof Error && error.name === 'AbortError') {
-              return
-            }
             logRouteError(fastify.log, request, error, {
               message: 'SSE stream error',
               connectionId,

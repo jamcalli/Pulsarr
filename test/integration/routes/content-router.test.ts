@@ -84,7 +84,7 @@ describe('Content Router Rules API', () => {
       const putRes = await app.inject({
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
-        payload: { monitor: 'movieAndCollection' },
+        payload: { ...radarrRule, monitor: 'movieAndCollection' },
       })
       expect(putRes.statusCode).toBe(200)
       expect(putRes.json().rule.monitor).toBe('movieAndCollection')
@@ -92,6 +92,52 @@ describe('Content Router Rules API', () => {
       const knex = getTestDatabase()
       const row = await knex('router_rules').where({ id }).first()
       expect(row.monitor).toBe('movieAndCollection')
+    })
+  })
+
+  describe('full-replace update semantics', () => {
+    it('rejects sparse update payloads', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...radarrRule, monitor: 'movieOnly' },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: { monitor: 'movieAndCollection' },
+      })
+      expect(putRes.statusCode).toBe(400)
+      expect(putRes.json().message).toContain('name')
+    })
+
+    it('clears fields omitted from the update payload', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...radarrRule,
+          monitor: 'movieOnly',
+          quality_profile: 5,
+          root_folder: '/data/movies',
+        },
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: radarrRule,
+      })
+      expect(putRes.statusCode).toBe(200)
+
+      const knex = getTestDatabase()
+      const row = await knex('router_rules').where({ id }).first()
+      expect(row.monitor).toBeNull()
+      expect(row.quality_profile).toBeNull()
+      expect(row.root_folder).toBeNull()
     })
   })
 
@@ -117,7 +163,7 @@ describe('Content Router Rules API', () => {
       const putRes = await app.inject({
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
-        payload: { monitor: 'movieOnly' },
+        payload: { ...sonarrRule, monitor: 'movieOnly' },
       })
       expect(putRes.statusCode).toBe(400)
       expect(putRes.json().message).toContain('monitor')
@@ -144,7 +190,7 @@ describe('Content Router Rules API', () => {
       const putRes = await app.inject({
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
-        payload: { series_type: 'anime' },
+        payload: { ...radarrRule, series_type: 'anime' },
       })
       expect(putRes.statusCode).toBe(400)
       expect(putRes.json().message).toContain('series_type')
@@ -171,7 +217,7 @@ describe('Content Router Rules API', () => {
       const putRes = await app.inject({
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
-        payload: { season_monitoring: 'all' },
+        payload: { ...radarrRule, season_monitoring: 'all' },
       })
       expect(putRes.statusCode).toBe(400)
       expect(putRes.json().message).toContain('season_monitoring')
@@ -232,7 +278,7 @@ describe('Content Router Rules API', () => {
       const putRes = await app.inject({
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
-        payload: { target_type: 'radarr', target_instance_id: 1 },
+        payload: radarrRule,
       })
       expect(putRes.statusCode).toBe(200)
 
@@ -258,7 +304,7 @@ describe('Content Router Rules API', () => {
       const putRes = await app.inject({
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
-        payload: { target_type: 'radarr', target_instance_id: 1 },
+        payload: radarrRule,
       })
       expect(putRes.statusCode).toBe(200)
 
@@ -280,7 +326,7 @@ describe('Content Router Rules API', () => {
       const putRes = await app.inject({
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
-        payload: { target_type: 'sonarr', target_instance_id: 1 },
+        payload: sonarrRule,
       })
       expect(putRes.statusCode).toBe(200)
 
@@ -304,11 +350,7 @@ describe('Content Router Rules API', () => {
       const putRes = await app.inject({
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
-        payload: {
-          target_type: 'radarr',
-          target_instance_id: 1,
-          monitor: 'movieOnly',
-        },
+        payload: { ...radarrRule, monitor: 'movieOnly' },
       })
       expect(putRes.statusCode).toBe(200)
 
@@ -331,8 +373,7 @@ describe('Content Router Rules API', () => {
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
         payload: {
-          target_type: 'sonarr',
-          target_instance_id: 1,
+          ...sonarrRule,
           season_monitoring: 'all',
           series_type: 'anime',
         },
@@ -406,8 +447,12 @@ describe('Content Router Rules API', () => {
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
         payload: {
+          ...sonarrRule,
           exclude_from_routing: true,
           target_instance_id: null,
+          quality_profile: 5,
+          root_folder: '/data/shows',
+          tags: ['10', '20'],
         },
       })
       expect(putRes.statusCode).toBe(200)
@@ -438,6 +483,7 @@ describe('Content Router Rules API', () => {
         url: `/v1/content-router/rules/${id}`,
         payload: {
           name: sonarrRule.name,
+          target_type: sonarrRule.target_type,
           condition: sonarrRule.condition,
           target_instance_id: null,
           tags: [],
@@ -471,6 +517,7 @@ describe('Content Router Rules API', () => {
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
         payload: {
+          ...sonarrRule,
           exclude_from_routing: true,
           target_instance_id: null,
           quality_profile: null,
@@ -478,6 +525,7 @@ describe('Content Router Rules API', () => {
         },
       })
       expect(putRes.statusCode).toBe(400)
+      expect(putRes.json().message).toMatch(/quality_profile|root_folder/)
     })
 
     it('rejects an exclude update that keeps a target instance', async () => {
@@ -492,11 +540,15 @@ describe('Content Router Rules API', () => {
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
         payload: {
+          ...sonarrRule,
           exclude_from_routing: true,
           target_instance_id: 1,
         },
       })
       expect(putRes.statusCode).toBe(400)
+      expect(putRes.json().message).toContain(
+        'target_instance_id must be null when exclude_from_routing is true',
+      )
     })
 
     it('rejects clearing exclude without supplying a target instance', async () => {
@@ -515,10 +567,15 @@ describe('Content Router Rules API', () => {
         method: 'PUT',
         url: `/v1/content-router/rules/${id}`,
         payload: {
+          ...sonarrRule,
           exclude_from_routing: false,
+          target_instance_id: null,
         },
       })
       expect(putRes.statusCode).toBe(400)
+      expect(putRes.json().message).toContain(
+        'target_instance_id is required unless exclude_from_routing is true',
+      )
     })
   })
 })

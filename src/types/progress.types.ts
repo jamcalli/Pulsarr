@@ -1,6 +1,11 @@
 export type WorkflowMetadata = {
+  status: string
   syncMode: 'polling' | 'rss'
   rssAvailable: boolean
+}
+
+export type SystemStatusMetadata = {
+  status: string
 }
 
 export type ApprovalMetadata = {
@@ -16,6 +21,7 @@ export type ApprovalMetadata = {
 export type ProgressMetadata =
   | WorkflowMetadata
   | ApprovalMetadata
+  | SystemStatusMetadata
   | Record<string, never>
 
 export interface ProgressEvent {

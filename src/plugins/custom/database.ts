@@ -80,13 +80,6 @@ export default fp(
 
           await fastify.updateConfig(mergedConfig)
 
-          if (dbConfig._isReady) {
-            fastify.log.debug('DB config was ready, updating ready state')
-            await fastify.updateConfig({ _isReady: true })
-          } else {
-            fastify.log.debug('DB config was not ready')
-          }
-
           const [existingSonarrInstances, existingRadarrInstances] =
             await Promise.all([
               dbService.getAllSonarrInstances(),

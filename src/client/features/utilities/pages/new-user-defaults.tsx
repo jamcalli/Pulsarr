@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { ConfigFull } from '@root/schemas/config/config.schema'
 import { HelpCircle, Loader2, Save, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -35,6 +34,7 @@ import { validateWatchlistCap } from '@/features/plex/quota/form-schema'
 import { NewUserDefaultsPageSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-page-skeleton'
 import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { useShowLoading } from '@/lib/useMinLoading'
+import type { components } from '@/types/api.js'
 
 const newUserDefaultsSchema = z
   .object({
@@ -70,7 +70,9 @@ const newUserDefaultsSchema = z
 
 type NewUserDefaultsFormData = z.infer<typeof newUserDefaultsSchema>
 
-function buildFormValues(config: ConfigFull | null): NewUserDefaultsFormData {
+function buildFormValues(
+  config: components['schemas']['Config'] | null,
+): NewUserDefaultsFormData {
   return {
     canSync: config?.newUserDefaultCanSync ?? true,
     requiresApproval: config?.newUserDefaultRequiresApproval ?? false,

@@ -1,3 +1,4 @@
+import { CREDENTIAL_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { UpdateCredentialsSchema } from '@schemas/auth/users.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
@@ -12,10 +13,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     '/update-password',
     {
       config: {
-        rateLimit: {
-          max: 3,
-          timeWindow: '1 minute',
-        },
+        rateLimit: CREDENTIAL_RATE_LIMIT,
       },
       schema: {
         summary: 'Update user password',

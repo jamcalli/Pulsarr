@@ -1,5 +1,5 @@
 import { BookmarkCheck, Loader2, Play, Square } from 'lucide-react'
-import { useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useConfig } from '@/hooks/useConfig'
+import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { useWatchlistStatus } from '@/hooks/workflow/useWatchlistStatus'
 import {
   useStartWorkflow,
@@ -44,17 +44,21 @@ export function WatchlistStatusBadge() {
   const { mutate: stopWorkflow, isPending: isStopping } = useStopWorkflow()
 
   const isPending = isStarting || isStopping
-
-  // Change to use a default value of false when null
-  const [autoStart, setAutoStart] = useState<boolean>(false)
+  const [isTogglingAutoStart, setIsTogglingAutoStart] = useState(false)
   const autoStartId = useId()
+  const autoStart = config?._isReady ?? false
 
-  // Initialize autoStart with _isReady from config when config is loaded
-  useEffect(() => {
-    if (config && config._isReady !== undefined) {
-      setAutoStart(config._isReady)
+  const handleAutoStartChange = useCallback(async (checked: boolean) => {
+    setIsTogglingAutoStart(true)
+    try {
+      await updateConfig({ _isReady: checked })
+      toast.success(`Auto-Start ${checked ? 'enabled' : 'disabled'}`)
+    } catch {
+      toast.error(`Failed to ${checked ? 'enable' : 'disable'} Auto-Start`)
+    } finally {
+      setIsTogglingAutoStart(false)
     }
-  }, [config?._isReady])
+  }, [])
 
   // Reset current action when we reach a stable state
   useEffect(() => {
@@ -151,6 +155,7 @@ export function WatchlistStatusBadge() {
     status === 'starting' ||
     status === 'stopping' ||
     isPending ||
+    isTogglingAutoStart ||
     (status !== 'running' && !config)
 
   // Determine if we should show the loading spinner
@@ -200,8 +205,9 @@ export function WatchlistStatusBadge() {
         )}
       </Button>
 
-      {/* Only show auto-start toggle when stopped - now positioned after the button */}
+      {/* Show auto-start toggle when stopped or running so it can be changed anytime */}
       {(status === 'stopped' ||
+        status === 'running' ||
         (status === 'starting' && currentAction === 'start')) && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -210,7 +216,7 @@ export function WatchlistStatusBadge() {
                 <Switch
                   id={autoStartId}
                   checked={autoStart}
-                  onCheckedChange={setAutoStart}
+                  onCheckedChange={handleAutoStartChange}
                   disabled={isDisabled}
                 />
                 <Label

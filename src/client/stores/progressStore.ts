@@ -17,6 +17,8 @@ interface ProgressState {
   hasGivenUp: boolean
   operationSubscribers: Map<string, Set<(event: ProgressEvent) => void>>
   typeSubscribers: Map<string, Set<(event: ProgressEvent) => void>>
+  // last event per stable operationId so late-mounting consumers see current state
+  systemStatusCache: Record<string, ProgressEvent>
 
   // Actions
   initialize: () => void
@@ -41,6 +43,7 @@ export const useProgressStore = create<ProgressState>()(
     hasGivenUp: false,
     operationSubscribers: new Map(),
     typeSubscribers: new Map(),
+    systemStatusCache: {},
 
     initialize: () => {
       const state = get()
@@ -65,6 +68,15 @@ export const useProgressStore = create<ProgressState>()(
       eventSource.onmessage = (event) => {
         const data: ProgressEvent = JSON.parse(event.data)
         const state = get()
+
+        if (data.type === 'system') {
+          set((s) => ({
+            systemStatusCache: {
+              ...s.systemStatusCache,
+              [data.operationId]: data,
+            },
+          }))
+        }
 
         const operationCallbacks = state.operationSubscribers.get(
           data.operationId,
