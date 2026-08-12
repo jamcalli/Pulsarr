@@ -210,6 +210,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
+        // Config writes can change notification channel statuses
+        fastify.notifications.emitStatusEvents()
+
         const mergedConfig: z.infer<typeof ConfigFullSchema> = {
           ...savedConfig,
           enableApprise: fastify.config.enableApprise,

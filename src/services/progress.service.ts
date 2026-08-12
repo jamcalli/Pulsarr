@@ -7,6 +7,7 @@ export class ProgressService {
   private static instance: ProgressService
   private eventEmitter: EventEmitter
   private activeConnections: Set<string> = new Set()
+  private snapshotProviders: Map<string, () => ProgressEvent[]> = new Map()
   private readonly log: FastifyBaseLogger
 
   private constructor(
@@ -53,5 +54,25 @@ export class ProgressService {
 
   hasActiveConnections(): boolean {
     return this.activeConnections.size > 0
+  }
+
+  /**
+   * Registers a provider of current-state events, replayed to each client on
+   * connect so late joiners see status without waiting for a transition.
+   */
+  registerSnapshotProvider(name: string, provider: () => ProgressEvent[]) {
+    this.snapshotProviders.set(name, provider)
+  }
+
+  getSnapshots(): ProgressEvent[] {
+    const events: ProgressEvent[] = []
+    for (const [name, provider] of this.snapshotProviders) {
+      try {
+        events.push(...provider())
+      } catch (error) {
+        this.log.error({ error, provider: name }, 'Snapshot provider failed')
+      }
+    }
+    return events
   }
 }

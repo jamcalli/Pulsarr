@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import { on } from 'node:events'
+import type { ProgressEvent } from '@root/types/progress.types.js'
 import { ProgressStreamResponseSchema } from '@schemas/progress/progress.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import { sseStream } from '@utils/sse-stream.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const progressRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -45,23 +47,29 @@ const progressRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
       })
 
+      // subscribe before snapshotting so nothing emitted in between is lost
+      const live = on(progressService.getEventEmitter(), 'progress', {
+        signal: abortController.signal,
+      })[Symbol.asyncIterator]()
+
       return reply.sse(
         (async function* source() {
           try {
-            for await (const [event] of on(
-              progressService.getEventEmitter(),
-              'progress',
-              { signal: abortController.signal },
-            )) {
-              yield {
+            yield* sseStream<ProgressEvent>({
+              signal: abortController.signal,
+              replay: () => progressService.getSnapshots(),
+              next: async () => {
+                const result = await live.next()
+                return result.done
+                  ? undefined
+                  : (result.value[0] as ProgressEvent)
+              },
+              serialize: (event) => ({
                 id: event.operationId,
                 data: JSON.stringify(event),
-              }
-            }
+              }),
+            })
           } catch (error) {
-            if (error instanceof Error && error.name === 'AbortError') {
-              return
-            }
             logRouteError(fastify.log, request, error, {
               message: 'SSE stream error',
               connectionId,

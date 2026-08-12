@@ -19,33 +19,9 @@ export default fp(
       rssCheckIntervalMs,
     )
 
-    // Create wrapped versions of the startWorkflow and stop methods
-    // that will emit status events after state changes
-    const originalStartWorkflow = watchlistWorkflow.startWorkflow
-    watchlistWorkflow.startWorkflow = async function (...args) {
-      const result = await originalStartWorkflow.apply(this, args)
-      emitWatchlistWorkflowStatus(fastify)
-      return result
-    }
-
-    const originalStop = watchlistWorkflow.stop
-    watchlistWorkflow.stop = async function (...args) {
-      const result = await originalStop.apply(this, args)
-      emitWatchlistWorkflowStatus(fastify)
-      return result
-    }
-
-    emitWatchlistWorkflowStatus(fastify)
-
-    const statusInterval = setInterval(() => {
-      if (fastify.progress.hasActiveConnections()) {
-        emitWatchlistWorkflowStatus(fastify)
-      }
-    }, 1000) // 1 second
-
-    fastify.addHook('onClose', () => {
-      clearInterval(statusInterval)
-    })
+    fastify.progress.registerSnapshotProvider('watchlist-workflow', () => [
+      watchlistWorkflow.statusEvent(),
+    ])
 
     const startWorkflow = async () => {
       try {
@@ -96,38 +72,3 @@ export default fp(
     ],
   },
 )
-
-/**
- * Emits a progress event with the current watchlist workflow status.
- *
- * If there are active progress connections, the function retrieves the workflow status and determines
- * the synchronization mode—using "polling" if an RSS fallback is enabled, or "rss" otherwise. It generates
- * a unique operation ID based on the current time and emits a progress event with a status message and metadata
- * that includes the sync mode and RSS availability.
- *
- * @remarks
- * The event is only emitted when active progress connections are present on the Fastify instance.
- */
-function emitWatchlistWorkflowStatus(fastify: FastifyInstance) {
-  if (!fastify.progress.hasActiveConnections()) {
-    return
-  }
-
-  const status = fastify.watchlistWorkflow.getStatus()
-  const syncMode = fastify.watchlistWorkflow.getIsUsingRssFallback()
-    ? 'polling'
-    : 'rss'
-  const operationId = `watchlist-workflow-status-${Date.now()}`
-
-  fastify.progress.emit({
-    operationId,
-    type: 'system',
-    phase: 'info',
-    progress: 100,
-    message: `Watchlist workflow status: ${status}`,
-    metadata: {
-      syncMode,
-      rssAvailable: !fastify.watchlistWorkflow.getIsUsingRssFallback(),
-    },
-  })
-}
