@@ -98,9 +98,7 @@ export function useUpdateProfileForm({
   const hasChanges = emailChanged || usernameChanged
 
   const canSubmit =
-    hasChanges &&
-    Boolean(currentPassword.trim()) &&
-    currentPassword.trim().length >= 8
+    hasChanges && PasswordSchema.safeParse(currentPassword).success
 
   const startEditingEmail = useCallback(() => {
     setBackendError(null)
@@ -140,6 +138,8 @@ export function useUpdateProfileForm({
       const { currentPassword: password } = data
 
       try {
+        let emailUpdated = false
+
         if (emailChanged) {
           const { error } = await apiFetch.PUT('/v1/users/update-email', {
             body: { newEmail: data.email, currentPassword: password },
@@ -150,6 +150,8 @@ export function useUpdateProfileForm({
             setBackendError(apiErrorMessage(error) || 'Failed to update email.')
             return
           }
+
+          emailUpdated = true
         }
 
         if (usernameChanged) {
@@ -162,6 +164,10 @@ export function useUpdateProfileForm({
             setBackendError(
               apiErrorMessage(error) || 'Failed to update username.',
             )
+            if (emailUpdated) {
+              setEditingEmail(false)
+              toast.success('Email updated successfully')
+            }
             await queryClient.invalidateQueries({
               queryKey: currentUserKeys.me,
             })

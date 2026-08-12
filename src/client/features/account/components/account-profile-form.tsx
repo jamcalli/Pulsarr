@@ -9,6 +9,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Tooltip,
   TooltipContent,
@@ -48,6 +49,7 @@ function ReadOnlyProfileField({
             size="icon"
             onClick={onEdit}
             disabled={disabled}
+            aria-label={editTooltip}
             className="shrink-0"
           >
             <Pencil className="h-4 w-4" />
@@ -92,13 +94,13 @@ export function AccountProfileForm({
         onSubmit={form.handleSubmit(onSubmit)}
       >
         <div className="space-y-2">
-          <FormLabel>Email</FormLabel>
           {editingEmail ? (
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel>Email</FormLabel>
                   <div className="flex gap-2">
                     <FormControl>
                       <Input
@@ -123,23 +125,26 @@ export function AccountProfileForm({
               )}
             />
           ) : (
-            <ReadOnlyProfileField
-              value={currentEmail}
-              onEdit={startEditingEmail}
-              editTooltip="Click to edit email"
-              disabled={status === 'loading'}
-            />
+            <>
+              <Label>Email</Label>
+              <ReadOnlyProfileField
+                value={currentEmail}
+                onEdit={startEditingEmail}
+                editTooltip="Click to edit email"
+                disabled={status === 'loading'}
+              />
+            </>
           )}
         </div>
 
         <div className="space-y-2">
-          <FormLabel>Username</FormLabel>
           {editingUsername ? (
             <FormField
               control={form.control}
               name="username"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel>Username</FormLabel>
                   <div className="flex gap-2">
                     <FormControl>
                       <Input
@@ -164,12 +169,15 @@ export function AccountProfileForm({
               )}
             />
           ) : (
-            <ReadOnlyProfileField
-              value={currentUsername}
-              onEdit={startEditingUsername}
-              editTooltip="Click to edit username"
-              disabled={status === 'loading'}
-            />
+            <>
+              <Label>Username</Label>
+              <ReadOnlyProfileField
+                value={currentUsername}
+                onEdit={startEditingUsername}
+                editTooltip="Click to edit username"
+                disabled={status === 'loading'}
+              />
+            </>
           )}
         </div>
 
