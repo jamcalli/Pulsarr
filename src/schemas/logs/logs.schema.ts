@@ -33,7 +33,7 @@ export const LogStreamQuerySchema = z.object({
     .max(512)
     .optional()
     .describe(
-      'Optional string filter to match against log messages (max 512 chars).',
+      'Optional string filter to match against log messages (max 512 chars). Applies within the tail window of recent lines, so older matches are not backfilled and fewer than tail lines may be returned.',
     ),
 })
 

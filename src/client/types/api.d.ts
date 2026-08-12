@@ -5842,7 +5842,7 @@ export interface operations {
                 tail?: number;
                 /** @description Whether to follow the log file for new entries. Defaults to true. */
                 follow?: string;
-                /** @description Optional string filter to match against log messages (max 512 chars). */
+                /** @description Optional string filter to match against log messages (max 512 chars). Applies within the tail window of recent lines, so older matches are not backfilled and fewer than tail lines may be returned. */
                 filter?: string;
             };
             header?: never;

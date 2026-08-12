@@ -1,4 +1,8 @@
+import { randomUUID } from 'node:crypto'
+import { appendFile, mkdir } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import type { LogEntry } from '@schemas/logs/logs.schema.js'
+import { resolveLogPath } from '@utils/data-dir.js'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { build } from '../../helpers/app.js'
@@ -120,5 +124,34 @@ describe('log stream', { timeout: 30_000 }, () => {
       controller.abort()
     }
     expect(body).not.toBe('hung')
+  })
+
+  it('applies the filter within the tail window without backfilling older matches', async () => {
+    const marker = `tail-window-${randomUUID()}`
+    const pinoLine = (msg: string) =>
+      `${JSON.stringify({ level: 30, time: Date.now(), msg })}\n`
+
+    const logFile = resolve(resolveLogPath(), 'pulsarr-current.log')
+    await mkdir(resolveLogPath(), { recursive: true })
+    await appendFile(
+      logFile,
+      pinoLine(`${marker} target`) +
+        pinoLine(`${marker} filler 1`) +
+        pinoLine(`${marker} filler 2`) +
+        pinoLine(`${marker} filler 3`),
+    )
+
+    const outsideWindow = await app.logStreaming.getTailLines(
+      3,
+      `${marker} target`,
+    )
+    expect(outsideWindow).toHaveLength(0)
+
+    const insideWindow = await app.logStreaming.getTailLines(
+      4,
+      `${marker} target`,
+    )
+    expect(insideWindow).toHaveLength(1)
+    expect(insideWindow[0].message).toBe(`${marker} target`)
   })
 })
