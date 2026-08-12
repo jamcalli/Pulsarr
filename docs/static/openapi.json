@@ -25171,29 +25171,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -25203,29 +25181,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -25235,29 +25191,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -25267,29 +25211,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -25450,29 +25372,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -25482,29 +25382,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -25514,29 +25392,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -25546,29 +25412,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }

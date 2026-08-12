@@ -13088,12 +13088,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13102,12 +13097,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13116,12 +13106,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13130,12 +13124,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13238,12 +13227,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13252,12 +13236,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13266,12 +13245,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13280,12 +13263,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
