@@ -8579,9 +8579,8 @@
           },
           {
             "schema": {
-              "default": true,
               "description": "Whether to follow the log file for new entries. Defaults to true.",
-              "type": "boolean"
+              "type": "string"
             },
             "in": "query",
             "name": "follow",

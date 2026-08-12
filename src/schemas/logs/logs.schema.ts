@@ -20,8 +20,8 @@ export const LogStreamQuerySchema = z.object({
     .optional()
     .default(100)
     .describe('Number of recent log lines to send initially. Defaults to 100.'),
-  follow: z.coerce
-    .boolean()
+  follow: z
+    .stringbool()
     .optional()
     .default(true)
     .describe(

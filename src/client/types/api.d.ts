@@ -6005,7 +6005,7 @@ export interface operations {
                 /** @description Number of recent log lines to send initially. Defaults to 100. */
                 tail?: number;
                 /** @description Whether to follow the log file for new entries. Defaults to true. */
-                follow?: boolean;
+                follow?: string;
                 /** @description Optional string filter to match against log messages (max 512 chars). */
                 filter?: string;
             };
