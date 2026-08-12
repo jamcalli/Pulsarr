@@ -83,13 +83,17 @@ describe('progress stream', { timeout: 30_000 }, () => {
       Date.now() < deadline
     ) {
       let timer: NodeJS.Timeout | undefined
-      const result = await Promise.race([
-        reader.read(),
-        new Promise<'deadline'>((resolve) => {
-          timer = setTimeout(() => resolve('deadline'), deadline - Date.now())
-        }),
-      ])
-      clearTimeout(timer)
+      let result: Awaited<ReturnType<typeof reader.read>> | 'deadline'
+      try {
+        result = await Promise.race([
+          reader.read(),
+          new Promise<'deadline'>((resolve) => {
+            timer = setTimeout(() => resolve('deadline'), deadline - Date.now())
+          }),
+        ])
+      } finally {
+        clearTimeout(timer)
+      }
       if (result === 'deadline') break
       const { value, done } = result
       if (done) break

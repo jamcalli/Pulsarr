@@ -17,6 +17,12 @@ function logEntry(message: string): LogEntry {
   }
 }
 
+const logFile = resolve(resolveLogPath(), 'pulsarr-current.log')
+
+function pinoLine(msg: string): string {
+  return `${JSON.stringify({ level: 30, time: Date.now(), msg })}\n`
+}
+
 describe('log stream', { timeout: 30_000 }, () => {
   let app: FastifyInstance
   let baseUrl: string
@@ -52,13 +58,17 @@ describe('log stream', { timeout: 30_000 }, () => {
     const deadline = Date.now() + timeoutMs
     while (!predicate(buffer) && Date.now() < deadline) {
       let timer: NodeJS.Timeout | undefined
-      const result = await Promise.race([
-        reader.read(),
-        new Promise<'timeout'>((resolve) => {
-          timer = setTimeout(() => resolve('timeout'), deadline - Date.now())
-        }),
-      ])
-      clearTimeout(timer)
+      let result: Awaited<ReturnType<typeof reader.read>> | 'timeout'
+      try {
+        result = await Promise.race([
+          reader.read(),
+          new Promise<'timeout'>((resolve) => {
+            timer = setTimeout(() => resolve('timeout'), deadline - Date.now())
+          }),
+        ])
+      } finally {
+        clearTimeout(timer)
+      }
       if (result === 'timeout' || result.done) break
       buffer += decoder.decode(result.value, { stream: true })
     }
@@ -101,9 +111,13 @@ describe('log stream', { timeout: 30_000 }, () => {
   })
 
   it('ends the stream after replay when follow is false', async () => {
+    const marker = `replay-${randomUUID()}`
+    await mkdir(resolveLogPath(), { recursive: true })
+    await appendFile(logFile, pinoLine(`${marker} entry`))
+
     const controller = new AbortController()
     const response = await fetch(
-      `${baseUrl}/v1/logs/stream?tail=0&follow=false`,
+      `${baseUrl}/v1/logs/stream?tail=1&follow=false`,
       {
         signal: controller.signal,
         headers: { accept: 'text/event-stream' },
@@ -113,25 +127,26 @@ describe('log stream', { timeout: 30_000 }, () => {
 
     // stream must terminate on its own, not hang until timeout
     let hangTimer: NodeJS.Timeout | undefined
-    const body = await Promise.race([
-      response.text(),
-      new Promise<'hung'>((resolve) => {
-        hangTimer = setTimeout(() => resolve('hung'), 10_000)
-      }),
-    ])
-    clearTimeout(hangTimer)
+    let body: string
+    try {
+      body = await Promise.race([
+        response.text(),
+        new Promise<'hung'>((resolve) => {
+          hangTimer = setTimeout(() => resolve('hung'), 10_000)
+        }),
+      ])
+    } finally {
+      clearTimeout(hangTimer)
+    }
     if (body === 'hung') {
       controller.abort()
     }
     expect(body).not.toBe('hung')
+    expect(body).toContain(`${marker} entry`)
   })
 
   it('applies the filter within the tail window without backfilling older matches', async () => {
     const marker = `tail-window-${randomUUID()}`
-    const pinoLine = (msg: string) =>
-      `${JSON.stringify({ level: 30, time: Date.now(), msg })}\n`
-
-    const logFile = resolve(resolveLogPath(), 'pulsarr-current.log')
     await mkdir(resolveLogPath(), { recursive: true })
     await appendFile(
       logFile,
