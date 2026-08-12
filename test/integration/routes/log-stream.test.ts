@@ -47,12 +47,14 @@ describe('log stream', { timeout: 30_000 }, () => {
     let buffer = ''
     const deadline = Date.now() + timeoutMs
     while (!predicate(buffer) && Date.now() < deadline) {
+      let timer: NodeJS.Timeout | undefined
       const result = await Promise.race([
         reader.read(),
-        new Promise<'timeout'>((resolve) =>
-          setTimeout(() => resolve('timeout'), deadline - Date.now()),
-        ),
+        new Promise<'timeout'>((resolve) => {
+          timer = setTimeout(() => resolve('timeout'), deadline - Date.now())
+        }),
       ])
+      clearTimeout(timer)
       if (result === 'timeout' || result.done) break
       buffer += decoder.decode(result.value, { stream: true })
     }
@@ -106,12 +108,14 @@ describe('log stream', { timeout: 30_000 }, () => {
     expect(response.status).toBe(200)
 
     // stream must terminate on its own, not hang until timeout
+    let hangTimer: NodeJS.Timeout | undefined
     const body = await Promise.race([
       response.text(),
-      new Promise<'hung'>((resolve) =>
-        setTimeout(() => resolve('hung'), 10_000),
-      ),
+      new Promise<'hung'>((resolve) => {
+        hangTimer = setTimeout(() => resolve('hung'), 10_000)
+      }),
     ])
+    clearTimeout(hangTimer)
     if (body === 'hung') {
       controller.abort()
     }

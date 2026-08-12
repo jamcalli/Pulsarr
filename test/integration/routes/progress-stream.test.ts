@@ -82,7 +82,16 @@ describe('progress stream', { timeout: 30_000 }, () => {
       !STATUS_IDS.every((id) => buffer.includes(`"operationId":"${id}"`)) &&
       Date.now() < deadline
     ) {
-      const { value, done } = await reader.read()
+      let timer: NodeJS.Timeout | undefined
+      const result = await Promise.race([
+        reader.read(),
+        new Promise<'deadline'>((resolve) => {
+          timer = setTimeout(() => resolve('deadline'), deadline - Date.now())
+        }),
+      ])
+      clearTimeout(timer)
+      if (result === 'deadline') break
+      const { value, done } = result
       if (done) break
       buffer += decoder.decode(value, { stream: true })
     }
