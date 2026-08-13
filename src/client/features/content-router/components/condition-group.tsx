@@ -303,11 +303,11 @@ const ConditionGroupComponent = ({
   // Generate border color based on nesting level
   const getLevelColor = () => {
     const colors = [
-      'border-primary',
-      'border-secondary',
-      'border-accent',
+      'border-main',
+      'border-blue',
+      'border-orange',
       'border-fun',
-      'border-green',
+      'border-green-500',
     ]
     return colors[level % colors.length]
   }
@@ -316,7 +316,7 @@ const ConditionGroupComponent = ({
   const conditions = Array.isArray(value.conditions) ? value.conditions : []
 
   return (
-    <div className={`border-l-2 pl-4 border-foreground ${getLevelColor()}`}>
+    <div className={`border-l-2 pl-4 ${getLevelColor()}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-4">
           <Tooltip>

@@ -13,7 +13,6 @@ import {
   HelpCircle,
   Info,
   Loader2,
-  Pen,
   Power,
   Save,
   Trash2,
@@ -40,6 +39,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { InlineEdit } from '@/components/ui/inline-edit'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -216,8 +216,7 @@ const AccordionRouteCard = ({
   contentType,
 }: AccordionRouteCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [localTitle, setLocalTitle] = useState(route.name || '')
+  const [isTitleEditing, setIsTitleEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [evaluatorMetadata, setEvaluatorMetadata] = useState<
@@ -501,7 +500,6 @@ const AccordionRouteCard = ({
     // Only reset if route actually changed to prevent toast-induced resets
     if (shouldResetForm && !isNew) {
       form.reset(buildDefaultValues(route, instances, contentType))
-      setLocalTitle(route?.name || '')
       hasInitializedForm.current = true
     }
   }, [
@@ -520,8 +518,6 @@ const AccordionRouteCard = ({
         shouldDirty: true,
         shouldValidate: true,
       })
-      setLocalTitle(title)
-      setIsEditing(false)
     },
     [form],
   )
@@ -750,25 +746,10 @@ const AccordionRouteCard = ({
     // Reset the form to its initial values
     form.reset(buildDefaultValues(route, instances, contentType))
 
-    // Reset the local title state
-    setLocalTitle(route?.name || '')
-
     // If it's a new route, call onCancel() to remove it from the local rules array
     if (isNew) {
       onCancel()
     }
-  }
-
-  const handleTitleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (localTitle?.trim()) {
-      handleTitleChange(localTitle.trim())
-    }
-  }
-
-  const handleEscape = () => {
-    setLocalTitle(route?.name || '')
-    setIsEditing(false)
   }
 
   return (
@@ -796,82 +777,34 @@ const AccordionRouteCard = ({
           <AccordionTrigger
             className="px-6 py-4 bg-main hover:bg-main hover:no-underline"
             onClick={(e) => {
-              if (isEditing) {
+              if (isTitleEditing) {
                 e.preventDefault()
                 e.stopPropagation()
               }
             }}
             onKeyDown={(e) => {
-              if (isEditing) {
+              if (isTitleEditing) {
                 e.preventDefault()
                 e.stopPropagation()
               }
             }}
           >
             <div className="flex justify-between items-center w-full pr-2">
-              <div className="group/name inline-flex items-center gap-2 flex-1 min-w-0">
-                {isEditing ? (
-                  <form
-                    onSubmit={handleTitleSubmit}
-                    className="flex-1 w-full mr-4"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                  >
-                    <Input
-                      value={localTitle}
-                      onChange={(e) => setLocalTitle(e.target.value)}
-                      autoFocus
-                      className="w-full"
-                      disabled={isSaving}
-                      onBlur={handleTitleSubmit}
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => {
-                        // Stop propagation for any key events while editing
-                        e.stopPropagation()
-
-                        if (e.key === 'Enter') {
-                          handleTitleSubmit(e)
-                        } else if (e.key === 'Escape') {
-                          handleEscape()
-                        }
-                      }}
-                    />
-                  </form>
-                ) : (
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="truncate">{localTitle || 'Unnamed'}</span>
-                    {!isSaving && (
-                      // biome-ignore lint/a11y/useSemanticElements: We need to use span with role="button" to avoid button nesting issues
-                      <span
-                        className={cn(
-                          'inline-flex items-center justify-center whitespace-nowrap rounded-base text-sm font-base ring-offset-white transition-all gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-                          'text-main-foreground bg-main border-2 border-border',
-                          'h-8 w-8',
-                          'opacity-0 group-hover/name:opacity-100 transition-opacity shrink-0 cursor-pointer',
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setLocalTitle(localTitle)
-                          setIsEditing(true)
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setLocalTitle(localTitle)
-                            setIsEditing(true)
-                          }
-                        }}
-                        role="button"
-                        tabIndex={0}
-                        aria-label="Edit title"
-                      >
-                        <Pen className="h-4 w-4" />
-                      </span>
-                    )}
-                  </div>
-                )}
+              <div className="inline-flex items-center gap-2 flex-1 min-w-0">
+                <InlineEdit
+                  value={form.watch('name') || ''}
+                  onCommit={handleTitleChange}
+                  onEditingChange={setIsTitleEditing}
+                  disabled={isSaving}
+                />
               </div>
+
+              <Badge
+                variant="neutral"
+                className="px-2 py-0.5 h-7 text-sm ml-2 shrink-0"
+              >
+                Priority {form.watch('order')}
+              </Badge>
 
               <Badge
                 variant="neutral"
@@ -1013,17 +946,7 @@ const AccordionRouteCard = ({
                             </Tooltip>
                           </div>
                           <FormControl>
-                            <div className="border-2 rounded-md p-4 bg-card/50 border-foreground relative">
-                              {loading && (
-                                <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-md">
-                                  <div className="text-center space-y-2">
-                                    <div className="animate-spin h-6 w-6 border-2 border-primary rounded-full border-t-transparent mx-auto" />
-                                    <p className="text-sm">
-                                      Loading condition options...
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
+                            <div className="border-2 rounded-base p-4 border-foreground">
                               {error && (
                                 <Alert variant="error" className="mb-4">
                                   <AlertCircle className="h-4 w-4" />
@@ -1085,7 +1008,7 @@ const AccordionRouteCard = ({
                   </div>
 
                   {/* Actions Section - Approval Behavior */}
-                  <div className="space-y-4 border-2 rounded-md p-4 bg-card/30 border-foreground">
+                  <div className="space-y-4 border-2 rounded-base p-4 border-foreground">
                     <div className="flex items-center space-x-2">
                       <h3 className="text-sm font-medium text-foreground">
                         Actions
