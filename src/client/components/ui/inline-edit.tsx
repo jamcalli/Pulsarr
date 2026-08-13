@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 interface InlineEditProps {
   value: string
   onCommit: (value: string) => void
+  editing?: boolean
   onEditingChange?: (editing: boolean) => void
   disabled?: boolean
   placeholder?: string
@@ -19,16 +20,22 @@ interface InlineEditProps {
 /**
  * Inline pencil-to-input editor for titles. Shows the value with a
  * hover-revealed edit button; editing commits the trimmed value on blur or
- * Enter and reverts on Escape. Empty values never commit.
+ * Enter and reverts on Escape. Empty or unchanged drafts close the editor
+ * without committing.
+ *
+ * Editing state is internal by default; pass `editing` to control it from
+ * the parent - required when the container swaps elements between display
+ * and edit modes (e.g. out of an accordion trigger), which remounts this
+ * component.
  *
  * All pointer and key events stop propagation so the editor can sit inside
- * interactive containers (e.g. accordion triggers) without toggling them,
- * and the edit control is a span with role="button" to stay valid HTML when
- * the container itself is a button.
+ * interactive containers without toggling them, and the edit control is a
+ * span with role="button" to stay valid HTML when the container is a button.
  */
 export function InlineEdit({
   value,
   onCommit,
+  editing: controlledEditing,
   onEditingChange,
   disabled = false,
   placeholder = 'Unnamed',
@@ -36,11 +43,15 @@ export function InlineEdit({
   className,
   inputClassName,
 }: InlineEditProps) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState('')
+  const [internalEditing, setInternalEditing] = useState(false)
+  const editing = controlledEditing ?? internalEditing
+  // seed from value so a controlled remount mid-edit keeps the draft
+  const [draft, setDraft] = useState(() => (controlledEditing ? value : ''))
 
   const setEditingState = (next: boolean) => {
-    setEditing(next)
+    if (controlledEditing === undefined) {
+      setInternalEditing(next)
+    }
     onEditingChange?.(next)
   }
 
@@ -54,10 +65,14 @@ export function InlineEdit({
     e.preventDefault()
     e.stopPropagation()
     const trimmed = draft.trim()
-    if (trimmed) {
-      onCommit(trimmed)
-      setEditingState(false)
+    if (!trimmed) {
+      cancel()
+      return
     }
+    if (trimmed !== value) {
+      onCommit(trimmed)
+    }
+    setEditingState(false)
   }
 
   const cancel = () => {

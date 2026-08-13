@@ -405,11 +405,8 @@ const AccordionContentRouterSection = ({
         })
 
         setDeleteConfirmationRuleId(null)
-        toast.success('Route removed successfully')
-      } catch (error) {
-        toast.error(
-          `Failed to remove route: ${apiErrorMessage(error) ?? 'Unknown error'}`,
-        )
+      } catch {
+        // deleteRule handles success and failure toasts
       } finally {
         setIsDeleting(false)
       }

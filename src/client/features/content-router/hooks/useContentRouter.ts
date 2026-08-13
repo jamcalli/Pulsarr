@@ -47,8 +47,11 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
 
   useEffect(() => {
     if (queryError) {
+      // stable id so focus/reconnect refetches of the same unresolved
+      // failure replace the toast instead of stacking duplicates
       toast.error(
         `Failed to fetch ${targetType} routing rules: ${apiErrorMessage(queryError) ?? 'Unknown error'}`,
+        { id: `content-router-rules-error-${targetType}` },
       )
     }
   }, [queryError, targetType])

@@ -752,6 +752,39 @@ const AccordionRouteCard = ({
     }
   }
 
+  const routeHeader = (
+    <div className="flex justify-between items-center w-full pr-2">
+      <div className="inline-flex items-center gap-2 flex-1 min-w-0">
+        <InlineEdit
+          value={form.watch('name') || ''}
+          onCommit={handleTitleChange}
+          editing={isTitleEditing}
+          onEditingChange={setIsTitleEditing}
+          disabled={isSaving}
+        />
+      </div>
+
+      <Badge
+        variant="neutral"
+        className="px-2 py-0.5 h-7 text-sm ml-2 shrink-0"
+      >
+        Priority {form.watch('order')}
+      </Badge>
+
+      <Badge
+        variant="neutral"
+        className={cn(
+          'px-2 py-0.5 h-7 text-sm ml-2 mr-2',
+          form.watch('enabled')
+            ? 'bg-green-500 hover:bg-green-500 text-white'
+            : 'bg-red-500 hover:bg-red-500 text-white',
+        )}
+      >
+        {form.watch('enabled') ? 'Enabled' : 'Disabled'}
+      </Badge>
+    </div>
+  )
+
   return (
     <div className="relative" ref={cardRef}>
       {(isDirty || isNew) && (
@@ -774,51 +807,22 @@ const AccordionRouteCard = ({
           value="route"
           className="border-2 border-border rounded-base overflow-hidden"
         >
-          <AccordionTrigger
-            className="px-6 py-4 bg-main hover:bg-main hover:no-underline"
-            onClick={(e) => {
-              if (isTitleEditing) {
-                e.preventDefault()
-                e.stopPropagation()
-              }
-            }}
-            onKeyDown={(e) => {
-              if (isTitleEditing) {
-                e.preventDefault()
-                e.stopPropagation()
-              }
-            }}
-          >
-            <div className="flex justify-between items-center w-full pr-2">
-              <div className="inline-flex items-center gap-2 flex-1 min-w-0">
-                <InlineEdit
-                  value={form.watch('name') || ''}
-                  onCommit={handleTitleChange}
-                  onEditingChange={setIsTitleEditing}
-                  disabled={isSaving}
-                />
-              </div>
-
-              <Badge
-                variant="neutral"
-                className="px-2 py-0.5 h-7 text-sm ml-2 shrink-0"
-              >
-                Priority {form.watch('order')}
-              </Badge>
-
-              <Badge
-                variant="neutral"
-                className={cn(
-                  'px-2 py-0.5 h-7 text-sm ml-2 mr-2',
-                  form.watch('enabled')
-                    ? 'bg-green-500 hover:bg-green-500 text-white'
-                    : 'bg-red-500 hover:bg-red-500 text-white',
-                )}
-              >
-                {form.watch('enabled') ? 'Enabled' : 'Disabled'}
-              </Badge>
+          {/* While editing, render a plain row instead of the trigger so the
+              input never nests inside the trigger's native button */}
+          {isTitleEditing ? (
+            <div
+              className={cn(
+                'flex items-center px-6 py-4 bg-main text-left text-base text-main-foreground font-heading',
+                accordionValue && 'rounded-b-none border-b-2 border-border',
+              )}
+            >
+              {routeHeader}
             </div>
-          </AccordionTrigger>
+          ) : (
+            <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
+              {routeHeader}
+            </AccordionTrigger>
+          )}
           <AccordionContent className="p-0">
             <Form {...form}>
               <form

@@ -15,6 +15,7 @@
   --color-overlay: var(--overlay);
   --color-background: var(--bg);
   --color-secondary-background: var(--bw);
+  --color-surface: var(--surface);
   --color-blank: var(--blank);
   --color-foreground: var(--text);
   --color-main-foreground: var(--mtext);
@@ -150,6 +151,7 @@
 
   --bg: #dfe5f2;
   --bw: #e4dfda;
+  --surface: #cdc9c4;
   --blank: #000;
   --border: #000;
   --text: #000;
@@ -190,6 +192,7 @@
 .dark {
   --bg: #272933;
   --bw: #212121;
+  --surface: #2b2b2b;
   --blank: #e4dfda;
   --border: #000;
   --text: #e6e6e6;
