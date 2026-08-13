@@ -1739,6 +1739,20 @@
         "additionalProperties": false,
         "description": "Field and operator metadata an evaluator contributes to the rule builder"
       },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Human-readable result message"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": false,
+        "description": "Standard success message response"
+      },
       "RouterCondition": {
         "type": "object",
         "properties": {
@@ -2301,6 +2315,68 @@
         ],
         "additionalProperties": false,
         "description": "Tag format migration status per Radarr/Sonarr instance"
+      },
+      "UpdateCredentialsPayload": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Current password for verification"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "description": "New password to set"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "description": "Change the current admin password"
+      },
+      "UpdateEmailPayload": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Current password for verification"
+          },
+          "newEmail": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+            "description": "New email address to set"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newEmail"
+        ],
+        "description": "Change the current admin email address"
+      },
+      "UpdateUsernamePayload": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Current password for verification"
+          },
+          "newUsername": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 255,
+            "description": "New username to set"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newUsername"
+        ],
+        "description": "Change the current admin username"
       }
     }
   },
@@ -25126,25 +25202,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "currentPassword": {
-                    "type": "string",
-                    "minLength": 8
-                  },
-                  "newEmail": {
-                    "type": "string",
-                    "format": "email",
-                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
-                  }
-                },
-                "required": [
-                  "currentPassword",
-                  "newEmail"
-                ]
+                "$ref": "#/components/schemas/UpdateEmailPayload"
               }
             }
-          }
+          },
+          "description": "Change the current admin email address"
         },
         "responses": {
           "200": {
@@ -25152,16 +25214,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/Message"
                 }
               }
             }
@@ -25232,24 +25285,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "currentPassword": {
-                    "type": "string",
-                    "minLength": 8
-                  },
-                  "newPassword": {
-                    "type": "string",
-                    "minLength": 8
-                  }
-                },
-                "required": [
-                  "currentPassword",
-                  "newPassword"
-                ]
+                "$ref": "#/components/schemas/UpdateCredentialsPayload"
               }
             }
-          }
+          },
+          "description": "Change the current admin password"
         },
         "responses": {
           "200": {
@@ -25257,16 +25297,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/Message"
                 }
               }
             }
@@ -25327,25 +25358,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "currentPassword": {
-                    "type": "string",
-                    "minLength": 8
-                  },
-                  "newUsername": {
-                    "type": "string",
-                    "minLength": 3,
-                    "maxLength": 255
-                  }
-                },
-                "required": [
-                  "currentPassword",
-                  "newUsername"
-                ]
+                "$ref": "#/components/schemas/UpdateUsernamePayload"
               }
             }
-          }
+          },
+          "description": "Change the current admin username"
         },
         "responses": {
           "200": {
@@ -25353,16 +25370,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/Message"
                 }
               }
             }

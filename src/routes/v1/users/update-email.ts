@@ -1,21 +1,15 @@
+import { CREDENTIAL_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { MessageResponseSchema } from '@root/schemas/common/message.schema.js'
 import { UpdateEmailSchema } from '@schemas/auth/users.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
-import { z } from 'zod'
-
-const responseSchema = z.object({
-  message: z.string(),
-})
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.put(
     '/update-email',
     {
       config: {
-        rateLimit: {
-          max: 3,
-          timeWindow: '1 minute',
-        },
+        rateLimit: CREDENTIAL_RATE_LIMIT,
       },
       schema: {
         summary: 'Update user email',
@@ -24,7 +18,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           'Change the current user email by providing current password and new email',
         body: UpdateEmailSchema,
         response: {
-          200: responseSchema,
+          200: MessageResponseSchema,
           400: ErrorSchema,
           401: ErrorSchema,
           409: ErrorSchema,

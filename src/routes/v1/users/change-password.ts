@@ -1,12 +1,8 @@
 import { CREDENTIAL_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { MessageResponseSchema } from '@root/schemas/common/message.schema.js'
 import { UpdateCredentialsSchema } from '@schemas/auth/users.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
-import { z } from 'zod'
-
-const responseSchema = z.object({
-  message: z.string(),
-})
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.put(
@@ -22,7 +18,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           'Change the current user password by providing current and new password',
         body: UpdateCredentialsSchema,
         response: {
-          200: responseSchema,
+          200: MessageResponseSchema,
           400: ErrorSchema,
           401: ErrorSchema,
           500: ErrorSchema,

@@ -3426,6 +3426,11 @@ export interface components {
             /** @enum {string} */
             contentType?: "radarr" | "sonarr" | "both";
         };
+        /** @description Standard success message response */
+        Message: {
+            /** @description Human-readable result message */
+            message: string;
+        };
         /** @description A single field comparison in a router rule */
         RouterCondition: {
             field: string;
@@ -3558,6 +3563,30 @@ export interface components {
             sonarr: {
                 [key: string]: components["schemas"]["TagMigrationEntryOutput"];
             };
+        };
+        /** @description Change the current admin password */
+        UpdateCredentialsPayload: {
+            /** @description Current password for verification */
+            currentPassword: string;
+            /** @description New password to set */
+            newPassword: string;
+        };
+        /** @description Change the current admin email address */
+        UpdateEmailPayload: {
+            /** @description Current password for verification */
+            currentPassword: string;
+            /**
+             * Format: email
+             * @description New email address to set
+             */
+            newEmail: string;
+        };
+        /** @description Change the current admin username */
+        UpdateUsernamePayload: {
+            /** @description Current password for verification */
+            currentPassword: string;
+            /** @description New username to set */
+            newUsername: string;
         };
     };
     responses: never;
@@ -13061,13 +13090,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Change the current admin email address */
         requestBody: {
             content: {
-                "application/json": {
-                    currentPassword: string;
-                    /** Format: email */
-                    newEmail: string;
-                };
+                "application/json": components["schemas"]["UpdateEmailPayload"];
             };
         };
         responses: {
@@ -13077,9 +13103,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Message"];
                 };
             };
             /** @description Default Response */
@@ -13136,12 +13160,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Change the current admin password */
         requestBody: {
             content: {
-                "application/json": {
-                    currentPassword: string;
-                    newPassword: string;
-                };
+                "application/json": components["schemas"]["UpdateCredentialsPayload"];
             };
         };
         responses: {
@@ -13151,9 +13173,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Message"];
                 };
             };
             /** @description Default Response */
@@ -13201,12 +13221,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Change the current admin username */
         requestBody: {
             content: {
-                "application/json": {
-                    currentPassword: string;
-                    newUsername: string;
-                };
+                "application/json": components["schemas"]["UpdateUsernamePayload"];
             };
         };
         responses: {
@@ -13216,9 +13234,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Message"];
                 };
             };
             /** @description Default Response */
