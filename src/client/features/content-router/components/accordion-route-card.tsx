@@ -39,7 +39,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { InlineEdit } from '@/components/ui/inline-edit'
+import { InlineEdit, InlineEditButton } from '@/components/ui/inline-edit'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -752,18 +752,8 @@ const AccordionRouteCard = ({
     }
   }
 
-  const routeHeader = (
-    <div className="flex justify-between items-center w-full pr-2">
-      <div className="inline-flex items-center gap-2 flex-1 min-w-0">
-        <InlineEdit
-          value={form.watch('name') || ''}
-          onCommit={handleTitleChange}
-          editing={isTitleEditing}
-          onEditingChange={setIsTitleEditing}
-          disabled={isSaving}
-        />
-      </div>
-
+  const routeBadges = (
+    <>
       <Badge
         variant="neutral"
         className="px-2 py-0.5 h-7 text-sm ml-2 shrink-0"
@@ -776,13 +766,13 @@ const AccordionRouteCard = ({
         className={cn(
           'px-2 py-0.5 h-7 text-sm ml-2 mr-2',
           form.watch('enabled')
-            ? 'bg-green-500 hover:bg-green-500 text-white'
-            : 'bg-red-500 hover:bg-red-500 text-white',
+            ? 'bg-green-500 hover:bg-green-500 text-black'
+            : 'bg-red-500 hover:bg-red-500 text-black',
         )}
       >
         {form.watch('enabled') ? 'Enabled' : 'Disabled'}
       </Badge>
-    </div>
+    </>
   )
 
   return (
@@ -807,22 +797,48 @@ const AccordionRouteCard = ({
           value="route"
           className="border-2 border-border rounded-base overflow-hidden"
         >
-          {/* While editing, render a plain row instead of the trigger so the
-              input never nests inside the trigger's native button */}
-          {isTitleEditing ? (
-            <div
-              className={cn(
-                'flex items-center px-6 py-4 bg-main text-left text-base text-main-foreground font-heading',
-                accordionValue && 'rounded-b-none border-b-2 border-border',
-              )}
-            >
-              {routeHeader}
-            </div>
-          ) : (
-            <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
-              {routeHeader}
-            </AccordionTrigger>
-          )}
+          {/* interactive controls must be siblings of the triggers, never inside their native buttons */}
+          <div
+            className={cn(
+              'group/route-header flex items-center bg-main pr-4 [&>h3]:min-w-0',
+              accordionValue && 'rounded-b-none border-b-2 border-border',
+            )}
+          >
+            {isTitleEditing ? (
+              <div className="flex items-center flex-1 min-w-0 px-6 py-4 text-base text-main-foreground font-heading">
+                <InlineEdit
+                  value={form.watch('name') || ''}
+                  onCommit={handleTitleChange}
+                  editing={isTitleEditing}
+                  onEditingChange={setIsTitleEditing}
+                  disabled={isSaving}
+                />
+                {routeBadges}
+              </div>
+            ) : (
+              <>
+                <AccordionTrigger className="bg-transparent pl-6 pr-0 py-4 hover:no-underline data-[state=open]:border-b-0 [&>svg]:hidden">
+                  <span className="truncate">
+                    {form.watch('name') || 'Unnamed'}
+                  </span>
+                </AccordionTrigger>
+                {!isSaving && (
+                  <InlineEditButton
+                    onClick={() => setIsTitleEditing(true)}
+                    className="ml-2 group-hover/route-header:opacity-100"
+                  />
+                )}
+                <div className="flex-1" />
+                <div className="flex items-center text-base text-main-foreground">
+                  {routeBadges}
+                </div>
+                <AccordionTrigger
+                  aria-label="Toggle route details"
+                  className="flex-none bg-transparent px-2 py-4 hover:no-underline data-[state=open]:border-b-0"
+                />
+              </>
+            )}
+          </div>
           <AccordionContent className="p-0">
             <Form {...form}>
               <form
