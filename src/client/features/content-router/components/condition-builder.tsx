@@ -266,7 +266,7 @@ const ConditionBuilder = ({
 
   if (isLoading) {
     return (
-      <Card className="p-4 space-y-2">
+      <Card className="p-4 space-y-2 bg-surface text-foreground">
         <div className="flex justify-between">
           <Skeleton className="h-10 w-[30%]" />
           <Skeleton className="h-10 w-[30%]" />
@@ -277,7 +277,7 @@ const ConditionBuilder = ({
   }
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card className="p-4 space-y-4 bg-surface text-foreground">
       <div className="flex items-center space-x-2 mb-2">
         <Tooltip>
           <TooltipTrigger asChild>

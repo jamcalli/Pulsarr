@@ -5,19 +5,18 @@ import type {
 } from '@root/schemas/content-router/content-router.schema'
 import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import AccordionRouteCard from '@/features/content-router/components/accordion-route-card'
 import AccordionRouteCardSkeleton from '@/features/content-router/components/accordion-route-card-skeleton'
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
+import { useContentRouter } from '@/features/content-router/hooks/useContentRouter'
 import {
   isCondition,
   isConditionGroup,
 } from '@/features/content-router/types/route-types'
 import { generateUUID } from '@/features/content-router/utils/utils'
-import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapter'
-import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
 import { apiErrorMessage } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
 
@@ -215,21 +214,8 @@ const AccordionContentRouterSection = ({
   genres,
   onGenreDropdownOpen,
 }: AccordionContentRouterSectionProps) => {
-  // Use the appropriate adapter based on targetType
-  const radarrContentRouter = useRadarrContentRouterAdapter()
-  const sonarrContentRouter = useSonarrContentRouterAdapter()
-  const contentRouter =
-    targetType === 'radarr' ? radarrContentRouter : sonarrContentRouter
-
-  const {
-    rules,
-    isLoading,
-    createRule,
-    updateRule,
-    deleteRule,
-    fetchRules,
-    toggleRule,
-  } = contentRouter
+  const { rules, isLoading, createRule, updateRule, deleteRule, toggleRule } =
+    useContentRouter({ targetType })
 
   // Local state to manage UI behavior
   const [localRules, setLocalRules] = useState<TempRule[]>([])
@@ -237,7 +223,7 @@ const AccordionContentRouterSection = ({
   const [deleteConfirmationRuleId, setDeleteConfirmationRuleId] = useState<
     number | null
   >(null)
-  const isMounted = useRef(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const [editedFormValues, setEditedFormValues] = useState<{
     [key: string]: RouterRulePayload
@@ -247,18 +233,6 @@ const AccordionContentRouterSection = ({
     () => Array.from({ length: rules.length || 2 }).map(() => generateUUID()),
     [rules.length],
   )
-
-  // Fetch rules on initial mount
-  useEffect(() => {
-    if (!isMounted.current) {
-      isMounted.current = true
-
-      fetchRules().catch((error) => {
-        console.error(`Failed to fetch ${targetType} routing rules:`, error)
-        toast.error(`Failed to load ${targetType} routing rules.`)
-      })
-    }
-  }, [fetchRules, targetType])
 
   const addRoute = () => {
     // Create a new empty conditional route
@@ -419,6 +393,7 @@ const AccordionContentRouterSection = ({
 
   const handleRemoveRule = useCallback(async () => {
     if (deleteConfirmationRuleId) {
+      setIsDeleting(true)
       try {
         await deleteRule(deleteConfirmationRuleId)
 
@@ -430,11 +405,10 @@ const AccordionContentRouterSection = ({
         })
 
         setDeleteConfirmationRuleId(null)
-        toast.success('Route removed successfully')
-      } catch (error) {
-        toast.error(
-          `Failed to remove route: ${apiErrorMessage(error) ?? 'Unknown error'}`,
-        )
+      } catch {
+        // deleteRule handles success and failure toasts
+      } finally {
+        setIsDeleting(false)
       }
     }
   }, [deleteConfirmationRuleId, deleteRule])
@@ -542,11 +516,8 @@ const AccordionContentRouterSection = ({
 
   return (
     <div className="grid gap-6">
-      {isLoading &&
-      rules.length === 0 &&
-      !localRules.length ? // Initially loading state
-      null : isLoading && hasExistingRoutes ? (
-        // Loading with existing rules - show skeletons
+      {isLoading ? (
+        // Initial load - show skeletons (cached navigations skip this entirely)
         <div className="grid gap-6">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-foreground">
@@ -611,18 +582,6 @@ const AccordionContentRouterSection = ({
 
             {/* Local rules */}
             {localRules.map((rule) => renderRouteCard(rule, true))}
-
-            {/* Loading skeleton */}
-            {isLoading &&
-              Object.keys(savingRules).some(
-                (key) => !key.startsWith('temp-'),
-              ) &&
-              rules.length === 0 &&
-              localRules.length === 0 && (
-                <div className="opacity-40 pointer-events-none">
-                  <AccordionRouteCardSkeleton />
-                </div>
-              )}
           </div>
         </>
       )}
@@ -636,7 +595,7 @@ const AccordionContentRouterSection = ({
           rules.find((r) => r.id === deleteConfirmationRuleId)?.name || ''
         }
         routeType="content route"
-        isDeleting={isLoading}
+        isDeleting={isDeleting}
       />
     </div>
   )
