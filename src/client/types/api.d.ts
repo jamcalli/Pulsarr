@@ -3463,6 +3463,12 @@ export interface components {
             created_at: string;
             updated_at: string;
         };
+        /** @description Response carrying a list of router rules */
+        RouterRuleListResponse: {
+            success: boolean;
+            message: string;
+            rules: components["schemas"]["RouterRule"][];
+        };
         /** @description Full router rule payload used to create or replace a rule */
         RouterRulePayload: {
             name: string;
@@ -3486,6 +3492,12 @@ export interface components {
             bypass_user_quotas?: boolean;
             approval_reason?: string;
             exclude_from_routing?: boolean;
+        };
+        /** @description Response carrying a single router rule */
+        RouterRuleResponse: {
+            success: boolean;
+            message: string;
+            rule: components["schemas"]["RouterRule"];
         };
         /** @description Tag format migration status per Radarr/Sonarr instance */
         TagMigration: {
@@ -5205,11 +5217,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rules: components["schemas"]["RouterRule"][];
-                    };
+                    "application/json": components["schemas"]["RouterRuleListResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -5252,11 +5260,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rule: components["schemas"]["RouterRule"];
-                    };
+                    "application/json": components["schemas"]["RouterRuleResponse"];
                 };
             };
             /** @description Default Response */
@@ -5306,11 +5310,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rules: components["schemas"]["RouterRule"][];
-                    };
+                    "application/json": components["schemas"]["RouterRuleListResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -5350,11 +5350,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rules: components["schemas"]["RouterRule"][];
-                    };
+                    "application/json": components["schemas"]["RouterRuleListResponse"];
                 };
             };
             /** @description Default Response */
@@ -5405,11 +5401,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rules: components["schemas"]["RouterRule"][];
-                    };
+                    "application/json": components["schemas"]["RouterRuleListResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -5449,11 +5441,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rule: components["schemas"]["RouterRule"];
-                    };
+                    "application/json": components["schemas"]["RouterRuleResponse"];
                 };
             };
             /** @description Default Response */
@@ -5507,11 +5495,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rule: components["schemas"]["RouterRule"];
-                    };
+                    "application/json": components["schemas"]["RouterRuleResponse"];
                 };
             };
             /** @description Default Response */

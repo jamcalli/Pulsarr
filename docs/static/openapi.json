@@ -2071,6 +2071,30 @@
         "additionalProperties": false,
         "description": "A stored content router rule"
       },
+      "RouterRuleListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouterRule"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "rules"
+        ],
+        "additionalProperties": false,
+        "description": "Response carrying a list of router rules"
+      },
       "RouterRulePayload": {
         "type": "object",
         "properties": {
@@ -2203,6 +2227,27 @@
           "target_instance_id"
         ],
         "description": "Full router rule payload used to create or replace a rule"
+      },
+      "RouterRuleResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/RouterRule"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "rule"
+        ],
+        "additionalProperties": false,
+        "description": "Response carrying a single router rule"
       },
       "TagMigration": {
         "type": "object",
@@ -6828,27 +6873,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "rules": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/RouterRule"
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "rules"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RouterRuleListResponse"
                 }
               }
             }
@@ -6899,24 +6924,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "rule": {
-                      "$ref": "#/components/schemas/RouterRule"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "rule"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RouterRuleResponse"
                 }
               }
             }
@@ -6990,27 +6998,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "rules": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/RouterRule"
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "rules"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RouterRuleListResponse"
                 }
               }
             }
@@ -7066,27 +7054,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "rules": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/RouterRule"
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "rules"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RouterRuleListResponse"
                 }
               }
             }
@@ -7155,27 +7123,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "rules": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/RouterRule"
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "rules"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RouterRuleListResponse"
                 }
               }
             }
@@ -7227,24 +7175,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "rule": {
-                      "$ref": "#/components/schemas/RouterRule"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "rule"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RouterRuleResponse"
                 }
               }
             }
@@ -7315,24 +7246,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "rule": {
-                      "$ref": "#/components/schemas/RouterRule"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "rule"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RouterRuleResponse"
                 }
               }
             }

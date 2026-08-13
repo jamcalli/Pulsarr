@@ -381,17 +381,27 @@ export const RouterRuleSchema = BaseRouterRuleSchema.extend({
   description: 'A stored content router rule',
 })
 
-export const ContentRouterRuleResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  rule: RouterRuleSchema,
-})
+export const ContentRouterRuleResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    rule: RouterRuleSchema,
+  })
+  .meta({
+    id: 'RouterRuleResponse',
+    description: 'Response carrying a single router rule',
+  })
 
-export const ContentRouterRuleListResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  rules: z.array(RouterRuleSchema),
-})
+export const ContentRouterRuleListResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    rules: z.array(RouterRuleSchema),
+  })
+  .meta({
+    id: 'RouterRuleListResponse',
+    description: 'Response carrying a list of router rules',
+  })
 
 export const ContentRouterRuleSuccessSchema = z.object({
   success: z.boolean(),
