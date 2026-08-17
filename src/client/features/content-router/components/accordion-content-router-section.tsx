@@ -2,25 +2,26 @@ import type {
   ComparisonOperator,
   Condition,
   ConditionGroup,
-  ContentRouterRule,
-  ContentRouterRuleUpdate,
 } from '@root/schemas/content-router/content-router.schema'
 import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import AccordionRouteCard from '@/features/content-router/components/accordion-route-card'
 import AccordionRouteCardSkeleton from '@/features/content-router/components/accordion-route-card-skeleton'
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
+import { useContentRouter } from '@/features/content-router/hooks/useContentRouter'
 import {
   isCondition,
   isConditionGroup,
 } from '@/features/content-router/types/route-types'
 import { generateUUID } from '@/features/content-router/utils/utils'
-import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapter'
-import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
 import { apiErrorMessage } from '@/lib/tanstackApi'
+import type { components } from '@/types/api.js'
+
+type RouterRule = components['schemas']['RouterRule']
+type RouterRulePayload = components['schemas']['RouterRulePayload']
 
 // Define possible value types for criteria
 type CriteriaValue =
@@ -44,15 +45,15 @@ interface Criteria {
   [key: string]: CriteriaValue | undefined
 }
 
-// Extended ContentRouterRule to include condition and type
-interface ExtendedContentRouterRule extends ContentRouterRule {
+// Extended RouterRule to include condition and type
+interface ExtendedRouterRule extends RouterRule {
   type?: string
   criteria?: Criteria
 }
 
 // More specific type for temporary rules
 interface TempRule
-  extends Partial<Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>> {
+  extends Partial<Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>> {
   tempId: string
   name: string
   type?: string
@@ -99,11 +100,11 @@ const createConditionGroupFromCondition = (
 
 // Move the conversion function outside the component
 const convertToStandardCondition = (
-  rule: ContentRouterRule | TempRule,
-): ExtendedContentRouterRule => {
+  rule: RouterRule | TempRule,
+): ExtendedRouterRule => {
   // Create a new object to avoid mutating the input
-  const ruleWithCondition = { ...rule } as ExtendedContentRouterRule
-  const extendedRule = rule as ExtendedContentRouterRule
+  const ruleWithCondition = { ...rule } as ExtendedRouterRule
+  const extendedRule = rule as ExtendedRouterRule
 
   if (extendedRule.condition) {
     if (isCondition(extendedRule.condition)) {
@@ -213,21 +214,8 @@ const AccordionContentRouterSection = ({
   genres,
   onGenreDropdownOpen,
 }: AccordionContentRouterSectionProps) => {
-  // Use the appropriate adapter based on targetType
-  const radarrContentRouter = useRadarrContentRouterAdapter()
-  const sonarrContentRouter = useSonarrContentRouterAdapter()
-  const contentRouter =
-    targetType === 'radarr' ? radarrContentRouter : sonarrContentRouter
-
-  const {
-    rules,
-    isLoading,
-    createRule,
-    updateRule,
-    deleteRule,
-    fetchRules,
-    toggleRule,
-  } = contentRouter
+  const { rules, isLoading, createRule, updateRule, deleteRule, toggleRule } =
+    useContentRouter({ targetType })
 
   // Local state to manage UI behavior
   const [localRules, setLocalRules] = useState<TempRule[]>([])
@@ -235,28 +223,16 @@ const AccordionContentRouterSection = ({
   const [deleteConfirmationRuleId, setDeleteConfirmationRuleId] = useState<
     number | null
   >(null)
-  const isMounted = useRef(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const [editedFormValues, setEditedFormValues] = useState<{
-    [key: string]: ContentRouterRuleUpdate
+    [key: string]: RouterRulePayload
   }>({})
 
   const skeletonIds = useMemo(
     () => Array.from({ length: rules.length || 2 }).map(() => generateUUID()),
     [rules.length],
   )
-
-  // Fetch rules on initial mount
-  useEffect(() => {
-    if (!isMounted.current) {
-      isMounted.current = true
-
-      fetchRules().catch((error) => {
-        console.error(`Failed to fetch ${targetType} routing rules:`, error)
-        toast.error(`Failed to load ${targetType} routing rules.`)
-      })
-    }
-  }, [fetchRules, targetType])
 
   const addRoute = () => {
     // Create a new empty conditional route
@@ -300,27 +276,21 @@ const AccordionContentRouterSection = ({
   )
 
   // Store form values before updating
-  const storeFormValues = useCallback(
-    (id: string, data: ContentRouterRuleUpdate) => {
-      setEditedFormValues((prev) => ({
-        ...prev,
-        [id]: data,
-      }))
-    },
-    [],
-  )
+  const storeFormValues = useCallback((id: string, data: RouterRulePayload) => {
+    setEditedFormValues((prev) => ({
+      ...prev,
+      [id]: data,
+    }))
+  }, [])
 
   const handleSaveNewRule = useCallback(
-    async (
-      tempId: string,
-      data: Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>,
-    ) => {
+    async (tempId: string, data: RouterRulePayload) => {
       // Only set loading state for this specific operation
       setSavingRules((prev) => ({ ...prev, [tempId]: true }))
 
       try {
         // Store current form values
-        storeFormValues(tempId, data as ContentRouterRuleUpdate)
+        storeFormValues(tempId, data)
 
         // Convert quality_profile to the expected format
         const modifiedData = {
@@ -368,7 +338,7 @@ const AccordionContentRouterSection = ({
   )
 
   const handleUpdateRule = useCallback(
-    async (id: number, data: ContentRouterRuleUpdate) => {
+    async (id: number, data: RouterRulePayload) => {
       // Only set loading state for this specific rule update
       setSavingRules((prev) => ({ ...prev, [id]: true }))
 
@@ -423,6 +393,7 @@ const AccordionContentRouterSection = ({
 
   const handleRemoveRule = useCallback(async () => {
     if (deleteConfirmationRuleId) {
+      setIsDeleting(true)
       try {
         await deleteRule(deleteConfirmationRuleId)
 
@@ -434,11 +405,10 @@ const AccordionContentRouterSection = ({
         })
 
         setDeleteConfirmationRuleId(null)
-        toast.success('Route removed successfully')
-      } catch (error) {
-        toast.error(
-          `Failed to remove route: ${apiErrorMessage(error) ?? 'Unknown error'}`,
-        )
+      } catch {
+        // deleteRule handles success and failure toasts
+      } finally {
+        setIsDeleting(false)
       }
     }
   }, [deleteConfirmationRuleId, deleteRule])
@@ -463,10 +433,8 @@ const AccordionContentRouterSection = ({
   )
 
   const renderRouteCard = useCallback(
-    (rule: ContentRouterRule | TempRule, isNew = false) => {
-      const ruleId = isNew
-        ? (rule as TempRule).tempId
-        : (rule as ContentRouterRule).id
+    (rule: RouterRule | TempRule, isNew = false) => {
+      const ruleId = isNew ? (rule as TempRule).tempId : (rule as RouterRule).id
 
       const isToggling = false
 
@@ -474,7 +442,7 @@ const AccordionContentRouterSection = ({
       const ruleIndex = preparedRules.findIndex((r) =>
         isNew
           ? 'tempId' in r && r.tempId === (rule as TempRule).tempId
-          : 'id' in r && r.id === (rule as ContentRouterRule).id,
+          : 'id' in r && r.id === (rule as RouterRule).id,
       )
 
       const ruleWithCondition =
@@ -499,19 +467,16 @@ const AccordionContentRouterSection = ({
             condition: mergedRule.condition as ConditionGroup | undefined,
           }}
           isNew={isNew}
-          onSave={async (data: ContentRouterRule | ContentRouterRuleUpdate) => {
+          onSave={async (data: RouterRule | RouterRulePayload) => {
             if (isNew) {
               return handleSaveNewRule(
                 (rule as TempRule).tempId,
-                data as Omit<
-                  ContentRouterRule,
-                  'id' | 'created_at' | 'updated_at'
-                >,
+                data as RouterRulePayload,
               )
             }
             return handleUpdateRule(
-              (rule as ContentRouterRule).id,
-              data as ContentRouterRuleUpdate,
+              (rule as RouterRule).id,
+              data as RouterRulePayload,
             )
           }}
           onCancel={() => {
@@ -522,8 +487,7 @@ const AccordionContentRouterSection = ({
           onRemove={
             isNew
               ? undefined
-              : () =>
-                  setDeleteConfirmationRuleId((rule as ContentRouterRule).id)
+              : () => setDeleteConfirmationRuleId((rule as RouterRule).id)
           }
           onToggleEnabled={handleToggleRuleEnabled}
           isSaving={!!savingRules[ruleId.toString()]}
@@ -552,11 +516,8 @@ const AccordionContentRouterSection = ({
 
   return (
     <div className="grid gap-6">
-      {isLoading &&
-      rules.length === 0 &&
-      !localRules.length ? // Initially loading state
-      null : isLoading && hasExistingRoutes ? (
-        // Loading with existing rules - show skeletons
+      {isLoading ? (
+        // Initial load - show skeletons (cached navigations skip this entirely)
         <div className="grid gap-6">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-foreground">
@@ -621,18 +582,6 @@ const AccordionContentRouterSection = ({
 
             {/* Local rules */}
             {localRules.map((rule) => renderRouteCard(rule, true))}
-
-            {/* Loading skeleton */}
-            {isLoading &&
-              Object.keys(savingRules).some(
-                (key) => !key.startsWith('temp-'),
-              ) &&
-              rules.length === 0 &&
-              localRules.length === 0 && (
-                <div className="opacity-40 pointer-events-none">
-                  <AccordionRouteCardSkeleton />
-                </div>
-              )}
           </div>
         </>
       )}
@@ -646,7 +595,7 @@ const AccordionContentRouterSection = ({
           rules.find((r) => r.id === deleteConfirmationRuleId)?.name || ''
         }
         routeType="content route"
-        isDeleting={isLoading}
+        isDeleting={isDeleting}
       />
     </div>
   )

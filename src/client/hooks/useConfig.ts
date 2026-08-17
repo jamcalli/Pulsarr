@@ -1,11 +1,11 @@
-import type {
-  ConfigFull,
-  ConfigGetResponse,
-  ConfigUpdate,
-} from '@root/schemas/config/config.schema'
 import { useCallback } from 'react'
 import { queryClient } from '@/lib/queryClient'
 import { $api, apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
+import type { components } from '@/types/api.js'
+
+type ConfigFull = components['schemas']['Config']
+type ConfigGetResponse = components['schemas']['ConfigResponse']
+type ConfigUpdate = components['schemas']['ConfigUpdatePayload']
 
 export const configKeys = {
   config: $api.queryOptions('get', '/v1/config').queryKey,

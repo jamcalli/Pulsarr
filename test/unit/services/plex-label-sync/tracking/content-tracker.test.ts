@@ -73,8 +73,6 @@ describe('content-tracker', () => {
       removedLabelMode: 'keep',
       removedLabelPrefix: 'pulsarr:removed',
       autoResetOnScheduledSync: false,
-      scheduleTime: undefined,
-      dayOfWeek: '*',
       tagSync: {
         enabled: false,
         syncRadarrTags: false,

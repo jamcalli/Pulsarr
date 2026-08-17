@@ -4,8 +4,29 @@ import {
   WatchlistWorkflowResponseSchema,
 } from '@schemas/watchlist-workflow/watchlist-workflow.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyInstance } from 'fastify'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import type { z } from 'zod'
+
+async function persistIsReady(
+  fastify: FastifyInstance,
+  isReady: boolean,
+): Promise<void> {
+  const dbUpdated = await fastify.db.updateConfig({ _isReady: isReady })
+  if (dbUpdated) {
+    try {
+      await fastify.updateConfig({ _isReady: isReady })
+      fastify.log.info(`Updated config _isReady to ${isReady}`)
+    } catch (memUpdateErr) {
+      fastify.log.error(
+        { error: memUpdateErr },
+        'DB updated but failed to sync in-memory config - restart may be needed',
+      )
+    }
+  } else {
+    fastify.log.warn('Failed to update _isReady config value')
+  }
+}
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Start Watchlist Workflow
@@ -42,28 +63,20 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
           if (request.body?.autoStart === true) {
             try {
-              // Update only the _isReady flag - no need to spread entire config
-              // db.updateConfig accepts Partial<Config> and only updates provided fields
-              const dbUpdated = await fastify.db.updateConfig({
-                _isReady: true,
-              })
-              if (dbUpdated) {
-                try {
-                  await fastify.updateConfig({ _isReady: true })
-                  fastify.log.info('Updated config _isReady to true')
-                } catch (memUpdateErr) {
-                  fastify.log.error(
-                    { error: memUpdateErr },
-                    'DB updated but failed to sync in-memory config - restart may be needed',
-                  )
-                  // In-memory config is stale but DB has correct value
-                  // Next server restart will load correct value from DB
-                }
-              } else {
-                fastify.log.warn('Failed to update _isReady config value')
-              }
+              await persistIsReady(fastify, true)
             } catch (configErr) {
               // Log config update error but don't fail the workflow start
+              logRouteError(fastify.log, request, configErr, {
+                message: 'Failed to update _isReady config',
+              })
+            }
+          } else if (
+            request.body?.autoStart === false &&
+            fastify.config._isReady
+          ) {
+            try {
+              await persistIsReady(fastify, false)
+            } catch (configErr) {
               logRouteError(fastify.log, request, configErr, {
                 message: 'Failed to update _isReady config',
               })

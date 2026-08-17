@@ -13,18 +13,20 @@ import {
   fastifyZodOpenApiTransform,
   fastifyZodOpenApiTransformObject,
 } from 'fastify-zod-openapi'
-import { createSchema } from 'zod-openapi'
+import type { OpenAPIV3_1 } from 'openapi-types'
+import { createSchema, type oas31 } from 'zod-openapi'
 
-/**
- * Builds the OpenAPI webhooks section from the payload registry.
- * Converts Zod schemas to OpenAPI schemas and includes examples.
- */
-function buildWebhooksSpec(): Record<string, unknown> {
-  const webhooks: Record<string, unknown> = {}
+const OPENAPI_VERSION = '3.1.0'
+
+/** Builds the OpenAPI webhooks section from the payload registry. */
+function buildWebhooksSpec(): NonNullable<OpenAPIV3_1.Document['webhooks']> {
+  const webhooks: Record<string, oas31.PathItemObject> = {}
 
   for (const eventType of WEBHOOK_EVENT_TYPES) {
     const entry = WEBHOOK_PAYLOAD_REGISTRY[eventType]
-    const { schema: jsonSchema } = createSchema(entry.schema)
+    const { schema: jsonSchema } = createSchema(entry.schema, {
+      openapiVersion: OPENAPI_VERSION,
+    })
 
     webhooks[eventType] = {
       post: {
@@ -53,13 +55,60 @@ function buildWebhooksSpec(): Record<string, unknown> {
     }
   }
 
-  return webhooks
+  // zod-openapi's oas31 types and openapi-types declare the same 3.1 document
+  // shape incompatibly; bridge once at the boundary
+  return webhooks as NonNullable<OpenAPIV3_1.Document['webhooks']>
 }
 
-const sortKeys = (obj: Record<string, unknown>): Record<string, unknown> =>
+const sortKeys = <T>(obj: Record<string, T>): Record<string, T> =>
   Object.fromEntries(
     Object.entries(obj).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
   )
+
+const HTTP_METHODS = [
+  'get',
+  'post',
+  'put',
+  'patch',
+  'delete',
+  'head',
+  'options',
+  'trace',
+] as const
+
+// satisfies, not an annotation: openapi-types intersects 3.0 and 3.1 shapes
+// in operations, and only the narrow $ref literal is assignable to both
+const RATE_LIMITED_RESPONSE = {
+  description: 'Rate limit exceeded',
+  content: {
+    'application/json': {
+      schema: { $ref: '#/components/schemas/Error' },
+    },
+  },
+} satisfies OpenAPIV3_1.ResponseObject
+
+// Every operation can return 429: unmatched routes share the global bucket
+// and route-level overrides (login, webhook with a bad secret) emit their own
+function addRateLimitResponses(paths: OpenAPIV3_1.PathsObject): void {
+  for (const pathItem of Object.values(paths)) {
+    if (!pathItem) continue
+
+    for (const method of HTTP_METHODS) {
+      const responses = pathItem[method]?.responses
+      if (responses) {
+        responses['429'] ??= structuredClone(RATE_LIMITED_RESPONSE)
+      }
+    }
+  }
+}
+
+// The transform can hand back a 2.0 or 3.x document; everything past this
+// guard relies on the 3.1 shape declared in the plugin config
+function isOpenApi31Document(
+  doc: ReturnType<typeof fastifyZodOpenApiTransformObject>,
+): doc is Partial<OpenAPIV3_1.Document> {
+  return 'openapi' in doc && doc.openapi?.startsWith('3.1') === true
+}
 
 const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
   const urlObject = new URL(fastify.config.baseUrl)
@@ -71,6 +120,8 @@ const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
 
   return {
     openapi: {
+      openapi: OPENAPI_VERSION,
+      webhooks: buildWebhooksSpec(),
       info: {
         title: 'Pulsarr API',
         description:
@@ -252,27 +303,22 @@ const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
     transformObject: (
       args: Parameters<typeof fastifyZodOpenApiTransformObject>[0],
     ) => {
-      // Run the default transform first
-      const result = fastifyZodOpenApiTransformObject(args)
-
-      // Inject webhooks section into the OpenAPI spec
-      // We're using OpenAPI mode so result will have OpenAPI structure
-      const spec = result as Record<string, unknown>
-      spec.webhooks = buildWebhooksSpec()
+      const spec = fastifyZodOpenApiTransformObject(args)
+      if (!isOpenApi31Document(spec)) {
+        return spec
+      }
 
       // Route autoload follows filesystem enumeration order, which varies
       // across machines - sort so spec generation is deterministic
       if (spec.paths) {
-        spec.paths = sortKeys(spec.paths as Record<string, unknown>)
+        addRateLimitResponses(spec.paths)
+        spec.paths = sortKeys(spec.paths)
       }
-      const components = spec.components as Record<string, unknown> | undefined
-      if (components?.schemas) {
-        components.schemas = sortKeys(
-          components.schemas as Record<string, unknown>,
-        )
+      if (spec.components?.schemas) {
+        spec.components.schemas = sortKeys(spec.components.schemas)
       }
 
-      return result
+      return spec
     },
   }
 }

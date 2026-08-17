@@ -52,7 +52,7 @@ jobs:
           scan-ref: .
           scanners: vuln
           skip-dirs: docs
-          version: v0.72.0
+          version: v0.73.0
           severity: CRITICAL,HIGH
           limit-severities-for-sarif: true
           ignore-unfixed: true
@@ -60,7 +60,7 @@ jobs:
           output: trivy-deps.sarif
 
       - name: Upload SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
         with:
           sarif_file: trivy-deps.sarif
           category: trivy-deps
@@ -96,7 +96,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: lakker/pulsarr:${{ matrix.tag }}
-          version: v0.72.0
+          version: v0.73.0
           format: sarif
           output: trivy-scheduled-${{ matrix.tag }}.sarif
           ignore-unfixed: true
@@ -105,7 +105,7 @@ jobs:
           trivyignores: .trivyignore.yaml
 
       - name: Upload SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
         with:
           sarif_file: trivy-scheduled-${{ matrix.tag }}.sarif
           category: trivy-scheduled-${{ matrix.tag }}

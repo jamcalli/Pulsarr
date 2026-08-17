@@ -1,4 +1,5 @@
 import type { RouterRule } from '@root/types/router.types.js'
+import type { ContentRouterRuleUpdate } from '@schemas/content-router/content-router.schema.js'
 import {
   ContentRouterRuleErrorSchema,
   ContentRouterRuleListResponseSchema,
@@ -10,9 +11,49 @@ import {
 } from '@schemas/content-router/content-router.schema.js'
 import { formatRule } from '@utils/content-router-formatter.js'
 import { logRouteError } from '@utils/route-errors.js'
-import { RuleBuilder } from '@utils/rule-builder.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
+
+/**
+ * Maps a validated rule payload to its stored shape. PUT is a full replace,
+ * so every clearable column gets an explicit value - updateRouterRule skips
+ * undefined fields, which would otherwise leave stale values behind.
+ */
+function normalizeRulePayload(
+  ruleData: ContentRouterRuleUpdate,
+): Omit<RouterRule, 'id' | 'created_at' | 'updated_at' | 'metadata'> {
+  const excludeFromRouting = ruleData.exclude_from_routing ?? false
+
+  return {
+    name: ruleData.name,
+    type: 'conditional',
+    criteria: {
+      condition: ruleData.condition || {
+        operator: 'AND',
+        conditions: [],
+        negate: false,
+      },
+    },
+    target_type: ruleData.target_type,
+    // Exclude rules never route, so instance-scoped fields are cleared
+    target_instance_id: excludeFromRouting ? null : ruleData.target_instance_id,
+    root_folder: excludeFromRouting ? null : ruleData.root_folder || null,
+    quality_profile: excludeFromRouting
+      ? null
+      : (ruleData.quality_profile ?? null),
+    tags: excludeFromRouting ? [] : ruleData.tags || [],
+    order: ruleData.order ?? 50,
+    enabled: ruleData.enabled ?? true,
+    search_on_add: ruleData.search_on_add ?? null,
+    season_monitoring: ruleData.season_monitoring ?? null,
+    series_type: ruleData.series_type ?? null,
+    monitor: ruleData.monitor ?? null,
+    always_require_approval: ruleData.always_require_approval ?? false,
+    bypass_user_quotas: ruleData.bypass_user_quotas ?? false,
+    approval_reason: ruleData.approval_reason ?? null,
+    exclude_from_routing: excludeFromRouting,
+  }
+}
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get all router rules
@@ -265,61 +306,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const ruleData = request.body
-        const excludeFromRouting = ruleData.exclude_from_routing ?? false
-
-        const builtRule = RuleBuilder.createRule({
-          name: ruleData.name,
-          target_type: ruleData.target_type,
-          target_instance_id: excludeFromRouting
-            ? null
-            : ruleData.target_instance_id,
-          condition: ruleData.condition || {
-            operator: 'AND',
-            conditions: [],
-            negate: false,
-          },
-          root_folder: excludeFromRouting ? null : ruleData.root_folder,
-          quality_profile: excludeFromRouting ? null : ruleData.quality_profile,
-          tags: excludeFromRouting ? [] : ruleData.tags,
-          order: ruleData.order ?? 50,
-          enabled: ruleData.enabled ?? true,
-          search_on_add: ruleData.search_on_add,
-          season_monitoring: ruleData.season_monitoring,
-          series_type: ruleData.series_type,
-          monitor: ruleData.monitor,
-          always_require_approval: ruleData.always_require_approval ?? false,
-          bypass_user_quotas: ruleData.bypass_user_quotas ?? false,
-          approval_reason: ruleData.approval_reason,
-          exclude_from_routing: excludeFromRouting,
-        })
-
-        const formattedRuleData: Omit<
-          RouterRule,
-          'id' | 'created_at' | 'updated_at'
-        > = {
-          name: builtRule.name,
-          type: 'conditional',
-          criteria: builtRule.criteria,
-          target_type: builtRule.target_type,
-          target_instance_id: builtRule.target_instance_id,
-          root_folder: builtRule.root_folder || null,
-          quality_profile: builtRule.quality_profile || null,
-          tags: builtRule.tags || [],
-          order: builtRule.order ?? 50,
-          enabled: builtRule.enabled !== undefined ? builtRule.enabled : true,
+        const createdRule = await fastify.db.createRouterRule({
+          ...normalizeRulePayload(request.body),
           metadata: null,
-          search_on_add: ruleData.search_on_add,
-          season_monitoring: ruleData.season_monitoring,
-          series_type: ruleData.series_type,
-          monitor: ruleData.monitor,
-          always_require_approval: ruleData.always_require_approval ?? false,
-          bypass_user_quotas: ruleData.bypass_user_quotas ?? false,
-          approval_reason: ruleData.approval_reason,
-          exclude_from_routing: ruleData.exclude_from_routing ?? false,
-        }
-
-        const createdRule = await fastify.db.createRouterRule(formattedRuleData)
+        })
 
         fastify.contentRouter.clearRouterRulesCache()
 
@@ -348,7 +338,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       schema: {
         summary: 'Update router rule',
         operationId: 'updateRouterRule',
-        description: 'Update an existing content router rule by its ID',
+        description:
+          'Replace an existing content router rule by its ID. The full rule payload is required - fields left out are cleared, not preserved.',
         params: z.object({
           id: z.coerce.number(),
         }),
@@ -365,137 +356,15 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const { id } = request.params
-        const updates = request.body
 
         const existingRule = await fastify.db.getRouterRuleById(id)
         if (!existingRule) {
           return reply.notFound(`Router rule with ID ${id} not found`)
         }
 
-        const targetType = updates.target_type || existingRule.target_type
-
-        if (
-          targetType === 'radarr' &&
-          updates.season_monitoring !== null &&
-          updates.season_monitoring !== undefined
-        ) {
-          return reply.badRequest(
-            'season_monitoring field is not supported for Radarr rules',
-          )
-        }
-
-        if (
-          targetType === 'radarr' &&
-          updates.series_type !== null &&
-          updates.series_type !== undefined
-        ) {
-          return reply.badRequest(
-            'series_type field is not supported for Radarr rules',
-          )
-        }
-
-        if (
-          targetType === 'sonarr' &&
-          updates.monitor !== null &&
-          updates.monitor !== undefined
-        ) {
-          return reply.badRequest(
-            'monitor field is not supported for Sonarr rules',
-          )
-        }
-
-        const effectiveExclude =
-          updates.exclude_from_routing ?? existingRule.exclude_from_routing
-        const effectiveTargetInstanceId =
-          updates.target_instance_id !== undefined
-            ? updates.target_instance_id
-            : existingRule.target_instance_id
-
-        if (!effectiveExclude && effectiveTargetInstanceId == null) {
-          return reply.badRequest(
-            'target_instance_id is required unless exclude_from_routing is true',
-          )
-        }
-
-        if (effectiveExclude && effectiveTargetInstanceId != null) {
-          return reply.badRequest(
-            'target_instance_id must be null when exclude_from_routing is true',
-          )
-        }
-
-        const updatesAsRouterRule: Partial<
-          Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>
-        > = {}
-
-        if (updates.name !== undefined) updatesAsRouterRule.name = updates.name
-        if (updates.target_type !== undefined)
-          updatesAsRouterRule.target_type = updates.target_type
-        if (updates.target_instance_id !== undefined)
-          updatesAsRouterRule.target_instance_id = updates.target_instance_id
-        if (updates.root_folder !== undefined)
-          updatesAsRouterRule.root_folder = updates.root_folder || null
-        if (updates.order !== undefined)
-          updatesAsRouterRule.order = updates.order
-        if (updates.enabled !== undefined)
-          updatesAsRouterRule.enabled = updates.enabled
-        if (updates.tags !== undefined) updatesAsRouterRule.tags = updates.tags
-        if (updates.search_on_add !== undefined)
-          updatesAsRouterRule.search_on_add = updates.search_on_add
-        if (updates.season_monitoring !== undefined)
-          updatesAsRouterRule.season_monitoring = updates.season_monitoring
-        if (updates.series_type !== undefined)
-          updatesAsRouterRule.series_type = updates.series_type
-        if (updates.monitor !== undefined)
-          updatesAsRouterRule.monitor = updates.monitor
-        if (updates.always_require_approval !== undefined)
-          updatesAsRouterRule.always_require_approval =
-            updates.always_require_approval
-        if (updates.bypass_user_quotas !== undefined)
-          updatesAsRouterRule.bypass_user_quotas = updates.bypass_user_quotas
-        if (updates.approval_reason !== undefined)
-          updatesAsRouterRule.approval_reason = updates.approval_reason
-        if (updates.exclude_from_routing !== undefined)
-          updatesAsRouterRule.exclude_from_routing =
-            updates.exclude_from_routing
-
-        if (updates.quality_profile !== undefined)
-          updatesAsRouterRule.quality_profile = updates.quality_profile
-
-        // A target_type switch leaves the old type's stored fields behind; clear them
-        if (
-          updates.target_type !== undefined &&
-          updates.target_type !== existingRule.target_type
-        ) {
-          if (updates.target_type === 'radarr') {
-            updatesAsRouterRule.season_monitoring = null
-            updatesAsRouterRule.series_type = null
-          } else {
-            updatesAsRouterRule.monitor = null
-          }
-          // Profile, folder, and tag ids belong to the old service unless resupplied
-          if (updates.quality_profile === undefined)
-            updatesAsRouterRule.quality_profile = null
-          if (updates.root_folder === undefined)
-            updatesAsRouterRule.root_folder = null
-          if (updates.tags === undefined) updatesAsRouterRule.tags = []
-        }
-
-        // Exclude rules must not retain instance-scoped fields
-        if (effectiveExclude) {
-          updatesAsRouterRule.quality_profile = null
-          updatesAsRouterRule.root_folder = null
-          updatesAsRouterRule.tags = []
-        }
-
-        if (updates.condition) {
-          updatesAsRouterRule.criteria = {
-            condition: updates.condition,
-          }
-        }
-
         const updated = await fastify.db.updateRouterRule(
           id,
-          updatesAsRouterRule,
+          normalizeRulePayload(request.body),
         )
 
         if (!updated) {

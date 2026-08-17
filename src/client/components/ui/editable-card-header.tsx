@@ -1,10 +1,8 @@
-import { Loader2, Pen, Save, Trash2, X } from 'lucide-react';
-import type React from 'react';
-import { useState } from 'react';
+import { Loader2, Save, Trash2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { InlineEdit } from '@/components/ui/inline-edit';
 import { useMediaQuery } from '@/hooks/use-media-query';
 
 interface EditableCardHeaderProps {
@@ -35,28 +33,13 @@ const EditableCardHeader = ({
   onDelete,
   onTitleChange,
 }: EditableCardHeaderProps) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [localTitle, setLocalTitle] = useState(title);
   const isMobile = useMediaQuery('(max-width: 768px)');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (localTitle?.trim()) {
-      onTitleChange(localTitle.trim());
-      setIsEditing(false);
-    }
-  };
-
-  const handleEscape = () => {
-    setLocalTitle(title);
-    setIsEditing(false);
-  };
 
   return (
     <CardHeader>
       <CardTitle className="flex flex-col gap-2">
         <div className="flex justify-between items-center text-foreground">
-          <div className="group/name inline-flex items-center gap-2 flex-1 min-w-0">
+          <div className="inline-flex items-center gap-2 flex-1 min-w-0">
             {badge && (
               <Badge className={badge.className || "text-sm bg-blue"}>
                 <span className={isMobile ? "hidden" : "block"}>{badge.text}</span>
@@ -65,40 +48,11 @@ const EditableCardHeader = ({
                 </span>
               </Badge>
             )}
-            {isEditing ? (
-              <Input
-                value={localTitle}
-                onChange={(e) => setLocalTitle(e.target.value)}
-                autoFocus
-                className="w-full mr-4"
-                disabled={isSaving}
-                onBlur={handleSubmit}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSubmit(e);
-                  } else if (e.key === 'Escape') {
-                    handleEscape();
-                  }
-                }}
-              />
-            ) : (
-              <div className="flex items-center gap-2 pr-8">
-                <span>{title || 'Unnamed'}</span>
-                {!isSaving && (
-                  <Button
-                    variant="noShadow"
-                    size="icon"
-                    className="h-8 w-8 opacity-0 group-hover/name:opacity-100 transition-opacity shrink-0"
-                    onClick={() => {
-                      setLocalTitle(title);
-                      setIsEditing(true);
-                    }}
-                  >
-                    <Pen className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            )}
+            <InlineEdit
+              value={title}
+              onCommit={onTitleChange}
+              disabled={isSaving}
+            />
           </div>
   
           {/* Desktop buttons - horizontal layout */}

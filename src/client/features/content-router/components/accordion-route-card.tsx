@@ -2,8 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import type {
   ConditionGroup,
   ConditionValue,
-  ContentRouterRule,
-  ContentRouterRuleUpdate,
   IConditionGroup,
 } from '@root/schemas/content-router/content-router.schema'
 import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
@@ -15,7 +13,6 @@ import {
   HelpCircle,
   Info,
   Loader2,
-  Pen,
   Power,
   Save,
   Trash2,
@@ -42,6 +39,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { InlineEdit, InlineEditButton } from '@/components/ui/inline-edit'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -71,6 +69,10 @@ import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
 import { useConfig } from '@/hooks/useConfig'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
 import { cn } from '@/lib/utils'
+import type { components } from '@/types/api.js'
+
+type RouterRule = components['schemas']['RouterRule']
+type RouterRulePayload = components['schemas']['RouterRulePayload']
 
 // Define criteria interface to match backend schema
 interface Criteria {
@@ -82,10 +84,9 @@ interface Criteria {
   [key: string]: ConditionValue | ConditionGroup | undefined
 }
 
-// Extended ContentRouterRule to include criteria and type
+// Extended RouterRule to include criteria and type
 // quality_profile allows null since the update schema coerces unparseable strings to null
-interface ExtendedContentRouterRule
-  extends Omit<ContentRouterRule, 'quality_profile'> {
+interface ExtendedRouterRule extends Omit<RouterRule, 'quality_profile'> {
   type?: string
   criteria?: Criteria
   condition?: ConditionGroup
@@ -187,10 +188,10 @@ function normalizeSeriesType(
 }
 
 interface AccordionRouteCardProps {
-  route: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>
+  route: ExtendedRouterRule | Partial<ExtendedRouterRule>
   isNew?: boolean
   onCancel: () => void
-  onSave: (data: ContentRouterRule | ContentRouterRuleUpdate) => Promise<void>
+  onSave: (data: RouterRule | RouterRulePayload) => Promise<void>
   onRemove?: () => void
   onToggleEnabled?: (id: number, enabled: boolean) => Promise<void>
   isSaving: boolean
@@ -215,8 +216,7 @@ const AccordionRouteCard = ({
   contentType,
 }: AccordionRouteCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [localTitle, setLocalTitle] = useState(route.name || '')
+  const [isTitleEditing, setIsTitleEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [evaluatorMetadata, setEvaluatorMetadata] = useState<
@@ -240,7 +240,7 @@ const AccordionRouteCard = ({
 
   const getRouteId = useCallback(
     (
-      routeObj: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>,
+      routeObj: ExtendedRouterRule | Partial<ExtendedRouterRule>,
       isNewRoute: boolean,
     ): string | number | null => {
       if ('id' in routeObj && routeObj.id !== undefined) {
@@ -270,9 +270,7 @@ const AccordionRouteCard = ({
   // Create a default initial condition group for new routes
   const getInitialConditionValue = useCallback(
     (
-      sourceRoute?:
-        | ExtendedContentRouterRule
-        | Partial<ExtendedContentRouterRule>,
+      sourceRoute?: ExtendedRouterRule | Partial<ExtendedRouterRule>,
     ): ConditionGroup => {
       // Check if source route has condition
       if (sourceRoute?.condition) {
@@ -301,7 +299,7 @@ const AccordionRouteCard = ({
   // Helper function to build default values
   const buildDefaultValues = useCallback(
     (
-      routeObj: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>,
+      routeObj: ExtendedRouterRule | Partial<ExtendedRouterRule>,
       instancesList: Array<RadarrInstance | SonarrInstance>,
       routeContentType: 'radarr' | 'sonarr',
     ) => {
@@ -502,7 +500,6 @@ const AccordionRouteCard = ({
     // Only reset if route actually changed to prevent toast-induced resets
     if (shouldResetForm && !isNew) {
       form.reset(buildDefaultValues(route, instances, contentType))
-      setLocalTitle(route?.name || '')
       hasInitializedForm.current = true
     }
   }, [
@@ -521,8 +518,6 @@ const AccordionRouteCard = ({
         shouldDirty: true,
         shouldValidate: true,
       })
-      setLocalTitle(title)
-      setIsEditing(false)
     },
     [form],
   )
@@ -663,7 +658,7 @@ const AccordionRouteCard = ({
     try {
       // For new routes (creating a route)
       if (isNew) {
-        const routeData: ContentRouterRuleUpdate = {
+        const routeData: RouterRulePayload = {
           name: data.name,
           target_type: contentType,
           target_instance_id: data.exclude_from_routing
@@ -697,8 +692,9 @@ const AccordionRouteCard = ({
       }
       // For existing routes (updating a route)
       else {
-        const updatePayload: ContentRouterRuleUpdate = {
+        const updatePayload: RouterRulePayload = {
           name: data.name,
+          target_type: contentType,
           condition: normalizeConditionGroup(data.condition),
           target_instance_id: data.exclude_from_routing
             ? null
@@ -750,26 +746,34 @@ const AccordionRouteCard = ({
     // Reset the form to its initial values
     form.reset(buildDefaultValues(route, instances, contentType))
 
-    // Reset the local title state
-    setLocalTitle(route?.name || '')
-
     // If it's a new route, call onCancel() to remove it from the local rules array
     if (isNew) {
       onCancel()
     }
   }
 
-  const handleTitleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (localTitle?.trim()) {
-      handleTitleChange(localTitle.trim())
-    }
-  }
+  const routeBadges = (
+    <>
+      <Badge
+        variant="neutral"
+        className="px-2 py-0.5 h-7 text-sm ml-2 shrink-0"
+      >
+        Priority {form.watch('order')}
+      </Badge>
 
-  const handleEscape = () => {
-    setLocalTitle(route?.name || '')
-    setIsEditing(false)
-  }
+      <Badge
+        variant="neutral"
+        className={cn(
+          'px-2 py-0.5 h-7 text-sm ml-2 mr-2',
+          form.watch('enabled')
+            ? 'bg-green-500 hover:bg-green-500 text-black'
+            : 'bg-red-500 hover:bg-red-500 text-black',
+        )}
+      >
+        {form.watch('enabled') ? 'Enabled' : 'Disabled'}
+      </Badge>
+    </>
+  )
 
   return (
     <div className="relative" ref={cardRef}>
@@ -793,99 +797,48 @@ const AccordionRouteCard = ({
           value="route"
           className="border-2 border-border rounded-base overflow-hidden"
         >
-          <AccordionTrigger
-            className="px-6 py-4 bg-main hover:bg-main hover:no-underline"
-            onClick={(e) => {
-              if (isEditing) {
-                e.preventDefault()
-                e.stopPropagation()
-              }
-            }}
-            onKeyDown={(e) => {
-              if (isEditing) {
-                e.preventDefault()
-                e.stopPropagation()
-              }
-            }}
+          {/* interactive controls must be siblings of the triggers, never inside their native buttons */}
+          <div
+            className={cn(
+              'group/route-header flex items-center bg-main pr-4 [&>h3]:min-w-0',
+              accordionValue && 'rounded-b-none border-b-2 border-border',
+            )}
           >
-            <div className="flex justify-between items-center w-full pr-2">
-              <div className="group/name inline-flex items-center gap-2 flex-1 min-w-0">
-                {isEditing ? (
-                  <form
-                    onSubmit={handleTitleSubmit}
-                    className="flex-1 w-full mr-4"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                  >
-                    <Input
-                      value={localTitle}
-                      onChange={(e) => setLocalTitle(e.target.value)}
-                      autoFocus
-                      className="w-full"
-                      disabled={isSaving}
-                      onBlur={handleTitleSubmit}
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => {
-                        // Stop propagation for any key events while editing
-                        e.stopPropagation()
-
-                        if (e.key === 'Enter') {
-                          handleTitleSubmit(e)
-                        } else if (e.key === 'Escape') {
-                          handleEscape()
-                        }
-                      }}
-                    />
-                  </form>
-                ) : (
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="truncate">{localTitle || 'Unnamed'}</span>
-                    {!isSaving && (
-                      // biome-ignore lint/a11y/useSemanticElements: We need to use span with role="button" to avoid button nesting issues
-                      <span
-                        className={cn(
-                          'inline-flex items-center justify-center whitespace-nowrap rounded-base text-sm font-base ring-offset-white transition-all gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-                          'text-main-foreground bg-main border-2 border-border',
-                          'h-8 w-8',
-                          'opacity-0 group-hover/name:opacity-100 transition-opacity shrink-0 cursor-pointer',
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setLocalTitle(localTitle)
-                          setIsEditing(true)
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setLocalTitle(localTitle)
-                            setIsEditing(true)
-                          }
-                        }}
-                        role="button"
-                        tabIndex={0}
-                        aria-label="Edit title"
-                      >
-                        <Pen className="h-4 w-4" />
-                      </span>
-                    )}
-                  </div>
-                )}
+            {isTitleEditing ? (
+              <div className="flex items-center flex-1 min-w-0 px-6 py-4 text-base text-main-foreground font-heading">
+                <InlineEdit
+                  value={form.watch('name') || ''}
+                  onCommit={handleTitleChange}
+                  editing={isTitleEditing}
+                  onEditingChange={setIsTitleEditing}
+                  disabled={isSaving}
+                />
+                {routeBadges}
               </div>
-
-              <Badge
-                variant="neutral"
-                className={cn(
-                  'px-2 py-0.5 h-7 text-sm ml-2 mr-2',
-                  form.watch('enabled')
-                    ? 'bg-green-500 hover:bg-green-500 text-white'
-                    : 'bg-red-500 hover:bg-red-500 text-white',
+            ) : (
+              <>
+                <AccordionTrigger className="bg-transparent pl-6 pr-0 py-4 hover:no-underline data-[state=open]:border-b-0 [&>svg]:hidden">
+                  <span className="truncate">
+                    {form.watch('name') || 'Unnamed'}
+                  </span>
+                </AccordionTrigger>
+                {!isSaving && (
+                  <InlineEditButton
+                    onClick={() => setIsTitleEditing(true)}
+                    className="ml-2 group-hover/route-header:opacity-100"
+                  />
                 )}
-              >
-                {form.watch('enabled') ? 'Enabled' : 'Disabled'}
-              </Badge>
-            </div>
-          </AccordionTrigger>
+                <div className="flex-1" />
+                <div className="flex items-center text-base text-main-foreground">
+                  {routeBadges}
+                </div>
+                <AccordionTrigger
+                  aria-label="Toggle route details"
+                  className="flex-none bg-transparent px-2 py-4 hover:no-underline data-[state=open]:border-b-0"
+                />
+              </>
+            )}
+          </div>
           <AccordionContent className="p-0">
             <Form {...form}>
               <form
@@ -1013,17 +966,7 @@ const AccordionRouteCard = ({
                             </Tooltip>
                           </div>
                           <FormControl>
-                            <div className="border-2 rounded-md p-4 bg-card/50 border-foreground relative">
-                              {loading && (
-                                <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-md">
-                                  <div className="text-center space-y-2">
-                                    <div className="animate-spin h-6 w-6 border-2 border-primary rounded-full border-t-transparent mx-auto" />
-                                    <p className="text-sm">
-                                      Loading condition options...
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
+                            <div className="border-2 rounded-base p-4 border-foreground">
                               {error && (
                                 <Alert variant="error" className="mb-4">
                                   <AlertCircle className="h-4 w-4" />
@@ -1085,7 +1028,7 @@ const AccordionRouteCard = ({
                   </div>
 
                   {/* Actions Section - Approval Behavior */}
-                  <div className="space-y-4 border-2 rounded-md p-4 bg-card/30 border-foreground">
+                  <div className="space-y-4 border-2 rounded-base p-4 border-foreground">
                     <div className="flex items-center space-x-2">
                       <h3 className="text-sm font-medium text-foreground">
                         Actions

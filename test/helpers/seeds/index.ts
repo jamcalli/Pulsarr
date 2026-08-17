@@ -5,6 +5,7 @@ import {
   SEED_SONARR_INSTANCES,
   seedInstances,
 } from './instances.js'
+import { seedUserQuota } from './quotas.js'
 import { SEED_ROUTER_RULES, seedRouterRules } from './router-rules.js'
 import { SEED_ADMIN_USERS, SEED_USERS, seedUsers } from './users.js'
 import { SEED_WATCHLIST_ITEMS, seedWatchlist } from './watchlist.js'
@@ -23,6 +24,7 @@ export {
   seedConfig,
   seedInstances,
   seedRouterRules,
+  seedUserQuota,
   seedUsers,
   seedWatchlist,
 }

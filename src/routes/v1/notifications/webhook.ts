@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto'
+import { PROBE_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import type {
   RadarrPayload,
   SonarrPayload,
@@ -17,7 +18,7 @@ import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
  * Timing-safe string comparison to prevent timing attacks.
  * Pads shorter string to match length before comparison.
  */
-function safeSecretCompare(
+export function safeSecretCompare(
   provided: string | string[] | undefined,
   expected: string,
 ): boolean {
@@ -39,6 +40,18 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.post(
     '/webhook',
     {
+      config: {
+        rateLimit: {
+          ...PROBE_RATE_LIMIT,
+          // Valid-secret senders are exempt - never throttle a legitimate
+          // import burst; the bucket only binds bad or missing secrets
+          allowList: (request) =>
+            safeSecretCompare(
+              request.headers['x-pulsarr-secret'],
+              fastify.config.webhookSecret,
+            ),
+        },
+      },
       schema: {
         security: [{ webhookSecretAuth: [] }],
         summary: 'Process media webhook',
