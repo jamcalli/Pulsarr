@@ -57,7 +57,11 @@ export default fp(
 
           // Secrets must stay stable across restarts
           const storedSecrets = await dbService.getSecrets()
-          for (const key of ['cookieSecret', 'webhookSecret'] as const) {
+          for (const key of [
+            'cookieSecret',
+            'webhookSecret',
+            'maintainerrWebhookSecret',
+          ] as const) {
             let stored = storedSecrets[key]
             // drop legacy short values that @fastify/session would reject at boot
             if (key === 'cookieSecret' && stored && stored.length < 32) {
