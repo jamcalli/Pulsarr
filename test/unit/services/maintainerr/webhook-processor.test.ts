@@ -22,7 +22,6 @@ function makeRow(overrides: Partial<WatchlistRow> = {}): WatchlistRow {
     genres: [],
     status: 'grabbed',
     username: 'alice',
-    watchlist_id: 'w1',
     ...overrides,
   }
 }
