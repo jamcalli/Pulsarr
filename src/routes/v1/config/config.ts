@@ -194,6 +194,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
+        // Handle Maintainerr URL changes - reprovision the webhook config
+        if ('maintainerrUrl' in safeConfigUpdate) {
+          void fastify.maintainerr.reconcile().catch((error) => {
+            fastify.log.error(
+              { error },
+              'Failed to reconcile Maintainerr after config update',
+            )
+          })
+        }
+
         // Handle Plex Label Sync config changes - compare before/after states
         if ('plexLabelSync' in safeConfigUpdate) {
           const wasEnabled = currentConfig?.plexLabelSync?.enabled === true
