@@ -24,6 +24,12 @@
         "in": "header",
         "name": "X-Pulsarr-Secret",
         "description": "Webhook authentication using auto-generated secret. Sonarr/Radarr webhooks are configured with this header automatically."
+      },
+      "maintainerrWebhookAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Webhook authentication using auto-generated secret in the Authorization header. Maintainerr webhooks are configured with this header automatically."
       }
     },
     "schemas": {
@@ -400,6 +406,16 @@
           },
           "queueProcessDelaySeconds": {
             "type": "number"
+          },
+          "maintainerrUrl": {
+            "type": "string"
+          },
+          "maintainerrExclusionMode": {
+            "type": "string",
+            "enum": [
+              "watchlisters",
+              "global"
+            ]
           },
           "discordWebhookUrl": {
             "type": "string"
@@ -1073,6 +1089,24 @@
           },
           "queueProcessDelaySeconds": {
             "type": "number"
+          },
+          "maintainerrUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
+            ]
+          },
+          "maintainerrExclusionMode": {
+            "type": "string",
+            "enum": [
+              "watchlisters",
+              "global"
+            ]
           },
           "discordWebhookUrl": {
             "type": "string"
@@ -8467,6 +8501,104 @@
                   },
                   "required": [
                     "success"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/notifications/webhook/maintainerr": {
+      "post": {
+        "operationId": "processMaintainerrWebhook",
+        "summary": "Process Maintainerr webhook",
+        "tags": [
+          "Notifications"
+        ],
+        "description": "Process MEDIA_HANDLED webhooks from Maintainerr (3.23.0+) to exclude handled media from watchlist syncing. Requires the webhook secret in the Authorization header.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notification_type": {
+                    "type": "string"
+                  },
+                  "mediaItems": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "maintainerrWebhookAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "created": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "created"
                   ],
                   "additionalProperties": false
                 }

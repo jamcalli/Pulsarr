@@ -636,6 +636,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/notifications/webhook/maintainerr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Process Maintainerr webhook
+         * @description Process MEDIA_HANDLED webhooks from Maintainerr (3.23.0+) to exclude handled media from watchlist syncing. Requires the webhook secret in the Authorization header.
+         */
+        post: operations["processMaintainerrWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/plex/cancel-friend-request": {
         parameters: {
             query?: never;
@@ -3041,6 +3061,9 @@ export interface components {
             closeGraceDelay?: number;
             rateLimitMax?: number;
             queueProcessDelaySeconds: number;
+            maintainerrUrl?: string;
+            /** @enum {string} */
+            maintainerrExclusionMode?: "watchlisters" | "global";
             discordWebhookUrl?: string;
             discordBotToken?: string;
             discordClientId?: string;
@@ -3210,6 +3233,9 @@ export interface components {
             closeGraceDelay?: number;
             rateLimitMax?: number;
             queueProcessDelaySeconds?: number;
+            maintainerrUrl?: string | "";
+            /** @enum {string} */
+            maintainerrExclusionMode?: "watchlisters" | "global";
             discordWebhookUrl?: string;
             discordBotToken?: string;
             discordClientId?: string;
@@ -6155,6 +6181,72 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    processMaintainerrWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    notification_type?: string;
+                    mediaItems?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        created: number;
                     };
                 };
             };
