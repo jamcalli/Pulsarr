@@ -240,6 +240,7 @@ export async function getConfig(
     // TMDB configuration
     tmdbRegion: config.tmdbRegion || 'US',
     // Maintainerr configuration
+    maintainerrEnabled: Boolean(config.maintainerrEnabled),
     maintainerrUrl: config.maintainerrUrl || '',
     maintainerrExclusionMode: config.maintainerrExclusionMode || 'watchlisters',
     _isReady: Boolean(config._isReady),
@@ -284,6 +285,7 @@ export async function createConfig(
       queueWaitTime: config.queueWaitTime ?? 120000,
       newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
       // Maintainerr fields
+      maintainerrEnabled: config.maintainerrEnabled ?? false,
       maintainerrUrl: config.maintainerrUrl ?? '',
       maintainerrExclusionMode:
         config.maintainerrExclusionMode ?? 'watchlisters',
@@ -449,6 +451,7 @@ const ALLOWED_COLUMNS = new Set([
   'allowIframes',
 
   // Maintainerr integration
+  'maintainerrEnabled',
   'maintainerrUrl',
   'maintainerrExclusionMode',
 

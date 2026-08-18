@@ -36,7 +36,10 @@ export default fp(
             name: 'maintainerr-sync',
             type: 'interval',
             config: { hours: 1 },
-            enabled: true,
+            enabled: Boolean(
+              fastify.config.maintainerrEnabled &&
+                fastify.config.maintainerrUrl,
+            ),
             last_run: null,
             next_run: {
               time: nextRun.toISOString(),
@@ -54,13 +57,35 @@ export default fp(
               return
             }
 
-            if (!fastify.config.maintainerrUrl) {
+            if (
+              !fastify.config.maintainerrEnabled ||
+              !fastify.config.maintainerrUrl
+            ) {
               return
             }
 
             await service.reconcile()
           },
         )
+
+        // Boot reconcile waits for the server to listen because the
+        // verification test webhook has to reach our own receiver
+        const bootReconcile = () => {
+          if (
+            !fastify.config.maintainerrEnabled ||
+            !fastify.config.maintainerrUrl
+          ) {
+            return
+          }
+          void service.reconcile().catch((error) => {
+            fastify.log.error({ error }, 'Boot Maintainerr reconcile failed')
+          })
+        }
+        if (fastify.server.listening) {
+          bootReconcile()
+        } else {
+          fastify.server.prependOnceListener('listening', bootReconcile)
+        }
       } catch (error) {
         fastify.log.error(
           { error },

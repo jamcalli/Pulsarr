@@ -80,13 +80,28 @@ export async function processMaintainerrHandledItems(
     }
 
     for (const [key, entry] of byKey) {
-      created += await deps.db.excludeWatchlistItem(
+      const rowsCreated = await deps.db.excludeWatchlistItem(
         key,
         deps.mode === 'global' ? [SYSTEM_USER_ID] : [...entry.userIds],
         entry.title,
         item.type,
         entry.guids,
       )
+      created += rowsCreated
+
+      if (rowsCreated > 0) {
+        deps.logger.info(
+          {
+            title: entry.title,
+            key,
+            mode: deps.mode,
+            ...(deps.mode === 'watchlisters'
+              ? { userIds: [...entry.userIds] }
+              : {}),
+          },
+          'Created watchlist exclusion for Maintainerr-handled item',
+        )
+      }
     }
   }
 

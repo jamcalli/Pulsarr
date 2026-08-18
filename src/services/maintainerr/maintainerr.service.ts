@@ -71,6 +71,13 @@ export class MaintainerrService {
     return this.lastResult
   }
 
+  private finish(
+    result: MaintainerrReconcileResult,
+  ): MaintainerrReconcileResult {
+    this.lastResult = result
+    return result
+  }
+
   /** Called by the webhook route when a TEST_NOTIFICATION arrives. */
   recordTestReceipt(): void {
     this.lastTestReceivedAt = Date.now()
@@ -173,8 +180,31 @@ export class MaintainerrService {
    */
   async reconcile(): Promise<MaintainerrReconcileResult> {
     if (!this.config.maintainerrUrl) {
-      this.lastResult = { status: 'disabled' }
-      return this.lastResult
+      return this.finish({ status: 'disabled' })
+    }
+
+    if (!this.config.maintainerrEnabled) {
+      // Best-effort: switch off the remote config so events stop at the source
+      try {
+        const configs = await this.api<MaintainerrNotificationConfig[]>(
+          '/notifications/configurations',
+        )
+        const existing = configs.find(
+          (c) => c.name === CONFIG_NAME && c.agent === 'webhook',
+        )
+        if (existing?.enabled) {
+          await this.apiMutation('/notifications/configuration/add', {
+            ...this.configPayload(existing.id),
+            enabled: false,
+          })
+        }
+      } catch (error) {
+        this.log.warn(
+          { error },
+          'Failed to disable the Maintainerr webhook config',
+        )
+      }
+      return this.finish({ status: 'disabled' })
     }
 
     try {
@@ -184,8 +214,7 @@ export class MaintainerrService {
           { version },
           'Maintainerr version does not include provider ids in webhooks; upgrade to 3.23.0 or later',
         )
-        this.lastResult = { status: 'unsupported_version', version }
-        return this.lastResult
+        return this.finish({ status: 'unsupported_version', version })
       }
 
       const configs = await this.api<MaintainerrNotificationConfig[]>(
@@ -253,23 +282,21 @@ export class MaintainerrService {
         )
       }
 
-      this.lastResult = {
+      this.log.info(
+        { version, configId, connectedGroups, testDelivered },
+        'Maintainerr reconcile completed',
+      )
+      return this.finish({
         status: 'ok',
         version,
         configId,
         connectedGroups,
         testDelivered,
-      }
-      this.log.info(
-        { version, configId, connectedGroups, testDelivered },
-        'Maintainerr reconcile completed',
-      )
-      return this.lastResult
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       this.log.error({ error }, 'Maintainerr reconcile failed')
-      this.lastResult = { status: 'error', error: message }
-      return this.lastResult
+      return this.finish({ status: 'error', error: message })
     }
   }
 }

@@ -194,8 +194,23 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
-        // Handle Maintainerr URL changes - reprovision the webhook config
-        if ('maintainerrUrl' in safeConfigUpdate) {
+        // Handle Maintainerr changes - the sync schedule follows the toggle,
+        // and a reconcile applies the new state to Maintainerr immediately
+        if (
+          'maintainerrEnabled' in safeConfigUpdate ||
+          'maintainerrUrl' in safeConfigUpdate
+        ) {
+          const maintainerrActive = Boolean(
+            savedConfig.maintainerrEnabled && savedConfig.maintainerrUrl,
+          )
+          void fastify.scheduler
+            .updateJobSchedule('maintainerr-sync', null, maintainerrActive)
+            .catch((error) => {
+              fastify.log.error(
+                { error },
+                'Failed to update maintainerr-sync schedule after config update',
+              )
+            })
           void fastify.maintainerr.reconcile().catch((error) => {
             fastify.log.error(
               { error },

@@ -163,6 +163,7 @@ export const ConfigFullSchema = z
     rateLimitMax: z.number().optional(),
     queueProcessDelaySeconds: z.number(),
     // Maintainerr Config (maintainerrWebhookSecret is server-internal)
+    maintainerrEnabled: z.boolean(),
     maintainerrUrl: z.string().optional(),
     maintainerrExclusionMode: z.enum(['watchlisters', 'global']).optional(),
     // Discord Config
@@ -332,6 +333,7 @@ export const ConfigUpdateSchema = z
     rateLimitMax: z.number().optional(),
     queueProcessDelaySeconds: z.number().optional(),
     // Maintainerr Config (maintainerrWebhookSecret is server-internal)
+    maintainerrEnabled: z.boolean().optional(),
     maintainerrUrl: HttpUrlOptionalSchema,
     maintainerrExclusionMode: z.enum(['watchlisters', 'global']).optional(),
     // Discord Config

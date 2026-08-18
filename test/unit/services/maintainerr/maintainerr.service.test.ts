@@ -10,6 +10,7 @@ const BASE = 'http://maintainerr.test:6246'
 function makeService(configOverrides: Record<string, unknown> = {}) {
   const fastify = {
     config: {
+      maintainerrEnabled: true,
       maintainerrUrl: BASE,
       maintainerrWebhookSecret: 'test-maintainerr-secret',
       baseUrl: 'http://pulsarr.test',
@@ -107,6 +108,21 @@ describe('MaintainerrService.reconcile', () => {
   it('returns disabled when no url is configured', async () => {
     const result = await makeService({ maintainerrUrl: '' }).reconcile()
     expect(result.status).toBe('disabled')
+  })
+
+  it('disables the remote config when the integration is toggled off', async () => {
+    const disabledService = makeService({ maintainerrEnabled: false })
+    const recorded = stubMaintainerr({
+      configurations: [{ ...PULSARR_CONFIG, enabled: true }],
+    })
+
+    const result = await disabledService.reconcile()
+
+    expect(result.status).toBe('disabled')
+    const add = recorded.find((r) => r.path === '/configuration/add')
+    const addBody = add?.body as { id?: number; enabled?: boolean }
+    expect(addBody.id).toBe(7)
+    expect(addBody.enabled).toBe(false)
   })
 
   it('rejects versions below 3.23.0', async () => {

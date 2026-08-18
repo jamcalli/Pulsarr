@@ -13,6 +13,25 @@ export const MaintainerrWebhookResponseSchema = z.object({
   created: z.number(),
 })
 
+export const MaintainerrStatusSchema = z
+  .object({
+    status: z.enum(['disabled', 'unsupported_version', 'error', 'ok']),
+    version: z.string().optional(),
+    configId: z.number().optional(),
+    connectedGroups: z.number().optional(),
+    testDelivered: z.boolean().optional(),
+    error: z.string().optional(),
+  })
+  .meta({
+    id: 'MaintainerrStatus',
+    description: 'Result of the most recent Maintainerr reconcile',
+  })
+
+export const MaintainerrStatusResponseSchema = z.object({
+  success: z.boolean(),
+  result: MaintainerrStatusSchema.nullable(),
+})
+
 export type MaintainerrWebhookPayload = z.infer<
   typeof MaintainerrWebhookPayloadSchema
 >

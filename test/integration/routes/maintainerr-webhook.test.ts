@@ -34,6 +34,7 @@ describe('POST /v1/notifications/webhook/maintainerr', () => {
     const knex = getTestDatabase()
     await resetDatabase()
     await seedAll(knex)
+    app.config.maintainerrEnabled = true
   })
 
   it('returns 401 for a missing secret', async () => {
@@ -144,6 +145,34 @@ describe('POST /v1/notifications/webhook/maintainerr', () => {
       key: SEEDED_MOVIE.key,
     })
     expect(rows).toHaveLength(1)
+  })
+
+  it('acks without writing when the integration is disabled', async () => {
+    app.config.maintainerrEnabled = false
+    const mediaItems = JSON.stringify([
+      {
+        mediaServerId: '116021',
+        type: 'movie',
+        title: SEEDED_MOVIE.title,
+        providerIds: { imdb: ['tt0063350'], tmdb: [], tvdb: [] },
+      },
+    ])
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/notifications/webhook/maintainerr',
+      headers: { authorization: app.config.maintainerrWebhookSecret },
+      payload: handledPayload(mediaItems),
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(JSON.parse(res.payload)).toEqual({ success: true, created: 0 })
+
+    const knex = getTestDatabase()
+    const rows = await knex('watchlist_exclusions').where({
+      key: SEEDED_MOVIE.key,
+    })
+    expect(rows).toHaveLength(0)
   })
 
   it('ignores items whose guids match nothing on any watchlist', async () => {

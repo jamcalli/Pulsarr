@@ -1,5 +1,6 @@
 import { PROBE_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import {
+  MaintainerrStatusResponseSchema,
   MaintainerrWebhookErrorSchema,
   MaintainerrWebhookPayloadSchema,
   MaintainerrWebhookResponseSchema,
@@ -73,6 +74,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return { success: true, created: 0 }
       }
 
+      if (!fastify.config.maintainerrEnabled) {
+        fastify.log.debug(
+          'Ignoring Maintainerr webhook - integration is disabled',
+        )
+        return { success: true, created: 0 }
+      }
+
       let items: MaintainerrMediaItem[]
       try {
         const parsed = JSON.parse(mediaItems ?? '[]') as MaintainerrMediaItem[]
@@ -109,6 +117,54 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         return reply.internalServerError(
           'Failed to process Maintainerr webhook',
         )
+      }
+    },
+  )
+
+  // Get Maintainerr Status
+  fastify.get(
+    '/maintainerr/status',
+    {
+      schema: {
+        summary: 'Get Maintainerr status',
+        operationId: 'getMaintainerrStatus',
+        description: 'Retrieve the result of the most recent Maintainerr sync',
+        response: {
+          200: MaintainerrStatusResponseSchema,
+        },
+        tags: ['Notifications'],
+      },
+    },
+    async () => {
+      return { success: true, result: fastify.maintainerr.status }
+    },
+  )
+
+  // Sync Maintainerr
+  fastify.post(
+    '/maintainerr/sync',
+    {
+      schema: {
+        summary: 'Sync Maintainerr',
+        operationId: 'syncMaintainerr',
+        description:
+          'Provision the Maintainerr webhook configuration and rule group connections now',
+        response: {
+          200: MaintainerrStatusResponseSchema,
+          500: MaintainerrWebhookErrorSchema,
+        },
+        tags: ['Notifications'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const result = await fastify.maintainerr.reconcile()
+        return { success: true, result }
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to sync Maintainerr',
+        })
+        return reply.internalServerError('Failed to sync Maintainerr')
       }
     },
   )

@@ -147,6 +147,10 @@ const schema = {
       minLength: 16,
       default: generateSecret(),
     },
+    maintainerrEnabled: {
+      type: 'boolean',
+      default: false,
+    },
     maintainerrUrl: {
       type: 'string',
       default: '',

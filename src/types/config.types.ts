@@ -136,6 +136,7 @@ export interface Config {
   rateLimitMax: number
   queueProcessDelaySeconds: number
   // Maintainerr Config
+  maintainerrEnabled: boolean
   maintainerrUrl: string
   maintainerrWebhookSecret: string
   maintainerrExclusionMode: 'watchlisters' | 'global'
