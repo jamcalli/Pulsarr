@@ -1,7 +1,7 @@
 import { createLoggerConfig, validLogLevels } from '@utils/logger.js'
 import { normalizeBasePath } from '@utils/url.js'
 import closeWithGrace from 'close-with-grace'
-import Fastify from 'fastify'
+import Fastify, { LogController } from 'fastify'
 import fp from 'fastify-plugin'
 import type { LevelWithSilent } from 'pino'
 import serviceApp from './app.js'
@@ -22,7 +22,9 @@ async function init() {
     pluginTimeout: 60000,
     // Force close persistent connections (like SSE) during shutdown
     forceCloseConnections: true,
-    disableRequestLogging: !enableRequestLogging,
+    logController: new LogController({
+      disableRequestLogging: !enableRequestLogging,
+    }),
     // Trust X-Forwarded-For from private networks so request.ip resolves to
     // the real client behind a reverse proxy (needed for auth bypass, rate
     // limiting, and logging). Uses proxy-addr presets for RFC1918 + loopback.
