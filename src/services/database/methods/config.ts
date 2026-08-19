@@ -274,6 +274,7 @@ export async function createConfig(
       baseUrl: config.baseUrl,
       cookieSecret: config.cookieSecret,
       webhookSecret: config.webhookSecret,
+      maintainerrWebhookSecret: config.maintainerrWebhookSecret,
       cookieName: config.cookieName,
       cookieSecured: config.cookieSecured,
       logLevel: config.logLevel,

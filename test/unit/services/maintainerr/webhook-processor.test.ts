@@ -1,3 +1,4 @@
+import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import type { DatabaseService } from '@services/database.service.js'
 import {
   type MaintainerrMediaItem,
@@ -97,7 +98,7 @@ describe('processMaintainerrHandledItems', () => {
 
     expect(mockDb.excludeWatchlistItem).toHaveBeenCalledWith(
       'plex-key-1',
-      [0],
+      [SYSTEM_USER_ID],
       'A Sample Movie',
       'movie',
       ['imdb:tt0111161', 'tmdb:278'],

@@ -57,6 +57,7 @@ function versionAtLeast(version: string, minimum: number[]): boolean {
 export class MaintainerrService {
   private lastTestReceivedAt: number | null = null
   private lastResult: MaintainerrReconcileResult | null = null
+  private inFlight: Promise<MaintainerrReconcileResult> | null = null
 
   constructor(
     private readonly log: FastifyBaseLogger,
@@ -179,6 +180,16 @@ export class MaintainerrService {
    * webhook config, connect delete-action rule groups, verify delivery.
    */
   async reconcile(): Promise<MaintainerrReconcileResult> {
+    // Boot, the hourly job, config saves, and manual syncs can overlap;
+    // concurrent runs would both create the notification config
+    if (this.inFlight) return this.inFlight
+    this.inFlight = this.reconcileInternal().finally(() => {
+      this.inFlight = null
+    })
+    return this.inFlight
+  }
+
+  private async reconcileInternal(): Promise<MaintainerrReconcileResult> {
     if (!this.config.maintainerrUrl) {
       return this.finish({ status: 'disabled' })
     }

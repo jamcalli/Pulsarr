@@ -77,7 +77,10 @@ export function MaintainerrSection() {
               size="sm"
               onClick={() => handleToggle(!isEnabled)}
               disabled={
-                isToggling || isSaving || !hasUrl || form.formState.isDirty
+                isToggling ||
+                isSaving ||
+                (!isEnabled && !hasUrl) ||
+                form.formState.isDirty
               }
               variant={isEnabled ? 'error' : 'noShadow'}
               className="h-8"

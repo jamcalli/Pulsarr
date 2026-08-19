@@ -31,7 +31,6 @@ function stubMaintainerr(options: {
   version?: string
   configurations?: unknown[]
   configurationsAfterAdd?: unknown[]
-  rules?: unknown[]
   recorded?: RecordedRequest[]
 }) {
   const recorded = options.recorded ?? []
@@ -135,7 +134,6 @@ describe('MaintainerrService.reconcile', () => {
     const recorded = stubMaintainerr({
       configurations: [],
       configurationsAfterAdd: [PULSARR_CONFIG],
-      rules: [],
     })
     server.use(
       http.get(`${BASE}/api/rules`, () =>
@@ -219,7 +217,6 @@ describe('MaintainerrService.reconcile', () => {
   it('updates an existing config in place instead of creating a duplicate', async () => {
     const recorded = stubMaintainerr({
       configurations: [PULSARR_CONFIG],
-      rules: [],
     })
     server.use(http.get(`${BASE}/api/rules`, () => HttpResponse.json([])))
 
