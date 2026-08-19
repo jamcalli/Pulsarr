@@ -1654,46 +1654,6 @@ export async function getAllGuidsByTvdbId(
 }
 
 /**
- * Retrieves all users who have a watchlist item containing the specified GUID.
- *
- * Performs a case-insensitive search for the GUID within all watchlist items and returns a distinct list of users, including their IDs, usernames, and watchlist IDs.
- *
- * @param guid - The GUID to search for in users' watchlist items
- * @returns An array of objects, each containing the user's `id`, `username`, and `watchlist_id`
- */
-export async function getWatchlistUsersByGuid(
-  this: DatabaseService,
-  guid: string,
-): Promise<
-  Array<{
-    id: number
-    username: string
-    watchlist_id: string
-  }>
-> {
-  // Use database-specific JSON functions to efficiently find items containing the GUID
-  const users = this.isPostgres
-    ? await this.knex('watchlist_items as wi')
-        .join('users as u', 'wi.user_id', 'u.id')
-        .whereRaw(
-          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(wi.guids) elem WHERE lower(elem) = lower(?))',
-          [guid],
-        )
-        .select('u.id', 'u.name as username', 'u.watchlist_id')
-        .distinct()
-    : await this.knex('watchlist_items as wi')
-        .join('users as u', 'wi.user_id', 'u.id')
-        .whereRaw(
-          "EXISTS (SELECT 1 FROM json_each(wi.guids) WHERE json_each.type = 'text' AND lower(json_each.value) = lower(?))",
-          [guid],
-        )
-        .select('u.id', 'u.name as username', 'u.watchlist_id')
-        .distinct()
-
-  return users
-}
-
-/**
  * Retrieves all watchlist items that contain any of the specified GUIDs, including associated user information.
  *
  * GUID matching is case-insensitive. Each result includes watchlist item fields and the corresponding user's username and watchlist ID for items whose GUIDs array contains at least one of the provided GUIDs.
@@ -1718,7 +1678,6 @@ export async function getWatchlistItemsWithUsersByGuids(
     status: string
     // User fields
     username: string
-    watchlist_id: string
   }>
 > {
   if (guids.length === 0) {
@@ -1747,7 +1706,6 @@ export async function getWatchlistItemsWithUsersByGuids(
           'wi.genres',
           'wi.status',
           'u.name as username',
-          'u.watchlist_id',
         )
     : await this.knex('watchlist_items as wi')
         .join('users as u', 'wi.user_id', 'u.id')
@@ -1771,7 +1729,6 @@ export async function getWatchlistItemsWithUsersByGuids(
           'wi.genres',
           'wi.status',
           'u.name as username',
-          'u.watchlist_id',
         )
 
   return items.map((item) => ({

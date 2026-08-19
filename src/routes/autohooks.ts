@@ -5,15 +5,16 @@ import type { FastifyInstance } from 'fastify'
 
 export default async function (fastify: FastifyInstance) {
   // API paths reachable without auth: login and create-admin bootstrap the
-  // admin session; the webhook validates its own shared secret in the route
+  // admin session; the webhooks validate their own shared secret in the route
   const publicApiPaths = [
     '/v1/users/login',
     '/v1/users/create-admin',
     '/v1/notifications/webhook',
+    '/v1/notifications/webhook/maintainerr',
   ]
 
   const basePath = normalizeBasePath(fastify.config.basePath)
-  // Exact match only - no public route has subpaths
+  // Exact match only - every public route is listed literally
   const fullPublicApiPaths = new Set(
     publicApiPaths.map((path) =>
       basePath === '/' ? path : `${basePath}${path}`,

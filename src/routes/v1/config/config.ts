@@ -194,6 +194,44 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
+        // Handle Maintainerr changes - the sync schedule follows the toggle,
+        // and a reconcile applies the new state to Maintainerr immediately
+        if (
+          'maintainerrEnabled' in safeConfigUpdate ||
+          'maintainerrUrl' in safeConfigUpdate
+        ) {
+          const maintainerrActive = Boolean(
+            savedConfig.maintainerrEnabled && savedConfig.maintainerrUrl,
+          )
+          // A replaced or cleared URL leaves the previous instance with an
+          // enabled webhook that keeps sending events - disable it there
+          const previousBase = currentConfig?.maintainerrUrl?.replace(
+            /\/+$/,
+            '',
+          )
+          const savedBase = (savedConfig.maintainerrUrl ?? '').replace(
+            /\/+$/,
+            '',
+          )
+          if (previousBase && previousBase !== savedBase) {
+            void fastify.maintainerr.disableRemoteConfig(previousBase)
+          }
+          void fastify.scheduler
+            .updateJobSchedule('maintainerr-sync', null, maintainerrActive)
+            .catch((error) => {
+              fastify.log.error(
+                { error },
+                'Failed to update maintainerr-sync schedule after config update',
+              )
+            })
+          void fastify.maintainerr.reconcile().catch((error) => {
+            fastify.log.error(
+              { error },
+              'Failed to reconcile Maintainerr after config update',
+            )
+          })
+        }
+
         // Handle Plex Label Sync config changes - compare before/after states
         if ('plexLabelSync' in safeConfigUpdate) {
           const wasEnabled = currentConfig?.plexLabelSync?.enabled === true

@@ -1,8 +1,10 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { PageError } from '@/components/ui/page-error'
+import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { useUserList, useUsers } from '@/features/plex/hooks/usePlexUsers'
+import { MaintainerrSection } from '@/features/utilities/components/watchlist-exclusions/maintainerr-section'
 import {
   type BulkExclusionScope,
   type BulkExclusionStatus,
@@ -476,6 +478,10 @@ export function WatchlistExclusionsPage() {
       />
 
       <div>
+        <MaintainerrSection />
+
+        <Separator className="my-6" />
+
         <UtilitySectionHeader
           title="Watchlist Exclusions"
           description="Prevent specific watchlist items from being routed to Sonarr and Radarr"

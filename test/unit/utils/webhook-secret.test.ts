@@ -1,4 +1,4 @@
-import { safeSecretCompare } from '@root/routes/v1/notifications/webhook.js'
+import { safeSecretCompare } from '@utils/webhook-secret.js'
 import { describe, expect, it } from 'vitest'
 
 describe('safeSecretCompare', () => {
