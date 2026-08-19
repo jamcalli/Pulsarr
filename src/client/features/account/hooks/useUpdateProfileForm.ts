@@ -130,6 +130,30 @@ export function useUpdateProfileForm({
     setEditingUsername(false)
   }, [currentUsername, emailChanged, form])
 
+  const commitEmailDraft = useCallback(
+    (value: string) => {
+      form.setValue('email', value, { shouldValidate: true })
+      setEditingEmail(false)
+    },
+    [form],
+  )
+
+  const commitUsernameDraft = useCallback(
+    (value: string) => {
+      form.setValue('username', value, { shouldValidate: true })
+      setEditingUsername(false)
+    },
+    [form],
+  )
+
+  const stopEditingEmail = useCallback(() => {
+    setEditingEmail(false)
+  }, [])
+
+  const stopEditingUsername = useCallback(() => {
+    setEditingUsername(false)
+  }, [])
+
   const onSubmit = useCallback(
     async (data: UpdateProfileForm) => {
       setStatus('loading')
@@ -210,6 +234,10 @@ export function useUpdateProfileForm({
     startEditingUsername,
     cancelEditingEmail,
     cancelEditingUsername,
+    commitEmailDraft,
+    commitUsernameDraft,
+    stopEditingEmail,
+    stopEditingUsername,
     onSubmit,
   }
 }

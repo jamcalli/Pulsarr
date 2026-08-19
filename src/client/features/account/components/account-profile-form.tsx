@@ -1,4 +1,4 @@
-import { Check, Loader2, Pencil, Save } from 'lucide-react'
+import { Check, Loader2, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -8,13 +8,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { InlineEdit, InlineEditButton } from '@/components/ui/inline-edit'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { useUpdateProfileForm } from '@/features/account/hooks/useUpdateProfileForm'
 import { LoginErrorMessage } from '@/features/auth/components/login-error'
 
@@ -25,44 +21,6 @@ interface AccountProfileFormProps {
 
 const readOnlyFieldClassName =
   'flex h-10 w-full min-w-0 flex-1 items-center overflow-hidden rounded-base border-2 border-border px-3 py-2 text-sm font-base bg-black/25 text-main-foreground/45 shadow-none'
-
-interface ReadOnlyProfileFieldProps {
-  value: string
-  onEdit: () => void
-  editTooltip: string
-  disabled?: boolean
-}
-
-function ReadOnlyProfileField({
-  value,
-  onEdit,
-  editTooltip,
-  disabled = false,
-}: ReadOnlyProfileFieldProps) {
-  return (
-    <div className="flex gap-2">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type="button"
-            variant="noShadow"
-            size="icon"
-            onClick={onEdit}
-            disabled={disabled}
-            aria-label={editTooltip}
-            className="shrink-0"
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{editTooltip}</TooltipContent>
-      </Tooltip>
-      <div className={readOnlyFieldClassName}>
-        <span className="block w-full truncate">{value}</span>
-      </div>
-    </div>
-  )
-}
 
 export function AccountProfileForm({
   currentEmail,
@@ -80,11 +38,16 @@ export function AccountProfileForm({
     startEditingUsername,
     cancelEditingEmail,
     cancelEditingUsername,
+    commitEmailDraft,
+    commitUsernameDraft,
+    stopEditingEmail,
+    stopEditingUsername,
     onSubmit,
   } = useUpdateProfileForm({ currentEmail, currentUsername })
 
   const isSubmitDisabled =
     !canSubmit || status === 'loading' || status === 'success'
+  const isLoading = status === 'loading'
 
   return (
     <Form {...form}>
@@ -95,88 +58,110 @@ export function AccountProfileForm({
       >
         <div className="space-y-2">
           {editingEmail ? (
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <div className="flex gap-2">
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="email"
-                        autoComplete="email"
-                        className="min-w-0 flex-1"
-                      />
-                    </FormControl>
-                    <Button
-                      type="button"
-                      variant="cancel"
-                      onClick={cancelEditingEmail}
-                      disabled={status === 'loading'}
-                      className="h-10 shrink-0"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <div className="flex gap-2">
+                <InlineEdit
+                  value={currentEmail}
+                  onCommit={commitEmailDraft}
+                  editing={editingEmail}
+                  onEditingChange={(editing) => {
+                    if (!editing) {
+                      stopEditingEmail()
+                    }
+                  }}
+                  editLabel="Click to edit email"
+                  disabled={isLoading}
+                  className="mr-0 min-w-0 flex-1"
+                  inputClassName="min-w-0"
+                />
+                <Button
+                  type="button"
+                  variant="cancel"
+                  onClick={cancelEditingEmail}
+                  disabled={isLoading}
+                  className="h-10 shrink-0"
+                >
+                  Cancel
+                </Button>
+              </div>
+              {form.formState.errors.email?.message && (
+                <p className="text-sm font-medium text-destructive">
+                  {form.formState.errors.email.message}
+                </p>
               )}
-            />
+            </FormItem>
           ) : (
             <>
               <Label>Email</Label>
-              <ReadOnlyProfileField
-                value={currentEmail}
-                onEdit={startEditingEmail}
-                editTooltip="Click to edit email"
-                disabled={status === 'loading'}
-              />
+              <div className="flex gap-2">
+                {!isLoading && (
+                  <InlineEditButton
+                    onClick={startEditingEmail}
+                    editLabel="Click to edit email"
+                    className="opacity-100"
+                  />
+                )}
+                <div className={readOnlyFieldClassName}>
+                  <span className="block w-full truncate">{currentEmail}</span>
+                </div>
+              </div>
             </>
           )}
         </div>
 
         <div className="space-y-2">
           {editingUsername ? (
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <div className="flex gap-2">
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="text"
-                        autoComplete="username"
-                        className="min-w-0 flex-1"
-                      />
-                    </FormControl>
-                    <Button
-                      type="button"
-                      variant="cancel"
-                      onClick={cancelEditingUsername}
-                      disabled={status === 'loading'}
-                      className="h-10 shrink-0"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
+            <FormItem>
+              <FormLabel>Username</FormLabel>
+              <div className="flex gap-2">
+                <InlineEdit
+                  value={currentUsername}
+                  onCommit={commitUsernameDraft}
+                  editing={editingUsername}
+                  onEditingChange={(editing) => {
+                    if (!editing) {
+                      stopEditingUsername()
+                    }
+                  }}
+                  editLabel="Click to edit username"
+                  disabled={isLoading}
+                  className="mr-0 min-w-0 flex-1"
+                  inputClassName="min-w-0"
+                />
+                <Button
+                  type="button"
+                  variant="cancel"
+                  onClick={cancelEditingUsername}
+                  disabled={isLoading}
+                  className="h-10 shrink-0"
+                >
+                  Cancel
+                </Button>
+              </div>
+              {form.formState.errors.username?.message && (
+                <p className="text-sm font-medium text-destructive">
+                  {form.formState.errors.username.message}
+                </p>
               )}
-            />
+            </FormItem>
           ) : (
             <>
               <Label>Username</Label>
-              <ReadOnlyProfileField
-                value={currentUsername}
-                onEdit={startEditingUsername}
-                editTooltip="Click to edit username"
-                disabled={status === 'loading'}
-              />
+              <div className="flex gap-2">
+                {!isLoading && (
+                  <InlineEditButton
+                    onClick={startEditingUsername}
+                    editLabel="Click to edit username"
+                    className="opacity-100"
+                  />
+                )}
+                <div className={readOnlyFieldClassName}>
+                  <span className="block w-full truncate">
+                    {currentUsername}
+                  </span>
+                </div>
+              </div>
             </>
           )}
         </div>
