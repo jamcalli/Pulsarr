@@ -59,7 +59,7 @@ export function useMaintainerr() {
     form.reset(values, { keepDirty: false })
 
     // Radix Select can miss a single reset on initial load - re-apply
-    setTimeout(() => {
+    const resetTimer = setTimeout(() => {
       if (
         form.getValues('maintainerrExclusionMode') !==
         values.maintainerrExclusionMode
@@ -69,9 +69,11 @@ export function useMaintainerr() {
           values.maintainerrExclusionMode,
           { shouldDirty: false },
         )
-        form.reset(form.getValues(), { keepDirty: false })
       }
+      form.reset(form.getValues(), { keepDirty: false })
     }, 0)
+
+    return () => clearTimeout(resetTimer)
   }, [config, form])
 
   const onSubmit = async (data: MaintainerrFormValues) => {

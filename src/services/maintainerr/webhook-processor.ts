@@ -26,11 +26,13 @@ export interface MaintainerrWebhookDeps {
 }
 
 function toGuids(providerIds: MaintainerrMediaItem['providerIds']): string[] {
-  if (!providerIds) return []
+  if (!providerIds || typeof providerIds !== 'object') return []
+  const ids = (values: unknown, prefix: string) =>
+    Array.isArray(values) ? values.map((id) => `${prefix}:${id}`) : []
   return parseGuids([
-    ...(providerIds.imdb ?? []).map((id) => `imdb:${id}`),
-    ...(providerIds.tmdb ?? []).map((id) => `tmdb:${id}`),
-    ...(providerIds.tvdb ?? []).map((id) => `tvdb:${id}`),
+    ...ids(providerIds.imdb, 'imdb'),
+    ...ids(providerIds.tmdb, 'tmdb'),
+    ...ids(providerIds.tvdb, 'tvdb'),
   ])
 }
 
@@ -47,6 +49,8 @@ export async function processMaintainerrHandledItems(
   let created = 0
 
   for (const item of items) {
+    if (item === null || typeof item !== 'object') continue
+
     // Watchlists are movie/show level; season and episode entries carry
     // item-scoped provider ids that cannot key a show-level exclusion
     if (item.type !== 'movie' && item.type !== 'show') continue

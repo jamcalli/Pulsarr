@@ -78,6 +78,35 @@ describe('processMaintainerrHandledItems', () => {
     expect(result.created).toBe(2)
   })
 
+  it('skips malformed members and still processes valid items', async () => {
+    vi.mocked(mockDb.getWatchlistItemsWithUsersByGuids).mockResolvedValue([
+      makeRow({ user_id: 1 }),
+    ])
+    vi.mocked(mockDb.excludeWatchlistItem).mockResolvedValue(1)
+
+    const items = JSON.parse(
+      JSON.stringify([
+        null,
+        {
+          mediaServerId: '1',
+          type: 'movie',
+          title: 'Bad Ids',
+          providerIds: { imdb: 'tt0063350' },
+        },
+        {
+          mediaServerId: '116021',
+          type: 'movie',
+          title: 'A Sample Movie',
+          providerIds: { imdb: ['tt0111161'], tmdb: [], tvdb: [] },
+        },
+      ]),
+    ) as MaintainerrMediaItem[]
+    const result = await processMaintainerrHandledItems(items, deps())
+
+    expect(mockDb.getWatchlistItemsWithUsersByGuids).toHaveBeenCalledTimes(1)
+    expect(result.created).toBe(1)
+  })
+
   it('writes a single system-user exclusion in global mode', async () => {
     vi.mocked(mockDb.getWatchlistItemsWithUsersByGuids).mockResolvedValue([
       makeRow({ user_id: 1 }),

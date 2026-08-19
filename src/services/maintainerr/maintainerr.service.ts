@@ -33,6 +33,12 @@ interface MaintainerrRuleGroup {
   notifications?: Array<{ id: number }> | null
 }
 
+interface RunConfig {
+  base: string
+  secret: string
+  receiverUrl: string
+}
+
 export interface MaintainerrReconcileResult {
   status: 'disabled' | 'unsupported_version' | 'error' | 'ok'
   version?: string
@@ -73,16 +79,20 @@ export class MaintainerrService {
     this.lastTestReceivedAt = Date.now()
   }
 
-  private baseUrl(): string {
-    return this.config.maintainerrUrl.replace(/\/+$/, '')
+  private captureRunConfig(url: string): RunConfig {
+    return {
+      base: url.replace(/\/+$/, ''),
+      secret: this.config.maintainerrWebhookSecret,
+      receiverUrl: this.receiverUrl(),
+    }
   }
 
   private async api<T>(
     path: string,
-    body?: unknown,
-    base?: string,
+    body: unknown | undefined,
+    base: string,
   ): Promise<T> {
-    const response = await fetch(`${base ?? this.baseUrl()}/api${path}`, {
+    const response = await fetch(`${base}/api${path}`, {
       method: body === undefined ? 'GET' : 'POST',
       headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -104,7 +114,7 @@ export class MaintainerrService {
   private async apiMutation(
     path: string,
     body: unknown,
-    base?: string,
+    base: string,
   ): Promise<void> {
     const result = await this.api<{ code?: number; message?: string }>(
       path,
@@ -124,12 +134,12 @@ export class MaintainerrService {
    * config route can clean up the previous instance when the URL changes.
    */
   async disableRemoteConfig(url: string): Promise<void> {
-    const base = url.replace(/\/+$/, '')
+    const run = this.captureRunConfig(url)
     try {
       const configs = await this.api<MaintainerrNotificationConfig[]>(
         '/notifications/configurations',
         undefined,
-        base,
+        run.base,
       )
       const existing = configs.find(
         (c) => c.name === CONFIG_NAME && c.agent === 'webhook',
@@ -137,8 +147,8 @@ export class MaintainerrService {
       if (existing?.enabled) {
         await this.apiMutation(
           '/notifications/configuration/add',
-          { ...this.configPayload(existing.id), enabled: false },
-          base,
+          { ...this.configPayload(run, existing.id), enabled: false },
+          run.base,
         )
       }
     } catch (error) {
@@ -149,8 +159,8 @@ export class MaintainerrService {
     }
   }
 
-  private async fetchVersion(): Promise<string> {
-    const response = await fetch(`${this.baseUrl()}/api/settings/version`, {
+  private async fetchVersion(base: string): Promise<string> {
+    const response = await fetch(`${base}/api/settings/version`, {
       signal: AbortSignal.timeout(15000),
     })
     if (!response.ok) {
@@ -181,7 +191,7 @@ export class MaintainerrService {
     return url.toString()
   }
 
-  private configPayload(id?: number) {
+  private configPayload(run: RunConfig, id?: number) {
     return {
       ...(id !== undefined ? { id } : {}),
       agent: 'webhook',
@@ -190,8 +200,8 @@ export class MaintainerrService {
       types: [MEDIA_HANDLED],
       aboutScale: 3,
       options: {
-        webhookUrl: this.receiverUrl(),
-        authHeader: this.config.maintainerrWebhookSecret,
+        webhookUrl: run.receiverUrl,
+        authHeader: run.secret,
         // Must be an object, not a string - Maintainerr's webhook agent
         // Object.assigns onto it, and a string makes that throw so the
         // webhook silently never fires
@@ -233,17 +243,19 @@ export class MaintainerrService {
   }
 
   private async reconcileInternal(): Promise<MaintainerrReconcileResult> {
-    if (!this.config.maintainerrUrl) {
+    const url = this.config.maintainerrUrl
+    if (!url) {
       return this.finish({ status: 'disabled' })
     }
 
     if (!this.config.maintainerrEnabled) {
-      await this.disableRemoteConfig(this.config.maintainerrUrl)
+      await this.disableRemoteConfig(url)
       return this.finish({ status: 'disabled' })
     }
 
+    const run = this.captureRunConfig(url)
     try {
-      const version = await this.fetchVersion()
+      const version = await this.fetchVersion(run.base)
       const normalised = normaliseVersion(version)
       if (!normalised || semver.lt(normalised, MIN_VERSION)) {
         this.log.warn(
@@ -255,14 +267,18 @@ export class MaintainerrService {
 
       const configs = await this.api<MaintainerrNotificationConfig[]>(
         '/notifications/configurations',
+        undefined,
+        run.base,
       )
       const existing = configs.find(
         (c) => c.name === CONFIG_NAME && c.agent === 'webhook',
       )
 
-      await this.apiMutation('/notifications/configuration/add', {
-        ...this.configPayload(existing?.id),
-      })
+      await this.apiMutation(
+        '/notifications/configuration/add',
+        { ...this.configPayload(run, existing?.id) },
+        run.base,
+      )
 
       // add with an id updates in place; without one it creates, so re-read
       // to learn the new id
@@ -270,6 +286,8 @@ export class MaintainerrService {
       if (configId === undefined) {
         const refreshed = await this.api<MaintainerrNotificationConfig[]>(
           '/notifications/configurations',
+          undefined,
+          run.base,
         )
         configId = refreshed.find(
           (c) => c.name === CONFIG_NAME && c.agent === 'webhook',
@@ -279,7 +297,11 @@ export class MaintainerrService {
         throw new Error('Notification config missing after provisioning')
       }
 
-      const groups = await this.api<MaintainerrRuleGroup[]>('/rules')
+      const groups = await this.api<MaintainerrRuleGroup[]>(
+        '/rules',
+        undefined,
+        run.base,
+      )
       let connectedGroups = 0
       for (const group of groups) {
         const shouldConnect =
@@ -291,16 +313,18 @@ export class MaintainerrService {
         if (shouldConnect) {
           connectedGroups++
           if (!isConnected) {
-            await this.apiMutation('/notifications/configuration/connect', {
-              rulegroupId: group.id,
-              notificationId: configId,
-            })
+            await this.apiMutation(
+              '/notifications/configuration/connect',
+              { rulegroupId: group.id, notificationId: configId },
+              run.base,
+            )
           }
         } else if (isConnected) {
-          await this.apiMutation('/notifications/configuration/disconnect', {
-            rulegroupId: group.id,
-            notificationId: configId,
-          })
+          await this.apiMutation(
+            '/notifications/configuration/disconnect',
+            { rulegroupId: group.id, notificationId: configId },
+            run.base,
+          )
         }
       }
 
@@ -311,7 +335,8 @@ export class MaintainerrService {
       const testStarted = Date.now()
       const testResponse = await this.api<string>(
         '/notifications/test',
-        this.configPayload(configId),
+        this.configPayload(run, configId),
+        run.base,
       )
       const testDelivered =
         this.lastTestReceivedAt !== null &&
