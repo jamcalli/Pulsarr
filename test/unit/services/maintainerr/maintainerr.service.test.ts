@@ -250,6 +250,28 @@ describe('MaintainerrService.reconcile', () => {
     ])
   })
 
+  it('omits the port and honors basePath for an https receiver url', async () => {
+    const httpsService = makeService({
+      baseUrl: 'https://pulsarr.test',
+      basePath: '/pulsarr',
+    })
+    const recorded = stubMaintainerr({
+      configurations: [PULSARR_CONFIG],
+    })
+    server.use(http.get(`${BASE}/api/rules`, () => HttpResponse.json([])))
+
+    const result = await httpsService.reconcile()
+
+    expect(result.status).toBe('ok')
+    const add = recorded.find((r) => r.path === '/configuration/add')
+    const addBody = add?.body as {
+      options: { webhookUrl: string }
+    }
+    expect(addBody.options.webhookUrl).toBe(
+      'https://pulsarr.test/pulsarr/v1/notifications/webhook/maintainerr',
+    )
+  })
+
   it('updates an existing config in place instead of creating a duplicate', async () => {
     const recorded = stubMaintainerr({
       configurations: [PULSARR_CONFIG],
@@ -316,27 +338,30 @@ describe('MaintainerrService.reconcile', () => {
 
   it('runs once more when a caller arrives mid-reconcile', async () => {
     let fetches = 0
-    let releaseFirst: (() => void) | undefined
-    const firstFetchStarted = new Promise<void>((resolve) => {
-      server.use(
-        http.get(`${BASE}/api/settings/version`, async () => {
-          fetches++
-          if (fetches === 1) {
-            resolve()
-            await new Promise<void>((r) => {
-              releaseFirst = r
-            })
-          }
-          return HttpResponse.text('3.22.1')
-        }),
-      )
+    let releaseFirst = () => {}
+    const gate = new Promise<void>((resolve) => {
+      releaseFirst = resolve
     })
+    let signalFirstFetch = () => {}
+    const firstFetchStarted = new Promise<void>((resolve) => {
+      signalFirstFetch = resolve
+    })
+    server.use(
+      http.get(`${BASE}/api/settings/version`, async () => {
+        fetches++
+        if (fetches === 1) {
+          signalFirstFetch()
+          await gate
+        }
+        return HttpResponse.text('3.22.1')
+      }),
+    )
 
     const first = service.reconcile()
     await firstFetchStarted
     const second = service.reconcile()
 
-    releaseFirst?.()
+    releaseFirst()
     const [firstResult, secondResult] = await Promise.all([first, second])
 
     // The joined caller shares the promise, and its arrival triggers a
