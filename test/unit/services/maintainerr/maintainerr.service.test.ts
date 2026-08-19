@@ -124,6 +124,33 @@ describe('MaintainerrService.reconcile', () => {
     expect(addBody.enabled).toBe(false)
   })
 
+  it('disables the webhook on a previous instance by explicit url', async () => {
+    const OLD_BASE = 'http://maintainerr-old.test:6246'
+    const recorded: RecordedRequest[] = []
+    server.use(
+      http.get(`${OLD_BASE}/api/notifications/configurations`, () =>
+        HttpResponse.json([{ ...PULSARR_CONFIG, enabled: true }]),
+      ),
+      http.post(
+        `${OLD_BASE}/api/notifications/configuration/add`,
+        async ({ request }) => {
+          recorded.push({
+            path: '/configuration/add',
+            body: await request.json(),
+          })
+          return HttpResponse.json({ code: 1, status: 'OK' })
+        },
+      ),
+    )
+
+    await service.disableRemoteConfig(OLD_BASE)
+
+    const add = recorded.find((r) => r.path === '/configuration/add')
+    const addBody = add?.body as { id?: number; enabled?: boolean }
+    expect(addBody.id).toBe(7)
+    expect(addBody.enabled).toBe(false)
+  })
+
   it('rejects versions below 3.23.0', async () => {
     stubMaintainerr({ version: '3.22.1' })
     const result = await service.reconcile()

@@ -77,8 +77,12 @@ export class MaintainerrService {
     return this.config.maintainerrUrl.replace(/\/+$/, '')
   }
 
-  private async api<T>(path: string, body?: unknown): Promise<T> {
-    const response = await fetch(`${this.baseUrl()}/api${path}`, {
+  private async api<T>(
+    path: string,
+    body?: unknown,
+    base?: string,
+  ): Promise<T> {
+    const response = await fetch(`${base ?? this.baseUrl()}/api${path}`, {
       method: body === undefined ? 'GET' : 'POST',
       headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -97,14 +101,50 @@ export class MaintainerrService {
   }
 
   // Mutation endpoints report failure as { code: 0 } with HTTP 200
-  private async apiMutation(path: string, body: unknown): Promise<void> {
+  private async apiMutation(
+    path: string,
+    body: unknown,
+    base?: string,
+  ): Promise<void> {
     const result = await this.api<{ code?: number; message?: string }>(
       path,
       body,
+      base,
     )
     if (typeof result === 'object' && result?.code === 0) {
       throw new Error(
         `Maintainerr API ${path} failed: ${result.message ?? 'unknown error'}`,
+      )
+    }
+  }
+
+  /**
+   * Best-effort disable of the Pulsarr webhook config on a Maintainerr
+   * instance, so events stop at the source. Takes an explicit URL so the
+   * config route can clean up the previous instance when the URL changes.
+   */
+  async disableRemoteConfig(url: string): Promise<void> {
+    const base = url.replace(/\/+$/, '')
+    try {
+      const configs = await this.api<MaintainerrNotificationConfig[]>(
+        '/notifications/configurations',
+        undefined,
+        base,
+      )
+      const existing = configs.find(
+        (c) => c.name === CONFIG_NAME && c.agent === 'webhook',
+      )
+      if (existing?.enabled) {
+        await this.apiMutation(
+          '/notifications/configuration/add',
+          { ...this.configPayload(existing.id), enabled: false },
+          base,
+        )
+      }
+    } catch (error) {
+      this.log.warn(
+        { error, url },
+        'Failed to disable the Maintainerr webhook config',
       )
     }
   }
@@ -198,26 +238,7 @@ export class MaintainerrService {
     }
 
     if (!this.config.maintainerrEnabled) {
-      // Best-effort: switch off the remote config so events stop at the source
-      try {
-        const configs = await this.api<MaintainerrNotificationConfig[]>(
-          '/notifications/configurations',
-        )
-        const existing = configs.find(
-          (c) => c.name === CONFIG_NAME && c.agent === 'webhook',
-        )
-        if (existing?.enabled) {
-          await this.apiMutation('/notifications/configuration/add', {
-            ...this.configPayload(existing.id),
-            enabled: false,
-          })
-        }
-      } catch (error) {
-        this.log.warn(
-          { error },
-          'Failed to disable the Maintainerr webhook config',
-        )
-      }
+      await this.disableRemoteConfig(this.config.maintainerrUrl)
       return this.finish({ status: 'disabled' })
     }
 

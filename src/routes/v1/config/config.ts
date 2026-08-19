@@ -203,6 +203,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           const maintainerrActive = Boolean(
             savedConfig.maintainerrEnabled && savedConfig.maintainerrUrl,
           )
+          // A replaced or cleared URL leaves the previous instance with an
+          // enabled webhook that keeps sending events - disable it there
+          const previousUrl = currentConfig?.maintainerrUrl
+          if (previousUrl && previousUrl !== savedConfig.maintainerrUrl) {
+            void fastify.maintainerr.disableRemoteConfig(previousUrl)
+          }
           void fastify.scheduler
             .updateJobSchedule('maintainerr-sync', null, maintainerrActive)
             .catch((error) => {
