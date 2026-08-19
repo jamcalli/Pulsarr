@@ -130,6 +130,15 @@ describe('MaintainerrService.reconcile', () => {
     expect(result).toEqual({ status: 'unsupported_version', version: '3.22.1' })
   })
 
+  it('rejects prereleases of the minimum version', async () => {
+    stubMaintainerr({ version: '3.23.0-rc.1' })
+    const result = await service.reconcile()
+    expect(result).toEqual({
+      status: 'unsupported_version',
+      version: '3.23.0-rc.1',
+    })
+  })
+
   it('provisions the webhook config and connects delete-action rule groups only', async () => {
     const recorded = stubMaintainerr({
       configurations: [],
@@ -260,5 +269,53 @@ describe('MaintainerrService.reconcile', () => {
 
     expect(result.status).toBe('ok')
     expect(result.testDelivered).toBe(false)
+  })
+
+  it('surfaces the delivery failure reason from the test response', async () => {
+    stubMaintainerr({ configurations: [PULSARR_CONFIG] })
+    server.use(
+      http.get(`${BASE}/api/rules`, () => HttpResponse.json([])),
+      http.post(`${BASE}/api/notifications/test`, () =>
+        HttpResponse.text('Failure: connect ECONNREFUSED'),
+      ),
+    )
+
+    const result = await service.reconcile()
+
+    expect(result.status).toBe('ok')
+    expect(result.testDelivered).toBe(false)
+    expect(result.error).toBe('Failure: connect ECONNREFUSED')
+  })
+
+  it('runs once more when a caller arrives mid-reconcile', async () => {
+    let fetches = 0
+    let releaseFirst: (() => void) | undefined
+    const firstFetchStarted = new Promise<void>((resolve) => {
+      server.use(
+        http.get(`${BASE}/api/settings/version`, async () => {
+          fetches++
+          if (fetches === 1) {
+            resolve()
+            await new Promise<void>((r) => {
+              releaseFirst = r
+            })
+          }
+          return HttpResponse.text('3.22.1')
+        }),
+      )
+    })
+
+    const first = service.reconcile()
+    await firstFetchStarted
+    const second = service.reconcile()
+
+    releaseFirst?.()
+    const [firstResult, secondResult] = await Promise.all([first, second])
+
+    // The joined caller shares the promise, and its arrival triggers a
+    // second full run - visible as one extra version fetch
+    expect(firstResult).toBe(secondResult)
+    expect(firstResult.status).toBe('unsupported_version')
+    expect(fetches).toBe(2)
   })
 })

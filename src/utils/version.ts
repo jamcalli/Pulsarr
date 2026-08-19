@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import semver from 'semver'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const packageJson = JSON.parse(
@@ -18,6 +19,16 @@ export const APP_VERSION: string = packageJson.version
  * Format: "Pulsarr/0.7.5 (+https://github.com/jamcalli/Pulsarr)"
  */
 export const USER_AGENT = `${APP_NAME}/${APP_VERSION} (+https://github.com/jamcalli/Pulsarr)`
+
+/** Normalizes a version string to clean semver, null when unparseable */
+export function normaliseVersion(
+  input: string | null | undefined,
+): string | null {
+  if (!input) return null
+  const direct = semver.clean(input)
+  if (direct) return direct
+  return semver.clean(input.replace(/^v/i, ''))
+}
 
 /** Client identifier for Plex API requests (lowercase) */
 export const PLEX_CLIENT_IDENTIFIER = APP_NAME.toLowerCase()

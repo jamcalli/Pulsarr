@@ -1,5 +1,7 @@
 import { normalizeBasePath } from '@utils/url.js'
+import { normaliseVersion } from '@utils/version.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import semver from 'semver'
 
 // ServarrAction values whose handling deletes media: DELETE (0),
 // UNMONITOR_DELETE_ALL (1), UNMONITOR_DELETE_EXISTING (2),
@@ -10,7 +12,7 @@ const DELETE_ACTIONS = new Set([0, 1, 2, 5])
 // MEDIA_HANDLED notification type bit
 const MEDIA_HANDLED = 16
 
-const MIN_VERSION = [3, 23, 0]
+const MIN_VERSION = '3.23.0'
 
 const CONFIG_NAME = 'Pulsarr'
 
@@ -40,24 +42,11 @@ export interface MaintainerrReconcileResult {
   error?: string
 }
 
-function versionAtLeast(version: string, minimum: number[]): boolean {
-  const parts = version
-    .replace(/^v/, '')
-    .split('.')
-    .map((p) => Number.parseInt(p, 10))
-  for (let i = 0; i < minimum.length; i++) {
-    const part = parts[i] ?? 0
-    if (Number.isNaN(part)) return false
-    if (part > minimum[i]) return true
-    if (part < minimum[i]) return false
-  }
-  return true
-}
-
 export class MaintainerrService {
   private lastTestReceivedAt: number | null = null
   private lastResult: MaintainerrReconcileResult | null = null
   private inFlight: Promise<MaintainerrReconcileResult> | null = null
+  private rerunRequested = false
 
   constructor(
     private readonly log: FastifyBaseLogger,
@@ -181,12 +170,26 @@ export class MaintainerrService {
    */
   async reconcile(): Promise<MaintainerrReconcileResult> {
     // Boot, the hourly job, config saves, and manual syncs can overlap;
-    // concurrent runs would both create the notification config
-    if (this.inFlight) return this.inFlight
-    this.inFlight = this.reconcileInternal().finally(() => {
+    // concurrent runs would both create the notification config. A caller
+    // arriving mid-run usually carries a config change, so run once more
+    // after so the final state reflects it
+    if (this.inFlight) {
+      this.rerunRequested = true
+      return this.inFlight
+    }
+    this.inFlight = this.runReconcile().finally(() => {
       this.inFlight = null
     })
     return this.inFlight
+  }
+
+  private async runReconcile(): Promise<MaintainerrReconcileResult> {
+    let result = await this.reconcileInternal()
+    while (this.rerunRequested) {
+      this.rerunRequested = false
+      result = await this.reconcileInternal()
+    }
+    return result
   }
 
   private async reconcileInternal(): Promise<MaintainerrReconcileResult> {
@@ -220,7 +223,8 @@ export class MaintainerrService {
 
     try {
       const version = await this.fetchVersion()
-      if (!versionAtLeast(version, MIN_VERSION)) {
+      const normalised = normaliseVersion(version)
+      if (!normalised || semver.lt(normalised, MIN_VERSION)) {
         this.log.warn(
           { version },
           'Maintainerr version does not include provider ids in webhooks; upgrade to 3.23.0 or later',
@@ -280,15 +284,26 @@ export class MaintainerrService {
       }
 
       // Maintainerr delivers the test synchronously before responding, so a
-      // receipt recorded by our webhook route proves the full round trip
+      // receipt recorded by our webhook route proves the full round trip.
+      // The response is a bare string: 'Success', or 'Failure: <reason>'
+      // (also HTTP 200) when its webhook agent could not deliver
       const testStarted = Date.now()
-      await this.api('/notifications/test', this.configPayload(configId))
+      const testResponse = await this.api<string>(
+        '/notifications/test',
+        this.configPayload(configId),
+      )
       const testDelivered =
         this.lastTestReceivedAt !== null &&
         this.lastTestReceivedAt >= testStarted
 
+      let testFailureReason: string | undefined
       if (!testDelivered) {
+        testFailureReason =
+          typeof testResponse === 'string' && testResponse.startsWith('Failure')
+            ? testResponse
+            : undefined
         this.log.warn(
+          { reason: testFailureReason },
           'Maintainerr test notification did not reach the webhook receiver; check that Pulsarr is reachable from Maintainerr',
         )
       }
@@ -303,6 +318,7 @@ export class MaintainerrService {
         configId,
         connectedGroups,
         testDelivered,
+        ...(testFailureReason ? { error: testFailureReason } : {}),
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)

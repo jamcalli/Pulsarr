@@ -1,5 +1,5 @@
 import { createServiceLogger } from '@utils/logger.js'
-import { APP_VERSION, USER_AGENT } from '@utils/version.js'
+import { APP_VERSION, normaliseVersion, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import semver from 'semver'
 
@@ -36,13 +36,6 @@ interface GitHubRelease {
   published_at?: string | null
   draft?: boolean
   prerelease?: boolean
-}
-
-function normaliseVersion(input: string | null | undefined): string | null {
-  if (!input) return null
-  const direct = semver.clean(input)
-  if (direct) return direct
-  return semver.clean(input.replace(/^v/i, ''))
 }
 
 const PENDING_STATUS = (currentVersion: string): UpdateCheckStatusPayload => ({
