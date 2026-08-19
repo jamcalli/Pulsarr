@@ -24,6 +24,12 @@
         "in": "header",
         "name": "X-Pulsarr-Secret",
         "description": "Webhook authentication using auto-generated secret. Sonarr/Radarr webhooks are configured with this header automatically."
+      },
+      "maintainerrWebhookAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Webhook authentication using auto-generated secret in the Authorization header. Maintainerr webhooks are configured with this header automatically."
       }
     },
     "schemas": {
@@ -400,6 +406,19 @@
           },
           "queueProcessDelaySeconds": {
             "type": "number"
+          },
+          "maintainerrEnabled": {
+            "type": "boolean"
+          },
+          "maintainerrUrl": {
+            "type": "string"
+          },
+          "maintainerrExclusionMode": {
+            "type": "string",
+            "enum": [
+              "watchlisters",
+              "global"
+            ]
           },
           "discordWebhookUrl": {
             "type": "string"
@@ -951,6 +970,7 @@
           "updated_at",
           "cookieSecured",
           "queueProcessDelaySeconds",
+          "maintainerrEnabled",
           "enableApprise",
           "appriseUrl",
           "publicContentNotifications",
@@ -1073,6 +1093,27 @@
           },
           "queueProcessDelaySeconds": {
             "type": "number"
+          },
+          "maintainerrEnabled": {
+            "type": "boolean"
+          },
+          "maintainerrUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
+            ]
+          },
+          "maintainerrExclusionMode": {
+            "type": "string",
+            "enum": [
+              "watchlisters",
+              "global"
+            ]
           },
           "discordWebhookUrl": {
             "type": "string"
@@ -1738,6 +1779,40 @@
         ],
         "additionalProperties": false,
         "description": "Field and operator metadata an evaluator contributes to the rule builder"
+      },
+      "MaintainerrStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "unsupported_version",
+              "error",
+              "ok"
+            ]
+          },
+          "version": {
+            "type": "string"
+          },
+          "configId": {
+            "type": "number"
+          },
+          "connectedGroups": {
+            "type": "number"
+          },
+          "testDelivered": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false,
+        "description": "Result of the most recent Maintainerr reconcile"
       },
       "Message": {
         "type": "object",
@@ -8113,6 +8188,120 @@
         }
       }
     },
+    "/v1/notifications/maintainerr/status": {
+      "get": {
+        "operationId": "getMaintainerrStatus",
+        "summary": "Get Maintainerr status",
+        "tags": [
+          "Notifications"
+        ],
+        "description": "Retrieve the result of the most recent Maintainerr sync",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "result": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/MaintainerrStatus"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "result"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/notifications/maintainerr/sync": {
+      "post": {
+        "operationId": "syncMaintainerr",
+        "summary": "Sync Maintainerr",
+        "tags": [
+          "Notifications"
+        ],
+        "description": "Provision the Maintainerr webhook configuration and rule group connections now",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "result": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/MaintainerrStatus"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "result"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/notifications/validatewebhook": {
       "post": {
         "operationId": "validateDiscordWebhooks",
@@ -8543,6 +8732,104 @@
                   },
                   "required": [
                     "success"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/notifications/webhook/maintainerr": {
+      "post": {
+        "operationId": "processMaintainerrWebhook",
+        "summary": "Process Maintainerr webhook",
+        "tags": [
+          "Notifications"
+        ],
+        "description": "Process MEDIA_HANDLED webhooks from Maintainerr (3.23.0+) to exclude handled media from watchlist syncing. Requires the webhook secret in the Authorization header.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notification_type": {
+                    "type": "string"
+                  },
+                  "mediaItems": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "maintainerrWebhookAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "created": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "created"
                   ],
                   "additionalProperties": false
                 }

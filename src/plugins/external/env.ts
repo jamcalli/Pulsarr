@@ -147,6 +147,24 @@ const schema = {
       minLength: 16,
       default: generateSecret(),
     },
+    maintainerrEnabled: {
+      type: 'boolean',
+      default: false,
+    },
+    maintainerrUrl: {
+      type: 'string',
+      default: '',
+    },
+    maintainerrWebhookSecret: {
+      type: 'string',
+      minLength: 16,
+      default: generateSecret(),
+    },
+    maintainerrExclusionMode: {
+      type: 'string',
+      enum: ['watchlisters', 'global'],
+      default: 'watchlisters',
+    },
     logLevel: {
       type: 'string',
       enum: ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'],

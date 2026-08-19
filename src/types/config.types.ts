@@ -105,7 +105,10 @@ export type PublicContentKeyMap = Record<
   }
 >
 
-export type SecretColumn = 'cookieSecret' | 'webhookSecret'
+export type SecretColumn =
+  | 'cookieSecret'
+  | 'webhookSecret'
+  | 'maintainerrWebhookSecret'
 
 export interface Config {
   id: number
@@ -132,6 +135,11 @@ export interface Config {
   authenticationMethod: 'required' | 'requiredExceptLocal' | 'disabled'
   rateLimitMax: number
   queueProcessDelaySeconds: number
+  // Maintainerr Config
+  maintainerrEnabled: boolean
+  maintainerrUrl: string
+  maintainerrWebhookSecret: string
+  maintainerrExclusionMode: 'watchlisters' | 'global'
   // Discord Config
   discordWebhookUrl: string
   discordBotToken: string

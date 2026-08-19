@@ -290,6 +290,13 @@ const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
             description:
               'Webhook authentication using auto-generated secret. Sonarr/Radarr webhooks are configured with this header automatically.',
           },
+          maintainerrWebhookAuth: {
+            type: 'apiKey' as const,
+            in: 'header' as const,
+            name: 'Authorization',
+            description:
+              'Webhook authentication using auto-generated secret in the Authorization header. Maintainerr webhooks are configured with this header automatically.',
+          },
         },
       },
       security: [

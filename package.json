@@ -1,6 +1,6 @@
 {
   "name": "pulsarr",
-  "version": "0.18.0",
+  "version": "0.18.1-beta.0",
   "description": "Plex watchlist tracker and notification center that integrates with the Arr stack",
   "main": "build/server.js",
   "type": "module",
@@ -91,7 +91,7 @@
     "close-with-grace": "^2.2.0",
     "cron-parser": "^5.3.1",
     "discord.js": "^14.19.2",
-    "eventsource": "^4.1.0",
+    "eventsource": "^5.0.0",
     "fast-xml-parser": "^5.2.2",
     "fastify": "^5.6.1",
     "fastify-sse-v2": "^4.2.1",
@@ -112,7 +112,7 @@
     "undici": "^6.27.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.7",
+    "@biomejs/biome": "^2.5.8",
     "@commitlint/cli": "^21.0.0",
     "@commitlint/config-conventional": "^21.0.0",
     "@epic-web/invariant": "^1.0.0",
