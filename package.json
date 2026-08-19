@@ -91,7 +91,7 @@
     "close-with-grace": "^2.2.0",
     "cron-parser": "^5.3.1",
     "discord.js": "^14.19.2",
-    "eventsource": "^4.1.0",
+    "eventsource": "^5.0.0",
     "fast-xml-parser": "^5.2.2",
     "fastify": "^5.6.1",
     "fastify-sse-v2": "^4.2.1",
