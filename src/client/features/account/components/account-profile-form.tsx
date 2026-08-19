@@ -8,9 +8,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { InlineEdit, InlineEditButton } from '@/components/ui/inline-edit'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { ProfileInlineEditField } from '@/features/account/components/profile-inline-edit-field'
 import { useUpdateProfileForm } from '@/features/account/hooks/useUpdateProfileForm'
 import { LoginErrorMessage } from '@/features/auth/components/login-error'
 
@@ -18,9 +17,6 @@ interface AccountProfileFormProps {
   currentEmail: string
   currentUsername: string
 }
-
-const readOnlyFieldClassName =
-  'flex h-10 w-full min-w-0 flex-1 items-center overflow-hidden rounded-base border-2 border-border px-3 py-2 text-sm font-base bg-black/25 text-main-foreground/45 shadow-none'
 
 export function AccountProfileForm({
   currentEmail,
@@ -57,113 +53,33 @@ export function AccountProfileForm({
         onSubmit={form.handleSubmit(onSubmit)}
       >
         <div className="space-y-2">
-          {editingEmail ? (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <div className="flex gap-2">
-                <InlineEdit
-                  value={currentEmail}
-                  onCommit={commitEmailDraft}
-                  editing={editingEmail}
-                  onEditingChange={(editing) => {
-                    if (!editing) {
-                      stopEditingEmail()
-                    }
-                  }}
-                  editLabel="Click to edit email"
-                  disabled={isLoading}
-                  className="mr-0 min-w-0 flex-1"
-                  inputClassName="min-w-0"
-                />
-                <Button
-                  type="button"
-                  variant="cancel"
-                  onClick={cancelEditingEmail}
-                  disabled={isLoading}
-                  className="h-10 shrink-0"
-                >
-                  Cancel
-                </Button>
-              </div>
-              {form.formState.errors.email?.message && (
-                <p className="text-sm font-medium text-destructive">
-                  {form.formState.errors.email.message}
-                </p>
-              )}
-            </FormItem>
-          ) : (
-            <>
-              <Label>Email</Label>
-              <div className="flex gap-2">
-                {!isLoading && (
-                  <InlineEditButton
-                    onClick={startEditingEmail}
-                    editLabel="Click to edit email"
-                    className="opacity-100"
-                  />
-                )}
-                <div className={readOnlyFieldClassName}>
-                  <span className="block w-full truncate">{currentEmail}</span>
-                </div>
-              </div>
-            </>
-          )}
+          <ProfileInlineEditField
+            label="Email"
+            value={currentEmail}
+            editing={editingEmail}
+            editLabel="Click to edit email"
+            errorMessage={form.formState.errors.email?.message}
+            disabled={isLoading}
+            onStartEdit={startEditingEmail}
+            onCancelEdit={cancelEditingEmail}
+            onCommit={commitEmailDraft}
+            onStopEditing={stopEditingEmail}
+          />
         </div>
 
         <div className="space-y-2">
-          {editingUsername ? (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <div className="flex gap-2">
-                <InlineEdit
-                  value={currentUsername}
-                  onCommit={commitUsernameDraft}
-                  editing={editingUsername}
-                  onEditingChange={(editing) => {
-                    if (!editing) {
-                      stopEditingUsername()
-                    }
-                  }}
-                  editLabel="Click to edit username"
-                  disabled={isLoading}
-                  className="mr-0 min-w-0 flex-1"
-                  inputClassName="min-w-0"
-                />
-                <Button
-                  type="button"
-                  variant="cancel"
-                  onClick={cancelEditingUsername}
-                  disabled={isLoading}
-                  className="h-10 shrink-0"
-                >
-                  Cancel
-                </Button>
-              </div>
-              {form.formState.errors.username?.message && (
-                <p className="text-sm font-medium text-destructive">
-                  {form.formState.errors.username.message}
-                </p>
-              )}
-            </FormItem>
-          ) : (
-            <>
-              <Label>Username</Label>
-              <div className="flex gap-2">
-                {!isLoading && (
-                  <InlineEditButton
-                    onClick={startEditingUsername}
-                    editLabel="Click to edit username"
-                    className="opacity-100"
-                  />
-                )}
-                <div className={readOnlyFieldClassName}>
-                  <span className="block w-full truncate">
-                    {currentUsername}
-                  </span>
-                </div>
-              </div>
-            </>
-          )}
+          <ProfileInlineEditField
+            label="Username"
+            value={currentUsername}
+            editing={editingUsername}
+            editLabel="Click to edit username"
+            errorMessage={form.formState.errors.username?.message}
+            disabled={isLoading}
+            onStartEdit={startEditingUsername}
+            onCancelEdit={cancelEditingUsername}
+            onCommit={commitUsernameDraft}
+            onStopEditing={stopEditingUsername}
+          />
         </div>
 
         {hasChanges && (
