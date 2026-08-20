@@ -403,7 +403,7 @@ export async function getAdminUserById(
  * @param email - The email address to search for.
  * @returns The matching admin user if found; otherwise, undefined.
  */
-export async function getAdminUser(
+export async function getAdminUserByEmail(
   this: DatabaseService,
   email: string,
 ): Promise<AdminUser | undefined> {
@@ -438,6 +438,20 @@ export async function hasAdminUsers(this: DatabaseService): Promise<boolean> {
   const count = await this.knex('admin_users').count('* as count').first()
   const numCount = Number(count?.count || 0)
   return !Number.isNaN(numCount) && numCount > 0
+}
+
+/**
+ * Retrieves the sole admin user. The app enforces a single admin account,
+ * so at most one row exists.
+ *
+ * @returns The admin user if one exists; otherwise, undefined.
+ */
+export async function getAdminUser(
+  this: DatabaseService,
+): Promise<AdminUser | undefined> {
+  return await this.knex('admin_users')
+    .select('id', 'username', 'email', 'password', 'role')
+    .first()
 }
 
 /**

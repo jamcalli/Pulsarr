@@ -2,6 +2,7 @@ import { CREDENTIAL_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { MessageResponseSchema } from '@root/schemas/common/message.schema.js'
 import { UpdateCredentialsSchema } from '@schemas/auth/users.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -63,7 +64,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         return { message: 'Password updated successfully' }
-      } catch (_error) {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to update password',
+        })
         return reply.internalServerError('Failed to update password')
       }
     },

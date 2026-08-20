@@ -68,10 +68,10 @@ export default async function spaRoute(fastify: FastifyInstance) {
             return
           }
 
-          const hasUsers = await fastify.db.hasAdminUsers()
+          const adminUser = await fastify.db.getAdminUser()
 
-          if (hasUsers) {
-            createTemporaryAdminSession(request)
+          if (adminUser) {
+            createTemporaryAdminSession(request, adminUser)
 
             if (isLoginPage || isCreateUserPage) {
               return reply.redirect(

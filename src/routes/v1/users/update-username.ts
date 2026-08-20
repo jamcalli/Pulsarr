@@ -2,6 +2,7 @@ import { CREDENTIAL_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { MessageResponseSchema } from '@root/schemas/common/message.schema.js'
 import { UpdateUsernameSchema } from '@schemas/auth/users.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -71,7 +72,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         request.session.user.username = newUsername
 
         return { message: 'Username updated successfully' }
-      } catch (_error) {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to update username',
+        })
         return reply.internalServerError('Failed to update username')
       }
     },

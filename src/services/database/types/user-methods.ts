@@ -100,7 +100,7 @@ declare module '@services/database.service.js' {
      * @param email - Email address of the admin user
      * @returns Promise resolving to the admin user if found, undefined otherwise
      */
-    getAdminUser(email: string): Promise<AdminUser | undefined>
+    getAdminUserByEmail(email: string): Promise<AdminUser | undefined>
 
     /**
      * Retrieves an admin user by username
@@ -108,6 +108,12 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the admin user if found, undefined otherwise
      */
     getAdminUserByUsername(username: string): Promise<AdminUser | undefined>
+
+    /**
+     * Retrieves the sole admin user (the app enforces a single admin account)
+     * @returns Promise resolving to the admin user if one exists, undefined otherwise
+     */
+    getAdminUser(): Promise<AdminUser | undefined>
 
     /**
      * Checks if any admin users exist in the database

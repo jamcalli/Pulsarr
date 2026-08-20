@@ -9,15 +9,23 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { useChangePasswordForm } from '@/features/account/hooks/useChangePasswordForm'
+import { useUpdateUsernameForm } from '@/features/account/hooks/useUpdateUsernameForm'
 
-export function ChangePasswordForm() {
-  const { form, status, canSubmit, onSubmit } = useChangePasswordForm()
+interface UpdateUsernameFormProps {
+  currentUsername: string
+}
+
+export function UpdateUsernameForm({
+  currentUsername,
+}: UpdateUsernameFormProps) {
+  const { form, status, canSubmit, onSubmit } = useUpdateUsernameForm({
+    currentUsername,
+  })
 
   const isSubmitting = status === 'loading'
 
   const handleCancel = () => {
-    form.reset()
+    form.reset({ newUsername: currentUsername, currentPassword: '' })
   }
 
   return (
@@ -27,6 +35,19 @@ export function ChangePasswordForm() {
         noValidate
         onSubmit={form.handleSubmit(onSubmit)}
       >
+        <FormField
+          control={form.control}
+          name="newUsername"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-foreground">Username</FormLabel>
+              <FormControl>
+                <Input {...field} type="text" autoComplete="username" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="currentPassword"
@@ -41,34 +62,6 @@ export function ChangePasswordForm() {
                   type="password"
                   autoComplete="current-password"
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="newPassword"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-foreground">New password</FormLabel>
-              <FormControl>
-                <Input {...field} type="password" autoComplete="new-password" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="confirmPassword"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-foreground">
-                Confirm new password
-              </FormLabel>
-              <FormControl>
-                <Input {...field} type="password" autoComplete="new-password" />
               </FormControl>
               <FormMessage />
             </FormItem>

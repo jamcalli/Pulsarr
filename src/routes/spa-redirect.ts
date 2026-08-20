@@ -26,10 +26,10 @@ export default async function rootRoute(fastify: FastifyInstance) {
 
     // CASE 1: Auth disabled or local IP bypass — create temp session
     if (isAuthDisabled || isLocalBypass) {
-      const hasUsers = await fastify.db.hasAdminUsers()
+      const adminUser = await fastify.db.getAdminUser()
 
-      if (hasUsers) {
-        createTemporaryAdminSession(request)
+      if (adminUser) {
+        createTemporaryAdminSession(request, adminUser)
 
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
 

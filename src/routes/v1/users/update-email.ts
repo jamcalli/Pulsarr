@@ -2,6 +2,7 @@ import { CREDENTIAL_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { MessageResponseSchema } from '@root/schemas/common/message.schema.js'
 import { UpdateEmailSchema } from '@schemas/auth/users.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -53,7 +54,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
-        const existingEmail = await fastify.db.getAdminUser(newEmail)
+        const existingEmail = await fastify.db.getAdminUserByEmail(newEmail)
         if (existingEmail && existingEmail.id !== userId) {
           return reply.conflict('Email already exists')
         }
@@ -67,7 +68,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         request.session.user.email = newEmail
 
         return { message: 'Email updated successfully' }
-      } catch (_error) {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to update email',
+        })
         return reply.internalServerError('Failed to update email')
       }
     },

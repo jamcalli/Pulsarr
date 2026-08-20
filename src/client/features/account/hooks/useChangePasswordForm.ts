@@ -1,30 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { PasswordSchema } from '@root/schemas/common/auth-fields.schema'
+import {
+  type UpdateCredentialsForm,
+  UpdateCredentialsFormSchema,
+} from '@root/schemas/auth/users'
 import { useCallback, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { z } from 'zod'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
-
-const changePasswordFormSchema = z
-  .object({
-    currentPassword: z.string(),
-    newPassword: z.string(),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  })
-
-type ChangePasswordForm = z.infer<typeof changePasswordFormSchema>
 
 export function useChangePasswordForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
-  const [backendError, setBackendError] = useState<string | null>(null)
 
-  const form = useForm<ChangePasswordForm>({
-    resolver: zodResolver(changePasswordFormSchema),
+  const form = useForm<UpdateCredentialsForm>({
+    resolver: zodResolver(UpdateCredentialsFormSchema),
     mode: 'onChange',
     defaultValues: {
       currentPassword: '',
@@ -33,41 +21,11 @@ export function useChangePasswordForm() {
     },
   })
 
-  const currentPassword = form.watch('currentPassword')
-  const newPassword = form.watch('newPassword')
-  const confirmPassword = form.watch('confirmPassword')
-  const canSubmit =
-    Boolean(currentPassword.trim()) &&
-    newPassword.trim().length >= 8 &&
-    Boolean(confirmPassword.trim()) &&
-    newPassword === confirmPassword
+  const canSubmit = form.formState.isValid
 
   const onSubmit = useCallback(
-    async (data: ChangePasswordForm) => {
-      const currentPasswordResult = PasswordSchema.safeParse(
-        data.currentPassword,
-      )
-      if (!currentPasswordResult.success) {
-        form.setError('currentPassword', {
-          message:
-            currentPasswordResult.error.issues[0]?.message ??
-            'Current password is required',
-        })
-        return
-      }
-
-      const newPasswordResult = PasswordSchema.safeParse(data.newPassword)
-      if (!newPasswordResult.success) {
-        form.setError('newPassword', {
-          message:
-            newPasswordResult.error.issues[0]?.message ??
-            'New password is required',
-        })
-        return
-      }
-
+    async (data: UpdateCredentialsForm) => {
       setStatus('loading')
-      setBackendError(null)
 
       const { confirmPassword: _, ...submitData } = data
 
@@ -83,14 +41,12 @@ export function useChangePasswordForm() {
           setTimeout(() => setStatus('idle'), 1000)
         } else {
           setStatus('idle')
-          setBackendError(
-            apiErrorMessage(error) || 'Failed to update password.',
-          )
+          toast.error(apiErrorMessage(error) || 'Failed to update password.')
         }
       } catch (error) {
         console.error('Change password error:', error)
         setStatus('idle')
-        setBackendError('An unexpected error occurred.')
+        toast.error('An unexpected error occurred.')
       }
     },
     [form],
@@ -99,7 +55,6 @@ export function useChangePasswordForm() {
   return {
     form,
     status,
-    backendError,
     canSubmit,
     onSubmit,
   }
