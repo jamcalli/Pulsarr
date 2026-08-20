@@ -52,7 +52,7 @@ jobs:
           scan-ref: .
           scanners: vuln
           skip-dirs: docs
-          version: v0.73.0
+          version: v0.74.0
           severity: CRITICAL,HIGH
           limit-severities-for-sarif: true
           ignore-unfixed: true
@@ -96,7 +96,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: lakker/pulsarr:${{ matrix.tag }}
-          version: v0.73.0
+          version: v0.74.0
           format: sarif
           output: trivy-scheduled-${{ matrix.tag }}.sarif
           ignore-unfixed: true
