@@ -165,7 +165,7 @@ export function WatchlistStatusBadge() {
     (currentAction === 'stop' && status === 'stopping')
 
   return (
-    <div className="ml-2 inline-flex items-center gap-2 h-full">
+    <div className="inline-flex flex-wrap items-center gap-2 sm:ml-2 sm:h-full">
       <Badge
         variant="neutral"
         className={cn('px-2 py-0.5 h-7 text-sm', getBadgeVariant())}
