@@ -653,7 +653,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => navigate('/account')}>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        navigate('/account')
+                        if (isMobile) {
+                          setOpenMobile(false)
+                        }
+                      }}
+                    >
                       <UserCog className="mr-2 h-4 w-4" />
                       <span>Account settings</span>
                     </DropdownMenuItem>

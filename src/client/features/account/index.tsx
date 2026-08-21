@@ -1,10 +1,9 @@
 import { PageError } from '@/components/ui/page-error'
 import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { AccountProfileForm } from '@/features/account/components/account-profile-form'
 import { AccountSettingsPageSkeleton } from '@/features/account/components/account-settings-page-skeleton'
 import { ChangePasswordForm } from '@/features/account/components/change-password-form'
-import { UpdateEmailForm } from '@/features/account/components/update-email-form'
-import { UpdateUsernameForm } from '@/features/account/components/update-username-form'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useShowLoading } from '@/lib/useMinLoading'
 
@@ -32,15 +31,11 @@ export default function AccountSettingsPage() {
 
       <div className="space-y-6">
         <div>
-          <h3 className="font-medium text-foreground mb-2">Email</h3>
-          <UpdateEmailForm currentEmail={currentUser.email} />
-        </div>
-
-        <Separator />
-
-        <div>
-          <h3 className="font-medium text-foreground mb-2">Username</h3>
-          <UpdateUsernameForm currentUsername={currentUser.username} />
+          <h3 className="font-medium text-foreground mb-2">Profile</h3>
+          <AccountProfileForm
+            currentEmail={currentUser.email}
+            currentUsername={currentUser.username}
+          />
         </div>
 
         <Separator />

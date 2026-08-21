@@ -13,38 +13,16 @@ export function AccountSettingsPageSkeleton() {
 
       <div className="space-y-6">
         <div>
-          <h3 className="font-medium text-foreground mb-2">Email</h3>
-          <div className="grid gap-4">
+          <h3 className="font-medium text-foreground mb-2">Profile</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-10 w-full" />
             </div>
             <div className="space-y-2">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </div>
-
-        <Separator />
-
-        <div>
-          <h3 className="font-medium text-foreground mb-2">Username</h3>
-          <div className="grid gap-4">
-            <div className="space-y-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-10 w-full" />
             </div>
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
-            <Skeleton className="h-10 w-32" />
           </div>
         </div>
 
@@ -57,13 +35,15 @@ export function AccountSettingsPageSkeleton() {
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-10 w-full" />
             </div>
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-10 w-full" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-10 w-full" />
+              </div>
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
