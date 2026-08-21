@@ -95,7 +95,7 @@ export default async function (fastify: FastifyInstance) {
         )
       }
       if (!request.session.user) {
-        createTemporaryAdminSession(request)
+        createTemporaryAdminSession(request, await fastify.db.getAdminUser())
       }
       return
     }

@@ -4,6 +4,7 @@ import {
   CreateAdminResponseSchema,
   CreateAdminSchema,
 } from '@schemas/auth/admin-user.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
@@ -35,7 +36,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.conflict('An admin user already exists in the system')
         }
 
-        const existingEmail = await fastify.db.getAdminUser(email)
+        const existingEmail = await fastify.db.getAdminUserByEmail(email)
         const existingUsername =
           await fastify.db.getAdminUserByUsername(username)
 
@@ -61,7 +62,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         reply.status(201)
         return { success: true, message: 'Admin user created successfully' }
-      } catch (_error) {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to create admin user',
+        })
         return reply.internalServerError('Failed to create admin user')
       }
     },

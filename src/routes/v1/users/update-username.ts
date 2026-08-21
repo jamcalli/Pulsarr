@@ -1,34 +1,35 @@
 import { CREDENTIAL_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { MessageResponseSchema } from '@root/schemas/common/message.schema.js'
-import { UpdateCredentialsSchema } from '@schemas/auth/users.js'
+import { UpdateUsernameSchema } from '@schemas/auth/users.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.put(
-    '/update-password',
+    '/update-username',
     {
       config: {
         rateLimit: CREDENTIAL_RATE_LIMIT,
       },
       schema: {
-        summary: 'Update user password',
-        operationId: 'updateUserPassword',
+        summary: 'Update user username',
+        operationId: 'updateUserUsername',
         description:
-          'Change the current user password by providing current and new password',
-        body: UpdateCredentialsSchema,
+          'Change the current user username by providing current password and new username',
+        body: UpdateUsernameSchema,
         response: {
           200: MessageResponseSchema,
           400: ErrorSchema,
           401: ErrorSchema,
+          409: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Authentication'],
       },
     },
     async (request, reply) => {
-      const { newPassword, currentPassword } = request.body
+      const { newUsername, currentPassword } = request.body
       const userId = request.session.user.id
 
       try {
@@ -47,28 +48,35 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.unauthorized('Invalid current password.')
         }
 
-        if (newPassword === currentPassword) {
+        if (newUsername.toLowerCase() === user.username.toLowerCase()) {
           return reply.badRequest(
-            'New password cannot be the same as the current password.',
+            'New username cannot be the same as the current username.',
           )
         }
 
-        const hashedPassword = await fastify.hash(newPassword)
-        const updated = await fastify.db.updateAdminPassword(
+        const existingUsername =
+          await fastify.db.getAdminUserByUsername(newUsername)
+        if (existingUsername && existingUsername.id !== userId) {
+          return reply.conflict('Username already exists')
+        }
+
+        const updated = await fastify.db.updateAdminUsername(
           userId,
-          hashedPassword,
+          newUsername,
         )
 
         if (!updated) {
-          throw new Error('Failed to update password')
+          throw new Error('Failed to update username')
         }
 
-        return { message: 'Password updated successfully' }
+        request.session.user.username = newUsername
+
+        return { message: 'Username updated successfully' }
       } catch (error) {
         logRouteError(fastify.log, request, error, {
-          message: 'Failed to update password',
+          message: 'Failed to update username',
         })
-        return reply.internalServerError('Failed to update password')
+        return reply.internalServerError('Failed to update username')
       }
     },
   )

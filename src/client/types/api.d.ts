@@ -2496,6 +2496,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/users/update-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update user email
+         * @description Change the current user email by providing current password and new email
+         */
+        put: operations["updateUserEmail"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/users/update-password": {
         parameters: {
             query?: never;
@@ -2509,6 +2529,26 @@ export interface paths {
          * @description Change the current user password by providing current and new password
          */
         put: operations["updateUserPassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/update-username": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update user username
+         * @description Change the current user username by providing current password and new username
+         */
+        put: operations["updateUserUsername"];
         post?: never;
         delete?: never;
         options?: never;
@@ -3464,6 +3504,11 @@ export interface components {
             testDelivered?: boolean;
             error?: string;
         };
+        /** @description Standard success message response */
+        Message: {
+            /** @description Human-readable result message */
+            message: string;
+        };
         /** @description A single field comparison in a router rule */
         RouterCondition: {
             field: string;
@@ -3608,6 +3653,30 @@ export interface components {
             sonarr: {
                 [key: string]: components["schemas"]["TagMigrationEntryOutput"];
             };
+        };
+        /** @description Change the current admin password */
+        UpdateCredentialsPayload: {
+            /** @description Current password for verification */
+            currentPassword: string;
+            /** @description New password to set */
+            newPassword: string;
+        };
+        /** @description Change the current admin email address */
+        UpdateEmailPayload: {
+            /** @description Current password for verification */
+            currentPassword: string;
+            /**
+             * Format: email
+             * @description New email address to set
+             */
+            newEmail: string;
+        };
+        /** @description Change the current admin username */
+        UpdateUsernamePayload: {
+            /** @description Current password for verification */
+            currentPassword: string;
+            /** @description New username to set */
+            newUsername: string;
         };
     };
     responses: never;
@@ -13215,19 +13284,17 @@ export interface operations {
             };
         };
     };
-    updateUserPassword: {
+    updateUserEmail: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        /** @description Change the current admin email address */
         requestBody: {
             content: {
-                "application/json": {
-                    currentPassword: string;
-                    newPassword: string;
-                };
+                "application/json": components["schemas"]["UpdateEmailPayload"];
             };
         };
         responses: {
@@ -13237,9 +13304,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Message"];
                 };
             };
             /** @description Default Response */
@@ -13253,6 +13318,146 @@ export interface operations {
             };
             /** @description Default Response */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateUserPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Change the current admin password */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCredentialsPayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateUserUsername: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Change the current admin username */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUsernamePayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
