@@ -62,7 +62,7 @@ When using this integration, we recommend disabling [Delete Sync](./delete-sync)
 | Action | Description |
 |--------|-------------|
 | **On save/enable** | Reconciles the Maintainerr configuration immediately |
-| **Scheduled** | The `maintainerr-sync` job re-checks hourly, connecting any new rule groups (editable in the standard schedule editor) |
+| **Scheduled** | The `maintainerr-sync` job re-checks hourly, connecting any new rule groups |
 | **Sync Now** | Manual immediate reconcile |
 
 Each sync verifies the Maintainerr version, provisions the webhook config, updates rule group connections, and fires a test notification to confirm the round trip. The section's status indicator reflects the last result.
@@ -86,7 +86,11 @@ The Watchlist Exclusions page shows all users' watchlist items in a sortable, fi
 | **Search** | Filter items by title |
 | **User Filter** | Show items for specific users |
 | **Type Filter** | Filter by Movie or Show |
+| **Status Filter** | Filter by watchlist status (Pending, Requested, Grabbed, Notified) |
+| **Excluded Filter** | Show only excluded or only non-excluded items |
 | **Sorting** | Sort by title, status, or date added (default: newest first) |
+
+Filters and sorting persist across visits.
 
 ## Best Practices
 

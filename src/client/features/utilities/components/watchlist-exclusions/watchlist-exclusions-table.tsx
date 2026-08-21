@@ -11,6 +11,7 @@ import {
 } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight, ListX } from 'lucide-react'
 import * as React from 'react'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -37,6 +38,34 @@ import type {
   useRemoveWatchlistExclusion,
 } from '@/features/utilities/hooks/useWatchlistExclusionMutations'
 import { useTablePagination } from '@/hooks/use-table-pagination'
+import { type PrefDef, readPref, writePref } from '@/lib/prefs'
+
+const persistedStateSchema = z.object({
+  sorting: z.array(z.object({ id: z.string(), desc: z.boolean() })),
+  filters: z.array(
+    z.object({
+      id: z.string(),
+      value: z.union([z.string(), z.array(z.string())]),
+    }),
+  ),
+})
+
+const tablePrefsDef: PrefDef<z.infer<typeof persistedStateSchema>> = {
+  key: 'pulsarr-exclusions-table',
+  fallback: {
+    sorting: [{ id: 'excluded_at', desc: true }],
+    filters: [],
+  },
+  parse: (raw) => {
+    try {
+      const result = persistedStateSchema.safeParse(JSON.parse(raw))
+      return result.success ? result.data : undefined
+    } catch {
+      return undefined
+    }
+  },
+  serialize: JSON.stringify,
+}
 
 interface ColumnMetaType {
   className?: string
@@ -78,12 +107,23 @@ export const WatchlistExclusionsTable = React.forwardRef<
   },
   ref,
 ) {
-  const [sorting, setSorting] = React.useState<SortingState>([
-    { id: 'excluded_at', desc: true },
-  ])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    [],
+  const [initialPrefs] = React.useState(() => readPref(tablePrefsDef))
+  const [sorting, setSorting] = React.useState<SortingState>(
+    initialPrefs.sorting,
   )
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    initialPrefs.filters,
+  )
+
+  React.useEffect(() => {
+    const result = persistedStateSchema.safeParse({
+      sorting,
+      filters: columnFilters,
+    })
+    if (result.success) {
+      writePref(tablePrefsDef, result.data)
+    }
+  }, [sorting, columnFilters])
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({ added: false })
   const [rowSelection, setRowSelection] = React.useState({})

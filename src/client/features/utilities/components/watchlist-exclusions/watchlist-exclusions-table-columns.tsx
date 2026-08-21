@@ -268,6 +268,8 @@ export function createWatchlistExclusionColumns({
       sortingFn: (rowA, rowB) =>
         dateTimeOrNegInfinity(rowA.getValue('excluded_at') as string | null) -
         dateTimeOrNegInfinity(rowB.getValue('excluded_at') as string | null),
+      filterFn: (row, _id, value: string[]) =>
+        value.includes(row.original.isExcluded ? 'excluded' : 'not-excluded'),
       meta: {
         displayName: 'Excluded',
       },
