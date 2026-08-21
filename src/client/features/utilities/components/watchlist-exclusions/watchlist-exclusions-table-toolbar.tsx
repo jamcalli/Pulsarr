@@ -44,6 +44,11 @@ const statusFilterOptions = [
   { label: 'Notified', value: 'notified' },
 ]
 
+const excludedFilterOptions = [
+  { label: 'Excluded', value: 'excluded' },
+  { label: 'Not excluded', value: 'not-excluded' },
+]
+
 export function WatchlistExclusionsTableToolbar({
   table,
   userFilterOptions,
@@ -122,6 +127,11 @@ export function WatchlistExclusionsTableToolbar({
             column={table.getColumn('status')}
             title="Status"
             options={statusFilterOptions}
+          />
+          <DataTableFacetedFilter
+            column={table.getColumn('excluded_at')}
+            title="Excluded"
+            options={excludedFilterOptions}
           />
         </div>
         <div className="flex items-center gap-2">
