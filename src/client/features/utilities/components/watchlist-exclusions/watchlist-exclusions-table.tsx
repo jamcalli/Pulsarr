@@ -40,20 +40,43 @@ import type {
 import { useTablePagination } from '@/hooks/use-table-pagination'
 import { type PrefDef, readPref, writePref } from '@/lib/prefs'
 
+const DEFAULT_SORTING = [{ id: 'excluded_at', desc: true }]
+
 const persistedStateSchema = z.object({
-  sorting: z.array(z.object({ id: z.string(), desc: z.boolean() })),
-  filters: z.array(
-    z.object({
-      id: z.string(),
-      value: z.union([z.string(), z.array(z.string())]),
-    }),
-  ),
+  sorting: z
+    .array(z.object({ id: z.string(), desc: z.boolean() }))
+    .catch(DEFAULT_SORTING),
+  filters: z
+    .array(
+      z.union([
+        z.object({ id: z.literal('title'), value: z.string() }),
+        z.object({
+          id: z.literal('userId'),
+          value: z.array(z.string()).min(1),
+        }),
+        z.object({
+          id: z.literal('type'),
+          value: z.array(z.enum(['movie', 'show'])).min(1),
+        }),
+        z.object({
+          id: z.literal('status'),
+          value: z
+            .array(z.enum(['pending', 'requested', 'grabbed', 'notified']))
+            .min(1),
+        }),
+        z.object({
+          id: z.literal('excluded_at'),
+          value: z.array(z.enum(['excluded', 'not-excluded'])).min(1),
+        }),
+      ]),
+    )
+    .catch([]),
 })
 
 const tablePrefsDef: PrefDef<z.infer<typeof persistedStateSchema>> = {
   key: 'pulsarr-exclusions-table',
   fallback: {
-    sorting: [{ id: 'excluded_at', desc: true }],
+    sorting: DEFAULT_SORTING,
     filters: [],
   },
   parse: (raw) => {
