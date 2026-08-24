@@ -66,6 +66,7 @@ export async function ensureTokenUsers(
     deps.config.plexTokens.map(async (token, index) => {
       // Fetch the actual Plex username for this token
       let plexUsername = `token${index + 1}` // Fallback name
+      let usernameVerified = false
       let plexAvatar: string | null = null
       let plexUuid: string | null = null
       const isPrimary = index === 0 // First token is primary
@@ -95,6 +96,7 @@ export async function ensureTokenUsers(
           }
           if (userData?.username) {
             plexUsername = userData.username
+            usernameVerified = true
             deps.logger.debug(
               `Using actual Plex username: ${plexUsername} for token${index + 1}`,
             )
@@ -132,6 +134,14 @@ export async function ensureTokenUsers(
         clearTimeout(timeoutId)
       }
 
+      // Primary still proceeds unverified so a fresh install can bootstrap offline
+      if (!isPrimary && !usernameVerified) {
+        deps.logger.warn(
+          `Skipping user sync for token${index + 1}: could not verify Plex username`,
+        )
+        return
+      }
+
       // Variable to hold our user
       let user: User | undefined
 
@@ -154,7 +164,8 @@ export async function ensureTokenUsers(
         // Build updates for any changed fields
         const updates: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>> =
           {}
-        if (user.name !== plexUsername) {
+        // Never overwrite a stored name with the fallback from a failed fetch
+        if (usernameVerified && user.name !== plexUsername) {
           updates.name = plexUsername
         }
         if (plexAvatar && user.avatar !== plexAvatar) {
