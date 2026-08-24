@@ -27,6 +27,7 @@ import { SEED_USERS } from '../../../helpers/seeds/users.js'
 import {
   makeEpisodeSession,
   makeEpisodesSeason2Unmonitored,
+  makeEpisodesWithFiles,
   makeFakeSonarr,
   makeShowMetadata,
   makeSonarrSeries,
@@ -153,6 +154,136 @@ describe('Session Monitoring → User Filter Integration', () => {
 
     expect(result.triggeredSearches).toBe(1)
     expect(fakeSonarr.searchSeason).toHaveBeenCalledWith(1566, 2)
+
+    const row = await knex('rolling_monitored_shows')
+      .where({ plex_user_id: 'plex-9001' })
+      .first()
+    expect(row.plex_user_uuid).toBe('ab12cd34ef56ab78')
+  })
+
+  it('refreshes stored identity on rows predating the uuid or a rename', async () => {
+    await setFilterUsers([String(SEED_USERS[0].id)])
+    await insertMasterShow()
+
+    const knex = getTestDatabase()
+    await knex('users')
+      .where({ id: SEED_USERS[0].id })
+      .update({ plex_uuid: 'ab12cd34ef56ab78' })
+    await insertRollingShow(knex, {
+      show_title: 'Stella',
+      monitoring_type: 'firstSeasonRolling',
+      sonarr_series_id: 1566,
+      sonarr_instance_id: 1,
+      tvdb_id: '90210',
+      plex_user_id: 'plex-9001',
+      plex_username: 'old-name',
+      last_watched_season: 1,
+      last_watched_episode: 10,
+    })
+
+    stubBoundaries(
+      makeEpisodeSession({
+        season: 1,
+        episode: 15,
+        userId: 'plex-9001',
+        username: 'renamed-account',
+        userThumb: 'https://plex.tv/users/ab12cd34ef56ab78/avatar?c=123',
+      }),
+    )
+
+    await app.plexSessionMonitor.monitorSessions()
+
+    const row = await knex('rolling_monitored_shows')
+      .where({ plex_user_id: 'plex-9001' })
+      .first()
+    expect(row.plex_username).toBe('renamed-account')
+    expect(row.plex_user_uuid).toBe('ab12cd34ef56ab78')
+  })
+
+  it('protects a renamed allowed user during progressive cleanup via uuid', async () => {
+    // The protected viewer's row holds a stale username from before a Plex
+    // rename; only the stored uuid still links them to the configured user.
+    await app.updateConfig({
+      plexSessionMonitoring: sessionMonitoringConfig({
+        filterUsers: [String(SEED_USERS[0].id), String(SEED_USERS[1].id)],
+      }),
+    })
+    await insertMasterShow()
+
+    const knex = getTestDatabase()
+    await knex('users')
+      .where({ id: SEED_USERS[0].id })
+      .update({ plex_uuid: 'feedfacefeedface' })
+
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    await insertRollingShow(knex, {
+      show_title: 'Stella',
+      monitoring_type: 'firstSeasonRolling',
+      sonarr_series_id: 1566,
+      sonarr_instance_id: 1,
+      tvdb_id: '90210',
+      plex_user_id: 'plex-111',
+      plex_username: 'stale-old-name',
+      plex_user_uuid: 'feedfacefeedface',
+      last_watched_season: 3,
+      last_watched_episode: 7,
+      current_monitored_season: 3,
+      last_session_date: yesterday,
+    })
+    await insertRollingShow(knex, {
+      show_title: 'Stella',
+      monitoring_type: 'firstSeasonRolling',
+      sonarr_series_id: 1566,
+      sonarr_instance_id: 1,
+      tvdb_id: '90210',
+      plex_user_id: 'u_actor',
+      plex_username: SEED_USERS[1].name,
+      last_watched_season: 3,
+      last_watched_episode: 7,
+      current_monitored_season: 5,
+      last_session_date: yesterday,
+    })
+
+    app.plexServerService.getActiveSessions = vi.fn().mockResolvedValue([
+      makeEpisodeSession({
+        season: 4,
+        episode: 7,
+        userId: 'u_actor',
+        username: SEED_USERS[1].name,
+      }),
+    ])
+    app.plexServerService.getShowMetadata = vi
+      .fn()
+      .mockResolvedValue(makeShowMetadata('90210'))
+
+    const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
+    const fakeSonarr = makeFakeSonarr({
+      getEpisodes: vi
+        .fn()
+        .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
+      updateSeasonMonitoring: mockUpdateSeasonMonitoring,
+    })
+    app.sonarrManager.getAllInstances = vi
+      .fn()
+      .mockResolvedValue([
+        { id: 1, name: 'Test Sonarr', baseUrl: 'http://x', apiKey: 'k' },
+      ])
+    app.sonarrManager.getSonarrService = vi
+      .fn()
+      .mockReturnValue(
+        fakeSonarr as unknown as ReturnType<
+          typeof app.sonarrManager.getSonarrService
+        >,
+      )
+
+    await app.plexSessionMonitor.monitorSessions()
+
+    // Season 3 stays: the renamed viewer still needs it and their uuid keeps
+    // them in the safety set. Season 2 is fair game.
+    const unmonitoredSeasons = mockUpdateSeasonMonitoring.mock.calls
+      .filter((call) => call[2] === false)
+      .map((call) => call[1])
+    expect(unmonitoredSeasons).toEqual([2])
   })
 
   it('still matches legacy filter values holding raw Plex usernames', async () => {

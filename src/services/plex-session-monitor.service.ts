@@ -22,10 +22,9 @@ import {
   buildAllowedUserMatcher,
 } from '@services/plex-session-monitor/user-filter.js'
 import {
+  collectGuidsFromMetadata,
   extractPlexKey,
   extractTvdbId,
-  normalizeGuid,
-  parseGuids,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { extractUuidFromThumb } from '@utils/plex-avatar.js'
@@ -458,38 +457,14 @@ export class PlexSessionMonitorService {
         return {}
       }
 
-      // Extract all available GUIDs using robust parsing
-      const allGuids: string[] = []
-
-      // Get the first metadata item
       const metadataItem = metadata.MediaContainer.Metadata[0]
       if (!metadataItem) {
         this.log.debug(`No metadata item found for ${session.grandparentTitle}`)
         return {}
       }
 
-      // Add main GUID if available (check both cases for compatibility)
-      if (metadataItem.guid) {
-        // Don't normalize plex:// GUIDs as they're internal
-        if (!metadataItem.guid.startsWith('plex://')) {
-          // Use centralized normalization
-          const normalizedGuid = normalizeGuid(metadataItem.guid)
-          allGuids.push(normalizedGuid)
-        }
-      }
+      const allGuids = collectGuidsFromMetadata(metadataItem)
 
-      // Add additional GUIDs from Guid array
-      if (Array.isArray(metadataItem.Guid)) {
-        for (const guidObj of metadataItem.Guid) {
-          if (guidObj.id && !guidObj.id.startsWith('plex://')) {
-            // Use centralized normalization
-            const normalizedGuid = normalizeGuid(guidObj.id)
-            allGuids.push(normalizedGuid)
-          }
-        }
-      }
-
-      // Use the robust GUID handler to extract TVDB ID
       const tvdbId = extractTvdbId(allGuids)
 
       const result: { tvdbId?: string; imdbId?: string } = {}
@@ -497,9 +472,7 @@ export class PlexSessionMonitorService {
         result.tvdbId = tvdbId.toString()
       }
 
-      // For IMDB, look for imdb: prefixed IDs in the normalized GUID list
-      const parsedGuids = parseGuids(allGuids)
-      for (const guid of parsedGuids) {
+      for (const guid of allGuids) {
         if (guid.startsWith('imdb:')) {
           const imdbId = guid.substring(5) // Remove 'imdb:' prefix
           if (imdbId.length > 2) {
@@ -559,12 +532,27 @@ export class PlexSessionMonitorService {
       )
 
       const resolved: RollingMonitoredShow[] = []
+      const sessionUuid = extractUuidFromThumb(session.User.thumb)
 
       for (const globalShow of globalShows) {
         const key = `${globalShow.sonarr_instance_id}-${globalShow.sonarr_series_id}`
         const existing = userShowByKey.get(key)
 
         if (existing) {
+          // Cleanup matches other viewers by stored uuid/username, which
+          // go stale after a Plex account rename
+          if (
+            existing.plex_username !== session.User.title ||
+            (sessionUuid && existing.plex_user_uuid !== sessionUuid)
+          ) {
+            await this.db.updateRollingShowUserIdentity(
+              existing.id,
+              session.User.title,
+              sessionUuid,
+            )
+            existing.plex_username = session.User.title
+            if (sessionUuid) existing.plex_user_uuid = sessionUuid
+          }
           resolved.push(existing)
           continue
         }
@@ -579,6 +567,7 @@ export class PlexSessionMonitorService {
               globalShow,
               session.User.id,
               session.User.title,
+              sessionUuid,
             )
 
           const byId = await this.db.getRollingMonitoredShowById(userEntryId)
@@ -1155,7 +1144,11 @@ export class PlexSessionMonitorService {
           show.last_session_date != null &&
           new Date(show.last_session_date) >= cutoffDate &&
           // Only consider users that are allowed to trigger monitoring actions
-          isUserAllowed(show.plex_user_id || '', show.plex_username || ''),
+          isUserAllowed(
+            show.plex_user_id || '',
+            show.plex_username || '',
+            show.plex_user_uuid,
+          ),
       )
 
       this.log.debug(

@@ -1,4 +1,3 @@
-import type { RollingMonitoredShow } from '@root/schemas/session-monitoring/session-monitoring.schema'
 import type { SessionMonitoringResult } from '@root/types/plex-session.types'
 import {
   Activity,
@@ -23,6 +22,9 @@ import { BulkResetInactiveAlert } from '@/features/utilities/components/session-
 import { RollingShowsSheet } from '@/features/utilities/components/session-monitoring/rolling-shows-sheet'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useDebounce } from '@/hooks/useDebounce'
+import type { components } from '@/types/api.js'
+
+type RollingMonitoredShow = components['schemas']['RollingMonitoredShow']
 
 interface RollingLoading {
   runningMonitor: boolean
