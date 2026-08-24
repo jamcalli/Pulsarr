@@ -1,0 +1,71 @@
+---
+id: update-user-email
+title: "Update user email"
+description: "Change the current user email by providing current password and new email"
+sidebar_label: "Update user email"
+hide_title: true
+hide_table_of_contents: true
+api: eJztWG1v2zYQ/ivsYcCaVrKTdgVWfWmztsCCtYORl21Y7A2MdLbYSKR6pOK4hv77cKRkyy8r+oYBK+Ivlkjecy/P6UjeEkyFJJ0y+iSDBOoqkw4vLNKrUqoCInByZiG5hOPa5aidSv1imESQoU1JVf41gRe51DMULkeR1kSonagtkkDGEVcLUZG5UZnSs9V8Ja2dG8qE1JnQOA9rIQLCdzVa95PJFpAs/asizCBxVGMEqdEOteMpWVVFa9LwrWVDlmDTHEvJT25RISRgrt5i6iCCithbp9DybGvGqLWiJ2AdKT2DCEqlX6OeuRySH3cc3vZiakjcIKlpF6MmAo3zEMg94FNDpXSQQOd2JZ1DYuy/7j+7Nx4PDu4/uzd4MB4P/PPlcfynjN8fxk///v7heByPx4PJg4Pe6MN48ry3arJ+HI/jCeMcPGzHJstHUfMdbPv0a0eCkFlGaK1wRlh00DRRj4bLndj1PP2YzJBZqfSmJk415QqO0IVPQo82kovCyAwaNuCzYL3htjLaBtYfHR7y3ybWS5zKunDitF0JXy3JSrRWznAf/5sm/FyXUseEMpNXBQpCywZ14tvx78YnEcgsU4whi1FP81QWFrd1nDmpM0mZsHWaMrstjKC13x0Jb1aaWfcP/23UrJOuti9M1g+crssrpN3AnZ+PRBAQKUs0ESCRoY+IeU/U4a1j0Q8Q1qsGR9tQr1ijyNBJVUSCsCpkipmYK5cLKWaokVQqApSvFE9ub3dY7bnd+RB9KdUeZh/B3uIVvUd39H7L9D69o/cbpvfRHnpPpUNRqFI5gbcpYobZHcP/V4af3G2/3y693muXG75/VbULF4EcEhjeHA35DmWH4VoWdxcFi3SDxNeyJdRUQALLiowzqSmaZDhc5sa6JllWhlyzE/UXtXWmFGceAyK4kaT4yOmZ72D4GXVdclhy5yqI/J8Np3ufd5B0M5v45zmKDoavgBnfIVJTlrXmfMRACh/bgxvMOhscEryDLkwqCz+8D58ntCxRGBIno9VlxUw97qgurCTq4XMkNvEfHx4+3m+6ISeMFvNcpfkKSllBtdaciExYF3Yfk2Q4XJia4iqsjZW2TuoUB6kpd1SMSJWSFl34PwEq2WvyS0WYuhZOHIdj/X0fYvbkYEtDMhyuIrsf8HU3vRdswsmX1qTcwmefrNQvuODeACSXE9Zl0Vpl9GqoJ3HG5SfkWV9u9aWHQYhAsSE5yswnKBMNCfwRH49O4rBg0+Tj0Ym4xoWQGy0KUVv+2FdiogVsok0b/0V9asy1wrX6lpId5WcBK76SnOp7TQhQ/io6x6vcmOszTAndJ7rf5mIchHcM+T1A7zdB1s7EvgxKh5mwHmIgzoyWRMNTmXGSt8ZZIQlFavRUzWrqqqjLlW1D6NFKySqKYjHwZVsq7aTSSNTa8UnO8WJD6n3om3y5Z0JpXwk2cFvrB+LN2tjP97mJgLfV03Wr6tWtLKsC97aW1rvYuiMEXNufY5DyxaLh8EyND1u7TXQF6Hh0sjfvM5PWJWoXPOSdrZOIhRSjAm/FXLo0L5TlqDic0XppoN+330IK8HaAZAP8b0ehdFpXSn98aMkK7Zled2/bsOX6HPJV24JtKvFRYVgVUvkOm69ty3bLvISbI4h8YLmhtLFtTrpt5hKWS/5aL6hoGh5+VyNxOZusN8NQzbo85Up3jQt2JzgWn7MpvLyoQ3ZvHba4EgYJrqKV++DaSe8AMLo4hwiu2s5n6Y9gQHLOXVE5hwQgAuPj7OuoH1tCIfWs9scmCJD8+wcjfqgb
+sidebar_class_name: "put api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update user email"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/v1/users/update-email"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Change the current user email by providing current password and new email
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"currentPassword":{"type":"string","minLength":8,"description":"Current password for verification"},"newEmail":{"type":"string","format":"email","pattern":"^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$","description":"New email address to set"}},"required":["currentPassword","newEmail"],"description":"Change the current admin email address","title":"UpdateEmailPayload"}}},"description":"Change the current admin email address"}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","description":"Human-readable result message"}},"required":["message"],"additionalProperties":false,"description":"Standard success message response","title":"Message"}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number","description":"HTTP status code"},"error":{"type":"string","description":"HTTP status text"},"message":{"type":"string","minLength":1,"description":"Error detail, replaced with a generic string for 5xx"}},"required":["statusCode","error","message"],"additionalProperties":false,"description":"Standard error response","title":"Error"}}}},"401":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number","description":"HTTP status code"},"error":{"type":"string","description":"HTTP status text"},"message":{"type":"string","minLength":1,"description":"Error detail, replaced with a generic string for 5xx"}},"required":["statusCode","error","message"],"additionalProperties":false,"description":"Standard error response","title":"Error"}}}},"409":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number","description":"HTTP status code"},"error":{"type":"string","description":"HTTP status text"},"message":{"type":"string","minLength":1,"description":"Error detail, replaced with a generic string for 5xx"}},"required":["statusCode","error","message"],"additionalProperties":false,"description":"Standard error response","title":"Error"}}}},"429":{"description":"Rate limit exceeded","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number","description":"HTTP status code"},"error":{"type":"string","description":"HTTP status text"},"message":{"type":"string","minLength":1,"description":"Error detail, replaced with a generic string for 5xx"}},"required":["statusCode","error","message"],"additionalProperties":false,"description":"Standard error response","title":"Error"}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number","description":"HTTP status code"},"error":{"type":"string","description":"HTTP status text"},"message":{"type":"string","minLength":1,"description":"Error detail, replaced with a generic string for 5xx"}},"required":["statusCode","error","message"],"additionalProperties":false,"description":"Standard error response","title":"Error"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

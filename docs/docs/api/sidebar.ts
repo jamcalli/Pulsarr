@@ -144,8 +144,20 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api/update-user-email",
+          label: "Update user email",
+          className: "api-method put",
+        },
+        {
+          type: "doc",
           id: "api/update-user-password",
           label: "Update user password",
+          className: "api-method put",
+        },
+        {
+          type: "doc",
+          id: "api/update-user-username",
+          label: "Update user username",
           className: "api-method put",
         },
       ],
@@ -370,6 +382,18 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api/get-maintainerr-status",
+          label: "Get Maintainerr status",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/sync-maintainerr",
+          label: "Sync Maintainerr",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
           id: "api/validate-discord-webhooks",
           label: "Validate Discord webhooks",
           className: "api-method post",
@@ -378,6 +402,12 @@ const sidebar: SidebarsConfig = {
           type: "doc",
           id: "api/process-media-webhook",
           label: "Process media webhook",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/process-maintainerr-webhook",
+          label: "Process Maintainerr webhook",
           className: "api-method post",
         },
       ],

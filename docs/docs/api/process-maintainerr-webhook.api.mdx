@@ -1,0 +1,71 @@
+---
+id: process-maintainerr-webhook
+title: "Process Maintainerr webhook"
+description: "Process MEDIA_HANDLED webhooks from Maintainerr (3.23.0+) to exclude handled media from watchlist syncing. Requires the webhook secret in the Authorization header."
+sidebar_label: "Process Maintainerr webhook"
+hide_title: true
+hide_table_of_contents: true
+api: eJztWNtu2zgQ/RVinlqsbCXN9mH15m0C1Ni2a8TZCxAYBS2NLTYUqfKSxBX074shJVu+NNguigVa1A+2LHIO58wMhzNsQNdouBNaTQvIoDY6R2vfcqEcFwqN+QuXpdZ3kIDjawvZLbzTTqxEHoQsLBIo0OZG1PQfMphFCPb26nI6ef968u7yzdUle4gwlq2MrtgAnz27GL+4GJ/99Jw5zfAxl75AVnJVSCxYhYXgUeaBu7yUwjpmNyoXaj1m1/jRC4OWuRL7FZjF3KBjQoW3E+9KbcSnoC0rkRdoxpCAwY8erftVFxvImvBXGCwgc8ZjArlWDpWjIV7XsmObfrBEsQGbl1hxenKbGiEDvfyAuYOEDFijcQItjaqBqd7HqVsR64xQa2gTCCSnDit7Yjh8ErCYeyPcBrLbBqoj9xBNyG4X7YKo2VorGzV4cXZGP/suusQV99Kx624mfDXC1ufk/MHEpdYSuSKeuUHuyMbbQeWrJRoggjsP3G5RdiKLBHhRCNKJy9lgyRWXFqOJfv6fqTruvH2lCzwmdLgnXt/czFgUYDlJtAmgMdocO/wpUYePLgaMtXx9IpgSqIR6g2pN0XB+CHVFK7ICHRcyYQZryXMs2INwJeNsjQqNyFmEYitt2MvHx2Pf7Gj3HHYKPe2mQ33mjquCm4IFGGZ2LnLCSew1ht695z/c+x2798Uvx+695g6ZFJVwdDIgFlj88PC36uGXP/Lz9+vewNqVOhSR2gZ3cGIJ6f15OqyDbNpVaumgjAGqcMw9GhsKHG8kZNDURjuda9lmadqU2ro2a2ptXHvkhVfeOl2xecCABO65EXwpYyT0MPSMyldkptK5GpLw09WwIQ4h60f28W9KZD0M8xYLKlZzXVVeES2MTqKCM9KgKCCFY8D30FLnXJbROsf4NKB4hUwbNp0xXhSG6mi9CrgzLy03ZoBPltjHvzg7uzitujaOacUeSpGXWyhhmfFKdWVm0ps92CRL0432ZlTHuSOhrOMqx3Guq6MlZkZU3Gx6838BVHZS5UthMHcdHJuEYpA9CyYmJs8PVsjSdGvZ04Bv+uGTYItdeT2n5BKjhtfiN9zEwnq7j+NLSEAQbGwnIAFyG2Tw92gym47ihH0FJrMpu8MN496VqFy3FZi3tJW3Yl1/AqHet1Zo9eTyudZ3AnfLdwY+WnwesUZLToF7UoUIZWnlbnfOQxv1hfS7yBpF4SNFumbltArcOz0KSY4q/q6NG7O5VtyY9JoXFLLbNpIbZLlWK7H2ps+RrhS2M2FAqzgtIeVmHJLyZ5qmf0lur5H8CsyebFD3GuT/zLlNgA7N612re/XIq1riZ1rTwSk16EgHjapQKx0M1qX/PpFMZtOTEV/o3FeoXORGJ1YvMWKczSQ+Drp6oRyuzW5qdDzjqmDR+ZTW0dgI/+d5TIHWVTyUBZ2btrcPxwY8VLHZVRrfyKVF5yYqM9JachG66pAHm+60vYX7c4rZvSua7Z6GvV1Ax148o26haSg5/GFk29Lrjx4NXTUsdidpuF1I+m1Bh/QdbujkjTYc3ZBuNF36uJkOKjdK2VGCUnDtnpy7GFQTs9/nN5DAsrupqUJBB4Y/0C0Of4AMIAFdR6p0lUPvGpBcrX0owiBi0nbgRzv+Luz47oFY9UNqM9DwcPNHIvRNtE6KNE3MJ227nR+HPiuxzThxNnl30bbtPwFb5D4=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Process Maintainerr webhook"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/notifications/webhook/maintainerr"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Process MEDIA_HANDLED webhooks from Maintainerr (3.23.0+) to exclude handled media from watchlist syncing. Requires the webhook secret in the Authorization header.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"notification_type":{"type":"string"},"mediaItems":{"type":"string"}}}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"created":{"type":"number"}},"required":["success","created"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number","description":"HTTP status code"},"error":{"type":"string","description":"HTTP status text"},"message":{"type":"string","minLength":1,"description":"Error detail, replaced with a generic string for 5xx"}},"required":["statusCode","error","message"],"additionalProperties":false,"description":"Standard error response","title":"Error"}}}},"401":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number","description":"HTTP status code"},"error":{"type":"string","description":"HTTP status text"},"message":{"type":"string","minLength":1,"description":"Error detail, replaced with a generic string for 5xx"}},"required":["statusCode","error","message"],"additionalProperties":false,"description":"Standard error response","title":"Error"}}}},"429":{"description":"Rate limit exceeded","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number","description":"HTTP status code"},"error":{"type":"string","description":"HTTP status text"},"message":{"type":"string","minLength":1,"description":"Error detail, replaced with a generic string for 5xx"}},"required":["statusCode","error","message"],"additionalProperties":false,"description":"Standard error response","title":"Error"}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number","description":"HTTP status code"},"error":{"type":"string","description":"HTTP status text"},"message":{"type":"string","minLength":1,"description":"Error detail, replaced with a generic string for 5xx"}},"required":["statusCode","error","message"],"additionalProperties":false,"description":"Standard error response","title":"Error"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

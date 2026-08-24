@@ -1,0 +1,63 @@
+---
+id: sync-maintainerr
+title: "Sync Maintainerr"
+description: "Provision the Maintainerr webhook configuration and rule group connections now"
+sidebar_label: "Sync Maintainerr"
+hide_title: true
+hide_table_of_contents: true
+api: eJztV9tu4zYQ/RVinlpAjpLd7kP1FmyKNui2a8TpBQiMgqHGFjcUqSWHSbyG/r0YUvIldrYIEOxTnyyLnDO3ozPkGlyHXpJ29rKGCsLKqt+ktiS1Re+hAJLLANUN/O5IL7RKWwPMC6gxKK87/g8VTL2710E7K6hBsQMhHvC2ce5OKGcXehmzMyFtLXw0KJbexY4XLaqELax7gAI8hs7ZgAGqNbw5PeWffZcXuJDRkLgadkIByllCS7xXdp0Zwi0/BTZYQ1ANtpKfaNUhVOBuP6EiKKDzXAfS2V2ISmEIOxtvnTMoLfQpsGiyC7v6uIDq5j/hSFLcRQvktV1CAWhjy8WtdZC3BmsoINoQu855wvqfe/RcUt7oveNuuDuY9wWMCweQfarBQi+5m5tFG9tb9MMi1xnrn7ns4egewkAXaPQ9eqyP1yCHc+g9ledz1MnwZkx8XoCsa82tkGa6U5qFNAGfMukq1Ve4RWJS6wIJjwot7bHKo3JWacNdJ02Go9hZn2XPfbGTnzHQzw9CHFq96evXg+17BvjhzY+HdLyShMLoVpPAR4VYp3a+FiNTPu9djYcte1rAX66vpyIbCMUWzzfsa6aEj8SmLYYgl3jMuNX2A9olNVCdPYX6iT2KGklqUwiPnZEKa/GgqRFSLNGi10pkKLFwXrx7fHyGQCnt7TcwBvQyWs1I2lr6WiQY4beiMdInRQy5w+++seD8395v2N6UNTWOB17nQmqH5CyhvD8r7e6gK9utppQ8HKGAgJ71Nwl/9AYqWHfekVPO9FVZrhsXqK/WrOH9QQvex0CuFbOEAQXcS69Z+hMNRhh+HkdDQ9RBkX6GsZtICNW4so9/3aAYYUQMWAtyQrm2jZZzwtwhVtacBlOAA85sH6GNU9I0uTSH+LxgZYvCeXE5FbKuPYYwKvY0miC938HnSuzjvz09fXs8dOdJOCseGq2aDZQOwkdr84hhTc9lTzWpynLlop90ee9E20DSKjxRrj1wMfW6lX41lv8FUNXRkC+0R0UDnDhPo0R8l0rMmXz/xENVlpvKHgf8MC4fBZsz+VT0mlaJfbLTv+LqPDJ3b+bsK2Dgg8Hm1Y7FjLUo82zXbvPZ55dQgOZAGpR1Iig3Gir4e3I+vZzkDfshn08vxR2uhIzUoKXhyxEx8Je/MRMDYF/sx/iMe+Xcncat+6ElB85nGWtyK5nqR0PIUHwWgOEoOkPlkV6Y/sDFSTY+COSv4ZR7NAQZyU2SJkrCWoQEcSJmzkrvyytZy+05OQjpcXNYHiWVGh2GEia0VrILY1YnScO3IjXE8aLkeLPz+ksK+RUyEzrfAvZwh+hPjt0NXp5zz6ksXEpx0PdRLM6nl0c5WjsVW7SUo+GRNFpMhBRTg4/iQZJqjA6cAeHSb7fmVqVbS24X7BzC4c+zLHOBWpnm/lDY2coqsX+d2otrvT0/vP4Famg9z/myM1Kng3vSovUw7m7g/oxZsHez22MTTzseevNxSNzAes3f2h/e9D2//hzRsxjNt6Msa9HIMtapO1xxE5TCjtLMMzGz8smJieVqM5mnH2fX0Pf/AgFsKio=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Sync Maintainerr"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/notifications/maintainerr/sync"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Provision the Maintainerr webhook configuration and rule group connections now
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"result":{"anyOf":[{"type":"object","properties":{"status":{"type":"string","enum":["disabled","unsupported_version","error","ok"]},"version":{"type":"string"},"configId":{"type":"number"},"connectedGroups":{"type":"number"},"testDelivered":{"type":"boolean"},"error":{"type":"string"}},"required":["status"],"additionalProperties":false,"description":"Result of the most recent Maintainerr reconcile","title":"MaintainerrStatus"},{"type":"null"}]}},"required":["success","result"],"additionalProperties":false}}}},"429":{"description":"Rate limit exceeded","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number","description":"HTTP status code"},"error":{"type":"string","description":"HTTP status text"},"message":{"type":"string","minLength":1,"description":"Error detail, replaced with a generic string for 5xx"}},"required":["statusCode","error","message"],"additionalProperties":false,"description":"Standard error response","title":"Error"}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number","description":"HTTP status code"},"error":{"type":"string","description":"HTTP status text"},"message":{"type":"string","minLength":1,"description":"Error detail, replaced with a generic string for 5xx"}},"required":["statusCode","error","message"],"additionalProperties":false,"description":"Standard error response","title":"Error"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

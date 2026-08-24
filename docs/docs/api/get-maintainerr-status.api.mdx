@@ -1,0 +1,63 @@
+---
+id: get-maintainerr-status
+title: "Get Maintainerr status"
+description: "Retrieve the result of the most recent Maintainerr sync"
+sidebar_label: "Get Maintainerr status"
+hide_title: true
+hide_table_of_contents: true
+api: eJytVttu4zYQ/RVinlpAjpLd9qF6CzaLNOi2NeL0AgRGwVBjixuK1JLDJF5D/14MKfkSO9um3SfLEufwzMzhGa7BdeglaWevaqhgifSz1Jaktuj9jCTFAAWQXAaobuEXR3qhVVofYF5AjUF53fF/qOAayWt8QEENCo8hGhJukf61LpDwqNCS2NlBhJVVUIDH0DkbMEC1hjenp/yzj32BC8l418NKKEA5S2iJ18quMwOv8mPggDUE1WAr+YlWHUIF7u4jKoICOs9Zk87bhagUhrCz8M45g9JCn4hFk7ewq18XUN3+I1wu2hYtkNd2CQWgjS1XsdZB3hmsoYBoQ+w65wnrvx7QB861APTeeSjA3cO8L2D8cADZpxos9JJ7t/loY3uHfvhoURHWl97FLhxdQxjoAo1+QI/18RpkOoe7p/J8ijoF3o6JzwuQda25FdJMd0qzkCbgoWT+jUo8KmeVNtx10mSYxaFO+2InP2Ognx9QHFq96euXyfY9A3z35odDOV5LQmF0q0ngk0KsUzu/liJTPu9cjYcte17AH29upiIHCMURLzfsS6GET8ShLYYgl3gsuNX2A9olNVCdPYd6zzuKGklqUwiPnZEKa/GoqRFSLNGi10pkKLFwXnz/9PSCgFLa2zMwEnqdrGYkbS19LRKM8FvTGOWTGEOfW9wiNW7wP+6G5CShfDgr7a7jle1Wc2UYzTGg5xOarCF6AxWsO+/IKWf6qizXjQvUV2s+5f1BD97FQK4Vs4QBBTxIr9kckg5GGH4ezaMh6qBIP4MDJ1+Eavyyj3/ToBhhRAxYC3JCubaNlrPC3CI+ezkN1gATzoofoY1T0qTXx/D5g5UtCufF1VTIuvYYwnimp9EEyU6/wedK7OO/PT19e5y68yScFY+NVs0GSgfho7XZhPjU57KnmlRluXLRT7q8dqJtIGkVnijXHmwx9bqVfjWW/xVQ1VHKF9qjogFOnCezEd+kEnMm3z7boSrLTWWPA34YPx8Fm7P4VPSaVkl9stM/4eo8snpv57xXwMCjY/NqJ2LGZpR1thu3Off5JRSgmUiDsk4C5UZDBX9OzqdXk7xgn/L59Erc40rISA1aGs6OiIGP/iZMDIB9sc/xhe2Vc/cat9sPLTnYfJaxJneSpX6UQobiaQGPeNc4dz9D5ZFemf6gxUkOPiDyR4Y+TkFGcpNkipKwFiFBnIiZs9L78lrWLPKBXBDSo8hjPvrRU6nRYShhQmslb2HM6iSZ+NamBh6vSo4XO68/J8pfITOhbXKCPdyB/cnenP/POfecysKlFAeDH83ifHp1VKO1U7FFS5kNz6QxYiKkmBp8Eo+SVGN04AwIl367NLdKSFuL3C7YuabB72fZ5gK1Mg3+obCX+OzyO46QPXbr7TXif9yoh07zXC87I3W6ySXrWQ/z7RYezrjpe3f6PfHwcNtc6vJUuIX1mg/Xb970Pb/+FNGz+8y3syubzygrNqZ7XHHVlcKO0pAzMcvw2R2J/Wkziy/f30Df/w2T/nSd
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get Maintainerr status"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/notifications/maintainerr/status"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve the result of the most recent Maintainerr sync
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"result":{"anyOf":[{"type":"object","properties":{"status":{"type":"string","enum":["disabled","unsupported_version","error","ok"]},"version":{"type":"string"},"configId":{"type":"number"},"connectedGroups":{"type":"number"},"testDelivered":{"type":"boolean"},"error":{"type":"string"}},"required":["status"],"additionalProperties":false,"description":"Result of the most recent Maintainerr reconcile","title":"MaintainerrStatus"},{"type":"null"}]}},"required":["success","result"],"additionalProperties":false}}}},"429":{"description":"Rate limit exceeded","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number","description":"HTTP status code"},"error":{"type":"string","description":"HTTP status text"},"message":{"type":"string","minLength":1,"description":"Error detail, replaced with a generic string for 5xx"}},"required":["statusCode","error","message"],"additionalProperties":false,"description":"Standard error response","title":"Error"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
