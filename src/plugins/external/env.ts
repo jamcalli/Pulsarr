@@ -526,6 +526,7 @@ declare module 'fastify' {
   interface FastifyInstance {
     config: Config
     updateConfig(config: Partial<Config>): Promise<Config>
+    updateConfigAndPersist(config: Partial<Config>): Promise<Config>
   }
 }
 
@@ -719,6 +720,26 @@ export default fp(
       fastify.config = updatedConfig
       return updatedConfig
     })
+
+    // Database first, then memory; a failed memory sync self-heals on restart
+    fastify.decorate(
+      'updateConfigAndPersist',
+      async (newConfig: Partial<Config>) => {
+        const dbUpdated = await fastify.db.updateConfig(newConfig)
+        if (!dbUpdated) {
+          throw new Error('Failed to persist config update to database')
+        }
+        try {
+          return await fastify.updateConfig(newConfig)
+        } catch (memUpdateErr) {
+          fastify.log.error(
+            { error: memUpdateErr },
+            'DB updated but in-memory config sync failed - restart may be needed',
+          )
+          return fastify.config
+        }
+      },
+    )
   },
   {
     name: 'config',
