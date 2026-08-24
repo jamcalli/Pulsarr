@@ -139,7 +139,16 @@ export class PlexSessionMonitorService {
     const tracker = this.plexServer.getSessionTracker()
     if (!tracker) return
 
-    const isUserAllowed = await this.getAllowedUserMatcher()
+    let isUserAllowed: AllowedUserMatcher
+    try {
+      isUserAllowed = await this.getAllowedUserMatcher()
+    } catch (error) {
+      this.log.warn(
+        { error },
+        'Failed to resolve user filter for SSE event - polling will catch it',
+      )
+      return
+    }
 
     for (const notification of notifications) {
       const isTransition = tracker.handlePlayingEvent(notification)
@@ -397,8 +406,9 @@ export class PlexSessionMonitorService {
     const season = series.seasons?.find((s) => s.seasonNumber === currentSeason)
     if (!season?.statistics?.totalEpisodeCount) {
       this.log.debug(
-        `No episode statistics for ${rollingShow.show_title} season ${currentSeason} in Sonarr - cannot evaluate threshold`,
+        `No episode statistics for ${rollingShow.show_title} season ${currentSeason} in Sonarr - reverting progress to retry next poll`,
       )
+      await revertProgress()
       return
     }
 
