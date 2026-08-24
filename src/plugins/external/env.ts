@@ -721,7 +721,7 @@ export default fp(
       return updatedConfig
     })
 
-    // Database first, then memory; a failed memory sync self-heals on restart
+    // updateConfig is a plain merge and cannot fail
     fastify.decorate(
       'updateConfigAndPersist',
       async (newConfig: Partial<Config>) => {
@@ -729,15 +729,7 @@ export default fp(
         if (!dbUpdated) {
           throw new Error('Failed to persist config update to database')
         }
-        try {
-          return await fastify.updateConfig(newConfig)
-        } catch (memUpdateErr) {
-          fastify.log.error(
-            { error: memUpdateErr },
-            'DB updated but in-memory config sync failed - restart may be needed',
-          )
-          return fastify.config
-        }
+        return fastify.updateConfig(newConfig)
       },
     )
   },

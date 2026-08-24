@@ -194,6 +194,37 @@ export async function createUserQuota(
 }
 
 /**
+ * Creates multiple user quota configurations atomically.
+ *
+ * @param quotas - The quota configurations to insert
+ * @returns The newly created user quota configurations
+ */
+export async function createUserQuotas(
+  this: DatabaseService,
+  quotas: CreateUserQuotaData[],
+): Promise<UserQuotaConfig[]> {
+  return this.knex.transaction(async (trx) => {
+    const created: UserQuotaConfig[] = []
+    for (const data of quotas) {
+      const [row] = await trx('user_quotas')
+        .insert({
+          user_id: data.userId,
+          content_type: data.contentType,
+          quota_type: data.quotaType,
+          quota_limit: data.quotaLimit,
+          bypass_approval: data.bypassApproval || false,
+          watchlist_cap: data.watchlistCap ?? null,
+          created_at: this.timestamp,
+          updated_at: this.timestamp,
+        })
+        .returning('*')
+      created.push(mapRowToUserQuotaConfig(row))
+    }
+    return created
+  })
+}
+
+/**
  * Returns the quota configuration for a user and content type, or null if not found.
  *
  * @returns The quota configuration for the specified user and content type, or null if none exists.
