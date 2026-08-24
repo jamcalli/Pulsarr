@@ -594,11 +594,15 @@ describe('guid-handler', () => {
       ])
     })
 
-    it('should skip internal plex:// identifiers', () => {
+    it('should skip internal plex:// identifiers regardless of case', () => {
       expect(
         collectGuidsFromMetadata({
           guid: 'plex://show/abc',
-          Guid: [{ id: 'tvdb://81189' }, { id: 'plex://episode/def' }],
+          Guid: [
+            { id: 'tvdb://81189' },
+            { id: 'plex://episode/def' },
+            { id: 'PLEX://episode/ghi' },
+          ],
         }),
       ).toEqual(['tvdb:81189'])
     })

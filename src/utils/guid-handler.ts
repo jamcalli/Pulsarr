@@ -108,13 +108,15 @@ export function collectGuidsFromMetadata(item: {
 }): string[] {
   const guids = new Set<string>()
 
-  if (item.guid && !item.guid.startsWith('plex://')) {
-    guids.add(normalizeGuid(item.guid))
+  if (item.guid) {
+    const guid = normalizeGuid(item.guid)
+    if (!guid.startsWith('plex:')) guids.add(guid)
   }
 
   for (const entry of item.Guid ?? []) {
-    if (entry.id && !entry.id.startsWith('plex://')) {
-      guids.add(normalizeGuid(entry.id))
+    if (entry.id) {
+      const guid = normalizeGuid(entry.id)
+      if (!guid.startsWith('plex:')) guids.add(guid)
     }
   }
 
