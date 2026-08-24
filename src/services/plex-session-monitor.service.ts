@@ -340,7 +340,12 @@ export class PlexSessionMonitorService {
     }
 
     // allSeasonPilotRolling only expands via pilot watch, not end-of-season threshold
-    if (rollingShow.monitoring_type === 'allSeasonPilotRolling') return
+    if (rollingShow.monitoring_type === 'allSeasonPilotRolling') {
+      this.log.debug(
+        `${rollingShow.show_title}: allSeasonPilotRolling only expands on pilot episodes - not evaluating S${currentSeason}E${currentEpisode}`,
+      )
+      return
+    }
 
     // The next-season check below queries Sonarr, so skip it on no-progress events.
     if (positionUnchanged) {
@@ -450,16 +455,11 @@ export class PlexSessionMonitorService {
       // When includeChildren is false, we get the detailed metadata response
       const metadata = await this.plexServer.getShowMetadata(ratingKey, false)
 
-      if (!metadata?.MediaContainer?.Metadata?.[0]?.Guid) {
-        this.log.debug(
-          `No Guid array found for ${session.grandparentTitle}, will fallback to title matching`,
-        )
-        return {}
-      }
-
-      const metadataItem = metadata.MediaContainer.Metadata[0]
+      const metadataItem = metadata?.MediaContainer?.Metadata?.[0]
       if (!metadataItem) {
-        this.log.debug(`No metadata item found for ${session.grandparentTitle}`)
+        this.log.debug(
+          `No metadata found for ${session.grandparentTitle}, will fallback to title matching`,
+        )
         return {}
       }
 
