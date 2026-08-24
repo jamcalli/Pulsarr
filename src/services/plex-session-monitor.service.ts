@@ -139,6 +139,19 @@ export class PlexSessionMonitorService {
     const tracker = this.plexServer.getSessionTracker()
     if (!tracker) return
 
+    const transitions: PlexPlaySessionNotification[] = []
+    for (const notification of notifications) {
+      const isTransition = tracker.handlePlayingEvent(notification)
+      if (!isTransition) continue
+
+      // Stopped sessions just get removed from tracking, no processing needed
+      if (notification.state === 'stopped') continue
+
+      transitions.push(notification)
+    }
+
+    if (transitions.length === 0) return
+
     let isUserAllowed: AllowedUserMatcher
     try {
       isUserAllowed = await this.getAllowedUserMatcher()
@@ -150,13 +163,7 @@ export class PlexSessionMonitorService {
       return
     }
 
-    for (const notification of notifications) {
-      const isTransition = tracker.handlePlayingEvent(notification)
-      if (!isTransition) continue
-
-      // Stopped sessions just get removed from tracking, no processing needed
-      if (notification.state === 'stopped') continue
-
+    for (const notification of transitions) {
       // For new/resumed sessions, hydrate full session data from the REST API
       // so we can reuse the existing processSession logic
       try {
