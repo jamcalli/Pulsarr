@@ -31,6 +31,8 @@ export class QuotaService {
 
   /**
    * Creates quotas for a user with specified settings (manual creation)
+   *
+   * @throws 400 if the user does not exist, 409 if quotas already exist
    */
   async createUserQuotas(
     userId: number,
@@ -39,6 +41,18 @@ export class QuotaService {
     bypassApproval = false,
     watchlistCap?: number | null,
   ): Promise<UserQuotaConfigs> {
+    const user = await this.fastify.db.getUser(userId)
+    if (!user) {
+      throw this.fastify.httpErrors.badRequest('User not found')
+    }
+
+    const existing = await this.fastify.db.getUserQuotas(userId)
+    if (existing.movieQuota || existing.showQuota) {
+      throw this.fastify.httpErrors.conflict(
+        'User already has quota configurations',
+      )
+    }
+
     const movieData: CreateUserQuotaData = {
       userId,
       contentType: 'movie',
@@ -71,8 +85,15 @@ export class QuotaService {
 
   /**
    * Sets up default quotas for a new user based on config settings
+   *
+   * Idempotent: a user who already has quotas keeps them unchanged.
    */
   async setupDefaultQuotas(userId: number): Promise<UserQuotaConfigs> {
+    const existing = await this.fastify.db.getUserQuotas(userId)
+    if (existing.movieQuota || existing.showQuota) {
+      return existing
+    }
+
     const config = this.fastify.config
     let movieQuota: UserQuotaConfig | null = null
     let showQuota: UserQuotaConfig | null = null
