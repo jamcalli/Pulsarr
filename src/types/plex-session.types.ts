@@ -29,6 +29,7 @@ export interface PlexSession {
   User: {
     id: string
     title: string // Username
+    thumb?: string // Avatar URL carrying the plex.tv account uuid
   }
   Session: {
     id: string
@@ -260,6 +261,7 @@ export interface RollingMonitoredShow {
   sonarr_instance_id: number
   plex_user_id?: string
   plex_username?: string
+  plex_user_uuid?: string | null
   created_at: string
   updated_at: string
   last_updated_at: string

@@ -422,7 +422,7 @@ export interface paths {
         get: operations["getRouterRuleById"];
         /**
          * Update router rule
-         * @description Update an existing content router rule by its ID
+         * @description Replace an existing content router rule by its ID. The full rule payload is required - fields left out are cleared, not preserved.
          */
         put: operations["updateRouterRule"];
         post?: never;
@@ -596,6 +596,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/notifications/maintainerr/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Maintainerr status
+         * @description Retrieve the result of the most recent Maintainerr sync
+         */
+        get: operations["getMaintainerrStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications/maintainerr/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Maintainerr
+         * @description Provision the Maintainerr webhook configuration and rule group connections now
+         */
+        post: operations["syncMaintainerr"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notifications/validatewebhook": {
         parameters: {
             query?: never;
@@ -630,6 +670,26 @@ export interface paths {
          * @description Process webhooks from Radarr (movies) or Sonarr (TV series) for media notifications. Requires X-Pulsarr-Secret header for authentication.
          */
         post: operations["processMediaWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications/webhook/maintainerr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Process Maintainerr webhook
+         * @description Process MEDIA_HANDLED webhooks from Maintainerr (3.23.0+) to exclude handled media from watchlist syncing. Requires the webhook secret in the Authorization header.
+         */
+        post: operations["processMaintainerrWebhook"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2436,6 +2496,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/users/update-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update user email
+         * @description Change the current user email by providing current password and new email
+         */
+        put: operations["updateUserEmail"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/users/update-password": {
         parameters: {
             query?: never;
@@ -2449,6 +2529,26 @@ export interface paths {
          * @description Change the current user password by providing current and new password
          */
         put: operations["updateUserPassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/update-username": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update user username
+         * @description Change the current user username by providing current password and new username
+         */
+        put: operations["updateUserUsername"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2981,12 +3081,649 @@ export interface webhooks {
 }
 export interface components {
     schemas: {
-        /** HttpError */
-        "def-0": {
-            statusCode?: number;
-            code?: string;
+        /** @description Shows to enroll in or switch between rolling monitoring types */
+        BulkManageRollingPayload: {
+            shows: {
+                sonarrSeriesId: number;
+                sonarrInstanceId: number;
+                title: string;
+                guids: string[];
+                rollingShowId: number | null;
+            }[];
+            monitoringType: components["schemas"]["MonitoringType"];
+            resetMonitoring?: boolean;
+        };
+        /**
+         * @description Comparison operator applied to a condition value
+         * @enum {string}
+         */
+        ConditionOperator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
+        /** @description Value shapes accepted by router conditions */
+        ConditionValue: string | number | boolean | string[] | number[] | {
+            id: string | number;
+            name: string;
+        } | {
+            id: string | number;
+            name: string;
+        } | (string | number)[] | {
+            min?: number;
+            max?: number;
+        } | {
+            rating?: number | number[] | {
+                min?: number;
+                max?: number;
+            };
+            votes?: number | number[] | {
+                min?: number;
+                max?: number;
+            };
+        } | null;
+        /** @description Value shapes accepted by router conditions */
+        ConditionValueOutput: string | number | boolean | string[] | number[] | {
+            id: string | number;
+            name: string;
+        } | {
+            id: string | number;
+            name: string;
+        } | (string | number)[] | {
+            min?: number;
+            max?: number;
+        } | {
+            rating?: number | number[] | {
+                min?: number;
+                max?: number;
+            };
+            votes?: number | number[] | {
+                min?: number;
+                max?: number;
+            };
+        } | null;
+        /** @description Complete application configuration; server-internal secrets are never included */
+        Config: {
+            id: number;
+            created_at: string;
+            updated_at: string;
+            baseUrl?: string;
+            port?: number;
+            dbPath?: string;
+            cookieSecured: boolean;
+            /** @enum {string} */
+            logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
+            /** @description Shutdown grace period in milliseconds */
+            closeGraceDelay?: number;
+            rateLimitMax?: number;
+            queueProcessDelaySeconds: number;
+            maintainerrEnabled: boolean;
+            maintainerrUrl?: string;
+            /** @enum {string} */
+            maintainerrExclusionMode?: "watchlisters" | "global";
+            discordWebhookUrl?: string;
+            discordBotToken?: string;
+            discordClientId?: string;
+            enableApprise: boolean;
+            appriseUrl: string;
+            systemAppriseUrl?: string;
+            appriseEmailSender?: string;
+            publicContentNotifications: {
+                enabled: boolean;
+                discordWebhookUrls: string;
+                discordWebhookUrlsMovies: string;
+                discordWebhookUrlsShows: string;
+                appriseUrls: string;
+                appriseUrlsMovies: string;
+                appriseUrlsShows: string;
+            };
+            plexMobileEnabled: boolean;
+            /** @enum {string} */
+            deletionMode: "watchlist" | "tag-based";
+            /** @description Notification queue wait time in milliseconds */
+            queueWaitTime: number;
+            /** @description New episode notification threshold in milliseconds */
+            newEpisodeThreshold: number;
+            /** @enum {string} */
+            notifyOnUpdate: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
+            notifyOnAvailability: boolean;
+            /** @description Pending webhook retry interval in seconds */
+            pendingWebhookRetryInterval: number;
+            /** @description Pending webhook expiry age in minutes */
+            pendingWebhookMaxAge: number;
+            /** @description Expired webhook cleanup interval in seconds */
+            pendingWebhookCleanupInterval: number;
+            tmdbRegion: string;
+            /** @description Plex authentication tokens */
+            plexTokens: string[];
+            skipFriendSync: boolean;
+            plexServerUrl?: string;
+            skipIfExistsOnPlex: boolean;
+            deleteMovie: boolean;
+            deleteEndedShow: boolean;
+            deleteContinuingShow: boolean;
+            deleteFiles: boolean;
+            respectUserSyncSetting: boolean;
+            /** @enum {string} */
+            deleteSyncNotify: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            /** @enum {string} */
+            approvalNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            /** @enum {string} */
+            watchlistCapNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            watchlistCapNotifyUser: boolean;
+            /** @enum {string} */
+            watchlistAddNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            deleteSyncNotifyOnlyOnDeletion: boolean;
+            maxDeletionPrevention?: number;
+            deleteSyncTrackedOnly: boolean;
+            deleteSyncCleanupApprovals: boolean;
+            deleteSyncRequiredTagRegex: string;
+            enablePlexPlaylistProtection: boolean;
+            plexProtectionPlaylistName: string;
+            plexLabelSync: {
+                enabled: boolean;
+                labelPrefix: string;
+                /**
+                 * @default username
+                 * @enum {string}
+                 */
+                labelNamingSource: "username" | "alias";
+                concurrencyLimit: number;
+                cleanupOrphanedLabels: boolean;
+                /**
+                 * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
+                 * @enum {string}
+                 */
+                removedLabelMode: "remove" | "keep" | "special-label";
+                /**
+                 * @description Prefix for special labels indicating removed users
+                 * @default pulsarr:removed
+                 */
+                removedLabelPrefix?: string;
+                /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
+                autoResetOnScheduledSync: boolean;
+                tagSync: {
+                    enabled: boolean;
+                    syncRadarrTags: boolean;
+                    syncSonarrTags: boolean;
+                };
+            };
+            selfRss?: string;
+            friendsRss?: string;
+            tagUsersInSonarr: boolean;
+            tagUsersInRadarr: boolean;
+            cleanupOrphanedTags: boolean;
+            tagPrefix: string;
+            /** @enum {string} */
+            tagNamingSource: "username" | "alias";
+            /** @enum {string} */
+            removedTagMode: "remove" | "keep" | "special-tag";
+            removedTagPrefix: string;
+            tagMigration?: components["schemas"]["TagMigrationOutput"];
+            plexSessionMonitoring?: {
+                enabled: boolean;
+                pollingIntervalMinutes: number;
+                remainingEpisodes: number;
+                filterUsers?: string[];
+                enableAutoReset?: boolean;
+                inactivityResetDays?: number;
+                autoResetIntervalHours?: number;
+                enableProgressiveCleanup?: boolean;
+            };
+            newUserDefaultCanSync: boolean;
+            newUserDefaultRequiresApproval: boolean;
+            newUserDefaultMovieQuotaEnabled: boolean;
+            /** @enum {string} */
+            newUserDefaultMovieQuotaType: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultMovieQuotaLimit: number;
+            newUserDefaultMovieBypassApproval: boolean;
+            newUserDefaultMovieWatchlistCap: number | null;
+            newUserDefaultShowQuotaEnabled: boolean;
+            /** @enum {string} */
+            newUserDefaultShowQuotaType: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultShowQuotaLimit: number;
+            newUserDefaultShowBypassApproval: boolean;
+            newUserDefaultShowWatchlistCap: number | null;
+            quotaSettings: {
+                cleanup: {
+                    enabled: boolean;
+                    retentionDays: number;
+                };
+                weeklyRolling: {
+                    resetDays: number;
+                };
+                monthly: {
+                    resetDay: number;
+                    /** @enum {string} */
+                    handleMonthEnd: "last-day" | "skip-month" | "next-month";
+                };
+            };
+            approvalExpiration: {
+                enabled: boolean;
+                defaultExpirationHours: number;
+                /** @enum {string} */
+                expirationAction: "expire" | "auto_approve";
+                autoApproveOnQuotaAvailable: boolean;
+                quotaExceededExpirationHours?: number;
+                routerRuleExpirationHours?: number;
+                manualFlagExpirationHours?: number;
+                contentCriteriaExpirationHours?: number;
+                cleanupExpiredDays: number;
+            };
+            /** @description Auto-start the watchlist workflow on next boot; surfaced as the Auto-Start toggle */
+            _isReady: boolean;
+        };
+        /** @description Configuration response envelope */
+        ConfigResponse: {
+            /** @constant */
+            success: true;
+            config: components["schemas"]["Config"];
+        };
+        /** @description Writable configuration fields; server-internal settings are rejected */
+        ConfigUpdatePayload: {
+            baseUrl?: string | "";
+            port?: number;
+            dbPath?: string;
+            cookieSecured?: boolean;
+            /** @enum {string} */
+            logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
+            closeGraceDelay?: number;
+            rateLimitMax?: number;
+            queueProcessDelaySeconds?: number;
+            maintainerrEnabled?: boolean;
+            maintainerrUrl?: string | "";
+            /** @enum {string} */
+            maintainerrExclusionMode?: "watchlisters" | "global";
+            discordWebhookUrl?: string;
+            discordBotToken?: string;
+            discordClientId?: string;
+            systemAppriseUrl?: string;
+            appriseEmailSender?: string;
+            publicContentNotifications?: {
+                enabled: boolean;
+                discordWebhookUrls?: string;
+                discordWebhookUrlsMovies?: string;
+                discordWebhookUrlsShows?: string;
+                appriseUrls?: string;
+                appriseUrlsMovies?: string;
+                appriseUrlsShows?: string;
+            };
+            plexMobileEnabled?: boolean;
+            queueWaitTime?: number;
+            newEpisodeThreshold?: number;
+            /** @enum {string} */
+            notifyOnUpdate?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
+            notifyOnAvailability?: boolean;
+            pendingWebhookRetryInterval?: number;
+            pendingWebhookMaxAge?: number;
+            pendingWebhookCleanupInterval?: number;
+            /** @description Plex authentication tokens */
+            plexTokens?: string[];
+            skipFriendSync?: boolean;
+            deleteMovie?: boolean;
+            deleteEndedShow?: boolean;
+            deleteContinuingShow?: boolean;
+            deleteFiles?: boolean;
+            respectUserSyncSetting?: boolean;
+            /** @enum {string} */
+            deleteSyncNotify?: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            /** @enum {string} */
+            approvalNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            /** @enum {string} */
+            watchlistCapNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            watchlistCapNotifyUser?: boolean;
+            /** @enum {string} */
+            watchlistAddNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
+            deleteSyncNotifyOnlyOnDeletion?: boolean;
+            maxDeletionPrevention?: number;
+            /** @enum {string} */
+            deletionMode?: "watchlist" | "tag-based";
+            removedTagPrefix?: string;
+            deleteSyncRequiredTagRegex?: string;
+            deleteSyncTrackedOnly?: boolean;
+            deleteSyncCleanupApprovals?: boolean;
+            /** @enum {string} */
+            removedTagMode?: "remove" | "keep" | "special-tag";
+            enablePlexPlaylistProtection?: boolean;
+            plexProtectionPlaylistName?: string;
+            plexServerUrl?: string | "";
+            skipIfExistsOnPlex?: boolean;
+            plexLabelSync?: {
+                enabled: boolean;
+                labelPrefix: string;
+                /**
+                 * @default username
+                 * @enum {string}
+                 */
+                labelNamingSource?: "username" | "alias";
+                concurrencyLimit: number;
+                cleanupOrphanedLabels: boolean;
+                /**
+                 * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
+                 * @enum {string}
+                 */
+                removedLabelMode: "remove" | "keep" | "special-label";
+                /**
+                 * @description Prefix for special labels indicating removed users
+                 * @default pulsarr:removed
+                 */
+                removedLabelPrefix?: string;
+                /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
+                autoResetOnScheduledSync: boolean;
+                tagSync: {
+                    enabled: boolean;
+                    syncRadarrTags: boolean;
+                    syncSonarrTags: boolean;
+                };
+            };
+            selfRss?: string;
+            friendsRss?: string;
+            _isReady?: boolean;
+            plexSessionMonitoring?: {
+                enabled: boolean;
+                pollingIntervalMinutes: number;
+                remainingEpisodes: number;
+                filterUsers?: string[];
+                enableAutoReset?: boolean;
+                inactivityResetDays?: number;
+                autoResetIntervalHours?: number;
+                enableProgressiveCleanup?: boolean;
+            };
+            newUserDefaultCanSync?: boolean;
+            newUserDefaultRequiresApproval?: boolean;
+            newUserDefaultMovieQuotaEnabled?: boolean;
+            /** @enum {string} */
+            newUserDefaultMovieQuotaType?: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultMovieQuotaLimit?: number;
+            newUserDefaultMovieBypassApproval?: boolean;
+            newUserDefaultMovieWatchlistCap?: number | null;
+            newUserDefaultShowQuotaEnabled?: boolean;
+            /** @enum {string} */
+            newUserDefaultShowQuotaType?: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultShowQuotaLimit?: number;
+            newUserDefaultShowBypassApproval?: boolean;
+            newUserDefaultShowWatchlistCap?: number | null;
+            quotaSettings?: {
+                cleanup?: {
+                    enabled?: boolean;
+                    retentionDays?: number;
+                };
+                weeklyRolling?: {
+                    resetDays?: number;
+                };
+                monthly?: {
+                    resetDay?: number;
+                    /** @enum {string} */
+                    handleMonthEnd?: "last-day" | "skip-month" | "next-month";
+                };
+            };
+            approvalExpiration?: {
+                enabled?: boolean;
+                defaultExpirationHours?: number;
+                /** @enum {string} */
+                expirationAction?: "expire" | "auto_approve";
+                autoApproveOnQuotaAvailable?: boolean;
+                quotaExceededExpirationHours?: number;
+                routerRuleExpirationHours?: number;
+                manualFlagExpirationHours?: number;
+                contentCriteriaExpirationHours?: number;
+                cleanupExpiredDays?: number;
+            };
+            tmdbRegion?: string;
+            tagUsersInSonarr?: boolean;
+            tagUsersInRadarr?: boolean;
+            cleanupOrphanedTags?: boolean;
+            tagPrefix?: string;
+            /** @enum {string} */
+            tagNamingSource?: "username" | "alias";
+            tagMigration?: components["schemas"]["TagMigration"];
+        };
+        /** @description Standard error response */
+        Error: {
+            /** @description HTTP status code */
+            statusCode: number;
+            /** @description HTTP status text */
+            error: string;
+            /** @description Error detail, replaced with a generic string for 5xx */
+            message: string;
+        };
+        /** @description Field and operator metadata an evaluator contributes to the rule builder */
+        EvaluatorMetadata: {
+            name: string;
+            description: string;
+            priority: number;
+            /** @default [] */
+            supportedFields: {
+                name: string;
+                description: string;
+                valueTypes: string[];
+            }[];
+            /** @default {} */
+            supportedOperators: {
+                [key: string]: {
+                    name: string;
+                    description: string;
+                    valueTypes: string[];
+                    valueFormat?: string;
+                }[];
+            };
+            /** @enum {string} */
+            contentType?: "radarr" | "sonarr" | "both";
+        };
+        /** @description Result of the most recent Maintainerr reconcile */
+        MaintainerrStatus: {
+            /** @enum {string} */
+            status: "disabled" | "unsupported_version" | "error" | "ok";
+            version?: string;
+            configId?: number;
+            connectedGroups?: number;
+            testDelivered?: boolean;
             error?: string;
-            message?: string;
+        };
+        /** @description Standard success message response */
+        Message: {
+            /** @description Human-readable result message */
+            message: string;
+        };
+        /**
+         * @description Rolling monitoring strategy for a show
+         * @enum {string}
+         */
+        MonitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
+        /** @description Rolling monitored show entry (master record or per-user tracking row) */
+        RollingMonitoredShow: {
+            id: number;
+            sonarr_series_id: number;
+            tvdb_id?: string | null;
+            imdb_id?: string | null;
+            show_title: string;
+            monitoring_type: components["schemas"]["MonitoringType"];
+            current_monitored_season: number;
+            last_watched_season: number;
+            last_watched_episode: number;
+            last_session_date?: string | null;
+            sonarr_instance_id: number;
+            plex_user_id?: string | null;
+            plex_username?: string | null;
+            plex_user_uuid?: string | null;
+            created_at: string;
+            updated_at: string;
+            last_updated_at: string;
+        };
+        /** @description A single field comparison in a router rule */
+        RouterCondition: {
+            field: string;
+            operator: components["schemas"]["ConditionOperator"];
+            value: components["schemas"]["ConditionValue"];
+            /** @default false */
+            negate?: boolean;
+            _cid?: string;
+        };
+        /** @description Boolean grouping of router conditions, nestable to 20 levels */
+        RouterConditionGroup: {
+            /** @enum {string} */
+            operator: "AND" | "OR";
+            conditions: (components["schemas"]["RouterCondition"] | {
+                /** @enum {string} */
+                operator: "AND" | "OR";
+                conditions: unknown[];
+                /** @default false */
+                negate?: boolean;
+                _cid?: string;
+            })[];
+            /** @default false */
+            negate?: boolean;
+            _cid?: string;
+        };
+        /** @description Boolean grouping of router conditions, nestable to 20 levels */
+        RouterConditionGroupOutput: {
+            /** @enum {string} */
+            operator: "AND" | "OR";
+            conditions: (components["schemas"]["RouterConditionOutput"] | {
+                /** @enum {string} */
+                operator: "AND" | "OR";
+                conditions: unknown[];
+                /** @default false */
+                negate: boolean;
+                _cid?: string;
+            })[];
+            /** @default false */
+            negate: boolean;
+            _cid?: string;
+        };
+        /** @description A single field comparison in a router rule */
+        RouterConditionOutput: {
+            field: string;
+            operator: components["schemas"]["ConditionOperator"];
+            value: components["schemas"]["ConditionValueOutput"];
+            /** @default false */
+            negate: boolean;
+            _cid?: string;
+        };
+        /** @description A stored content router rule */
+        RouterRule: {
+            name: string;
+            /** @enum {string} */
+            target_type: "sonarr" | "radarr";
+            target_instance_id: number | null;
+            condition?: components["schemas"]["RouterConditionOutput"] | components["schemas"]["RouterConditionGroupOutput"];
+            root_folder?: string;
+            quality_profile?: number | string;
+            tags?: string[];
+            order?: number;
+            enabled?: boolean;
+            search_on_add?: boolean | null;
+            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+            season_monitoring?: string | null;
+            /** @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error. */
+            series_type?: ("standard" | "anime" | "daily") | null;
+            /** @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error. */
+            monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
+            always_require_approval?: boolean;
+            bypass_user_quotas?: boolean;
+            approval_reason?: string;
+            exclude_from_routing?: boolean;
+            id: number;
+            created_at: string;
+            updated_at: string;
+        };
+        /** @description Response carrying a list of router rules */
+        RouterRuleListResponse: {
+            success: boolean;
+            message: string;
+            rules: components["schemas"]["RouterRule"][];
+        };
+        /** @description Full router rule payload used to create or replace a rule */
+        RouterRulePayload: {
+            name: string;
+            /** @enum {string} */
+            target_type: "sonarr" | "radarr";
+            target_instance_id: number | null;
+            condition?: components["schemas"]["RouterCondition"] | components["schemas"]["RouterConditionGroup"];
+            root_folder?: string;
+            quality_profile?: number | string;
+            tags?: string[];
+            order?: number;
+            enabled?: boolean;
+            search_on_add?: boolean | null;
+            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+            season_monitoring?: string | null;
+            /** @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error. */
+            series_type?: ("standard" | "anime" | "daily") | null;
+            /** @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error. */
+            monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
+            always_require_approval?: boolean;
+            bypass_user_quotas?: boolean;
+            approval_reason?: string;
+            exclude_from_routing?: boolean;
+        };
+        /** @description Response carrying a single router rule */
+        RouterRuleResponse: {
+            success: boolean;
+            message: string;
+            rule: components["schemas"]["RouterRule"];
+        };
+        /** @description Pulsarr-tracked Sonarr show with its rolling monitoring enrollment status */
+        SonarrShowWithEnrollment: {
+            watchlistId: number;
+            sonarrInstanceId: number;
+            sonarrSeriesId: number;
+            title: string;
+            guids: string[];
+            rollingShowId: number | null;
+            monitoringType: components["schemas"]["MonitoringType"] | null;
+        };
+        /** @description Tag format migration status per Radarr/Sonarr instance */
+        TagMigration: {
+            radarr: {
+                [key: string]: components["schemas"]["TagMigrationEntry"];
+            };
+            sonarr: {
+                [key: string]: components["schemas"]["TagMigrationEntry"];
+            };
+        };
+        /** @description Migration result for a single instance */
+        TagMigrationEntry: {
+            completed: boolean;
+            migratedAt: string;
+            tagsMigrated: number;
+            contentUpdated: number;
+        };
+        /** @description Migration result for a single instance */
+        TagMigrationEntryOutput: {
+            completed: boolean;
+            migratedAt: string;
+            tagsMigrated: number;
+            contentUpdated: number;
+        };
+        /** @description Tag format migration status per Radarr/Sonarr instance */
+        TagMigrationOutput: {
+            radarr: {
+                [key: string]: components["schemas"]["TagMigrationEntryOutput"];
+            };
+            sonarr: {
+                [key: string]: components["schemas"]["TagMigrationEntryOutput"];
+            };
+        };
+        /** @description Change the current admin password */
+        UpdateCredentialsPayload: {
+            /** @description Current password for verification */
+            currentPassword: string;
+            /** @description New password to set */
+            newPassword: string;
+        };
+        /** @description Change the current admin email address */
+        UpdateEmailPayload: {
+            /** @description Current password for verification */
+            currentPassword: string;
+            /**
+             * Format: email
+             * @description New email address to set
+             */
+            newEmail: string;
+        };
+        /** @description Change the current admin username */
+        UpdateUsernamePayload: {
+            /** @description Current password for verification */
+            currentPassword: string;
+            /** @description New username to set */
+            newUsername: string;
         };
     };
     responses: never;
@@ -3022,6 +3759,15 @@ export interface operations {
                             database: "ok" | "failed";
                         };
                     };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3073,18 +3819,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3130,12 +3880,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3144,12 +3898,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3178,12 +3927,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3192,12 +3945,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3246,18 +3994,16 @@ export interface operations {
                                     instanceId: number;
                                     /** @enum {string} */
                                     instanceType: "radarr" | "sonarr";
-                                    qualityProfile?: number | string | (null);
+                                    qualityProfile?: number | string | null;
                                     rootFolder?: string | null;
                                     tags?: string[];
                                     priority: number;
                                     searchOnAdd?: boolean | null;
                                     seasonMonitoring?: string | null;
-                                    /** @enum {string|null} */
-                                    seriesType?: "standard" | "anime" | "daily" | null;
+                                    seriesType?: ("standard" | "anime" | "daily") | null;
                                     /** @enum {string} */
                                     minimumAvailability?: "announced" | "inCinemas" | "released";
-                                    /** @enum {string|null} */
-                                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                    monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                     syncedInstances?: number[];
                                 };
                                 approval?: {
@@ -3278,18 +4024,16 @@ export interface operations {
                                         instanceId: number;
                                         /** @enum {string} */
                                         instanceType: "radarr" | "sonarr";
-                                        qualityProfile?: number | string | (null);
+                                        qualityProfile?: number | string | null;
                                         rootFolder?: string | null;
                                         tags?: string[];
                                         priority: number;
                                         searchOnAdd?: boolean | null;
                                         seasonMonitoring?: string | null;
-                                        /** @enum {string|null} */
-                                        seriesType?: "standard" | "anime" | "daily" | null;
+                                        seriesType?: ("standard" | "anime" | "daily") | null;
                                         /** @enum {string} */
                                         minimumAvailability?: "announced" | "inCinemas" | "released";
-                                        /** @enum {string|null} */
-                                        monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                        monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                         syncedInstances?: number[];
                                     };
                                 };
@@ -3323,12 +4067,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3337,12 +4085,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3370,18 +4113,16 @@ export interface operations {
                             instanceId: number;
                             /** @enum {string} */
                             instanceType: "radarr" | "sonarr";
-                            qualityProfile?: number | string | (null);
+                            qualityProfile?: number | string | null;
                             rootFolder?: string | null;
                             tags?: string[];
                             priority: number;
                             searchOnAdd?: boolean | null;
                             seasonMonitoring?: string | null;
-                            /** @enum {string|null} */
-                            seriesType?: "standard" | "anime" | "daily" | null;
+                            seriesType?: ("standard" | "anime" | "daily") | null;
                             /** @enum {string} */
                             minimumAvailability?: "announced" | "inCinemas" | "released";
-                            /** @enum {string|null} */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                            monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                             syncedInstances?: number[];
                         };
                         approval?: {
@@ -3402,18 +4143,16 @@ export interface operations {
                                 instanceId: number;
                                 /** @enum {string} */
                                 instanceType: "radarr" | "sonarr";
-                                qualityProfile?: number | string | (null);
+                                qualityProfile?: number | string | null;
                                 rootFolder?: string | null;
                                 tags?: string[];
                                 priority: number;
                                 searchOnAdd?: boolean | null;
                                 seasonMonitoring?: string | null;
-                                /** @enum {string|null} */
-                                seriesType?: "standard" | "anime" | "daily" | null;
+                                seriesType?: ("standard" | "anime" | "daily") | null;
                                 /** @enum {string} */
                                 minimumAvailability?: "announced" | "inCinemas" | "released";
-                                /** @enum {string|null} */
-                                monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                 syncedInstances?: number[];
                             };
                         };
@@ -3452,18 +4191,16 @@ export interface operations {
                                     instanceId: number;
                                     /** @enum {string} */
                                     instanceType: "radarr" | "sonarr";
-                                    qualityProfile?: number | string | (null);
+                                    qualityProfile?: number | string | null;
                                     rootFolder?: string | null;
                                     tags?: string[];
                                     priority: number;
                                     searchOnAdd?: boolean | null;
                                     seasonMonitoring?: string | null;
-                                    /** @enum {string|null} */
-                                    seriesType?: "standard" | "anime" | "daily" | null;
+                                    seriesType?: ("standard" | "anime" | "daily") | null;
                                     /** @enum {string} */
                                     minimumAvailability?: "announced" | "inCinemas" | "released";
-                                    /** @enum {string|null} */
-                                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                    monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                     syncedInstances?: number[];
                                 };
                                 approval?: {
@@ -3484,18 +4221,16 @@ export interface operations {
                                         instanceId: number;
                                         /** @enum {string} */
                                         instanceType: "radarr" | "sonarr";
-                                        qualityProfile?: number | string | (null);
+                                        qualityProfile?: number | string | null;
                                         rootFolder?: string | null;
                                         tags?: string[];
                                         priority: number;
                                         searchOnAdd?: boolean | null;
                                         seasonMonitoring?: string | null;
-                                        /** @enum {string|null} */
-                                        seriesType?: "standard" | "anime" | "daily" | null;
+                                        seriesType?: ("standard" | "anime" | "daily") | null;
                                         /** @enum {string} */
                                         minimumAvailability?: "announced" | "inCinemas" | "released";
-                                        /** @enum {string|null} */
-                                        monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                        monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                         syncedInstances?: number[];
                                     };
                                 };
@@ -3526,12 +4261,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3540,12 +4270,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3554,12 +4288,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3604,12 +4333,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3618,12 +4342,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3632,12 +4360,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3646,12 +4369,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3695,12 +4413,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3709,12 +4431,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3759,12 +4476,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3773,12 +4485,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3787,12 +4503,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3833,18 +4544,16 @@ export interface operations {
                                     instanceId: number;
                                     /** @enum {string} */
                                     instanceType: "radarr" | "sonarr";
-                                    qualityProfile?: number | string | (null);
+                                    qualityProfile?: number | string | null;
                                     rootFolder?: string | null;
                                     tags?: string[];
                                     priority: number;
                                     searchOnAdd?: boolean | null;
                                     seasonMonitoring?: string | null;
-                                    /** @enum {string|null} */
-                                    seriesType?: "standard" | "anime" | "daily" | null;
+                                    seriesType?: ("standard" | "anime" | "daily") | null;
                                     /** @enum {string} */
                                     minimumAvailability?: "announced" | "inCinemas" | "released";
-                                    /** @enum {string|null} */
-                                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                    monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                     syncedInstances?: number[];
                                 };
                                 approval?: {
@@ -3865,18 +4574,16 @@ export interface operations {
                                         instanceId: number;
                                         /** @enum {string} */
                                         instanceType: "radarr" | "sonarr";
-                                        qualityProfile?: number | string | (null);
+                                        qualityProfile?: number | string | null;
                                         rootFolder?: string | null;
                                         tags?: string[];
                                         priority: number;
                                         searchOnAdd?: boolean | null;
                                         seasonMonitoring?: string | null;
-                                        /** @enum {string|null} */
-                                        seriesType?: "standard" | "anime" | "daily" | null;
+                                        seriesType?: ("standard" | "anime" | "daily") | null;
                                         /** @enum {string} */
                                         minimumAvailability?: "announced" | "inCinemas" | "released";
-                                        /** @enum {string|null} */
-                                        monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                        monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                         syncedInstances?: number[];
                                     };
                                 };
@@ -3907,12 +4614,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3921,12 +4623,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3935,12 +4641,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -3974,12 +4675,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -3988,12 +4684,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4002,12 +4702,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -4034,18 +4729,16 @@ export interface operations {
                             instanceId: number;
                             /** @enum {string} */
                             instanceType: "radarr" | "sonarr";
-                            qualityProfile?: number | string | (null);
+                            qualityProfile?: number | string | null;
                             rootFolder?: string | null;
                             tags?: string[];
                             priority: number;
                             searchOnAdd?: boolean | null;
                             seasonMonitoring?: string | null;
-                            /** @enum {string|null} */
-                            seriesType?: "standard" | "anime" | "daily" | null;
+                            seriesType?: ("standard" | "anime" | "daily") | null;
                             /** @enum {string} */
                             minimumAvailability?: "announced" | "inCinemas" | "released";
-                            /** @enum {string|null} */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                            monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                             syncedInstances?: number[];
                         };
                         approval?: {
@@ -4066,18 +4759,16 @@ export interface operations {
                                 instanceId: number;
                                 /** @enum {string} */
                                 instanceType: "radarr" | "sonarr";
-                                qualityProfile?: number | string | (null);
+                                qualityProfile?: number | string | null;
                                 rootFolder?: string | null;
                                 tags?: string[];
                                 priority: number;
                                 searchOnAdd?: boolean | null;
                                 seasonMonitoring?: string | null;
-                                /** @enum {string|null} */
-                                seriesType?: "standard" | "anime" | "daily" | null;
+                                seriesType?: ("standard" | "anime" | "daily") | null;
                                 /** @enum {string} */
                                 minimumAvailability?: "announced" | "inCinemas" | "released";
-                                /** @enum {string|null} */
-                                monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                 syncedInstances?: number[];
                             };
                         };
@@ -4111,18 +4802,16 @@ export interface operations {
                                     instanceId: number;
                                     /** @enum {string} */
                                     instanceType: "radarr" | "sonarr";
-                                    qualityProfile?: number | string | (null);
+                                    qualityProfile?: number | string | null;
                                     rootFolder?: string | null;
                                     tags?: string[];
                                     priority: number;
                                     searchOnAdd?: boolean | null;
                                     seasonMonitoring?: string | null;
-                                    /** @enum {string|null} */
-                                    seriesType?: "standard" | "anime" | "daily" | null;
+                                    seriesType?: ("standard" | "anime" | "daily") | null;
                                     /** @enum {string} */
                                     minimumAvailability?: "announced" | "inCinemas" | "released";
-                                    /** @enum {string|null} */
-                                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                    monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                     syncedInstances?: number[];
                                 };
                                 approval?: {
@@ -4143,18 +4832,16 @@ export interface operations {
                                         instanceId: number;
                                         /** @enum {string} */
                                         instanceType: "radarr" | "sonarr";
-                                        qualityProfile?: number | string | (null);
+                                        qualityProfile?: number | string | null;
                                         rootFolder?: string | null;
                                         tags?: string[];
                                         priority: number;
                                         searchOnAdd?: boolean | null;
                                         seasonMonitoring?: string | null;
-                                        /** @enum {string|null} */
-                                        seriesType?: "standard" | "anime" | "daily" | null;
+                                        seriesType?: ("standard" | "anime" | "daily") | null;
                                         /** @enum {string} */
                                         minimumAvailability?: "announced" | "inCinemas" | "released";
-                                        /** @enum {string|null} */
-                                        monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
+                                        monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
                                         syncedInstances?: number[];
                                     };
                                 };
@@ -4185,12 +4872,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4199,12 +4881,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4213,12 +4890,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4227,12 +4899,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4241,12 +4917,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4255,12 +4926,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -4300,12 +4966,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4314,12 +4975,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4328,12 +4984,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4342,12 +5002,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4356,12 +5011,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -4401,12 +5051,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4415,12 +5060,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4429,12 +5069,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4443,12 +5087,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -4482,18 +5121,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -4513,185 +5156,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        config: {
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                            baseUrl?: string;
-                            port?: number;
-                            dbPath?: string;
-                            cookieSecured: boolean;
-                            /** @enum {string} */
-                            logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
-                            closeGraceDelay?: number;
-                            rateLimitMax?: number;
-                            queueProcessDelaySeconds: number;
-                            discordWebhookUrl?: string;
-                            discordBotToken?: string;
-                            discordClientId?: string;
-                            enableApprise: boolean;
-                            appriseUrl: string;
-                            systemAppriseUrl?: string;
-                            appriseEmailSender?: string;
-                            publicContentNotifications: {
-                                enabled: boolean;
-                                discordWebhookUrls: string;
-                                discordWebhookUrlsMovies: string;
-                                discordWebhookUrlsShows: string;
-                                appriseUrls: string;
-                                appriseUrlsMovies: string;
-                                appriseUrlsShows: string;
-                            };
-                            plexMobileEnabled: boolean;
-                            /** @enum {string} */
-                            deletionMode: "watchlist" | "tag-based";
-                            queueWaitTime: number;
-                            newEpisodeThreshold: number;
-                            /** @enum {string} */
-                            notifyOnUpdate: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
-                            notifyOnAvailability: boolean;
-                            pendingWebhookRetryInterval: number;
-                            pendingWebhookMaxAge: number;
-                            pendingWebhookCleanupInterval: number;
-                            tmdbRegion: string;
-                            plexTokens: string[];
-                            skipFriendSync: boolean;
-                            plexServerUrl?: string;
-                            skipIfExistsOnPlex: boolean;
-                            deleteMovie: boolean;
-                            deleteEndedShow: boolean;
-                            deleteContinuingShow: boolean;
-                            deleteFiles: boolean;
-                            respectUserSyncSetting: boolean;
-                            /** @enum {string} */
-                            deleteSyncNotify: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            /** @enum {string} */
-                            approvalNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            /** @enum {string} */
-                            watchlistCapNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            watchlistCapNotifyUser: boolean;
-                            /** @enum {string} */
-                            watchlistAddNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            deleteSyncNotifyOnlyOnDeletion: boolean;
-                            maxDeletionPrevention?: number;
-                            deleteSyncTrackedOnly: boolean;
-                            deleteSyncCleanupApprovals: boolean;
-                            deleteSyncRequiredTagRegex: string;
-                            enablePlexPlaylistProtection: boolean;
-                            plexProtectionPlaylistName: string;
-                            plexLabelSync: {
-                                enabled: boolean;
-                                labelPrefix: string;
-                                /**
-                                 * @default username
-                                 * @enum {string}
-                                 */
-                                labelNamingSource: "username" | "alias";
-                                concurrencyLimit: number;
-                                cleanupOrphanedLabels: boolean;
-                                /**
-                                 * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
-                                 * @enum {string}
-                                 */
-                                removedLabelMode: "remove" | "keep" | "special-label";
-                                /**
-                                 * @description Prefix for special labels indicating removed users
-                                 * @default pulsarr:removed
-                                 */
-                                removedLabelPrefix: string;
-                                /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
-                                autoResetOnScheduledSync: boolean;
-                                tagSync: {
-                                    enabled: boolean;
-                                    syncRadarrTags: boolean;
-                                    syncSonarrTags: boolean;
-                                };
-                            };
-                            selfRss?: string;
-                            friendsRss?: string;
-                            tagUsersInSonarr: boolean;
-                            tagUsersInRadarr: boolean;
-                            cleanupOrphanedTags: boolean;
-                            tagPrefix: string;
-                            /** @enum {string} */
-                            tagNamingSource: "username" | "alias";
-                            /** @enum {string} */
-                            removedTagMode: "remove" | "keep" | "special-tag";
-                            removedTagPrefix: string;
-                            tagMigration?: {
-                                radarr: {
-                                    [key: string]: {
-                                        completed: boolean;
-                                        migratedAt: string;
-                                        tagsMigrated: number;
-                                        contentUpdated: number;
-                                    };
-                                };
-                                sonarr: {
-                                    [key: string]: {
-                                        completed: boolean;
-                                        migratedAt: string;
-                                        tagsMigrated: number;
-                                        contentUpdated: number;
-                                    };
-                                };
-                            };
-                            plexSessionMonitoring?: {
-                                enabled: boolean;
-                                pollingIntervalMinutes: number;
-                                remainingEpisodes: number;
-                                filterUsers?: string[];
-                                enableAutoReset?: boolean;
-                                inactivityResetDays?: number;
-                                autoResetIntervalHours?: number;
-                                enableProgressiveCleanup?: boolean;
-                            };
-                            newUserDefaultCanSync: boolean;
-                            newUserDefaultRequiresApproval: boolean;
-                            newUserDefaultMovieQuotaEnabled: boolean;
-                            /** @enum {string} */
-                            newUserDefaultMovieQuotaType: "daily" | "weekly_rolling" | "monthly";
-                            newUserDefaultMovieQuotaLimit: number;
-                            newUserDefaultMovieBypassApproval: boolean;
-                            newUserDefaultMovieWatchlistCap: number | null;
-                            newUserDefaultShowQuotaEnabled: boolean;
-                            /** @enum {string} */
-                            newUserDefaultShowQuotaType: "daily" | "weekly_rolling" | "monthly";
-                            newUserDefaultShowQuotaLimit: number;
-                            newUserDefaultShowBypassApproval: boolean;
-                            newUserDefaultShowWatchlistCap: number | null;
-                            quotaSettings: {
-                                cleanup: {
-                                    enabled: boolean;
-                                    retentionDays: number;
-                                };
-                                weeklyRolling: {
-                                    resetDays: number;
-                                };
-                                monthly: {
-                                    resetDay: number;
-                                    /** @enum {string} */
-                                    handleMonthEnd: "last-day" | "skip-month" | "next-month";
-                                };
-                            };
-                            approvalExpiration: {
-                                enabled: boolean;
-                                defaultExpirationHours: number;
-                                /** @enum {string} */
-                                expirationAction: "expire" | "auto_approve";
-                                autoApproveOnQuotaAvailable: boolean;
-                                quotaExceededExpirationHours?: number;
-                                routerRuleExpirationHours?: number;
-                                manualFlagExpirationHours?: number;
-                                contentCriteriaExpirationHours?: number;
-                                cleanupExpiredDays: number;
-                            };
-                            _isReady: boolean;
-                        };
-                    };
+                    "application/json": components["schemas"]["ConfigResponse"];
                 };
             };
             /** @description Default Response */
@@ -4700,12 +5165,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4714,12 +5174,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -4728,12 +5192,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -4745,178 +5204,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Writable configuration fields; server-internal settings are rejected */
         requestBody: {
             content: {
-                "application/json": {
-                    baseUrl?: string | "";
-                    port?: number;
-                    dbPath?: string;
-                    cookieSecured?: boolean;
-                    /** @enum {string} */
-                    logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
-                    closeGraceDelay?: number;
-                    rateLimitMax?: number;
-                    queueProcessDelaySeconds?: number;
-                    discordWebhookUrl?: string;
-                    discordBotToken?: string;
-                    discordClientId?: string;
-                    systemAppriseUrl?: string;
-                    appriseEmailSender?: string;
-                    publicContentNotifications?: {
-                        enabled: boolean;
-                        discordWebhookUrls?: string;
-                        discordWebhookUrlsMovies?: string;
-                        discordWebhookUrlsShows?: string;
-                        appriseUrls?: string;
-                        appriseUrlsMovies?: string;
-                        appriseUrlsShows?: string;
-                    };
-                    plexMobileEnabled?: boolean;
-                    queueWaitTime?: number;
-                    newEpisodeThreshold?: number;
-                    /** @enum {string} */
-                    notifyOnUpdate?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
-                    notifyOnAvailability?: boolean;
-                    pendingWebhookRetryInterval?: number;
-                    pendingWebhookMaxAge?: number;
-                    pendingWebhookCleanupInterval?: number;
-                    plexTokens?: string[];
-                    skipFriendSync?: boolean;
-                    deleteMovie?: boolean;
-                    deleteEndedShow?: boolean;
-                    deleteContinuingShow?: boolean;
-                    deleteFiles?: boolean;
-                    respectUserSyncSetting?: boolean;
-                    /** @enum {string} */
-                    deleteSyncNotify?: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                    /** @enum {string} */
-                    approvalNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                    /** @enum {string} */
-                    watchlistCapNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                    watchlistCapNotifyUser?: boolean;
-                    /** @enum {string} */
-                    watchlistAddNotify?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                    deleteSyncNotifyOnlyOnDeletion?: boolean;
-                    maxDeletionPrevention?: number;
-                    /** @enum {string} */
-                    deletionMode?: "watchlist" | "tag-based";
-                    removedTagPrefix?: string;
-                    deleteSyncRequiredTagRegex?: string;
-                    deleteSyncTrackedOnly?: boolean;
-                    deleteSyncCleanupApprovals?: boolean;
-                    /** @enum {string} */
-                    removedTagMode?: "remove" | "keep" | "special-tag";
-                    enablePlexPlaylistProtection?: boolean;
-                    plexProtectionPlaylistName?: string;
-                    plexServerUrl?: string | "";
-                    skipIfExistsOnPlex?: boolean;
-                    plexLabelSync?: {
-                        enabled: boolean;
-                        labelPrefix: string;
-                        /**
-                         * @default username
-                         * @enum {string}
-                         */
-                        labelNamingSource?: "username" | "alias";
-                        concurrencyLimit: number;
-                        cleanupOrphanedLabels: boolean;
-                        /**
-                         * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
-                         * @enum {string}
-                         */
-                        removedLabelMode: "remove" | "keep" | "special-label";
-                        /**
-                         * @description Prefix for special labels indicating removed users
-                         * @default pulsarr:removed
-                         */
-                        removedLabelPrefix?: string;
-                        /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
-                        autoResetOnScheduledSync: boolean;
-                        tagSync: {
-                            enabled: boolean;
-                            syncRadarrTags: boolean;
-                            syncSonarrTags: boolean;
-                        };
-                    };
-                    selfRss?: string;
-                    friendsRss?: string;
-                    _isReady?: boolean;
-                    plexSessionMonitoring?: {
-                        enabled: boolean;
-                        pollingIntervalMinutes: number;
-                        remainingEpisodes: number;
-                        filterUsers?: string[];
-                        enableAutoReset?: boolean;
-                        inactivityResetDays?: number;
-                        autoResetIntervalHours?: number;
-                        enableProgressiveCleanup?: boolean;
-                    };
-                    newUserDefaultCanSync?: boolean;
-                    newUserDefaultRequiresApproval?: boolean;
-                    newUserDefaultMovieQuotaEnabled?: boolean;
-                    /** @enum {string} */
-                    newUserDefaultMovieQuotaType?: "daily" | "weekly_rolling" | "monthly";
-                    newUserDefaultMovieQuotaLimit?: number;
-                    newUserDefaultMovieBypassApproval?: boolean;
-                    newUserDefaultMovieWatchlistCap?: number | null;
-                    newUserDefaultShowQuotaEnabled?: boolean;
-                    /** @enum {string} */
-                    newUserDefaultShowQuotaType?: "daily" | "weekly_rolling" | "monthly";
-                    newUserDefaultShowQuotaLimit?: number;
-                    newUserDefaultShowBypassApproval?: boolean;
-                    newUserDefaultShowWatchlistCap?: number | null;
-                    quotaSettings?: {
-                        cleanup?: {
-                            enabled?: boolean;
-                            retentionDays?: number;
-                        };
-                        weeklyRolling?: {
-                            resetDays?: number;
-                        };
-                        monthly?: {
-                            resetDay?: number;
-                            /** @enum {string} */
-                            handleMonthEnd?: "last-day" | "skip-month" | "next-month";
-                        };
-                    };
-                    approvalExpiration?: {
-                        enabled?: boolean;
-                        defaultExpirationHours?: number;
-                        /** @enum {string} */
-                        expirationAction?: "expire" | "auto_approve";
-                        autoApproveOnQuotaAvailable?: boolean;
-                        quotaExceededExpirationHours?: number;
-                        routerRuleExpirationHours?: number;
-                        manualFlagExpirationHours?: number;
-                        contentCriteriaExpirationHours?: number;
-                        cleanupExpiredDays?: number;
-                    };
-                    tmdbRegion?: string;
-                    tagUsersInSonarr?: boolean;
-                    tagUsersInRadarr?: boolean;
-                    cleanupOrphanedTags?: boolean;
-                    tagPrefix?: string;
-                    /** @enum {string} */
-                    tagNamingSource?: "username" | "alias";
-                    tagMigration?: {
-                        radarr: {
-                            [key: string]: {
-                                completed: boolean;
-                                migratedAt: string;
-                                tagsMigrated: number;
-                                contentUpdated: number;
-                            };
-                        };
-                        sonarr: {
-                            [key: string]: {
-                                completed: boolean;
-                                migratedAt: string;
-                                tagsMigrated: number;
-                                contentUpdated: number;
-                            };
-                        };
-                    };
-                };
+                "application/json": components["schemas"]["ConfigUpdatePayload"];
             };
         };
         responses: {
@@ -4926,185 +5217,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        config: {
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                            baseUrl?: string;
-                            port?: number;
-                            dbPath?: string;
-                            cookieSecured: boolean;
-                            /** @enum {string} */
-                            logLevel?: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
-                            closeGraceDelay?: number;
-                            rateLimitMax?: number;
-                            queueProcessDelaySeconds: number;
-                            discordWebhookUrl?: string;
-                            discordBotToken?: string;
-                            discordClientId?: string;
-                            enableApprise: boolean;
-                            appriseUrl: string;
-                            systemAppriseUrl?: string;
-                            appriseEmailSender?: string;
-                            publicContentNotifications: {
-                                enabled: boolean;
-                                discordWebhookUrls: string;
-                                discordWebhookUrlsMovies: string;
-                                discordWebhookUrlsShows: string;
-                                appriseUrls: string;
-                                appriseUrlsMovies: string;
-                                appriseUrlsShows: string;
-                            };
-                            plexMobileEnabled: boolean;
-                            /** @enum {string} */
-                            deletionMode: "watchlist" | "tag-based";
-                            queueWaitTime: number;
-                            newEpisodeThreshold: number;
-                            /** @enum {string} */
-                            notifyOnUpdate: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
-                            notifyOnAvailability: boolean;
-                            pendingWebhookRetryInterval: number;
-                            pendingWebhookMaxAge: number;
-                            pendingWebhookCleanupInterval: number;
-                            tmdbRegion: string;
-                            plexTokens: string[];
-                            skipFriendSync: boolean;
-                            plexServerUrl?: string;
-                            skipIfExistsOnPlex: boolean;
-                            deleteMovie: boolean;
-                            deleteEndedShow: boolean;
-                            deleteContinuingShow: boolean;
-                            deleteFiles: boolean;
-                            respectUserSyncSetting: boolean;
-                            /** @enum {string} */
-                            deleteSyncNotify: "none" | "message" | "webhook" | "both" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            /** @enum {string} */
-                            approvalNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            /** @enum {string} */
-                            watchlistCapNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            watchlistCapNotifyUser: boolean;
-                            /** @enum {string} */
-                            watchlistAddNotify: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only" | "discord-webhook" | "discord-message" | "discord-both";
-                            deleteSyncNotifyOnlyOnDeletion: boolean;
-                            maxDeletionPrevention?: number;
-                            deleteSyncTrackedOnly: boolean;
-                            deleteSyncCleanupApprovals: boolean;
-                            deleteSyncRequiredTagRegex: string;
-                            enablePlexPlaylistProtection: boolean;
-                            plexProtectionPlaylistName: string;
-                            plexLabelSync: {
-                                enabled: boolean;
-                                labelPrefix: string;
-                                /**
-                                 * @default username
-                                 * @enum {string}
-                                 */
-                                labelNamingSource: "username" | "alias";
-                                concurrencyLimit: number;
-                                cleanupOrphanedLabels: boolean;
-                                /**
-                                 * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
-                                 * @enum {string}
-                                 */
-                                removedLabelMode: "remove" | "keep" | "special-label";
-                                /**
-                                 * @description Prefix for special labels indicating removed users
-                                 * @default pulsarr:removed
-                                 */
-                                removedLabelPrefix: string;
-                                /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
-                                autoResetOnScheduledSync: boolean;
-                                tagSync: {
-                                    enabled: boolean;
-                                    syncRadarrTags: boolean;
-                                    syncSonarrTags: boolean;
-                                };
-                            };
-                            selfRss?: string;
-                            friendsRss?: string;
-                            tagUsersInSonarr: boolean;
-                            tagUsersInRadarr: boolean;
-                            cleanupOrphanedTags: boolean;
-                            tagPrefix: string;
-                            /** @enum {string} */
-                            tagNamingSource: "username" | "alias";
-                            /** @enum {string} */
-                            removedTagMode: "remove" | "keep" | "special-tag";
-                            removedTagPrefix: string;
-                            tagMigration?: {
-                                radarr: {
-                                    [key: string]: {
-                                        completed: boolean;
-                                        migratedAt: string;
-                                        tagsMigrated: number;
-                                        contentUpdated: number;
-                                    };
-                                };
-                                sonarr: {
-                                    [key: string]: {
-                                        completed: boolean;
-                                        migratedAt: string;
-                                        tagsMigrated: number;
-                                        contentUpdated: number;
-                                    };
-                                };
-                            };
-                            plexSessionMonitoring?: {
-                                enabled: boolean;
-                                pollingIntervalMinutes: number;
-                                remainingEpisodes: number;
-                                filterUsers?: string[];
-                                enableAutoReset?: boolean;
-                                inactivityResetDays?: number;
-                                autoResetIntervalHours?: number;
-                                enableProgressiveCleanup?: boolean;
-                            };
-                            newUserDefaultCanSync: boolean;
-                            newUserDefaultRequiresApproval: boolean;
-                            newUserDefaultMovieQuotaEnabled: boolean;
-                            /** @enum {string} */
-                            newUserDefaultMovieQuotaType: "daily" | "weekly_rolling" | "monthly";
-                            newUserDefaultMovieQuotaLimit: number;
-                            newUserDefaultMovieBypassApproval: boolean;
-                            newUserDefaultMovieWatchlistCap: number | null;
-                            newUserDefaultShowQuotaEnabled: boolean;
-                            /** @enum {string} */
-                            newUserDefaultShowQuotaType: "daily" | "weekly_rolling" | "monthly";
-                            newUserDefaultShowQuotaLimit: number;
-                            newUserDefaultShowBypassApproval: boolean;
-                            newUserDefaultShowWatchlistCap: number | null;
-                            quotaSettings: {
-                                cleanup: {
-                                    enabled: boolean;
-                                    retentionDays: number;
-                                };
-                                weeklyRolling: {
-                                    resetDays: number;
-                                };
-                                monthly: {
-                                    resetDay: number;
-                                    /** @enum {string} */
-                                    handleMonthEnd: "last-day" | "skip-month" | "next-month";
-                                };
-                            };
-                            approvalExpiration: {
-                                enabled: boolean;
-                                defaultExpirationHours: number;
-                                /** @enum {string} */
-                                expirationAction: "expire" | "auto_approve";
-                                autoApproveOnQuotaAvailable: boolean;
-                                quotaExceededExpirationHours?: number;
-                                routerRuleExpirationHours?: number;
-                                manualFlagExpirationHours?: number;
-                                contentCriteriaExpirationHours?: number;
-                                cleanupExpiredDays: number;
-                            };
-                            _isReady: boolean;
-                        };
-                    };
+                    "application/json": components["schemas"]["ConfigResponse"];
                 };
             };
             /** @description Default Response */
@@ -5113,12 +5226,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -5127,12 +5235,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -5141,12 +5253,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5183,18 +5290,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5224,18 +5335,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5257,29 +5372,17 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        evaluators: {
-                            name: string;
-                            description: string;
-                            priority: number;
-                            /** @default [] */
-                            supportedFields: {
-                                name: string;
-                                description: string;
-                                valueTypes: string[];
-                            }[];
-                            /** @default {} */
-                            supportedOperators: {
-                                [key: string]: {
-                                    name: string;
-                                    description: string;
-                                    valueTypes: string[];
-                                    valueFormat?: string;
-                                }[];
-                            };
-                            /** @enum {string} */
-                            contentType?: "radarr" | "sonarr" | "both";
-                        }[];
+                        evaluators: components["schemas"]["EvaluatorMetadata"][];
                     };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -5288,12 +5391,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5313,108 +5411,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rules: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["RouterRuleListResponse"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -5423,12 +5429,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5440,103 +5441,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Full router rule payload used to create or replace a rule */
         requestBody: {
             content: {
-                "application/json": {
-                    name: string;
-                    /** @enum {string} */
-                    target_type: "sonarr" | "radarr";
-                    target_instance_id: number | null;
-                    condition?: {
-                        field: string;
-                        /** @enum {string} */
-                        operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                        value: string | number | boolean | string[] | number[] | {
-                            id: string | number;
-                            name: string;
-                        } | {
-                            id: string | number;
-                            name: string;
-                        } | (string | number)[] | {
-                            min?: number;
-                            max?: number;
-                        } | {
-                            rating?: number | number[] | {
-                                min?: number;
-                                max?: number;
-                            };
-                            votes?: number | number[] | {
-                                min?: number;
-                                max?: number;
-                            };
-                        } | (null);
-                        /** @default false */
-                        negate?: boolean;
-                        _cid?: string;
-                    } | {
-                        /** @enum {string} */
-                        operator: "AND" | "OR";
-                        conditions: ({
-                            field: string;
-                            /** @enum {string} */
-                            operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                            value: string | number | boolean | string[] | number[] | {
-                                id: string | number;
-                                name: string;
-                            } | {
-                                id: string | number;
-                                name: string;
-                            } | (string | number)[] | {
-                                min?: number;
-                                max?: number;
-                            } | {
-                                rating?: number | number[] | {
-                                    min?: number;
-                                    max?: number;
-                                };
-                                votes?: number | number[] | {
-                                    min?: number;
-                                    max?: number;
-                                };
-                            } | (null);
-                            /** @default false */
-                            negate?: boolean;
-                            _cid?: string;
-                        } | {
-                            /** @enum {string} */
-                            operator: "AND" | "OR";
-                            conditions: unknown[];
-                            /** @default false */
-                            negate?: boolean;
-                            _cid?: string;
-                        })[];
-                        /** @default false */
-                        negate?: boolean;
-                        _cid?: string;
-                    };
-                    root_folder?: string;
-                    quality_profile?: number | string;
-                    tags?: string[];
-                    order?: number;
-                    enabled?: boolean;
-                    search_on_add?: boolean | null;
-                    /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                    season_monitoring?: string | null;
-                    /**
-                     * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                     * @enum {string|null}
-                     */
-                    series_type?: "standard" | "anime" | "daily" | null;
-                    /**
-                     * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                     * @enum {string|null}
-                     */
-                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                    always_require_approval?: boolean;
-                    bypass_user_quotas?: boolean;
-                    approval_reason?: string;
-                    exclude_from_routing?: boolean;
-                };
+                "application/json": components["schemas"]["RouterRulePayload"];
             };
         };
         responses: {
@@ -5546,108 +5454,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rule: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        };
-                    };
+                    "application/json": components["schemas"]["RouterRuleResponse"];
                 };
             };
             /** @description Default Response */
@@ -5656,12 +5463,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -5670,12 +5481,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5698,108 +5504,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rules: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["RouterRuleListResponse"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -5808,12 +5522,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5835,108 +5544,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rules: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["RouterRuleListResponse"];
                 };
             };
             /** @description Default Response */
@@ -5945,12 +5553,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -5959,12 +5571,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -5988,108 +5595,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rules: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["RouterRuleListResponse"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6098,12 +5613,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6125,108 +5635,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rule: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        };
-                    };
+                    "application/json": components["schemas"]["RouterRuleResponse"];
                 };
             };
             /** @description Default Response */
@@ -6235,12 +5644,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6249,12 +5662,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6268,103 +5676,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Full router rule payload used to create or replace a rule */
         requestBody: {
             content: {
-                "application/json": {
-                    name?: string;
-                    /** @enum {string} */
-                    target_type?: "sonarr" | "radarr";
-                    target_instance_id?: number | null;
-                    condition?: {
-                        field: string;
-                        /** @enum {string} */
-                        operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                        value: string | number | boolean | string[] | number[] | {
-                            id: string | number;
-                            name: string;
-                        } | {
-                            id: string | number;
-                            name: string;
-                        } | (string | number)[] | {
-                            min?: number;
-                            max?: number;
-                        } | {
-                            rating?: number | number[] | {
-                                min?: number;
-                                max?: number;
-                            };
-                            votes?: number | number[] | {
-                                min?: number;
-                                max?: number;
-                            };
-                        } | (null);
-                        /** @default false */
-                        negate?: boolean;
-                        _cid?: string;
-                    } | {
-                        /** @enum {string} */
-                        operator: "AND" | "OR";
-                        conditions: ({
-                            field: string;
-                            /** @enum {string} */
-                            operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                            value: string | number | boolean | string[] | number[] | {
-                                id: string | number;
-                                name: string;
-                            } | {
-                                id: string | number;
-                                name: string;
-                            } | (string | number)[] | {
-                                min?: number;
-                                max?: number;
-                            } | {
-                                rating?: number | number[] | {
-                                    min?: number;
-                                    max?: number;
-                                };
-                                votes?: number | number[] | {
-                                    min?: number;
-                                    max?: number;
-                                };
-                            } | (null);
-                            /** @default false */
-                            negate?: boolean;
-                            _cid?: string;
-                        } | {
-                            /** @enum {string} */
-                            operator: "AND" | "OR";
-                            conditions: unknown[];
-                            /** @default false */
-                            negate?: boolean;
-                            _cid?: string;
-                        })[];
-                        /** @default false */
-                        negate?: boolean;
-                        _cid?: string;
-                    };
-                    root_folder?: string;
-                    quality_profile?: number | string;
-                    tags?: string[];
-                    order?: number;
-                    enabled?: boolean;
-                    search_on_add?: boolean | null;
-                    /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                    season_monitoring?: string | null;
-                    /**
-                     * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                     * @enum {string|null}
-                     */
-                    series_type?: "standard" | "anime" | "daily" | null;
-                    /**
-                     * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                     * @enum {string|null}
-                     */
-                    monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                    always_require_approval?: boolean;
-                    bypass_user_quotas?: boolean;
-                    approval_reason?: string;
-                    exclude_from_routing?: boolean;
-                };
+                "application/json": components["schemas"]["RouterRulePayload"];
             };
         };
         responses: {
@@ -6374,108 +5689,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        rule: {
-                            name: string;
-                            /** @enum {string} */
-                            target_type: "sonarr" | "radarr";
-                            target_instance_id: number | null;
-                            condition?: {
-                                field: string;
-                                /** @enum {string} */
-                                operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                value: string | number | boolean | string[] | number[] | {
-                                    id: string | number;
-                                    name: string;
-                                } | {
-                                    id: string | number;
-                                    name: string;
-                                } | (string | number)[] | {
-                                    min?: number;
-                                    max?: number;
-                                } | {
-                                    rating?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                    votes?: number | number[] | {
-                                        min?: number;
-                                        max?: number;
-                                    };
-                                } | (null);
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            } | {
-                                /** @enum {string} */
-                                operator: "AND" | "OR";
-                                conditions: ({
-                                    field: string;
-                                    /** @enum {string} */
-                                    operator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-                                    value: string | number | boolean | string[] | number[] | {
-                                        id: string | number;
-                                        name: string;
-                                    } | {
-                                        id: string | number;
-                                        name: string;
-                                    } | (string | number)[] | {
-                                        min?: number;
-                                        max?: number;
-                                    } | {
-                                        rating?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                        votes?: number | number[] | {
-                                            min?: number;
-                                            max?: number;
-                                        };
-                                    } | (null);
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                } | {
-                                    /** @enum {string} */
-                                    operator: "AND" | "OR";
-                                    conditions: unknown[];
-                                    /** @default false */
-                                    negate: boolean;
-                                    _cid?: string;
-                                })[];
-                                /** @default false */
-                                negate: boolean;
-                                _cid?: string;
-                            };
-                            root_folder?: string;
-                            quality_profile?: number | string;
-                            tags?: string[];
-                            order?: number;
-                            enabled?: boolean;
-                            search_on_add?: boolean | null;
-                            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-                            season_monitoring?: string | null;
-                            /**
-                             * @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            series_type?: "standard" | "anime" | "daily" | null;
-                            /**
-                             * @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.
-                             * @enum {string|null}
-                             */
-                            monitor?: "movieOnly" | "movieAndCollection" | "none" | null;
-                            always_require_approval?: boolean;
-                            bypass_user_quotas?: boolean;
-                            approval_reason?: string;
-                            exclude_from_routing?: boolean;
-                            id: number;
-                            created_at: string;
-                            updated_at: string;
-                        };
-                    };
+                    "application/json": components["schemas"]["RouterRuleResponse"];
                 };
             };
             /** @description Default Response */
@@ -6484,12 +5698,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6498,12 +5707,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6512,12 +5725,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6551,12 +5759,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6565,12 +5777,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6610,12 +5817,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6624,12 +5835,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6669,12 +5875,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6683,12 +5893,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6711,7 +5916,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        /** @enum {string} */
+                        /** @constant */
                         mode: "remove";
                         results: {
                             processed: number;
@@ -6727,12 +5932,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6741,12 +5950,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6769,7 +5973,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        /** @enum {string} */
+                        /** @constant */
                         mode: "sync";
                         results: {
                             processed: number;
@@ -6786,12 +5990,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6800,12 +6008,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6816,8 +6019,8 @@ export interface operations {
                 /** @description Number of recent log lines to send initially. Defaults to 100. */
                 tail?: number;
                 /** @description Whether to follow the log file for new entries. Defaults to true. */
-                follow?: boolean;
-                /** @description Optional string filter to match against log messages (max 512 chars). */
+                follow?: string;
+                /** @description Optional string filter to match against log messages (max 512 chars). Applies within the tail window of recent lines, so older matches are not backfilled and fewer than tail lines may be returned. */
                 filter?: string;
             };
             header?: never;
@@ -6836,6 +6039,15 @@ export interface operations {
                         /** @description SSE stream of log entries */
                         message: string;
                     };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6864,18 +6076,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6909,12 +6125,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6923,12 +6143,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -6962,12 +6177,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -6976,12 +6195,80 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getMaintainerrStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
+                        success: boolean;
+                        result: components["schemas"]["MaintainerrStatus"] | null;
                     };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    syncMaintainerr: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        result: components["schemas"]["MaintainerrStatus"] | null;
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7026,12 +6313,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7040,12 +6331,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7062,11 +6348,11 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
+                    /** @constant */
                     eventType: "Test";
                     instanceName: string;
                 } | ({
-                    /** @enum {string} */
+                    /** @constant */
                     eventType: "Download";
                     instanceName: string;
                     series: {
@@ -7090,7 +6376,7 @@ export interface operations {
                         size: number;
                     };
                 } | {
-                    /** @enum {string} */
+                    /** @constant */
                     eventType: "Download";
                     instanceName: string;
                     series: {
@@ -7145,12 +6431,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7159,12 +6440,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7173,12 +6458,73 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    processMaintainerrWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    notification_type?: string;
+                    mediaItems?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
+                        success: boolean;
+                        created: number;
                     };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7216,12 +6562,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7230,12 +6580,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7292,12 +6637,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7306,12 +6655,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7357,12 +6701,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7371,12 +6710,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7385,12 +6719,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7399,12 +6728,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7413,12 +6746,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7427,12 +6755,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7464,12 +6787,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7478,12 +6805,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7509,18 +6831,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7566,12 +6892,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7580,12 +6910,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7630,12 +6955,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7644,12 +6973,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7678,18 +7002,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7719,18 +7047,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7755,18 +7087,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7791,18 +7127,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7848,12 +7188,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7862,12 +7206,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7903,7 +7242,7 @@ export interface operations {
                                     thumb: string;
                                     guids: string[];
                                     genres: string[];
-                                    /** @enum {string} */
+                                    /** @constant */
                                     status: "pending";
                                 }[];
                             }[];
@@ -7923,12 +7262,21 @@ export interface operations {
                                     thumb: string;
                                     guids: string[];
                                     genres: string[];
-                                    /** @enum {string} */
+                                    /** @constant */
                                     status: "pending";
                                 }[];
                             }[];
                         };
                     };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -7937,12 +7285,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -7987,12 +7330,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -8001,12 +7348,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8044,12 +7386,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -8058,12 +7404,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8106,18 +7447,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8141,6 +7486,15 @@ export interface operations {
                         /** @description SSE stream of progress events */
                         message: string;
                     };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8181,12 +7535,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8234,12 +7592,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8267,18 +7629,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8314,18 +7680,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8392,12 +7762,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -8406,12 +7771,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8469,12 +7838,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -8483,12 +7856,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8527,7 +7895,6 @@ export interface operations {
                                 quotaLimit: number;
                                 currentUsage: number;
                                 exceeded: boolean;
-                                /** Format: date-time */
                                 resetDate: string | null;
                                 bypassApproval: boolean;
                                 watchlistCap: number | null;
@@ -8544,12 +7911,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -8558,12 +7929,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8620,12 +7986,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8661,12 +8031,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8733,12 +8107,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8768,18 +8146,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8858,12 +8240,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8896,7 +8282,6 @@ export interface operations {
                             quotaLimit: number;
                             currentUsage: number;
                             exceeded: boolean;
-                            /** Format: date-time */
                             resetDate: string | null;
                             bypassApproval: boolean;
                             watchlistCap: number | null;
@@ -8906,18 +8291,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -8960,12 +8349,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9004,12 +8397,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9018,12 +8406,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9032,12 +8424,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9087,6 +8474,15 @@ export interface operations {
                         skipDefaultRoutingWhenNoMatch: boolean;
                         id: number;
                     }[];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9149,12 +8545,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9163,12 +8554,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9177,12 +8572,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9232,12 +8622,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9246,12 +8631,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9260,12 +8640,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9274,12 +8658,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9308,12 +8687,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9322,12 +8705,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9371,12 +8749,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9385,12 +8758,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9399,12 +8776,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9448,12 +8820,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9462,12 +8829,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9476,12 +8847,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9523,12 +8889,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9537,12 +8898,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9551,12 +8916,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9589,18 +8949,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9623,7 +8987,7 @@ export interface operations {
                     "application/json": ({
                         id: number;
                         name: string;
-                        /** @enum {string} */
+                        /** @constant */
                         type: "interval";
                         config: {
                             days?: number;
@@ -9652,7 +9016,7 @@ export interface operations {
                     } | {
                         id: number;
                         name: string;
-                        /** @enum {string} */
+                        /** @constant */
                         type: "cron";
                         config: {
                             expression: string;
@@ -9677,18 +9041,22 @@ export interface operations {
                     })[];
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9703,7 +9071,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
+                    /** @constant */
                     type: "interval";
                     name: string;
                     config: {
@@ -9716,7 +9084,7 @@ export interface operations {
                     /** @default true */
                     enabled?: boolean;
                 } | {
-                    /** @enum {string} */
+                    /** @constant */
                     type: "cron";
                     name: string;
                     config: {
@@ -9740,18 +9108,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9813,12 +9185,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9827,12 +9203,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9857,7 +9228,7 @@ export interface operations {
                     "application/json": {
                         id: number;
                         name: string;
-                        /** @enum {string} */
+                        /** @constant */
                         type: "interval";
                         config: {
                             days?: number;
@@ -9886,7 +9257,7 @@ export interface operations {
                     } | {
                         id: number;
                         name: string;
-                        /** @enum {string} */
+                        /** @constant */
                         type: "cron";
                         config: {
                             expression: string;
@@ -9917,12 +9288,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -9931,12 +9306,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -9953,7 +9323,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
+                    /** @constant */
                     type: "interval";
                     config?: {
                         days?: number;
@@ -9964,7 +9334,7 @@ export interface operations {
                     };
                     enabled?: boolean;
                 } | {
-                    /** @enum {string} */
+                    /** @constant */
                     type: "cron";
                     config?: {
                         expression: string;
@@ -9992,12 +9362,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10006,12 +9380,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10045,12 +9414,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10059,12 +9432,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10098,12 +9466,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10112,12 +9484,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10157,12 +9524,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10171,12 +9542,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10198,25 +9564,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        shows: {
-                            id: number;
-                            sonarr_series_id: number;
-                            tvdb_id?: string | null;
-                            imdb_id?: string | null;
-                            show_title: string;
-                            /** @enum {string} */
-                            monitoring_type: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
-                            current_monitored_season: number;
-                            last_watched_season: number;
-                            last_watched_episode: number;
-                            last_session_date?: string | null;
-                            sonarr_instance_id: number;
-                            plex_user_id?: string | null;
-                            plex_username?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                            last_updated_at: string;
-                        }[];
+                        shows: components["schemas"]["RollingMonitoredShow"][];
                     };
                 };
             };
@@ -10226,12 +9574,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10243,20 +9595,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Shows to enroll in or switch between rolling monitoring types */
         requestBody: {
             content: {
-                "application/json": {
-                    shows: {
-                        sonarrSeriesId: number;
-                        sonarrInstanceId: number;
-                        title: string;
-                        guids: string[];
-                        rollingShowId: number | null;
-                    }[];
-                    /** @enum {string} */
-                    monitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
-                    resetMonitoring?: boolean;
-                };
+                "application/json": components["schemas"]["BulkManageRollingPayload"];
             };
         };
         responses: {
@@ -10282,12 +9624,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10311,25 +9657,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        shows: {
-                            id: number;
-                            sonarr_series_id: number;
-                            tvdb_id?: string | null;
-                            imdb_id?: string | null;
-                            show_title: string;
-                            /** @enum {string} */
-                            monitoring_type: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
-                            current_monitored_season: number;
-                            last_watched_season: number;
-                            last_watched_episode: number;
-                            last_session_date?: string | null;
-                            sonarr_instance_id: number;
-                            plex_user_id?: string | null;
-                            plex_username?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                            last_updated_at: string;
-                        }[];
+                        shows: components["schemas"]["RollingMonitoredShow"][];
                         inactivityDays: number;
                     };
                 };
@@ -10340,12 +9668,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10384,12 +9716,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10425,12 +9761,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10439,12 +9770,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10478,12 +9813,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10492,12 +9822,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10539,12 +9873,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10568,16 +9906,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        shows: {
-                            watchlistId: number;
-                            sonarrInstanceId: number;
-                            sonarrSeriesId: number;
-                            title: string;
-                            guids: string[];
-                            rollingShowId: number | null;
-                            /** @enum {string|null} */
-                            monitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling" | null;
-                        }[];
+                        shows: components["schemas"]["SonarrShowWithEnrollment"][];
                     };
                 };
             };
@@ -10587,12 +9916,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10631,12 +9964,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10645,12 +9973,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10659,12 +9991,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10718,6 +10045,15 @@ export interface operations {
                         skipDefaultRoutingWhenNoMatch: boolean;
                         id: number;
                     }[];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10784,12 +10120,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10798,12 +10129,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10812,12 +10147,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10869,12 +10199,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10883,12 +10208,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10897,12 +10217,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10911,12 +10235,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -10945,12 +10264,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -10959,12 +10282,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11008,12 +10326,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11022,12 +10335,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11036,12 +10353,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11085,12 +10397,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11099,12 +10406,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11113,12 +10424,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11160,12 +10466,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11174,12 +10475,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11188,12 +10493,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11226,18 +10526,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11272,12 +10576,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11286,12 +10594,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11431,12 +10734,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11445,12 +10752,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11487,12 +10789,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11501,12 +10807,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11540,12 +10841,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11554,12 +10859,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11596,12 +10896,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11610,12 +10914,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11656,18 +10955,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11708,12 +11011,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11722,12 +11029,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11772,12 +11074,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11786,12 +11092,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11850,18 +11151,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11902,12 +11207,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11916,12 +11225,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -11958,12 +11262,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -11972,12 +11280,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12016,12 +11319,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -12030,12 +11337,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12069,12 +11371,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -12083,12 +11389,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12123,18 +11424,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12170,12 +11475,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -12184,12 +11493,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12225,18 +11529,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12274,18 +11582,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12329,18 +11641,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12363,7 +11679,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        /** @enum {string} */
+                        /** @constant */
                         mode: "create";
                         sonarr: {
                             created: number;
@@ -12380,18 +11696,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12421,7 +11741,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        /** @enum {string} */
+                        /** @constant */
                         mode: "remove";
                         sonarr: {
                             itemsProcessed: number;
@@ -12442,18 +11762,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12476,7 +11800,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        /** @enum {string} */
+                        /** @constant */
                         mode: "sync";
                         sonarr: {
                             tagged: number;
@@ -12505,18 +11829,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12548,18 +11876,18 @@ export interface operations {
                             details: {
                                 adult: boolean;
                                 backdrop_path: string | null;
-                                belongs_to_collection: {
+                                belongs_to_collection: ({
                                     id: number;
                                     name: string;
                                     poster_path: string | null;
                                     backdrop_path: string | null;
-                                } | null;
+                                } | null) | null;
                                 budget: number;
                                 genres: {
                                     id: number;
                                     name: string;
                                 }[];
-                                homepage: string | "" | (null);
+                                homepage: string | "" | null;
                                 id: number;
                                 imdb_id: string | null;
                                 origin_country: string[];
@@ -12673,7 +12001,7 @@ export interface operations {
                                     id: number;
                                     name: string;
                                 }[];
-                                homepage: string | "" | (null);
+                                homepage: string | "" | null;
                                 id: number;
                                 in_production: boolean;
                                 languages: string[];
@@ -12794,12 +12122,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -12808,12 +12131,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -12822,12 +12149,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -12836,12 +12158,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -12873,18 +12190,18 @@ export interface operations {
                             details: {
                                 adult: boolean;
                                 backdrop_path: string | null;
-                                belongs_to_collection: {
+                                belongs_to_collection: ({
                                     id: number;
                                     name: string;
                                     poster_path: string | null;
                                     backdrop_path: string | null;
-                                } | null;
+                                } | null) | null;
                                 budget: number;
                                 genres: {
                                     id: number;
                                     name: string;
                                 }[];
-                                homepage: string | "" | (null);
+                                homepage: string | "" | null;
                                 id: number;
                                 imdb_id: string | null;
                                 origin_country: string[];
@@ -12998,7 +12315,7 @@ export interface operations {
                                     id: number;
                                     name: string;
                                 }[];
-                                homepage: string | "" | (null);
+                                homepage: string | "" | null;
                                 id: number;
                                 in_production: boolean;
                                 languages: string[];
@@ -13119,12 +12436,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13133,12 +12445,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13147,12 +12463,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13161,12 +12472,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13199,18 +12505,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13219,12 +12529,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13254,18 +12559,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13274,12 +12583,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13311,18 +12615,18 @@ export interface operations {
                             details: {
                                 adult: boolean;
                                 backdrop_path: string | null;
-                                belongs_to_collection: {
+                                belongs_to_collection: ({
                                     id: number;
                                     name: string;
                                     poster_path: string | null;
                                     backdrop_path: string | null;
-                                } | null;
+                                } | null) | null;
                                 budget: number;
                                 genres: {
                                     id: number;
                                     name: string;
                                 }[];
-                                homepage: string | "" | (null);
+                                homepage: string | "" | null;
                                 id: number;
                                 imdb_id: string | null;
                                 origin_country: string[];
@@ -13436,7 +12740,7 @@ export interface operations {
                                     id: number;
                                     name: string;
                                 }[];
-                                homepage: string | "" | (null);
+                                homepage: string | "" | null;
                                 id: number;
                                 in_production: boolean;
                                 languages: string[];
@@ -13557,12 +12861,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13571,12 +12870,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13585,12 +12888,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13599,12 +12897,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13632,18 +12925,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13695,12 +12992,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13709,12 +13010,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13735,7 +13031,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         authenticated: true;
                     };
                 };
@@ -13746,12 +13042,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13792,12 +13092,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13838,12 +13142,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13852,12 +13160,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13893,12 +13196,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13907,12 +13214,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13952,12 +13254,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -13966,12 +13272,77 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateUserEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Change the current admin email address */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEmailPayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -13983,12 +13354,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Change the current admin password */
         requestBody: {
             content: {
-                "application/json": {
-                    currentPassword: string;
-                    newPassword: string;
-                };
+                "application/json": components["schemas"]["UpdateCredentialsPayload"];
             };
         };
         responses: {
@@ -13998,9 +13367,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Message"];
                 };
             };
             /** @description Default Response */
@@ -14009,12 +13376,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14023,12 +13385,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14037,12 +13403,77 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateUserUsername: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Change the current admin username */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUsernamePayload"];
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14109,12 +13540,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14123,12 +13558,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14174,18 +13604,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14232,18 +13666,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14297,12 +13735,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14311,12 +13753,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14385,12 +13822,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14399,12 +13831,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14413,12 +13849,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14470,12 +13901,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14484,12 +13910,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14498,12 +13928,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14539,18 +13964,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14594,12 +14023,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14608,12 +14041,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14650,18 +14078,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14690,12 +14122,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14704,12 +14140,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14749,12 +14180,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14763,12 +14198,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14796,18 +14226,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14841,12 +14275,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14855,12 +14293,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14881,7 +14314,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         success: true;
                         data: {
                             id: number;
@@ -14897,18 +14330,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -14941,7 +14378,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         success: true;
                         data: {
                             id: number;
@@ -14963,12 +14400,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -14977,12 +14418,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -15018,18 +14454,22 @@ export interface operations {
                     };
                 };
             };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Default Response */
             500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -15052,7 +14492,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         success: true;
                         data: {
                             id: number;
@@ -15074,12 +14514,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -15088,12 +14532,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -15127,7 +14566,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         success: true;
                         data: {
                             id: number;
@@ -15149,12 +14588,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -15163,12 +14606,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -15202,12 +14640,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -15216,12 +14658,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -15257,12 +14694,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Default Response */
@@ -15271,12 +14712,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        statusCode: number;
-                        code: string;
-                        error: string;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
@@ -15297,7 +14733,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {boolean} */
+                        /** @constant */
                         success: true;
                         data: {
                             /** @enum {string} */
@@ -15305,6 +14741,15 @@ export interface operations {
                             description: string;
                         }[];
                     };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };

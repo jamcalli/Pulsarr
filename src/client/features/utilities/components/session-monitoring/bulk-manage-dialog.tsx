@@ -1,7 +1,3 @@
-import type {
-  MonitoringType,
-  SonarrShowsResponse,
-} from '@root/schemas/session-monitoring/session-monitoring.schema'
 import { Activity, Clock, Layers } from 'lucide-react'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
@@ -25,8 +21,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useBulkManageMutation } from '@/features/utilities/hooks/useSessionMonitoringQueries'
+import type { components } from '@/types/api.js'
 
-type SonarrShow = SonarrShowsResponse['shows'][number]
+type MonitoringType = components['schemas']['MonitoringType']
+
+type SonarrShow = components['schemas']['SonarrShowWithEnrollment']
 
 interface BulkManageDialogProps {
   open: boolean

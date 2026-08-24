@@ -66,6 +66,7 @@ export async function ensureTokenUsers(
     deps.config.plexTokens.map(async (token, index) => {
       // Fetch the actual Plex username for this token
       let plexUsername = `token${index + 1}` // Fallback name
+      let usernameVerified = false
       let plexAvatar: string | null = null
       let plexUuid: string | null = null
       const isPrimary = index === 0 // First token is primary
@@ -95,6 +96,7 @@ export async function ensureTokenUsers(
           }
           if (userData?.username) {
             plexUsername = userData.username
+            usernameVerified = true
             deps.logger.debug(
               `Using actual Plex username: ${plexUsername} for token${index + 1}`,
             )
@@ -132,6 +134,14 @@ export async function ensureTokenUsers(
         clearTimeout(timeoutId)
       }
 
+      // Primary still proceeds unverified so a fresh install can bootstrap offline
+      if (!isPrimary && !usernameVerified) {
+        deps.logger.warn(
+          `Skipping user sync for token${index + 1}: could not verify Plex username`,
+        )
+        return
+      }
+
       // Variable to hold our user
       let user: User | undefined
 
@@ -154,7 +164,8 @@ export async function ensureTokenUsers(
         // Build updates for any changed fields
         const updates: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>> =
           {}
-        if (user.name !== plexUsername) {
+        // Never overwrite a stored name with the fallback from a failed fetch
+        if (usernameVerified && user.name !== plexUsername) {
           updates.name = plexUsername
         }
         if (plexAvatar && user.avatar !== plexAvatar) {
@@ -169,66 +180,43 @@ export async function ensureTokenUsers(
           user = await deps.db.getUser(user.id)
         }
       } else {
-        // If we're creating a primary user, ensure no other primaries exist
+        const { user: ensuredUser, created } = await deps.db.getOrCreateUser({
+          name: plexUsername,
+          apprise: null,
+          alias: null,
+          discord_id: null,
+          notify_apprise: false,
+          notify_discord: false,
+          notify_discord_mention: true,
+          notify_plex_mobile: false,
+          can_sync: deps.config.newUserDefaultCanSync ?? true,
+          requires_approval:
+            deps.config.newUserDefaultRequiresApproval ?? false,
+          is_primary_token: false, // Primary flag is set separately below
+          avatar: plexAvatar,
+          plex_uuid: plexUuid,
+        })
+        user = ensuredUser
+
         if (isPrimary) {
-          // Use the database service method to handle primary user setting
-          // We'll create the user first, then set it as primary
-          user = await deps.db.createUser({
-            name: plexUsername,
-            apprise: null,
-            alias: null,
-            discord_id: null,
-            notify_apprise: false,
-            notify_discord: false,
-            notify_discord_mention: true,
-            notify_plex_mobile: false,
-            can_sync: deps.config.newUserDefaultCanSync ?? true,
-            requires_approval:
-              deps.config.newUserDefaultRequiresApproval ?? false,
-            is_primary_token: false, // Initially false, will set to true next
-            avatar: plexAvatar,
-            plex_uuid: plexUuid,
-          })
-
-          // Now set as primary using the database service method
           await deps.db.setPrimaryUser(user.id)
+        }
 
-          // Reload to get updated data with is_primary_token = true
-          const updatedUser = await deps.db.getUser(user.id)
-          if (updatedUser) {
+        if (created) {
+          // Reload so the notification carries the final primary flag
+          const finalUser = await deps.db.getUser(user.id)
+          if (finalUser) {
             // Send native webhook notification for user creation (fire-and-forget)
-            void deps.fastify.notifications.sendUserCreated(updatedUser)
+            void deps.fastify.notifications.sendUserCreated(finalUser)
           }
 
           // Create default quotas for the new user
           await createDefaultQuotasForUser(user.id, deps)
+        }
 
-          // Reload to get final data
+        if (isPrimary) {
+          // Reload to get updated data with is_primary_token = true
           user = await deps.db.getUser(user.id)
-        } else {
-          // Create regular non-primary user
-          user = await deps.db.createUser({
-            name: plexUsername,
-            apprise: null,
-            alias: null,
-            discord_id: null,
-            notify_apprise: false,
-            notify_discord: false,
-            notify_discord_mention: true,
-            notify_plex_mobile: false,
-            can_sync: deps.config.newUserDefaultCanSync ?? true,
-            requires_approval:
-              deps.config.newUserDefaultRequiresApproval ?? false,
-            is_primary_token: false,
-            avatar: plexAvatar,
-            plex_uuid: plexUuid,
-          })
-
-          // Send native webhook notification for user creation (fire-and-forget)
-          void deps.fastify.notifications.sendUserCreated(user)
-
-          // Create default quotas for the new user
-          await createDefaultQuotasForUser(user.id, deps)
         }
       }
 

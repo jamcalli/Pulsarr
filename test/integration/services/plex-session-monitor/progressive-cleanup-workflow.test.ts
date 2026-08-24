@@ -7,8 +7,7 @@
  * which files get deleted) for each monitoring type.
  */
 
-import type { PlexSession } from '@root/types/plex-session.types.js'
-import type { SonarrEpisode, SonarrSeries } from '@root/types/sonarr.types.js'
+import type { SonarrEpisode } from '@root/types/sonarr.types.js'
 import type { FastifyInstance } from 'fastify'
 import {
   afterAll,
@@ -23,6 +22,15 @@ import { build } from '../../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../../helpers/database.js'
 import { insertRollingShow } from '../../../helpers/rolling-shows.js'
 import { seedAll } from '../../../helpers/seeds/index.js'
+import {
+  makeEpisodeSession,
+  makeEpisodesSeason2Unmonitored,
+  makeEpisodesWithFiles,
+  makeFakeSonarr,
+  makeShowMetadata,
+  makeSonarrSeries,
+  sessionMonitoringConfig,
+} from '../../../helpers/session-monitor-fixtures.js'
 
 describe('Progressive Cleanup → Multi-User Safety Integration', () => {
   let app: FastifyInstance
@@ -47,16 +55,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -111,14 +110,10 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .fn()
         .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566))
 
-      const fakeSonarr = {
-        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
+      const fakeSonarr = makeFakeSonarr({
         getEpisodes: mockGetEpisodes,
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
-        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
-        deleteEpisodeFiles: vi.fn().mockResolvedValue(true),
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -146,16 +141,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -205,16 +191,12 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .mockResolvedValue(makeShowMetadata('90210'))
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
-      const fakeSonarr = {
-        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
+      const fakeSonarr = makeFakeSonarr({
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
-        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
-        deleteEpisodeFiles: vi.fn().mockResolvedValue(true),
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -242,16 +224,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -298,16 +271,12 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .mockResolvedValue(makeShowMetadata('90210'))
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
-      const fakeSonarr = {
-        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
+      const fakeSonarr = makeFakeSonarr({
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
-        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
-        deleteEpisodeFiles: vi.fn().mockResolvedValue(true),
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -340,16 +309,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -396,16 +356,13 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .mockResolvedValue(makeShowMetadata('90210'))
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
-      const fakeSonarr = {
+      const fakeSonarr = makeFakeSonarr({
         getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 7)),
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3, 4, 5], 1566)),
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
-        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
-        deleteEpisodeFiles: vi.fn().mockResolvedValue(true),
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -433,16 +390,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -478,16 +426,12 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .mockResolvedValue(makeShowMetadata('90210'))
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
-      const fakeSonarr = {
-        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
+      const fakeSonarr = makeFakeSonarr({
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
-        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
-        deleteEpisodeFiles: vi.fn().mockResolvedValue(true),
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -517,16 +461,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -574,16 +509,13 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockUpdateEpisodesMonitoring = vi.fn().mockResolvedValue(true)
       const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
-      const fakeSonarr = {
-        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
+      const fakeSonarr = makeFakeSonarr({
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
-        updateSeasonMonitoring: vi.fn().mockResolvedValue(true),
         updateEpisodesMonitoring: mockUpdateEpisodesMonitoring,
         deleteEpisodeFiles: mockDeleteEpisodeFiles,
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -619,16 +551,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -663,16 +586,13 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockUpdateEpisodesMonitoring = vi.fn().mockResolvedValue(true)
       const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
-      const fakeSonarr = {
-        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
+      const fakeSonarr = makeFakeSonarr({
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
-        updateSeasonMonitoring: vi.fn().mockResolvedValue(true),
         updateEpisodesMonitoring: mockUpdateEpisodesMonitoring,
         deleteEpisodeFiles: mockDeleteEpisodeFiles,
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -715,16 +635,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -759,16 +670,13 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
 
       const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
       const mockUpdateEpisodesMonitoring = vi.fn().mockResolvedValue(true)
-      const fakeSonarr = {
-        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
+      const fakeSonarr = makeFakeSonarr({
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
-        updateSeasonMonitoring: vi.fn().mockResolvedValue(true),
         updateEpisodesMonitoring: mockUpdateEpisodesMonitoring,
         deleteEpisodeFiles: mockDeleteEpisodeFiles,
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -812,16 +720,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -868,16 +767,12 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .mockResolvedValue(makeShowMetadata('90210'))
 
       const mockDeleteEpisodeFiles = vi.fn().mockResolvedValue(true)
-      const fakeSonarr = {
-        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
+      const fakeSonarr = makeFakeSonarr({
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([1, 2, 3], 1566)),
-        updateSeasonMonitoring: vi.fn().mockResolvedValue(true),
-        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
         deleteEpisodeFiles: mockDeleteEpisodeFiles,
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -912,16 +807,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -963,14 +849,12 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const mockGetSeriesById = vi
         .fn()
         .mockResolvedValue(makeSonarrSeries(1566, 5))
-      const fakeSonarr = {
+      const fakeSonarr = makeFakeSonarr({
         getSeriesById: mockGetSeriesById,
         getEpisodes: mockGetEpisodes,
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
-        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
         deleteEpisodeFiles: mockDeleteEpisodeFiles,
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -997,16 +881,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -1042,16 +917,12 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const mockGetSeriesById = vi
         .fn()
         .mockResolvedValue(makeSonarrSeries(1566, 5))
-      const fakeSonarr = {
+      const fakeSonarr = makeFakeSonarr({
         getSeriesById: mockGetSeriesById,
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
-        updateSeasonMonitoring: vi.fn().mockResolvedValue(true),
-        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
-        deleteEpisodeFiles: vi.fn().mockResolvedValue(true),
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -1076,16 +947,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -1119,16 +981,12 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .mockResolvedValue(makeShowMetadata('90210'))
 
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
-      const fakeSonarr = {
-        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
+      const fakeSonarr = makeFakeSonarr({
         getEpisodes: vi
           .fn()
           .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
-        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
-        deleteEpisodeFiles: vi.fn().mockResolvedValue(true),
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -1163,16 +1021,7 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
-          enableProgressiveCleanup: true,
-        },
+        plexSessionMonitoring: sessionMonitoringConfig(),
       })
 
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -1223,14 +1072,10 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       }
       const mockGetEpisodes = vi.fn().mockResolvedValue(s1Episodes)
       const mockUpdateSeasonMonitoring = vi.fn().mockResolvedValue(true)
-      const fakeSonarr = {
-        getSeriesById: vi.fn().mockResolvedValue(makeSonarrSeries(1566, 5)),
+      const fakeSonarr = makeFakeSonarr({
         getEpisodes: mockGetEpisodes,
         updateSeasonMonitoring: mockUpdateSeasonMonitoring,
-        updateEpisodesMonitoring: vi.fn().mockResolvedValue(true),
-        deleteEpisodeFiles: vi.fn().mockResolvedValue(true),
-        searchSeason: vi.fn().mockResolvedValue(true),
-      }
+      })
 
       app.sonarrManager.getAllInstances = vi
         .fn()
@@ -1259,16 +1104,9 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
+        plexSessionMonitoring: sessionMonitoringConfig({
           enableProgressiveCleanup: false,
-        },
+        }),
       })
 
       // Second Sonarr instance (the 4K one) to satisfy the FK on the rolling row.
@@ -1361,16 +1199,9 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       const knex = getTestDatabase()
 
       await app.updateConfig({
-        plexSessionMonitoring: {
-          enabled: true,
-          filterUsers: [],
-          enableAutoReset: false,
-          remainingEpisodes: 2,
-          inactivityResetDays: 7,
-          autoResetIntervalHours: 24,
-          pollingIntervalMinutes: 15,
+        plexSessionMonitoring: sessionMonitoringConfig({
           enableProgressiveCleanup: false,
-        },
+        }),
       })
 
       await knex('sonarr_instances').insert({
@@ -1475,134 +1306,3 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
     })
   })
 })
-
-function makeEpisodeSession({
-  season,
-  episode,
-}: {
-  season: number
-  episode: number
-}): PlexSession {
-  return {
-    type: 'episode',
-    sessionKey: 'sess-nicole',
-    ratingKey: '106942',
-    key: '/library/metadata/106942',
-    guid: 'plex://episode/abc',
-    title: 'Episode',
-    parentRatingKey: '106941',
-    parentKey: '/library/metadata/106941',
-    parentIndex: season,
-    parentTitle: `Season ${season}`,
-    parentGuid: 'plex://season/abc',
-    grandparentRatingKey: '106940',
-    grandparentKey: '/library/metadata/106940',
-    grandparentTitle: 'Stella',
-    grandparentGuid: 'plex://show/abc',
-    index: episode,
-    viewOffset: 0,
-    duration: 1_200_000,
-    User: { id: 'u_nicole', title: 'nicole3876' },
-    Session: { id: 'session', bandwidth: 0, location: 'lan' },
-    librarySectionTitle: 'TV Shows',
-    librarySectionID: '2',
-  }
-}
-
-function makeShowMetadata(tvdbId: string) {
-  return {
-    MediaContainer: {
-      Metadata: [
-        {
-          ratingKey: '106940',
-          guid: 'plex://show/abc',
-          Guid: [{ id: `tvdb://${tvdbId}` }, { id: 'imdb://tt12345' }],
-        },
-      ],
-    },
-  }
-}
-
-function makeSonarrSeries(
-  seriesId: number,
-  totalSeasons: number,
-): SonarrSeries {
-  const seasons = []
-  for (let n = 1; n <= totalSeasons; n++) {
-    seasons.push({
-      seasonNumber: n,
-      monitored: true,
-      statistics: { totalEpisodeCount: 16 },
-    })
-  }
-  return {
-    title: 'Stella',
-    tvdbId: 90210,
-    id: seriesId,
-    seasons,
-  } as unknown as SonarrSeries
-}
-
-// Season 1 fully monitored with files, season 2 present but unmonitored - the
-// state that lets expandMonitoringToNextSeason fire (it skips when the next
-// season has no unmonitored episodes).
-function makeEpisodesSeason2Unmonitored(seriesId: number): SonarrEpisode[] {
-  const episodes: SonarrEpisode[] = []
-  for (let n = 1; n <= 16; n++) {
-    episodes.push({
-      id: 100 + n,
-      seriesId,
-      episodeFileId: 1000 + n,
-      seasonNumber: 1,
-      episodeNumber: n,
-      title: `S1E${n}`,
-      hasFile: true,
-      monitored: true,
-      unverifiedSceneNumbering: false,
-      grabbed: false,
-    })
-  }
-  for (let n = 1; n <= 16; n++) {
-    episodes.push({
-      id: 200 + n,
-      seriesId,
-      episodeFileId: 0,
-      seasonNumber: 2,
-      episodeNumber: n,
-      title: `S2E${n}`,
-      hasFile: false,
-      monitored: false,
-      unverifiedSceneNumbering: false,
-      grabbed: false,
-    })
-  }
-  return episodes
-}
-
-// Builds episodes for the given seasons with files. Episode IDs are
-// seasonNumber*100 + episodeNumber (e.g. S2E3 = 203). File IDs are
-// seasonNumber*1000 + episodeNumber (e.g. S2E3 = 2003). E01 of each
-// season is the pilot, E02-E10 are the rest.
-function makeEpisodesWithFiles(
-  seasons: number[],
-  seriesId: number,
-): SonarrEpisode[] {
-  const episodes: SonarrEpisode[] = []
-  for (const seasonNumber of seasons) {
-    for (let n = 1; n <= 10; n++) {
-      episodes.push({
-        id: seasonNumber * 100 + n,
-        seriesId,
-        episodeFileId: seasonNumber * 1000 + n,
-        seasonNumber,
-        episodeNumber: n,
-        title: `S${seasonNumber}E${n}`,
-        hasFile: true,
-        monitored: true,
-        unverifiedSceneNumbering: false,
-        grabbed: false,
-      })
-    }
-  }
-  return episodes
-}

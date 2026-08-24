@@ -155,17 +155,17 @@ export class LogStreamingService {
           chunkSize = next
         } while (foundLines.length < lines && chunkSize < maxChunkSize)
 
-        // Get the last N lines
-        let tailLines = foundLines.slice(-lines)
-
-        // Apply filter if provided
-        if (filter) {
-          tailLines = tailLines.filter((line) =>
-            line.toLowerCase().includes(filter.toLowerCase()),
-          )
+        // filter on parsed message so replay matches live-entry filtering
+        const entries = foundLines
+          .slice(-lines)
+          .map((line) => this.parseLogLine(line))
+        if (!filter) {
+          return entries
         }
-
-        return tailLines.map((line) => this.parseLogLine(line))
+        const needle = filter.toLowerCase()
+        return entries.filter((entry) =>
+          entry.message.toLowerCase().includes(needle),
+        )
       } finally {
         await fileHandle.close()
       }

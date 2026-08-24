@@ -97,6 +97,32 @@ const GENRE_SPECIAL_CASES: Record<string, string> = {
  * @param genre - The genre string to normalize
  * @returns The genre in title case (e.g., "Sci-Fi & Fantasy")
  */
+/**
+ * Collects external provider GUIDs from a Plex metadata item (main guid plus
+ * the Guid array), skipping internal plex:// identifiers, normalized and
+ * deduplicated.
+ */
+export function collectGuidsFromMetadata(item: {
+  guid?: string
+  Guid?: Array<{ id?: string }>
+}): string[] {
+  const guids = new Set<string>()
+
+  if (item.guid) {
+    const guid = normalizeGuid(item.guid)
+    if (!guid.startsWith('plex:')) guids.add(guid)
+  }
+
+  for (const entry of item.Guid ?? []) {
+    if (entry.id) {
+      const guid = normalizeGuid(entry.id)
+      if (!guid.startsWith('plex:')) guids.add(guid)
+    }
+  }
+
+  return [...guids]
+}
+
 export function normalizeGenre(genre: string): string {
   const trimmed = genre.trim()
   if (!trimmed) return ''

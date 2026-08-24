@@ -57,7 +57,11 @@ export default fp(
 
           // Secrets must stay stable across restarts
           const storedSecrets = await dbService.getSecrets()
-          for (const key of ['cookieSecret', 'webhookSecret'] as const) {
+          for (const key of [
+            'cookieSecret',
+            'webhookSecret',
+            'maintainerrWebhookSecret',
+          ] as const) {
             let stored = storedSecrets[key]
             // drop legacy short values that @fastify/session would reject at boot
             if (key === 'cookieSecret' && stored && stored.length < 32) {
@@ -79,13 +83,6 @@ export default fp(
           }
 
           await fastify.updateConfig(mergedConfig)
-
-          if (dbConfig._isReady) {
-            fastify.log.debug('DB config was ready, updating ready state')
-            await fastify.updateConfig({ _isReady: true })
-          } else {
-            fastify.log.debug('DB config was not ready')
-          }
 
           const [existingSonarrInstances, existingRadarrInstances] =
             await Promise.all([

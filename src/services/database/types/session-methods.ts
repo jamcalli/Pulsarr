@@ -30,13 +30,22 @@ declare module '@services/database.service.js' {
      * @param globalShow - The master/global rolling show configuration
      * @param plexUserId - The Plex user ID
      * @param plexUsername - The Plex username
+     * @param plexUserUuid - The plex.tv uuid from the session avatar, if available
      * @returns Promise resolving to the created or existing entry ID
      */
     createOrFindUserRollingMonitoredShow(
       globalShow: RollingMonitoredShow,
       plexUserId: string,
       plexUsername: string,
+      plexUserUuid?: string | null,
     ): Promise<number>
+
+    /** Refreshes a per-user rolling show row's stored Plex identity */
+    updateRollingShowUserIdentity(
+      id: number,
+      plexUsername: string,
+      plexUserUuid: string | null,
+    ): Promise<boolean>
 
     /**
      * Gets all rolling monitored shows

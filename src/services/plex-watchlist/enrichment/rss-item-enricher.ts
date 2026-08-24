@@ -9,7 +9,10 @@
  */
 
 import type { ItemRatings, PlexRating } from '@root/types/plex.types.js'
-import { extractTypedGuid } from '@utils/guid-handler.js'
+import {
+  collectGuidsFromMetadata,
+  extractTypedGuid,
+} from '@utils/guid-handler.js'
 import { normalizePosterPath } from '@utils/poster-url.js'
 import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -174,7 +177,7 @@ export async function lookupByGuid(
       title: metadata.title ?? '',
       type: contentType,
       thumb: normalizePosterPath(metadata.thumb) ?? undefined,
-      guids: metadata.Guid?.map((g) => g.id).filter(Boolean) ?? [],
+      guids: collectGuidsFromMetadata(metadata),
       genres: metadata.Genre?.map((g) => g.tag).filter(Boolean) ?? [],
       ratings,
     }

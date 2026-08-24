@@ -147,6 +147,24 @@ const schema = {
       minLength: 16,
       default: generateSecret(),
     },
+    maintainerrEnabled: {
+      type: 'boolean',
+      default: false,
+    },
+    maintainerrUrl: {
+      type: 'string',
+      default: '',
+    },
+    maintainerrWebhookSecret: {
+      type: 'string',
+      minLength: 16,
+      default: generateSecret(),
+    },
+    maintainerrExclusionMode: {
+      type: 'string',
+      enum: ['watchlisters', 'global'],
+      default: 'watchlisters',
+    },
     logLevel: {
       type: 'string',
       enum: ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'],
@@ -508,17 +526,12 @@ declare module 'fastify' {
   interface FastifyInstance {
     config: Config
     updateConfig(config: Partial<Config>): Promise<Config>
-    waitForConfig(): Promise<void>
+    updateConfigAndPersist(config: Partial<Config>): Promise<Config>
   }
 }
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    let resolveReady: (() => void) | null = null
-    const readyPromise = new Promise<void>((resolve) => {
-      resolveReady = resolve
-    })
-
     await fastify.register(env, {
       confKey: 'config',
       schema,
@@ -704,24 +717,21 @@ export default fp(
 
     fastify.decorate('updateConfig', async (newConfig: Partial<Config>) => {
       const updatedConfig = { ...fastify.config, ...newConfig }
-
-      if (newConfig._isReady === true && resolveReady) {
-        fastify.log.info('Config is now ready, resolving waitForConfig promise')
-        resolveReady()
-        resolveReady = null
-      }
-
       fastify.config = updatedConfig
-
       return updatedConfig
     })
 
-    fastify.decorate('waitForConfig', () => {
-      if (fastify.config._isReady) {
-        return Promise.resolve()
-      }
-      return readyPromise
-    })
+    // updateConfig is a plain merge and cannot fail
+    fastify.decorate(
+      'updateConfigAndPersist',
+      async (newConfig: Partial<Config>) => {
+        const dbUpdated = await fastify.db.updateConfig(newConfig)
+        if (!dbUpdated) {
+          throw new Error('Failed to persist config update to database')
+        }
+        return fastify.updateConfig(newConfig)
+      },
+    )
   },
   {
     name: 'config',

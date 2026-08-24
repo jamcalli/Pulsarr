@@ -5,7 +5,7 @@ import type {
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
 import type { ProgressService } from '@root/types/progress.types.js'
-import { normalizeGuid } from '@utils/guid-handler.js'
+import { collectGuidsFromMetadata } from '@utils/guid-handler.js'
 import { normalizePosterPath } from '@utils/poster-url.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -225,10 +225,7 @@ export const toItemsSingle = async (
           normalizePosterPath(item.thumb) ||
           normalizePosterPath(metadata.thumb) ||
           '',
-        guids:
-          metadata.Guid?.map((guid) =>
-            guid?.id ? normalizeGuid(guid.id) : null,
-          ).filter((guid): guid is string => guid !== null) || [],
+        guids: collectGuidsFromMetadata(metadata),
         genres:
           metadata.Genre?.map((genre) => genre?.tag).filter(
             (tag): tag is string => typeof tag === 'string',

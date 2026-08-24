@@ -30,6 +30,7 @@ import type {
   TokenWatchlistItem,
   UserMapEntry,
 } from '@root/types/plex.types.js'
+import type { ProgressEvent } from '@root/types/progress.types.js'
 import {
   EtagPoller,
   handleLinkedItemsForLabelSync,
@@ -40,6 +41,7 @@ import {
   type WatchlistSyncDeps,
 } from '@services/plex-watchlist/index.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { systemStatusEvent } from '@utils/system-status-event.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { DeferredRoutingQueue } from './deferred-routing-queue.service.js'
 import {
@@ -246,6 +248,26 @@ export class WatchlistWorkflowService {
     return this.status
   }
 
+  statusEvent(): ProgressEvent {
+    return systemStatusEvent(
+      'watchlist-workflow-status',
+      'Watchlist workflow status',
+      {
+        status: this.status,
+        syncMode: this.isEtagFallbackActive ? 'polling' : 'rss',
+        rssAvailable: !this.isEtagFallbackActive,
+      },
+    )
+  }
+
+  // intermediate starting/stopping states must reach the stream, not just final states
+  private setStatus(status: WorkflowStatus): void {
+    this.status = status
+    if (this.fastify.progress.hasActiveConnections()) {
+      this.fastify.progress.emit(this.statusEvent())
+    }
+  }
+
   /**
    * Get the current RSS fallback status
    * @returns boolean indicating if the service is using RSS fallback
@@ -291,7 +313,7 @@ export class WatchlistWorkflowService {
   async startWorkflow(): Promise<boolean> {
     try {
       // Set status to starting immediately
-      this.status = 'starting'
+      this.setStatus('starting')
       this.log.debug('Starting watchlist workflow initialization')
 
       // Initialize workflow components via extracted module
@@ -377,7 +399,7 @@ export class WatchlistWorkflowService {
       }
 
       // Update status to running
-      this.status = 'running'
+      this.setStatus('running')
       this.initialized = true
 
       // Log the actual mode clearly:
@@ -395,7 +417,7 @@ export class WatchlistWorkflowService {
 
       return true
     } catch (error) {
-      this.status = 'stopped'
+      this.setStatus('stopped')
       this.initialized = false
       this.rssMode = false
       this.log.error({ error }, 'Error in Watchlist workflow')
@@ -416,7 +438,7 @@ export class WatchlistWorkflowService {
     }
 
     this.log.info('Stopping Watchlist workflow')
-    this.status = 'stopping'
+    this.setStatus('stopping')
 
     // Clear timers (service-level state)
     if (this.rssCheckInterval) {
@@ -446,7 +468,7 @@ export class WatchlistWorkflowService {
     this.deferredRoutingQueue = result.deferredRoutingQueue
 
     // Update status
-    this.status = 'stopped'
+    this.setStatus('stopped')
     this.initialized = false
     this.rssMode = false
 

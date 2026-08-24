@@ -37,6 +37,7 @@ export class DiscordBotService {
   private readonly log: FastifyBaseLogger
   private botClient: Client | null = null
   private botStatus: BotStatus = 'stopped'
+  private statusChangeCallback: (() => void) | null = null
   private readonly commands: Map<string, Command>
 
   constructor(
@@ -99,7 +100,7 @@ export class DiscordBotService {
         return false
       }
 
-      this.botStatus = 'starting'
+      this.setBotStatus('starting')
       this.log.debug('Initializing Discord bot client')
 
       this.botClient = new Client({
@@ -116,7 +117,7 @@ export class DiscordBotService {
         fastify: this.fastify,
         commands: this.commands,
         onBotReady: () => {
-          this.botStatus = 'running'
+          this.setBotStatus('running')
         },
       })
 
@@ -125,7 +126,7 @@ export class DiscordBotService {
       return true
     } catch (error) {
       this.log.error({ error }, 'Failed to start Discord bot')
-      this.botStatus = 'stopped'
+      this.setBotStatus('stopped')
       this.botClient = null
       return false
     }
@@ -142,19 +143,19 @@ export class DiscordBotService {
 
     try {
       this.log.info('Stopping Discord bot')
-      this.botStatus = 'stopping'
+      this.setBotStatus('stopping')
 
       if (this.botClient) {
         await this.botClient.destroy()
         this.botClient = null
       }
 
-      this.botStatus = 'stopped'
+      this.setBotStatus('stopped')
       this.log.info('Discord bot stopped successfully')
       return true
     } catch (error) {
       this.log.error({ error }, 'Error stopping Discord bot')
-      this.botStatus = 'stopped'
+      this.setBotStatus('stopped')
       this.botClient = null
       return false
     }
@@ -165,6 +166,17 @@ export class DiscordBotService {
    */
   getBotStatus(): BotStatus {
     return this.botStatus
+  }
+
+  onStatusChange(callback: () => void): void {
+    this.statusChangeCallback = callback
+  }
+
+  // intermediate starting/stopping states must notify too, not just final states
+  private setBotStatus(status: BotStatus): void {
+    if (this.botStatus === status) return
+    this.botStatus = status
+    this.statusChangeCallback?.()
   }
 
   /**

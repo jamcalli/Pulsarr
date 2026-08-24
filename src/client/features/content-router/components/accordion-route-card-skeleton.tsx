@@ -17,7 +17,10 @@ export const AccordionRouteCardSkeleton = () => {
             <div>
               <Skeleton className="h-5 w-48" />
             </div>
-            <Skeleton className="h-7 w-20 rounded-full" />
+            <div className="flex items-center">
+              <Skeleton className="h-7 w-24 rounded-full ml-2" />
+              <Skeleton className="h-7 w-20 rounded-full ml-2 mr-2" />
+            </div>
           </div>
         </AccordionTrigger>
       </AccordionItem>

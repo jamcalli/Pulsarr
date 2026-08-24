@@ -239,6 +239,10 @@ export async function getConfig(
       : undefined,
     // TMDB configuration
     tmdbRegion: config.tmdbRegion || 'US',
+    // Maintainerr configuration
+    maintainerrEnabled: Boolean(config.maintainerrEnabled),
+    maintainerrUrl: config.maintainerrUrl || '',
+    maintainerrExclusionMode: config.maintainerrExclusionMode || 'watchlisters',
     _isReady: Boolean(config._isReady),
   }
 }
@@ -270,6 +274,7 @@ export async function createConfig(
       baseUrl: config.baseUrl,
       cookieSecret: config.cookieSecret,
       webhookSecret: config.webhookSecret,
+      maintainerrWebhookSecret: config.maintainerrWebhookSecret,
       cookieName: config.cookieName,
       cookieSecured: config.cookieSecured,
       logLevel: config.logLevel,
@@ -280,6 +285,11 @@ export async function createConfig(
       // Notification timing fields
       queueWaitTime: config.queueWaitTime ?? 120000,
       newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
+      // Maintainerr fields
+      maintainerrEnabled: config.maintainerrEnabled ?? false,
+      maintainerrUrl: config.maintainerrUrl ?? '',
+      maintainerrExclusionMode:
+        config.maintainerrExclusionMode ?? 'watchlisters',
       // Out-of-app update notifications
       notifyOnUpdate: config.notifyOnUpdate ?? 'none',
       notifyOnAvailability: config.notifyOnAvailability ?? true,
@@ -435,10 +445,16 @@ const ALLOWED_COLUMNS = new Set([
   'dbConnectionString',
 
   // Security & authentication
-  // NOTE: cookieSecret, webhookSecret, and cookieName are intentionally omitted
+  // NOTE: cookieSecret, webhookSecret, maintainerrWebhookSecret, and
+  // cookieName are intentionally omitted
   'cookieSecured',
   'authenticationMethod',
   'allowIframes',
+
+  // Maintainerr integration
+  'maintainerrEnabled',
+  'maintainerrUrl',
+  'maintainerrExclusionMode',
 
   // Logging & performance
   'logLevel',
@@ -664,10 +680,12 @@ export async function getSecrets(
 ): Promise<Record<SecretColumn, string | null>> {
   const row = await this.knex('configs')
     .where({ id: 1 })
-    .first('cookieSecret', 'webhookSecret')
+    .first('cookieSecret', 'webhookSecret', 'maintainerrWebhookSecret')
   return {
     cookieSecret: (row?.cookieSecret as string | null) ?? null,
     webhookSecret: (row?.webhookSecret as string | null) ?? null,
+    maintainerrWebhookSecret:
+      (row?.maintainerrWebhookSecret as string | null) ?? null,
   }
 }
 

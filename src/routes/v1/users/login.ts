@@ -1,3 +1,4 @@
+import { CREDENTIAL_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import {
   CredentialsSchema,
   LoginErrorSchema,
@@ -9,6 +10,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.post(
     '/login',
     {
+      config: {
+        rateLimit: CREDENTIAL_RATE_LIMIT,
+      },
       schema: {
         security: [],
         summary: 'User login',
@@ -27,7 +31,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       const { login, password } = request.body
       try {
         const user =
-          (await fastify.db.getAdminUser(login)) ||
+          (await fastify.db.getAdminUserByEmail(login)) ||
           (await fastify.db.getAdminUserByUsername(login))
         if (!user || !(await fastify.compare(password, user.password))) {
           return reply.unauthorized('Invalid credentials.')

@@ -11,6 +11,7 @@ import {
 } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight, ListX } from 'lucide-react'
 import * as React from 'react'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -37,6 +38,57 @@ import type {
   useRemoveWatchlistExclusion,
 } from '@/features/utilities/hooks/useWatchlistExclusionMutations'
 import { useTablePagination } from '@/hooks/use-table-pagination'
+import { type PrefDef, readPref, writePref } from '@/lib/prefs'
+
+const DEFAULT_SORTING = [{ id: 'excluded_at', desc: true }]
+
+const persistedStateSchema = z.object({
+  sorting: z
+    .array(z.object({ id: z.string(), desc: z.boolean() }))
+    .catch(DEFAULT_SORTING),
+  filters: z
+    .array(
+      z.union([
+        z.object({ id: z.literal('title'), value: z.string() }),
+        z.object({
+          id: z.literal('userId'),
+          value: z.array(z.string()).min(1),
+        }),
+        z.object({
+          id: z.literal('type'),
+          value: z.array(z.enum(['movie', 'show'])).min(1),
+        }),
+        z.object({
+          id: z.literal('status'),
+          value: z
+            .array(z.enum(['pending', 'requested', 'grabbed', 'notified']))
+            .min(1),
+        }),
+        z.object({
+          id: z.literal('excluded_at'),
+          value: z.array(z.enum(['excluded', 'not-excluded'])).min(1),
+        }),
+      ]),
+    )
+    .catch([]),
+})
+
+const tablePrefsDef: PrefDef<z.infer<typeof persistedStateSchema>> = {
+  key: 'pulsarr-exclusions-table',
+  fallback: {
+    sorting: DEFAULT_SORTING,
+    filters: [],
+  },
+  parse: (raw) => {
+    try {
+      const result = persistedStateSchema.safeParse(JSON.parse(raw))
+      return result.success ? result.data : undefined
+    } catch {
+      return undefined
+    }
+  },
+  serialize: JSON.stringify,
+}
 
 interface ColumnMetaType {
   className?: string
@@ -78,12 +130,23 @@ export const WatchlistExclusionsTable = React.forwardRef<
   },
   ref,
 ) {
-  const [sorting, setSorting] = React.useState<SortingState>([
-    { id: 'excluded_at', desc: true },
-  ])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    [],
+  const [initialPrefs] = React.useState(() => readPref(tablePrefsDef))
+  const [sorting, setSorting] = React.useState<SortingState>(
+    initialPrefs.sorting,
   )
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    initialPrefs.filters,
+  )
+
+  React.useEffect(() => {
+    const result = persistedStateSchema.safeParse({
+      sorting,
+      filters: columnFilters,
+    })
+    if (result.success) {
+      writePref(tablePrefsDef, result.data)
+    }
+  }, [sorting, columnFilters])
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({ added: false })
   const [rowSelection, setRowSelection] = React.useState({})

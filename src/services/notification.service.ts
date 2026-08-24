@@ -6,6 +6,7 @@ import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type { User } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { Friend, Item as WatchlistItem } from '@root/types/plex.types.js'
+import type { ProgressEvent } from '@root/types/progress.types.js'
 import type { SonarrEpisodeSchema } from '@root/types/sonarr.types.js'
 import type {
   WebhookDispatchResult,
@@ -13,6 +14,7 @@ import type {
 } from '@root/types/webhook-endpoint.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { systemStatusEvent } from '@utils/system-status-event.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   AppriseService,
@@ -52,6 +54,7 @@ export class NotificationService {
     this.log.debug('Initializing notification service')
 
     this._discordBot = new DiscordBotService(this.log, this.fastify)
+    this._discordBot.onStatusChange(() => this.emitStatusEvents())
     this._discordWebhook = new DiscordWebhookService(this.log, this.fastify)
     this._plexMobile = new PlexMobileService(this.log, this.fastify)
     this._apprise = new AppriseService(this.log, this.fastify)
@@ -75,6 +78,29 @@ export class NotificationService {
 
   getBotStatus(): BotStatus {
     return this._discordBot.getBotStatus()
+  }
+
+  statusEvents(): ProgressEvent[] {
+    return [
+      systemStatusEvent('discord-status', 'Discord bot status', {
+        status: this._discordBot.getBotStatus(),
+      }),
+      systemStatusEvent('plex-mobile-status', 'Plex mobile status', {
+        status: this._plexMobile.getStatus(),
+      }),
+      systemStatusEvent('apprise-status', 'Apprise status', {
+        status: this._apprise.getStatus(),
+      }),
+    ]
+  }
+
+  emitStatusEvents(): void {
+    if (!this.fastify.progress.hasActiveConnections()) {
+      return
+    }
+    for (const event of this.statusEvents()) {
+      this.fastify.progress.emit(event)
+    }
   }
 
   get hasBotConfig(): boolean {

@@ -12,7 +12,36 @@ describe('session', () => {
       } as FastifyRequest
     })
 
-    it('should create admin session with required fields', () => {
+    it('should build the session from the admin user when provided', () => {
+      createTemporaryAdminSession(mockRequest, {
+        id: 3,
+        username: 'jamcalli',
+        email: 'admin@example.com',
+        password: 'hashed-password',
+        role: 'admin',
+      })
+
+      expect(mockRequest.session.user).toEqual({
+        id: 3,
+        email: 'admin@example.com',
+        username: 'jamcalli',
+        role: 'admin',
+      })
+    })
+
+    it('should not copy the password into the session', () => {
+      createTemporaryAdminSession(mockRequest, {
+        id: 3,
+        username: 'jamcalli',
+        email: 'admin@example.com',
+        password: 'hashed-password',
+        role: 'admin',
+      })
+
+      expect(mockRequest.session.user).not.toHaveProperty('password')
+    })
+
+    it('should fall back to placeholder identity without an admin user', () => {
       createTemporaryAdminSession(mockRequest)
 
       expect(mockRequest.session.user).toBeDefined()
@@ -24,25 +53,25 @@ describe('session', () => {
       })
     })
 
-    it('should always use id 1 for admin user', () => {
+    it('should use id 1 in the fallback identity', () => {
       createTemporaryAdminSession(mockRequest)
 
       expect(mockRequest.session.user?.id).toBe(1)
     })
 
-    it('should set role to admin', () => {
+    it('should set fallback role to admin', () => {
       createTemporaryAdminSession(mockRequest)
 
       expect(mockRequest.session.user?.role).toBe('admin')
     })
 
-    it('should set email to admin@localhost', () => {
+    it('should set fallback email to admin@localhost', () => {
       createTemporaryAdminSession(mockRequest)
 
       expect(mockRequest.session.user?.email).toBe('admin@localhost')
     })
 
-    it('should set username to Administrator', () => {
+    it('should set fallback username to Administrator', () => {
       createTemporaryAdminSession(mockRequest)
 
       expect(mockRequest.session.user?.username).toBe('Administrator')

@@ -60,6 +60,7 @@ The `baseUrl` and `port` settings are automatically configurable via the web UI 
 | `cookieName` | Cookie name | `pulsarr` |
 | `cookieSecured` | Require HTTPS for cookies | `false` |
 | `webhookSecret` | Secret for Sonarr/Radarr webhook auth (min 16 chars) | Auto-generated |
+| `maintainerrWebhookSecret` | Secret for Maintainerr webhook auth (min 16 chars) | Auto-generated |
 | `allowIframes` | Allow embedding in Organizr, etc. | `false` |
 | `authenticationMethod` | `required`, `requiredExceptLocal`, `disabled` | `required` |
 | `rateLimitMax` | Max requests per time window | `500` |

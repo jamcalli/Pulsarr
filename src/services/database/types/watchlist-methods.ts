@@ -252,22 +252,6 @@ declare module '@services/database.service.js' {
     ): Promise<string[]>
 
     /**
-     * Retrieves all users who have a specific content item in their watchlist, identified by GUID
-     * @param guid - The GUID to search for within watchlist items
-     * @returns Promise resolving to array of user information for users who have the content in their watchlist
-     */
-    getWatchlistUsersByGuid(
-      this: DatabaseService,
-      guid: string,
-    ): Promise<
-      Array<{
-        id: number
-        username: string
-        watchlist_id: string
-      }>
-    >
-
-    /**
      * Retrieves watchlist items by any GUID along with their user information for RSS matching
      * @param guids - Array of GUIDs to search for in watchlist items
      * @returns Promise resolving to array of watchlist items with user information
@@ -289,7 +273,6 @@ declare module '@services/database.service.js' {
         status: string
         // User fields
         username: string
-        watchlist_id: string
       }>
     >
   }

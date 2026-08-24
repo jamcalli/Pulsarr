@@ -1,21 +1,16 @@
+import { CREDENTIAL_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { MessageResponseSchema } from '@root/schemas/common/message.schema.js'
 import { UpdateCredentialsSchema } from '@schemas/auth/users.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
-import { z } from 'zod'
-
-const responseSchema = z.object({
-  message: z.string(),
-})
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.put(
     '/update-password',
     {
       config: {
-        rateLimit: {
-          max: 3,
-          timeWindow: '1 minute',
-        },
+        rateLimit: CREDENTIAL_RATE_LIMIT,
       },
       schema: {
         summary: 'Update user password',
@@ -24,7 +19,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           'Change the current user password by providing current and new password',
         body: UpdateCredentialsSchema,
         response: {
-          200: responseSchema,
+          200: MessageResponseSchema,
           400: ErrorSchema,
           401: ErrorSchema,
           500: ErrorSchema,
@@ -34,10 +29,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       const { newPassword, currentPassword } = request.body
-      const email = request.session.user.email
+      const userId = request.session.user.id
 
       try {
-        const user = await fastify.db.getAdminUser(email)
+        const user = await fastify.db.getAdminUserById(userId)
 
         if (!user) {
           return reply.unauthorized('User does not exist.')
@@ -60,7 +55,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         const hashedPassword = await fastify.hash(newPassword)
         const updated = await fastify.db.updateAdminPassword(
-          email,
+          userId,
           hashedPassword,
         )
 
@@ -69,7 +64,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         return { message: 'Password updated successfully' }
-      } catch (_error) {
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to update password',
+        })
         return reply.internalServerError('Failed to update password')
       }
     },

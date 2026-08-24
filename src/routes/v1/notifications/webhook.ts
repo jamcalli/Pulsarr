@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto'
+import { PROBE_RATE_LIMIT } from '@root/plugins/external/rate-limit.js'
 import type {
   RadarrPayload,
   SonarrPayload,
@@ -11,34 +11,25 @@ import {
 } from '@root/schemas/notifications/webhook.schema.js'
 import { isWebhookProcessable } from '@root/utils/notifications/index.js'
 import { logRouteError } from '@utils/route-errors.js'
+import { safeSecretCompare } from '@utils/webhook-secret.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
-
-/**
- * Timing-safe string comparison to prevent timing attacks.
- * Pads shorter string to match length before comparison.
- */
-function safeSecretCompare(
-  provided: string | string[] | undefined,
-  expected: string,
-): boolean {
-  if (!provided || Array.isArray(provided)) return false
-  const providedBuf = Buffer.from(provided)
-  const expectedBuf = Buffer.from(expected)
-  // Pad to same length to prevent length-based timing leaks
-  const maxLen = Math.max(providedBuf.length, expectedBuf.length)
-  const paddedProvided = Buffer.alloc(maxLen)
-  const paddedExpected = Buffer.alloc(maxLen)
-  providedBuf.copy(paddedProvided)
-  expectedBuf.copy(paddedExpected)
-  // Always compare, then check length match
-  const match = timingSafeEqual(paddedProvided, paddedExpected)
-  return match && providedBuf.length === expectedBuf.length
-}
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.post(
     '/webhook',
     {
+      config: {
+        rateLimit: {
+          ...PROBE_RATE_LIMIT,
+          // Valid-secret senders are exempt - never throttle a legitimate
+          // import burst; the bucket only binds bad or missing secrets
+          allowList: (request) =>
+            safeSecretCompare(
+              request.headers['x-pulsarr-secret'],
+              fastify.config.webhookSecret,
+            ),
+        },
+      },
       schema: {
         security: [{ webhookSecretAuth: [] }],
         summary: 'Process media webhook',

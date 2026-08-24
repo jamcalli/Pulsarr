@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
 import type { Auth } from '@schemas/auth/auth.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { isUniqueViolation } from '@utils/db-errors.js'
 
 /**
  * Generates a cryptographically secure API key as a 32-byte base64url-encoded string.
@@ -70,28 +71,8 @@ export async function createApiKey(
         is_active: Boolean(apiKey.is_active),
       }
     } catch (error) {
-      // Handle unique constraint violations for both PostgreSQL and better-sqlite3
-      const isUniqueViolation =
-        // PostgreSQL: SQLSTATE 23505
-        (error instanceof Error &&
-          'code' in error &&
-          error.code === '23505' &&
-          'constraint' in error &&
-          typeof error.constraint === 'string' &&
-          error.constraint.includes('key')) ||
-        // better-sqlite3: Error code SQLITE_CONSTRAINT_UNIQUE (19)
-        (error instanceof Error &&
-          'code' in error &&
-          error.code === 'SQLITE_CONSTRAINT_UNIQUE') ||
-        // better-sqlite3: Generic constraint error with UNIQUE in message
-        (error instanceof Error &&
-          'code' in error &&
-          error.code === 'SQLITE_CONSTRAINT' &&
-          error.message.includes('UNIQUE')) ||
-        (error instanceof Error &&
-          error.message.includes('UNIQUE constraint failed'))
-
-      if (isUniqueViolation) {
+      // key is the table's only unique constraint, so this is a key collision
+      if (isUniqueViolation(error)) {
         attempt++
         if (attempt >= MAX_RETRIES) {
           throw new Error(

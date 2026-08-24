@@ -1,8 +1,7 @@
 import {
   ConfigErrorSchema,
   type ConfigFullSchema,
-  ConfigGetResponseSchema,
-  ConfigUpdateResponseSchema,
+  ConfigResponseSchema,
   ConfigUpdateSchema,
 } from '@root/schemas/config/config.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
@@ -18,7 +17,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'getConfig',
         description: 'Retrieve the current application configuration settings',
         response: {
-          200: ConfigGetResponseSchema,
+          200: ConfigResponseSchema,
           400: ConfigErrorSchema,
           404: ConfigErrorSchema,
           500: ConfigErrorSchema,
@@ -43,7 +42,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           appriseUrl: fastify.config.appriseUrl,
         }
 
-        const response: z.infer<typeof ConfigGetResponseSchema> = {
+        const response: z.infer<typeof ConfigResponseSchema> = {
           success: true,
           config: mergedConfig,
         }
@@ -68,7 +67,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Update the application configuration settings',
         body: ConfigUpdateSchema,
         response: {
-          200: ConfigUpdateResponseSchema,
+          200: ConfigResponseSchema,
           400: ConfigErrorSchema,
           404: ConfigErrorSchema,
           500: ConfigErrorSchema,
@@ -93,38 +92,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         // Store current config state before changes for service management
         const currentConfig = await fastify.db.getConfig()
 
-        // Store current runtime values for revert if needed
-        // Using Record type avoids complex type narrowing for dynamic property access
-        const originalRuntimeValues: Record<string, unknown> = {}
-        for (const key of Object.keys(safeConfigUpdate)) {
-          originalRuntimeValues[key] =
-            fastify.config[key as keyof typeof fastify.config]
-        }
-
         try {
-          await fastify.updateConfig(safeConfigUpdate)
+          await fastify.updateConfigAndPersist(safeConfigUpdate)
         } catch (configUpdateError) {
           logRouteError(fastify.log, request, configUpdateError, {
-            message: 'Failed to update runtime configuration',
+            message: 'Failed to update configuration',
           })
-          return reply.internalServerError(
-            'Failed to update runtime configuration',
-          )
-        }
-
-        const dbUpdated = await fastify.db.updateConfig(safeConfigUpdate)
-        if (!dbUpdated) {
-          // Revert runtime config using stored values
-          try {
-            await fastify.updateConfig(originalRuntimeValues)
-          } catch (revertError) {
-            logRouteError(fastify.log, request, revertError, {
-              message: 'Failed to revert runtime configuration',
-            })
-          }
-          return reply.internalServerError(
-            'Failed to update configuration in database',
-          )
+          return reply.internalServerError('Failed to update configuration')
         }
 
         const savedConfig = await fastify.db.getConfig()
@@ -195,6 +169,44 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
+        // Handle Maintainerr changes - the sync schedule follows the toggle,
+        // and a reconcile applies the new state to Maintainerr immediately
+        if (
+          'maintainerrEnabled' in safeConfigUpdate ||
+          'maintainerrUrl' in safeConfigUpdate
+        ) {
+          const maintainerrActive = Boolean(
+            savedConfig.maintainerrEnabled && savedConfig.maintainerrUrl,
+          )
+          // A replaced or cleared URL leaves the previous instance with an
+          // enabled webhook that keeps sending events - disable it there
+          const previousBase = currentConfig?.maintainerrUrl?.replace(
+            /\/+$/,
+            '',
+          )
+          const savedBase = (savedConfig.maintainerrUrl ?? '').replace(
+            /\/+$/,
+            '',
+          )
+          if (previousBase && previousBase !== savedBase) {
+            void fastify.maintainerr.disableRemoteConfig(previousBase)
+          }
+          void fastify.scheduler
+            .updateJobSchedule('maintainerr-sync', null, maintainerrActive)
+            .catch((error) => {
+              fastify.log.error(
+                { error },
+                'Failed to update maintainerr-sync schedule after config update',
+              )
+            })
+          void fastify.maintainerr.reconcile().catch((error) => {
+            fastify.log.error(
+              { error },
+              'Failed to reconcile Maintainerr after config update',
+            )
+          })
+        }
+
         // Handle Plex Label Sync config changes - compare before/after states
         if ('plexLabelSync' in safeConfigUpdate) {
           const wasEnabled = currentConfig?.plexLabelSync?.enabled === true
@@ -210,13 +222,23 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
+        // Config writes can change notification channel statuses
+        try {
+          fastify.notifications.emitStatusEvents()
+        } catch (error) {
+          fastify.log.error(
+            { error },
+            'Failed to emit status events after config update',
+          )
+        }
+
         const mergedConfig: z.infer<typeof ConfigFullSchema> = {
           ...savedConfig,
           enableApprise: fastify.config.enableApprise,
           appriseUrl: fastify.config.appriseUrl,
         }
 
-        const response: z.infer<typeof ConfigUpdateResponseSchema> = {
+        const response: z.infer<typeof ConfigResponseSchema> = {
           success: true,
           config: mergedConfig,
         }

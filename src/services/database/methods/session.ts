@@ -75,6 +75,7 @@ export async function createOrFindUserRollingMonitoredShow(
   globalShow: RollingMonitoredShow,
   plexUserId: string,
   plexUsername: string,
+  plexUserUuid: string | null = null,
 ): Promise<number> {
   const now = this.timestamp
   const values = {
@@ -87,6 +88,7 @@ export async function createOrFindUserRollingMonitoredShow(
     current_monitored_season: 1, // New users always start from season 1
     plex_user_id: plexUserId,
     plex_username: plexUsername,
+    plex_user_uuid: plexUserUuid,
     last_watched_season: 0,
     last_watched_episode: 0,
     last_session_date: now,
@@ -281,6 +283,38 @@ export async function updateRollingShowProgress(
     return updated > 0
   } catch (error) {
     this.log.error({ error }, 'Error updating rolling show progress:')
+    return false
+  }
+}
+
+/**
+ * Refreshes a per-user row's stored Plex identity. Usernames go stale on
+ * account renames; activity timestamps are left alone so an identity
+ * refresh never counts as viewing activity.
+ */
+export async function updateRollingShowUserIdentity(
+  this: DatabaseService,
+  id: number,
+  plexUsername: string,
+  plexUserUuid: string | null,
+): Promise<boolean> {
+  try {
+    const update: Record<string, string> = {
+      plex_username: plexUsername,
+      updated_at: this.timestamp,
+    }
+    if (plexUserUuid) {
+      update.plex_user_uuid = plexUserUuid
+    }
+
+    const updated = await this.knex('rolling_monitored_shows')
+      .where({ id })
+      .whereNotNull('plex_user_id')
+      .update(update)
+
+    return updated > 0
+  } catch (error) {
+    this.log.error({ error }, 'Error updating rolling show user identity:')
     return false
   }
 }

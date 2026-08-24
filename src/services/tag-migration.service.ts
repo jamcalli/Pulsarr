@@ -550,24 +550,9 @@ export class TagMigrationService {
       contentUpdated,
     }
 
-    // Persist to database first
-    await this.fastify.db.updateConfig({
+    await this.fastify.updateConfigAndPersist({
       tagMigration: existingMigration,
     })
-
-    // Then update in-memory config
-    try {
-      await this.fastify.updateConfig({
-        tagMigration: existingMigration,
-      })
-    } catch (memUpdateErr) {
-      this.log.error(
-        { error: memUpdateErr },
-        'DB updated but failed to sync in-memory config - restart may be needed',
-      )
-      // In-memory config is stale but DB has correct value
-      // Next server restart will load correct value from DB
-    }
   }
 
   /**
@@ -597,23 +582,10 @@ export class TagMigrationService {
       }
 
       if (Object.keys(updates).length > 0) {
-        // Persist to database first
-        await this.fastify.db.updateConfig(updates)
-
-        // Then update in-memory config
-        try {
-          await this.fastify.updateConfig(updates)
-          this.log.info(
-            `Transformed prefixes: ${currentPrefix} -> ${updates.tagPrefix || currentPrefix}, ${currentRemovedPrefix} -> ${updates.removedTagPrefix || currentRemovedPrefix}`,
-          )
-        } catch (memUpdateErr) {
-          this.log.error(
-            { error: memUpdateErr },
-            'DB updated but failed to sync in-memory config - restart may be needed',
-          )
-          // In-memory config is stale but DB has correct value
-          // Next server restart will load correct value from DB
-        }
+        await this.fastify.updateConfigAndPersist(updates)
+        this.log.info(
+          `Transformed prefixes: ${currentPrefix} -> ${updates.tagPrefix || currentPrefix}, ${currentRemovedPrefix} -> ${updates.removedTagPrefix || currentRemovedPrefix}`,
+        )
       }
     }
   }

@@ -114,168 +114,211 @@ const DeleteSyncTagRegexSchema = z
       'Invalid or unsafe regex pattern. Pattern must be valid regex syntax and not contain catastrophic backtracking patterns.',
   })
 
-const TagMigrationEntrySchema = z.object({
-  completed: z.boolean(),
-  migratedAt: z.string(),
-  tagsMigrated: z.number(),
-  contentUpdated: z.number(),
-})
+const TagMigrationEntrySchema = z
+  .object({
+    completed: z.boolean(),
+    migratedAt: z.string(),
+    tagsMigrated: z.number(),
+    contentUpdated: z.number(),
+  })
+  .meta({
+    id: 'TagMigrationEntry',
+    description: 'Migration result for a single instance',
+  })
 
 const TagMigrationSchema = z
   .object({
     radarr: z.object({}).catchall(TagMigrationEntrySchema),
     sonarr: z.object({}).catchall(TagMigrationEntrySchema),
   })
+  .meta({
+    id: 'TagMigration',
+    description: 'Tag format migration status per Radarr/Sonarr instance',
+  })
   .optional()
 
+const PlexTokensSchema = z
+  .array(z.string())
+  .meta({ description: 'Plex authentication tokens' })
+
 // Schema for complete config (GET responses) - matches exactly what getConfig() returns
-export const ConfigFullSchema = z.object({
-  // System identifiers and timestamps
-  id: z.number(),
-  created_at: z.string(), // ISO timestamp from database
-  updated_at: z.string(), // ISO timestamp from database
-  // System Config (from database)
-  baseUrl: z.string().optional(),
-  port: z.number().int().min(1).max(65535).optional(),
-  dbPath: z.string().optional(),
-  // cookieSecret, webhookSecret, and cookieName are server-internal
-  cookieSecured: z.boolean(),
-  // Logging & Performance
-  logLevel: LogLevelEnum.optional(),
-  closeGraceDelay: z.number().optional(),
-  rateLimitMax: z.number().optional(),
-  queueProcessDelaySeconds: z.number(),
-  // Discord Config
-  discordWebhookUrl: z.string().optional(),
-  discordBotToken: z.string().optional(),
-  discordClientId: z.string().optional(),
-  // Apprise Config (merged from runtime in route handler)
-  enableApprise: z.boolean(),
-  appriseUrl: z.string(),
-  systemAppriseUrl: z.string().optional(),
-  appriseEmailSender: z.string().optional(),
-  // Public Content Notifications - getConfig() always returns this with defaults
-  publicContentNotifications: z.object({
-    enabled: z.boolean(),
-    discordWebhookUrls: z.string(),
-    discordWebhookUrlsMovies: z.string(),
-    discordWebhookUrlsShows: z.string(),
-    appriseUrls: z.string(),
-    appriseUrlsMovies: z.string(),
-    appriseUrlsShows: z.string(),
-  }),
-  // Plex Mobile Config
-  plexMobileEnabled: z.boolean(),
-  // Delete Config
-  deletionMode: DeletionModeEnum,
-  // General Notifications (stored in milliseconds)
-  queueWaitTime: z.number(),
-  newEpisodeThreshold: z.number(),
-  // Out-of-app notification channels for new Pulsarr releases
-  notifyOnUpdate: UpdateNotifyEnum,
-  notifyOnAvailability: z.boolean(),
-  // Pending Webhooks Config
-  pendingWebhookRetryInterval: z.number(),
-  pendingWebhookMaxAge: z.number(),
-  pendingWebhookCleanupInterval: z.number(),
-  // TMDB Config (region from DB, API key NOT returned for security)
-  tmdbRegion: z.string(),
-  // Plex Config
-  plexTokens: z.array(z.string()),
-  skipFriendSync: z.boolean(),
-  plexServerUrl: z.string().optional(),
-  skipIfExistsOnPlex: z.boolean(),
-  deleteMovie: z.boolean(),
-  deleteEndedShow: z.boolean(),
-  deleteContinuingShow: z.boolean(),
-  deleteFiles: z.boolean(),
-  respectUserSyncSetting: z.boolean(),
-  deleteSyncNotify: DeleteSyncNotifyOptionEnum,
-  approvalNotify: NotifyOptionEnum,
-  watchlistCapNotify: NotifyOptionEnum,
-  watchlistCapNotifyUser: z.boolean(),
-  watchlistAddNotify: NotifyOptionEnum,
-  deleteSyncNotifyOnlyOnDeletion: z.boolean(),
-  maxDeletionPrevention: z.number().optional(),
-  deleteSyncTrackedOnly: z.boolean(),
-  deleteSyncCleanupApprovals: z.boolean(),
-  deleteSyncRequiredTagRegex: z.string(),
-  enablePlexPlaylistProtection: z.boolean(),
-  plexProtectionPlaylistName: z.string(),
-  // Plex Label Sync Configuration - getConfig() always returns this with defaults
-  plexLabelSync: PlexLabelSyncConfigSchema,
-  // RSS Config
-  selfRss: z.string().optional(),
-  friendsRss: z.string().optional(),
-  // Tagging Config
-  tagUsersInSonarr: z.boolean(),
-  tagUsersInRadarr: z.boolean(),
-  cleanupOrphanedTags: z.boolean(),
-  // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
-  // persistHistoricalTags: z.boolean(),
-  tagPrefix: z.string(),
-  tagNamingSource: z.enum(['username', 'alias']),
-  removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
-  removedTagPrefix: z.string(),
-  // Tag Migration Configuration
-  tagMigration: TagMigrationSchema,
-  // Plex Session Monitoring
-  plexSessionMonitoring: z
-    .object({
+export const ConfigFullSchema = z
+  .object({
+    // System identifiers and timestamps
+    id: z.number(),
+    created_at: z.string(), // ISO timestamp from database
+    updated_at: z.string(), // ISO timestamp from database
+    // System Config (from database)
+    baseUrl: z.string().optional(),
+    port: z.number().int().min(1).max(65535).optional(),
+    dbPath: z.string().optional(),
+    // cookieSecret, webhookSecret, and cookieName are server-internal
+    cookieSecured: z.boolean(),
+    // Logging & Performance
+    logLevel: LogLevelEnum.optional(),
+    closeGraceDelay: z
+      .number()
+      .meta({ description: 'Shutdown grace period in milliseconds' })
+      .optional(),
+    rateLimitMax: z.number().optional(),
+    queueProcessDelaySeconds: z.number(),
+    // Maintainerr Config (maintainerrWebhookSecret is server-internal)
+    maintainerrEnabled: z.boolean(),
+    maintainerrUrl: z.string().optional(),
+    maintainerrExclusionMode: z.enum(['watchlisters', 'global']).optional(),
+    // Discord Config
+    discordWebhookUrl: z.string().optional(),
+    discordBotToken: z.string().optional(),
+    discordClientId: z.string().optional(),
+    // Apprise Config (merged from runtime in route handler)
+    enableApprise: z.boolean(),
+    appriseUrl: z.string(),
+    systemAppriseUrl: z.string().optional(),
+    appriseEmailSender: z.string().optional(),
+    // Public Content Notifications - getConfig() always returns this with defaults
+    publicContentNotifications: z.object({
       enabled: z.boolean(),
-      pollingIntervalMinutes: z.number(),
-      remainingEpisodes: z.number(),
-      filterUsers: z.array(z.string()).optional(),
-      enableAutoReset: z.boolean().optional(),
-      inactivityResetDays: z.number().optional(),
-      autoResetIntervalHours: z.number().optional(),
-      enableProgressiveCleanup: z.boolean().optional(),
-    })
-    .optional(),
-  // New User Defaults - getConfig() applies defaults with Boolean() and || operators
-  newUserDefaultCanSync: z.boolean(),
-  newUserDefaultRequiresApproval: z.boolean(),
-  newUserDefaultMovieQuotaEnabled: z.boolean(),
-  newUserDefaultMovieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
-  newUserDefaultMovieQuotaLimit: z.number(),
-  newUserDefaultMovieBypassApproval: z.boolean(),
-  newUserDefaultMovieWatchlistCap: z.number().nullable(),
-  newUserDefaultShowQuotaEnabled: z.boolean(),
-  newUserDefaultShowQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
-  newUserDefaultShowQuotaLimit: z.number(),
-  newUserDefaultShowBypassApproval: z.boolean(),
-  newUserDefaultShowWatchlistCap: z.number().nullable(),
-  // Quota System Configuration - getConfig() always returns this with defaults
-  quotaSettings: z.object({
-    cleanup: z.object({
+      discordWebhookUrls: z.string(),
+      discordWebhookUrlsMovies: z.string(),
+      discordWebhookUrlsShows: z.string(),
+      appriseUrls: z.string(),
+      appriseUrlsMovies: z.string(),
+      appriseUrlsShows: z.string(),
+    }),
+    // Plex Mobile Config
+    plexMobileEnabled: z.boolean(),
+    // Delete Config
+    deletionMode: DeletionModeEnum,
+    // General Notifications
+    queueWaitTime: z
+      .number()
+      .meta({ description: 'Notification queue wait time in milliseconds' }),
+    newEpisodeThreshold: z.number().meta({
+      description: 'New episode notification threshold in milliseconds',
+    }),
+    // Out-of-app notification channels for new Pulsarr releases
+    notifyOnUpdate: UpdateNotifyEnum,
+    notifyOnAvailability: z.boolean(),
+    // Pending Webhooks Config
+    pendingWebhookRetryInterval: z
+      .number()
+      .meta({ description: 'Pending webhook retry interval in seconds' }),
+    pendingWebhookMaxAge: z
+      .number()
+      .meta({ description: 'Pending webhook expiry age in minutes' }),
+    pendingWebhookCleanupInterval: z
+      .number()
+      .meta({ description: 'Expired webhook cleanup interval in seconds' }),
+    // TMDB Config (region from DB, API key NOT returned for security)
+    tmdbRegion: z.string(),
+    // Plex Config
+    plexTokens: PlexTokensSchema,
+    skipFriendSync: z.boolean(),
+    plexServerUrl: z.string().optional(),
+    skipIfExistsOnPlex: z.boolean(),
+    deleteMovie: z.boolean(),
+    deleteEndedShow: z.boolean(),
+    deleteContinuingShow: z.boolean(),
+    deleteFiles: z.boolean(),
+    respectUserSyncSetting: z.boolean(),
+    deleteSyncNotify: DeleteSyncNotifyOptionEnum,
+    approvalNotify: NotifyOptionEnum,
+    watchlistCapNotify: NotifyOptionEnum,
+    watchlistCapNotifyUser: z.boolean(),
+    watchlistAddNotify: NotifyOptionEnum,
+    deleteSyncNotifyOnlyOnDeletion: z.boolean(),
+    maxDeletionPrevention: z.number().optional(),
+    deleteSyncTrackedOnly: z.boolean(),
+    deleteSyncCleanupApprovals: z.boolean(),
+    deleteSyncRequiredTagRegex: z.string(),
+    enablePlexPlaylistProtection: z.boolean(),
+    plexProtectionPlaylistName: z.string(),
+    // Plex Label Sync Configuration - getConfig() always returns this with defaults
+    plexLabelSync: PlexLabelSyncConfigSchema,
+    // RSS Config
+    selfRss: z.string().optional(),
+    friendsRss: z.string().optional(),
+    // Tagging Config
+    tagUsersInSonarr: z.boolean(),
+    tagUsersInRadarr: z.boolean(),
+    cleanupOrphanedTags: z.boolean(),
+    // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
+    // persistHistoricalTags: z.boolean(),
+    tagPrefix: z.string(),
+    tagNamingSource: z.enum(['username', 'alias']),
+    removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
+    removedTagPrefix: z.string(),
+    // Tag Migration Configuration
+    tagMigration: TagMigrationSchema,
+    // Plex Session Monitoring
+    plexSessionMonitoring: z
+      .object({
+        enabled: z.boolean(),
+        pollingIntervalMinutes: z.number(),
+        remainingEpisodes: z.number(),
+        filterUsers: z.array(z.string()).optional(),
+        enableAutoReset: z.boolean().optional(),
+        inactivityResetDays: z.number().optional(),
+        autoResetIntervalHours: z.number().optional(),
+        enableProgressiveCleanup: z.boolean().optional(),
+      })
+      .optional(),
+    // New User Defaults - getConfig() applies defaults with Boolean() and || operators
+    newUserDefaultCanSync: z.boolean(),
+    newUserDefaultRequiresApproval: z.boolean(),
+    newUserDefaultMovieQuotaEnabled: z.boolean(),
+    newUserDefaultMovieQuotaType: z.enum([
+      'daily',
+      'weekly_rolling',
+      'monthly',
+    ]),
+    newUserDefaultMovieQuotaLimit: z.number(),
+    newUserDefaultMovieBypassApproval: z.boolean(),
+    newUserDefaultMovieWatchlistCap: z.number().nullable(),
+    newUserDefaultShowQuotaEnabled: z.boolean(),
+    newUserDefaultShowQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
+    newUserDefaultShowQuotaLimit: z.number(),
+    newUserDefaultShowBypassApproval: z.boolean(),
+    newUserDefaultShowWatchlistCap: z.number().nullable(),
+    // Quota System Configuration - getConfig() always returns this with defaults
+    quotaSettings: z.object({
+      cleanup: z.object({
+        enabled: z.boolean(),
+        retentionDays: z.number(),
+      }),
+      weeklyRolling: z.object({
+        resetDays: z.number(),
+      }),
+      monthly: z.object({
+        resetDay: z.number(),
+        handleMonthEnd: z.enum(['last-day', 'skip-month', 'next-month']),
+      }),
+    }),
+    // Approval System Configuration - getConfig() always returns this with defaults
+    approvalExpiration: z.object({
       enabled: z.boolean(),
-      retentionDays: z.number(),
+      defaultExpirationHours: z.number(),
+      expirationAction: z.enum(['expire', 'auto_approve']),
+      // Auto-approve quota_exceeded requests when quota becomes available
+      autoApproveOnQuotaAvailable: z.boolean(),
+      // Per-trigger expiration overrides (optional - only present if explicitly set)
+      quotaExceededExpirationHours: z.number().optional(),
+      routerRuleExpirationHours: z.number().optional(),
+      manualFlagExpirationHours: z.number().optional(),
+      contentCriteriaExpirationHours: z.number().optional(),
+      cleanupExpiredDays: z.number(),
     }),
-    weeklyRolling: z.object({
-      resetDays: z.number(),
+    // Ready state
+    _isReady: z.boolean().meta({
+      description:
+        'Auto-start the watchlist workflow on next boot; surfaced as the Auto-Start toggle',
     }),
-    monthly: z.object({
-      resetDay: z.number(),
-      handleMonthEnd: z.enum(['last-day', 'skip-month', 'next-month']),
-    }),
-  }),
-  // Approval System Configuration - getConfig() always returns this with defaults
-  approvalExpiration: z.object({
-    enabled: z.boolean(),
-    defaultExpirationHours: z.number(),
-    expirationAction: z.enum(['expire', 'auto_approve']),
-    // Auto-approve quota_exceeded requests when quota becomes available
-    autoApproveOnQuotaAvailable: z.boolean(),
-    // Per-trigger expiration overrides (optional - only present if explicitly set)
-    quotaExceededExpirationHours: z.number().optional(),
-    routerRuleExpirationHours: z.number().optional(),
-    manualFlagExpirationHours: z.number().optional(),
-    contentCriteriaExpirationHours: z.number().optional(),
-    cleanupExpiredDays: z.number(),
-  }),
-  // Ready state
-  _isReady: z.boolean(),
-})
+  })
+  .meta({
+    id: 'Config',
+    description:
+      'Complete application configuration; server-internal secrets are never included',
+  })
 
 // Schema for config updates (PUT) - all fields optional for partial updates
 export const ConfigUpdateSchema = z
@@ -289,6 +332,10 @@ export const ConfigUpdateSchema = z
     closeGraceDelay: z.number().optional(),
     rateLimitMax: z.number().optional(),
     queueProcessDelaySeconds: z.number().optional(),
+    // Maintainerr Config (maintainerrWebhookSecret is server-internal)
+    maintainerrEnabled: z.boolean().optional(),
+    maintainerrUrl: HttpUrlOptionalSchema,
+    maintainerrExclusionMode: z.enum(['watchlisters', 'global']).optional(),
     // Discord Config
     discordWebhookUrl: DiscordWebhookUrlSchema,
     discordBotToken: z.string().optional(),
@@ -346,7 +393,7 @@ export const ConfigUpdateSchema = z
     // How often to clean up expired webhooks (in seconds)
     pendingWebhookCleanupInterval: z.number().optional(),
     // Other configs
-    plexTokens: z.array(z.string()).optional(),
+    plexTokens: PlexTokensSchema.optional(),
     skipFriendSync: z.boolean().optional(),
     deleteMovie: z.boolean().optional(),
     deleteEndedShow: z.boolean().optional(),
@@ -481,27 +528,27 @@ export const ConfigUpdateSchema = z
     tagMigration: TagMigrationSchema,
   })
   .strict()
+  .meta({
+    id: 'ConfigUpdatePayload',
+    description:
+      'Writable configuration fields; server-internal settings are rejected',
+  })
 
-// Response schemas - success is always true for 200 responses (errors use ConfigErrorSchema)
-export const ConfigGetResponseSchema = z.object({
-  success: z.literal(true),
-  config: ConfigFullSchema,
-})
-
-export const ConfigUpdateResponseSchema = z.object({
-  success: z.literal(true),
-  config: ConfigFullSchema,
-})
+// Success is always true for 200 responses (errors use ConfigErrorSchema)
+export const ConfigResponseSchema = z
+  .object({
+    success: z.literal(true),
+    config: ConfigFullSchema,
+  })
+  .meta({
+    id: 'ConfigResponse',
+    description: 'Configuration response envelope',
+  })
 
 // Type exports
 export type ConfigFull = z.infer<typeof ConfigFullSchema>
 export type ConfigUpdate = z.infer<typeof ConfigUpdateSchema>
-export type ConfigGetResponse = z.infer<typeof ConfigGetResponseSchema>
-export type ConfigUpdateResponse = z.infer<typeof ConfigUpdateResponseSchema>
-
-// Legacy export for backward compatibility - prefer ConfigUpdate for new code
-export type Config = ConfigUpdate
-export type ConfigResponse = ConfigGetResponse
+export type ConfigResponse = z.infer<typeof ConfigResponseSchema>
 
 // Re-export shared error schema with domain-specific alias
 export { ErrorSchema as ConfigErrorSchema }
