@@ -1,4 +1,3 @@
-import type { SonarrShowsResponse } from '@root/schemas/session-monitoring/session-monitoring.schema'
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -67,8 +66,9 @@ import { useSonarrInstancesQuery } from '@/features/sonarr/hooks/instance/useSon
 import { useSonarrShowsQuery } from '@/features/utilities/hooks/useSessionMonitoringQueries'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useTablePagination } from '@/hooks/use-table-pagination'
+import type { components } from '@/types/api.js'
 
-export type SonarrShow = SonarrShowsResponse['shows'][number]
+export type SonarrShow = components['schemas']['SonarrShowWithEnrollment']
 
 interface ColumnMetaType {
   className?: string

@@ -1,8 +1,10 @@
-import type { BulkManageBody } from '@root/schemas/session-monitoring/session-monitoring.schema'
 import { useMutation } from '@tanstack/react-query'
 import { queryClient } from '@/lib/queryClient'
 import { $api, apiFetch } from '@/lib/tanstackApi'
 import { useMinLoading, useMinLoadingMutation } from '@/lib/useMinLoading'
+import type { components } from '@/types/api.js'
+
+type BulkManageBody = components['schemas']['BulkManageRollingPayload']
 
 /**
  * Invalidates every session monitoring query regardless of params by

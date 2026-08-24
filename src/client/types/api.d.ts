@@ -3081,6 +3081,18 @@ export interface webhooks {
 }
 export interface components {
     schemas: {
+        /** @description Shows to enroll in or switch between rolling monitoring types */
+        BulkManageRollingPayload: {
+            shows: {
+                sonarrSeriesId: number;
+                sonarrInstanceId: number;
+                title: string;
+                guids: string[];
+                rollingShowId: number | null;
+            }[];
+            monitoringType: components["schemas"]["MonitoringType"];
+            resetMonitoring?: boolean;
+        };
         /**
          * @description Comparison operator applied to a condition value
          * @enum {string}
@@ -3509,6 +3521,31 @@ export interface components {
             /** @description Human-readable result message */
             message: string;
         };
+        /**
+         * @description Rolling monitoring strategy for a show
+         * @enum {string}
+         */
+        MonitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
+        /** @description Rolling monitored show entry (master record or per-user tracking row) */
+        RollingMonitoredShow: {
+            id: number;
+            sonarr_series_id: number;
+            tvdb_id?: string | null;
+            imdb_id?: string | null;
+            show_title: string;
+            monitoring_type: components["schemas"]["MonitoringType"];
+            current_monitored_season: number;
+            last_watched_season: number;
+            last_watched_episode: number;
+            last_session_date?: string | null;
+            sonarr_instance_id: number;
+            plex_user_id?: string | null;
+            plex_username?: string | null;
+            plex_user_uuid?: string | null;
+            created_at: string;
+            updated_at: string;
+            last_updated_at: string;
+        };
         /** @description A single field comparison in a router rule */
         RouterCondition: {
             field: string;
@@ -3621,6 +3658,16 @@ export interface components {
             success: boolean;
             message: string;
             rule: components["schemas"]["RouterRule"];
+        };
+        /** @description Pulsarr-tracked Sonarr show with its rolling monitoring enrollment status */
+        SonarrShowWithEnrollment: {
+            watchlistId: number;
+            sonarrInstanceId: number;
+            sonarrSeriesId: number;
+            title: string;
+            guids: string[];
+            rollingShowId: number | null;
+            monitoringType: components["schemas"]["MonitoringType"] | null;
         };
         /** @description Tag format migration status per Radarr/Sonarr instance */
         TagMigration: {
@@ -9517,25 +9564,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        shows: {
-                            id: number;
-                            sonarr_series_id: number;
-                            tvdb_id?: string | null;
-                            imdb_id?: string | null;
-                            show_title: string;
-                            /** @enum {string} */
-                            monitoring_type: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
-                            current_monitored_season: number;
-                            last_watched_season: number;
-                            last_watched_episode: number;
-                            last_session_date?: string | null;
-                            sonarr_instance_id: number;
-                            plex_user_id?: string | null;
-                            plex_username?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                            last_updated_at: string;
-                        }[];
+                        shows: components["schemas"]["RollingMonitoredShow"][];
                     };
                 };
             };
@@ -9566,20 +9595,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Shows to enroll in or switch between rolling monitoring types */
         requestBody: {
             content: {
-                "application/json": {
-                    shows: {
-                        sonarrSeriesId: number;
-                        sonarrInstanceId: number;
-                        title: string;
-                        guids: string[];
-                        rollingShowId: number | null;
-                    }[];
-                    /** @enum {string} */
-                    monitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
-                    resetMonitoring?: boolean;
-                };
+                "application/json": components["schemas"]["BulkManageRollingPayload"];
             };
         };
         responses: {
@@ -9638,25 +9657,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        shows: {
-                            id: number;
-                            sonarr_series_id: number;
-                            tvdb_id?: string | null;
-                            imdb_id?: string | null;
-                            show_title: string;
-                            /** @enum {string} */
-                            monitoring_type: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
-                            current_monitored_season: number;
-                            last_watched_season: number;
-                            last_watched_episode: number;
-                            last_session_date?: string | null;
-                            sonarr_instance_id: number;
-                            plex_user_id?: string | null;
-                            plex_username?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                            last_updated_at: string;
-                        }[];
+                        shows: components["schemas"]["RollingMonitoredShow"][];
                         inactivityDays: number;
                     };
                 };
@@ -9905,15 +9906,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        shows: {
-                            watchlistId: number;
-                            sonarrInstanceId: number;
-                            sonarrSeriesId: number;
-                            title: string;
-                            guids: string[];
-                            rollingShowId: number | null;
-                            monitoringType: ("pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling") | null;
-                        }[];
+                        shows: components["schemas"]["SonarrShowWithEnrollment"][];
                     };
                 };
             };

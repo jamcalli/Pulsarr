@@ -33,6 +33,66 @@
       }
     },
     "schemas": {
+      "BulkManageRollingPayload": {
+        "type": "object",
+        "properties": {
+          "shows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sonarrSeriesId": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sonarrInstanceId": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "title": {
+                  "type": "string"
+                },
+                "guids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "rollingShowId": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "sonarrSeriesId",
+                "sonarrInstanceId",
+                "title",
+                "guids",
+                "rollingShowId"
+              ]
+            }
+          },
+          "monitoringType": {
+            "$ref": "#/components/schemas/MonitoringType"
+          },
+          "resetMonitoring": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "shows",
+          "monitoringType"
+        ],
+        "description": "Shows to enroll in or switch between rolling monitoring types"
+      },
       "ConditionOperator": {
         "type": "string",
         "enum": [
@@ -1828,6 +1888,128 @@
         "additionalProperties": false,
         "description": "Standard success message response"
       },
+      "MonitoringType": {
+        "type": "string",
+        "enum": [
+          "pilotRolling",
+          "firstSeasonRolling",
+          "allSeasonPilotRolling"
+        ],
+        "description": "Rolling monitoring strategy for a show"
+      },
+      "RollingMonitoredShow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "sonarr_series_id": {
+            "type": "number"
+          },
+          "tvdb_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "imdb_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "show_title": {
+            "type": "string"
+          },
+          "monitoring_type": {
+            "$ref": "#/components/schemas/MonitoringType"
+          },
+          "current_monitored_season": {
+            "type": "number"
+          },
+          "last_watched_season": {
+            "type": "number"
+          },
+          "last_watched_episode": {
+            "type": "number"
+          },
+          "last_session_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sonarr_instance_id": {
+            "type": "number"
+          },
+          "plex_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plex_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plex_user_uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "last_updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sonarr_series_id",
+          "show_title",
+          "monitoring_type",
+          "current_monitored_season",
+          "last_watched_season",
+          "last_watched_episode",
+          "sonarr_instance_id",
+          "created_at",
+          "updated_at",
+          "last_updated_at"
+        ],
+        "additionalProperties": false,
+        "description": "Rolling monitored show entry (master record or per-user tracking row)"
+      },
       "RouterCondition": {
         "type": "object",
         "properties": {
@@ -2337,6 +2519,60 @@
         ],
         "additionalProperties": false,
         "description": "Response carrying a single router rule"
+      },
+      "SonarrShowWithEnrollment": {
+        "type": "object",
+        "properties": {
+          "watchlistId": {
+            "type": "number"
+          },
+          "sonarrInstanceId": {
+            "type": "number"
+          },
+          "sonarrSeriesId": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "guids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rollingShowId": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "monitoringType": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MonitoringType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "watchlistId",
+          "sonarrInstanceId",
+          "sonarrSeriesId",
+          "title",
+          "guids",
+          "rollingShowId",
+          "monitoringType"
+        ],
+        "additionalProperties": false,
+        "description": "Pulsarr-tracked Sonarr show with its rolling monitoring enrollment status"
       },
       "TagMigration": {
         "type": "object",
@@ -15212,111 +15448,7 @@
                     "shows": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "sonarr_series_id": {
-                            "type": "number"
-                          },
-                          "tvdb_id": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "imdb_id": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "show_title": {
-                            "type": "string"
-                          },
-                          "monitoring_type": {
-                            "type": "string",
-                            "enum": [
-                              "pilotRolling",
-                              "firstSeasonRolling",
-                              "allSeasonPilotRolling"
-                            ]
-                          },
-                          "current_monitored_season": {
-                            "type": "number"
-                          },
-                          "last_watched_season": {
-                            "type": "number"
-                          },
-                          "last_watched_episode": {
-                            "type": "number"
-                          },
-                          "last_session_date": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "sonarr_instance_id": {
-                            "type": "number"
-                          },
-                          "plex_user_id": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "plex_username": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "created_at": {
-                            "type": "string"
-                          },
-                          "updated_at": {
-                            "type": "string"
-                          },
-                          "last_updated_at": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "sonarr_series_id",
-                          "show_title",
-                          "monitoring_type",
-                          "current_monitored_season",
-                          "last_watched_season",
-                          "last_watched_episode",
-                          "sonarr_instance_id",
-                          "created_at",
-                          "updated_at",
-                          "last_updated_at"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/RollingMonitoredShow"
                       }
                     }
                   },
@@ -15365,71 +15497,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "shows": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "sonarrSeriesId": {
-                          "type": "integer",
-                          "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991
-                        },
-                        "sonarrInstanceId": {
-                          "type": "integer",
-                          "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991
-                        },
-                        "title": {
-                          "type": "string"
-                        },
-                        "guids": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "rollingShowId": {
-                          "anyOf": [
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        }
-                      },
-                      "required": [
-                        "sonarrSeriesId",
-                        "sonarrInstanceId",
-                        "title",
-                        "guids",
-                        "rollingShowId"
-                      ]
-                    }
-                  },
-                  "monitoringType": {
-                    "type": "string",
-                    "enum": [
-                      "pilotRolling",
-                      "firstSeasonRolling",
-                      "allSeasonPilotRolling"
-                    ]
-                  },
-                  "resetMonitoring": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "shows",
-                  "monitoringType"
-                ]
+                "$ref": "#/components/schemas/BulkManageRollingPayload"
               }
             }
-          }
+          },
+          "description": "Shows to enroll in or switch between rolling monitoring types"
         },
         "responses": {
           "200": {
@@ -15527,111 +15599,7 @@
                     "shows": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "sonarr_series_id": {
-                            "type": "number"
-                          },
-                          "tvdb_id": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "imdb_id": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "show_title": {
-                            "type": "string"
-                          },
-                          "monitoring_type": {
-                            "type": "string",
-                            "enum": [
-                              "pilotRolling",
-                              "firstSeasonRolling",
-                              "allSeasonPilotRolling"
-                            ]
-                          },
-                          "current_monitored_season": {
-                            "type": "number"
-                          },
-                          "last_watched_season": {
-                            "type": "number"
-                          },
-                          "last_watched_episode": {
-                            "type": "number"
-                          },
-                          "last_session_date": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "sonarr_instance_id": {
-                            "type": "number"
-                          },
-                          "plex_user_id": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "plex_username": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "created_at": {
-                            "type": "string"
-                          },
-                          "updated_at": {
-                            "type": "string"
-                          },
-                          "last_updated_at": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "sonarr_series_id",
-                          "show_title",
-                          "monitoring_type",
-                          "current_monitored_season",
-                          "last_watched_season",
-                          "last_watched_episode",
-                          "sonarr_instance_id",
-                          "created_at",
-                          "updated_at",
-                          "last_updated_at"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/RollingMonitoredShow"
                       }
                     },
                     "inactivityDays": {
@@ -16041,62 +16009,7 @@
                     "shows": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "watchlistId": {
-                            "type": "number"
-                          },
-                          "sonarrInstanceId": {
-                            "type": "number"
-                          },
-                          "sonarrSeriesId": {
-                            "type": "number"
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "guids": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          },
-                          "rollingShowId": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "monitoringType": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "pilotRolling",
-                                  "firstSeasonRolling",
-                                  "allSeasonPilotRolling"
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        },
-                        "required": [
-                          "watchlistId",
-                          "sonarrInstanceId",
-                          "sonarrSeriesId",
-                          "title",
-                          "guids",
-                          "rollingShowId",
-                          "monitoringType"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/SonarrShowWithEnrollment"
                       }
                     }
                   },

@@ -1,5 +1,6 @@
 import {
   buildPlexGuid,
+  collectGuidsFromMetadata,
   createGuidSet,
   extractImdbId,
   extractPlexKey,
@@ -576,6 +577,48 @@ describe('guid-handler', () => {
 
     it('should handle genres with special characters', () => {
       expect(normalizeGenre('action & adventure')).toBe('Action & Adventure')
+    })
+  })
+
+  describe('collectGuidsFromMetadata', () => {
+    it('should collect and normalize main guid and Guid array entries', () => {
+      expect(
+        collectGuidsFromMetadata({
+          guid: 'com.plexapp.agents.thetvdb://81189?lang=en',
+          Guid: [{ id: 'tvdb://81189' }, { id: 'imdb://tt0903747' }],
+        }),
+      ).toEqual([
+        'com.plexapp.agents.thetvdb:81189?lang=en',
+        'tvdb:81189',
+        'imdb:tt0903747',
+      ])
+    })
+
+    it('should skip internal plex:// identifiers regardless of case', () => {
+      expect(
+        collectGuidsFromMetadata({
+          guid: 'plex://show/abc',
+          Guid: [
+            { id: 'tvdb://81189' },
+            { id: 'plex://episode/def' },
+            { id: 'PLEX://episode/ghi' },
+          ],
+        }),
+      ).toEqual(['tvdb:81189'])
+    })
+
+    it('should deduplicate overlapping entries', () => {
+      expect(
+        collectGuidsFromMetadata({
+          guid: 'tvdb://81189',
+          Guid: [{ id: 'tvdb://81189' }, { id: 'TVDB://81189' }],
+        }),
+      ).toEqual(['tvdb:81189'])
+    })
+
+    it('should handle missing fields', () => {
+      expect(collectGuidsFromMetadata({})).toEqual([])
+      expect(collectGuidsFromMetadata({ Guid: [{}] })).toEqual([])
     })
   })
 

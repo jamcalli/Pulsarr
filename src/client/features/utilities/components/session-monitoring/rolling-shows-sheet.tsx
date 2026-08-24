@@ -1,4 +1,3 @@
-import type { RollingMonitoredShow } from '@root/schemas/session-monitoring/session-monitoring.schema'
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -72,6 +71,9 @@ import {
 import { RollingShowActionAlert } from '@/features/utilities/components/session-monitoring/rolling-show-action-alert'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useTablePagination } from '@/hooks/use-table-pagination'
+import type { components } from '@/types/api.js'
+
+type RollingMonitoredShow = components['schemas']['RollingMonitoredShow']
 
 interface ColumnMetaType {
   className?: string
