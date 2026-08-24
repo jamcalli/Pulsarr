@@ -38,10 +38,31 @@ export async function ensureFriendUsers(
 
   await Promise.all(
     Array.from(friends).map(async ([friend]) => {
-      let user = await deps.db.getUser(friend.username)
-      const isNewUser = !user
+      const { user, created } = await deps.db.getOrCreateUser({
+        name: friend.username,
+        apprise: null,
+        alias: null,
+        discord_id: null,
+        notify_apprise: false,
+        notify_discord: false,
+        notify_discord_mention: true,
+        notify_plex_mobile: false,
+        can_sync: deps.config.newUserDefaultCanSync ?? true,
+        requires_approval: deps.config.newUserDefaultRequiresApproval ?? false,
+        is_primary_token: false,
+        plex_uuid: friend.watchlistId,
+        avatar: friend.avatar ?? null,
+        display_name: friend.displayName ?? null,
+        friend_created_at: friend.createdAt ?? null,
+      })
 
-      if (user) {
+      if (created) {
+        // Send native webhook notification for user creation (fire-and-forget)
+        void deps.fastify.notifications.sendUserCreated(user)
+
+        // Create default quotas for the new user
+        await createDefaultQuotasForUser(user.id, deps)
+      } else {
         const updates: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>> =
           {}
         if (friend.watchlistId && user.plex_uuid !== friend.watchlistId) {
@@ -67,33 +88,6 @@ export async function ensureFriendUsers(
         }
       }
 
-      if (!user) {
-        user = await deps.db.createUser({
-          name: friend.username,
-          apprise: null,
-          alias: null,
-          discord_id: null,
-          notify_apprise: false,
-          notify_discord: false,
-          notify_discord_mention: true,
-          notify_plex_mobile: false,
-          can_sync: deps.config.newUserDefaultCanSync ?? true,
-          requires_approval:
-            deps.config.newUserDefaultRequiresApproval ?? false,
-          is_primary_token: false,
-          plex_uuid: friend.watchlistId,
-          avatar: friend.avatar ?? null,
-          display_name: friend.displayName ?? null,
-          friend_created_at: friend.createdAt ?? null,
-        })
-
-        // Send native webhook notification for user creation (fire-and-forget)
-        void deps.fastify.notifications.sendUserCreated(user)
-
-        // Create default quotas for the new user
-        await createDefaultQuotasForUser(user.id, deps)
-      }
-
       if (!user.id) throw new Error(`No ID for user ${friend.username}`)
       userMap.set(friend.watchlistId, {
         userId: user.id,
@@ -101,7 +95,7 @@ export async function ensureFriendUsers(
       })
 
       // Track newly added users for ETag baseline establishment
-      if (isNewUser) {
+      if (created) {
         added.push({
           userId: user.id,
           username: friend.username,

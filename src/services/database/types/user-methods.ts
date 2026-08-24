@@ -14,6 +14,16 @@ declare module '@services/database.service.js' {
     ): Promise<User>
 
     /**
+     * Fetches the user with the given name, inserting it first if missing.
+     * Safe under concurrency via the unique constraint on users.name.
+     * @param userData - User data to store if no user with this name exists
+     * @returns Promise resolving to the user and whether this call created it
+     */
+    getOrCreateUser(
+      userData: Omit<User, 'id' | 'created_at' | 'updated_at'>,
+    ): Promise<{ user: User; created: boolean }>
+
+    /**
      * Retrieves a user by ID or name
      * @param identifier - User ID (number) or username (string)
      * @returns Promise resolving to the user if found, undefined otherwise
