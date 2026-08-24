@@ -37,7 +37,7 @@ export interface RssProcessorDeps {
 export async function generateAndSaveRssFeeds(
   deps: RssProcessorDeps,
 ): Promise<RssFeedsSuccess> {
-  const { db, logger, config, fastify } = deps
+  const { logger, config, fastify } = deps
   const tokens = config.plexTokens
 
   if (tokens.length === 0) {
@@ -62,21 +62,8 @@ export async function generateAndSaveRssFeeds(
     friendsRss: friendsRss || '',
   }
 
-  // Persist to database first
-  await db.updateConfig(dbUrls)
-
-  // Then update in-memory config
-  try {
-    await fastify.updateConfig(dbUrls)
-    logger.debug(dbUrls, 'RSS feed URLs saved to database and memory')
-  } catch (memUpdateErr) {
-    logger.error(
-      { error: memUpdateErr },
-      'DB updated but failed to sync in-memory config - restart may be needed',
-    )
-    // In-memory config is stale but DB has correct value
-    // Next server restart will load correct value from DB
-  }
+  await fastify.updateConfigAndPersist(dbUrls)
+  logger.debug(dbUrls, 'RSS feed URLs saved to database and memory')
 
   return {
     self: dbUrls.selfRss,

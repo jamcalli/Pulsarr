@@ -3,9 +3,9 @@ import type {
   QuotaStatus,
   QuotaType,
   UpdateUserQuotaData,
-  UserQuotaConfig,
   UserQuotaConfigs,
 } from '@root/types/approval.types.js'
+import { isUniqueViolation } from '@utils/db-errors.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
@@ -31,6 +31,8 @@ export class QuotaService {
 
   /**
    * Creates quotas for a user with specified settings (manual creation)
+   *
+   * @throws 400 if the user does not exist, 409 if quotas already exist
    */
   async createUserQuotas(
     userId: number,
@@ -39,6 +41,11 @@ export class QuotaService {
     bypassApproval = false,
     watchlistCap?: number | null,
   ): Promise<UserQuotaConfigs> {
+    const user = await this.fastify.db.getUser(userId)
+    if (!user) {
+      throw this.fastify.httpErrors.badRequest('User not found')
+    }
+
     const movieData: CreateUserQuotaData = {
       userId,
       contentType: 'movie',
@@ -57,56 +64,79 @@ export class QuotaService {
       watchlistCap: watchlistCap ?? null,
     }
 
-    const [movieQuota, showQuota] = await Promise.all([
-      this.fastify.db.createUserQuota(movieData),
-      this.fastify.db.createUserQuota(showData),
-    ])
-
-    return {
-      userId,
-      movieQuota: movieQuota || undefined,
-      showQuota: showQuota || undefined,
+    try {
+      const [movieQuota, showQuota] = await this.fastify.db.createUserQuotas([
+        movieData,
+        showData,
+      ])
+      return {
+        userId,
+        movieQuota: movieQuota || undefined,
+        showQuota: showQuota || undefined,
+      }
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw this.fastify.httpErrors.conflict(
+          'User already has quota configurations',
+        )
+      }
+      throw error
     }
   }
 
   /**
    * Sets up default quotas for a new user based on config settings
+   *
+   * Idempotent: a user who already has quotas keeps them unchanged.
    */
   async setupDefaultQuotas(userId: number): Promise<UserQuotaConfigs> {
-    const config = this.fastify.config
-    let movieQuota: UserQuotaConfig | null = null
-    let showQuota: UserQuotaConfig | null = null
+    const existing = await this.fastify.db.getUserQuotas(userId)
+    if (existing.movieQuota || existing.showQuota) {
+      return existing
+    }
 
-    // Create movie quota if enabled in config
+    const config = this.fastify.config
+    const defaults: CreateUserQuotaData[] = []
+
     if (config.newUserDefaultMovieQuotaEnabled) {
-      const movieData: CreateUserQuotaData = {
+      defaults.push({
         userId,
         contentType: 'movie',
         quotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
         quotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
         bypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
         watchlistCap: config.newUserDefaultMovieWatchlistCap ?? null,
-      }
-      movieQuota = await this.fastify.db.createUserQuota(movieData)
+      })
     }
 
-    // Create show quota if enabled in config
     if (config.newUserDefaultShowQuotaEnabled) {
-      const showData: CreateUserQuotaData = {
+      defaults.push({
         userId,
         contentType: 'show',
         quotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
         quotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
         bypassApproval: config.newUserDefaultShowBypassApproval ?? false,
         watchlistCap: config.newUserDefaultShowWatchlistCap ?? null,
-      }
-      showQuota = await this.fastify.db.createUserQuota(showData)
+      })
     }
 
-    return {
-      userId,
-      movieQuota: movieQuota || undefined,
-      showQuota: showQuota || undefined,
+    if (defaults.length === 0) {
+      return { userId, movieQuota: undefined, showQuota: undefined }
+    }
+
+    try {
+      const created = await this.fastify.db.createUserQuotas(defaults)
+      return {
+        userId,
+        movieQuota: created.find((q) => q.contentType === 'movie'),
+        showQuota: created.find((q) => q.contentType === 'show'),
+      }
+    } catch (error) {
+      // a concurrent caller created them first
+      if (isUniqueViolation(error)) {
+        return this.fastify.db.getUserQuotas(userId)
+      }
+      throw error
     }
   }
 

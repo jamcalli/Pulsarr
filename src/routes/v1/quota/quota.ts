@@ -49,18 +49,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const user = await fastify.db.getUser(request.body.userId)
-        if (!user) {
-          return reply.badRequest('User not found')
-        }
-
-        const existingQuotas = await fastify.db.getUserQuotas(
-          request.body.userId,
-        )
-        if (existingQuotas.movieQuota || existingQuotas.showQuota) {
-          return reply.conflict('User already has quota configurations')
-        }
-
         const userQuotas = await fastify.quotaService.createUserQuotas(
           request.body.userId,
           request.body.quotaType,
@@ -76,6 +64,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           userQuotas,
         }
       } catch (error) {
+        // Rethrow service httpErrors so the global handler maps the 400/409
+        if (error instanceof Error && 'statusCode' in error) {
+          throw error
+        }
         logRouteError(fastify.log, request, error, {
           message: 'Failed to create user quota',
           context: { userId: request.body.userId },

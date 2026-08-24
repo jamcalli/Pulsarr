@@ -526,6 +526,7 @@ declare module 'fastify' {
   interface FastifyInstance {
     config: Config
     updateConfig(config: Partial<Config>): Promise<Config>
+    updateConfigAndPersist(config: Partial<Config>): Promise<Config>
   }
 }
 
@@ -719,6 +720,18 @@ export default fp(
       fastify.config = updatedConfig
       return updatedConfig
     })
+
+    // updateConfig is a plain merge and cannot fail
+    fastify.decorate(
+      'updateConfigAndPersist',
+      async (newConfig: Partial<Config>) => {
+        const dbUpdated = await fastify.db.updateConfig(newConfig)
+        if (!dbUpdated) {
+          throw new Error('Failed to persist config update to database')
+        }
+        return fastify.updateConfig(newConfig)
+      },
+    )
   },
   {
     name: 'config',

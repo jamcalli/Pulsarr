@@ -92,38 +92,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         // Store current config state before changes for service management
         const currentConfig = await fastify.db.getConfig()
 
-        // Store current runtime values for revert if needed
-        // Using Record type avoids complex type narrowing for dynamic property access
-        const originalRuntimeValues: Record<string, unknown> = {}
-        for (const key of Object.keys(safeConfigUpdate)) {
-          originalRuntimeValues[key] =
-            fastify.config[key as keyof typeof fastify.config]
-        }
-
         try {
-          await fastify.updateConfig(safeConfigUpdate)
+          await fastify.updateConfigAndPersist(safeConfigUpdate)
         } catch (configUpdateError) {
           logRouteError(fastify.log, request, configUpdateError, {
-            message: 'Failed to update runtime configuration',
+            message: 'Failed to update configuration',
           })
-          return reply.internalServerError(
-            'Failed to update runtime configuration',
-          )
-        }
-
-        const dbUpdated = await fastify.db.updateConfig(safeConfigUpdate)
-        if (!dbUpdated) {
-          // Revert runtime config using stored values
-          try {
-            await fastify.updateConfig(originalRuntimeValues)
-          } catch (revertError) {
-            logRouteError(fastify.log, request, revertError, {
-              message: 'Failed to revert runtime configuration',
-            })
-          }
-          return reply.internalServerError(
-            'Failed to update configuration in database',
-          )
+          return reply.internalServerError('Failed to update configuration')
         }
 
         const savedConfig = await fastify.db.getConfig()

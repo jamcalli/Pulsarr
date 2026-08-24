@@ -20,6 +20,13 @@ declare module '@services/database.service.js' {
     createUserQuota(data: CreateUserQuotaData): Promise<UserQuotaConfig>
 
     /**
+     * Creates multiple user quota configurations atomically
+     * @param quotas - Quota configuration data to insert
+     * @returns Promise resolving to the created quota configs
+     */
+    createUserQuotas(quotas: CreateUserQuotaData[]): Promise<UserQuotaConfig[]>
+
+    /**
      * Gets a user's quota configuration for specific content type
      * @param userId - User ID
      * @param contentType - Content type (movie or show)

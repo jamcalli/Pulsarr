@@ -12,19 +12,11 @@ async function persistIsReady(
   fastify: FastifyInstance,
   isReady: boolean,
 ): Promise<void> {
-  const dbUpdated = await fastify.db.updateConfig({ _isReady: isReady })
-  if (dbUpdated) {
-    try {
-      await fastify.updateConfig({ _isReady: isReady })
-      fastify.log.info(`Updated config _isReady to ${isReady}`)
-    } catch (memUpdateErr) {
-      fastify.log.error(
-        { error: memUpdateErr },
-        'DB updated but failed to sync in-memory config - restart may be needed',
-      )
-    }
-  } else {
-    fastify.log.warn('Failed to update _isReady config value')
+  try {
+    await fastify.updateConfigAndPersist({ _isReady: isReady })
+    fastify.log.info(`Updated config _isReady to ${isReady}`)
+  } catch (err) {
+    fastify.log.warn({ error: err }, 'Failed to update _isReady config value')
   }
 }
 
