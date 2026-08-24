@@ -128,6 +128,33 @@ describe('Session Monitoring → User Filter Integration', () => {
     expect(fakeSonarr.searchSeason).toHaveBeenCalledWith(1566, 2)
   })
 
+  it('matches by plex uuid from the session avatar when the title diverges', async () => {
+    // A renamed Plex account: session title no longer matches users.name,
+    // but the avatar URL still carries the stored plex_uuid
+    await setFilterUsers([String(SEED_USERS[0].id)])
+    await insertMasterShow()
+
+    const knex = getTestDatabase()
+    await knex('users')
+      .where({ id: SEED_USERS[0].id })
+      .update({ plex_uuid: 'ab12cd34ef56ab78' })
+
+    const fakeSonarr = stubBoundaries(
+      makeEpisodeSession({
+        season: 1,
+        episode: 15,
+        userId: 'plex-9001',
+        username: 'renamed-account',
+        userThumb: 'https://plex.tv/users/ab12cd34ef56ab78/avatar?c=123',
+      }),
+    )
+
+    const result = await app.plexSessionMonitor.monitorSessions()
+
+    expect(result.triggeredSearches).toBe(1)
+    expect(fakeSonarr.searchSeason).toHaveBeenCalledWith(1566, 2)
+  })
+
   it('still matches legacy filter values holding raw Plex usernames', async () => {
     await setFilterUsers(['some-plex-viewer'])
     await insertMasterShow()

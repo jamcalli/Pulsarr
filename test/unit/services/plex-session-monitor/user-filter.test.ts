@@ -30,6 +30,22 @@ describe('buildAllowedUserMatcher', () => {
     expect(allowAllUsers('900001', 'alice')).toBe(true)
   })
 
+  it('matches the session uuid against the resolved plex_uuid', () => {
+    const matcher = buildAllowedUserMatcher(
+      ['5'],
+      [makeUser({ id: 5, name: 'alice', plex_uuid: 'AB12cd34ef56ab78' })],
+    )
+    expect(matcher('900001', 'alice', 'ab12cd34ef56ab78')).toBe(true)
+  })
+
+  it('matches by uuid even when the session title matches nothing', () => {
+    const matcher = buildAllowedUserMatcher(
+      ['5'],
+      [makeUser({ id: 5, name: 'alice', plex_uuid: 'ab12cd34ef56ab78' })],
+    )
+    expect(matcher('900001', 'renamed-account', 'ab12cd34ef56ab78')).toBe(true)
+  })
+
   it('matches a session username against the resolved user name', () => {
     const matcher = buildAllowedUserMatcher(
       ['5'],
@@ -59,16 +75,31 @@ describe('buildAllowedUserMatcher', () => {
     expect(matcher('900001', 'alice')).toBe(true)
   })
 
+  it('matches legacy raw username values case-insensitively', () => {
+    const matcher = buildAllowedUserMatcher(['Alice'], [])
+    expect(matcher('900001', 'alice')).toBe(true)
+  })
+
   it('keeps matching legacy raw Plex account id values', () => {
     const matcher = buildAllowedUserMatcher(['900001'], [])
     expect(matcher('900001', 'alice')).toBe(true)
   })
 
-  it('blocks users not covered by the filter', () => {
+  it('does not treat a resolved DB id as a raw Plex account id', () => {
+    // Owner and managed-account sessions report small server-local ids that
+    // can collide with configured DB ids
     const matcher = buildAllowedUserMatcher(
       ['5'],
       [makeUser({ id: 5, name: 'alice' })],
     )
-    expect(matcher('900002', 'someone-else')).toBe(false)
+    expect(matcher('5', 'someone-else')).toBe(false)
+  })
+
+  it('blocks users not covered by the filter', () => {
+    const matcher = buildAllowedUserMatcher(
+      ['5'],
+      [makeUser({ id: 5, name: 'alice', plex_uuid: 'ab12cd34ef56ab78' })],
+    )
+    expect(matcher('900002', 'someone-else', 'ffffffffffffffff')).toBe(false)
   })
 })

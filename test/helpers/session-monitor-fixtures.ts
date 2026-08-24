@@ -55,11 +55,13 @@ export function makeEpisodeSession({
   episode,
   userId = 'u_nicole',
   username = 'nicole3876',
+  userThumb,
 }: {
   season: number
   episode: number
   userId?: string
   username?: string
+  userThumb?: string
 }): PlexSession {
   return {
     type: 'episode',
@@ -80,7 +82,7 @@ export function makeEpisodeSession({
     index: episode,
     viewOffset: 0,
     duration: 1_200_000,
-    User: { id: userId, title: username },
+    User: { id: userId, title: username, thumb: userThumb },
     Session: { id: 'session', bandwidth: 0, location: 'lan' },
     librarySectionTitle: 'TV Shows',
     librarySectionID: '2',

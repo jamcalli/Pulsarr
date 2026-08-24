@@ -18,6 +18,7 @@ import type {
   UserStatusResponse,
 } from '@schemas/plex/user-status.schema.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { extractUuidFromThumb } from '@utils/plex-avatar.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 import {
@@ -61,11 +62,6 @@ import {
   ensureTokenUsers,
   type FriendUsersDeps,
 } from './plex-watchlist/users/index.js'
-
-function extractUuidFromThumb(thumb: string | undefined): string | null {
-  const match = thumb?.match(/plex\.tv\/users\/([a-f0-9]+)\/avatar/i)
-  return match?.[1] ?? null
-}
 
 export class PlexWatchlistService {
   private readonly log: FastifyBaseLogger

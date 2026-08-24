@@ -29,6 +29,7 @@ export interface PlexSession {
   User: {
     id: string
     title: string // Username
+    thumb?: string // Avatar URL carrying the plex.tv account uuid
   }
   Session: {
     id: string

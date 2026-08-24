@@ -28,6 +28,7 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { extractUuidFromThumb } from '@utils/plex-avatar.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class PlexSessionMonitorService {
@@ -191,7 +192,7 @@ export class PlexSessionMonitorService {
   /**
    * Resolve the configured user filter into a matcher over Plex session
    * identity. filterUsers holds Pulsarr user ids, which are looked up so the
-   * viewer's Plex username can be compared.
+   * viewer's plex.tv uuid and username can be compared.
    */
   private async getAllowedUserMatcher(): Promise<AllowedUserMatcher> {
     const filterUsers = this.config.plexSessionMonitoring?.filterUsers
@@ -218,7 +219,11 @@ export class PlexSessionMonitorService {
       return
     }
 
-    const canTriggerActions = isUserAllowed(session.User.id, session.User.title)
+    const canTriggerActions = isUserAllowed(
+      session.User.id,
+      session.User.title,
+      extractUuidFromThumb(session.User.thumb),
+    )
 
     if (!canTriggerActions) {
       this.log.debug(
