@@ -94,6 +94,37 @@ export async function createUser(
 }
 
 /**
+ * Fetches the user with the given name, inserting it first if it does not exist.
+ *
+ * Concurrency-safe: the insert ignores conflicts on the unique name constraint,
+ * so parallel callers converge on the same row instead of creating duplicates.
+ *
+ * @param userData - User information to store if no user with this name exists.
+ * @returns The existing or newly created user, and whether this call created it.
+ */
+export async function getOrCreateUser(
+  this: DatabaseService,
+  userData: Omit<User, 'id' | 'created_at' | 'updated_at'>,
+): Promise<{ user: User; created: boolean }> {
+  const inserted = await this.knex('users')
+    .insert({
+      ...userData,
+      created_at: this.timestamp,
+      updated_at: this.timestamp,
+    })
+    .onConflict('name')
+    .ignore()
+    .returning('id')
+
+  const user = await this.getUser(userData.name)
+  if (!user) {
+    throw new Error(`Failed to get or create user ${userData.name}`)
+  }
+
+  return { user, created: inserted.length > 0 }
+}
+
+/**
  * Retrieve a user by numeric ID or by username.
  *
  * Looks up a non-system user (id > 0) and returns the mapped User object if found.

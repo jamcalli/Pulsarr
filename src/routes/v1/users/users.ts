@@ -4,6 +4,7 @@ import {
   UserErrorSchema,
   UserResponseSchema,
 } from '@schemas/users/users.schema.js'
+import { isUniqueViolation } from '@utils/db-errors.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
@@ -44,6 +45,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           user,
         }
       } catch (error) {
+        // A concurrent create can slip past the pre-check; report it as a 409
+        if (isUniqueViolation(error)) {
+          return reply.conflict('User with this name already exists')
+        }
         logRouteError(fastify.log, request, error, {
           message: 'Failed to create user',
         })
@@ -104,6 +109,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           user: updatedUser,
         }
       } catch (error) {
+        if (isUniqueViolation(error)) {
+          return reply.conflict('User with this name already exists')
+        }
         logRouteError(fastify.log, request, error, {
           message: 'Failed to update user',
         })
