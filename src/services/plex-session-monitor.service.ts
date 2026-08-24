@@ -17,6 +17,11 @@ import {
   userNeedsSeason,
 } from '@services/plex-session-monitor/cleanup-predicates.js'
 import {
+  type AllowedUserMatcher,
+  allowAllUsers,
+  buildAllowedUserMatcher,
+} from '@services/plex-session-monitor/user-filter.js'
+import {
   extractPlexKey,
   extractTvdbId,
   normalizeGuid,
@@ -86,10 +91,12 @@ export class PlexSessionMonitorService {
 
       this.log.info(`Found ${sessions.length} active Plex sessions`)
 
+      const isUserAllowed = await this.getAllowedUserMatcher()
+
       // Process each session
       for (const session of sessions) {
         try {
-          await this.processSession(session, result)
+          await this.processSession(session, result, isUserAllowed)
         } catch (error) {
           this.log.error(
             {
@@ -132,6 +139,8 @@ export class PlexSessionMonitorService {
     const tracker = this.plexServer.getSessionTracker()
     if (!tracker) return
 
+    const isUserAllowed = await this.getAllowedUserMatcher()
+
     for (const notification of notifications) {
       const isTransition = tracker.handlePlayingEvent(notification)
       if (!isTransition) continue
@@ -156,7 +165,7 @@ export class PlexSessionMonitorService {
           if (session.type !== 'episode') continue
 
           if (session.sessionKey === notification.sessionKey) {
-            await this.processSession(session, result)
+            await this.processSession(session, result, isUserAllowed)
             break
           }
         }
@@ -180,22 +189,20 @@ export class PlexSessionMonitorService {
   }
 
   /**
-   * Check if a user is allowed to trigger monitoring actions
+   * Resolve the configured user filter into a matcher over Plex session
+   * identity. filterUsers holds Pulsarr user ids, which are looked up so the
+   * viewer's Plex username can be compared.
    */
-  private isUserAllowedToTriggerActions(
-    userId: string,
-    username: string,
-  ): boolean {
-    if (
-      !this.config.plexSessionMonitoring?.filterUsers ||
-      this.config.plexSessionMonitoring.filterUsers.length === 0
-    ) {
-      // No filtering configured, all users allowed
-      return true
-    }
+  private async getAllowedUserMatcher(): Promise<AllowedUserMatcher> {
+    const filterUsers = this.config.plexSessionMonitoring?.filterUsers
+    if (!filterUsers || filterUsers.length === 0) return allowAllUsers
 
-    const allowedUsers = this.config.plexSessionMonitoring.filterUsers
-    return allowedUsers.includes(userId) || allowedUsers.includes(username)
+    const userIds = filterUsers
+      .filter((value) => /^\d+$/.test(value))
+      .map(Number)
+    const users = userIds.length > 0 ? await this.db.getUsersByIds(userIds) : []
+
+    return buildAllowedUserMatcher(filterUsers, users)
   }
 
   /**
@@ -204,21 +211,18 @@ export class PlexSessionMonitorService {
   private async processSession(
     session: PlexSession,
     result: SessionMonitoringResult,
+    isUserAllowed: AllowedUserMatcher,
   ): Promise<void> {
     // Only process TV episodes
     if (session.type !== 'episode') {
       return
     }
 
-    // Determine if this user is allowed to trigger monitoring actions
-    const canTriggerActions = this.isUserAllowedToTriggerActions(
-      session.User.id,
-      session.User.title,
-    )
+    const canTriggerActions = isUserAllowed(session.User.id, session.User.title)
 
     if (!canTriggerActions) {
       this.log.debug(
-        `User ${session.User.title} not in filter list - will track progress but not trigger monitoring actions`,
+        `User ${session.User.title} not in filter list - session refreshes activity but does not record position or trigger monitoring actions`,
       )
     }
 
@@ -282,21 +286,30 @@ export class PlexSessionMonitorService {
       rollingShow.last_watched_season === currentSeason &&
       rollingShow.last_watched_episode === currentEpisode
 
-    // Always update progress tracking (regardless of user filtering)
+    if (!canTriggerActions) {
+      // Keep the stored position - it doubles as the trigger dedup gate below,
+      // so recording a position no action was taken on would permanently
+      // suppress the next-season trigger once the user is later allowed.
+      // Timestamps still advance so inactivity reset does not reclaim a show
+      // a filtered user is actively watching.
+      await this.updateRollingShowProgress(
+        rollingShow.id,
+        rollingShow.last_watched_season,
+        rollingShow.last_watched_episode,
+        false,
+      )
+      this.log.debug(
+        `User ${session.User.title} filtered - refreshed activity for ${rollingShow.show_title} without recording position`,
+      )
+      return
+    }
+
     await this.updateRollingShowProgress(
       rollingShow.id,
       currentSeason,
       currentEpisode,
       canTriggerActions,
     )
-
-    // Only trigger monitoring actions if user is allowed (respects user filtering)
-    if (!canTriggerActions) {
-      this.log.debug(
-        `User ${session.User.title} progress tracked but not triggering monitoring actions due to user filtering`,
-      )
-      return
-    }
 
     // Above the positionUnchanged gate so a transient failure retries on repeated E01.
     if (
@@ -326,7 +339,12 @@ export class PlexSessionMonitorService {
     if (rollingShow.monitoring_type === 'allSeasonPilotRolling') return
 
     // The next-season check below queries Sonarr, so skip it on no-progress events.
-    if (positionUnchanged) return
+    if (positionUnchanged) {
+      this.log.debug(
+        `No new progress for ${rollingShow.show_title} (S${currentSeason}E${currentEpisode}) - skipping next-season check`,
+      )
+      return
+    }
 
     // Progress was already persisted above, so a failed check would make every
     // later poll of this episode hit the positionUnchanged gate and never
@@ -343,6 +361,9 @@ export class PlexSessionMonitorService {
       rollingShow.sonarr_instance_id,
     )
     if (!sonarr) {
+      this.log.warn(
+        `Sonarr instance ${rollingShow.sonarr_instance_id} not found for ${rollingShow.show_title} - reverting progress to retry next poll`,
+      )
       await revertProgress()
       return
     }
@@ -357,32 +378,52 @@ export class PlexSessionMonitorService {
       throw error
     }
     // Null means the series no longer exists in Sonarr - nothing to retry
-    if (!series) return
+    if (!series) {
+      this.log.debug(
+        `Series ${rollingShow.sonarr_series_id} (${rollingShow.show_title}) no longer exists in Sonarr instance ${rollingShow.sonarr_instance_id} - skipping`,
+      )
+      return
+    }
 
     const season = series.seasons?.find((s) => s.seasonNumber === currentSeason)
-    if (!season?.statistics?.totalEpisodeCount) return
+    if (!season?.statistics?.totalEpisodeCount) {
+      this.log.debug(
+        `No episode statistics for ${rollingShow.show_title} season ${currentSeason} in Sonarr - cannot evaluate threshold`,
+      )
+      return
+    }
 
     const totalEpisodes = season.statistics.totalEpisodeCount
     const remainingEpisodes = totalEpisodes - currentEpisode
     const threshold = this.config.plexSessionMonitoring?.remainingEpisodes || 2
 
-    if (remainingEpisodes <= threshold && remainingEpisodes >= 0) {
-      // User is near the end of the current season
-      const hasMoreSeasons = series.seasons?.some(
-        (s) => s.seasonNumber > currentSeason,
+    if (remainingEpisodes > threshold || remainingEpisodes < 0) {
+      this.log.debug(
+        `${rollingShow.show_title}: ${remainingEpisodes} episodes remaining in season ${currentSeason} (threshold ${threshold}) - not expanding yet`,
       )
+      return
+    }
 
-      if (hasMoreSeasons) {
-        // Expand to next season based on what user is watching
-        try {
-          await this.expandMonitoringToNextSeason(rollingShow, session, result)
-        } catch (error) {
-          await revertProgress()
-          throw error
-        }
-      }
+    // User is near the end of the current season
+    const hasMoreSeasons = series.seasons?.some(
+      (s) => s.seasonNumber > currentSeason,
+    )
+
+    if (!hasMoreSeasons) {
       // No more seasons - show stays in rolling monitoring.
       // Inactivity reset handles cleanup; no need to delete tracking entries.
+      this.log.debug(
+        `${rollingShow.show_title}: season ${currentSeason} is the final season in Sonarr - nothing to expand`,
+      )
+      return
+    }
+
+    // Expand to next season based on what user is watching
+    try {
+      await this.expandMonitoringToNextSeason(rollingShow, session, result)
+    } catch (error) {
+      await revertProgress()
+      throw error
     }
   }
 
@@ -1099,6 +1140,7 @@ export class PlexSessionMonitorService {
       const cutoffDate = new Date()
       cutoffDate.setDate(cutoffDate.getDate() - inactivityDays)
 
+      const isUserAllowed = await this.getAllowedUserMatcher()
       const allRollingShows = await this.db.getRollingMonitoredShows()
       const allUsersWatchingShow = allRollingShows.filter(
         (show) =>
@@ -1108,10 +1150,7 @@ export class PlexSessionMonitorService {
           show.last_session_date != null &&
           new Date(show.last_session_date) >= cutoffDate &&
           // Only consider users that are allowed to trigger monitoring actions
-          this.isUserAllowedToTriggerActions(
-            show.plex_user_id || '',
-            show.plex_username || '',
-          ),
+          isUserAllowed(show.plex_user_id || '', show.plex_username || ''),
       )
 
       this.log.debug(
