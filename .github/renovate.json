@@ -95,7 +95,17 @@
       "description": "Group TypeScript types",
       "groupName": "TypeScript types",
       "matchPackageNames": [
-        "/^@types//"
+        "/^@types//",
+        "!@types/node"
+      ]
+    },
+    {
+      "description": "Group Bun runtime image and types together",
+      "groupName": "Bun runtime",
+      "matchPackageNames": [
+        "oven/bun",
+        "bun-types",
+        "@types/node"
       ]
     },
     {

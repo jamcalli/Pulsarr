@@ -15,7 +15,7 @@ curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/ins
 ```
 
 This script:
-- Detects your architecture (x64 or arm64) and automatically selects the baseline variant for CPUs without AVX2
+- Detects your architecture (x64 or arm64)
 - Downloads the latest release from GitHub
 - Installs to `/opt/pulsarr/`
 - Creates a `pulsarr` system user
@@ -76,9 +76,7 @@ curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/ins
 
 ### Installer (Recommended)
 
-1. Download the installer from the [latest release](https://github.com/jamcalli/Pulsarr/releases/latest):
-   - **Most systems:** `pulsarr-vX.X.X-windows-x64-setup.exe`
-   - **Older CPUs without AVX2:** `pulsarr-vX.X.X-windows-x64-baseline-setup.exe` (pre-Haswell Intel or pre-Excavator AMD)
+1. Download `pulsarr-vX.X.X-windows-x64-setup.exe` from the [latest release](https://github.com/jamcalli/Pulsarr/releases/latest). Older CPUs without AVX2 are supported by the standard build.
 
 2. Run the installer
    :::note SmartScreen Warning
@@ -223,12 +221,10 @@ For users who prefer full control, standalone zip files are available for each p
 
 1. Download the zip for your platform from the [latest release](https://github.com/jamcalli/Pulsarr/releases/latest):
    - `pulsarr-vX.X.X-linux-x64.zip`
-   - `pulsarr-vX.X.X-linux-x64-baseline.zip` (older CPUs without AVX2)
    - `pulsarr-vX.X.X-linux-arm64.zip`
    - `pulsarr-vX.X.X-macos-x64.zip`
    - `pulsarr-vX.X.X-macos-arm64.zip`
    - `pulsarr-vX.X.X-windows-x64.zip`
-   - `pulsarr-vX.X.X-windows-x64-baseline.zip` (older CPUs without AVX2)
 
 2. Extract the zip to your desired location
 
