@@ -455,9 +455,6 @@ jobs:
           - variant: standard
             zip_suffix: "-windows-x64.zip"
             iss_file: pulsarr.iss
-          - variant: baseline
-            zip_suffix: "-windows-x64-baseline.zip"
-            iss_file: pulsarr-baseline.iss
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
