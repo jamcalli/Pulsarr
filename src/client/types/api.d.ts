@@ -8449,7 +8449,7 @@ export interface operations {
                         /** Format: uri */
                         baseUrl: string;
                         apiKey: string;
-                        qualityProfile?: (string | number) | null;
+                        qualityProfile?: string | number | null;
                         rootFolder?: string | null;
                         /** @default false */
                         bypassIgnored: boolean;
@@ -8501,7 +8501,7 @@ export interface operations {
                     /** Format: uri */
                     baseUrl: string;
                     apiKey: string;
-                    qualityProfile?: (string | number) | null;
+                    qualityProfile?: string | number | null;
                     rootFolder?: string | null;
                     /** @default false */
                     bypassIgnored?: boolean;
@@ -8593,7 +8593,7 @@ export interface operations {
                     /** Format: uri */
                     baseUrl?: string;
                     apiKey?: string;
-                    qualityProfile?: (string | number) | null;
+                    qualityProfile?: string | number | null;
                     rootFolder?: string | null;
                     bypassIgnored?: boolean;
                     searchOnAdd?: boolean;
@@ -10016,7 +10016,7 @@ export interface operations {
                         /** Format: uri */
                         baseUrl: string;
                         apiKey: string;
-                        qualityProfile?: (string | number) | null;
+                        qualityProfile?: string | number | null;
                         rootFolder?: string | null;
                         /** @default false */
                         bypassIgnored: boolean;
@@ -10072,7 +10072,7 @@ export interface operations {
                     /** Format: uri */
                     baseUrl: string;
                     apiKey: string;
-                    qualityProfile?: (string | number) | null;
+                    qualityProfile?: string | number | null;
                     rootFolder?: string | null;
                     /** @default false */
                     bypassIgnored?: boolean;
@@ -10168,7 +10168,7 @@ export interface operations {
                     /** Format: uri */
                     baseUrl?: string;
                     apiKey?: string;
-                    qualityProfile?: (string | number) | null;
+                    qualityProfile?: string | number | null;
                     rootFolder?: string | null;
                     bypassIgnored?: boolean;
                     seasonMonitoring?: string;
@@ -15028,7 +15028,7 @@ export interface operations {
                     pendingCount: number;
                     proposedRouting?: {
                         instanceId: number;
-                        qualityProfile: (number | string) | null;
+                        qualityProfile: number | string | null;
                         rootFolder: string | null;
                         tags: string[];
                         searchOnAdd: boolean | null;
@@ -15039,7 +15039,7 @@ export interface operations {
                         monitor: ("movieOnly" | "movieAndCollection" | "none") | null;
                     } | {
                         instanceId: number;
-                        qualityProfile: (number | string) | null;
+                        qualityProfile: number | string | null;
                         rootFolder: string | null;
                         tags: string[];
                         searchOnAdd: boolean | null;
@@ -15134,7 +15134,7 @@ export interface operations {
                     resolvedAt: string;
                     routing?: {
                         instanceId: number;
-                        qualityProfile: (number | string) | null;
+                        qualityProfile: number | string | null;
                         rootFolder: string | null;
                         tags: string[];
                         searchOnAdd: boolean | null;
@@ -15145,7 +15145,7 @@ export interface operations {
                         monitor: ("movieOnly" | "movieAndCollection" | "none") | null;
                     } | {
                         instanceId: number;
-                        qualityProfile: (number | string) | null;
+                        qualityProfile: number | string | null;
                         rootFolder: string | null;
                         tags: string[];
                         searchOnAdd: boolean | null;
@@ -15224,7 +15224,7 @@ export interface operations {
                     };
                     routing: {
                         instanceId: number;
-                        qualityProfile: (number | string) | null;
+                        qualityProfile: number | string | null;
                         rootFolder: string | null;
                         tags: string[];
                         searchOnAdd: boolean | null;
@@ -15235,7 +15235,7 @@ export interface operations {
                         monitor: ("movieOnly" | "movieAndCollection" | "none") | null;
                     } | {
                         instanceId: number;
-                        qualityProfile: (number | string) | null;
+                        qualityProfile: number | string | null;
                         rootFolder: string | null;
                         tags: string[];
                         searchOnAdd: boolean | null;
