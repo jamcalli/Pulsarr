@@ -17,6 +17,7 @@ import { parseGenres, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 import type { PlexLabelSyncService } from '../../plex-label-sync.service.js'
+import { resolveTmdbPosters } from '../enrichment/index.js'
 import { processWatchlistItems } from '../index.js'
 
 /**
@@ -177,6 +178,8 @@ export async function processAndSaveNewItems(
   )
 
   if (processedItems instanceof Map) {
+    await resolveTmdbPosters(processedItems, { tmdb: fastify.tmdb, logger })
+
     const itemsToInsert = await prepareItemsForInsertion(processedItems, {
       db,
       logger,

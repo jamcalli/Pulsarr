@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { TmdbRegionSelector } from '@/components/ui/tmdb-region-selector'
 import { useConfig } from '@/hooks/useConfig'
+import { buildPosterUrl } from '@/lib/poster-url'
 
 interface TmdbMetadataDisplayProps {
   data: TmdbMetadataSuccessResponse
@@ -44,9 +45,7 @@ export function TmdbMetadataDisplay({
   const isMovie = 'title' in details
   const title = isMovie ? details.title : details.name
   const releaseDate = isMovie ? details.release_date : details.first_air_date
-  const posterUrl = details.poster_path
-    ? `https://image.tmdb.org/t/p/w500${details.poster_path}`
-    : null
+  const posterUrl = buildPosterUrl(details.poster_path, 'detail')
   const backdropUrl = details.backdrop_path
     ? `https://image.tmdb.org/t/p/w1280${details.backdrop_path}`
     : null

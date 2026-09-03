@@ -23,6 +23,7 @@ import type {
   TmdbTvDetails,
   TmdbTvMetadata,
 } from '@schemas/tmdb/tmdb.schema.js'
+import { extractTmdbId, extractTvdbId } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -551,6 +552,43 @@ export class TmdbService {
       return null
     } catch (error) {
       this.log.error({ error }, `Error finding content by TVDB ID ${tvdbId}:`)
+      return null
+    }
+  }
+
+  async getPosterPath(
+    guids: string[] | string | undefined,
+    type: 'movie' | 'show',
+  ): Promise<string | null> {
+    if (!this.isConfigured()) {
+      return null
+    }
+
+    let tmdbId = extractTmdbId(guids)
+
+    if (tmdbId === 0) {
+      const tvdbId = extractTvdbId(guids)
+      if (tvdbId === 0) {
+        return null
+      }
+
+      const found = await this.findByTvdbId(tvdbId)
+      if (!found) {
+        return null
+      }
+
+      tmdbId = found.tmdbId
+    }
+
+    try {
+      const details =
+        type === 'show'
+          ? await this.fetchTvDetails(tmdbId)
+          : await this.fetchMovieDetails(tmdbId)
+
+      return details?.poster_path ?? null
+    } catch (error) {
+      this.log.debug({ error, tmdbId, type }, 'Failed to fetch poster path')
       return null
     }
   }
