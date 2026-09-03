@@ -17,6 +17,13 @@ interface QueuedRequest {
 
 const JITTER_RATIO = 0.1
 
+export class TmdbTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`TMDB request timed out after ${timeoutMs}ms`)
+    this.name = 'TmdbTimeoutError'
+  }
+}
+
 function withJitter(baseWaitTime: number): number {
   const jitter = baseWaitTime * JITTER_RATIO
   return baseWaitTime + (Math.random() * 2 - 1) * jitter
@@ -89,7 +96,6 @@ export class TmdbRequestQueue {
 
       try {
         const response = await this.execute(request.url, request.init)
-        this.timestamps.push(Date.now())
         request.resolve(response)
       } catch (error) {
         request.reject(error as Error)
@@ -109,7 +115,10 @@ export class TmdbRequestQueue {
     try {
       response = await this.send(url, init)
     } catch (error) {
-      if (retryCountNetwork >= this.maxRetries) {
+      if (
+        error instanceof TmdbTimeoutError ||
+        retryCountNetwork >= this.maxRetries
+      ) {
         throw error
       }
       const waitTime = withJitter(2 ** retryCountNetwork * 1000)
@@ -141,9 +150,15 @@ export class TmdbRequestQueue {
   private async send(url: string, init: RequestInit): Promise<Response> {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs)
+    this.timestamps.push(Date.now())
 
     try {
       return await this.fetchImpl(url, { ...init, signal: controller.signal })
+    } catch (error) {
+      if (controller.signal.aborted) {
+        throw new TmdbTimeoutError(this.timeoutMs)
+      }
+      throw error
     } finally {
       clearTimeout(timeout)
     }

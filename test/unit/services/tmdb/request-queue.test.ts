@@ -150,9 +150,9 @@ describe('TmdbRequestQueue', () => {
         }),
     )
 
-    const promise = createQueue(0).fetch(URL, {})
+    const promise = createQueue().fetch(URL, {})
     const rejection = expect(promise).rejects.toThrow(
-      'The operation was aborted',
+      'TMDB request timed out after 30000ms',
     )
 
     const signal = fetchImpl.mock.calls[0][1]?.signal
@@ -162,5 +162,31 @@ describe('TmdbRequestQueue', () => {
     expect(signal?.aborted).toBe(true)
 
     await rejection
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it('counts every retry attempt against the rate limit window', async () => {
+    fetchImpl
+      .mockResolvedValueOnce(rateLimited('0'))
+      .mockResolvedValueOnce(rateLimited('0'))
+      .mockResolvedValueOnce(ok())
+      .mockResolvedValueOnce(ok())
+
+    const queue = new TmdbRequestQueue(createMockLogger(), {
+      fetchImpl,
+      requestsPerSecond: 3,
+    })
+    const first = queue.fetch(URL, {})
+    await vi.advanceTimersByTimeAsync(10)
+    await first
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
+
+    const second = queue.fetch(URL, {})
+    await vi.advanceTimersByTimeAsync(900)
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
+
+    await vi.advanceTimersByTimeAsync(200)
+    await second
+    expect(fetchImpl).toHaveBeenCalledTimes(4)
   })
 })
