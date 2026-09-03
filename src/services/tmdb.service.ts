@@ -1,11 +1,3 @@
-/**
- * TMDB Service
- *
- * Service for interacting with The Movie Database (TMDB) API v3 to fetch
- * movie and TV show metadata including overview, ratings, and watch providers.
- * Uses modern Bearer token authentication (API Read Access Token).
- */
-
 import type { RadarrMovieLookupResponse } from '@root/types/content-lookup.types.js'
 import type {
   TmdbFindResponse,
@@ -33,38 +25,20 @@ const TMDB_API_TIMEOUT = 30_000
 export class TmdbService {
   private static readonly BASE_URL = 'https://api.themoviedb.org/3'
 
-  //
-  // ============================================================
-  // RATE LIMITING CONFIGURATION
-  // ============================================================
-  //
-
-  /** Rate limit: 40 requests per second (TMDB official guidance) */
   private static readonly RATE_LIMIT_PER_SECOND = 40
 
-  /** Rate limit time window in milliseconds */
   private static readonly RATE_LIMIT_WINDOW_MS = 1000
 
-  /** Queue of pending requests waiting for rate limit slots */
   private requestQueue: Array<{
     execute: () => Promise<Response>
     resolve: (value: Response) => void
     reject: (reason: Error) => void
   }> = []
 
-  /** Timestamps of recent requests (for token bucket algorithm) */
   private requestTimestamps: number[] = []
 
-  /** Whether the queue processor is currently running */
   private isProcessingQueue = false
 
-  //
-  // ============================================================
-  // PROVIDER CACHE CONFIGURATION
-  // ============================================================
-  //
-
-  /** Provider cache: region → providers list with timestamp */
   private providerCache = new Map<
     string,
     {
@@ -73,14 +47,8 @@ export class TmdbService {
     }
   >()
 
-  /** Provider cache TTL: 24 hours */
   private static readonly PROVIDER_CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
-  //
-  // ============================================================
-  // SERVICE INITIALIZATION
-  // ============================================================
-  //
   private readonly log: FastifyBaseLogger
 
   constructor(
@@ -90,23 +58,14 @@ export class TmdbService {
     this.log = createServiceLogger(baseLog, 'TMDB')
   }
 
-  /**
-   * Get current TMDB API Read Access Token from config
-   */
   private get accessToken(): string {
     return this.fastify.config.tmdbApiKey
   }
 
-  /**
-   * Get current TMDB region from database config
-   */
   private get defaultRegion(): string {
     return this.fastify.config.tmdbRegion || 'US'
   }
 
-  /**
-   * Fetch movie metadata including details and watch providers
-   */
   async getMovieMetadata(
     tmdbId: number,
     region?: string,
@@ -114,7 +73,6 @@ export class TmdbService {
     try {
       const movieRegion = region || this.defaultRegion
 
-      // Fetch movie details, watch providers, radarr ratings, and plex ratings in parallel
       const [
         detailsResponse,
         watchProvidersResponse,
@@ -127,7 +85,6 @@ export class TmdbService {
         this.fetchPlexRatings(tmdbId),
       ])
 
-      // Check if details fetch failed
       if (detailsResponse.status === 'rejected') {
         this.log.error(
           { error: detailsResponse.reason, tmdbId },
@@ -142,13 +99,12 @@ export class TmdbService {
         return null
       }
 
-      // Watch providers are optional, so we continue even if they fail
       let watchProviders: TmdbWatchProviderData | undefined
       if (
         watchProvidersResponse.status === 'fulfilled' &&
         watchProvidersResponse.value
       ) {
-        // API filters by region, get the requested region or fallback to any available region
+        // TMDB already filters by region, so fall back to the first region it returned
         const results = watchProvidersResponse.value.results
         watchProviders = results[movieRegion] || Object.values(results)[0]
       } else if (watchProvidersResponse.status === 'rejected') {
@@ -158,7 +114,6 @@ export class TmdbService {
         )
       }
 
-      // Radarr ratings are optional, so we continue even if they fail
       let radarrRatings: RadarrRatings | undefined
       if (
         radarrRatingsResponse.status === 'fulfilled' &&
@@ -172,7 +127,6 @@ export class TmdbService {
         )
       }
 
-      // Plex ratings are optional, so we continue even if they fail
       let plexRatings: PlexRatings | undefined
       if (
         plexRatingsResponse.status === 'fulfilled' &&
@@ -198,9 +152,6 @@ export class TmdbService {
     }
   }
 
-  /**
-   * Fetch TV show metadata including details and watch providers
-   */
   async getTvMetadata(
     tmdbId: number,
     region?: string,
@@ -208,7 +159,6 @@ export class TmdbService {
     try {
       const tvRegion = region || this.defaultRegion
 
-      // Fetch TV details, watch providers, and plex ratings in parallel
       const [detailsResponse, watchProvidersResponse, plexRatingsResponse] =
         await Promise.allSettled([
           this.fetchTvDetails(tmdbId),
@@ -216,7 +166,6 @@ export class TmdbService {
           this.fetchPlexRatings(tmdbId),
         ])
 
-      // Check if details fetch failed
       if (detailsResponse.status === 'rejected') {
         this.log.error(
           { error: detailsResponse.reason, tmdbId },
@@ -231,13 +180,12 @@ export class TmdbService {
         return null
       }
 
-      // Watch providers are optional, so we continue even if they fail
       let watchProviders: TmdbWatchProviderData | undefined
       if (
         watchProvidersResponse.status === 'fulfilled' &&
         watchProvidersResponse.value
       ) {
-        // API filters by region, get the requested region or fallback to any available region
+        // TMDB already filters by region, so fall back to the first region it returned
         const results = watchProvidersResponse.value.results
         watchProviders = results[tvRegion] || Object.values(results)[0]
       } else if (watchProvidersResponse.status === 'rejected') {
@@ -247,7 +195,6 @@ export class TmdbService {
         )
       }
 
-      // Plex ratings are optional, so we continue even if they fail
       let plexRatings: PlexRatings | undefined
       if (
         plexRatingsResponse.status === 'fulfilled' &&
@@ -272,9 +219,6 @@ export class TmdbService {
     }
   }
 
-  /**
-   * Fetch movie details from TMDB
-   */
   private async fetchMovieDetails(
     tmdbId: number,
   ): Promise<TmdbMovieDetails | null> {
@@ -311,9 +255,6 @@ export class TmdbService {
     return data as TmdbMovieDetails
   }
 
-  /**
-   * Fetch TV show details from TMDB
-   */
   private async fetchTvDetails(tmdbId: number): Promise<TmdbTvDetails | null> {
     const url = `${TmdbService.BASE_URL}/tv/${tmdbId}`
 
@@ -348,9 +289,6 @@ export class TmdbService {
     return data as TmdbTvDetails
   }
 
-  /**
-   * Fetch watch providers for a movie
-   */
   private async fetchMovieWatchProviders(
     tmdbId: number,
     region: string,
@@ -388,9 +326,6 @@ export class TmdbService {
     return data as TmdbWatchProvidersResponse
   }
 
-  /**
-   * Fetch watch providers for a TV show
-   */
   private async fetchTvWatchProviders(
     tmdbId: number,
     region: string,
@@ -428,10 +363,6 @@ export class TmdbService {
     return data as TmdbWatchProvidersResponse
   }
 
-  /**
-   * Get available regions for watch providers from TMDB
-   * Returns regions that have streaming/OTT data available
-   */
   async getAvailableRegions(): Promise<TmdbRegion[] | null> {
     if (!this.isConfigured()) {
       this.log.warn('TMDB is not configured, skipping region fetch')
@@ -467,7 +398,6 @@ export class TmdbService {
         return null
       }
 
-      // Transform TMDB response to our format
       if (
         typeof data === 'object' &&
         data !== null &&
@@ -489,10 +419,6 @@ export class TmdbService {
     }
   }
 
-  /**
-   * Find content by TVDB ID using TMDB's find endpoint
-   * Returns both the TMDB ID and content type (movie or tv)
-   */
   async findByTvdbId(
     tvdbId: number,
   ): Promise<{ tmdbId: number; type: 'movie' | 'tv' } | null> {
@@ -534,7 +460,6 @@ export class TmdbService {
 
       const findResponse = data as TmdbFindResponse
 
-      // Check TV results first (more likely for TVDB)
       if (findResponse.tv_results && findResponse.tv_results.length > 0) {
         return {
           tmdbId: findResponse.tv_results[0].id,
@@ -542,7 +467,6 @@ export class TmdbService {
         }
       }
 
-      // Check movie results
       if (findResponse.movie_results && findResponse.movie_results.length > 0) {
         return {
           tmdbId: findResponse.movie_results[0].id,
@@ -600,22 +524,16 @@ export class TmdbService {
     }
   }
 
-  /**
-   * Fetch Radarr ratings for a movie by TMDB ID
-   * Returns null if no Radarr instance available or movie not found
-   */
   private async fetchRadarrRatings(
     tmdbId: number,
   ): Promise<RadarrRatings | null> {
     try {
-      // Get default Radarr instance
       const radarrInstance = await this.fastify.db.getDefaultRadarrInstance()
       if (!radarrInstance) {
         this.log.debug('No default Radarr instance configured')
         return null
       }
 
-      // Get Radarr service for the instance
       const radarrService = this.fastify.radarrManager.getRadarrService(
         radarrInstance.id,
       )
@@ -626,12 +544,10 @@ export class TmdbService {
         return null
       }
 
-      // Lookup movie by TMDB ID to get ratings
       const lookupResponse = await radarrService.getFromRadarr<
         RadarrMovieLookupResponse | RadarrMovieLookupResponse[]
       >(`movie/lookup/tmdb?tmdbId=${tmdbId}`)
 
-      // Handle array or single response
       const movieData = Array.isArray(lookupResponse)
         ? lookupResponse[0]
         : lookupResponse
@@ -648,10 +564,6 @@ export class TmdbService {
     }
   }
 
-  /**
-   * Fetch Plex ratings from stored watchlist metadata by TMDB ID
-   * Returns null if no matching item found or no ratings stored
-   */
   private async fetchPlexRatings(tmdbId: number): Promise<PlexRatings | null> {
     try {
       const tmdbGuid = `tmdb:${tmdbId}`
@@ -662,14 +574,12 @@ export class TmdbService {
         return null
       }
 
-      // Get ratings from the first matching item
       const ratings = items[0].ratings
       if (!ratings) {
         this.log.debug(`No Plex ratings stored for TMDB ID ${tmdbId}`)
         return null
       }
 
-      // Convert to PlexRatings schema format
       return {
         imdb: ratings.imdb,
         rtCritic: ratings.rtCritic,
@@ -682,19 +592,6 @@ export class TmdbService {
     }
   }
 
-  //
-  // ============================================================
-  // PROVIDER LIST METHODS
-  // ============================================================
-  //
-
-  /**
-   * Get list of all streaming providers available for a region
-   * Results are cached for 24 hours to minimize API calls
-   *
-   * @param region - 2-letter region code (e.g., "US", "GB")
-   * @returns Array of watch providers with IDs, names, and logos
-   */
   async getAvailableProviders(
     region?: string,
   ): Promise<TmdbWatchProvider[] | null> {
@@ -705,7 +602,6 @@ export class TmdbService {
 
     const providerRegion = region || this.defaultRegion
 
-    // Check cache first
     const cached = this.providerCache.get(providerRegion)
     if (
       cached &&
@@ -718,13 +614,11 @@ export class TmdbService {
     this.log.debug(`Fetching providers for region ${providerRegion} from TMDB`)
 
     try {
-      // Fetch providers for both movies and TV in parallel
       const [movieResponse, tvResponse] = await Promise.allSettled([
         this.fetchProviderList('movie', providerRegion),
         this.fetchProviderList('tv', providerRegion),
       ])
 
-      // Log rejected requests
       if (movieResponse.status === 'rejected') {
         this.log.warn(
           { error: movieResponse.reason, region: providerRegion },
@@ -738,7 +632,6 @@ export class TmdbService {
         )
       }
 
-      // If both requests failed, return null (don't cache empty result)
       if (
         movieResponse.status === 'rejected' &&
         tvResponse.status === 'rejected'
@@ -749,17 +642,14 @@ export class TmdbService {
         return null
       }
 
-      // Collect providers from both responses
       const allProviders = new Map<number, TmdbWatchProvider>()
 
-      // Add movie providers
       if (movieResponse.status === 'fulfilled' && movieResponse.value) {
         for (const provider of movieResponse.value) {
           allProviders.set(provider.provider_id, provider)
         }
       }
 
-      // Add TV providers (merge with movies, deduplicate by ID)
       if (tvResponse.status === 'fulfilled' && tvResponse.value) {
         for (const provider of tvResponse.value) {
           if (!allProviders.has(provider.provider_id)) {
@@ -768,12 +658,10 @@ export class TmdbService {
         }
       }
 
-      // Convert to sorted array
       const providers = Array.from(allProviders.values()).sort(
         (a, b) => a.display_priority - b.display_priority,
       )
 
-      // Cache the result
       this.providerCache.set(providerRegion, {
         providers,
         fetchedAt: Date.now(),
@@ -789,13 +677,6 @@ export class TmdbService {
     }
   }
 
-  /**
-   * Fetch provider list from TMDB for a specific content type and region
-   *
-   * @param type - Content type (movie or tv)
-   * @param region - 2-letter region code
-   * @returns Array of providers or null
-   */
   private async fetchProviderList(
     type: 'movie' | 'tv',
     region: string,
@@ -830,7 +711,6 @@ export class TmdbService {
       return null
     }
 
-    // TMDB returns: { results: TmdbWatchProvider[] }
     if (
       typeof data === 'object' &&
       data !== null &&
@@ -843,11 +723,6 @@ export class TmdbService {
     return []
   }
 
-  /**
-   * Clear provider cache (useful for testing or manual refresh)
-   *
-   * @param region - Optional specific region to clear, otherwise clears all
-   */
   clearProviderCache(region?: string): void {
     if (region) {
       this.providerCache.delete(region)
@@ -858,14 +733,6 @@ export class TmdbService {
     }
   }
 
-  /**
-   * Get watch provider availability for a specific movie or TV show
-   *
-   * @param tmdbId - TMDB ID for the movie or show
-   * @param type - Content type ('movie' or 'tv')
-   * @param region - Optional region code (defaults to configured region)
-   * @returns Watch provider data for the content or null if not found
-   */
   async getWatchProviders(
     tmdbId: number,
     type: 'movie' | 'tv',
@@ -910,7 +777,6 @@ export class TmdbService {
       return null
     }
 
-    // TMDB returns: { results: { [region]: { ... } } }
     if (
       typeof data === 'object' &&
       data !== null &&
@@ -929,22 +795,6 @@ export class TmdbService {
     return null
   }
 
-  //
-  // ============================================================
-  // RATE LIMITING METHODS
-  // ============================================================
-  //
-
-  /**
-   * Rate-limited fetch wrapper for TMDB API calls
-   *
-   * Implements token bucket algorithm to respect TMDB's ~40 req/s rate limit.
-   * Handles 429 responses with exponential backoff retry logic.
-   *
-   * @param url - Full URL to fetch
-   * @param options - Fetch options
-   * @returns Promise resolving to Response
-   */
   private async rateLimitedFetch(
     url: string,
     options: RequestInit,
@@ -960,30 +810,23 @@ export class TmdbService {
         reject,
       })
 
-      // Start processing queue if not already running
       if (!this.isProcessingQueue) {
         void this.processRequestQueue()
       }
     })
   }
 
-  /**
-   * Process queued requests respecting rate limits (token bucket algorithm)
-   */
   private async processRequestQueue(): Promise<void> {
     this.isProcessingQueue = true
 
     while (this.requestQueue.length > 0) {
       const now = Date.now()
 
-      // Remove timestamps outside the current window
       this.requestTimestamps = this.requestTimestamps.filter(
         (timestamp) => now - timestamp < TmdbService.RATE_LIMIT_WINDOW_MS,
       )
 
-      // Check if we can make a request
       if (this.requestTimestamps.length >= TmdbService.RATE_LIMIT_PER_SECOND) {
-        // Wait until we can make another request
         const oldestTimestamp = this.requestTimestamps[0]
         const waitTime =
           TmdbService.RATE_LIMIT_WINDOW_MS - (now - oldestTimestamp)
@@ -993,7 +836,6 @@ export class TmdbService {
         continue
       }
 
-      // Dequeue and execute request
       const request = this.requestQueue.shift()
       if (!request) continue
 
@@ -1009,15 +851,6 @@ export class TmdbService {
     this.isProcessingQueue = false
   }
 
-  /**
-   * Execute request with separate retry logic for rate limits vs network errors
-   *
-   * @param executeRequest - Function that executes the fetch request
-   * @param retryCount429 - Current retry attempt for 429 rate limits
-   * @param retryCountNetwork - Current retry attempt for network/generic errors
-   * @param maxRetries - Maximum number of retries for each error type
-   * @returns Promise resolving to Response
-   */
   private async executeWithRetry(
     executeRequest: () => Promise<Response>,
     retryCount429 = 0,
@@ -1027,19 +860,17 @@ export class TmdbService {
     try {
       const response = await executeRequest()
 
-      // Handle 429 Too Many Requests
       if (response.status === 429) {
         if (retryCount429 >= maxRetries) {
           throw new Error('TMDB rate limit exceeded, max retries reached')
         }
 
-        // Get retry-after header or use exponential backoff
+        // TMDB sends a retry-after header on 429, so honor it over the backoff
         const retryAfter = response.headers.get('retry-after')
         const baseWaitTime = retryAfter
           ? Number.parseInt(retryAfter, 10) * 1000
-          : 2 ** (retryCount429 + 1) * 1000 // Exponential backoff: 2s, 4s, 8s
+          : 2 ** (retryCount429 + 1) * 1000
 
-        // Add ±10% jitter to prevent synchronized retries
         const jitter = baseWaitTime * 0.1
         const waitTime = baseWaitTime + (Math.random() * 2 - 1) * jitter
 
@@ -1061,7 +892,6 @@ export class TmdbService {
       if (retryCountNetwork < maxRetries) {
         const baseWaitTime = 2 ** retryCountNetwork * 1000
 
-        // Add ±10% jitter to prevent synchronized retries
         const jitter = baseWaitTime * 0.1
         const waitTime = baseWaitTime + (Math.random() * 2 - 1) * jitter
 
@@ -1080,15 +910,6 @@ export class TmdbService {
     }
   }
 
-  //
-  // ============================================================
-  // UTILITY METHODS
-  // ============================================================
-  //
-
-  /**
-   * Check if the service is properly configured
-   */
   isConfigured(): boolean {
     return Boolean(this.accessToken && this.accessToken.trim() !== '')
   }
