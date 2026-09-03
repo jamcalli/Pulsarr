@@ -567,6 +567,7 @@ export class TmdbService {
     }
 
     let tmdbId = extractTmdbId(guids)
+    let resolvedType = type
 
     if (tmdbId === 0) {
       const tvdbId = extractTvdbId(guids)
@@ -580,17 +581,21 @@ export class TmdbService {
       }
 
       tmdbId = found.tmdbId
+      resolvedType = found.type === 'tv' ? 'show' : 'movie'
     }
 
     try {
       const details =
-        type === 'show'
+        resolvedType === 'show'
           ? await this.fetchTvDetails(tmdbId)
           : await this.fetchMovieDetails(tmdbId)
 
       return details?.poster_path ?? null
     } catch (error) {
-      this.log.debug({ error, tmdbId, type }, 'Failed to fetch poster path')
+      this.log.debug(
+        { error, tmdbId, type: resolvedType },
+        'Failed to fetch poster path',
+      )
       return null
     }
   }
