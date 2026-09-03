@@ -1,44 +1,33 @@
-import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { TmdbMetadataDisplay } from '@/components/tmdb-metadata-display'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useConfig } from '@/hooks/useConfig'
-import { useTmdbMetadata } from '@/hooks/useTmdbMetadata'
+import { type TmdbLookupTarget, useTmdbMetadata } from '@/hooks/useTmdbMetadata'
 
 interface TmdbContentViewerProps {
-  approvalRequest: ApprovalRequestResponse
+  target: TmdbLookupTarget
 }
 
-/**
- * Reusable TMDB content viewer that automatically fetches and displays TMDB metadata.
- *
- * Used in both approval modals and dashboard content detail modals to provide
- * consistent TMDB information display across the application.
- */
-export function TmdbContentViewer({ approvalRequest }: TmdbContentViewerProps) {
+export function TmdbContentViewer({ target }: TmdbContentViewerProps) {
   const { config } = useConfig()
 
   const tmdbMetadata = useTmdbMetadata({
     region: config?.tmdbRegion,
   })
 
-  // Auto-fetch metadata:
-  // - Full fetch on mount or when the selected item changes
-  // - Region-only refresh when the region changes for the same item
-  const lastIdRef = useRef(approvalRequest.id)
+  const lastIdRef = useRef(target.id)
   useEffect(() => {
-    const idChanged = lastIdRef.current !== approvalRequest.id
+    const idChanged = lastIdRef.current !== target.id
     if (idChanged || !tmdbMetadata.data) {
-      lastIdRef.current = approvalRequest.id
-      tmdbMetadata.fetchMetadata(approvalRequest)
+      lastIdRef.current = target.id
+      tmdbMetadata.fetchMetadata(target)
       return
     }
-    // Same item, region changed -> refresh providers only
     if (config?.tmdbRegion) {
-      tmdbMetadata.fetchMetadata(approvalRequest, true)
+      tmdbMetadata.fetchMetadata(target, true)
     }
-  }, [approvalRequest.id, config?.tmdbRegion])
+  }, [target.id, config?.tmdbRegion])
 
   if (tmdbMetadata.error) {
     return (

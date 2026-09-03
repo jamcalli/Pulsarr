@@ -1,3 +1,4 @@
+import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
@@ -7,14 +8,20 @@ export const GenreStatSchema = z.object({
   count: z.number(),
 })
 
-export const ContentStatSchema = z.object({
-  title: z.string(),
-  count: z.number(),
-  thumb: z.string().nullable(),
-  guids: z.array(z.string()).optional(),
-  content_type: z.enum(['movie', 'show']).optional(),
-  users: z.array(z.string()).optional(),
-})
+export const ContentStatSchema = z
+  .object({
+    title: z.string(),
+    count: z.number(),
+    thumb: z.string().nullable(),
+    guids: z.array(z.string()).optional(),
+    content_type: ContentTypeSchema,
+    users: z.array(z.string()).optional(),
+  })
+  .meta({
+    id: 'ContentStat',
+    description:
+      'A watchlisted title with its watchlist count and identifiers.',
+  })
 
 export const UserStatSchema = z.object({
   name: z.string(),
@@ -52,15 +59,21 @@ export const AvailabilityTimeSchema = z.object({
   count: z.number(),
 })
 
-export const StatusTransitionTimeSchema = z.object({
-  from_status: z.string(),
-  to_status: z.string(),
-  content_type: z.string(),
-  avg_days: z.number(),
-  min_days: z.number(),
-  max_days: z.number(),
-  count: z.number(),
-})
+export const StatusTransitionTimeSchema = z
+  .object({
+    from_status: z.string(),
+    to_status: z.string(),
+    content_type: z.string(),
+    avg_days: z.number(),
+    min_days: z.number(),
+    max_days: z.number(),
+    count: z.number(),
+  })
+  .meta({
+    id: 'StatusTransitionTime',
+    description:
+      'Aggregate days spent moving between two watchlist statuses for a content type.',
+  })
 
 export const StatusFlowDataSchema = z.object({
   from_status: z.string(),
@@ -159,7 +172,6 @@ export const DashboardStatsSchema = z.object({
 
 // Type exports
 export type GenreStat = z.infer<typeof GenreStatSchema>
-export type ContentStat = z.infer<typeof ContentStatSchema>
 export type UserStat = z.infer<typeof UserStatSchema>
 export type StatusDistribution = z.infer<typeof StatusDistributionSchema>
 export type ContentTypeDistribution = z.infer<

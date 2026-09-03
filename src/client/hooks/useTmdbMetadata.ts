@@ -1,31 +1,34 @@
-import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
-import type { TmdbMetadataSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiFetch } from '@/lib/tanstackApi'
+import type { components } from '@/types/api.js'
+
+type TmdbMetadataResponse = components['schemas']['TmdbMetadataResponse']
+
+export interface TmdbLookupTarget {
+  id: number
+  contentType: components['schemas']['ContentType']
+  contentGuids: string[]
+}
 
 interface UseTmdbMetadataOptions {
   region?: string
 }
 
 interface UseTmdbMetadataReturn {
-  data: TmdbMetadataSuccessResponse | null
+  data: TmdbMetadataResponse | null
   loading: boolean
   error: string | null
-  fetchMetadata: (approvalRequest: ApprovalRequestResponse, regionOnly?: boolean) => Promise<void>
+  fetchMetadata: (
+    target: TmdbLookupTarget,
+    regionOnly?: boolean,
+  ) => Promise<void>
   clearData: () => void
 }
 
-/**
- * React hook for fetching and managing TMDB metadata related to approval requests.
- *
- * Provides stateful access to TMDB metadata, loading status, and error messages. Exposes functions to fetch metadata for a given approval request (optionally updating only region-specific watch provider data) and to clear all stored metadata and errors.
- *
- * @returns An object containing the current metadata, loading state, error message, and functions to fetch or clear metadata.
- */
 export function useTmdbMetadata(
   options: UseTmdbMetadataOptions = {},
 ): UseTmdbMetadataReturn {
-  const [data, setData] = useState<TmdbMetadataSuccessResponse | null>(null)
+  const [data, setData] = useState<TmdbMetadataResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const requestSeqRef = useRef(0)
@@ -33,7 +36,6 @@ export function useTmdbMetadata(
 
   useEffect(() => {
     return () => {
-      // Invalidate any in-flight request and abort on unmount
       requestSeqRef.current++
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
@@ -43,133 +45,130 @@ export function useTmdbMetadata(
   }, [])
 
   const clearData = useCallback(() => {
-    // Cancel any in-flight request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
-    // Invalidate any pending handlers tied to the previous seq
     requestSeqRef.current++
     setData(null)
     setError(null)
     setLoading(false)
   }, [])
 
-  const fetchMetadata = useCallback(async (approvalRequest: ApprovalRequestResponse, regionOnly = false) => {
-    // Cancel any previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-    
-    const seq = ++requestSeqRef.current
-    const abortController = new AbortController()
-    abortControllerRef.current = abortController
-    
-    setLoading(true)
-    setError(null)
-    if (!regionOnly) {
-      setData(null) // Only clear previous data for full fetch
-    }
-
-    try {
-      // Find a TMDB or TVDB GUID from the approval request's content GUIDs
-      const normalizedGuids =
-        (approvalRequest.contentGuids ?? []).map((g) => g.trim().toLowerCase())
-      const tmdbGuid = normalizedGuids.find((g) => /^tmdb:\d+$/.test(g))
-      const tvdbGuid = normalizedGuids.find((g) => /^tvdb:\d+$/.test(g))
-      
-      // For TV shows, prioritize TVDB to avoid TMDB ID conflicts with movies
-      const guidToUse = approvalRequest.contentType === 'show'
-        ? (tvdbGuid || tmdbGuid)
-        : (tmdbGuid || tvdbGuid)
-      
-      if (!guidToUse) {
-        throw new Error(
-          'No valid TMDB or TVDB GUID found in approval request. Expected formats: tmdb:123 or tvdb:456 (case-insensitive).',
-        )
+  const fetchMetadata = useCallback(
+    async (target: TmdbLookupTarget, regionOnly = false) => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
       }
 
-      // Use the new intelligent TMDB endpoint that accepts GUID format
-      const region = options.region
-        ? options.region.length === 2
-          ? options.region.toUpperCase()
-          : options.region
-        : undefined
-      // Pass content type to help API choose correct endpoint for TMDB IDs
-      const type =
-        approvalRequest.contentType === 'movie' ||
-        approvalRequest.contentType === 'show'
-          ? approvalRequest.contentType
-          : undefined
+      const seq = ++requestSeqRef.current
+      const abortController = new AbortController()
+      abortControllerRef.current = abortController
 
-      const {
-        data: metadataData,
-        error: fetchError,
-        response: metadataResponse,
-      } = await apiFetch.GET('/v1/tmdb/metadata/{id}', {
-        params: { path: { id: guidToUse }, query: { region, type } },
-        signal: abortController.signal,
-        cache: regionOnly ? 'no-store' : 'default',
-      })
-
-      if (fetchError) {
-        if (metadataResponse.status === 404) {
-          throw new Error(
-            'No TMDB metadata available for this content. The content may only have TVDB information or may not be in the database.',
-          )
-        }
-        throw new Error('Failed to fetch TMDB metadata for this request')
-      }
-      if (requestSeqRef.current !== seq) return
-      
-      if (regionOnly) {
-        // Only update watch providers for region changes
-        setData((prev) => {
-          if (!prev) return metadataData
-          const hasWatchProviders =
-            Object.hasOwn(
-              metadataData.metadata ?? {},
-              'watchProviders',
-            )
-          return {
-            ...prev,
-            metadata: {
-              ...prev.metadata,
-              watchProviders: hasWatchProviders
-                ? metadataData.metadata?.watchProviders
-                : prev.metadata.watchProviders,
-            },
-          }
-        })
-      } else {
-        setData(metadataData)
-      }
-    } catch (err) {
-      if (requestSeqRef.current !== seq) return
-      
-      // Don't show error for cancelled requests
-      const name = (err as any)?.name
-      const code = (err as any)?.code
-      // Covers browser (DOMException: AbortError) and Node/undici variants
-      if (name === 'AbortError' || code === 'ERR_ABORTED') {
-        return
-      }
-      
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
-      setError(errorMessage)
+      setLoading(true)
+      setError(null)
       if (!regionOnly) {
         setData(null)
       }
-    } finally {
-      if (requestSeqRef.current === seq) {
-        setLoading(false)
-        // Clear the abort controller for this request
-        if (abortControllerRef.current === abortController) {
-          abortControllerRef.current = null
+
+      try {
+        const normalizedGuids = target.contentGuids.map((g) =>
+          g.trim().toLowerCase(),
+        )
+        const tmdbGuid = normalizedGuids.find((g) => /^tmdb:\d+$/.test(g))
+        const tvdbGuid = normalizedGuids.find((g) => /^tvdb:\d+$/.test(g))
+
+        // TVDB first for shows, since TMDB show ids collide with movie ids
+        const guidToUse =
+          target.contentType === 'show'
+            ? tvdbGuid || tmdbGuid
+            : tmdbGuid || tvdbGuid
+
+        if (!guidToUse) {
+          throw new Error(
+            'No valid TMDB or TVDB GUID found for this content. Expected formats: tmdb:123 or tvdb:456 (case-insensitive).',
+          )
+        }
+
+        const region = options.region
+          ? options.region.length === 2
+            ? options.region.toUpperCase()
+            : options.region
+          : undefined
+
+        const {
+          data: metadataData,
+          error: fetchError,
+          response: metadataResponse,
+        } = await apiFetch.GET('/v1/tmdb/metadata/{id}', {
+          params: {
+            path: { id: guidToUse },
+            query: { region, type: target.contentType },
+          },
+          signal: abortController.signal,
+          cache: regionOnly ? 'no-store' : 'default',
+        })
+
+        if (fetchError) {
+          if (metadataResponse.status === 404) {
+            throw new Error(
+              'No TMDB metadata available for this content. The content may only have TVDB information or may not be in the database.',
+            )
+          }
+          throw new Error('Failed to fetch TMDB metadata for this request')
+        }
+        if (requestSeqRef.current !== seq) return
+
+        if (regionOnly) {
+          setData((prev) => {
+            if (!prev) return metadataData
+            const hasWatchProviders = Object.hasOwn(
+              metadataData.metadata,
+              'watchProviders',
+            )
+            return {
+              ...prev,
+              metadata: {
+                ...prev.metadata,
+                watchProviders: hasWatchProviders
+                  ? metadataData.metadata.watchProviders
+                  : prev.metadata.watchProviders,
+              },
+            }
+          })
+        } else {
+          setData(metadataData)
+        }
+      } catch (err) {
+        if (requestSeqRef.current !== seq) return
+
+        // undici reports an aborted fetch as a code instead of a DOMException name
+        const aborted =
+          (err instanceof DOMException && err.name === 'AbortError') ||
+          (err instanceof Error &&
+            'code' in err &&
+            err.code === 'ERR_ABORTED')
+        if (aborted) {
+          return
+        }
+
+        const errorMessage =
+          err instanceof Error ? err.message : 'Unknown error occurred'
+        setError(errorMessage)
+        if (!regionOnly) {
+          setData(null)
+        }
+      } finally {
+        if (requestSeqRef.current === seq) {
+          setLoading(false)
+          if (abortControllerRef.current === abortController) {
+            abortControllerRef.current = null
+          }
         }
       }
-    }
-  }, [options.region])
+    },
+    [options.region],
+  )
 
   return {
     data,

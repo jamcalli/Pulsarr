@@ -139,7 +139,15 @@ export default function ApprovalActionsModal({
           Media Details
         </h3>
 
-        {showMediaDetails && <TmdbContentViewer approvalRequest={request} />}
+        {showMediaDetails && (
+          <TmdbContentViewer
+            target={{
+              id: request.id,
+              contentType: request.contentType,
+              contentGuids: request.contentGuids ?? [],
+            }}
+          />
+        )}
       </div>
     </div>
   )

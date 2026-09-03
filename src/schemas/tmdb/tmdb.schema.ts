@@ -1,3 +1,4 @@
+import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
@@ -16,26 +17,36 @@ export const RadarrRatingSourceSchema = z.object({
 })
 
 // Radarr Ratings Schema
-export const RadarrRatingsSchema = z.object({
-  imdb: RadarrRatingSourceSchema.optional(),
-  tmdb: RadarrRatingSourceSchema.optional(),
-  metacritic: RadarrRatingSourceSchema.optional(),
-  rottenTomatoes: RadarrRatingSourceSchema.optional(),
-  trakt: RadarrRatingSourceSchema.optional(),
-})
+export const RadarrRatingsSchema = z
+  .object({
+    imdb: RadarrRatingSourceSchema.optional(),
+    tmdb: RadarrRatingSourceSchema.optional(),
+    metacritic: RadarrRatingSourceSchema.optional(),
+    rottenTomatoes: RadarrRatingSourceSchema.optional(),
+    trakt: RadarrRatingSourceSchema.optional(),
+  })
+  .meta({
+    id: 'RadarrRatings',
+    description: 'Ratings for a movie as reported by Radarr.',
+  })
 
 // Plex Ratings Schema (from stored watchlist metadata)
-export const PlexRatingsSchema = z.object({
-  imdb: z
-    .object({
-      rating: z.number(),
-      votes: z.number().nullable(),
-    })
-    .optional(),
-  rtCritic: z.number().optional(),
-  rtAudience: z.number().optional(),
-  tmdb: z.number().optional(),
-})
+export const PlexRatingsSchema = z
+  .object({
+    imdb: z
+      .object({
+        rating: z.number(),
+        votes: z.number().nullable(),
+      })
+      .optional(),
+    rtCritic: z.number().optional(),
+    rtAudience: z.number().optional(),
+    tmdb: z.number().optional(),
+  })
+  .meta({
+    id: 'PlexRatings',
+    description: 'Ratings captured from stored Plex watchlist metadata.',
+  })
 
 // TMDB Genre Schema
 export const TmdbGenreSchema = z.object({
@@ -44,10 +55,15 @@ export const TmdbGenreSchema = z.object({
 })
 
 // TMDB Region Schema
-export const TmdbRegionSchema = z.object({
-  code: z.string(),
-  name: z.string(),
-})
+export const TmdbRegionSchema = z
+  .object({
+    code: z.string(),
+    name: z.string(),
+  })
+  .meta({
+    id: 'TmdbRegion',
+    description: 'A country region TMDB reports watch providers for.',
+  })
 
 // TMDB Production Company Schema
 export const TmdbProductionCompanySchema = z.object({
@@ -81,34 +97,40 @@ export const TmdbBelongsToCollectionSchema = z
   .nullable()
 
 // TMDB Movie Details Schema
-export const TmdbMovieDetailsSchema = z.object({
-  adult: z.boolean(),
-  backdrop_path: z.string().nullable(),
-  belongs_to_collection: TmdbBelongsToCollectionSchema.nullable(),
-  budget: z.number(),
-  genres: z.array(TmdbGenreSchema),
-  homepage: TmdbHomepageSchema,
-  id: z.number(),
-  imdb_id: z.string().nullable(),
-  origin_country: z.array(z.string()),
-  original_language: z.string(),
-  original_title: z.string(),
-  overview: z.string().nullable(),
-  popularity: z.number(),
-  poster_path: z.string().nullable(),
-  production_companies: z.array(TmdbProductionCompanySchema),
-  production_countries: z.array(TmdbProductionCountrySchema),
-  release_date: z.string(),
-  revenue: z.number(),
-  runtime: z.number().nullable(),
-  spoken_languages: z.array(TmdbSpokenLanguageSchema),
-  status: z.string(),
-  tagline: z.string().nullable(),
-  title: z.string(),
-  video: z.boolean(),
-  vote_average: z.number(),
-  vote_count: z.number(),
-})
+export const TmdbMovieDetailsSchema = z
+  .object({
+    adult: z.boolean(),
+    backdrop_path: z.string().nullable(),
+    belongs_to_collection: TmdbBelongsToCollectionSchema.nullable(),
+    budget: z.number(),
+    genres: z.array(TmdbGenreSchema),
+    homepage: TmdbHomepageSchema,
+    id: z.number(),
+    imdb_id: z.string().nullable(),
+    origin_country: z.array(z.string()),
+    original_language: z.string(),
+    original_title: z.string(),
+    overview: z.string().nullable(),
+    popularity: z.number(),
+    poster_path: z.string().nullable(),
+    production_companies: z.array(TmdbProductionCompanySchema),
+    production_countries: z.array(TmdbProductionCountrySchema),
+    release_date: z.string(),
+    revenue: z.number(),
+    runtime: z.number().nullable(),
+    spoken_languages: z.array(TmdbSpokenLanguageSchema),
+    status: z.string(),
+    tagline: z.string().nullable(),
+    title: z.string(),
+    video: z.boolean(),
+    vote_average: z.number(),
+    vote_count: z.number(),
+  })
+  .meta({
+    id: 'TmdbMovieDetails',
+    description:
+      'Full movie record returned by the TMDB movie details endpoint.',
+  })
 
 // TMDB Creator Schema
 export const TmdbCreatorSchema = z.object({
@@ -158,77 +180,106 @@ export const TmdbSeasonSchema = z.object({
 })
 
 // TMDB TV Details Schema
-export const TmdbTvDetailsSchema = z.object({
-  adult: z.boolean(),
-  backdrop_path: z.string().nullable(),
-  created_by: z.array(TmdbCreatorSchema),
-  episode_run_time: z.array(z.number()),
-  first_air_date: z.string().nullable(),
-  genres: z.array(TmdbGenreSchema),
-  homepage: TmdbHomepageSchema,
-  id: z.number(),
-  in_production: z.boolean(),
-  languages: z.array(z.string()),
-  last_air_date: z.string().nullable(),
-  last_episode_to_air: TmdbEpisodeSchema.nullable(),
-  name: z.string(),
-  next_episode_to_air: TmdbEpisodeSchema.nullable(),
-  networks: z.array(TmdbNetworkSchema),
-  number_of_episodes: z.number(),
-  number_of_seasons: z.number(),
-  origin_country: z.array(z.string()),
-  original_language: z.string(),
-  original_name: z.string(),
-  overview: z.string().nullable(),
-  popularity: z.number(),
-  poster_path: z.string().nullable(),
-  production_companies: z.array(TmdbProductionCompanySchema),
-  production_countries: z.array(TmdbProductionCountrySchema),
-  seasons: z.array(TmdbSeasonSchema),
-  spoken_languages: z.array(TmdbSpokenLanguageSchema),
-  status: z.string(),
-  tagline: z.string().nullable(),
-  type: z.string(),
-  vote_average: z.number(),
-  vote_count: z.number(),
-})
+export const TmdbTvDetailsSchema = z
+  .object({
+    adult: z.boolean(),
+    backdrop_path: z.string().nullable(),
+    created_by: z.array(TmdbCreatorSchema),
+    episode_run_time: z.array(z.number()),
+    first_air_date: z.string().nullable(),
+    genres: z.array(TmdbGenreSchema),
+    homepage: TmdbHomepageSchema,
+    id: z.number(),
+    in_production: z.boolean(),
+    languages: z.array(z.string()),
+    last_air_date: z.string().nullable(),
+    last_episode_to_air: TmdbEpisodeSchema.nullable(),
+    name: z.string(),
+    next_episode_to_air: TmdbEpisodeSchema.nullable(),
+    networks: z.array(TmdbNetworkSchema),
+    number_of_episodes: z.number(),
+    number_of_seasons: z.number(),
+    origin_country: z.array(z.string()),
+    original_language: z.string(),
+    original_name: z.string(),
+    overview: z.string().nullable(),
+    popularity: z.number(),
+    poster_path: z.string().nullable(),
+    production_companies: z.array(TmdbProductionCompanySchema),
+    production_countries: z.array(TmdbProductionCountrySchema),
+    seasons: z.array(TmdbSeasonSchema),
+    spoken_languages: z.array(TmdbSpokenLanguageSchema),
+    status: z.string(),
+    tagline: z.string().nullable(),
+    type: z.string(),
+    vote_average: z.number(),
+    vote_count: z.number(),
+  })
+  .meta({
+    id: 'TmdbTvDetails',
+    description:
+      'Full TV show record returned by the TMDB series details endpoint.',
+  })
 
 // TMDB Watch Provider Schema (for API responses)
-export const TmdbWatchProviderSchema = z.object({
-  display_priority: z.number(),
-  logo_path: z.string().nullable(),
-  provider_id: z.number(),
-  provider_name: z.string(),
-})
+export const TmdbWatchProviderSchema = z
+  .object({
+    display_priority: z.number(),
+    logo_path: z.string().nullable(),
+    provider_id: z.number(),
+    provider_name: z.string(),
+  })
+  .meta({
+    id: 'TmdbWatchProvider',
+    description: 'A single streaming, rental, or purchase provider from TMDB.',
+  })
 
 // TMDB Watch Provider Data Schema (for API responses)
-export const TmdbWatchProviderDataSchema = z.object({
-  link: z.string().optional(),
-  flatrate: z.array(TmdbWatchProviderSchema).optional(),
-  rent: z.array(TmdbWatchProviderSchema).optional(),
-  buy: z.array(TmdbWatchProviderSchema).optional(),
-})
+export const TmdbWatchProviderDataSchema = z
+  .object({
+    link: z.string().optional(),
+    flatrate: z.array(TmdbWatchProviderSchema).optional(),
+    rent: z.array(TmdbWatchProviderSchema).optional(),
+    buy: z.array(TmdbWatchProviderSchema).optional(),
+  })
+  .meta({
+    id: 'TmdbWatchProviderData',
+    description:
+      'Watch providers for one region, split by streaming, rental, and purchase.',
+  })
 
 // TMDB Movie Metadata Schema (combined details + watch providers + ratings)
-export const TmdbMovieMetadataSchema = z.object({
-  details: TmdbMovieDetailsSchema,
-  watchProviders: TmdbWatchProviderDataSchema.optional(),
-  radarrRatings: RadarrRatingsSchema.optional(),
-  plexRatings: PlexRatingsSchema.optional(),
-})
+export const TmdbMovieMetadataSchema = z
+  .object({
+    details: TmdbMovieDetailsSchema,
+    watchProviders: TmdbWatchProviderDataSchema.optional(),
+    radarrRatings: RadarrRatingsSchema.optional(),
+    plexRatings: PlexRatingsSchema.optional(),
+  })
+  .meta({
+    id: 'TmdbMovieMetadata',
+    description: 'Movie details combined with watch providers and ratings.',
+  })
 
 // TMDB TV Metadata Schema (combined details + watch providers + ratings)
-export const TmdbTvMetadataSchema = z.object({
-  details: TmdbTvDetailsSchema,
-  watchProviders: TmdbWatchProviderDataSchema.optional(),
-  plexRatings: PlexRatingsSchema.optional(),
-})
+export const TmdbTvMetadataSchema = z
+  .object({
+    details: TmdbTvDetailsSchema,
+    watchProviders: TmdbWatchProviderDataSchema.optional(),
+    plexRatings: PlexRatingsSchema.optional(),
+  })
+  .meta({
+    id: 'TmdbTvMetadata',
+    description: 'TV show details combined with watch providers and ratings.',
+  })
 
 // Union schema for content metadata
-export const TmdbContentMetadataSchema = z.union([
-  TmdbMovieMetadataSchema,
-  TmdbTvMetadataSchema,
-])
+export const TmdbContentMetadataSchema = z
+  .union([TmdbMovieMetadataSchema, TmdbTvMetadataSchema])
+  .meta({
+    id: 'TmdbContentMetadata',
+    description: 'Metadata for either a movie or a TV show.',
+  })
 
 // Request schemas
 export const GetTmdbMetadataParamsSchema = z.object({
@@ -251,25 +302,33 @@ export const GetTmdbMetadataQuerySchema = z.object({
       z.string().length(2, { error: 'Region must be a 2-letter country code' }),
     )
     .optional(),
-  type: z.preprocess(
-    (val) => (typeof val === 'string' ? val.toLowerCase() : val),
-    z.enum(['movie', 'show']),
-  ),
+  // z.preprocess drops the required flag in the generated spec, so lowercase through a pipe
+  type: z.string().toLowerCase().pipe(ContentTypeSchema),
 })
 
 // Response schemas
-export const TmdbMetadataSuccessResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  metadata: TmdbContentMetadataSchema,
-})
+export const TmdbMetadataSuccessResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    metadata: TmdbContentMetadataSchema,
+  })
+  .meta({
+    id: 'TmdbMetadataResponse',
+    description: 'Successful TMDB metadata lookup for a movie or TV show.',
+  })
 
 // TMDB Regions Response Schemas
-export const TmdbRegionsSuccessResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  regions: z.array(TmdbRegionSchema),
-})
+export const TmdbRegionsSuccessResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    regions: z.array(TmdbRegionSchema),
+  })
+  .meta({
+    id: 'TmdbRegionsResponse',
+    description: 'The list of regions TMDB can report watch providers for.',
+  })
 
 // Type exports
 export type RadarrRatingSource = z.infer<typeof RadarrRatingSourceSchema>
@@ -288,7 +347,6 @@ export type TmdbNetwork = z.infer<typeof TmdbNetworkSchema>
 export type TmdbSeason = z.infer<typeof TmdbSeasonSchema>
 export type TmdbMovieDetails = z.infer<typeof TmdbMovieDetailsSchema>
 export type TmdbTvDetails = z.infer<typeof TmdbTvDetailsSchema>
-export type TmdbWatchProvider = z.infer<typeof TmdbWatchProviderSchema>
 export type TmdbWatchProviderData = z.infer<typeof TmdbWatchProviderDataSchema>
 export type TmdbMovieMetadata = z.infer<typeof TmdbMovieMetadataSchema>
 export type TmdbTvMetadata = z.infer<typeof TmdbTvMetadataSchema>
@@ -299,9 +357,6 @@ export type GetTmdbMetadataByGuidParams = z.infer<
   typeof GetTmdbMetadataByGuidParamsSchema
 >
 export type GetTmdbMetadataQuery = z.infer<typeof GetTmdbMetadataQuerySchema>
-export type TmdbMetadataSuccessResponse = z.infer<
-  typeof TmdbMetadataSuccessResponseSchema
->
 export type TmdbRegion = z.infer<typeof TmdbRegionSchema>
 export type TmdbRegionsSuccessResponse = z.infer<
   typeof TmdbRegionsSuccessResponseSchema
