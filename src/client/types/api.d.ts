@@ -546,8 +546,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Refresh metadata for all watchlist items
-         * @description Forces a refresh of metadata (posters, GUIDs, genres) for all existing watchlist items by re-fetching data from Plex API
+         * Start a metadata refresh for all watchlist items
+         * @description Starts a background refresh of metadata (posters, GUIDs, genres) for all existing watchlist items by re-fetching data from Plex API. Returns immediately; only one refresh runs at a time.
          */
         post: operations["refreshMetadata"];
         delete?: never;
@@ -3535,6 +3535,12 @@ export interface components {
             /** @description Human-readable result message */
             message: string;
         };
+        /** @description The metadata refresh was started in the background. */
+        MetadataRefreshAccepted: {
+            /** @constant */
+            success: true;
+            message: string;
+        };
         /**
          * @description Rolling monitoring strategy for a show
          * @enum {string}
@@ -6323,18 +6329,21 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Default Response */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        totalItems: number;
-                        selfItems: number;
-                        othersItems: number;
-                    };
+                    "application/json": components["schemas"]["MetadataRefreshAccepted"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Rate limit exceeded */

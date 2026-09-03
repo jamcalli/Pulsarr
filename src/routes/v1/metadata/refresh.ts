@@ -1,6 +1,6 @@
 import {
+  MetadataRefreshAcceptedResponseSchema,
   MetadataRefreshErrorResponseSchema,
-  MetadataRefreshSuccessResponseSchema,
 } from '@schemas/metadata/metadata.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
@@ -10,12 +10,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     '/refresh',
     {
       schema: {
-        summary: 'Refresh metadata for all watchlist items',
+        summary: 'Start a metadata refresh for all watchlist items',
         operationId: 'refreshMetadata',
         description:
-          'Forces a refresh of metadata (posters, GUIDs, genres) for all existing watchlist items by re-fetching data from Plex API',
+          'Starts a background refresh of metadata (posters, GUIDs, genres) for all existing watchlist items by re-fetching data from Plex API. Returns immediately; only one refresh runs at a time.',
         response: {
-          200: MetadataRefreshSuccessResponseSchema,
+          202: MetadataRefreshAcceptedResponseSchema,
+          409: MetadataRefreshErrorResponseSchema,
           500: MetadataRefreshErrorResponseSchema,
         },
         tags: ['Metadata'],
@@ -23,32 +24,21 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        fastify.log.info('Starting metadata refresh for all watchlist items')
+        if (fastify.metadataRefresh.isRunning()) {
+          return reply.conflict('Metadata refresh already running')
+        }
 
-        const selfWatchlistResult =
-          await fastify.plexWatchlist.getSelfWatchlist(true)
+        fastify.metadataRefresh.start()
 
-        const othersWatchlistResult =
-          await fastify.plexWatchlist.getOthersWatchlists(true)
-
-        const totalSelfItems = selfWatchlistResult.total
-        const totalOthersItems = othersWatchlistResult.total
-        const totalItems = totalSelfItems + totalOthersItems
-
-        fastify.log.info(
-          `Metadata refresh completed: ${totalItems} items refreshed (${totalSelfItems} self, ${totalOthersItems} others)`,
-        )
+        reply.code(202)
 
         return {
-          success: true,
-          message: `Successfully refreshed metadata for ${totalItems} watchlist items (${totalSelfItems} self, ${totalOthersItems} others)`,
-          totalItems,
-          selfItems: totalSelfItems,
-          othersItems: totalOthersItems,
+          success: true as const,
+          message: 'Metadata refresh started',
         }
       } catch (error) {
         logRouteError(fastify.log, request, error, {
-          message: 'Failed to refresh metadata',
+          message: 'Failed to start metadata refresh',
         })
 
         return reply.internalServerError('Unable to refresh metadata')

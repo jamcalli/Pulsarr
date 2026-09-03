@@ -1900,6 +1900,24 @@
         "additionalProperties": false,
         "description": "Standard success message response"
       },
+      "MetadataRefreshAccepted": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ],
+        "additionalProperties": false,
+        "description": "The metadata refresh was started in the background."
+      },
       "MonitoringType": {
         "type": "string",
         "enum": [
@@ -9011,43 +9029,28 @@
     "/v1/metadata/refresh": {
       "post": {
         "operationId": "refreshMetadata",
-        "summary": "Refresh metadata for all watchlist items",
+        "summary": "Start a metadata refresh for all watchlist items",
         "tags": [
           "Metadata"
         ],
-        "description": "Forces a refresh of metadata (posters, GUIDs, genres) for all existing watchlist items by re-fetching data from Plex API",
+        "description": "Starts a background refresh of metadata (posters, GUIDs, genres) for all existing watchlist items by re-fetching data from Plex API. Returns immediately; only one refresh runs at a time.",
         "responses": {
-          "200": {
+          "202": {
             "description": "Default Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "totalItems": {
-                      "type": "number"
-                    },
-                    "selfItems": {
-                      "type": "number"
-                    },
-                    "othersItems": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "totalItems",
-                    "selfItems",
-                    "othersItems"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/MetadataRefreshAccepted"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
