@@ -68,7 +68,7 @@ export class TmdbService {
     return this.fastify.config.tmdbApiKey
   }
 
-  private get defaultRegion(): string {
+  get defaultRegion(): string {
     return this.fastify.config.tmdbRegion || 'US'
   }
 
