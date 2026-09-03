@@ -23,9 +23,12 @@ import type {
   TmdbTvDetails,
   TmdbTvMetadata,
 } from '@schemas/tmdb/tmdb.schema.js'
+import { extractTmdbId, extractTvdbId } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+
+const TMDB_API_TIMEOUT = 30_000
 
 export class TmdbService {
   private static readonly BASE_URL = 'https://api.themoviedb.org/3'
@@ -555,6 +558,48 @@ export class TmdbService {
     }
   }
 
+  async getPosterPath(
+    guids: string[] | string | undefined,
+    type: 'movie' | 'show',
+  ): Promise<string | null> {
+    if (!this.isConfigured()) {
+      return null
+    }
+
+    let tmdbId = extractTmdbId(guids)
+    let resolvedType = type
+
+    if (tmdbId === 0) {
+      const tvdbId = extractTvdbId(guids)
+      if (tvdbId === 0) {
+        return null
+      }
+
+      const found = await this.findByTvdbId(tvdbId)
+      if (!found) {
+        return null
+      }
+
+      tmdbId = found.tmdbId
+      resolvedType = found.type === 'tv' ? 'show' : 'movie'
+    }
+
+    try {
+      const details =
+        resolvedType === 'show'
+          ? await this.fetchTvDetails(tmdbId)
+          : await this.fetchMovieDetails(tmdbId)
+
+      return details?.poster_path ?? null
+    } catch (error) {
+      this.log.debug(
+        { error, tmdbId, type: resolvedType },
+        'Failed to fetch poster path',
+      )
+      return null
+    }
+  }
+
   /**
    * Fetch Radarr ratings for a movie by TMDB ID
    * Returns null if no Radarr instance available or movie not found
@@ -906,7 +951,11 @@ export class TmdbService {
   ): Promise<Response> {
     return new Promise((resolve, reject) => {
       this.requestQueue.push({
-        execute: () => fetch(url, options),
+        execute: () =>
+          fetch(url, {
+            ...options,
+            signal: AbortSignal.timeout(TMDB_API_TIMEOUT),
+          }),
         resolve,
         reject,
       })
