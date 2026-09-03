@@ -130,8 +130,8 @@ export class TmdbService {
       // Check if details fetch failed
       if (detailsResponse.status === 'rejected') {
         this.log.error(
-          `Failed to fetch movie details for TMDB ID ${tmdbId}:`,
-          detailsResponse.reason,
+          { error: detailsResponse.reason, tmdbId },
+          'Failed to fetch movie details',
         )
         return null
       }
@@ -153,8 +153,8 @@ export class TmdbService {
         watchProviders = results[movieRegion] || Object.values(results)[0]
       } else if (watchProvidersResponse.status === 'rejected') {
         this.log.warn(
-          `Failed to fetch watch providers for movie TMDB ID ${tmdbId}:`,
-          watchProvidersResponse.reason,
+          { error: watchProvidersResponse.reason, tmdbId },
+          'Failed to fetch watch providers for movie',
         )
       }
 
@@ -167,8 +167,8 @@ export class TmdbService {
         radarrRatings = radarrRatingsResponse.value
       } else if (radarrRatingsResponse.status === 'rejected') {
         this.log.warn(
-          `Failed to fetch Radarr ratings for movie TMDB ID ${tmdbId}:`,
-          radarrRatingsResponse.reason,
+          { error: radarrRatingsResponse.reason, tmdbId },
+          'Failed to fetch Radarr ratings for movie',
         )
       }
 
@@ -181,8 +181,8 @@ export class TmdbService {
         plexRatings = plexRatingsResponse.value
       } else if (plexRatingsResponse.status === 'rejected') {
         this.log.warn(
-          `Failed to fetch Plex ratings for movie TMDB ID ${tmdbId}:`,
-          plexRatingsResponse.reason,
+          { error: plexRatingsResponse.reason, tmdbId },
+          'Failed to fetch Plex ratings for movie',
         )
       }
 
@@ -219,8 +219,8 @@ export class TmdbService {
       // Check if details fetch failed
       if (detailsResponse.status === 'rejected') {
         this.log.error(
-          `Failed to fetch TV details for TMDB ID ${tmdbId}:`,
-          detailsResponse.reason,
+          { error: detailsResponse.reason, tmdbId },
+          'Failed to fetch TV details',
         )
         return null
       }
@@ -242,8 +242,8 @@ export class TmdbService {
         watchProviders = results[tvRegion] || Object.values(results)[0]
       } else if (watchProvidersResponse.status === 'rejected') {
         this.log.warn(
-          `Failed to fetch watch providers for TV TMDB ID ${tmdbId}:`,
-          watchProvidersResponse.reason,
+          { error: watchProvidersResponse.reason, tmdbId },
+          'Failed to fetch watch providers for TV',
         )
       }
 
@@ -256,8 +256,8 @@ export class TmdbService {
         plexRatings = plexRatingsResponse.value
       } else if (plexRatingsResponse.status === 'rejected') {
         this.log.warn(
-          `Failed to fetch Plex ratings for TV TMDB ID ${tmdbId}:`,
-          plexRatingsResponse.reason,
+          { error: plexRatingsResponse.reason, tmdbId },
+          'Failed to fetch Plex ratings for TV',
         )
       }
 
@@ -727,14 +727,14 @@ export class TmdbService {
       // Log rejected requests
       if (movieResponse.status === 'rejected') {
         this.log.warn(
-          `Failed to fetch movie providers for region ${providerRegion}:`,
-          movieResponse.reason,
+          { error: movieResponse.reason, region: providerRegion },
+          'Failed to fetch movie providers',
         )
       }
       if (tvResponse.status === 'rejected') {
         this.log.warn(
-          `Failed to fetch TV providers for region ${providerRegion}:`,
-          tvResponse.reason,
+          { error: tvResponse.reason, region: providerRegion },
+          'Failed to fetch TV providers',
         )
       }
 
