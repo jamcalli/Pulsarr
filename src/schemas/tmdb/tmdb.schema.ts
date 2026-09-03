@@ -302,9 +302,12 @@ export const GetTmdbMetadataQuerySchema = z.object({
       z.string().length(2, { error: 'Region must be a 2-letter country code' }),
     )
     .optional(),
-  // z.preprocess drops the required flag in the generated spec, so lowercase through a pipe
-  type: z.string().toLowerCase().pipe(ContentTypeSchema),
 })
+
+export const GetTmdbMetadataByGuidQuerySchema =
+  GetTmdbMetadataQuerySchema.extend({
+    type: ContentTypeSchema,
+  })
 
 // Response schemas
 export const TmdbMetadataSuccessResponseSchema = z
@@ -357,6 +360,9 @@ export type GetTmdbMetadataByGuidParams = z.infer<
   typeof GetTmdbMetadataByGuidParamsSchema
 >
 export type GetTmdbMetadataQuery = z.infer<typeof GetTmdbMetadataQuerySchema>
+export type GetTmdbMetadataByGuidQuery = z.infer<
+  typeof GetTmdbMetadataByGuidQuerySchema
+>
 export type TmdbRegion = z.infer<typeof TmdbRegionSchema>
 export type TmdbRegionsSuccessResponse = z.infer<
   typeof TmdbRegionsSuccessResponseSchema

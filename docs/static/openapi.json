@@ -20487,11 +20487,12 @@
           },
           {
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/ContentType"
             },
             "in": "query",
             "name": "type",
-            "required": true
+            "required": true,
+            "description": "Media kind, movie or show"
           },
           {
             "schema": {
@@ -20584,14 +20585,6 @@
             },
             "in": "query",
             "name": "region"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "type",
-            "required": true
           },
           {
             "schema": {
@@ -20813,14 +20806,6 @@
             },
             "in": "query",
             "name": "region"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "query",
-            "name": "type",
-            "required": true
           },
           {
             "schema": {

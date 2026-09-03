@@ -202,6 +202,28 @@ describe('TMDB metadata routes', () => {
     expect(response.statusCode).toBe(400)
   })
 
+  it('serves the movie route without a type query', async () => {
+    server.use(
+      http.get('https://api.themoviedb.org/3/movie/550', () => {
+        return HttpResponse.json(movieDetails(550))
+      }),
+      http.get('http://:host/api/v3/movie/lookup/tmdb', () => {
+        return HttpResponse.json({
+          tmdbId: 550,
+          title: 'Test Movie',
+          ratings: { imdb: { votes: 100, value: 7.5, type: 'user' } },
+        })
+      }),
+    )
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/tmdb/movie/550',
+    })
+
+    expect(response.statusCode).toBe(200)
+  })
+
   it('rejects a non-numeric TMDB ID', async () => {
     const response = await app.inject({
       method: 'GET',

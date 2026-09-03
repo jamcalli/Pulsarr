@@ -1,5 +1,6 @@
 import {
   GetTmdbMetadataByGuidParamsSchema,
+  GetTmdbMetadataByGuidQuerySchema,
   GetTmdbMetadataParamsSchema,
   GetTmdbMetadataQuerySchema,
   TmdbMetadataErrorResponseSchema,
@@ -24,7 +25,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description:
           'Accepts GUID format IDs (tmdb:123, tvdb:456) and resolves to fetch TMDB metadata',
         params: GetTmdbMetadataByGuidParamsSchema,
-        querystring: GetTmdbMetadataQuerySchema,
+        querystring: GetTmdbMetadataByGuidQuerySchema,
         response: {
           200: TmdbMetadataSuccessResponseSchema,
           400: TmdbMetadataErrorResponseSchema,

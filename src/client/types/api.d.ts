@@ -12066,7 +12066,8 @@ export interface operations {
         parameters: {
             query: {
                 region?: string;
-                type: string;
+                /** @description Media kind, movie or show */
+                type: components["schemas"]["ContentType"];
             };
             header?: never;
             path: {
@@ -12134,9 +12135,8 @@ export interface operations {
     };
     getTmdbMovieMetadata: {
         parameters: {
-            query: {
+            query?: {
                 region?: string;
-                type: string;
             };
             header?: never;
             path: {
@@ -12303,9 +12303,8 @@ export interface operations {
     };
     getTmdbTvMetadata: {
         parameters: {
-            query: {
+            query?: {
                 region?: string;
-                type: string;
             };
             header?: never;
             path: {
