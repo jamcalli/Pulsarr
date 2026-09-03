@@ -82,16 +82,47 @@ describe('TmdbRequestQueue', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2)
   })
 
-  it('rejects once the 429 retries are exhausted', async () => {
+  it('rejects once the 429 retries are exhausted without falling into network retries', async () => {
     fetchImpl.mockResolvedValue(rateLimited('1'))
 
-    const promise = createQueue().fetch(URL, {})
+    const promise = createQueue(3).fetch(URL, {})
     const rejection = expect(promise).rejects.toThrow(
       'TMDB rate limit exceeded, max retries reached',
     )
 
     await vi.runAllTimersAsync()
     await rejection
+    expect(fetchImpl).toHaveBeenCalledTimes(4)
+  })
+
+  it('waits until an HTTP date retry-after before retrying', async () => {
+    vi.setSystemTime(new Date('2026-09-03T12:00:00Z'))
+    fetchImpl
+      .mockResolvedValueOnce(rateLimited('Thu, 03 Sep 2026 12:00:05 GMT'))
+      .mockResolvedValueOnce(ok())
+
+    const promise = createQueue().fetch(URL, {})
+
+    await vi.advanceTimersByTimeAsync(4999)
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(1)
+    await expect(promise).resolves.toMatchObject({ status: 200 })
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+  })
+
+  it('falls back to backoff when retry-after is unparseable', async () => {
+    fetchImpl
+      .mockResolvedValueOnce(rateLimited('soon'))
+      .mockResolvedValueOnce(ok())
+
+    const promise = createQueue().fetch(URL, {})
+
+    await vi.advanceTimersByTimeAsync(1999)
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(1)
+    await expect(promise).resolves.toMatchObject({ status: 200 })
   })
 
   it('retries a failed request after a backoff', async () => {

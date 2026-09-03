@@ -26,6 +26,15 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+// retry-after is either delay-seconds or an HTTP date
+function parseRetryAfter(header: string | null): number | null {
+  if (!header) return null
+  const seconds = Number(header)
+  if (Number.isFinite(seconds)) return Math.max(0, seconds) * 1000
+  const at = Date.parse(header)
+  return Number.isNaN(at) ? null : Math.max(0, at - Date.now())
+}
+
 export class TmdbRequestQueue {
   private readonly requestsPerSecond: number
   private readonly windowMs: number
@@ -96,43 +105,37 @@ export class TmdbRequestQueue {
     retryCount429 = 0,
     retryCountNetwork = 0,
   ): Promise<Response> {
+    let response: Response
     try {
-      const response = await this.send(url, init)
-
-      if (response.status === 429) {
-        if (retryCount429 >= this.maxRetries) {
-          throw new Error('TMDB rate limit exceeded, max retries reached')
-        }
-
-        // TMDB sends retry-after on a 429, so honor it instead of the backoff
-        const retryAfter = response.headers.get('retry-after')
-        const waitTime = withJitter(
-          retryAfter
-            ? Number.parseInt(retryAfter, 10) * 1000
-            : 2 ** (retryCount429 + 1) * 1000,
-        )
-
-        this.log.warn(
-          `TMDB rate limit hit (429), retrying after ${Math.round(waitTime)}ms (attempt ${retryCount429 + 1}/${this.maxRetries})`,
-        )
-
-        await delay(waitTime)
-        return this.execute(url, init, retryCount429 + 1, retryCountNetwork)
-      }
-
-      return response
+      response = await this.send(url, init)
     } catch (error) {
-      if (retryCountNetwork < this.maxRetries) {
-        const waitTime = withJitter(2 ** retryCountNetwork * 1000)
-
-        this.log.warn(
-          `TMDB request failed, retrying after ${Math.round(waitTime)}ms (attempt ${retryCountNetwork + 1}/${this.maxRetries})`,
-        )
-        await delay(waitTime)
-        return this.execute(url, init, retryCount429, retryCountNetwork + 1)
+      if (retryCountNetwork >= this.maxRetries) {
+        throw error
       }
-      throw error
+      const waitTime = withJitter(2 ** retryCountNetwork * 1000)
+      this.log.warn(
+        `TMDB request failed, retrying after ${Math.round(waitTime)}ms (attempt ${retryCountNetwork + 1}/${this.maxRetries})`,
+      )
+      await delay(waitTime)
+      return this.execute(url, init, retryCount429, retryCountNetwork + 1)
     }
+
+    if (response.status !== 429) {
+      return response
+    }
+    if (retryCount429 >= this.maxRetries) {
+      throw new Error('TMDB rate limit exceeded, max retries reached')
+    }
+
+    const waitTime = withJitter(
+      parseRetryAfter(response.headers.get('retry-after')) ??
+        2 ** (retryCount429 + 1) * 1000,
+    )
+    this.log.warn(
+      `TMDB rate limit hit (429), retrying after ${Math.round(waitTime)}ms (attempt ${retryCount429 + 1}/${this.maxRetries})`,
+    )
+    await delay(waitTime)
+    return this.execute(url, init, retryCount429 + 1, retryCountNetwork)
   }
 
   private async send(url: string, init: RequestInit): Promise<Response> {
