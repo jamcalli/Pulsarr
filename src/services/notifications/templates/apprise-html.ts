@@ -31,8 +31,6 @@ export function htmlWrapper(content: string): string {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
       ${content}
-      <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
-      <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
     </div>
     `
 }
@@ -96,7 +94,7 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
           }
           ${
             notification.tmdbUrl
-              ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
+              ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB</a></p>`
               : ''
           }
         </div>
@@ -120,7 +118,7 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
           <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Season Added:</strong> Season ${escapeHtml(String(episodeDetails.seasonNumber))}</p>
           ${
             notification.tmdbUrl
-              ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
+              ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB</a></p>`
               : ''
           }
         </div>
@@ -136,7 +134,7 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
           <p style="font-weight: 500; color: #ffffff;">New content is now available to watch!</p>
           ${
             notification.tmdbUrl
-              ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
+              ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB</a></p>`
               : ''
           }
         </div>
@@ -153,7 +151,7 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
         <p style="font-weight: 500; color: #ffffff;">Movie available to watch!</p>
         ${
           notification.tmdbUrl
-            ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
+            ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB</a></p>`
             : ''
         }
       </div>
@@ -166,8 +164,6 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
   if (notification.tmdbUrl) {
     textBody += `\nTMDB: ${notification.tmdbUrl}`
   }
-
-  textBody += '\n\n- Pulsarr'
 
   return { htmlBody, textBody, title }
 }
@@ -235,7 +231,7 @@ export function createSystemNotificationHtml(
   const tmdbLinkHtml = notification.tmdbUrl
     ? `
     <div style="text-align: center; margin-bottom: 20px;">
-      <a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a>
+      <a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB</a>
     </div>
   `
     : ''
@@ -248,7 +244,6 @@ export function createSystemNotificationHtml(
   if (fields.Reason) textBody += `Reason: ${fields.Reason}\n`
   if (notification.tmdbUrl) textBody += `TMDB: ${notification.tmdbUrl}\n`
   if (fields['Action Required']) textBody += `\n${fields['Action Required']}\n`
-  textBody += '\n- Pulsarr'
 
   const systemContent = `
     <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Content Approval Required</h2>
@@ -317,7 +312,7 @@ export function createUpdateAvailableNotificationHtml(release: {
 
   const linkHtml = `
     <div style="text-align: center; margin-bottom: 20px;">
-      <a href="${escapeHtml(release.releaseUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View release on GitHub →</a>
+      <a href="${escapeHtml(release.releaseUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View release on GitHub</a>
     </div>
   `
 
@@ -337,7 +332,6 @@ export function createUpdateAvailableNotificationHtml(release: {
   if (publishedAt) textBody += `Published: ${publishedAt}\n`
   if (truncatedNotes) textBody += `\nRelease Notes:\n${truncatedNotes}\n`
   textBody += `\nView release: ${release.releaseUrl}\n`
-  textBody += '\n- Pulsarr'
 
   const content = `
     <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Pulsarr update available</h2>
@@ -389,7 +383,6 @@ export function createWatchlistCapNotificationHtml(event: {
   textBody += `Usage: ${event.currentCount} / ${event.cap}\n\n`
   textBody +=
     'New items will not be processed until the cap is raised or items are removed.\n'
-  textBody += '\n- Pulsarr'
 
   const content = `
     <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Watchlist Cap Reached</h2>
@@ -603,7 +596,7 @@ export function createDeleteSyncNotificationHtml(
   </div>
   `
 
-  textBody += `Delete sync completed at ${timestamp}\n\n- Pulsarr`
+  textBody += `Delete sync completed at ${timestamp}`
 
   const completeContent = `
     ${titleSection}
@@ -658,14 +651,11 @@ export function createWatchlistAdditionHtml(item: {
         <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Added by:</strong> ${escapeHtml(item.displayName)}</p>
         ${
           item.tmdbUrl
-            ? `<p style="margin-top: 10px;"><a href="${escapeHtml(item.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
+            ? `<p style="margin-top: 10px;"><a href="${escapeHtml(item.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB</a></p>`
             : ''
         }
       </div>
     </div>
-
-    <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
-    <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
   </div>
   `
 
@@ -676,7 +666,6 @@ export function createWatchlistAdditionHtml(item: {
   if (item.tmdbUrl) {
     textBody += `\nTMDB: ${item.tmdbUrl}`
   }
-  textBody += '\n\n- Pulsarr'
 
   return { htmlBody, textBody, title }
 }
@@ -752,8 +741,7 @@ export function createTestNotificationHtml(): {
     '  [Info] This is an info box\n' +
     '  [Alert] This is an alert box\n' +
     '  [Success] This is a success box\n\n' +
-    'If you can see the formatting above, your notification service supports basic formatting. If the content appears plain, your service might only support plain text.\n\n' +
-    '- Pulsarr'
+    'If you can see the formatting above, your notification service supports basic formatting. If the content appears plain, your service might only support plain text.'
 
   return { htmlBody, textBody, title: '🔔 Pulsarr HTML Notification Test' }
 }
