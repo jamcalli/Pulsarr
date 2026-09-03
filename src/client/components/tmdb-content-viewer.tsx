@@ -16,18 +16,19 @@ export function TmdbContentViewer({ target }: TmdbContentViewerProps) {
     region: config?.tmdbRegion,
   })
 
-  const lastIdRef = useRef(target.id)
+  const targetKey = `${target.id}:${target.contentType}:${target.contentGuids.join(',')}`
+  const lastKeyRef = useRef(targetKey)
   useEffect(() => {
-    const idChanged = lastIdRef.current !== target.id
-    if (idChanged || !tmdbMetadata.data) {
-      lastIdRef.current = target.id
+    const targetChanged = lastKeyRef.current !== targetKey
+    if (targetChanged || !tmdbMetadata.data) {
+      lastKeyRef.current = targetKey
       tmdbMetadata.fetchMetadata(target)
       return
     }
     if (config?.tmdbRegion) {
       tmdbMetadata.fetchMetadata(target, true)
     }
-  }, [target.id, config?.tmdbRegion])
+  }, [targetKey, config?.tmdbRegion])
 
   if (tmdbMetadata.error) {
     return (
