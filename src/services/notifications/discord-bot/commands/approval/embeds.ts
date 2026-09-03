@@ -1,10 +1,3 @@
-/**
- * Approval Command Embed Builders
- *
- * Pure functions for creating Discord embeds for the approval command.
- * No external dependencies - these are pure data transformations.
- */
-
 import type { ApprovalRequest } from '@root/types/approval.types.js'
 import { getTmdbUrl } from '@root/utils/guid-handler.js'
 import {
@@ -14,9 +7,6 @@ import {
   EmbedBuilder,
 } from 'discord.js'
 
-/**
- * Format trigger reason for display
- */
 export function formatTriggerReason(
   trigger: string,
   reason: string | null,
@@ -32,9 +22,6 @@ export function formatTriggerReason(
   return reason ? `${triggerText}\n${reason}` : triggerText
 }
 
-/**
- * Create a back to menu button row
- */
 export function createBackToMenuButton(): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
@@ -44,9 +31,6 @@ export function createBackToMenuButton(): ActionRowBuilder<ButtonBuilder> {
   )
 }
 
-/**
- * Create the main approval management menu embed
- */
 export function createMainMenuEmbed(
   pendingCount: number,
   totalCount: number,
@@ -65,9 +49,6 @@ export function createMainMenuEmbed(
     .setTimestamp()
 }
 
-/**
- * Create action rows for the main menu
- */
 export function createMainMenuActionRow(
   pendingCount: number,
   totalCount: number,
@@ -90,9 +71,6 @@ export function createMainMenuActionRow(
   )
 }
 
-/**
- * Create approval embed with navigation for pending review flow
- */
 export function createApprovalEmbed(
   approval: ApprovalRequest,
   currentIndex: number,
@@ -138,7 +116,6 @@ export function createApprovalEmbed(
       },
     ])
 
-  // Add Content GUIDs if available
   if (approval.contentGuids && approval.contentGuids.length > 0) {
     embed.addFields([
       {
@@ -149,7 +126,6 @@ export function createApprovalEmbed(
     ])
   }
 
-  // Add TMDB link if available
   const mediaType = approval.contentType === 'show' ? 'show' : 'movie'
   const tmdbUrl = getTmdbUrl(approval.contentGuids, mediaType)
   if (tmdbUrl) {
@@ -173,15 +149,11 @@ export function createApprovalEmbed(
   return embed
 }
 
-/**
- * Create action rows for approval navigation view
- */
 export function createApprovalActionRows(
   approval: ApprovalRequest,
   currentIndex: number,
   totalCount: number,
 ): ActionRowBuilder<ButtonBuilder>[] {
-  // Top row: Action buttons
   const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(`approval_approve_${approval.id}_${currentIndex}`)
@@ -197,10 +169,8 @@ export function createApprovalActionRows(
       .setStyle(ButtonStyle.Secondary),
   )
 
-  // Bottom row: Navigation buttons (conditional)
   const navigationRow = new ActionRowBuilder<ButtonBuilder>()
 
-  // Add back button if not first
   if (currentIndex > 0) {
     navigationRow.addComponents(
       new ButtonBuilder()
@@ -210,7 +180,6 @@ export function createApprovalActionRows(
     )
   }
 
-  // Add next button if not last
   if (currentIndex < totalCount - 1) {
     navigationRow.addComponents(
       new ButtonBuilder()
@@ -220,7 +189,6 @@ export function createApprovalActionRows(
     )
   }
 
-  // Always add back to menu button for pending approvals
   navigationRow.addComponents(
     new ButtonBuilder()
       .setCustomId('approval_menu_main')
@@ -236,9 +204,6 @@ export function createApprovalActionRows(
   return actionRows
 }
 
-/**
- * Create loading state embed with disabled buttons
- */
 export function createLoadingActionRow(
   approvalId: number,
   action: 'approve' | 'reject',
@@ -262,9 +227,6 @@ export function createLoadingActionRow(
   )
 }
 
-/**
- * Create success state embed after approval/rejection
- */
 export function createSuccessEmbed(
   action: 'approve' | 'reject',
   contentTitle: string,
@@ -279,9 +241,6 @@ export function createSuccessEmbed(
     .setTimestamp()
 }
 
-/**
- * Create completion embed when all approvals are processed
- */
 export function createCompletionEmbed(): EmbedBuilder {
   return new EmbedBuilder()
     .setTitle('✅ All Approvals Processed')
@@ -290,9 +249,6 @@ export function createCompletionEmbed(): EmbedBuilder {
     .setTimestamp()
 }
 
-/**
- * Create details embed with full routing information
- */
 export function createDetailsEmbed(approval: ApprovalRequest): EmbedBuilder {
   const detailsEmbed = new EmbedBuilder()
     .setTitle(`${approval.contentTitle} - Detailed View`)
@@ -333,7 +289,6 @@ export function createDetailsEmbed(approval: ApprovalRequest): EmbedBuilder {
       },
     ])
 
-  // Add Content GUIDs
   if (approval.contentGuids && approval.contentGuids.length > 0) {
     detailsEmbed.addFields([
       {
@@ -344,7 +299,6 @@ export function createDetailsEmbed(approval: ApprovalRequest): EmbedBuilder {
     ])
   }
 
-  // Add TMDB link if available
   const mediaType = approval.contentType === 'show' ? 'show' : 'movie'
   const tmdbUrl = getTmdbUrl(approval.contentGuids, mediaType)
   if (tmdbUrl) {
@@ -357,27 +311,22 @@ export function createDetailsEmbed(approval: ApprovalRequest): EmbedBuilder {
     ])
   }
 
-  // Add FULL Proposed Routing details
   if (approval.proposedRouterDecision?.approval?.proposedRouting) {
     const routing = approval.proposedRouterDecision.approval.proposedRouting
     const routingDetails = []
 
-    // Instance information
     routingDetails.push(
       `**Instance:** ${routing.instanceType} Instance ${routing.instanceId}`,
     )
 
-    // Quality Profile
     if (routing.qualityProfile) {
       routingDetails.push(`**Quality Profile:** ${routing.qualityProfile}`)
     }
 
-    // Root Folder
     if (routing.rootFolder) {
       routingDetails.push(`**Root Folder:** ${routing.rootFolder}`)
     }
 
-    // Search on Add with description
     if (routing.searchOnAdd !== undefined) {
       routingDetails.push(
         `**Search on Add:** ${routing.searchOnAdd ? 'Yes' : 'No'}`,
@@ -389,7 +338,6 @@ export function createDetailsEmbed(approval: ApprovalRequest): EmbedBuilder {
       }
     }
 
-    // Sonarr-specific settings
     if (routing.seasonMonitoring) {
       routingDetails.push(`**Season Monitoring:** ${routing.seasonMonitoring}`)
     }
@@ -397,21 +345,18 @@ export function createDetailsEmbed(approval: ApprovalRequest): EmbedBuilder {
       routingDetails.push(`**Series Type:** ${routing.seriesType}`)
     }
 
-    // Radarr-specific settings
     if (routing.minimumAvailability) {
       routingDetails.push(
         `**Minimum Availability:** ${routing.minimumAvailability}`,
       )
     }
 
-    // Tags
     if (routing.tags && routing.tags.length > 0) {
       routingDetails.push(`**Tags:** ${routing.tags.join(', ')}`)
     } else {
       routingDetails.push('**Tags:** None')
     }
 
-    // Priority
     if (routing.priority !== undefined) {
       routingDetails.push(`**Priority:** ${routing.priority}`)
     }
@@ -433,7 +378,6 @@ export function createDetailsEmbed(approval: ApprovalRequest): EmbedBuilder {
     ])
   }
 
-  // Add approval history/notes if available
   if (approval.approvalNotes || approval.approvedBy) {
     const historyDetails = []
     if (approval.approvedBy) {
@@ -455,9 +399,6 @@ export function createDetailsEmbed(approval: ApprovalRequest): EmbedBuilder {
   return detailsEmbed
 }
 
-/**
- * Create details action row with back button
- */
 export function createDetailsActionRow(
   approvalId: number,
   currentIndex: number,
@@ -470,9 +411,6 @@ export function createDetailsActionRow(
   )
 }
 
-/**
- * Get status emoji for approval status
- */
 export function getStatusEmoji(status: ApprovalRequest['status']): string {
   const emojiMap: Record<string, string> = {
     pending: '⏳',
@@ -484,9 +422,6 @@ export function getStatusEmoji(status: ApprovalRequest['status']): string {
   return emojiMap[status] || '❓'
 }
 
-/**
- * Get status color for approval status
- */
 export function getStatusColor(status: ApprovalRequest['status']): number {
   const colorMap: Record<string, number> = {
     pending: 0xfee75c,

@@ -1,10 +1,3 @@
-/**
- * Apprise Channel
- *
- * Pure functions for sending Apprise notifications.
- * No state, no class dependencies - just HTTP POST to Apprise container.
- */
-
 import type {
   AppriseMessageType,
   AppriseNotification,
@@ -74,7 +67,7 @@ async function sendAppriseNotificationBatch(
       return false
     }
 
-    // Conditionally exclude attachment for email services (they render via <img> tags)
+    // Email services render the poster from the HTML body, so their batches drop the attachment
     const { attachment, ...notificationWithoutAttachment } = notification
     const notificationFields = includeAttachment
       ? notification
@@ -127,10 +120,6 @@ async function sendAppriseNotificationBatch(
   }
 }
 
-/**
- * Analyzes target URLs to determine native format, groups by format,
- * and sends appropriate body (HTML or text) to each group in parallel.
- */
 export async function sendAppriseNotification(
   targetUrl: string,
   notification: AppriseNotification,
@@ -159,7 +148,6 @@ export async function sendAppriseNotification(
       ...commonFields
     } = notification
 
-    // If no format cache, fall back to legacy behavior (send HTML if available, include attachments)
     if (!schemaFormatCache || schemaFormatCache.size === 0) {
       log.debug(
         'No schema format cache available, using legacy HTML-preferred behavior',
@@ -172,7 +160,7 @@ export async function sendAppriseNotification(
         format,
         commonFields,
         deps,
-        true, // Include attachments in legacy mode
+        true,
       )
     }
 
@@ -240,7 +228,6 @@ export async function sendPublicNotification(
   )
 
   if (appriseUrls.length === 0) {
-    // Check if config has values that were rejected during parsing
     const configuredUrls =
       notification.type === 'movie'
         ? (publicConfig.appriseUrlsMovies ?? publicConfig.appriseUrls)
@@ -274,10 +261,7 @@ export async function sendPublicNotification(
   return await sendMediaNotification(publicNotificationUser, notification, deps)
 }
 
-/**
- * Plain email values in `user.apprise` are resolved against the admin's
- * email sender URL with `?to=` so users can enter just an address.
- */
+// A plain email in user.apprise resolves against the admin email sender URL with ?to=
 export async function sendMediaNotification(
   user: NotificationUser,
   notification: MediaNotification,
@@ -354,7 +338,6 @@ export async function sendSystemNotification(
   }
 
   try {
-    // Resolve system URL (handles plain email addresses)
     const systemUrl = resolveAppriseUrls(
       config.systemAppriseUrl || '',
       config.appriseEmailSender,
@@ -466,7 +449,6 @@ export async function sendDeleteSyncNotification(
   }
 
   try {
-    // Resolve system URL (handles plain email addresses)
     const systemUrl = resolveAppriseUrls(
       config.systemAppriseUrl || '',
       config.appriseEmailSender,
@@ -640,7 +622,6 @@ export async function sendWatchlistAdditionNotification(
   }
 
   try {
-    // Resolve system URL (handles plain email addresses)
     const systemUrl = resolveAppriseUrls(
       config.systemAppriseUrl || '',
       config.appriseEmailSender,
@@ -706,7 +687,6 @@ export async function sendTestNotification(
   const { log, config } = deps
 
   try {
-    // Resolve target URL (handles plain email addresses)
     const resolvedUrl = resolveAppriseUrls(targetUrl, config.appriseEmailSender)
     if (!resolvedUrl) {
       log.debug(

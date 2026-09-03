@@ -1,14 +1,3 @@
-/**
- * Watchlist Cap Notification Orchestration
- *
- * Handles sending notifications when a user reaches their watchlist cap.
- * Supports Discord (webhook and/or DM), Apprise, and native webhooks.
- *
- * Uses trailing-edge debounce: each new cap event resets the timer.
- * After the quiet period expires (no new events), the notification fires
- * with the latest count. This batches burst additions into a single notification.
- */
-
 import type {
   DiscordEmbed,
   SystemNotification,
@@ -20,10 +9,6 @@ import { dispatchWebhooks } from '@services/notifications/channels/native-webhoo
 import type { DiscordBotService } from '@services/notifications/discord-bot/bot.service.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { getApprovalNotificationChannels } from './approval.js'
-
-// ============================================================================
-// Types
-// ============================================================================
 
 export interface WatchlistCapDeps {
   db: DatabaseService
@@ -45,27 +30,19 @@ export interface WatchlistCapEvent {
   cap: number
 }
 
-// ============================================================================
-// Trailing-Edge Debounce State
-// ============================================================================
-
 interface PendingNotification {
   timer: ReturnType<typeof setTimeout>
   deps: WatchlistCapDeps
   event: WatchlistCapEvent
 }
 
-/** Pending notifications keyed by userId:contentType */
+// Keyed by userId:contentType
 const pendingMap = new Map<string, PendingNotification>()
 
-/** Tracks last notified count — prevents re-notification at same count after debounce */
+// Keyed by userId:contentType; an unchanged count suppresses the next notification
 const lastNotifiedCount = new Map<string, number>()
 
-const DEBOUNCE_MS = 60_000 // 1 minute
-
-// ============================================================================
-// Notification Builders
-// ============================================================================
+const DEBOUNCE_MS = 60_000
 
 function createWebhookEmbed(event: WatchlistCapEvent): DiscordEmbed {
   const contentLabel = event.contentType === 'movie' ? 'Movie' : 'Show'
@@ -74,7 +51,7 @@ function createWebhookEmbed(event: WatchlistCapEvent): DiscordEmbed {
   return {
     title: 'Watchlist Cap Reached',
     description: `**${userName}** reached their ${contentLabel.toLowerCase()} cap (${event.currentCount}/${event.cap})`,
-    color: 0xffbf00, // Amber
+    color: 0xffbf00,
     timestamp: new Date().toISOString(),
     fields: [
       {
@@ -98,10 +75,6 @@ function createWebhookEmbed(event: WatchlistCapEvent): DiscordEmbed {
     },
   }
 }
-
-// ============================================================================
-// Delivery Functions
-// ============================================================================
 
 async function sendDiscordWebhookNotification(
   deps: WatchlistCapDeps,
@@ -196,10 +169,6 @@ async function sendAppriseNotification(
   }
 }
 
-/**
- * Sends watchlist cap notification to the affected user via their preferred channels.
- * Respects the user's per-channel notification preferences (Discord DM, Apprise).
- */
 async function sendUserNotification(
   deps: WatchlistCapDeps,
   event: WatchlistCapEvent,
@@ -209,13 +178,11 @@ async function sendUserNotification(
     const user = users.find((u) => u.id === event.userId)
     if (!user) return
 
-    // Skip if user has no notification channels enabled
     if (!user.notify_discord && !user.notify_apprise) return
 
     const contentLabel = event.contentType === 'movie' ? 'movie' : 'show'
     const displayName = user.alias || user.name || `User ${event.userId}`
 
-    // Discord DM — respect user.notify_discord preference
     if (user.notify_discord && user.discord_id) {
       if (deps.discordBot.getBotStatus() === 'running') {
         const notification: SystemNotification = {
@@ -241,7 +208,6 @@ async function sendUserNotification(
       }
     }
 
-    // Apprise — respect user.notify_apprise preference, send to user's personal URL
     if (user.notify_apprise && deps.apprise.isEnabled()) {
       try {
         await deps.apprise.sendUserWatchlistCapNotification(user, {
@@ -265,13 +231,6 @@ async function sendUserNotification(
   }
 }
 
-// ============================================================================
-// Core Dispatch (called when debounce timer fires)
-// ============================================================================
-
-/**
- * Dispatches the actual notifications. Called by the debounce timer.
- */
 async function dispatchNotification(
   deps: WatchlistCapDeps,
   event: WatchlistCapEvent,
@@ -279,7 +238,6 @@ async function dispatchNotification(
   const key = `${event.userId}:${event.contentType}`
   const notifySetting = deps.config.watchlistCapNotify || 'none'
 
-  // Count-change gate — skip if count hasn't changed since last sent notification
   const lastCount = lastNotifiedCount.get(key)
   if (lastCount !== undefined && event.currentCount <= lastCount) {
     deps.logger.debug(
@@ -289,10 +247,8 @@ async function dispatchNotification(
     return
   }
 
-  // Record the count we're notifying about
   lastNotifiedCount.set(key, event.currentCount)
 
-  // Admin channel notifications
   const { sendWebhook, sendDM, sendApprise } =
     getApprovalNotificationChannels(notifySetting)
 
@@ -325,12 +281,10 @@ async function dispatchNotification(
     }
   }
 
-  // User notification — respects per-user channel preferences
   if (deps.config.watchlistCapNotifyUser) {
     void sendUserNotification(deps, event)
   }
 
-  // Dispatch native webhook (fire-and-forget)
   void dispatchWebhooks(
     'quota.cap_reached',
     {
@@ -345,7 +299,6 @@ async function dispatchNotification(
     { db: deps.db, log: deps.logger },
   )
 
-  // Create DB notification record
   try {
     const contentLabel = event.contentType === 'movie' ? 'Movie' : 'Show'
     const userName = event.userName || `User ${event.userId}`
@@ -367,33 +320,18 @@ async function dispatchNotification(
   }
 }
 
-// ============================================================================
-// Main Entry Point (trailing-edge debounce)
-// ============================================================================
-
-/**
- * Queues a watchlist cap notification with trailing-edge debounce.
- *
- * Each call resets the 1-minute timer. When the timer finally expires
- * (no new events for that userId:contentType), the notification fires
- * with the latest count. This batches burst additions into one notification.
- *
- * @param deps - Service dependencies
- * @param event - The watchlist cap event
- */
+// Trailing edge debounce: each call resets the timer so a burst fires one notification with the latest count
 export function sendWatchlistCapNotification(
   deps: WatchlistCapDeps,
   event: WatchlistCapEvent,
 ): void {
   const key = `${event.userId}:${event.contentType}`
 
-  // Clear any existing pending timer for this key
   const existing = pendingMap.get(key)
   if (existing) {
     clearTimeout(existing.timer)
   }
 
-  // Start a new trailing-edge timer with the latest event
   const timer = setTimeout(() => {
     pendingMap.delete(key)
     void dispatchNotification(deps, event)
