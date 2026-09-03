@@ -28,6 +28,8 @@ import { createServiceLogger } from '@utils/logger.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
+const TMDB_API_TIMEOUT = 30_000
+
 export class TmdbService {
   private static readonly BASE_URL = 'https://api.themoviedb.org/3'
 
@@ -944,7 +946,11 @@ export class TmdbService {
   ): Promise<Response> {
     return new Promise((resolve, reject) => {
       this.requestQueue.push({
-        execute: () => fetch(url, options),
+        execute: () =>
+          fetch(url, {
+            ...options,
+            signal: AbortSignal.timeout(TMDB_API_TIMEOUT),
+          }),
         resolve,
         reject,
       })
