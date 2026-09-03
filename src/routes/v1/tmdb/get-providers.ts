@@ -31,7 +31,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
-        const region = fastify.config.tmdbRegion || 'US'
+        const region = fastify.tmdb.defaultRegion
         const providers = await fastify.tmdb.getAvailableProviders(region)
 
         if (!providers) {

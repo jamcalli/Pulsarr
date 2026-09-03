@@ -1,5 +1,7 @@
-import type { StatusTransitionTime } from '@root/schemas/stats/stats.schema'
 import { useMemo } from 'react'
+import type { components } from '@/types/api.js'
+
+type StatusTransitionTime = components['schemas']['StatusTransitionTime']
 
 // Chart-specific types
 type ContentGroup = 'Movies' | 'Shows'

@@ -3474,6 +3474,20 @@ export interface components {
             tagNamingSource?: "username" | "alias";
             tagMigration?: components["schemas"]["TagMigration"];
         };
+        /** @description A watchlisted title with its watchlist count and identifiers. */
+        ContentStat: {
+            title: string;
+            count: number;
+            thumb: string | null;
+            guids?: string[];
+            content_type: components["schemas"]["ContentType"];
+            users?: string[];
+        };
+        /**
+         * @description Media kind, movie or show
+         * @enum {string}
+         */
+        ContentType: "movie" | "show";
         /** @description Standard error response */
         Error: {
             /** @description HTTP status code */
@@ -3526,6 +3540,49 @@ export interface components {
          * @enum {string}
          */
         MonitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
+        /** @description Ratings captured from stored Plex watchlist metadata. */
+        PlexRatings: {
+            imdb?: {
+                rating: number;
+                votes: number | null;
+            };
+            rtCritic?: number;
+            rtAudience?: number;
+            tmdb?: number;
+        };
+        /** @description Ratings for a movie as reported by Radarr. */
+        RadarrRatings: {
+            imdb?: {
+                votes: number;
+                value: number;
+                /** @enum {string} */
+                type: "user" | "critic";
+            };
+            tmdb?: {
+                votes: number;
+                value: number;
+                /** @enum {string} */
+                type: "user" | "critic";
+            };
+            metacritic?: {
+                votes: number;
+                value: number;
+                /** @enum {string} */
+                type: "user" | "critic";
+            };
+            rottenTomatoes?: {
+                votes: number;
+                value: number;
+                /** @enum {string} */
+                type: "user" | "critic";
+            };
+            trakt?: {
+                votes: number;
+                value: number;
+                /** @enum {string} */
+                type: "user" | "critic";
+            };
+        };
         /** @description Rolling monitored show entry (master record or per-user tracking row) */
         RollingMonitoredShow: {
             id: number;
@@ -3669,6 +3726,16 @@ export interface components {
             rollingShowId: number | null;
             monitoringType: components["schemas"]["MonitoringType"] | null;
         };
+        /** @description Aggregate days spent moving between two watchlist statuses for a content type. */
+        StatusTransitionTime: {
+            from_status: string;
+            to_status: string;
+            content_type: string;
+            avg_days: number;
+            min_days: number;
+            max_days: number;
+            count: number;
+        };
         /** @description Tag format migration status per Radarr/Sonarr instance */
         TagMigration: {
             radarr: {
@@ -3700,6 +3767,200 @@ export interface components {
             sonarr: {
                 [key: string]: components["schemas"]["TagMigrationEntryOutput"];
             };
+        };
+        /** @description Metadata for either a movie or a TV show. */
+        TmdbContentMetadata: components["schemas"]["TmdbMovieMetadata"] | components["schemas"]["TmdbTvMetadata"];
+        /** @description Successful TMDB metadata lookup for a movie or TV show. */
+        TmdbMetadataResponse: {
+            success: boolean;
+            message: string;
+            metadata: components["schemas"]["TmdbContentMetadata"];
+        };
+        /** @description Full movie record returned by the TMDB movie details endpoint. */
+        TmdbMovieDetails: {
+            adult: boolean;
+            backdrop_path: string | null;
+            belongs_to_collection: ({
+                id: number;
+                name: string;
+                poster_path: string | null;
+                backdrop_path: string | null;
+            } | null) | null;
+            budget: number;
+            genres: {
+                id: number;
+                name: string;
+            }[];
+            homepage: string | "" | null;
+            id: number;
+            imdb_id: string | null;
+            origin_country: string[];
+            original_language: string;
+            original_title: string;
+            overview: string | null;
+            popularity: number;
+            poster_path: string | null;
+            production_companies: {
+                id: number;
+                logo_path: string | null;
+                name: string;
+                origin_country: string;
+            }[];
+            production_countries: {
+                iso_3166_1: string;
+                name: string;
+            }[];
+            release_date: string;
+            revenue: number;
+            runtime: number | null;
+            spoken_languages: {
+                english_name: string;
+                iso_639_1: string;
+                name: string;
+            }[];
+            status: string;
+            tagline: string | null;
+            title: string;
+            video: boolean;
+            vote_average: number;
+            vote_count: number;
+        };
+        /** @description Movie details combined with watch providers and ratings. */
+        TmdbMovieMetadata: {
+            details: components["schemas"]["TmdbMovieDetails"];
+            watchProviders?: components["schemas"]["TmdbWatchProviderData"];
+            radarrRatings?: components["schemas"]["RadarrRatings"];
+            plexRatings?: components["schemas"]["PlexRatings"];
+        };
+        /** @description A country region TMDB reports watch providers for. */
+        TmdbRegion: {
+            code: string;
+            name: string;
+        };
+        /** @description The list of regions TMDB can report watch providers for. */
+        TmdbRegionsResponse: {
+            success: boolean;
+            message: string;
+            regions: components["schemas"]["TmdbRegion"][];
+        };
+        /** @description Full TV show record returned by the TMDB series details endpoint. */
+        TmdbTvDetails: {
+            adult: boolean;
+            backdrop_path: string | null;
+            created_by: {
+                id: number;
+                credit_id: string;
+                name: string;
+                original_name: string;
+                gender: number;
+                profile_path: string | null;
+            }[];
+            episode_run_time: number[];
+            first_air_date: string | null;
+            genres: {
+                id: number;
+                name: string;
+            }[];
+            homepage: string | "" | null;
+            id: number;
+            in_production: boolean;
+            languages: string[];
+            last_air_date: string | null;
+            last_episode_to_air: {
+                id: number;
+                name: string;
+                overview: string | null;
+                vote_average: number;
+                vote_count: number;
+                air_date: string;
+                episode_number: number;
+                episode_type: string;
+                production_code: string | null;
+                runtime: number | null;
+                season_number: number;
+                show_id: number;
+                still_path: string | null;
+            } | null;
+            name: string;
+            next_episode_to_air: {
+                id: number;
+                name: string;
+                overview: string | null;
+                vote_average: number;
+                vote_count: number;
+                air_date: string;
+                episode_number: number;
+                episode_type: string;
+                production_code: string | null;
+                runtime: number | null;
+                season_number: number;
+                show_id: number;
+                still_path: string | null;
+            } | null;
+            networks: {
+                id: number;
+                logo_path: string | null;
+                name: string;
+                origin_country: string;
+            }[];
+            number_of_episodes: number;
+            number_of_seasons: number;
+            origin_country: string[];
+            original_language: string;
+            original_name: string;
+            overview: string | null;
+            popularity: number;
+            poster_path: string | null;
+            production_companies: {
+                id: number;
+                logo_path: string | null;
+                name: string;
+                origin_country: string;
+            }[];
+            production_countries: {
+                iso_3166_1: string;
+                name: string;
+            }[];
+            seasons: {
+                air_date: string | null;
+                episode_count: number;
+                id: number;
+                name: string;
+                overview: string | null;
+                poster_path: string | null;
+                season_number: number;
+                vote_average: number;
+            }[];
+            spoken_languages: {
+                english_name: string;
+                iso_639_1: string;
+                name: string;
+            }[];
+            status: string;
+            tagline: string | null;
+            type: string;
+            vote_average: number;
+            vote_count: number;
+        };
+        /** @description TV show details combined with watch providers and ratings. */
+        TmdbTvMetadata: {
+            details: components["schemas"]["TmdbTvDetails"];
+            watchProviders?: components["schemas"]["TmdbWatchProviderData"];
+            plexRatings?: components["schemas"]["PlexRatings"];
+        };
+        /** @description A single streaming, rental, or purchase provider from TMDB. */
+        TmdbWatchProvider: {
+            display_priority: number;
+            logo_path: string | null;
+            provider_id: number;
+            provider_name: string;
+        };
+        /** @description Watch providers for one region, split by streaming, rental, and purchase. */
+        TmdbWatchProviderData: {
+            link?: string;
+            flatrate?: components["schemas"]["TmdbWatchProvider"][];
+            rent?: components["schemas"]["TmdbWatchProvider"][];
+            buy?: components["schemas"]["TmdbWatchProvider"][];
         };
         /** @description Change the current admin password */
         UpdateCredentialsPayload: {
@@ -10622,24 +10883,8 @@ export interface operations {
                             genre: string;
                             count: number;
                         }[];
-                        most_watched_shows: {
-                            title: string;
-                            count: number;
-                            thumb: string | null;
-                            guids?: string[];
-                            /** @enum {string} */
-                            content_type?: "movie" | "show";
-                            users?: string[];
-                        }[];
-                        most_watched_movies: {
-                            title: string;
-                            count: number;
-                            thumb: string | null;
-                            guids?: string[];
-                            /** @enum {string} */
-                            content_type?: "movie" | "show";
-                            users?: string[];
-                        }[];
+                        most_watched_shows: components["schemas"]["ContentStat"][];
+                        most_watched_movies: components["schemas"]["ContentStat"][];
                         top_users: {
                             name: string;
                             count: number;
@@ -10678,15 +10923,7 @@ export interface operations {
                             max_days: number;
                             count: number;
                         }[];
-                        status_transitions?: {
-                            from_status: string;
-                            to_status: string;
-                            content_type: string;
-                            avg_days: number;
-                            min_days: number;
-                            max_days: number;
-                            count: number;
-                        }[];
+                        status_transitions?: components["schemas"]["StatusTransitionTime"][];
                         status_flow?: {
                             from_status: string;
                             to_status: string;
@@ -10994,15 +11231,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        title: string;
-                        count: number;
-                        thumb: string | null;
-                        guids?: string[];
-                        /** @enum {string} */
-                        content_type?: "movie" | "show";
-                        users?: string[];
-                    }[];
+                    "application/json": components["schemas"]["ContentStat"][];
                 };
             };
             /** @description Default Response */
@@ -11190,15 +11419,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        title: string;
-                        count: number;
-                        thumb: string | null;
-                        guids?: string[];
-                        /** @enum {string} */
-                        content_type?: "movie" | "show";
-                        users?: string[];
-                    }[];
+                    "application/json": components["schemas"]["ContentStat"][];
                 };
             };
             /** @description Default Response */
@@ -11302,15 +11523,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        from_status: string;
-                        to_status: string;
-                        content_type: string;
-                        avg_days: number;
-                        min_days: number;
-                        max_days: number;
-                        count: number;
-                    }[];
+                    "application/json": components["schemas"]["StatusTransitionTime"][];
                 };
             };
             /** @description Default Response */
@@ -11851,9 +12064,10 @@ export interface operations {
     };
     getTmdbMetadataByGuid: {
         parameters: {
-            query?: {
+            query: {
                 region?: string;
-                type?: "movie" | "show";
+                /** @description Media kind, movie or show */
+                type: components["schemas"]["ContentType"];
             };
             header?: never;
             path: {
@@ -11869,251 +12083,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        metadata: {
-                            details: {
-                                adult: boolean;
-                                backdrop_path: string | null;
-                                belongs_to_collection: ({
-                                    id: number;
-                                    name: string;
-                                    poster_path: string | null;
-                                    backdrop_path: string | null;
-                                } | null) | null;
-                                budget: number;
-                                genres: {
-                                    id: number;
-                                    name: string;
-                                }[];
-                                homepage: string | "" | null;
-                                id: number;
-                                imdb_id: string | null;
-                                origin_country: string[];
-                                original_language: string;
-                                original_title: string;
-                                overview: string | null;
-                                popularity: number;
-                                poster_path: string | null;
-                                production_companies: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                production_countries: {
-                                    iso_3166_1: string;
-                                    name: string;
-                                }[];
-                                release_date: string;
-                                revenue: number;
-                                runtime: number | null;
-                                spoken_languages: {
-                                    english_name: string;
-                                    iso_639_1: string;
-                                    name: string;
-                                }[];
-                                status: string;
-                                tagline: string | null;
-                                title: string;
-                                video: boolean;
-                                vote_average: number;
-                                vote_count: number;
-                            };
-                            watchProviders?: {
-                                link?: string;
-                                flatrate?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                rent?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                buy?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                            };
-                            radarrRatings?: {
-                                imdb?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                tmdb?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                metacritic?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                rottenTomatoes?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                trakt?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                            };
-                            plexRatings?: {
-                                imdb?: {
-                                    rating: number;
-                                    votes: number | null;
-                                };
-                                rtCritic?: number;
-                                rtAudience?: number;
-                                tmdb?: number;
-                            };
-                        } | {
-                            details: {
-                                adult: boolean;
-                                backdrop_path: string | null;
-                                created_by: {
-                                    id: number;
-                                    credit_id: string;
-                                    name: string;
-                                    original_name: string;
-                                    gender: number;
-                                    profile_path: string | null;
-                                }[];
-                                episode_run_time: number[];
-                                first_air_date: string | null;
-                                genres: {
-                                    id: number;
-                                    name: string;
-                                }[];
-                                homepage: string | "" | null;
-                                id: number;
-                                in_production: boolean;
-                                languages: string[];
-                                last_air_date: string | null;
-                                last_episode_to_air: {
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    vote_average: number;
-                                    vote_count: number;
-                                    air_date: string;
-                                    episode_number: number;
-                                    episode_type: string;
-                                    production_code: string | null;
-                                    runtime: number | null;
-                                    season_number: number;
-                                    show_id: number;
-                                    still_path: string | null;
-                                } | null;
-                                name: string;
-                                next_episode_to_air: {
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    vote_average: number;
-                                    vote_count: number;
-                                    air_date: string;
-                                    episode_number: number;
-                                    episode_type: string;
-                                    production_code: string | null;
-                                    runtime: number | null;
-                                    season_number: number;
-                                    show_id: number;
-                                    still_path: string | null;
-                                } | null;
-                                networks: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                number_of_episodes: number;
-                                number_of_seasons: number;
-                                origin_country: string[];
-                                original_language: string;
-                                original_name: string;
-                                overview: string | null;
-                                popularity: number;
-                                poster_path: string | null;
-                                production_companies: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                production_countries: {
-                                    iso_3166_1: string;
-                                    name: string;
-                                }[];
-                                seasons: {
-                                    air_date: string | null;
-                                    episode_count: number;
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    poster_path: string | null;
-                                    season_number: number;
-                                    vote_average: number;
-                                }[];
-                                spoken_languages: {
-                                    english_name: string;
-                                    iso_639_1: string;
-                                    name: string;
-                                }[];
-                                status: string;
-                                tagline: string | null;
-                                type: string;
-                                vote_average: number;
-                                vote_count: number;
-                            };
-                            watchProviders?: {
-                                link?: string;
-                                flatrate?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                rent?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                buy?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                            };
-                            plexRatings?: {
-                                imdb?: {
-                                    rating: number;
-                                    votes: number | null;
-                                };
-                                rtCritic?: number;
-                                rtAudience?: number;
-                                tmdb?: number;
-                            };
-                        };
-                    };
+                    "application/json": components["schemas"]["TmdbMetadataResponse"];
                 };
             };
             /** @description Default Response */
@@ -12167,11 +12137,10 @@ export interface operations {
         parameters: {
             query?: {
                 region?: string;
-                type?: "movie" | "show";
             };
             header?: never;
             path: {
-                id: string;
+                id: number;
             };
             cookie?: never;
         };
@@ -12183,251 +12152,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        metadata: {
-                            details: {
-                                adult: boolean;
-                                backdrop_path: string | null;
-                                belongs_to_collection: ({
-                                    id: number;
-                                    name: string;
-                                    poster_path: string | null;
-                                    backdrop_path: string | null;
-                                } | null) | null;
-                                budget: number;
-                                genres: {
-                                    id: number;
-                                    name: string;
-                                }[];
-                                homepage: string | "" | null;
-                                id: number;
-                                imdb_id: string | null;
-                                origin_country: string[];
-                                original_language: string;
-                                original_title: string;
-                                overview: string | null;
-                                popularity: number;
-                                poster_path: string | null;
-                                production_companies: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                production_countries: {
-                                    iso_3166_1: string;
-                                    name: string;
-                                }[];
-                                release_date: string;
-                                revenue: number;
-                                runtime: number | null;
-                                spoken_languages: {
-                                    english_name: string;
-                                    iso_639_1: string;
-                                    name: string;
-                                }[];
-                                status: string;
-                                tagline: string | null;
-                                title: string;
-                                video: boolean;
-                                vote_average: number;
-                                vote_count: number;
-                            };
-                            watchProviders?: {
-                                link?: string;
-                                flatrate?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                rent?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                buy?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                            };
-                            radarrRatings?: {
-                                imdb?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                tmdb?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                metacritic?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                rottenTomatoes?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                trakt?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                            };
-                            plexRatings?: {
-                                imdb?: {
-                                    rating: number;
-                                    votes: number | null;
-                                };
-                                rtCritic?: number;
-                                rtAudience?: number;
-                                tmdb?: number;
-                            };
-                        } | {
-                            details: {
-                                adult: boolean;
-                                backdrop_path: string | null;
-                                created_by: {
-                                    id: number;
-                                    credit_id: string;
-                                    name: string;
-                                    original_name: string;
-                                    gender: number;
-                                    profile_path: string | null;
-                                }[];
-                                episode_run_time: number[];
-                                first_air_date: string | null;
-                                genres: {
-                                    id: number;
-                                    name: string;
-                                }[];
-                                homepage: string | "" | null;
-                                id: number;
-                                in_production: boolean;
-                                languages: string[];
-                                last_air_date: string | null;
-                                last_episode_to_air: {
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    vote_average: number;
-                                    vote_count: number;
-                                    air_date: string;
-                                    episode_number: number;
-                                    episode_type: string;
-                                    production_code: string | null;
-                                    runtime: number | null;
-                                    season_number: number;
-                                    show_id: number;
-                                    still_path: string | null;
-                                } | null;
-                                name: string;
-                                next_episode_to_air: {
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    vote_average: number;
-                                    vote_count: number;
-                                    air_date: string;
-                                    episode_number: number;
-                                    episode_type: string;
-                                    production_code: string | null;
-                                    runtime: number | null;
-                                    season_number: number;
-                                    show_id: number;
-                                    still_path: string | null;
-                                } | null;
-                                networks: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                number_of_episodes: number;
-                                number_of_seasons: number;
-                                origin_country: string[];
-                                original_language: string;
-                                original_name: string;
-                                overview: string | null;
-                                popularity: number;
-                                poster_path: string | null;
-                                production_companies: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                production_countries: {
-                                    iso_3166_1: string;
-                                    name: string;
-                                }[];
-                                seasons: {
-                                    air_date: string | null;
-                                    episode_count: number;
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    poster_path: string | null;
-                                    season_number: number;
-                                    vote_average: number;
-                                }[];
-                                spoken_languages: {
-                                    english_name: string;
-                                    iso_639_1: string;
-                                    name: string;
-                                }[];
-                                status: string;
-                                tagline: string | null;
-                                type: string;
-                                vote_average: number;
-                                vote_count: number;
-                            };
-                            watchProviders?: {
-                                link?: string;
-                                flatrate?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                rent?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                buy?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                            };
-                            plexRatings?: {
-                                imdb?: {
-                                    rating: number;
-                                    votes: number | null;
-                                };
-                                rtCritic?: number;
-                                rtAudience?: number;
-                                tmdb?: number;
-                            };
-                        };
-                    };
+                    "application/json": components["schemas"]["TmdbMetadataResponse"];
                 };
             };
             /** @description Default Response */
@@ -12496,12 +12221,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         region: string;
-                        providers: {
-                            display_priority: number;
-                            logo_path: string | null;
-                            provider_id: number;
-                            provider_name: string;
-                        }[];
+                        providers: components["schemas"]["TmdbWatchProvider"][];
                     };
                 };
             };
@@ -12549,14 +12269,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        regions: {
-                            code: string;
-                            name: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["TmdbRegionsResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -12592,11 +12305,10 @@ export interface operations {
         parameters: {
             query?: {
                 region?: string;
-                type?: "movie" | "show";
             };
             header?: never;
             path: {
-                id: string;
+                id: number;
             };
             cookie?: never;
         };
@@ -12608,251 +12320,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        metadata: {
-                            details: {
-                                adult: boolean;
-                                backdrop_path: string | null;
-                                belongs_to_collection: ({
-                                    id: number;
-                                    name: string;
-                                    poster_path: string | null;
-                                    backdrop_path: string | null;
-                                } | null) | null;
-                                budget: number;
-                                genres: {
-                                    id: number;
-                                    name: string;
-                                }[];
-                                homepage: string | "" | null;
-                                id: number;
-                                imdb_id: string | null;
-                                origin_country: string[];
-                                original_language: string;
-                                original_title: string;
-                                overview: string | null;
-                                popularity: number;
-                                poster_path: string | null;
-                                production_companies: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                production_countries: {
-                                    iso_3166_1: string;
-                                    name: string;
-                                }[];
-                                release_date: string;
-                                revenue: number;
-                                runtime: number | null;
-                                spoken_languages: {
-                                    english_name: string;
-                                    iso_639_1: string;
-                                    name: string;
-                                }[];
-                                status: string;
-                                tagline: string | null;
-                                title: string;
-                                video: boolean;
-                                vote_average: number;
-                                vote_count: number;
-                            };
-                            watchProviders?: {
-                                link?: string;
-                                flatrate?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                rent?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                buy?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                            };
-                            radarrRatings?: {
-                                imdb?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                tmdb?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                metacritic?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                rottenTomatoes?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                                trakt?: {
-                                    votes: number;
-                                    value: number;
-                                    /** @enum {string} */
-                                    type: "user" | "critic";
-                                };
-                            };
-                            plexRatings?: {
-                                imdb?: {
-                                    rating: number;
-                                    votes: number | null;
-                                };
-                                rtCritic?: number;
-                                rtAudience?: number;
-                                tmdb?: number;
-                            };
-                        } | {
-                            details: {
-                                adult: boolean;
-                                backdrop_path: string | null;
-                                created_by: {
-                                    id: number;
-                                    credit_id: string;
-                                    name: string;
-                                    original_name: string;
-                                    gender: number;
-                                    profile_path: string | null;
-                                }[];
-                                episode_run_time: number[];
-                                first_air_date: string | null;
-                                genres: {
-                                    id: number;
-                                    name: string;
-                                }[];
-                                homepage: string | "" | null;
-                                id: number;
-                                in_production: boolean;
-                                languages: string[];
-                                last_air_date: string | null;
-                                last_episode_to_air: {
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    vote_average: number;
-                                    vote_count: number;
-                                    air_date: string;
-                                    episode_number: number;
-                                    episode_type: string;
-                                    production_code: string | null;
-                                    runtime: number | null;
-                                    season_number: number;
-                                    show_id: number;
-                                    still_path: string | null;
-                                } | null;
-                                name: string;
-                                next_episode_to_air: {
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    vote_average: number;
-                                    vote_count: number;
-                                    air_date: string;
-                                    episode_number: number;
-                                    episode_type: string;
-                                    production_code: string | null;
-                                    runtime: number | null;
-                                    season_number: number;
-                                    show_id: number;
-                                    still_path: string | null;
-                                } | null;
-                                networks: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                number_of_episodes: number;
-                                number_of_seasons: number;
-                                origin_country: string[];
-                                original_language: string;
-                                original_name: string;
-                                overview: string | null;
-                                popularity: number;
-                                poster_path: string | null;
-                                production_companies: {
-                                    id: number;
-                                    logo_path: string | null;
-                                    name: string;
-                                    origin_country: string;
-                                }[];
-                                production_countries: {
-                                    iso_3166_1: string;
-                                    name: string;
-                                }[];
-                                seasons: {
-                                    air_date: string | null;
-                                    episode_count: number;
-                                    id: number;
-                                    name: string;
-                                    overview: string | null;
-                                    poster_path: string | null;
-                                    season_number: number;
-                                    vote_average: number;
-                                }[];
-                                spoken_languages: {
-                                    english_name: string;
-                                    iso_639_1: string;
-                                    name: string;
-                                }[];
-                                status: string;
-                                tagline: string | null;
-                                type: string;
-                                vote_average: number;
-                                vote_count: number;
-                            };
-                            watchProviders?: {
-                                link?: string;
-                                flatrate?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                rent?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                                buy?: {
-                                    display_priority: number;
-                                    logo_path: string | null;
-                                    provider_id: number;
-                                    provider_name: string;
-                                }[];
-                            };
-                            plexRatings?: {
-                                imdb?: {
-                                    rating: number;
-                                    votes: number | null;
-                                };
-                                rtCritic?: number;
-                                rtAudience?: number;
-                                tmdb?: number;
-                            };
-                        };
-                    };
+                    "application/json": components["schemas"]["TmdbMetadataResponse"];
                 };
             };
             /** @description Default Response */

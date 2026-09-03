@@ -1,4 +1,3 @@
-import type { TmdbMetadataSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
 import { Calendar, Clock, ExternalLink, Film, Tv } from 'lucide-react'
 // Import rating service icons
 import imdbIcon from '@/assets/images/rating-icons/imdb.svg'
@@ -15,9 +14,12 @@ import { Separator } from '@/components/ui/separator'
 import { TmdbRegionSelector } from '@/components/ui/tmdb-region-selector'
 import { useConfig } from '@/hooks/useConfig'
 import { buildPosterUrl } from '@/lib/poster-url'
+import type { components } from '@/types/api.js'
+
+type TmdbMetadataResponse = components['schemas']['TmdbMetadataResponse']
 
 interface TmdbMetadataDisplayProps {
-  data: TmdbMetadataSuccessResponse
+  data: TmdbMetadataResponse
   onRegionChange?: () => Promise<void>
 }
 

@@ -1,8 +1,10 @@
-import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { useMemo } from 'react'
 import { DashboardMediaCarousel } from '@/features/dashboard/components/dashboard-media-carousel'
 import { MediaCard } from '@/features/dashboard/components/media-card'
 import type { MediaViewMode } from '@/features/dashboard/hooks/useMediaViewMode'
+import type { components } from '@/types/api.js'
+
+type ContentStat = components['schemas']['ContentStat']
 
 interface WatchlistCarouselProps {
   title: string
