@@ -1,6 +1,7 @@
 import type {
   DiscordEmbed,
   SystemNotification,
+  WatchlistCapEvent,
 } from '@root/types/discord.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
@@ -22,13 +23,7 @@ export interface WatchlistCapDeps {
   }
 }
 
-export interface WatchlistCapEvent {
-  userId: number
-  userName: string | null
-  contentType: 'movie' | 'show'
-  currentCount: number
-  cap: number
-}
+export type { WatchlistCapEvent }
 
 interface PendingNotification {
   timer: ReturnType<typeof setTimeout>

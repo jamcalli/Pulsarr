@@ -4,6 +4,9 @@ import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
   MediaNotification,
   SystemNotification,
+  UpdateAvailableRelease,
+  WatchlistAdditionNotification,
+  WatchlistCapNotification,
 } from '@root/types/discord.types.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
@@ -85,48 +88,27 @@ export class AppriseService {
     return sendDeleteSync(results, dryRun, this.appriseDeps)
   }
 
-  async sendUpdateAvailableNotification(release: {
-    currentVersion: string
-    latestVersion: string
-    releaseUrl: string
-    releaseName: string | null
-    releaseBody: string | null
-    releaseBodyHtml: string | null
-    publishedAt: string | null
-  }): Promise<boolean> {
+  async sendUpdateAvailableNotification(
+    release: UpdateAvailableRelease,
+  ): Promise<boolean> {
     return sendUpdateAvailable(release, this.appriseDeps)
   }
 
-  async sendWatchlistAdditionNotification(item: {
-    title: string
-    type: string
-    addedBy: {
-      name: string
-      alias?: string | null
-    }
-    posterUrl?: string
-    tmdbUrl?: string
-  }): Promise<boolean> {
+  async sendWatchlistAdditionNotification(
+    item: WatchlistAdditionNotification,
+  ): Promise<boolean> {
     return sendWatchlistAddition(item, this.appriseDeps)
   }
 
-  async sendWatchlistCapNotification(event: {
-    userName: string
-    contentType: string
-    currentCount: number
-    cap: number
-  }): Promise<boolean> {
+  async sendWatchlistCapNotification(
+    event: WatchlistCapNotification,
+  ): Promise<boolean> {
     return sendWatchlistCap(event, this.appriseDeps)
   }
 
   async sendUserWatchlistCapNotification(
     user: NotificationUser,
-    event: {
-      userName: string
-      contentType: string
-      currentCount: number
-      cap: number
-    },
+    event: WatchlistCapNotification,
   ): Promise<boolean> {
     return sendUserWatchlistCap(user, event, this.appriseDeps)
   }

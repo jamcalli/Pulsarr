@@ -71,6 +71,34 @@ export function createMainMenuActionRow(
   )
 }
 
+function addContentFields(
+  embed: EmbedBuilder,
+  approval: ApprovalRequest,
+  guidSeparator: string,
+): void {
+  if (approval.contentGuids && approval.contentGuids.length > 0) {
+    embed.addFields([
+      {
+        name: 'Content GUIDs',
+        value: approval.contentGuids.join(guidSeparator),
+        inline: false,
+      },
+    ])
+  }
+
+  const mediaType = approval.contentType === 'show' ? 'show' : 'movie'
+  const tmdbUrl = getTmdbUrl(approval.contentGuids, mediaType)
+  if (tmdbUrl) {
+    embed.addFields([
+      {
+        name: 'More Info',
+        value: `[View on TMDB](${tmdbUrl})`,
+        inline: true,
+      },
+    ])
+  }
+}
+
 export function createApprovalEmbed(
   approval: ApprovalRequest,
   currentIndex: number,
@@ -116,27 +144,7 @@ export function createApprovalEmbed(
       },
     ])
 
-  if (approval.contentGuids && approval.contentGuids.length > 0) {
-    embed.addFields([
-      {
-        name: 'Content GUIDs',
-        value: approval.contentGuids.join(', '),
-        inline: false,
-      },
-    ])
-  }
-
-  const mediaType = approval.contentType === 'show' ? 'show' : 'movie'
-  const tmdbUrl = getTmdbUrl(approval.contentGuids, mediaType)
-  if (tmdbUrl) {
-    embed.addFields([
-      {
-        name: 'More Info',
-        value: `[View on TMDB](${tmdbUrl})`,
-        inline: true,
-      },
-    ])
-  }
+  addContentFields(embed, approval, ', ')
 
   embed.setFooter({
     text: `Approval ${currentIndex + 1} of ${totalCount} • Status: ${approval.status.toUpperCase()} • ID: ${approval.id}`,
@@ -289,27 +297,7 @@ export function createDetailsEmbed(approval: ApprovalRequest): EmbedBuilder {
       },
     ])
 
-  if (approval.contentGuids && approval.contentGuids.length > 0) {
-    detailsEmbed.addFields([
-      {
-        name: 'Content GUIDs',
-        value: approval.contentGuids.join('\n'),
-        inline: false,
-      },
-    ])
-  }
-
-  const mediaType = approval.contentType === 'show' ? 'show' : 'movie'
-  const tmdbUrl = getTmdbUrl(approval.contentGuids, mediaType)
-  if (tmdbUrl) {
-    detailsEmbed.addFields([
-      {
-        name: 'More Info',
-        value: `[View on TMDB](${tmdbUrl})`,
-        inline: true,
-      },
-    ])
-  }
+  addContentFields(detailsEmbed, approval, '\n')
 
   if (approval.proposedRouterDecision?.approval?.proposedRouting) {
     const routing = approval.proposedRouterDecision.approval.proposedRouting

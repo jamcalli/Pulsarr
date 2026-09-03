@@ -2,7 +2,15 @@ import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
   MediaNotification,
   SystemNotification,
+  UpdateAvailableRelease,
+  WatchlistAdditionNotification,
+  WatchlistCapNotification,
 } from '@root/types/discord.types.js'
+import {
+  type DeleteSyncSection,
+  summarizeDeleteSync,
+} from './delete-sync-summary.js'
+import { mediaTypeLabel } from './media-type.js'
 
 export function escapeHtml(str: string): string {
   if (!str) return ''
@@ -256,15 +264,9 @@ export function createSystemNotificationHtml(
   return { htmlBody, textBody }
 }
 
-export function createUpdateAvailableNotificationHtml(release: {
-  currentVersion: string
-  latestVersion: string
-  releaseUrl: string
-  releaseName: string | null
-  releaseBody: string | null
-  releaseBodyHtml: string | null
-  publishedAt: string | null
-}): { htmlBody: string; textBody: string; title: string } {
+export function createUpdateAvailableNotificationHtml(
+  release: UpdateAvailableRelease,
+): { htmlBody: string; textBody: string; title: string } {
   const title = `🚀 Pulsarr ${release.latestVersion} is available`
   const displayName = release.releaseName?.trim() || `v${release.latestVersion}`
   const publishedAt = release.publishedAt
@@ -314,12 +316,9 @@ export function createUpdateAvailableNotificationHtml(release: {
   return { htmlBody, textBody, title }
 }
 
-export function createWatchlistCapNotificationHtml(event: {
-  userName: string
-  contentType: string
-  currentCount: number
-  cap: number
-}): { htmlBody: string; textBody: string } {
+export function createWatchlistCapNotificationHtml(
+  event: WatchlistCapNotification,
+): { htmlBody: string; textBody: string } {
   const contentLabel = event.contentType === 'movie' ? 'Movie' : 'Show'
   const impact =
     'New items will not be processed until the cap is raised or items are removed.'
@@ -347,15 +346,11 @@ export function createWatchlistCapNotificationHtml(event: {
   return { htmlBody, textBody }
 }
 
-function deletedSection(
-  label: string,
-  noun: string,
-  section: DeleteSyncResult['movies'],
-): { html: string; text: string } {
-  const protectedInfo =
-    section.protected && section.protected > 0
-      ? ` (${section.protected} protected)`
-      : ''
+function deletedSection(section: DeleteSyncSection): {
+  html: string
+  text: string
+} {
+  const { label, noun, protectedInfo, shown, remaining } = section
 
   if (section.deleted <= 0) {
     return {
@@ -366,13 +361,10 @@ function deletedSection(
     }
   }
 
-  const shown = section.items.slice(0, 10)
-  const remaining = section.items.length - shown.length
-
   const listItems = shown
     .map(
-      (item) =>
-        `<li style="margin-bottom: 5px; ${VALUE_STYLE}">${escapeHtml(item.title)}</li>`,
+      (title) =>
+        `<li style="margin-bottom: 5px; ${VALUE_STYLE}">${escapeHtml(title)}</li>`,
     )
     .join('')
 
@@ -386,7 +378,7 @@ function deletedSection(
         : ''),
   )
 
-  const textList = shown.map((item) => `• ${item.title}`).join('\n')
+  const textList = shown.map((title) => `• ${title}`).join('\n')
   let text = `${label} (${section.deleted} deleted${protectedInfo}):\n${textList || 'None'}\n`
   text += remaining > 0 ? `... and ${remaining} more ${noun}\n\n` : '\n'
 
@@ -404,47 +396,33 @@ export function createDeleteSyncNotificationHtml(
   results: DeleteSyncResult,
   dryRun: boolean,
 ): { htmlBody: string; textBody: string; title: string } {
-  let title: string
-  if (results.safetyTriggered) {
-    title = '⚠️ Delete Sync Safety Triggered'
-  } else if (dryRun) {
-    title = '🔍 Delete Sync Simulation Results'
-  } else {
-    title = '🗑️ Delete Sync Results'
-  }
+  const summary = summarizeDeleteSync(results, dryRun)
+  const { title, totals } = summary
 
-  let summaryText = dryRun
-    ? 'This was a dry run - no content was actually deleted.'
-    : results.safetyTriggered
-      ? results.safetyMessage ||
-        'A safety check prevented the delete sync operation from running.'
-      : "The following content was removed because it's no longer in any user's watchlist."
-
-  if (results.total.protected && results.total.protected > 0) {
-    summaryText += ` ${results.total.protected} items were preserved because they are in protected playlists.`
+  let summaryText = summary.summaryText
+  if (summary.protectedText) {
+    summaryText += ` ${summary.protectedText}`
   }
 
   const summaryCard = card(
     heading('Summary') +
       `<div style="margin-top: 15px;">
-      ${summaryStat(results.total.processed, 'Processed')}
-      ${summaryStat(results.total.deleted, 'Deleted')}
-      ${summaryStat(results.total.skipped, 'Skipped')}
-      ${results.total.protected ? summaryStat(results.total.protected, 'Protected') : ''}
+      ${summaryStat(totals.processed, 'Processed')}
+      ${summaryStat(totals.deleted, 'Deleted')}
+      ${summaryStat(totals.skipped, 'Skipped')}
+      ${totals.protected ? summaryStat(totals.protected, 'Protected') : ''}
     </div>`,
     results.safetyTriggered ? SAFETY_CARD_BACKGROUND : CARD_BACKGROUND,
   )
 
-  const safetyCard =
-    results.safetyTriggered && results.safetyMessage
-      ? card(
-          heading('Safety Reason') +
-            paragraph(escapeHtml(results.safetyMessage)),
-        )
-      : ''
+  const safetyCard = summary.safetyMessage
+    ? card(
+        heading('Safety Reason') + paragraph(escapeHtml(summary.safetyMessage)),
+      )
+    : ''
 
-  const movies = deletedSection('Movies', 'movies', results.movies)
-  const shows = deletedSection('TV Shows', 'TV shows', results.shows)
+  const movies = deletedSection(summary.movies)
+  const shows = deletedSection(summary.shows)
   const timestamp = new Date().toLocaleString()
 
   const htmlBody = htmlWrapper(
@@ -460,15 +438,15 @@ export function createDeleteSyncNotificationHtml(
 
   let textBody = `${summaryText}\n\n`
   textBody += 'Summary:\n'
-  textBody += `Processed: ${results.total.processed} items\n`
-  textBody += `Deleted: ${results.total.deleted} items\n`
-  textBody += `Skipped: ${results.total.skipped} items\n`
-  if (results.total.protected) {
-    textBody += `Protected: ${results.total.protected} items\n`
+  textBody += `Processed: ${totals.processed} items\n`
+  textBody += `Deleted: ${totals.deleted} items\n`
+  textBody += `Skipped: ${totals.skipped} items\n`
+  if (totals.protected) {
+    textBody += `Protected: ${totals.protected} items\n`
   }
   textBody += '\n'
-  if (results.safetyTriggered && results.safetyMessage) {
-    textBody += `Safety Reason: ${results.safetyMessage}\n\n`
+  if (summary.safetyMessage) {
+    textBody += `Safety Reason: ${summary.safetyMessage}\n\n`
   }
   textBody += movies.text
   textBody += shows.text
@@ -477,26 +455,10 @@ export function createDeleteSyncNotificationHtml(
   return { htmlBody, textBody, title }
 }
 
-export function createWatchlistAdditionHtml(item: {
-  title: string
-  type: string
-  addedBy: {
-    name: string
-    alias?: string | null
-  }
-  posterUrl?: string
-  tmdbUrl?: string
-  displayName: string
-}): { htmlBody: string; textBody: string; title: string } {
-  const mediaTypeRaw = item.type ? item.type.toLowerCase() : ''
-  const isMovie = mediaTypeRaw === 'movie'
-  const isShow =
-    mediaTypeRaw === 'show' ||
-    mediaTypeRaw === 'tv' ||
-    mediaTypeRaw === 'series'
-
-  const emoji = isMovie ? '🎬' : isShow ? '📺' : '🎬'
-  const mediaType = isMovie ? 'Movie' : isShow ? 'Show' : 'Media'
+export function createWatchlistAdditionHtml(
+  item: WatchlistAdditionNotification & { displayName: string },
+): { htmlBody: string; textBody: string; title: string } {
+  const { label: mediaType, emoji } = mediaTypeLabel(item.type)
 
   const title = `${emoji} ${mediaType} Added: ${item.title}`
 
