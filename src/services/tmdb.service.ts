@@ -187,6 +187,49 @@ export class TmdbService {
     }
   }
 
+  async getMetadataByGuid(
+    guid: string,
+    type: 'movie' | 'show',
+    region?: string,
+  ): Promise<{
+    kind: 'movie' | 'tv'
+    metadata: TmdbMovieMetadata | TmdbTvMetadata
+  } | null> {
+    const normalized = guid.toLowerCase()
+    const tmdbId = extractTmdbId([normalized])
+    if (tmdbId > 0) {
+      return this.metadataFor(tmdbId, type === 'show' ? 'tv' : 'movie', region)
+    }
+
+    const tvdbId = extractTvdbId([normalized])
+    if (tvdbId > 0) {
+      const found = await this.findByTvdbId(tvdbId)
+      if (!found) {
+        return null
+      }
+
+      return this.metadataFor(found.tmdbId, found.type, region)
+    }
+
+    return null
+  }
+
+  private async metadataFor(
+    tmdbId: number,
+    kind: 'movie' | 'tv',
+    region?: string,
+  ): Promise<{
+    kind: 'movie' | 'tv'
+    metadata: TmdbMovieMetadata | TmdbTvMetadata
+  } | null> {
+    const metadata =
+      kind === 'movie'
+        ? await this.getMovieMetadata(tmdbId, region)
+        : await this.getTvMetadata(tmdbId, region)
+
+    return metadata ? { kind, metadata } : null
+  }
+
   async getAvailableRegions(): Promise<TmdbRegion[] | null> {
     if (!this.isConfigured()) {
       this.log.warn('TMDB is not configured, skipping region fetch')

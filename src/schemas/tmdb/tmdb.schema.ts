@@ -232,7 +232,16 @@ export const TmdbContentMetadataSchema = z.union([
 
 // Request schemas
 export const GetTmdbMetadataParamsSchema = z.object({
-  id: z.string().min(1, { error: 'TMDB ID is required' }),
+  id: z.coerce
+    .number()
+    .int()
+    .positive({ error: 'TMDB ID must be a positive integer' }),
+})
+
+export const GetTmdbMetadataByGuidParamsSchema = z.object({
+  id: z.string().regex(/^(tmdb|tvdb):\d+$/i, {
+    error: 'Invalid GUID format (expected: tmdb:123 or tvdb:456)',
+  }),
 })
 
 export const GetTmdbMetadataQuerySchema = z.object({
@@ -242,12 +251,10 @@ export const GetTmdbMetadataQuerySchema = z.object({
       z.string().length(2, { error: 'Region must be a 2-letter country code' }),
     )
     .optional(),
-  type: z
-    .preprocess(
-      (val) => (typeof val === 'string' ? val.toLowerCase() : val),
-      z.enum(['movie', 'show']),
-    )
-    .optional(),
+  type: z.preprocess(
+    (val) => (typeof val === 'string' ? val.toLowerCase() : val),
+    z.enum(['movie', 'show']),
+  ),
 })
 
 // Response schemas
@@ -288,6 +295,9 @@ export type TmdbTvMetadata = z.infer<typeof TmdbTvMetadataSchema>
 export type TmdbContentMetadata = z.infer<typeof TmdbContentMetadataSchema>
 
 export type GetTmdbMetadataParams = z.infer<typeof GetTmdbMetadataParamsSchema>
+export type GetTmdbMetadataByGuidParams = z.infer<
+  typeof GetTmdbMetadataByGuidParamsSchema
+>
 export type GetTmdbMetadataQuery = z.infer<typeof GetTmdbMetadataQuerySchema>
 export type TmdbMetadataSuccessResponse = z.infer<
   typeof TmdbMetadataSuccessResponseSchema
