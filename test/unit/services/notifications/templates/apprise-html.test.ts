@@ -1,8 +1,9 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
+import type { ApprovalNotification } from '@root/types/discord.types.js'
 import {
+  createApprovalNotificationHtml,
   createDeleteSyncNotificationHtml,
   createMediaNotificationHtml,
-  createSystemNotificationHtml,
   createTestNotificationHtml,
   createUpdateAvailableNotificationHtml,
   createWatchlistAdditionHtml,
@@ -187,25 +188,21 @@ describe('apprise-html', () => {
     })
   })
 
-  describe('createSystemNotificationHtml', () => {
-    const notification = {
-      type: 'system' as const,
-      username: 'alice',
-      title: 'Content Approval Required',
+  describe('createApprovalNotificationHtml', () => {
+    const notification: ApprovalNotification = {
+      title: 'New Approval Request: Dune',
+      contentTitle: 'Dune',
+      contentType: 'Movie',
+      requestedBy: 'alice',
+      reason: 'User quota exceeded',
+      totalPending: 3,
+      actionRequired: 'Review in the approvals page',
       posterUrl: 'https://image.tmdb.org/approval.jpg',
       tmdbUrl: 'https://www.themoviedb.org/movie/1',
-      embedFields: [
-        { name: 'Content', value: 'Dune' },
-        { name: 'Type', value: 'Movie' },
-        { name: 'Requested by', value: 'alice' },
-        { name: 'Total pending', value: '3 requests' },
-        { name: 'Reason', value: 'User quota exceeded' },
-        { name: 'Action Required', value: 'Review in the approvals page' },
-      ],
     }
 
-    it('should render every embed field in both bodies', () => {
-      const result = createSystemNotificationHtml(notification)
+    it('should render every field in both bodies', () => {
+      const result = createApprovalNotificationHtml(notification)
 
       for (const value of [
         'Dune',
@@ -224,7 +221,7 @@ describe('apprise-html', () => {
     })
 
     it('should relabel the pending count in HTML only', () => {
-      const result = createSystemNotificationHtml(notification)
+      const result = createApprovalNotificationHtml(notification)
 
       expect(result.htmlBody).toContain('3 awaiting review')
       expect(result.htmlBody).not.toContain('3 requests')
@@ -232,8 +229,8 @@ describe('apprise-html', () => {
     })
 
     it('should render the poster when a URL is supplied', () => {
-      const withPoster = createSystemNotificationHtml(notification)
-      const withoutPoster = createSystemNotificationHtml({
+      const withPoster = createApprovalNotificationHtml(notification)
+      const withoutPoster = createApprovalNotificationHtml({
         ...notification,
         posterUrl: undefined,
       })
@@ -242,20 +239,6 @@ describe('apprise-html', () => {
         'https://image.tmdb.org/approval.jpg',
       )
       expect(withoutPoster.htmlBody).not.toContain('<img')
-    })
-
-    it('should fall back to placeholders when fields are missing', () => {
-      const result = createSystemNotificationHtml({
-        type: 'system',
-        username: 'alice',
-        title: 'Content Approval Required',
-        embedFields: [],
-      })
-
-      expect(result.htmlBody).toContain('Unknown Content')
-      expect(result.textBody).toContain('Unknown Content')
-      expect(result.textBody).toContain('Type: Unknown')
-      expect(result.textBody).toContain('Total pending: 0')
     })
   })
 
@@ -505,11 +488,14 @@ describe('apprise-html', () => {
         posterUrl: 'https://image.tmdb.org/dune.jpg',
         tmdbUrl: 'https://www.themoviedb.org/movie/438631',
       }),
-      createSystemNotificationHtml({
-        type: 'system',
-        username: 'alice',
-        title: 'Content Approval Required',
-        embedFields: [{ name: 'Content', value: 'Dune' }],
+      createApprovalNotificationHtml({
+        title: 'New Approval Request: Dune',
+        contentTitle: 'Dune',
+        contentType: 'Movie',
+        requestedBy: 'alice',
+        reason: 'User quota exceeded',
+        totalPending: 1,
+        actionRequired: 'Review in the approvals page',
       }),
       createUpdateAvailableNotificationHtml({
         currentVersion: '1.0.0',

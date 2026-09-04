@@ -6,8 +6,8 @@ import type {
 import type { NotificationUser } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
+  ApprovalNotification,
   MediaNotification,
-  SystemNotification,
   UpdateAvailableRelease,
   WatchlistAdditionNotification,
   WatchlistCapNotification,
@@ -18,15 +18,14 @@ import {
 } from '@root/utils/notifications/index.js'
 import type { FastifyBaseLogger } from 'fastify'
 import {
+  createApprovalNotificationHtml,
   createDeleteSyncNotificationHtml,
   createMediaNotificationHtml,
-  createSystemNotificationHtml,
   createTestNotificationHtml,
   createUpdateAvailableNotificationHtml,
   createWatchlistAdditionHtml,
   createWatchlistCapNotificationHtml,
 } from '../templates/apprise-html.js'
-import { isSafetyNotification } from '../templates/system-notification.js'
 import {
   analyzeAppriseUrls,
   createNotificationBatches,
@@ -347,19 +346,20 @@ export async function sendMediaNotification(
   return success
 }
 
-export async function sendSystemNotification(
-  notification: SystemNotification,
+export async function sendApprovalNotification(
+  notification: ApprovalNotification,
   deps: AppriseDeps,
 ): Promise<boolean> {
   return deliver(
     deps.config.systemAppriseUrl,
-    'system notification',
+    'approval notification',
     () => {
-      const { htmlBody, textBody } = createSystemNotificationHtml(notification)
+      const { htmlBody, textBody } =
+        createApprovalNotificationHtml(notification)
       return {
         title: notification.title,
         body: textBody,
-        type: isSafetyNotification(notification) ? 'failure' : 'info',
+        type: 'info',
         format: 'text',
         body_html: htmlBody,
         ...(notification.posterUrl

@@ -76,6 +76,18 @@ export interface SystemNotification {
   }
 }
 
+export interface ApprovalNotification {
+  title: string
+  contentTitle: string
+  contentType: 'Movie' | 'Show'
+  requestedBy: string
+  reason: string
+  totalPending: number
+  actionRequired: string
+  posterUrl?: string
+  tmdbUrl?: string
+}
+
 export interface UpdateAvailableRelease {
   currentVersion: string
   latestVersion: string

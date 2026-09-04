@@ -1,7 +1,7 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
+  ApprovalNotification,
   MediaNotification,
-  SystemNotification,
   UpdateAvailableRelease,
   WatchlistAdditionNotification,
   WatchlistCapNotification,
@@ -200,47 +200,29 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
   return { htmlBody, textBody, title }
 }
 
-export function createSystemNotificationHtml(
-  notification: SystemNotification,
+export function createApprovalNotificationHtml(
+  notification: ApprovalNotification,
 ): { htmlBody: string; textBody: string } {
-  const fields = Object.fromEntries(
-    notification.embedFields.map((field) => [field.name, field.value]),
-  )
-
-  const content = fields.Content || 'Unknown Content'
-  const pending = escapeHtml(fields['Total pending'] || '0').replace(
-    ' requests',
-    ' awaiting review',
-  )
-
   const contentCard = card(
-    createPosterHtml(
-      notification.posterUrl,
-      fields.Content || notification.title,
-      150,
-    ) +
-      heading(escapeHtml(content)) +
-      labelValue('TYPE', escapeHtml(fields.Type || 'Unknown')),
+    createPosterHtml(notification.posterUrl, notification.contentTitle, 150) +
+      heading(escapeHtml(notification.contentTitle)) +
+      labelValue('TYPE', escapeHtml(notification.contentType)),
   )
 
   const requestCard = card(
     sectionHeading('Request Details') +
+      labelValue('REQUESTED BY', escapeHtml(notification.requestedBy)) +
       labelValue(
-        'REQUESTED BY',
-        escapeHtml(fields['Requested by'] || 'Unknown'),
+        'PENDING REQUESTS',
+        `${notification.totalPending} awaiting review`,
       ) +
-      labelValue('PENDING REQUESTS', pending) +
-      (fields.Reason
-        ? divider() +
-          labelValue('REASON FOR APPROVAL', escapeHtml(fields.Reason))
-        : ''),
+      divider() +
+      labelValue('REASON FOR APPROVAL', escapeHtml(notification.reason)),
   )
 
-  const actionCard = fields['Action Required']
-    ? card(
-        `<div style="${NOTICE_STYLE}">${escapeHtml(fields['Action Required'])}</div>`,
-      )
-    : ''
+  const actionCard = card(
+    `<div style="${NOTICE_STYLE}">${escapeHtml(notification.actionRequired)}</div>`,
+  )
 
   const htmlBody = htmlWrapper(
     pageHeading('Content Approval Required') +
@@ -253,13 +235,13 @@ export function createSystemNotificationHtml(
   )
 
   let textBody = 'Content Approval Required\n\n'
-  textBody += `${content}\n`
-  textBody += `Type: ${fields.Type || 'Unknown'}\n\n`
-  textBody += `Requested by: ${fields['Requested by'] || 'Unknown'}\n`
-  textBody += `Total pending: ${fields['Total pending'] || '0'}\n`
-  if (fields.Reason) textBody += `Reason: ${fields.Reason}\n`
+  textBody += `${notification.contentTitle}\n`
+  textBody += `Type: ${notification.contentType}\n\n`
+  textBody += `Requested by: ${notification.requestedBy}\n`
+  textBody += `Total pending: ${notification.totalPending} requests\n`
+  textBody += `Reason: ${notification.reason}\n`
   if (notification.tmdbUrl) textBody += `TMDB: ${notification.tmdbUrl}\n`
-  if (fields['Action Required']) textBody += `\n${fields['Action Required']}\n`
+  textBody += `\n${notification.actionRequired}\n`
 
   return { htmlBody, textBody }
 }

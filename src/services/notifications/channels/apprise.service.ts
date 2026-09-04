@@ -2,8 +2,8 @@ import type { AppriseSchemaFormatMap } from '@root/types/apprise.types.js'
 import type { NotificationUser } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
+  ApprovalNotification,
   MediaNotification,
-  SystemNotification,
   UpdateAvailableRelease,
   WatchlistAdditionNotification,
   WatchlistCapNotification,
@@ -13,10 +13,10 @@ import {
   type AppriseDeps,
   isAppriseEnabled as checkAppriseEnabled,
   pingAppriseServer,
+  sendApprovalNotification as sendApproval,
   sendDeleteSyncNotification as sendDeleteSync,
   sendMediaNotification as sendMedia,
   sendPublicNotification as sendPublic,
-  sendSystemNotification as sendSystem,
   sendTestNotification as sendTest,
   sendUpdateAvailableNotification as sendUpdateAvailable,
   sendUserWatchlistCapNotification as sendUserWatchlistCap,
@@ -75,10 +75,10 @@ export class AppriseService {
     return sendMedia(user, notification, this.appriseDeps)
   }
 
-  async sendSystemNotification(
-    notification: SystemNotification,
+  async sendApprovalNotification(
+    notification: ApprovalNotification,
   ): Promise<boolean> {
-    return sendSystem(notification, this.appriseDeps)
+    return sendApproval(notification, this.appriseDeps)
   }
 
   async sendDeleteSyncNotification(
