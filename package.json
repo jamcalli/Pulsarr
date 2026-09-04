@@ -114,7 +114,7 @@
     "undici": "^6.27.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.11",
+    "@biomejs/biome": "^2.5.12",
     "@commitlint/cli": "^21.0.0",
     "@commitlint/config-conventional": "^21.0.0",
     "@epic-web/invariant": "^1.0.0",
