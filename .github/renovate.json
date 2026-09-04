@@ -44,6 +44,7 @@
         "biomejs\\.dev/schemas/(?<currentValue>[\\d.]+)/schema\\.json"
       ],
       "depNameTemplate": "@biomejs/biome",
+      "depTypeTemplate": "devDependencies",
       "datasourceTemplate": "npm"
     }
   ],
