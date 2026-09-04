@@ -55,6 +55,23 @@ describe('discord-embeds', () => {
       expect(fieldValue(embed, 'Episode')).toBe('S01E02 - "Half Loop"')
     })
 
+    it('should truncate an oversized episode title to the field limit', () => {
+      const embed = createMediaNotificationEmbed({
+        type: 'show',
+        title: 'Severance',
+        username: 'alice',
+        episodeDetails: {
+          seasonNumber: 1,
+          episodeNumber: 2,
+          title: 'x'.repeat(2000),
+        },
+      })
+
+      const episode = embed.fields?.find((field) => field.name === 'Episode')
+      expect(episode?.value.length).toBe(1024)
+      expect(episode?.value.endsWith('...')).toBe(true)
+    })
+
     it('should omit the separator when the episode has no title', () => {
       const embed = createMediaNotificationEmbed({
         type: 'show',

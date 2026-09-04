@@ -64,7 +64,10 @@ export function createMediaNotificationEmbed(
 
       fields.push({
         name: 'Episode',
-        value: `S${seasonNum}E${episodeNum}${episodeTitle}`,
+        value: truncate(
+          `S${seasonNum}E${episodeNum}${episodeTitle}`,
+          EMBED_FIELD_MAX,
+        ),
         inline: false,
       })
 
@@ -221,7 +224,7 @@ export function createDeleteSyncEmbed(
   if (summary.safetyMessage) {
     fields.push({
       name: 'Safety Reason',
-      value: summary.safetyMessage,
+      value: truncate(summary.safetyMessage, EMBED_FIELD_MAX),
       inline: false,
     })
   }
