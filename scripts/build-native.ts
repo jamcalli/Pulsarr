@@ -24,7 +24,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { resolve } from 'node:path'
-import packageJson from '../package.json'
+import packageJson from '../package.json' with { type: 'json' }
 
 const PROJECT_ROOT = resolve(import.meta.dirname, '..')
 const BUILD_DIR = resolve(PROJECT_ROOT, 'native-build')
