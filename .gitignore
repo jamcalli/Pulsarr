@@ -46,3 +46,4 @@ tmp/
 
 # test coverage
 coverage/
+.vitest/
