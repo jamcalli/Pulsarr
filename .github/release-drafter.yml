@@ -1,49 +1,51 @@
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
 categories:
-  - title: '🚀 Features'
-    labels:
-      - 'feature'
-      - 'enhancement'
-    exclude-labels:
-      - 'dependencies'
-      - 'deps'
-  - title: '🐛 Bug Fixes'
-    labels:
-      - 'fix'
-      - 'bugfix'
-      - 'bug'
-    exclude-labels:
-      - 'feature'
-      - 'enhancement'
-      - 'dependencies'
-      - 'deps'
-  - title: '⚡ Performance'
-    labels:
-      - 'performance'
-      - 'optimization'
-    exclude-labels:
-      - 'dependencies'
-      - 'deps'
-  - title: '🧰 Maintenance'
-    labels:
-      - 'chore'
-      - 'maintenance'
-      - 'documentation'
-    exclude-labels:
-      - 'dependencies'
-      - 'deps'
-      - 'feature'
-      - 'enhancement'
-      - 'fix'
-      - 'bugfix'
-      - 'bug'
-      - 'performance'
-      - 'optimization'
   - title: '🔄 Dependencies'
-    labels:
-      - 'dependencies'
-      - 'deps'
+    exclusive: true
+    when:
+      labels:
+        - 'dependencies'
+        - 'deps'
+  - title: '🚀 Features'
+    exclusive: true
+    semver-increment: minor
+    when:
+      labels:
+        - 'feature'
+        - 'enhancement'
+  - title: '🐛 Bug Fixes'
+    exclusive: true
+    when:
+      labels:
+        - 'fix'
+        - 'bugfix'
+        - 'bug'
+  - title: '⚡ Performance'
+    exclusive: true
+    when:
+      labels:
+        - 'performance'
+        - 'optimization'
+  - title: '🧰 Maintenance'
+    exclusive: true
+    when:
+      labels:
+        - 'chore'
+        - 'maintenance'
+        - 'documentation'
+  - type: version-resolver
+    semver-increment: major
+    when:
+      labels:
+        - 'major'
+        - 'breaking'
+  - type: version-resolver
+    semver-increment: minor
+    when:
+      label: 'minor'
+  - type: version-resolver
+    semver-increment: patch
 
 autolabeler:
   - label: 'feature'
@@ -60,9 +62,11 @@ autolabeler:
     title:
       - '/^chore(?!\(deps?\))(\(.+\))?[:/]/i'
       - '/^refactor(\(.+\))?[:/]/i'
+      - '/^ci(\(.+\))?[:/]/i'
     branch:
       - '/^chore\//'
       - '/^refactor\//'
+      - '/^ci\//'
   - label: 'documentation'
     title:
       - '/^docs?(\(.+\))?[:/]/i'
@@ -80,32 +84,11 @@ autolabeler:
     branch:
       - '/^renovate\//'
 
-version-resolver:
-  major:
-    labels:
-      - 'major'
-      - 'breaking'
-  minor:
-    labels:
-      - 'minor'
-      - 'feature'
-      - 'enhancement'
-  patch:
-    labels:
-      - 'patch'
-      - 'bug'
-      - 'bugfix'
-      - 'fix'
-      - 'maintenance'
-      - 'docs'
-      - 'dependencies'
-  default: patch
-
 template: |
   ## Changes
 
   $CHANGES
-  
+
   ## Docker
   ```
   docker pull lakker/pulsarr:$RESOLVED_VERSION
@@ -117,5 +100,5 @@ template: |
   ```
 
   ## Contributors
-  
+
   $CONTRIBUTORS
