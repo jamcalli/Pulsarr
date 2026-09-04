@@ -14,14 +14,12 @@ interface ShimStatement {
   all(...params: unknown[]): unknown[]
   bind(...params: unknown[]): ShimStatement
   raw(toggle?: boolean): ShimStatement
-  safeIntegers(toggle?: boolean): ShimStatement
 }
 
 interface ShimDatabase {
   prepare(sql: string): ShimStatement
   exec(sql: string): ShimDatabase
   close(): ShimDatabase
-  defaultSafeIntegers(toggle?: boolean): ShimDatabase
 }
 
 interface ShimDatabaseConstructor {
@@ -144,26 +142,9 @@ describe('better-sqlite3-bun shim', () => {
       expect(stmt.get()).toEqual({ a: 1, b: 2 })
       db.close()
     })
-
-    it('safeIntegers() returns bigints per statement', () => {
-      const db = new Database(':memory:')
-      const stmt = db.prepare('SELECT 9007199254740993 as big').safeIntegers()
-      expect(stmt.get()).toEqual({ big: 9007199254740993n })
-      db.close()
-    })
   })
 
   describe('database', () => {
-    it('defaultSafeIntegers() applies to subsequently prepared statements', () => {
-      const db = new Database(':memory:')
-      db.defaultSafeIntegers()
-      expect(db.prepare('SELECT 2 as x').get()).toEqual({ x: 2n })
-
-      db.defaultSafeIntegers(false)
-      expect(db.prepare('SELECT 2 as x').get()).toEqual({ x: 2 })
-      db.close()
-    })
-
     it('exec() and close() are chainable', () => {
       const db = new Database(':memory:')
       expect(db.exec('CREATE TABLE t (id INTEGER)')).toBe(db)
