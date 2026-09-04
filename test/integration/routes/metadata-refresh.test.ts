@@ -114,6 +114,20 @@ describe('POST /v1/metadata/refresh', () => {
     await waitForIdle()
   })
 
+  it('still returns 409 when one refresh has failed and the other is pending', async () => {
+    const stubs = stubWatchlists(app)
+
+    expect((await postRefresh()).statusCode).toBe(202)
+
+    stubs.self.reject(new Error('Plex unavailable'))
+    await Promise.resolve()
+
+    expect((await postRefresh()).statusCode).toBe(409)
+
+    stubs.others.resolve({ total: 0, users: [] })
+    await waitForIdle()
+  })
+
   it('clears the guard when the refresh fails', async () => {
     const failing = stubWatchlists(app)
 

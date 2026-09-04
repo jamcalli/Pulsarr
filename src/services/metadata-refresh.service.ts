@@ -58,13 +58,27 @@ export class MetadataRefreshService {
   private async runRefresh(): Promise<void> {
     this.log.info('Starting metadata refresh for all watchlist items')
 
-    const [selfWatchlistResult, othersWatchlistResult] = await Promise.all([
+    // Both refreshes must settle before the guard clears, or a retry overlaps the survivor
+    const [selfWatchlist, othersWatchlist] = await Promise.allSettled([
       this.plexWatchlist.getSelfWatchlist(true),
       this.plexWatchlist.getOthersWatchlists(true),
     ])
 
-    const totalSelfItems = selfWatchlistResult.total
-    const totalOthersItems = othersWatchlistResult.total
+    if (selfWatchlist.status === 'rejected') {
+      if (othersWatchlist.status === 'rejected') {
+        this.log.error(
+          { error: othersWatchlist.reason },
+          "Others' watchlist refresh failed",
+        )
+      }
+      throw selfWatchlist.reason
+    }
+    if (othersWatchlist.status === 'rejected') {
+      throw othersWatchlist.reason
+    }
+
+    const totalSelfItems = selfWatchlist.value.total
+    const totalOthersItems = othersWatchlist.value.total
     const totalItems = totalSelfItems + totalOthersItems
 
     this.log.info(

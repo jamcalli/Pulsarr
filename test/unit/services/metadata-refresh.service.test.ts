@@ -71,6 +71,20 @@ describe('MetadataRefreshService', () => {
     expect(getOthersWatchlists).toHaveBeenCalledTimes(2)
   })
 
+  it('keeps the guard while one refresh has failed and the other is pending', async () => {
+    service.start()
+
+    self.reject(new Error('Plex unavailable'))
+    await Promise.resolve()
+
+    expect(service.isRunning()).toBe(true)
+    expect(service.start()).toBe(false)
+
+    others.resolve({ total: 0, users: [] })
+    await waitForIdle()
+    expect(getSelfWatchlist).toHaveBeenCalledTimes(1)
+  })
+
   it('clears the guard once the refresh rejects', async () => {
     service.start()
 
