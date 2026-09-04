@@ -72,7 +72,6 @@ const ITEM: WatchlistItemInfo = {
 
 describe('sendWatchlistAdded channel gating', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
     clearUserCanSyncCache()
   })
 

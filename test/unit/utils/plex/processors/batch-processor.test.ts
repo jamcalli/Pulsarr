@@ -19,7 +19,6 @@ describe('plex/processors/batch-processor', () => {
   } as Config
 
   beforeEach(() => {
-    vi.clearAllMocks()
     PlexRateLimiter.getInstance().reset()
   })
 

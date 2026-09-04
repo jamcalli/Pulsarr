@@ -95,7 +95,6 @@ describe('TMDB metadata routes', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
     app.config.authenticationMethod = 'disabled'

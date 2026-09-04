@@ -3,19 +3,17 @@ import {
   clearWebhookCacheForTests,
   isWebhookProcessable,
 } from '@utils/notifications/webhook-validator.js'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 
 describe('webhook-validator', () => {
   const mockLogger = createMockLogger()
 
   beforeEach(() => {
-    vi.clearAllMocks()
     clearWebhookCacheForTests()
   })
 
   afterEach(() => {
-    vi.clearAllMocks()
     clearWebhookCacheForTests()
   })
 

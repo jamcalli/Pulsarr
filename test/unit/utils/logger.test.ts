@@ -196,10 +196,6 @@ describe('logger', () => {
     // We need to test the serializer indirectly through logger config
     // since it's not exported. We'll import it differently for testing.
 
-    beforeEach(() => {
-      vi.clearAllMocks()
-    })
-
     describe('primitive value handling', () => {
       it('should serialize string errors', async () => {
         // Import the internal function for testing
@@ -602,7 +598,6 @@ describe('logger', () => {
 
   describe('createLoggerConfig', () => {
     beforeEach(() => {
-      vi.clearAllMocks()
       delete process.env.enableConsoleOutput
     })
 

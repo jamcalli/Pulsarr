@@ -37,7 +37,6 @@ describe('routeEnrichedItemsForUser exclusion gate', () => {
   let deps: ContentRoutingDeps
 
   beforeEach(() => {
-    vi.clearAllMocks()
     exclusionMap = new Map()
 
     const db = {

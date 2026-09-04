@@ -29,7 +29,6 @@ describe('content-validator', () => {
       isAnyGuidTracked: vi.fn(() => true),
       isAnyGuidProtected: vi.fn(() => false),
     }
-    vi.clearAllMocks()
   })
 
   describe('validateWatchlistDeletion', () => {

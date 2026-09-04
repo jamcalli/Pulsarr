@@ -8,7 +8,6 @@ import {
   describe,
   expect,
   it,
-  vi,
 } from 'vitest'
 import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
@@ -35,7 +34,6 @@ describe('progress stream', { timeout: 30_000 }, () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
     app.config.authenticationMethod = 'disabled'
