@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 export const MetadataRefreshAcceptedResponseSchema = z
   .object({
-    success: z.literal(true),
+    success: z.boolean(),
     message: z.string(),
   })
   .meta({

@@ -3537,8 +3537,7 @@ export interface components {
         };
         /** @description The metadata refresh was started in the background. */
         MetadataRefreshAccepted: {
-            /** @constant */
-            success: true;
+            success: boolean;
             message: string;
         };
         /**

@@ -30,10 +30,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         fastify.metadataRefresh.start()
 
-        reply.code(202)
+        reply.status(202)
 
         return {
-          success: true as const,
+          success: true,
           message: 'Metadata refresh started',
         }
       } catch (error) {

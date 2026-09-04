@@ -1904,8 +1904,7 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean",
-            "const": true
+            "type": "boolean"
           },
           "message": {
             "type": "string"
