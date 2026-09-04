@@ -40,7 +40,6 @@ describe('Webhook Sync → Workflow Integration', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })

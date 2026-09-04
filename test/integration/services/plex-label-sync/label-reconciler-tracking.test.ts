@@ -39,7 +39,6 @@ describe('Label Reconciler → Content Tracker Integration', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })

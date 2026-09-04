@@ -123,7 +123,6 @@ describe('routeContent gates', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     const knex = getTestDatabase()
     await resetDatabase()
     await seedConfig(knex)

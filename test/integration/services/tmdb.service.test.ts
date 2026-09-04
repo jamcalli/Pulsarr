@@ -37,7 +37,6 @@ describe('TmdbService Integration', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
     fastify.tmdb.clearProviderCache()

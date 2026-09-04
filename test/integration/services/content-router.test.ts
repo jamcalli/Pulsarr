@@ -8,7 +8,6 @@ import {
   describe,
   expect,
   it,
-  vi,
 } from 'vitest'
 import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
@@ -44,7 +43,6 @@ describe('ContentRouterService Integration', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     const knex = getTestDatabase()
     await resetDatabase()
     await seedConfig(knex)

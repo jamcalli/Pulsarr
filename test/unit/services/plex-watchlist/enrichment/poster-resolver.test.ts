@@ -58,7 +58,6 @@ describe('resolveTmdbPosters', () => {
   let deps: PosterResolverDeps
 
   beforeEach(() => {
-    vi.clearAllMocks()
     getPosterPath = vi.fn<TmdbService['getPosterPath']>()
     getPosterPath.mockResolvedValue('/resolved.jpg')
     isConfigured = vi.fn<TmdbService['isConfigured']>()

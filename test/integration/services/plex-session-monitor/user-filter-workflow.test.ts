@@ -47,7 +47,6 @@ describe('Session Monitoring → User Filter Integration', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })

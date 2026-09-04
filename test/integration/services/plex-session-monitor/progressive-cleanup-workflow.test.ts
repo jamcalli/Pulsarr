@@ -45,7 +45,6 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })
