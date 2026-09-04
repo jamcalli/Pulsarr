@@ -1,31 +1,19 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
-    "allowJs": false,
-    "allowSyntheticDefaultImports": true,
-    "composite": true,
-    "lib": ["es2022"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "composite": true,
     "noEmit": false,
     "outDir": "dist",
-    "removeComments": true,
     "rootDir": "src",
-    "skipLibCheck": true,
     "sourceMap": true,
-    "strict": true,
-    "target": "es2022",
+    "removeComments": true,
     "paths": {
       "@root/*": ["./src/*"],
-      "@db/*": ["./src/db/*"],
-      "@routes/*": ["./src/routes/*"],
       "@utils/*": ["./src/utils/*"],
-      "@plex/*": ["./src/plex/*"],
-      "@shared/*": ["./src/shared/*"],
-      "@data/*": ["./src/data/*"],
       "@schemas/*": ["./src/schemas/*"],
-      "@services/*": ["./src/services/*"],
-      "@/*": ["./src/client/*"]
+      "@services/*": ["./src/services/*"]
     }
   },
   "include": ["src/**/*", "config"],

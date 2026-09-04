@@ -4,8 +4,8 @@
     "composite": false,
     "noEmit": true,
     "rootDir": "..",
-    "sourceMap": false
+    "sourceMap": false,
+    "types": ["bun-types"]
   },
-  "include": ["**/*", "../src/**/*"],
-  "exclude": ["../src/client/**/*"]
+  "include": ["**/*"]
 }

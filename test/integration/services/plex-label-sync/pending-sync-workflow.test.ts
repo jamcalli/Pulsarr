@@ -404,7 +404,7 @@ describe('Pending Sync → Workflow Integration', () => {
       await knex.raw('PRAGMA foreign_keys = ON')
 
       // Process pending syncs
-      const _result = await processPendingLabelSyncs({
+      await processPendingLabelSyncs({
         plexServer: app.plexServerService,
         db: app.db,
         logger: app.log,

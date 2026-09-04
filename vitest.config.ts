@@ -54,19 +54,11 @@ export default defineConfig({
     },
   },
   resolve: {
+    // Must stay in lockstep with the `paths` in tsconfig.json
     alias: [
-      // Map .js imports to .ts files for path aliases
       {
         find: /^@root\/(.*)\.js$/,
         replacement: path.resolve(__dirname, './src/$1.ts'),
-      },
-      {
-        find: /^@services\/(.*)\.js$/,
-        replacement: path.resolve(__dirname, './src/services/$1.ts'),
-      },
-      {
-        find: /^@plugins\/(.*)\.js$/,
-        replacement: path.resolve(__dirname, './src/plugins/$1.ts'),
       },
       {
         find: /^@utils\/(.*)\.js$/,
@@ -77,25 +69,19 @@ export default defineConfig({
         replacement: path.resolve(__dirname, './src/schemas/$1.ts'),
       },
       {
-        find: /^@types\/(.*)\.js$/,
-        replacement: path.resolve(__dirname, './src/types/$1.ts'),
+        find: /^@services\/(.*)\.js$/,
+        replacement: path.resolve(__dirname, './src/services/$1.ts'),
       },
-      // Regular aliases without .js extension
       { find: '@root', replacement: path.resolve(__dirname, './src') },
-      {
-        find: '@services',
-        replacement: path.resolve(__dirname, './src/services'),
-      },
-      {
-        find: '@plugins',
-        replacement: path.resolve(__dirname, './src/plugins'),
-      },
       { find: '@utils', replacement: path.resolve(__dirname, './src/utils') },
       {
         find: '@schemas',
         replacement: path.resolve(__dirname, './src/schemas'),
       },
-      { find: '@types', replacement: path.resolve(__dirname, './src/types') },
+      {
+        find: '@services',
+        replacement: path.resolve(__dirname, './src/services'),
+      },
     ],
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
   },

@@ -476,7 +476,7 @@ describe('tag-cache', () => {
       const regex1a = tagCache.getCompiledRegex(pattern1)
 
       // Switch to pattern2
-      const _regex2 = tagCache.getCompiledRegex(pattern2)
+      tagCache.getCompiledRegex(pattern2)
 
       // Switch back to pattern1
       const regex1b = tagCache.getCompiledRegex(pattern1)
