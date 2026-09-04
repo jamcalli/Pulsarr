@@ -2,18 +2,21 @@ import type { AppriseSchemaFormatMap } from '@root/types/apprise.types.js'
 import type { NotificationUser } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
+  ApprovalNotification,
   MediaNotification,
-  SystemNotification,
+  UpdateAvailableRelease,
+  WatchlistAdditionNotification,
+  WatchlistCapNotification,
 } from '@root/types/discord.types.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   type AppriseDeps,
   isAppriseEnabled as checkAppriseEnabled,
   pingAppriseServer,
+  sendApprovalNotification as sendApproval,
   sendDeleteSyncNotification as sendDeleteSync,
   sendMediaNotification as sendMedia,
   sendPublicNotification as sendPublic,
-  sendSystemNotification as sendSystem,
   sendTestNotification as sendTest,
   sendUpdateAvailableNotification as sendUpdateAvailable,
   sendUserWatchlistCapNotification as sendUserWatchlistCap,
@@ -72,10 +75,10 @@ export class AppriseService {
     return sendMedia(user, notification, this.appriseDeps)
   }
 
-  async sendSystemNotification(
-    notification: SystemNotification,
+  async sendApprovalNotification(
+    notification: ApprovalNotification,
   ): Promise<boolean> {
-    return sendSystem(notification, this.appriseDeps)
+    return sendApproval(notification, this.appriseDeps)
   }
 
   async sendDeleteSyncNotification(
@@ -85,48 +88,27 @@ export class AppriseService {
     return sendDeleteSync(results, dryRun, this.appriseDeps)
   }
 
-  async sendUpdateAvailableNotification(release: {
-    currentVersion: string
-    latestVersion: string
-    releaseUrl: string
-    releaseName: string | null
-    releaseBody: string | null
-    releaseBodyHtml: string | null
-    publishedAt: string | null
-  }): Promise<boolean> {
+  async sendUpdateAvailableNotification(
+    release: UpdateAvailableRelease,
+  ): Promise<boolean> {
     return sendUpdateAvailable(release, this.appriseDeps)
   }
 
-  async sendWatchlistAdditionNotification(item: {
-    title: string
-    type: string
-    addedBy: {
-      name: string
-      alias?: string | null
-    }
-    posterUrl?: string
-    tmdbUrl?: string
-  }): Promise<boolean> {
+  async sendWatchlistAdditionNotification(
+    item: WatchlistAdditionNotification,
+  ): Promise<boolean> {
     return sendWatchlistAddition(item, this.appriseDeps)
   }
 
-  async sendWatchlistCapNotification(event: {
-    userName: string
-    contentType: string
-    currentCount: number
-    cap: number
-  }): Promise<boolean> {
+  async sendWatchlistCapNotification(
+    event: WatchlistCapNotification,
+  ): Promise<boolean> {
     return sendWatchlistCap(event, this.appriseDeps)
   }
 
   async sendUserWatchlistCapNotification(
     user: NotificationUser,
-    event: {
-      userName: string
-      contentType: string
-      currentCount: number
-      cap: number
-    },
+    event: WatchlistCapNotification,
   ): Promise<boolean> {
     return sendUserWatchlistCap(user, event, this.appriseDeps)
   }

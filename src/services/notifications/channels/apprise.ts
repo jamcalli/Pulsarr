@@ -1,10 +1,3 @@
-/**
- * Apprise Channel
- *
- * Pure functions for sending Apprise notifications.
- * No state, no class dependencies - just HTTP POST to Apprise container.
- */
-
 import type {
   AppriseMessageType,
   AppriseNotification,
@@ -13,8 +6,11 @@ import type {
 import type { NotificationUser } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
+  ApprovalNotification,
   MediaNotification,
-  SystemNotification,
+  UpdateAvailableRelease,
+  WatchlistAdditionNotification,
+  WatchlistCapNotification,
 } from '@root/types/discord.types.js'
 import {
   getPublicContentUrls,
@@ -22,9 +18,9 @@ import {
 } from '@root/utils/notifications/index.js'
 import type { FastifyBaseLogger } from 'fastify'
 import {
+  createApprovalNotificationHtml,
   createDeleteSyncNotificationHtml,
   createMediaNotificationHtml,
-  createSystemNotificationHtml,
   createTestNotificationHtml,
   createUpdateAvailableNotificationHtml,
   createWatchlistAdditionHtml,
@@ -74,7 +70,7 @@ async function sendAppriseNotificationBatch(
       return false
     }
 
-    // Conditionally exclude attachment for email services (they render via <img> tags)
+    // Email services render the poster from the HTML body, so their batches drop the attachment
     const { attachment, ...notificationWithoutAttachment } = notification
     const notificationFields = includeAttachment
       ? notification
@@ -127,10 +123,6 @@ async function sendAppriseNotificationBatch(
   }
 }
 
-/**
- * Analyzes target URLs to determine native format, groups by format,
- * and sends appropriate body (HTML or text) to each group in parallel.
- */
 export async function sendAppriseNotification(
   targetUrl: string,
   notification: AppriseNotification,
@@ -159,7 +151,6 @@ export async function sendAppriseNotification(
       ...commonFields
     } = notification
 
-    // If no format cache, fall back to legacy behavior (send HTML if available, include attachments)
     if (!schemaFormatCache || schemaFormatCache.size === 0) {
       log.debug(
         'No schema format cache available, using legacy HTML-preferred behavior',
@@ -172,7 +163,7 @@ export async function sendAppriseNotification(
         format,
         commonFields,
         deps,
-        true, // Include attachments in legacy mode
+        true,
       )
     }
 
@@ -225,6 +216,41 @@ export async function sendAppriseNotification(
   }
 }
 
+// A plain email target resolves against the admin email sender URL with ?to=
+async function deliver(
+  rawTarget: string | undefined,
+  label: string,
+  build: () => AppriseNotification,
+  deps: AppriseDeps,
+): Promise<boolean> {
+  const { log, config } = deps
+
+  if (!isAppriseEnabled(deps)) {
+    return false
+  }
+
+  try {
+    const targetUrl = resolveAppriseUrls(
+      rawTarget || '',
+      config.appriseEmailSender,
+    )
+    if (!targetUrl) {
+      log.debug(
+        `Apprise URL not configured or could not be resolved, skipping ${label}`,
+      )
+      return false
+    }
+
+    return await sendAppriseNotification(targetUrl, build(), deps)
+  } catch (error) {
+    log.error(
+      { error: error instanceof Error ? error : new Error(String(error)) },
+      `Error sending ${label}`,
+    )
+    return false
+  }
+}
+
 export async function sendPublicNotification(
   notification: MediaNotification,
   deps: AppriseDeps,
@@ -240,7 +266,6 @@ export async function sendPublicNotification(
   )
 
   if (appriseUrls.length === 0) {
-    // Check if config has values that were rejected during parsing
     const configuredUrls =
       notification.type === 'movie'
         ? (publicConfig.appriseUrlsMovies ?? publicConfig.appriseUrls)
@@ -274,16 +299,12 @@ export async function sendPublicNotification(
   return await sendMediaNotification(publicNotificationUser, notification, deps)
 }
 
-/**
- * Plain email values in `user.apprise` are resolved against the admin's
- * email sender URL with `?to=` so users can enter just an address.
- */
 export async function sendMediaNotification(
   user: NotificationUser,
   notification: MediaNotification,
   deps: AppriseDeps,
 ): Promise<boolean> {
-  const { log, config } = deps
+  const { log } = deps
 
   if (!isAppriseEnabled(deps) || !user.apprise) {
     return false
@@ -296,162 +317,80 @@ export async function sendMediaNotification(
     return false
   }
 
-  const targetUrl = resolveAppriseUrls(user.apprise, config.appriseEmailSender)
-  if (!targetUrl) {
-    log.debug(
-      { userId: user.id, apprise: user.apprise },
-      'Could not resolve apprise URL (plain email without admin sender configured?)',
+  const success = await deliver(
+    user.apprise,
+    `media notification to user ${user.name}`,
+    () => {
+      const { htmlBody, textBody, title } =
+        createMediaNotificationHtml(notification)
+      return {
+        title,
+        body: textBody,
+        type: 'info',
+        format: 'text',
+        body_html: htmlBody,
+        ...(notification.posterUrl
+          ? { attachment: notification.posterUrl }
+          : {}),
+      }
+    },
+    deps,
+  )
+
+  if (success) {
+    log.info(
+      `Apprise notification sent successfully to ${user.alias || user.name} for "${notification.title}"`,
     )
-    return false
   }
 
-  try {
-    const { htmlBody, textBody, title } =
-      createMediaNotificationHtml(notification)
-
-    const appriseNotification: AppriseNotification = {
-      title,
-      body: textBody,
-      type: 'info',
-      format: 'text',
-      body_html: htmlBody,
-    }
-
-    if (notification.posterUrl) {
-      appriseNotification.attachment = notification.posterUrl
-    }
-
-    const success = await sendAppriseNotification(
-      targetUrl,
-      appriseNotification,
-      deps,
-    )
-
-    if (success) {
-      log.info(
-        `Apprise notification sent successfully to ${user.alias || user.name} for "${notification.title}"`,
-      )
-    }
-
-    return success
-  } catch (error) {
-    log.error(
-      { error: error instanceof Error ? error : new Error(String(error)) },
-      `Error sending media notification to user ${user.name}`,
-    )
-    return false
-  }
+  return success
 }
 
-export async function sendSystemNotification(
-  notification: SystemNotification,
+export async function sendApprovalNotification(
+  notification: ApprovalNotification,
   deps: AppriseDeps,
 ): Promise<boolean> {
-  const { log, config } = deps
-
-  if (!isAppriseEnabled(deps)) {
-    return false
-  }
-
-  try {
-    // Resolve system URL (handles plain email addresses)
-    const systemUrl = resolveAppriseUrls(
-      config.systemAppriseUrl || '',
-      config.appriseEmailSender,
-    )
-    if (!systemUrl) {
-      log.debug(
-        'System Apprise URL not configured or could not be resolved, skipping system notification',
-      )
-      return false
-    }
-
-    let type: AppriseMessageType = 'info'
-
-    const hasSafetyField = notification.embedFields.some(
-      (field) => field.name === 'Safety Reason',
-    )
-    const isSafetyTriggered = notification.title.includes('Safety Triggered')
-    const hasTriggeredProperty =
-      'safetyTriggered' in notification && notification.safetyTriggered === true
-
-    if (hasSafetyField || isSafetyTriggered || hasTriggeredProperty) {
-      type = 'failure'
-    }
-
-    const { htmlBody, textBody } = createSystemNotificationHtml(notification)
-
-    const appriseNotification: AppriseNotification = {
-      title: notification.title,
-      body: textBody,
-      type,
-      format: 'text',
-      body_html: htmlBody,
-    }
-
-    if (notification.posterUrl) {
-      appriseNotification.attachment = notification.posterUrl
-    }
-
-    return await sendAppriseNotification(systemUrl, appriseNotification, deps)
-  } catch (error) {
-    log.error(
-      { error: error instanceof Error ? error : new Error(String(error)) },
-      'Error sending system notification',
-    )
-    return false
-  }
+  return deliver(
+    deps.config.systemAppriseUrl,
+    'approval notification',
+    () => {
+      const { htmlBody, textBody } =
+        createApprovalNotificationHtml(notification)
+      return {
+        title: notification.title,
+        body: textBody,
+        type: 'info',
+        format: 'text',
+        body_html: htmlBody,
+        ...(notification.posterUrl
+          ? { attachment: notification.posterUrl }
+          : {}),
+      }
+    },
+    deps,
+  )
 }
 
 export async function sendUpdateAvailableNotification(
-  release: {
-    currentVersion: string
-    latestVersion: string
-    releaseUrl: string
-    releaseName: string | null
-    releaseBody: string | null
-    releaseBodyHtml: string | null
-    publishedAt: string | null
-  },
+  release: UpdateAvailableRelease,
   deps: AppriseDeps,
 ): Promise<boolean> {
-  const { log, config } = deps
-
-  if (!isAppriseEnabled(deps)) {
-    return false
-  }
-
-  try {
-    const systemUrl = resolveAppriseUrls(
-      config.systemAppriseUrl || '',
-      config.appriseEmailSender,
-    )
-    if (!systemUrl) {
-      log.debug(
-        'System Apprise URL not configured or could not be resolved, skipping update-available notification',
-      )
-      return false
-    }
-
-    const { htmlBody, textBody, title } =
-      createUpdateAvailableNotificationHtml(release)
-
-    const appriseNotification: AppriseNotification = {
-      title,
-      body: textBody,
-      type: 'info',
-      format: 'text',
-      body_html: htmlBody,
-    }
-
-    return await sendAppriseNotification(systemUrl, appriseNotification, deps)
-  } catch (error) {
-    log.error(
-      { error: error instanceof Error ? error : new Error(String(error)) },
-      'Error sending update-available Apprise notification',
-    )
-    return false
-  }
+  return deliver(
+    deps.config.systemAppriseUrl,
+    'update-available notification',
+    () => {
+      const { htmlBody, textBody, title } =
+        createUpdateAvailableNotificationHtml(release)
+      return {
+        title,
+        body: textBody,
+        type: 'info',
+        format: 'text',
+        body_html: htmlBody,
+      }
+    },
+    deps,
+  )
 }
 
 export async function sendDeleteSyncNotification(
@@ -459,113 +398,60 @@ export async function sendDeleteSyncNotification(
   dryRun: boolean,
   deps: AppriseDeps,
 ): Promise<boolean> {
-  const { log, config } = deps
+  return deliver(
+    deps.config.systemAppriseUrl,
+    'delete sync notification',
+    () => {
+      let type: AppriseMessageType = 'success'
+      if (results.safetyTriggered) {
+        type = 'failure'
+      } else if (dryRun) {
+        type = 'info'
+      }
 
-  if (!isAppriseEnabled(deps)) {
-    return false
-  }
-
-  try {
-    // Resolve system URL (handles plain email addresses)
-    const systemUrl = resolveAppriseUrls(
-      config.systemAppriseUrl || '',
-      config.appriseEmailSender,
-    )
-    if (!systemUrl) {
-      log.debug(
-        'System Apprise URL not configured or could not be resolved, skipping delete sync notification',
+      const { htmlBody, textBody, title } = createDeleteSyncNotificationHtml(
+        results,
+        dryRun,
       )
-      return false
-    }
-
-    let type: AppriseMessageType = 'success'
-    if (results.safetyTriggered) {
-      type = 'failure'
-    } else if (dryRun) {
-      type = 'info'
-    }
-
-    const { htmlBody, textBody, title } = createDeleteSyncNotificationHtml(
-      results,
-      dryRun,
-    )
-
-    const appriseNotification: AppriseNotification = {
-      title,
-      body: textBody,
-      type,
-      format: 'text',
-      body_html: htmlBody,
-    }
-
-    return await sendAppriseNotification(systemUrl, appriseNotification, deps)
-  } catch (error) {
-    log.error(
-      { error: error instanceof Error ? error : new Error(String(error)) },
-      'Error sending delete sync notification',
-    )
-    return false
-  }
+      return {
+        title,
+        body: textBody,
+        type,
+        format: 'text',
+        body_html: htmlBody,
+      }
+    },
+    deps,
+  )
 }
 
 export async function sendWatchlistCapNotification(
-  event: {
-    userName: string
-    contentType: string
-    currentCount: number
-    cap: number
-  },
+  event: WatchlistCapNotification,
   deps: AppriseDeps,
 ): Promise<boolean> {
-  const { log, config } = deps
-
-  if (!isAppriseEnabled(deps)) {
-    return false
-  }
-
-  try {
-    const systemUrl = resolveAppriseUrls(
-      config.systemAppriseUrl || '',
-      config.appriseEmailSender,
-    )
-    if (!systemUrl) {
-      log.debug(
-        'System Apprise URL not configured or could not be resolved, skipping watchlist cap notification',
-      )
-      return false
-    }
-
-    const { htmlBody, textBody } = createWatchlistCapNotificationHtml(event)
-
-    const appriseNotification: AppriseNotification = {
-      title: 'Watchlist Cap Reached',
-      body: textBody,
-      type: 'warning',
-      format: 'text',
-      body_html: htmlBody,
-    }
-
-    return await sendAppriseNotification(systemUrl, appriseNotification, deps)
-  } catch (error) {
-    log.error(
-      { error: error instanceof Error ? error : new Error(String(error)) },
-      'Error sending watchlist cap Apprise notification',
-    )
-    return false
-  }
+  return deliver(
+    deps.config.systemAppriseUrl,
+    'watchlist cap notification',
+    () => {
+      const { htmlBody, textBody } = createWatchlistCapNotificationHtml(event)
+      return {
+        title: 'Watchlist Cap Reached',
+        body: textBody,
+        type: 'warning',
+        format: 'text',
+        body_html: htmlBody,
+      }
+    },
+    deps,
+  )
 }
 
 export async function sendUserWatchlistCapNotification(
   user: NotificationUser,
-  event: {
-    userName: string
-    contentType: string
-    currentCount: number
-    cap: number
-  },
+  event: WatchlistCapNotification,
   deps: AppriseDeps,
 ): Promise<boolean> {
-  const { log, config } = deps
+  const { log } = deps
 
   if (!isAppriseEnabled(deps) || !user.apprise) {
     return false
@@ -578,162 +464,106 @@ export async function sendUserWatchlistCapNotification(
     return false
   }
 
-  const targetUrl = resolveAppriseUrls(user.apprise, config.appriseEmailSender)
-  if (!targetUrl) {
-    log.debug(
-      { userId: user.id, apprise: user.apprise },
-      'Could not resolve apprise URL for watchlist cap notification',
+  const success = await deliver(
+    user.apprise,
+    `watchlist cap notification to user ${user.name}`,
+    () => {
+      const { htmlBody, textBody } = createWatchlistCapNotificationHtml(event)
+      return {
+        title: 'Watchlist Cap Reached',
+        body: textBody,
+        type: 'warning',
+        format: 'text',
+        body_html: htmlBody,
+      }
+    },
+    deps,
+  )
+
+  if (success) {
+    log.info(
+      `Watchlist cap Apprise notification sent to ${user.alias || user.name}`,
     )
-    return false
   }
+
+  return success
+}
+
+async function resolveAddedByName(
+  addedBy: WatchlistAdditionNotification['addedBy'],
+  deps: AppriseDeps,
+): Promise<string> {
+  if (addedBy.alias) return addedBy.alias
+  if (!deps.lookupUserAlias) return addedBy.name
 
   try {
-    const { htmlBody, textBody } = createWatchlistCapNotificationHtml(event)
-
-    const appriseNotification: AppriseNotification = {
-      title: 'Watchlist Cap Reached',
-      body: textBody,
-      type: 'warning',
-      format: 'text',
-      body_html: htmlBody,
-    }
-
-    const success = await sendAppriseNotification(
-      targetUrl,
-      appriseNotification,
-      deps,
-    )
-
-    if (success) {
-      log.info(
-        `Watchlist cap Apprise notification sent to ${user.alias || user.name}`,
+    const alias = await deps.lookupUserAlias(addedBy.name)
+    if (alias) {
+      deps.log.debug(
+        `Using alias "${alias}" instead of username "${addedBy.name}" for Apprise notification`,
       )
+      return alias
     }
-
-    return success
   } catch (error) {
-    log.error(
+    deps.log.error(
       { error: error instanceof Error ? error : new Error(String(error)) },
-      `Error sending watchlist cap notification to user ${user.name}`,
+      'Error looking up user alias for Apprise notification',
     )
-    return false
   }
+
+  return addedBy.name
 }
 
 export async function sendWatchlistAdditionNotification(
-  item: {
-    title: string
-    type: string
-    addedBy: {
-      name: string
-      alias?: string | null
-    }
-    posterUrl?: string
-    tmdbUrl?: string
-  },
+  item: WatchlistAdditionNotification,
   deps: AppriseDeps,
 ): Promise<boolean> {
-  const { log, config } = deps
-
   if (!isAppriseEnabled(deps)) {
     return false
   }
 
-  try {
-    // Resolve system URL (handles plain email addresses)
-    const systemUrl = resolveAppriseUrls(
-      config.systemAppriseUrl || '',
-      config.appriseEmailSender,
-    )
-    if (!systemUrl) {
-      log.debug(
-        'System Apprise URL not configured or could not be resolved, skipping watchlist addition notification',
-      )
-      return false
-    }
+  const displayName = await resolveAddedByName(item.addedBy, deps)
 
-    let displayName = item.addedBy.name
-    if (item.addedBy.alias) {
-      displayName = item.addedBy.alias
-    } else if (deps.lookupUserAlias) {
-      try {
-        const alias = await deps.lookupUserAlias(item.addedBy.name)
-        if (alias) {
-          displayName = alias
-          log.debug(
-            `Using alias "${displayName}" instead of username "${item.addedBy.name}" for Apprise notification`,
-          )
-        }
-      } catch (error) {
-        log.error(
-          { error: error instanceof Error ? error : new Error(String(error)) },
-          'Error looking up user alias for Apprise notification',
-        )
+  return deliver(
+    deps.config.systemAppriseUrl,
+    'watchlist addition notification',
+    () => {
+      const { htmlBody, textBody, title } = createWatchlistAdditionHtml({
+        ...item,
+        displayName,
+      })
+      return {
+        title: title || 'New Media Added',
+        body: textBody,
+        type: 'info',
+        format: 'text',
+        body_html: htmlBody,
+        ...(item.posterUrl ? { attachment: item.posterUrl } : {}),
       }
-    }
-
-    const { htmlBody, textBody, title } = createWatchlistAdditionHtml({
-      ...item,
-      displayName,
-    })
-
-    const appriseNotification: AppriseNotification = {
-      title: title || 'New Media Added',
-      body: textBody,
-      type: 'info',
-      format: 'text',
-      body_html: htmlBody,
-    }
-
-    if (item.posterUrl) {
-      appriseNotification.attachment = item.posterUrl
-    }
-
-    return await sendAppriseNotification(systemUrl, appriseNotification, deps)
-  } catch (error) {
-    log.error(
-      { error: error instanceof Error ? error : new Error(String(error)) },
-      'Error sending watchlist addition notification',
-    )
-    return false
-  }
+    },
+    deps,
+  )
 }
 
 export async function sendTestNotification(
   targetUrl: string,
   deps: AppriseDeps,
 ): Promise<boolean> {
-  const { log, config } = deps
-
-  try {
-    // Resolve target URL (handles plain email addresses)
-    const resolvedUrl = resolveAppriseUrls(targetUrl, config.appriseEmailSender)
-    if (!resolvedUrl) {
-      log.debug(
-        { targetUrl },
-        'Could not resolve test notification URL (plain email without admin sender configured?)',
-      )
-      return false
-    }
-
-    const { htmlBody, textBody, title } = createTestNotificationHtml()
-
-    const notification: AppriseNotification = {
-      title,
-      body: textBody,
-      type: 'info',
-      format: 'text',
-      body_html: htmlBody,
-    }
-
-    return await sendAppriseNotification(resolvedUrl, notification, deps)
-  } catch (error) {
-    log.error(
-      { error: error instanceof Error ? error : new Error(String(error)) },
-      'Error sending test notification',
-    )
-    return false
-  }
+  return deliver(
+    targetUrl,
+    'test notification',
+    () => {
+      const { htmlBody, textBody, title } = createTestNotificationHtml()
+      return {
+        title,
+        body: textBody,
+        type: 'info',
+        format: 'text',
+        body_html: htmlBody,
+      }
+    },
+    deps,
+  )
 }
 
 export async function pingAppriseServer(url: string): Promise<boolean> {

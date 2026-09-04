@@ -1,82 +1,84 @@
-/**
- * Discord Embed Templates
- *
- * Pure functions for building Discord embed payloads.
- * These create consistent formatting across all Discord notifications.
- */
-
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
   DiscordEmbed,
   DiscordWebhookPayload,
   MediaNotification,
+  UpdateAvailableRelease,
 } from '@root/types/discord.types.js'
+import {
+  type DeleteSyncSection,
+  summarizeDeleteSync,
+} from './delete-sync-summary.js'
+import { mediaTypeLabel } from './media-type.js'
+import { isSafetyNotification } from './system-notification.js'
 
-/** Default embed color - Pulsarr teal */
 export const EMBED_COLOR = 0x48a9a6
 
-/** Red color for errors/warnings */
 export const COLOR_RED = 0xff0000
 
-/** Green color for success */
 export const COLOR_GREEN = 0x00ff00
 
-/**
- * Creates a media notification embed with consistent formatting.
- * Used for both public channel posts and direct messages.
- */
+const EMBED_TITLE_MAX = 256
+const EMBED_FIELD_MAX = 1024
+const EMBED_DESCRIPTION_MAX = 4096
+const DELETE_SYNC_ITEM_MAX = 90
+
+type EmbedField = { name: string; value: string; inline?: boolean }
+
+function truncate(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, Math.max(0, max - 3))}...` : text
+}
+
+function tmdbField(url: string): EmbedField {
+  return {
+    name: 'More Info',
+    value: `[View on TMDB](${url})`,
+    inline: true,
+  }
+}
+
 export function createMediaNotificationEmbed(
   notification: MediaNotification,
 ): DiscordEmbed {
   const emoji = notification.type === 'movie' ? '🎬' : '📺'
   let description: string
-  const fields: Array<{ name: string; value: string; inline?: boolean }> = []
+  const fields: EmbedField[] = []
 
   if (notification.type === 'show' && notification.episodeDetails) {
     const { episodeDetails } = notification
 
-    // Check if it's a single episode (has episode number) or bulk release
     if (
       episodeDetails.episodeNumber !== undefined &&
       episodeDetails.seasonNumber !== undefined
     ) {
-      // Single episode release
       description = `New episode available for ${notification.title}! ${emoji}`
 
-      // Format season and episode numbers with padding
       const seasonNum = episodeDetails.seasonNumber.toString().padStart(2, '0')
       const episodeNum = episodeDetails.episodeNumber
         .toString()
         .padStart(2, '0')
 
-      // Create episode identifier
-      const episodeId = `S${seasonNum}E${episodeNum}`
-
-      // Add episode title if available
       const episodeTitle = episodeDetails.title
-        ? ` - ${episodeDetails.title}`
+        ? ` - "${episodeDetails.title}"`
         : ''
 
       fields.push({
         name: 'Episode',
-        value: `${episodeId}${episodeTitle}`,
+        value: truncate(
+          `S${seasonNum}E${episodeNum}${episodeTitle}`,
+          EMBED_FIELD_MAX,
+        ),
         inline: false,
       })
 
-      // Add overview if available
       if (episodeDetails.overview) {
-        const overview =
-          episodeDetails.overview.length > 1024
-            ? `${episodeDetails.overview.slice(0, 1021)}...`
-            : episodeDetails.overview
         fields.push({
           name: 'Overview',
-          value: overview,
+          value: truncate(episodeDetails.overview, EMBED_FIELD_MAX),
           inline: false,
         })
       }
 
-      // Add air date if available
       if (episodeDetails.airDateUtc) {
         fields.push({
           name: 'Air Date',
@@ -85,7 +87,6 @@ export function createMediaNotificationEmbed(
         })
       }
     } else if (episodeDetails.seasonNumber !== undefined) {
-      // Bulk release
       description = `New season available for ${notification.title}! ${emoji}`
       fields.push({
         name: 'Season Added',
@@ -93,28 +94,18 @@ export function createMediaNotificationEmbed(
         inline: true,
       })
     } else {
-      // Fallback description if somehow neither condition is met
       description = `New content available for ${notification.title}! ${emoji}`
     }
   } else {
-    // Movie notification - impersonal for consistency
     description = `Movie available to watch! ${emoji}`
   }
 
-  // Add TMDB link if available
   if (notification.tmdbUrl) {
-    fields.push({
-      name: 'More Info',
-      value: `[View on TMDB](${notification.tmdbUrl})`,
-      inline: true,
-    })
+    fields.push(tmdbField(notification.tmdbUrl))
   }
 
   const embed: DiscordEmbed = {
-    title:
-      notification.title.length > 256
-        ? `${notification.title.slice(0, 253)}...`
-        : notification.title,
+    title: truncate(notification.title, EMBED_TITLE_MAX),
     description,
     color: EMBED_COLOR,
     timestamp: new Date().toISOString(),
@@ -130,24 +121,15 @@ export function createMediaNotificationEmbed(
   return embed
 }
 
-/**
- * Creates the "New X Added" embed for admin "user added X" notifications.
- * Shared by the admin webhook and the admin DM so both render identically.
- */
 export function createMediaAddedEmbed(
   notification: MediaNotification,
   displayName: string,
 ): DiscordEmbed {
-  const emoji = notification.type === 'movie' ? '🎬' : '📺'
-  const mediaType =
-    notification.type.charAt(0).toUpperCase() + notification.type.slice(1)
+  const { label, emoji } = mediaTypeLabel(notification.type)
 
   const embed: DiscordEmbed = {
-    title:
-      notification.title.length > 256
-        ? `${notification.title.slice(0, 253)}...`
-        : notification.title,
-    description: `${emoji} New ${mediaType} Added`,
+    title: truncate(notification.title, EMBED_TITLE_MAX),
+    description: `${emoji} New ${label} Added`,
     color: EMBED_COLOR,
     timestamp: new Date().toISOString(),
     footer: {
@@ -156,19 +138,14 @@ export function createMediaAddedEmbed(
     fields: [
       {
         name: 'Type',
-        value: mediaType,
+        value: label,
         inline: true,
       },
     ],
   }
 
-  // Add TMDB link if available
   if (notification.tmdbUrl && embed.fields) {
-    embed.fields.push({
-      name: 'More Info',
-      value: `[View on TMDB](${notification.tmdbUrl})`,
-      inline: true,
-    })
+    embed.fields.push(tmdbField(notification.tmdbUrl))
   }
 
   if (notification.posterUrl) {
@@ -180,9 +157,6 @@ export function createMediaAddedEmbed(
   return embed
 }
 
-/**
- * Creates a media webhook embed payload (for admin "user added X" notifications).
- */
 export function createMediaWebhookPayload(
   notification: MediaNotification,
   displayName: string,
@@ -195,142 +169,75 @@ export function createMediaWebhookPayload(
   }
 }
 
-/**
- * Creates a delete sync results embed.
- */
-export function createDeleteSyncEmbed(
-  results: DeleteSyncResult,
-  dryRun: boolean,
-): DiscordEmbed {
-  let title: string
-  let description: string
-  const color = results.safetyTriggered === true ? COLOR_RED : COLOR_GREEN
-
-  if (results.safetyTriggered) {
-    title = '⚠️ Delete Sync Safety Triggered'
-    description =
-      results.safetyMessage ||
-      'A safety check prevented the delete sync operation from running.'
-  } else if (dryRun) {
-    title = '🔍 Delete Sync Simulation Results'
-    description = 'This was a dry run - no content was actually deleted.'
-  } else {
-    title = '🗑️ Delete Sync Results'
-    description =
-      "The following content was removed because it's no longer in any user's watchlist."
+function deleteSyncFields(section: DeleteSyncSection): EmbedField[] {
+  if (section.deleted <= 0) {
+    return [
+      {
+        name: section.label,
+        value: `No ${section.noun} deleted${section.protectedInfo}`,
+        inline: false,
+      },
+    ]
   }
 
-  // Add protected playlist information if there are protected items
-  if (results.total.protected && results.total.protected > 0) {
-    description += `\n\n${results.total.protected} items were preserved because they are in protected playlists.`
-  }
+  const list = section.shown
+    .map((title) => `• ${truncate(title, DELETE_SYNC_ITEM_MAX)}`)
+    .join('\n')
 
-  // Create fields for the embed
-  const fields = [
+  const fields: EmbedField[] = [
     {
-      name: 'Summary',
-      value: `Processed: ${results.total.processed} items\nDeleted: ${results.total.deleted} items\nSkipped: ${results.total.skipped} items${results.total.protected ? `\nProtected: ${results.total.protected} items` : ''}`,
+      name: `${section.label} (${section.deleted} deleted${section.protectedInfo})`,
+      value: list || 'None',
       inline: false,
     },
   ]
 
-  // Add safety message field if it exists
-  if (results.safetyTriggered && results.safetyMessage) {
+  if (section.remaining > 0) {
+    fields.push({
+      name: `${section.label} (continued)`,
+      value: `... and ${section.remaining} more`,
+      inline: false,
+    })
+  }
+
+  return fields
+}
+
+export function createDeleteSyncEmbed(
+  results: DeleteSyncResult,
+  dryRun: boolean,
+): DiscordEmbed {
+  const summary = summarizeDeleteSync(results, dryRun)
+
+  const description = summary.protectedText
+    ? `${summary.summaryText}\n\n${summary.protectedText}`
+    : summary.summaryText
+
+  const fields: EmbedField[] = [
+    {
+      name: 'Summary',
+      value: `Processed: ${summary.totals.processed} items\nDeleted: ${summary.totals.deleted} items\nSkipped: ${summary.totals.skipped} items${summary.totals.protected ? `\nProtected: ${summary.totals.protected} items` : ''}`,
+      inline: false,
+    },
+  ]
+
+  if (summary.safetyMessage) {
     fields.push({
       name: 'Safety Reason',
-      value: results.safetyMessage,
+      value: truncate(summary.safetyMessage, EMBED_FIELD_MAX),
       inline: false,
     })
   }
 
-  // Add movies field if any were deleted
-  if (results.movies.deleted > 0) {
-    const movieList = results.movies.items
-      .slice(0, 10)
-      .map((item) => {
-        const title =
-          item.title.length > 90 ? `${item.title.slice(0, 87)}...` : item.title
-        return `• ${title}`
-      })
-      .join('\n')
-
-    const protectedInfo =
-      results.movies.protected && results.movies.protected > 0
-        ? ` (${results.movies.protected} protected)`
-        : ''
-
-    fields.push({
-      name: `Movies (${results.movies.deleted} deleted${protectedInfo})`,
-      value: movieList || 'None',
-      inline: false,
-    })
-
-    if (results.movies.items.length > 10) {
-      fields.push({
-        name: 'Movies (continued)',
-        value: `... and ${results.movies.items.length - 10} more`,
-        inline: false,
-      })
-    }
-  } else {
-    const protectedInfo =
-      results.movies.protected && results.movies.protected > 0
-        ? ` (${results.movies.protected} protected)`
-        : ''
-
-    fields.push({
-      name: 'Movies',
-      value: `No movies deleted${protectedInfo}`,
-      inline: false,
-    })
-  }
-
-  // Add shows field if any were deleted
-  if (results.shows.deleted > 0) {
-    const showList = results.shows.items
-      .slice(0, 10)
-      .map((item) => {
-        const title =
-          item.title.length > 90 ? `${item.title.slice(0, 87)}...` : item.title
-        return `• ${title}`
-      })
-      .join('\n')
-
-    const protectedInfo =
-      results.shows.protected && results.shows.protected > 0
-        ? ` (${results.shows.protected} protected)`
-        : ''
-
-    fields.push({
-      name: `TV Shows (${results.shows.deleted} deleted${protectedInfo})`,
-      value: showList || 'None',
-      inline: false,
-    })
-
-    if (results.shows.items.length > 10) {
-      fields.push({
-        name: 'TV Shows (continued)',
-        value: `... and ${results.shows.items.length - 10} more`,
-        inline: false,
-      })
-    }
-  } else {
-    const protectedInfo =
-      results.shows.protected && results.shows.protected > 0
-        ? ` (${results.shows.protected} protected)`
-        : ''
-
-    fields.push({
-      name: 'TV Shows',
-      value: `No TV shows deleted${protectedInfo}`,
-      inline: false,
-    })
-  }
+  fields.push(
+    ...deleteSyncFields(summary.movies),
+    ...deleteSyncFields(summary.shows),
+  )
 
   return {
-    title,
+    title: summary.title,
     description,
-    color,
+    color: results.safetyTriggered === true ? COLOR_RED : COLOR_GREEN,
     timestamp: new Date().toISOString(),
     fields,
     footer: {
@@ -339,30 +246,23 @@ export function createDeleteSyncEmbed(
   }
 }
 
-// Discord embed description max length.
-const DISCORD_DESCRIPTION_MAX = 4096
-
-export function createUpdateAvailableEmbed(release: {
-  currentVersion: string
-  latestVersion: string
-  releaseUrl: string
-  releaseName: string | null
-  releaseBody: string | null
-  publishedAt: string | null
-}): DiscordEmbed {
+export function createUpdateAvailableEmbed(
+  release: Omit<UpdateAvailableRelease, 'releaseBodyHtml'>,
+): DiscordEmbed {
   const displayName = release.releaseName?.trim() || `v${release.latestVersion}`
   const body = release.releaseBody?.trim() ?? ''
 
-  const versionLine = `**Current:** v${release.currentVersion} → **Latest:** v${release.latestVersion}\n\n`
-  const maxBody = DISCORD_DESCRIPTION_MAX - versionLine.length
-  const truncatedBody =
-    body.length > maxBody ? `${body.slice(0, Math.max(0, maxBody - 1))}…` : body
+  const versionLine = `**Current:** v${release.currentVersion}\n**Latest:** v${release.latestVersion}\n\n`
+  const truncatedBody = truncate(
+    body,
+    EMBED_DESCRIPTION_MAX - versionLine.length,
+  )
 
   const description = truncatedBody
     ? `${versionLine}${truncatedBody}`
     : `${versionLine}_No release notes provided._`
 
-  const fields: Array<{ name: string; value: string; inline?: boolean }> = []
+  const fields: EmbedField[] = []
 
   if (release.publishedAt) {
     fields.push({
@@ -378,11 +278,8 @@ export function createUpdateAvailableEmbed(release: {
     inline: true,
   })
 
-  const title =
-    displayName.length > 256 ? `${displayName.slice(0, 253)}...` : displayName
-
   return {
-    title,
+    title: truncate(displayName, EMBED_TITLE_MAX),
     url: release.releaseUrl,
     description,
     color: EMBED_COLOR,
@@ -394,35 +291,23 @@ export function createUpdateAvailableEmbed(release: {
   }
 }
 
-/**
- * Creates a system notification embed (for DMs).
- */
 export function createSystemEmbed(
   title: string,
-  fields: Array<{ name: string; value: string; inline?: boolean }>,
+  fields: EmbedField[],
   safetyTriggered?: boolean,
   tmdbUrl?: string,
 ): DiscordEmbed {
-  const hasSafetyField = fields.some((field) => field.name === 'Safety Reason')
-  const isSafetyTriggered = title.includes('Safety Triggered')
-
-  // Add TMDB link if available
   const embedFields = [...fields]
   if (tmdbUrl) {
-    embedFields.push({
-      name: 'More Info',
-      value: `[View on TMDB](${tmdbUrl})`,
-      inline: true,
-    })
+    embedFields.push(tmdbField(tmdbUrl))
   }
 
   return {
-    title: title.length > 256 ? `${title.slice(0, 253)}...` : title,
+    title: truncate(title, EMBED_TITLE_MAX),
     description: 'System notification',
-    color:
-      hasSafetyField || isSafetyTriggered || safetyTriggered
-        ? COLOR_RED
-        : COLOR_GREEN,
+    color: isSafetyNotification({ title, embedFields: fields, safetyTriggered })
+      ? COLOR_RED
+      : COLOR_GREEN,
     timestamp: new Date().toISOString(),
     fields: embedFields,
   }

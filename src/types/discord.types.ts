@@ -75,3 +75,51 @@ export interface SystemNotification {
     style: 'Primary' | 'Secondary' | 'Success' | 'Danger'
   }
 }
+
+export interface ApprovalNotification {
+  title: string
+  contentTitle: string
+  contentType: 'Movie' | 'Show'
+  requestedBy: string
+  reason: string
+  totalPending: number
+  actionRequired: string
+  posterUrl?: string
+  tmdbUrl?: string
+}
+
+export interface UpdateAvailableRelease {
+  currentVersion: string
+  latestVersion: string
+  releaseUrl: string
+  releaseName: string | null
+  releaseBody: string | null
+  releaseBodyHtml: string | null
+  publishedAt: string | null
+}
+
+export interface WatchlistCapEvent {
+  userId: number
+  userName: string | null
+  contentType: 'movie' | 'show'
+  currentCount: number
+  cap: number
+}
+
+export interface WatchlistCapNotification {
+  userName: string
+  contentType: 'movie' | 'show'
+  currentCount: number
+  cap: number
+}
+
+export interface WatchlistAdditionNotification {
+  title: string
+  type: string
+  addedBy: {
+    name: string
+    alias?: string | null
+  }
+  posterUrl?: string
+  tmdbUrl?: string
+}
