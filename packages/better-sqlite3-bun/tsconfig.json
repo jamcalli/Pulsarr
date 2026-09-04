@@ -1,12 +1,11 @@
 {
-  "extends": "../tsconfig.json",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "composite": false,
     "noEmit": true,
-    "rootDir": "..",
+    "rootDir": "../..",
     "sourceMap": false,
     "types": ["bun-types"]
   },
-  "include": ["**/*"],
-  "exclude": ["openapi-codegen/**/*"]
+  "include": ["index.ts"]
 }
