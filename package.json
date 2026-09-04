@@ -151,8 +151,8 @@
     "@types/semver": "^7.7.0",
     "@types/turndown": "^5.0.5",
     "@vitejs/plugin-react": "^6.0.0",
-    "@vitest/coverage-istanbul": "^4.0.18",
-    "@vitest/ui": "^4.0.0",
+    "@vitest/coverage-istanbul": "^5.0.0",
+    "@vitest/ui": "^5.0.0",
     "autoprefixer": "^10.4.20",
     "bun-types": "1.4.1",
     "class-variance-authority": "^0.7.1",
@@ -187,7 +187,7 @@
     "vaul": "^1.1.2",
     "vite": "^8.0.0",
     "vite-plugin-compression2": "^2.5.3",
-    "vitest": "^4.0.0",
+    "vitest": "^5.0.0",
     "zustand": "^5.0.3"
   }
 }
