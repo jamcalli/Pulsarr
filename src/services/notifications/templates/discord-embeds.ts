@@ -209,9 +209,12 @@ export function createDeleteSyncEmbed(
 ): DiscordEmbed {
   const summary = summarizeDeleteSync(results, dryRun)
 
-  const description = summary.protectedText
-    ? `${summary.summaryText}\n\n${summary.protectedText}`
-    : summary.summaryText
+  const description = truncate(
+    summary.protectedText
+      ? `${summary.summaryText}\n\n${summary.protectedText}`
+      : summary.summaryText,
+    EMBED_DESCRIPTION_MAX,
+  )
 
   const fields: EmbedField[] = [
     {
