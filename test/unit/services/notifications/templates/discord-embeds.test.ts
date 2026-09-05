@@ -211,6 +211,20 @@ describe('discord-embeds', () => {
       expect(fieldValue(embed, 'Safety Reason')).toBe('Too many deletions')
     })
 
+    it('should truncate a long safety message in the description', () => {
+      const embed = createDeleteSyncEmbed(
+        deleteSyncResult({
+          safetyTriggered: true,
+          safetyMessage: 'x'.repeat(5000),
+          total: { deleted: 0, skipped: 0, processed: 0, protected: 4 },
+        }),
+        false,
+      )
+
+      expect(embed.description).toHaveLength(4096)
+      expect(embed.description?.endsWith('...')).toBe(true)
+    })
+
     it('should build the summary field from the totals', () => {
       const embed = createDeleteSyncEmbed(
         deleteSyncResult({

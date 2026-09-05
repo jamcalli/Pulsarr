@@ -115,7 +115,7 @@ function createPosterHtml(
 ): string {
   if (!posterUrl) return ''
   return `<div style="${CENTER_BLOCK_STYLE}">
-       <img src="${posterUrl}" alt="${escapeHtml(title)} poster" style="max-width: ${maxWidth}px; ${POSTER_STYLE}">
+       <img src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)} poster" style="max-width: ${maxWidth}px; ${POSTER_STYLE}">
      </div>`
 }
 

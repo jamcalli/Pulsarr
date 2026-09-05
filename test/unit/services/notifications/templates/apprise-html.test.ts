@@ -175,6 +175,20 @@ describe('apprise-html', () => {
       expect(withoutPoster.htmlBody).not.toContain('<img')
     })
 
+    it('should escape the poster URL inside the src attribute', () => {
+      const result = createMediaNotificationHtml({
+        type: 'movie',
+        title: 'Dune',
+        username: 'alice',
+        posterUrl: 'https://plex.example/poster.jpg" onerror="alert(1)',
+      })
+
+      expect(result.htmlBody).toContain(
+        'src="https://plex.example/poster.jpg&quot; onerror=&quot;alert(1)"',
+      )
+      expect(result.htmlBody).not.toContain('" onerror="')
+    })
+
     it('should escape the title in HTML but leave it raw in text', () => {
       const result = createMediaNotificationHtml({
         type: 'movie',
