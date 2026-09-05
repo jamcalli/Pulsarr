@@ -45,10 +45,6 @@ export interface AppriseNotification {
   body: string
   type?: AppriseMessageType
   format?: AppriseNotifyFormat
-  // HTML formatted body - used alongside text body for services that support HTML
   body_html?: string
-  // URL(s) to fetch and attach to the notification (e.g., poster images)
-  // Apprise API will fetch the URL and send as attachment for services that support it
   attachment?: string | string[]
-  [key: string]: unknown
 }

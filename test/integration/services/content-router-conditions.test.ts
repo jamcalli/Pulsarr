@@ -73,7 +73,6 @@ describe('routeContent condition evaluation', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     const knex = getTestDatabase()
     await resetDatabase()
     await seedConfig(knex)

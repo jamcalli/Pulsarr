@@ -4,7 +4,9 @@
     "composite": false,
     "noEmit": true,
     "rootDir": "..",
+    "sourceMap": false,
     "types": ["bun-types"]
   },
-  "include": ["mocks/**/*"]
+  "include": ["**/*"],
+  "exclude": ["openapi-codegen/**/*"]
 }

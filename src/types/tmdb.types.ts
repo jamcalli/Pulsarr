@@ -127,10 +127,9 @@ export interface TmdbFindResponse {
   tv_season_results: TmdbFindTvSeasonResult[]
 }
 
-// TMDB Region
-export interface TmdbRegion {
-  code: string
-  name: string
+export interface TmdbRegionResult {
+  iso_3166_1: string
+  english_name: string
 }
 
 /**

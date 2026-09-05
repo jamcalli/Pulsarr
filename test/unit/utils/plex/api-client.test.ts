@@ -1,16 +1,12 @@
 import { pingPlex } from '@services/plex-watchlist/index.js'
 import { HttpResponse, http } from 'msw'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 import { server } from '../../../setup/msw-setup.js'
 
 describe('plex/api-client', () => {
   describe('pingPlex', () => {
     const mockLogger = createMockLogger()
-
-    beforeEach(() => {
-      vi.clearAllMocks()
-    })
 
     afterEach(() => {
       server.resetHandlers()

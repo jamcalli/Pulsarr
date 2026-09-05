@@ -1,4 +1,5 @@
 import type { UpdateNotifyOption } from '@root/types/config.types.js'
+import type { UpdateAvailableRelease } from '@root/types/discord.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
@@ -6,15 +7,7 @@ import type { DiscordBotService } from '@services/notifications/discord-bot/inde
 import { createUpdateAvailableEmbed } from '@services/notifications/templates/discord-embeds.js'
 import type { FastifyBaseLogger } from 'fastify'
 
-export interface UpdateAvailableRelease {
-  currentVersion: string
-  latestVersion: string
-  releaseUrl: string
-  releaseName: string | null
-  releaseBody: string | null
-  releaseBodyHtml: string | null
-  publishedAt: string | null
-}
+export type { UpdateAvailableRelease }
 
 export interface UpdateAvailableDeps {
   logger: FastifyBaseLogger

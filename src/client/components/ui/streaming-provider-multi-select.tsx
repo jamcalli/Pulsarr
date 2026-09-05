@@ -1,10 +1,12 @@
-import type { TmdbWatchProvider } from '@root/schemas/tmdb/tmdb.schema'
 import { useEffect, useState } from 'react'
 import type { ControllerRenderProps } from 'react-hook-form'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { useConfig } from '@/hooks/useConfig'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
 import { apiFetch } from '@/lib/tanstackApi'
+import type { components } from '@/types/api.js'
+
+type TmdbWatchProvider = components['schemas']['TmdbWatchProvider']
 
 interface StreamingServicesFormValues {
   streamingServices: number[]

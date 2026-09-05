@@ -1,4 +1,13 @@
-import { Database as BunDatabase } from 'bun:sqlite'
+import {
+  Database as BunDatabase,
+  type Statement as BunStatement,
+  type SQLQueryBindings,
+} from 'bun:sqlite'
+
+type Row = Record<string, unknown>
+type RawRow = ReturnType<
+  BunStatement<Row, SQLQueryBindings[]>['values']
+>[number]
 
 interface DatabaseOptions {
   readonly?: boolean
@@ -13,13 +22,13 @@ interface RunResult {
 }
 
 class Statement {
-  private stmt: ReturnType<BunDatabase['prepare']>
+  private stmt: BunStatement<Row, SQLQueryBindings[]>
   private verbose?: (sql: string) => void
-  private boundParams?: unknown[]
+  private boundParams?: SQLQueryBindings[]
   private rawMode = false
 
   constructor(
-    stmt: ReturnType<BunDatabase['prepare']>,
+    stmt: BunStatement<Row, SQLQueryBindings[]>,
     verbose?: (sql: string) => void,
   ) {
     this.stmt = stmt
@@ -31,7 +40,7 @@ class Statement {
   }
 
   // better-sqlite3 treats params passed after bind() as an error
-  private resolveParams(params: unknown[]): unknown[] {
+  private resolveParams(params: SQLQueryBindings[]): SQLQueryBindings[] {
     if (this.boundParams) {
       if (params.length > 0) {
         throw new TypeError('This statement already has bound parameters')
@@ -41,7 +50,7 @@ class Statement {
     return params
   }
 
-  run(...params: unknown[]): RunResult {
+  run(...params: SQLQueryBindings[]): RunResult {
     if (this.verbose) {
       this.verbose(this.stmt.toString())
     }
@@ -53,51 +62,42 @@ class Statement {
     }
   }
 
-  get(...params: unknown[]): Record<string, unknown> | unknown[] | undefined {
+  get(...params: SQLQueryBindings[]): Row | RawRow | undefined {
     if (this.verbose) {
       this.verbose(this.stmt.toString())
     }
     const finalParams = this.resolveParams(params)
     if (this.rawMode) {
-      const results = this.stmt.values(...finalParams) as unknown[][]
-      return results[0]
+      return this.stmt.values(...finalParams)[0]
     }
-    return this.stmt.get(...finalParams) as Record<string, unknown> | undefined
+    return this.stmt.get(...finalParams) ?? undefined
   }
 
-  all(...params: unknown[]): Record<string, unknown>[] | unknown[][] {
+  all(...params: SQLQueryBindings[]): Row[] | RawRow[] {
     if (this.verbose) {
       this.verbose(this.stmt.toString())
     }
     const finalParams = this.resolveParams(params)
     if (this.rawMode) {
-      return this.stmt.values(...finalParams) as unknown[][]
+      return this.stmt.values(...finalParams)
     }
-    return this.stmt.all(...finalParams) as Record<string, unknown>[]
+    return this.stmt.all(...finalParams)
   }
 
-  *iterate(
-    ...params: unknown[]
-  ): IterableIterator<Record<string, unknown> | unknown[]> {
+  *iterate(...params: SQLQueryBindings[]): IterableIterator<Row | RawRow> {
     if (this.verbose) {
       this.verbose(this.stmt.toString())
     }
     const finalParams = this.resolveParams(params)
     if (this.rawMode) {
       // Bun has no streaming API for arrays - must buffer
-      const results = this.stmt.values(...finalParams) as unknown[][]
-      for (const row of results) {
-        yield row
-      }
+      yield* this.stmt.values(...finalParams)
     } else {
-      // Use native streaming iterator
-      yield* this.stmt.iterate(...finalParams) as IterableIterator<
-        Record<string, unknown>
-      >
+      yield* this.stmt.iterate(...finalParams)
     }
   }
 
-  bind(...params: unknown[]): this {
+  bind(...params: SQLQueryBindings[]): this {
     if (this.boundParams) {
       throw new TypeError(
         'The bind() method can only be invoked once per statement object',
@@ -111,21 +111,14 @@ class Statement {
     this.rawMode = toggle !== false
     return this
   }
-
-  safeIntegers(toggle = true): this {
-    this.stmt.safeIntegers(toggle !== false)
-    return this
-  }
 }
 
 class Database {
   private db: BunDatabase
   private verbose?: (sql: string) => void
-  private safeIntegersDefault = false
 
   constructor(path: string, options: DatabaseOptions = {}) {
-    // better-sqlite3 defaults to a 5s busy timeout; Bun's constructor has
-    // no timeout option and its busy_timeout default is 0
+    // better-sqlite3 defaults busy_timeout to 5s; Bun's constructor has no timeout option and defaults it to 0
     const timeout = options.timeout ?? 5000
     if (!Number.isFinite(timeout) || timeout < 0) {
       throw new TypeError('timeout must be a non-negative finite number')
@@ -134,20 +127,16 @@ class Database {
     this.db = new BunDatabase(path, {
       readwrite: !options.readonly,
       readonly: options.readonly,
-      // better-sqlite3 never creates in readonly mode and throws on a
-      // missing file when fileMustExist is set
+      // better-sqlite3 never creates in readonly mode and throws on a missing file when fileMustExist is set
       create: !options.readonly && !options.fileMustExist,
     })
     this.verbose = options.verbose
 
-    this.db.exec(`PRAGMA busy_timeout = ${timeout}`)
+    this.db.run(`PRAGMA busy_timeout = ${timeout}`)
   }
 
   prepare(sql: string): Statement {
-    const stmt = this.db.prepare(sql)
-    if (this.safeIntegersDefault) {
-      stmt.safeIntegers(true)
-    }
+    const stmt = this.db.prepare<Row, SQLQueryBindings[]>(sql)
     return new Statement(stmt, this.verbose)
   }
 
@@ -155,7 +144,7 @@ class Database {
     if (this.verbose) {
       this.verbose(sql)
     }
-    this.db.exec(sql)
+    this.db.run(sql)
     return this
   }
 
@@ -164,13 +153,8 @@ class Database {
     return this
   }
 
-  transaction<T extends (...args: unknown[]) => unknown>(fn: T): T {
-    return this.db.transaction(fn) as unknown as T
-  }
-
-  defaultSafeIntegers(toggle = true): this {
-    this.safeIntegersDefault = toggle !== false
-    return this
+  transaction<A extends unknown[], T>(fn: (...args: A) => T) {
+    return this.db.transaction(fn)
   }
 }
 

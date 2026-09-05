@@ -24,7 +24,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { resolve } from 'node:path'
-import packageJson from '../package.json'
+import packageJson from '../package.json' with { type: 'json' }
 
 const PROJECT_ROOT = resolve(import.meta.dirname, '..')
 const BUILD_DIR = resolve(PROJECT_ROOT, 'native-build')
@@ -78,22 +78,10 @@ const PLATFORMS: Platform[] = [
     zipSuffix: 'macos-x64',
   },
   {
-    detectName: 'linux-x64-baseline',
-    bunArchive: 'bun-linux-x64-baseline',
-    bunBinary: 'bun',
-    zipSuffix: 'linux-x64-baseline',
-  },
-  {
     detectName: 'windows-x64',
     bunArchive: 'bun-windows-x64',
     bunBinary: 'bun.exe',
     zipSuffix: 'windows-x64',
-  },
-  {
-    detectName: 'windows-x64-baseline',
-    bunArchive: 'bun-windows-x64-baseline',
-    bunBinary: 'bun.exe',
-    zipSuffix: 'windows-x64-baseline',
   },
 ]
 
@@ -118,14 +106,6 @@ function detectPlatform(): string {
     process.arch === 'arm64' ? 'arm64' : process.arch === 'x64' ? 'x64' : null
   if (!os || !arch) {
     throw new Error(`Unsupported platform: ${process.platform} ${process.arch}`)
-  }
-  if (os === 'linux' && arch === 'x64') {
-    try {
-      const cpuInfo = readFileSync('/proc/cpuinfo', 'utf8').toLowerCase()
-      return cpuInfo.includes('avx2') ? 'linux-x64' : 'linux-x64-baseline'
-    } catch {
-      return 'linux-x64-baseline'
-    }
   }
   return `${os}-${arch}`
 }
@@ -236,30 +216,19 @@ cpSync(resolve(PROJECT_ROOT, 'bun.lock'), resolve(COMMON_DIR, 'bun.lock'))
 
 console.log('    Installing production dependencies...')
 try {
-  run('bun install --production --frozen-lockfile', COMMON_DIR)
+  run('bun install --production --frozen-lockfile --omit=peer', COMMON_DIR)
 } catch (e) {
   console.log(
     '    Frozen lockfile failed, retrying without:',
     e instanceof Error ? e.message : e,
   )
-  run('bun install --production', COMMON_DIR)
+  run('bun install --production --omit=peer', COMMON_DIR)
 }
 
-// Remove build tools that leak through optional peer dep resolution
-const buildToolDirs = [
-  'vite',
-  'rollup',
-  'esbuild',
-  '@rollup',
-  '@esbuild',
-  'rolldown',
-  '@rolldown',
-]
-for (const dir of buildToolDirs) {
-  const dirPath = resolve(COMMON_DIR, 'node_modules', dir)
-  if (existsSync(dirPath)) {
-    rmSync(dirPath, { recursive: true })
-  }
+// Type packages arrive as hard deps of runtime packages (e.g. @types/ws via @discordjs/ws)
+const typesDir = resolve(COMMON_DIR, 'node_modules', '@types')
+if (existsSync(typesDir)) {
+  rmSync(typesDir, { recursive: true })
 }
 
 console.log('[4/4] Packaging platforms...')

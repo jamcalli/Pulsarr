@@ -27,7 +27,6 @@ describe('Session Monitoring Routes - bulk manage', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
     app.config.authenticationMethod = 'disabled'

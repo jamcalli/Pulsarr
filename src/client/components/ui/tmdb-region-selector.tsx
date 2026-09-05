@@ -1,4 +1,3 @@
-import type { TmdbRegion } from '@root/schemas/tmdb/tmdb.schema'
 import { Globe } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import {
@@ -15,6 +14,9 @@ import {
 } from '@/components/ui/tooltip'
 import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { apiFetch } from '@/lib/tanstackApi'
+import type { components } from '@/types/api.js'
+
+type TmdbRegion = components['schemas']['TmdbRegion']
 
 interface TmdbRegionSelectorProps {
   onRegionChange?: () => Promise<void>

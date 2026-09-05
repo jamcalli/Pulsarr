@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "rootDir": "../..",
+    "sourceMap": false,
+    "types": ["bun-types"]
+  },
+  "include": ["index.ts"]
+}

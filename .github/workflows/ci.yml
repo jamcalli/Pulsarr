@@ -37,14 +37,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run Biome
         run: biome ci .
-      - name: TypeScript Check - Server
-        run: bun run typecheck:server
-      - name: TypeScript Check - Client
-        run: bun run typecheck:client
-      - name: TypeScript Check - Scripts
-        run: bun run typecheck:scripts
-      - name: TypeScript Check - Tests
-        run: bun run typecheck:tests
+      - name: TypeScript Check
+        run: bun run typecheck
       - name: OpenAPI Contract Drift Check
         run: |
           bun run openapi:dev

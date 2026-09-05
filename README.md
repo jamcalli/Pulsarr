@@ -5,7 +5,7 @@
 
   ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?style=flat-square)
   ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
-  ![Bun](https://img.shields.io/badge/bun-%3E%3D1.3-green?style=flat-square)
+  ![Bun](https://img.shields.io/badge/bun-%3E%3D1.4-green?style=flat-square&logo=bun&logoColor=white)
   ![Status](https://img.shields.io/badge/status-early--release-orange?style=flat-square)
   [![Discord](https://img.shields.io/discord/1407082466958774313?label=Discord&logo=discord&style=flat-square)](https://discord.gg/9csTEJn5cR)
   ![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
@@ -86,8 +86,8 @@ Standalone builds with easy installers are available for Linux, macOS, and Windo
 
 | Platform | Install Method |
 |----------|---------------|
-| **Linux** | `curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh \| sudo bash` (automatically selects `baseline` variant for older CPUs without AVX2) |
-| **Windows** | Download and run `pulsarr-vX.X.X-windows-x64-setup.exe` from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest) (use `baseline` variant for older CPUs without AVX2) |
+| **Linux** | `curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh \| sudo bash` |
+| **Windows** | Download and run `pulsarr-vX.X.X-windows-x64-setup.exe` from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest) |
 | **macOS** | Download `pulsarr-vX.X.X-macos-{arch}.dmg` from the [latest release](https://github.com/jamcalli/pulsarr/releases/latest) |
 
 See the [Native Installation Guide](https://jamcalli.github.io/Pulsarr/docs/installation/native-installation) for detailed instructions, service management, and manual options.

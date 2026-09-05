@@ -388,7 +388,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           sarif_file: trivy-release-${{ matrix.variant }}.sarif
           category: trivy-release-${{ matrix.variant }}
@@ -455,9 +455,6 @@ jobs:
           - variant: standard
             zip_suffix: "-windows-x64.zip"
             iss_file: pulsarr.iss
-          - variant: baseline
-            zip_suffix: "-windows-x64-baseline.zip"
-            iss_file: pulsarr-baseline.iss
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

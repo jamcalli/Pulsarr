@@ -342,17 +342,17 @@ export function recomputeSeriesAggregates(
 }
 
 type AssertAssignable<T, _U extends T> = never
-type _EpisodeContract = AssertAssignable<SonarrEpisode, MockEpisode>
-type _SeasonContract = AssertAssignable<SonarrSeason[], MockSeason[]>
-type _SeriesStatsContract = AssertAssignable<
+export type EpisodeContract = AssertAssignable<SonarrEpisode, MockEpisode>
+export type SeasonContract = AssertAssignable<SonarrSeason[], MockSeason[]>
+export type SeriesStatsContract = AssertAssignable<
   NonNullable<SonarrSeries['statistics']>,
   MockSeriesStatistics
 >
-type _LookupContract = AssertAssignable<
+export type LookupContract = AssertAssignable<
   RadarrMovieLookupResponse,
   ReturnType<typeof createRadarrTmdbLookup>
 >
-type _SeriesLookupContract = AssertAssignable<
+export type SeriesLookupContract = AssertAssignable<
   SonarrSeriesLookupResponse,
   ReturnType<typeof createSonarrTvdbLookup>
 >

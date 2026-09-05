@@ -141,7 +141,7 @@ export async function showSettingsForm(
 
   try {
     if (!interaction.replied && !interaction.deferred) {
-      const _response = await interaction.reply({
+      await interaction.reply({
         ...messagePayload,
         flags: MessageFlags.Ephemeral,
       })

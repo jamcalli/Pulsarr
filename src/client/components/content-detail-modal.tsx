@@ -1,4 +1,3 @@
-import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { Monitor, Tv } from 'lucide-react'
 import { useMemo } from 'react'
 import { TmdbContentViewer } from '@/components/tmdb-content-viewer'
@@ -10,6 +9,9 @@ import {
   CredenzaHeader,
   CredenzaTitle,
 } from '@/components/ui/credenza'
+import type { components } from '@/types/api.js'
+
+type ContentStat = components['schemas']['ContentStat']
 
 interface ContentDetailModalProps {
   open: boolean
@@ -17,29 +19,16 @@ interface ContentDetailModalProps {
   contentStat: ContentStat
 }
 
-/**
- * Modal that shows detailed TMDB metadata for a content item from dashboard statistics.
- *
- * Displays a responsive Credenza dialog containing a TmdbContentViewer. The component
- * derives the displayed title, icon (movie vs. show), and GUIDs from `contentStat`.
- * If `contentStat.content_type` is absent it defaults to `'movie'`. For shows, GUIDs
- * are reordered to prefer `tvdb:*` identifiers before others to improve TMDB lookup.
- * A mock approval request containing these derived values is passed to the TMDB viewer.
- *
- * @param contentStat - ContentStat object; `title`, `content_type`, and `guids` are read (content_type defaults to `'movie'`, and `guids` are prioritized for shows)
- */
 export function ContentDetailModal({
   open,
   onOpenChange,
   contentStat,
 }: ContentDetailModalProps) {
-  // Get content details from the ContentStat
   const title = contentStat.title
-  const contentType = contentStat.content_type || 'movie'
+  const contentType = contentStat.content_type
   const guids = contentStat.guids || []
 
-  // Create a mock ApprovalRequestResponse structure for the TMDB hook
-  // For TV shows, prioritize TVDB GUID if available to avoid TMDB ID conflicts
+  // TVDB first for shows, since TMDB show ids collide with movie ids
   const prioritizedGuids = useMemo(() => {
     return contentType === 'show'
       ? [...guids].sort((a, b) => {
@@ -49,27 +38,6 @@ export function ContentDetailModal({
         })
       : guids
   }, [contentType, guids])
-
-  const mockApprovalRequest = {
-    id: 0,
-    userId: 0,
-    userName: '',
-    contentType,
-    contentTitle: title,
-    contentKey: '',
-    contentGuids: prioritizedGuids,
-    proposedRouterDecision: { action: 'continue' as const },
-    routerRuleId: null,
-    status: 'pending' as const,
-    triggeredBy: 'manual_flag' as const,
-    approvalReason: '',
-    approvalNotes: null,
-    approvedBy: null,
-    approvedAt: null,
-    expiresAt: null,
-    createdAt: '',
-    updatedAt: '',
-  }
 
   return (
     <Credenza open={open} onOpenChange={onOpenChange}>
@@ -89,7 +57,9 @@ export function ContentDetailModal({
           </CredenzaDescription>
         </CredenzaHeader>
         <CredenzaBody className="flex-1 overflow-y-auto pb-4">
-          <TmdbContentViewer approvalRequest={mockApprovalRequest} />
+          <TmdbContentViewer
+            target={{ id: 0, contentType, contentGuids: prioritizedGuids }}
+          />
         </CredenzaBody>
       </CredenzaContent>
     </Credenza>

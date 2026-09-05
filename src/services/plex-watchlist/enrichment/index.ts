@@ -1,6 +1,7 @@
 // Enrichment layer exports for Plex watchlist service
 
 export { toItemsBatch } from './batch-processor.js'
+export { needsTmdbPoster, resolveTmdbPosters } from './poster-resolver.js'
 export { parseRatings } from './rating-parser.js'
 export {
   batchLookupByGuid,

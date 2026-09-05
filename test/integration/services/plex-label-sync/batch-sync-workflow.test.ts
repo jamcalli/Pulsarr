@@ -40,7 +40,6 @@ describe('Batch Sync → Full Workflow Integration', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })

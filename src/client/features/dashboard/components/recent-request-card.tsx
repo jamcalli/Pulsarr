@@ -3,7 +3,6 @@ import type {
   RecentRequestItem,
   RecentRequestStatus,
 } from '@root/schemas/dashboard/recent-requests.schema'
-import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { Eye, Monitor, Tv } from 'lucide-react'
 import { useState } from 'react'
 import { ContentDetailModal } from '@/components/content-detail-modal'
@@ -25,6 +24,9 @@ import type { MediaOrientation } from '@/features/dashboard/components/dashboard
 import { MediaRowItem } from '@/features/dashboard/components/media-row-item'
 import { usePosterUrl } from '@/features/dashboard/hooks/usePosterUrl'
 import { cn } from '@/lib/utils'
+import type { components } from '@/types/api.js'
+
+type ContentStat = components['schemas']['ContentStat']
 
 interface RecentRequestCardProps {
   item: RecentRequestItem
@@ -112,7 +114,6 @@ export function RecentRequestCard({
     enabled: hasGuids,
   })
 
-  // Convert to ContentStat for the detail modal
   const contentStat: ContentStat = {
     title: item.title,
     count: 0,

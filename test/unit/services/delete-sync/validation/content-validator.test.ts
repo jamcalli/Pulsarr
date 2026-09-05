@@ -29,7 +29,6 @@ describe('content-validator', () => {
       isAnyGuidTracked: vi.fn(() => true),
       isAnyGuidProtected: vi.fn(() => false),
     }
-    vi.clearAllMocks()
   })
 
   describe('validateWatchlistDeletion', () => {
@@ -198,7 +197,6 @@ describe('content-validator', () => {
       }
 
       const guidToFind = 'tmdb://12345'
-      let _hitGuid: string | undefined
 
       mockValidators.isAnyGuidTracked = vi.fn((guids, onHit) => {
         if (onHit && guids.includes(guidToFind)) {

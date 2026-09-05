@@ -1,20 +1,10 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
+    "composite": false,
     "noEmit": true,
     "rootDir": "..",
-    "paths": {
-      "@root/*": ["../src/*"],
-      "@db/*": ["../src/db/*"],
-      "@routes/*": ["../src/routes/*"],
-      "@utils/*": ["../src/utils/*"],
-      "@plex/*": ["../src/plex/*"],
-      "@shared/*": ["../src/shared/*"],
-      "@data/*": ["../src/data/*"],
-      "@schemas/*": ["../src/schemas/*"],
-      "@services/*": ["../src/services/*"],
-      "@types/*": ["../src/types/*"]
-    }
+    "sourceMap": false
   },
   "include": ["**/*", "../src/**/*"],
   "exclude": ["../src/client/**/*"]

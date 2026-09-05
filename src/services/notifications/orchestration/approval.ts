@@ -10,6 +10,7 @@
 
 import { buildRoutingPayload } from '@root/schemas/webhooks/webhook-payloads.schema.js'
 import type {
+  ApprovalNotification,
   DiscordEmbed,
   SystemNotification,
 } from '@root/types/discord.types.js'
@@ -278,46 +279,21 @@ export function createAppriseApprovalPayload(
   request: ApprovalRequest,
   totalPending: number,
   posterUrl?: string,
-): {
-  type: 'system'
-  username: string
-  title: string
-  embedFields: Array<{ name: string; value: string; inline: boolean }>
-  posterUrl?: string
-  tmdbUrl?: string
-} {
-  const contentType =
-    request.contentType.charAt(0).toUpperCase() + request.contentType.slice(1)
-  const requester = request.userName || `User ${request.userId}`
-  const reason = formatTriggerReason(
-    request.triggeredBy,
-    request.approvalReason,
-  )
+): ApprovalNotification {
+  const contentType = request.contentType === 'movie' ? 'Movie' : 'Show'
 
   // Generate TMDB URL from content GUIDs
   const tmdbUrl = getTmdbUrl(request.contentGuids, request.contentType)
 
   return {
-    type: 'system' as const,
-    username: 'Approval System',
     title: `New Approval Request: ${request.contentTitle}`,
-    embedFields: [
-      { name: 'Content', value: request.contentTitle, inline: false },
-      { name: 'Type', value: contentType, inline: true },
-      { name: 'Requested by', value: requester, inline: true },
-      { name: 'Reason', value: reason, inline: false },
-      {
-        name: 'Total pending',
-        value: `${totalPending} requests`,
-        inline: false,
-      },
-      {
-        name: 'Action Required',
-        value:
-          'Visit the Pulsarr UI to review and handle this approval request.',
-        inline: false,
-      },
-    ],
+    contentTitle: request.contentTitle,
+    contentType,
+    requestedBy: request.userName || `User ${request.userId}`,
+    reason: formatTriggerReason(request.triggeredBy, request.approvalReason),
+    totalPending,
+    actionRequired:
+      'Visit the Pulsarr UI to review and handle this approval request.',
     posterUrl,
     tmdbUrl,
   }
@@ -476,7 +452,7 @@ async function sendAppriseNotifications(
         posterUrl,
       )
 
-      const sent = await apprise.sendSystemNotification(payload)
+      const sent = await apprise.sendApprovalNotification(payload)
       if (sent) sentCount++
     }
 

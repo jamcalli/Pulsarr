@@ -37,7 +37,6 @@ describe('TmdbService Integration', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
     fastify.tmdb.clearProviderCache()
@@ -384,6 +383,101 @@ describe('TmdbService Integration', () => {
 
       expect(result?.tmdbId).toBe(1396)
       expect(result?.type).toBe('tv')
+    })
+  })
+
+  describe('getPosterPath', () => {
+    it('should return the poster path for a movie TMDB guid', async () => {
+      server.use(
+        http.get('https://api.themoviedb.org/3/movie/550', () => {
+          return HttpResponse.json({ id: 550, poster_path: '/x.jpg' })
+        }),
+      )
+
+      const result = await fastify.tmdb.getPosterPath(['tmdb:550'], 'movie')
+
+      expect(result).toBe('/x.jpg')
+    })
+
+    it('should resolve a TVDB-only guid through the find endpoint', async () => {
+      server.use(
+        http.get('https://api.themoviedb.org/3/find/81189', () => {
+          return HttpResponse.json({
+            tv_results: [{ id: 1396, name: 'Breaking Bad' }],
+            movie_results: [],
+          })
+        }),
+        http.get('https://api.themoviedb.org/3/tv/1396', () => {
+          return HttpResponse.json({ id: 1396, poster_path: '/bb.jpg' })
+        }),
+      )
+
+      const result = await fastify.tmdb.getPosterPath(['tvdb:81189'], 'show')
+
+      expect(result).toBe('/bb.jpg')
+    })
+
+    it('should use the movie endpoint when a TVDB guid resolves to a movie', async () => {
+      const tvRequested = vi.fn()
+      server.use(
+        http.get('https://api.themoviedb.org/3/find/4242', () => {
+          return HttpResponse.json({
+            tv_results: [],
+            movie_results: [{ id: 603, title: 'The Matrix' }],
+          })
+        }),
+        http.get('https://api.themoviedb.org/3/movie/603', () => {
+          return HttpResponse.json({ id: 603, poster_path: '/matrix.jpg' })
+        }),
+        http.get('https://api.themoviedb.org/3/tv/603', () => {
+          tvRequested()
+          return new HttpResponse(null, { status: 404 })
+        }),
+      )
+
+      const result = await fastify.tmdb.getPosterPath(['tvdb:4242'], 'show')
+
+      expect(result).toBe('/matrix.jpg')
+      expect(tvRequested).not.toHaveBeenCalled()
+    })
+
+    it('should return null when TMDB responds 404', async () => {
+      server.use(
+        http.get('https://api.themoviedb.org/3/movie/999', () => {
+          return new HttpResponse(null, { status: 404 })
+        }),
+      )
+
+      const result = await fastify.tmdb.getPosterPath(['tmdb:999'], 'movie')
+
+      expect(result).toBeNull()
+    })
+
+    it('should return null without requesting TMDB when there are no guids', async () => {
+      const requested = vi.fn()
+      server.use(
+        http.get('https://api.themoviedb.org/3/*', () => {
+          requested()
+          return HttpResponse.json({})
+        }),
+      )
+
+      const result = await fastify.tmdb.getPosterPath([], 'movie')
+
+      expect(result).toBeNull()
+      expect(requested).not.toHaveBeenCalled()
+    })
+
+    it('should return null when details carry no poster path', async () => {
+      server.use(
+        http.get('https://api.themoviedb.org/3/movie/550', () => {
+          return HttpResponse.json({ id: 550, poster_path: null })
+        }),
+      )
+
+      const result = await fastify.tmdb.getPosterPath(['tmdb:550'], 'movie')
+
+      expect(result).toBeNull()
     })
   })
 })

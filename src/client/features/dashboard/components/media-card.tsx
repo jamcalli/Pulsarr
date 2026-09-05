@@ -1,4 +1,3 @@
-import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { Eye } from 'lucide-react'
 import { useState } from 'react'
 import { ContentDetailModal } from '@/components/content-detail-modal'
@@ -15,6 +14,9 @@ import type { MediaOrientation } from '@/features/dashboard/components/dashboard
 import { MediaRowItem } from '@/features/dashboard/components/media-row-item'
 import { usePosterUrl } from '@/features/dashboard/hooks/usePosterUrl'
 import { cn } from '@/lib/utils'
+import type { components } from '@/types/api.js'
+
+type ContentStat = components['schemas']['ContentStat']
 
 interface MediaCardProps {
   item: ContentStat
@@ -41,7 +43,7 @@ export function MediaCard({
   const hasUsers = Boolean(item.users && item.users.length > 0)
 
   // Use unified poster hook - fast path if thumb exists, fallback to TMDB fetch
-  const contentType = item.content_type === 'show' ? 'show' : ('movie' as const)
+  const contentType = item.content_type
   const { posterUrl } = usePosterUrl({
     thumb: item.thumb,
     guids: item.guids ?? [],

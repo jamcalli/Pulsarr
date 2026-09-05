@@ -1,14 +1,16 @@
-import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { useCallback } from 'react'
 import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
 import { useConfig } from '@/hooks/useConfig'
 import { queryClient } from '@/lib/queryClient'
 import { apiErrorMessage } from '@/lib/tanstackApi'
 import { useMinDuration } from '@/lib/useMinLoading'
+import type { components } from '@/types/api.js'
 import {
   dashboardStatsKeys,
   useDashboardStatsQuery,
 } from './useDashboardStatsQuery'
+
+type ContentStat = components['schemas']['ContentStat']
 
 // Re-export presets from store for convenience
 export {

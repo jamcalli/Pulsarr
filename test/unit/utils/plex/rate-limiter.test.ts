@@ -10,7 +10,6 @@ describe('plex/rate-limiter', () => {
     vi.useFakeTimers()
     rateLimiter = PlexRateLimiter.getInstance()
     rateLimiter.reset()
-    vi.clearAllMocks()
   })
 
   afterEach(() => {

@@ -25,7 +25,6 @@ describe('Config _isReady persistence', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
     app.config.authenticationMethod = 'disabled'

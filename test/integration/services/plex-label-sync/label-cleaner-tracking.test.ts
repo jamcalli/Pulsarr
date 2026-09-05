@@ -38,7 +38,6 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })

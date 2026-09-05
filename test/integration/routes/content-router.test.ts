@@ -1,13 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import { seedConfig } from '../../helpers/seeds/config.js'
@@ -26,7 +18,6 @@ describe('Content Router Rules API', () => {
   })
 
   beforeEach(async () => {
-    vi.clearAllMocks()
     const knex = getTestDatabase()
     await resetDatabase()
     await seedConfig(knex)

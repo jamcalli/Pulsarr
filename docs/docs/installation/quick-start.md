@@ -101,7 +101,7 @@ If you previously installed Pulsarr with Node.js, you must switch to [Bun](https
 :::
 
 #### Prerequisites
-- Bun 1.3 or higher ([bun.sh](https://bun.sh))
+- Bun 1.4 or higher ([bun.sh](https://bun.sh))
 - Git
 
 #### Steps
@@ -142,7 +142,7 @@ Standalone builds with easy installers are available for Linux, macOS, and Windo
 | Platform | Recommended Method |
 |----------|-------------------|
 | **Linux** | One-line installer: `curl -fsSL https://raw.githubusercontent.com/jamcalli/Pulsarr/master/scripts/installers/linux/install.sh \| sudo bash` |
-| **Windows** | Download and run `pulsarr-vX.X.X-windows-x64-setup.exe` (or `baseline` variant for older CPUs without AVX2) |
+| **Windows** | Download and run `pulsarr-vX.X.X-windows-x64-setup.exe` |
 | **macOS** | Download `pulsarr-vX.X.X-macos-{arch}.dmg` and drag Pulsarr to Applications |
 
 See the [Native Installation Guide](./native-installation) for detailed instructions, service management, and manual installation options.

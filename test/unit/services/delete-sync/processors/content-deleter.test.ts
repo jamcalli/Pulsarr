@@ -62,8 +62,6 @@ describe('content-deleter', () => {
     mockSonarrManager = {
       getSonarrService: vi.fn(() => mockSonarrService as SonarrService),
     } as unknown as SonarrManagerService
-
-    vi.clearAllMocks()
   })
 
   describe('processMovieDeletions - skip counter', () => {

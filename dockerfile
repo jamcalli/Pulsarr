@@ -1,7 +1,6 @@
-FROM oven/bun:1.3.14-alpine@sha256:5acc90a93e91ff07bf72aa90a7c9f0fa189765aec90b47bdbf2152d2196383c0 AS base
+FROM oven/bun:1.4.1-alpine@sha256:2ef545220f7a886f22fcb3f2309bbd6bcf1c0aa04b7d79c31765c7aa4a13aac1 AS base
 WORKDIR /app
 
-# Install production dependencies in a temp directory (cached independently)
 FROM base AS install
 COPY package.json bun.lock ./
 COPY packages ./packages
@@ -9,12 +8,9 @@ RUN mkdir -p /temp/prod && \
     cp package.json bun.lock /temp/prod/ && \
     cp -r packages /temp/prod/packages && \
     cd /temp/prod && \
-    bun install --frozen-lockfile --production --ignore-scripts && \
-    rm -rf node_modules/vite node_modules/rollup node_modules/esbuild \
-           node_modules/@rollup node_modules/@esbuild \
-           node_modules/rolldown node_modules/@rolldown
+    bun install --frozen-lockfile --production --ignore-scripts --omit=peer && \
+    rm -rf node_modules/@types
 
-# Build stage: full install + compile
 FROM base AS builder
 ARG TMDBAPIKEY
 ENV tmdbApiKey=${TMDBAPIKEY}
@@ -25,19 +21,18 @@ COPY packages ./packages
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile
 
-COPY vite.config.js tsconfig.json postcss.config.mjs ./
+COPY vite.config.js tsconfig.json tsconfig.base.json postcss.config.mjs ./
 COPY src ./src
 
 RUN --mount=type=cache,target=/app/node_modules/.vite \
     bun run build
 
-# Final runtime image
 FROM base
 
-# tini for proper PID 1 zombie reaping, wget for healthcheck, su-exec for privilege drop
+# tini reaps zombies as PID 1, wget serves the healthcheck, su-exec drops privileges in the entrypoint
 RUN apk add --no-cache tini wget su-exec
 
-# Remove bun user from base image (occupies UID 1000) and create pulsarr user
+# The base image's bun user holds UID 1000, which pulsarr must own for PUID defaults
 RUN deluser --remove-home bun && \
     delgroup bun; \
     addgroup -g 1000 -S pulsarr && \
@@ -58,11 +53,10 @@ RUN chmod +x docker-entrypoint.sh
 COPY docker-healthcheck.sh ./
 RUN chmod +x docker-healthcheck.sh
 
-# Copy license and documentation files for compliance
 COPY LICENSE* ./
 COPY README.md ./
 
-# Pass TMDB API key to runtime (GitHub Actions converts to TMDBAPIKEY)
+# CI passes the secret as TMDBAPIKEY; the app reads tmdbApiKey
 ARG TMDBAPIKEY
 
 ENV NODE_ENV=production

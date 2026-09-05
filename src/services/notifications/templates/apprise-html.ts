@@ -1,19 +1,17 @@
-/**
- * Apprise HTML Templates
- *
- * Pure template builders for Apprise notifications.
- * No state, no side effects - just HTML string generation.
- */
-
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
+  ApprovalNotification,
   MediaNotification,
-  SystemNotification,
+  UpdateAvailableRelease,
+  WatchlistAdditionNotification,
+  WatchlistCapNotification,
 } from '@root/types/discord.types.js'
+import {
+  type DeleteSyncSection,
+  summarizeDeleteSync,
+} from './delete-sync-summary.js'
+import { mediaTypeLabel } from './media-type.js'
 
-/**
- * Sanitizes HTML content to prevent XSS attacks.
- */
 export function escapeHtml(str: string): string {
   if (!str) return ''
   const escapeMap: Record<string, string> = {
@@ -27,25 +25,101 @@ export function escapeHtml(str: string): string {
   return str.replace(/[&<>'"`]/g, (c) => escapeMap[c] || c)
 }
 
-export function htmlWrapper(content: string): string {
+const BORDER = '2px solid #000000'
+const SHADOW = '4px 4px 0px 0px #000000'
+
+const WRAPPER_STYLE = `font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: ${BORDER}; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: ${SHADOW};`
+const CARD_STYLE = `margin-bottom: 20px; padding: 15px; border-radius: 5px; border: ${BORDER}; box-shadow: ${SHADOW};`
+const CARD_BACKGROUND = '#212121'
+const SAFETY_CARD_BACKGROUND = '#c1666b'
+const PAGE_HEADING_STYLE = 'color: #000000; margin-top: 0; font-weight: 700;'
+const HEADING_STYLE = 'margin-top: 0; color: #ffffff; font-weight: 700;'
+const SECTION_HEADING_STYLE = `${HEADING_STYLE} border-bottom: 1px solid #343746; padding-bottom: 5px;`
+const LABEL_STYLE = 'color: #ffffff; font-weight: 700; font-size: 14px;'
+const VALUE_STYLE = 'color: #ffffff; font-weight: 500;'
+const NOTICE_STYLE = 'color: #ffffff; font-weight: 700; text-align: center;'
+const LINK_STYLE = 'color: #48a9a6; font-weight: 500; text-decoration: none;'
+const DIVIDER_STYLE =
+  'margin-top: 15px; padding-top: 15px; border-top: 1px solid #343746;'
+const POSTER_STYLE = `border-radius: 5px; border: ${BORDER}; box-shadow: ${SHADOW};`
+const CENTER_BLOCK_STYLE = 'text-align: center; margin-bottom: 20px;'
+
+function htmlWrapper(content: string): string {
   return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
+    <div style="${WRAPPER_STYLE}">
       ${content}
-      <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
-      <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
     </div>
     `
+}
+
+function card(inner: string, background = CARD_BACKGROUND): string {
+  return `
+    <div style="${CARD_STYLE} background-color: ${background};">
+      ${inner}
+    </div>
+  `
+}
+
+function pageHeading(text: string): string {
+  return `<h2 style="${PAGE_HEADING_STYLE}">${text}</h2>`
+}
+
+function heading(text: string): string {
+  return `<h3 style="${HEADING_STYLE}">${text}</h3>`
+}
+
+function sectionHeading(text: string): string {
+  return `<h4 style="${SECTION_HEADING_STYLE}">${text}</h4>`
+}
+
+function paragraph(inner: string): string {
+  return `<p style="${VALUE_STYLE}">${inner}</p>`
+}
+
+function labelledParagraph(label: string, value: string): string {
+  return paragraph(
+    `<strong style="color: #ffffff;">${label}:</strong> ${value}`,
+  )
+}
+
+function labelValue(label: string, value: string): string {
+  return `
+      <div style="margin-bottom: 10px;">
+        <div style="${LABEL_STYLE}">${label}</div>
+        <div style="${VALUE_STYLE}">${value}</div>
+      </div>`
+}
+
+function divider(): string {
+  return `<div style="${DIVIDER_STYLE}"></div>`
+}
+
+function link(url: string, text: string): string {
+  return `<a href="${escapeHtml(url)}" style="${LINK_STYLE}">${text}</a>`
+}
+
+function centeredLink(url: string, text: string): string {
+  return `<div style="${CENTER_BLOCK_STYLE}">${link(url, text)}</div>`
+}
+
+function tmdbLink(url: string | undefined): string {
+  return url
+    ? `<p style="margin-top: 10px;">${link(url, 'View on TMDB')}</p>`
+    : ''
 }
 
 function createPosterHtml(
   posterUrl: string | undefined,
   title: string,
+  maxWidth = 200,
 ): string {
   if (!posterUrl) return ''
-  return `<div style="text-align: center; margin-bottom: 20px;">
-       <img src="${posterUrl}" alt="${escapeHtml(title)} poster" style="max-width: 200px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+  return `<div style="${CENTER_BLOCK_STYLE}">
+       <img src="${escapeHtml(posterUrl)}" alt="${escapeHtml(title)} poster" style="max-width: ${maxWidth}px; ${POSTER_STYLE}">
      </div>`
 }
+
+type DetailLine = { label?: string; value: string }
 
 export function createMediaNotificationHtml(notification: MediaNotification): {
   htmlBody: string
@@ -55,274 +129,157 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
   const emoji = notification.type === 'movie' ? '🎬' : '📺'
   const title = `${emoji} ${notification.title}`
 
-  const posterHtml = createPosterHtml(
-    notification.posterUrl,
-    notification.title,
-  )
+  const details = notification.episodeDetails
+  let textHeading: string
+  const lines: DetailLine[] = []
 
-  let htmlBody: string
-  let textBody: string
-
-  if (notification.type === 'show' && notification.episodeDetails) {
-    const { episodeDetails } = notification
-
+  if (notification.type === 'show' && details) {
     if (
-      episodeDetails.seasonNumber !== undefined &&
-      episodeDetails.episodeNumber !== undefined
+      details.seasonNumber !== undefined &&
+      details.episodeNumber !== undefined
     ) {
-      const seasonNum = episodeDetails.seasonNumber.toString().padStart(2, '0')
-      const episodeNum = episodeDetails.episodeNumber
-        .toString()
-        .padStart(2, '0')
-      const episodeId = `S${seasonNum}E${episodeNum}`
-      const episodeTitle = episodeDetails.title
-        ? ` - "${episodeDetails.title}"`
-        : ''
+      const seasonNum = details.seasonNumber.toString().padStart(2, '0')
+      const episodeNum = details.episodeNumber.toString().padStart(2, '0')
+      const episodeTitle = details.title ? ` - "${details.title}"` : ''
 
-      const episodeContent = `
-        ${posterHtml}
-        <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${escapeHtml(notification.title)}</h3>
-          <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Episode:</strong> ${escapeHtml(episodeId)}${escapeHtml(episodeTitle)}</p>
-          ${
-            episodeDetails.overview
-              ? `<p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Overview:</strong> ${escapeHtml(episodeDetails.overview)}</p>`
-              : ''
-          }
-          ${
-            episodeDetails.airDateUtc
-              ? `<p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Air Date:</strong> ${escapeHtml(new Date(episodeDetails.airDateUtc).toLocaleDateString())}</p>`
-              : ''
-          }
-          ${
-            notification.tmdbUrl
-              ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
-              : ''
-          }
-        </div>
-      `
-
-      htmlBody = htmlWrapper(episodeContent)
-
-      textBody = `New Episode Available\n\n${notification.title}\nEpisode: ${episodeId}${episodeTitle}`
-      if (episodeDetails.overview) {
-        textBody += `\nOverview: ${episodeDetails.overview}`
+      textHeading = 'New Episode Available'
+      lines.push({
+        label: 'Episode',
+        value: `S${seasonNum}E${episodeNum}${episodeTitle}`,
+      })
+      if (details.overview) {
+        lines.push({ label: 'Overview', value: details.overview })
       }
-      if (episodeDetails.airDateUtc) {
-        const airDate = new Date(episodeDetails.airDateUtc).toLocaleDateString()
-        textBody += `\nAir Date: ${airDate}`
+      if (details.airDateUtc) {
+        lines.push({
+          label: 'Air Date',
+          value: new Date(details.airDateUtc).toLocaleDateString(),
+        })
       }
-    } else if (episodeDetails.seasonNumber !== undefined) {
-      const seasonContent = `
-        ${posterHtml}
-        <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${escapeHtml(notification.title)}</h3>
-          <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Season Added:</strong> Season ${escapeHtml(String(episodeDetails.seasonNumber))}</p>
-          ${
-            notification.tmdbUrl
-              ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
-              : ''
-          }
-        </div>
-      `
-
-      htmlBody = htmlWrapper(seasonContent)
-      textBody = `New Season Available\n\n${notification.title}\nSeason Added: Season ${episodeDetails.seasonNumber}`
+    } else if (details.seasonNumber !== undefined) {
+      textHeading = 'New Season Available'
+      lines.push({
+        label: 'Season Added',
+        value: `Season ${details.seasonNumber}`,
+      })
     } else {
-      const fallbackContent = `
-        ${posterHtml}
-        <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${escapeHtml(notification.title)}</h3>
-          <p style="font-weight: 500; color: #ffffff;">New content is now available to watch!</p>
-          ${
-            notification.tmdbUrl
-              ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
-              : ''
-          }
-        </div>
-      `
-
-      htmlBody = htmlWrapper(fallbackContent)
-      textBody = `New Content Available\n\n${notification.title}\nNew content is now available to watch!`
+      textHeading = 'New Content Available'
+      lines.push({ value: 'New content is now available to watch!' })
     }
   } else {
-    const movieContent = `
-      ${posterHtml}
-      <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-        <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${escapeHtml(notification.title)}</h3>
-        <p style="font-weight: 500; color: #ffffff;">Movie available to watch!</p>
-        ${
-          notification.tmdbUrl
-            ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
-            : ''
-        }
-      </div>
-    `
-
-    htmlBody = htmlWrapper(movieContent)
-    textBody = `Movie Available\n\n${notification.title}\nMovie available to watch!`
+    textHeading = 'Movie Available'
+    lines.push({ value: 'Movie available to watch!' })
   }
 
+  const htmlLines = lines
+    .map((line) =>
+      line.label
+        ? labelledParagraph(line.label, escapeHtml(line.value))
+        : paragraph(escapeHtml(line.value)),
+    )
+    .join('')
+
+  const htmlBody = htmlWrapper(
+    createPosterHtml(notification.posterUrl, notification.title) +
+      card(
+        heading(escapeHtml(notification.title)) +
+          htmlLines +
+          tmdbLink(notification.tmdbUrl),
+      ),
+  )
+
+  const textLines = lines
+    .map((line) => (line.label ? `${line.label}: ${line.value}` : line.value))
+    .join('\n')
+
+  let textBody = `${textHeading}\n\n${notification.title}\n${textLines}`
   if (notification.tmdbUrl) {
     textBody += `\nTMDB: ${notification.tmdbUrl}`
   }
 
-  textBody += '\n\n- Pulsarr'
-
   return { htmlBody, textBody, title }
 }
 
-export function createSystemNotificationHtml(
-  notification: SystemNotification,
+export function createApprovalNotificationHtml(
+  notification: ApprovalNotification,
 ): { htmlBody: string; textBody: string } {
-  const fields = Object.fromEntries(
-    notification.embedFields.map((field) => [field.name, field.value]),
+  const contentCard = card(
+    createPosterHtml(notification.posterUrl, notification.contentTitle, 150) +
+      heading(escapeHtml(notification.contentTitle)) +
+      labelValue('TYPE', escapeHtml(notification.contentType)),
   )
 
-  const posterHtml = notification.posterUrl
-    ? `<div style="text-align: center; margin-bottom: 15px;">
-         <img src="${notification.posterUrl}" alt="${escapeHtml(fields.Content || notification.title)} poster" style="max-width: 150px; border-radius: 5px; border: 2px solid #000000; box-shadow: 2px 2px 0px 0px #000000;">
-       </div>`
-    : ''
+  const requestCard = card(
+    sectionHeading('Request Details') +
+      labelValue('REQUESTED BY', escapeHtml(notification.requestedBy)) +
+      labelValue(
+        'PENDING REQUESTS',
+        `${notification.totalPending} awaiting review`,
+      ) +
+      divider() +
+      labelValue('REASON FOR APPROVAL', escapeHtml(notification.reason)),
+  )
 
-  const contentCard = `
-    <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      ${posterHtml}
-      <h3 style="margin-top: 0; color: #ffffff; font-weight: 700; text-align: center;">${escapeHtml(fields.Content || 'Unknown Content')}</h3>
-      <div style="display: flex; justify-content: center; gap: 20px; margin-top: 15px;">
-        <div style="text-align: center;">
-          <div style="color: #ffffff; font-weight: 700; font-size: 14px;">TYPE</div>
-          <div style="color: #ffffff; font-weight: 500;">${escapeHtml(fields.Type || 'Unknown')}</div>
-        </div>
-      </div>
-    </div>
-  `
+  const actionCard = card(
+    `<div style="${NOTICE_STYLE}">${escapeHtml(notification.actionRequired)}</div>`,
+  )
 
-  const requestCard = `
-    <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <h4 style="margin-top: 0; color: #ffffff; font-weight: 700; border-bottom: 1px solid #343746; padding-bottom: 5px;">Request Details</h4>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
-        <div>
-          <div style="color: #ffffff; font-weight: 700; font-size: 14px;">REQUESTED BY</div>
-          <div style="color: #ffffff; font-weight: 500;">${escapeHtml(fields['Requested by'] || 'Unknown')}</div>
-        </div>
-        <div>
-          <div style="color: #ffffff; font-weight: 700; font-size: 14px;">PENDING REQUESTS</div>
-          <div style="color: #ffffff; font-weight: 500;">${escapeHtml(fields['Total pending'] || '0').replace(' requests', ' awaiting review')}</div>
-        </div>
-      </div>
-      ${
-        fields.Reason
-          ? `
-      <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #343746;">
-        <div style="color: #ffffff; font-weight: 700; font-size: 14px;">REASON FOR APPROVAL</div>
-        <div style="color: #ffffff; font-weight: 500; margin-top: 5px;">${escapeHtml(fields.Reason)}</div>
-      </div>
-      `
-          : ''
-      }
-    </div>
-  `
-
-  const actionCard = fields['Action Required']
-    ? `
-    <div style="margin-bottom: 20px; padding: 15px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <div style="color: #ffffff; font-weight: 700; text-align: center;">${escapeHtml(fields['Action Required'])}</div>
-    </div>
-  `
-    : ''
-
-  const tmdbLinkHtml = notification.tmdbUrl
-    ? `
-    <div style="text-align: center; margin-bottom: 20px;">
-      <a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a>
-    </div>
-  `
-    : ''
+  const htmlBody = htmlWrapper(
+    pageHeading('Content Approval Required') +
+      contentCard +
+      (notification.tmdbUrl
+        ? centeredLink(notification.tmdbUrl, 'View on TMDB')
+        : '') +
+      requestCard +
+      actionCard,
+  )
 
   let textBody = 'Content Approval Required\n\n'
-  textBody += `${fields.Content || 'Unknown Content'}\n`
-  textBody += `Type: ${fields.Type || 'Unknown'}\n\n`
-  textBody += `Requested by: ${fields['Requested by'] || 'Unknown'}\n`
-  textBody += `Total pending: ${fields['Total pending'] || '0'}\n`
-  if (fields.Reason) textBody += `Reason: ${fields.Reason}\n`
+  textBody += `${notification.contentTitle}\n`
+  textBody += `Type: ${notification.contentType}\n\n`
+  textBody += `Requested by: ${notification.requestedBy}\n`
+  textBody += `Total pending: ${notification.totalPending} requests\n`
+  textBody += `Reason: ${notification.reason}\n`
   if (notification.tmdbUrl) textBody += `TMDB: ${notification.tmdbUrl}\n`
-  if (fields['Action Required']) textBody += `\n${fields['Action Required']}\n`
-  textBody += '\n- Pulsarr'
-
-  const systemContent = `
-    <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Content Approval Required</h2>
-    ${contentCard}
-    ${tmdbLinkHtml}
-    ${requestCard}
-    ${actionCard}
-  `
-
-  const htmlBody = htmlWrapper(systemContent)
+  textBody += `\n${notification.actionRequired}\n`
 
   return { htmlBody, textBody }
 }
 
-export function createUpdateAvailableNotificationHtml(release: {
-  currentVersion: string
-  latestVersion: string
-  releaseUrl: string
-  releaseName: string | null
-  releaseBody: string | null
-  releaseBodyHtml: string | null
-  publishedAt: string | null
-}): { htmlBody: string; textBody: string; title: string } {
+export function createUpdateAvailableNotificationHtml(
+  release: UpdateAvailableRelease,
+): { htmlBody: string; textBody: string; title: string } {
   const title = `🚀 Pulsarr ${release.latestVersion} is available`
   const displayName = release.releaseName?.trim() || `v${release.latestVersion}`
   const publishedAt = release.publishedAt
     ? new Date(release.publishedAt).toLocaleDateString()
     : null
 
-  const versionsCard = `
-    <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <h3 style="margin-top: 0; color: #ffffff; font-weight: 700; text-align: center;">${escapeHtml(displayName)}</h3>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
-        <div>
-          <div style="color: #ffffff; font-weight: 700; font-size: 14px;">CURRENT</div>
-          <div style="color: #ffffff; font-weight: 500;">v${escapeHtml(release.currentVersion)}</div>
-        </div>
-        <div>
-          <div style="color: #ffffff; font-weight: 700; font-size: 14px;">LATEST</div>
-          <div style="color: #ffffff; font-weight: 500;">v${escapeHtml(release.latestVersion)}</div>
-        </div>
-      </div>
-      ${
-        publishedAt
-          ? `
-      <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #343746;">
-        <div style="color: #ffffff; font-weight: 700; font-size: 14px;">PUBLISHED</div>
-        <div style="color: #ffffff; font-weight: 500; margin-top: 5px;">${escapeHtml(publishedAt)}</div>
-      </div>
-      `
-          : ''
-      }
-    </div>
-  `
+  const versionsCard = card(
+    heading(escapeHtml(displayName)) +
+      labelValue('CURRENT', `v${escapeHtml(release.currentVersion)}`) +
+      labelValue('LATEST', `v${escapeHtml(release.latestVersion)}`) +
+      (publishedAt
+        ? divider() + labelValue('PUBLISHED', escapeHtml(publishedAt))
+        : ''),
+  )
 
-  // releaseBodyHtml is GitHub's /markdown API output, sanitized server-side, so
-  // it is injected unescaped. If that render source changes, sanitize first.
+  // GitHub's /markdown API output is sanitized server-side, so it is injected unescaped
   const notesCard = release.releaseBodyHtml
-    ? `
-    <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <h4 style="margin-top: 0; color: #ffffff; font-weight: 700; border-bottom: 1px solid #343746; padding-bottom: 5px;">Release Notes</h4>
-      <div style="margin-top: 15px; color: #ffffff; font-weight: 500;">${release.releaseBodyHtml}</div>
-    </div>
-  `
+    ? card(
+        sectionHeading('Release Notes') +
+          `<div style="margin-top: 15px; ${VALUE_STYLE}">${release.releaseBodyHtml}</div>`,
+      )
     : ''
 
-  const linkHtml = `
-    <div style="text-align: center; margin-bottom: 20px;">
-      <a href="${escapeHtml(release.releaseUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View release on GitHub →</a>
-    </div>
-  `
+  const htmlBody = htmlWrapper(
+    pageHeading('Pulsarr update available') +
+      versionsCard +
+      centeredLink(release.releaseUrl, 'View release on GitHub') +
+      notesCard,
+  )
 
-  // Cap notes so the text fallback stays within strict per-service limits
-  // (e.g. Telegram's 4096-char messages); HTML targets get the full card above.
+  // Telegram caps a message at 4096 chars, so the text fallback truncates the notes
   const MAX_TEXT_NOTES = 1500
   const notes = release.releaseBody?.trim()
   const truncatedNotes =
@@ -337,337 +294,165 @@ export function createUpdateAvailableNotificationHtml(release: {
   if (publishedAt) textBody += `Published: ${publishedAt}\n`
   if (truncatedNotes) textBody += `\nRelease Notes:\n${truncatedNotes}\n`
   textBody += `\nView release: ${release.releaseUrl}\n`
-  textBody += '\n- Pulsarr'
 
-  const content = `
-    <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Pulsarr update available</h2>
-    ${versionsCard}
-    ${linkHtml}
-    ${notesCard}
-  `
-
-  return { htmlBody: htmlWrapper(content), textBody, title }
+  return { htmlBody, textBody, title }
 }
 
-export function createWatchlistCapNotificationHtml(event: {
-  userName: string
-  contentType: string
-  currentCount: number
-  cap: number
-}): { htmlBody: string; textBody: string } {
+export function createWatchlistCapNotificationHtml(
+  event: WatchlistCapNotification,
+): { htmlBody: string; textBody: string } {
   const contentLabel = event.contentType === 'movie' ? 'Movie' : 'Show'
+  const impact =
+    'New items will not be processed until the cap is raised or items are removed.'
 
-  const detailsCard = `
-    <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <h3 style="margin-top: 0; color: #ffffff; font-weight: 700; border-bottom: 1px solid #343746; padding-bottom: 5px;">Cap Details</h3>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
-        <div>
-          <div style="color: #ffffff; font-weight: 700; font-size: 14px;">USER</div>
-          <div style="color: #ffffff; font-weight: 500;">${escapeHtml(event.userName)}</div>
-        </div>
-        <div>
-          <div style="color: #ffffff; font-weight: 700; font-size: 14px;">CONTENT TYPE</div>
-          <div style="color: #ffffff; font-weight: 500;">${escapeHtml(contentLabel)}</div>
-        </div>
-      </div>
-      <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #343746;">
-        <div style="color: #ffffff; font-weight: 700; font-size: 14px;">USAGE</div>
-        <div style="color: #ffffff; font-weight: 500; margin-top: 5px;">${event.currentCount} / ${event.cap}</div>
-      </div>
-    </div>
-  `
+  const detailsCard = card(
+    sectionHeading('Cap Details') +
+      labelValue('USER', escapeHtml(event.userName)) +
+      labelValue('CONTENT TYPE', escapeHtml(contentLabel)) +
+      divider() +
+      labelValue('USAGE', `${event.currentCount} / ${event.cap}`),
+  )
 
-  const impactCard = `
-    <div style="margin-bottom: 20px; padding: 15px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <div style="color: #ffffff; font-weight: 700; text-align: center;">New items will not be processed until the cap is raised or items are removed.</div>
-    </div>
-  `
+  const htmlBody = htmlWrapper(
+    pageHeading('Watchlist Cap Reached') +
+      detailsCard +
+      card(`<div style="${NOTICE_STYLE}">${impact}</div>`),
+  )
 
   let textBody = 'Watchlist Cap Reached\n\n'
   textBody += `User: ${event.userName}\n`
   textBody += `Content Type: ${contentLabel}\n`
   textBody += `Usage: ${event.currentCount} / ${event.cap}\n\n`
-  textBody +=
-    'New items will not be processed until the cap is raised or items are removed.\n'
-  textBody += '\n- Pulsarr'
-
-  const content = `
-    <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Watchlist Cap Reached</h2>
-    ${detailsCard}
-    ${impactCard}
-  `
-
-  const htmlBody = htmlWrapper(content)
+  textBody += `${impact}\n`
 
   return { htmlBody, textBody }
+}
+
+function deletedSection(section: DeleteSyncSection): {
+  html: string
+  text: string
+} {
+  const { label, noun, protectedInfo, shown, remaining } = section
+
+  if (section.deleted <= 0) {
+    return {
+      html: card(
+        heading(label) + paragraph(`No ${noun} deleted${protectedInfo}`),
+      ),
+      text: `${label}: No ${noun} deleted${protectedInfo}\n\n`,
+    }
+  }
+
+  const listItems = shown
+    .map(
+      (title) =>
+        `<li style="margin-bottom: 5px; ${VALUE_STYLE}">${escapeHtml(title)}</li>`,
+    )
+    .join('')
+
+  const html = card(
+    heading(`${label} (${section.deleted} deleted${protectedInfo})`) +
+      `<ul style="margin-bottom: 0; padding-left: 20px; color: #ffffff;">
+        ${listItems || `<li style="${VALUE_STYLE}">None</li>`}
+      </ul>` +
+      (remaining > 0
+        ? `<p style="font-style: italic; margin-top: 10px; color: #ffffff;">... and ${remaining} more ${noun}</p>`
+        : ''),
+  )
+
+  const textList = shown.map((title) => `• ${title}`).join('\n')
+  let text = `${label} (${section.deleted} deleted${protectedInfo}):\n${textList || 'None'}\n`
+  text += remaining > 0 ? `... and ${remaining} more ${noun}\n\n` : '\n'
+
+  return { html, text }
+}
+
+function summaryStat(count: number, label: string): string {
+  return `<span style="display: inline-block; margin-right: 20px; margin-bottom: 10px;">
+        <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px;">${count}</span>
+        <span style="${VALUE_STYLE}">${label}</span>
+      </span>`
 }
 
 export function createDeleteSyncNotificationHtml(
   results: DeleteSyncResult,
   dryRun: boolean,
 ): { htmlBody: string; textBody: string; title: string } {
-  let title: string
+  const summary = summarizeDeleteSync(results, dryRun)
+  const { title, totals } = summary
 
-  if (results.safetyTriggered) {
-    title = '⚠️ Delete Sync Safety Triggered'
-  } else if (dryRun) {
-    title = '🔍 Delete Sync Simulation Results'
-  } else {
-    title = '🗑️ Delete Sync Results'
+  let summaryText = summary.summaryText
+  if (summary.protectedText) {
+    summaryText += ` ${summary.protectedText}`
   }
 
-  let textBody = ''
+  const summaryCard = card(
+    heading('Summary') +
+      `<div style="margin-top: 15px;">
+      ${summaryStat(totals.processed, 'Processed')}
+      ${summaryStat(totals.deleted, 'Deleted')}
+      ${summaryStat(totals.skipped, 'Skipped')}
+      ${totals.protected ? summaryStat(totals.protected, 'Protected') : ''}
+    </div>`,
+    results.safetyTriggered ? SAFETY_CARD_BACKGROUND : CARD_BACKGROUND,
+  )
 
-  let summaryText = dryRun
-    ? 'This was a dry run - no content was actually deleted.'
-    : results.safetyTriggered
-      ? results.safetyMessage ||
-        'A safety check prevented the delete sync operation from running.'
-      : "The following content was removed because it's no longer in any user's watchlist."
+  const safetyCard = summary.safetyMessage
+    ? card(
+        heading('Safety Reason') + paragraph(escapeHtml(summary.safetyMessage)),
+      )
+    : ''
 
-  if (results.total.protected && results.total.protected > 0) {
-    summaryText += ` ${results.total.protected} items were preserved because they are in protected playlists.`
-  }
+  const movies = deletedSection(summary.movies)
+  const shows = deletedSection(summary.shows)
+  const timestamp = new Date().toLocaleString()
 
-  textBody += `${summaryText}\n\n`
+  const htmlBody = htmlWrapper(
+    `<p style="margin-bottom: 20px; color: #000000;">${escapeHtml(summaryText)}</p>` +
+      summaryCard +
+      safetyCard +
+      movies.html +
+      shows.html +
+      card(
+        `<div style="text-align: center; font-style: italic; ${VALUE_STYLE}">Delete sync operation completed at ${escapeHtml(timestamp)}</div>`,
+      ),
+  )
 
-  const titleSection = `
-  <p style="margin-bottom: 20px; color: #000000;">${escapeHtml(summaryText)}</p>
-  `
-
-  const summarySection = `
-  <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: ${results.safetyTriggered ? '#c1666b' : '#212121'}; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-    <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Summary</h3>
-    <div style="display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-around; margin-top: 15px;">
-      <div style="display: flex; align-items: center; margin-right: 20px; margin-bottom: 10px;">
-        <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px; display: inline-block; min-width: 30px; text-align: center;">${results.total.processed}</span>
-        <span style="font-weight: 500; color: #ffffff; display: inline-block;">Processed</span>
-      </div>
-      <div style="display: flex; align-items: center; margin-right: 20px; margin-bottom: 10px;">
-        <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px; display: inline-block; min-width: 30px; text-align: center;">${results.total.deleted}</span>
-        <span style="font-weight: 500; color: #ffffff; display: inline-block;">Deleted</span>
-      </div>
-      <div style="display: flex; align-items: center; margin-right: 20px; margin-bottom: 10px;">
-        <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px; display: inline-block; min-width: 30px; text-align: center;">${results.total.skipped}</span>
-        <span style="font-weight: 500; color: #ffffff; display: inline-block;">Skipped</span>
-      </div>
-      ${
-        results.total.protected
-          ? `
-      <div style="display: flex; align-items: center; margin-bottom: 10px;">
-        <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px; display: inline-block; min-width: 30px; text-align: center;">${results.total.protected}</span>
-        <span style="font-weight: 500; color: #ffffff; display: inline-block;">Protected</span>
-      </div>`
-          : ''
-      }
-    </div>
-  </div>
-  `
-
+  let textBody = `${summaryText}\n\n`
   textBody += 'Summary:\n'
-  textBody += `Processed: ${results.total.processed} items\n`
-  textBody += `Deleted: ${results.total.deleted} items\n`
-  textBody += `Skipped: ${results.total.skipped} items\n`
-  if (results.total.protected) {
-    textBody += `Protected: ${results.total.protected} items\n`
+  textBody += `Processed: ${totals.processed} items\n`
+  textBody += `Deleted: ${totals.deleted} items\n`
+  textBody += `Skipped: ${totals.skipped} items\n`
+  if (totals.protected) {
+    textBody += `Protected: ${totals.protected} items\n`
   }
   textBody += '\n'
-
-  let safetySection = ''
-  if (results.safetyTriggered && results.safetyMessage) {
-    safetySection = `
-    <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Safety Reason</h3>
-      <p style="font-weight: 500; color: #ffffff;">${escapeHtml(results.safetyMessage)}</p>
-    </div>
-    `
-    textBody += `Safety Reason: ${results.safetyMessage}\n\n`
+  if (summary.safetyMessage) {
+    textBody += `Safety Reason: ${summary.safetyMessage}\n\n`
   }
-
-  let contentSections = ''
-
-  if (results.movies.deleted > 0) {
-    const movieList = results.movies.items
-      .slice(0, 10)
-      .map(
-        (item) =>
-          `<li style="margin-bottom: 5px; color: #ffffff; font-weight: 500;">${escapeHtml(item.title)}</li>`,
-      )
-      .join('')
-
-    const moreMovies =
-      results.movies.items.length > 10
-        ? `<p style="font-style: italic; margin-top: 10px; color: #ffffff;">... and ${results.movies.items.length - 10} more movies</p>`
-        : ''
-
-    const protectedInfo =
-      results.movies.protected && results.movies.protected > 0
-        ? ` (${results.movies.protected} protected)`
-        : ''
-
-    contentSections += `
-    <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Movies (${results.movies.deleted} deleted${protectedInfo})</h3>
-      <ul style="margin-bottom: 0; padding-left: 20px; color: #ffffff;">
-        ${movieList || '<li style="font-weight: 500; color: #ffffff;">None</li>'}
-      </ul>
-      ${moreMovies}
-    </div>
-    `
-
-    const textMovieList = results.movies.items
-      .slice(0, 10)
-      .map((item) => `• ${item.title}`)
-      .join('\n')
-
-    textBody += `Movies (${results.movies.deleted} deleted${protectedInfo}):\n${textMovieList || 'None'}\n`
-    if (results.movies.items.length > 10) {
-      textBody += `... and ${results.movies.items.length - 10} more movies\n\n`
-    } else {
-      textBody += '\n'
-    }
-  } else {
-    const protectedInfo =
-      results.movies.protected && results.movies.protected > 0
-        ? ` (${results.movies.protected} protected)`
-        : ''
-
-    contentSections += `
-    <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Movies</h3>
-      <p style="font-weight: 500; color: #ffffff;">No movies deleted${protectedInfo}</p>
-    </div>
-    `
-    textBody += `Movies: No movies deleted${protectedInfo}\n\n`
-  }
-
-  if (results.shows.deleted > 0) {
-    const showList = results.shows.items
-      .slice(0, 10)
-      .map(
-        (item) =>
-          `<li style="margin-bottom: 5px; color: #ffffff; font-weight: 500;">${escapeHtml(item.title)}</li>`,
-      )
-      .join('')
-
-    const moreShows =
-      results.shows.items.length > 10
-        ? `<p style="font-style: italic; margin-top: 10px; color: #ffffff;">... and ${results.shows.items.length - 10} more TV shows</p>`
-        : ''
-
-    const protectedInfo =
-      results.shows.protected && results.shows.protected > 0
-        ? ` (${results.shows.protected} protected)`
-        : ''
-
-    contentSections += `
-    <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">TV Shows (${results.shows.deleted} deleted${protectedInfo})</h3>
-      <ul style="margin-bottom: 0; padding-left: 20px; color: #ffffff;">
-        ${showList || '<li style="font-weight: 500; color: #ffffff;">None</li>'}
-      </ul>
-      ${moreShows}
-    </div>
-    `
-
-    const textShowList = results.shows.items
-      .slice(0, 10)
-      .map((item) => `• ${item.title}`)
-      .join('\n')
-
-    textBody += `TV Shows (${results.shows.deleted} deleted${protectedInfo}):\n${textShowList || 'None'}\n`
-    if (results.shows.items.length > 10) {
-      textBody += `... and ${results.shows.items.length - 10} more TV shows\n\n`
-    } else {
-      textBody += '\n'
-    }
-  } else {
-    const protectedInfo =
-      results.shows.protected && results.shows.protected > 0
-        ? ` (${results.shows.protected} protected)`
-        : ''
-
-    contentSections += `
-    <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">TV Shows</h3>
-      <p style="font-weight: 500; color: #ffffff;">No TV shows deleted${protectedInfo}</p>
-    </div>
-    `
-    textBody += `TV Shows: No TV shows deleted${protectedInfo}\n\n`
-  }
-
-  const timestamp = new Date().toLocaleString()
-  const timestampSection = `
-  <div style="text-align: center; margin-top: 15px; font-style: italic; font-weight: 500; color: #ffffff; background-color: #212121; padding: 10px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-    Delete sync operation completed at ${escapeHtml(timestamp)}
-  </div>
-  `
-
-  textBody += `Delete sync completed at ${timestamp}\n\n- Pulsarr`
-
-  const completeContent = `
-    ${titleSection}
-    ${summarySection}
-    ${safetySection}
-    ${contentSections}
-    ${timestampSection}
-  `
-
-  const htmlBody = htmlWrapper(completeContent)
+  textBody += movies.text
+  textBody += shows.text
+  textBody += `Delete sync completed at ${timestamp}`
 
   return { htmlBody, textBody, title }
 }
 
-export function createWatchlistAdditionHtml(item: {
-  title: string
-  type: string
-  addedBy: {
-    name: string
-    alias?: string | null
-  }
-  posterUrl?: string
-  tmdbUrl?: string
-  displayName: string
-}): { htmlBody: string; textBody: string; title: string } {
-  const mediaTypeRaw = item.type ? item.type.toLowerCase() : ''
-  const isMovie = mediaTypeRaw === 'movie'
-  const isShow =
-    mediaTypeRaw === 'show' ||
-    mediaTypeRaw === 'tv' ||
-    mediaTypeRaw === 'series'
-
-  const emoji = isMovie ? '🎬' : isShow ? '📺' : '🎬'
-  const mediaType = isMovie ? 'Movie' : isShow ? 'Show' : 'Media'
+export function createWatchlistAdditionHtml(
+  item: WatchlistAdditionNotification & { displayName: string },
+): { htmlBody: string; textBody: string; title: string } {
+  const { label: mediaType, emoji } = mediaTypeLabel(item.type)
 
   const title = `${emoji} ${mediaType} Added: ${item.title}`
 
-  const htmlBody = `
-  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
-    <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      ${
-        item.posterUrl
-          ? `<div style="text-align: center; margin-bottom: 20px;">
-           <img src="${item.posterUrl}" alt="${escapeHtml(item.title)} poster" style="max-width: 200px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-         </div>`
-          : ''
-      }
-
-      <div>
-        <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${escapeHtml(item.title)}</h3>
-        <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Type:</strong> ${escapeHtml(mediaType)}</p>
-        <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Added by:</strong> ${escapeHtml(item.displayName)}</p>
-        ${
-          item.tmdbUrl
-            ? `<p style="margin-top: 10px;"><a href="${escapeHtml(item.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
-            : ''
-        }
-      </div>
-    </div>
-
-    <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
-    <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
-  </div>
-  `
+  const htmlBody = htmlWrapper(
+    card(
+      createPosterHtml(item.posterUrl, item.title) +
+        heading(escapeHtml(item.title)) +
+        labelledParagraph('Type', escapeHtml(mediaType)) +
+        labelledParagraph('Added by', escapeHtml(item.displayName)) +
+        tmdbLink(item.tmdbUrl),
+    ),
+  )
 
   let textBody = `New ${mediaType} Added\n\n`
   textBody += `${item.title}\n`
@@ -676,7 +461,6 @@ export function createWatchlistAdditionHtml(item: {
   if (item.tmdbUrl) {
     textBody += `\nTMDB: ${item.tmdbUrl}`
   }
-  textBody += '\n\n- Pulsarr'
 
   return { htmlBody, textBody, title }
 }
@@ -686,55 +470,41 @@ export function createTestNotificationHtml(): {
   textBody: string
   title: string
 } {
-  const testContent = `
-    <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Pulsarr HTML Notification Test</h2>
-
-    <div style="background-color: #212121; padding: 15px; margin: 20px 0; border: 2px solid #000000; border-radius: 5px; box-shadow: 4px 4px 0px 0px #000000;">
-      <p style="font-weight: 500; color: #ffffff;">This is a test notification to verify your Apprise configuration is working correctly with <strong>HTML formatting</strong>.</p>
-    </div>
-
-    <h3 style="color: #000000; font-weight: 700;">HTML Formatting Examples:</h3>
-
-    <div style="margin-bottom: 20px; background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <h4 style="margin-top: 0; margin-bottom: 10px; color: #ffffff; font-weight: 700;">Text Styling</h4>
-      <p style="font-weight: 500; color: #ffffff;"><strong>Bold text</strong>, <em>italic text</em>, <u>underlined text</u>, and <span style="color: #ffffff;">colored text</span></p>
-    </div>
-
-    <div style="margin-bottom: 20px; background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <h4 style="margin-top: 0; margin-bottom: 10px; color: #ffffff; font-weight: 700;">Lists</h4>
-      <ul style="padding-left: 20px; color: #ffffff;">
+  const htmlBody = htmlWrapper(
+    pageHeading('Pulsarr HTML Notification Test') +
+      card(
+        paragraph(
+          'This is a test notification to verify your Apprise configuration is working correctly with <strong>HTML formatting</strong>.',
+        ),
+      ) +
+      `<h3 style="color: #000000; font-weight: 700;">HTML Formatting Examples:</h3>` +
+      card(
+        sectionHeading('Text Styling') +
+          paragraph(
+            '<strong>Bold text</strong>, <em>italic text</em>, <u>underlined text</u>, and <span style="color: #ffffff;">colored text</span>',
+          ),
+      ) +
+      card(
+        sectionHeading('Lists') +
+          `<ul style="padding-left: 20px; color: #ffffff;">
         <li style="margin-bottom: 5px; font-weight: 500;">Unordered list item 1</li>
         <li style="margin-bottom: 5px; font-weight: 500;">Unordered list item 2</li>
         <li style="margin-bottom: 5px; font-weight: 500;">Unordered list item 3</li>
       </ul>
-
       <ol style="padding-left: 20px; color: #ffffff;">
         <li style="margin-bottom: 5px; font-weight: 500;">Ordered list item 1</li>
         <li style="margin-bottom: 5px; font-weight: 500;">Ordered list item 2</li>
         <li style="margin-bottom: 5px; font-weight: 500;">Ordered list item 3</li>
-      </ol>
-    </div>
-
-    <div style="margin-bottom: 20px; background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-      <h4 style="margin-top: 0; margin-bottom: 10px; color: #ffffff; font-weight: 700;">Styled Boxes</h4>
-
-      <div style="padding: 10px; background-color: #343746; border-radius: 5px; margin-bottom: 10px; border: 1px solid #ffffff; color: #ffffff; font-weight: 500;">
-        <p style="margin: 0;">This is an info box</p>
-      </div>
-
-      <div style="padding: 10px; background-color: #343746; border-radius: 5px; margin-bottom: 10px; border: 1px solid #ffffff; color: #ffffff; font-weight: 500;">
-        <p style="margin: 0;">This is an alert box</p>
-      </div>
-
-      <div style="padding: 10px; background-color: #343746; border-radius: 5px; border: 1px solid #ffffff; color: #ffffff; font-weight: 500;">
-        <p style="margin: 0;">This is a success box</p>
-      </div>
-    </div>
-
-    <p style="font-weight: 500; color: #000000;">If you can see the formatting above, your notification service supports <strong>HTML</strong>! If not, you're seeing the plain text version.</p>
-  `
-
-  const htmlBody = htmlWrapper(testContent)
+      </ol>`,
+      ) +
+      card(
+        sectionHeading('Styled Boxes') +
+          `<div style="padding: 10px; background-color: #343746; border-radius: 5px; border: 1px solid #ffffff; ${VALUE_STYLE}">
+        <p style="margin: 0;">This is a styled box</p>
+      </div>`,
+      ) +
+      `<p style="font-weight: 500; color: #000000;">If you can see the formatting above, your notification service supports <strong>HTML</strong>! If not, you're seeing the plain text version.</p>`,
+  )
 
   const textBody =
     'Pulsarr HTML Notification Test\n\n' +
@@ -749,11 +519,8 @@ export function createTestNotificationHtml(): {
     '  2. Ordered list item 2\n' +
     '  3. Ordered list item 3\n\n' +
     '- Styled Boxes:\n' +
-    '  [Info] This is an info box\n' +
-    '  [Alert] This is an alert box\n' +
-    '  [Success] This is a success box\n\n' +
-    'If you can see the formatting above, your notification service supports basic formatting. If the content appears plain, your service might only support plain text.\n\n' +
-    '- Pulsarr'
+    '  [Box] This is a styled box\n\n' +
+    'If you can see the formatting above, your notification service supports basic formatting. If the content appears plain, your service might only support plain text.'
 
   return { htmlBody, textBody, title: '🔔 Pulsarr HTML Notification Test' }
 }

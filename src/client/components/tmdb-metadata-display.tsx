@@ -1,4 +1,3 @@
-import type { TmdbMetadataSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
 import { Calendar, Clock, ExternalLink, Film, Tv } from 'lucide-react'
 // Import rating service icons
 import imdbIcon from '@/assets/images/rating-icons/imdb.svg'
@@ -14,9 +13,13 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { TmdbRegionSelector } from '@/components/ui/tmdb-region-selector'
 import { useConfig } from '@/hooks/useConfig'
+import { buildPosterUrl } from '@/lib/poster-url'
+import type { components } from '@/types/api.js'
+
+type TmdbMetadataResponse = components['schemas']['TmdbMetadataResponse']
 
 interface TmdbMetadataDisplayProps {
-  data: TmdbMetadataSuccessResponse
+  data: TmdbMetadataResponse
   onRegionChange?: () => Promise<void>
 }
 
@@ -44,9 +47,7 @@ export function TmdbMetadataDisplay({
   const isMovie = 'title' in details
   const title = isMovie ? details.title : details.name
   const releaseDate = isMovie ? details.release_date : details.first_air_date
-  const posterUrl = details.poster_path
-    ? `https://image.tmdb.org/t/p/w500${details.poster_path}`
-    : null
+  const posterUrl = buildPosterUrl(details.poster_path, 'detail')
   const backdropUrl = details.backdrop_path
     ? `https://image.tmdb.org/t/p/w1280${details.backdrop_path}`
     : null

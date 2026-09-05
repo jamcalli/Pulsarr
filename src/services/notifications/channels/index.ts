@@ -3,10 +3,10 @@ export {
   isAppriseEnabled,
   pingAppriseServer,
   sendAppriseNotification,
+  sendApprovalNotification as sendAppriseApprovalNotification,
   sendDeleteSyncNotification as sendAppriseDeleteSyncNotification,
   sendMediaNotification as sendAppriseMediaNotification,
   sendPublicNotification as sendApprisePublicNotification,
-  sendSystemNotification as sendAppriseSystemNotification,
   sendTestNotification as sendAppriseTestNotification,
   sendWatchlistAdditionNotification as sendAppriseWatchlistAdditionNotification,
 } from './apprise.js'

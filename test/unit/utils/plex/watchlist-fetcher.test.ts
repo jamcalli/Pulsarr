@@ -14,7 +14,6 @@ describe('plex/watchlist-fetcher', () => {
   const mockLogger = createMockLogger()
 
   beforeEach(() => {
-    vi.clearAllMocks()
     // Reset rate limiter state between tests
     PlexRateLimiter.getInstance().reset()
   })
