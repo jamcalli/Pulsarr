@@ -355,7 +355,7 @@ const sidebar: SidebarsConfig = {
         {
           type: "doc",
           id: "api/refresh-metadata",
-          label: "Refresh metadata for all watchlist items",
+          label: "Start a metadata refresh for all watchlist items",
           className: "api-method post",
         },
       ],
