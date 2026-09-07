@@ -323,7 +323,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         // Re-evaluate held approvals if requested
         if (autoApproveHeld) {
-          const adminId = request.session.user?.id
+          const adminId = request.user?.id
           await fastify.approvalService.reEvaluateQuotaExceededApprovals(
             userId,
             adminId,
@@ -384,7 +384,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         if (autoApproveHeld) {
-          const adminId = request.session.user?.id
+          const adminId = request.user?.id
           const result =
             await fastify.approvalService.reEvaluateQuotaExceededApprovals(
               userId,

@@ -30,7 +30,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       const { newUsername, currentPassword } = request.body
-      const userId = request.session.user.id
+      const userId = request.user?.id
+      if (!userId) {
+        return reply.unauthorized('User not authenticated')
+      }
 
       try {
         const user = await fastify.db.getAdminUserById(userId)
@@ -69,7 +72,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           throw new Error('Failed to update username')
         }
 
-        request.session.user.username = newUsername
+        if (request.session.user) {
+          request.session.user.username = newUsername
+        }
 
         return { message: 'Username updated successfully' }
       } catch (error) {

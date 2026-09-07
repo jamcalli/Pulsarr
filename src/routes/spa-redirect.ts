@@ -1,6 +1,6 @@
 import { hasValidPlexTokens } from '@services/plex-watchlist/index.js'
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
-import { createTemporaryAdminSession } from '@utils/session.js'
+import { assignTemporaryAdminUser } from '@utils/temporary-admin.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance } from 'fastify'
 
@@ -12,7 +12,7 @@ export default async function rootRoute(fastify: FastifyInstance) {
   }
 
   fastify.get('/', async (request, reply) => {
-    if (request.session.user) {
+    if (request.user) {
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
       return reply.redirect(
         buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),
@@ -24,12 +24,11 @@ export default async function rootRoute(fastify: FastifyInstance) {
       request,
     )
 
-    // CASE 1: Auth disabled or local IP bypass — create temp session
     if (isAuthDisabled || isLocalBypass) {
       const adminUser = await fastify.db.getAdminUser()
 
       if (adminUser) {
-        createTemporaryAdminSession(request, adminUser)
+        assignTemporaryAdminUser(request, adminUser)
 
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
@@ -41,7 +40,6 @@ export default async function rootRoute(fastify: FastifyInstance) {
       return reply.redirect(buildPath('/create-user'))
     }
 
-    // CASE 2: Normal flow
     const hasUsers = await fastify.db.hasAdminUsers()
     return reply.redirect(buildPath(hasUsers ? '/login' : '/create-user'))
   })

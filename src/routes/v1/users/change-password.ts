@@ -29,7 +29,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       const { newPassword, currentPassword } = request.body
-      const userId = request.session.user.id
+      const userId = request.user?.id
+      if (!userId) {
+        return reply.unauthorized('User not authenticated')
+      }
 
       try {
         const user = await fastify.db.getAdminUserById(userId)

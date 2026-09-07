@@ -21,7 +21,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const sessionUser = request.session.user
+        const user = request.user
+        if (!user) {
+          return reply.unauthorized('User not authenticated')
+        }
         const config = fastify.config
         const plexConnected =
           !!config?.plexTokens && config.plexTokens.length > 0
@@ -32,10 +35,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           success: true,
           message: 'User information retrieved successfully',
           user: {
-            id: sessionUser.id,
-            username: sessionUser.username,
-            email: sessionUser.email,
-            role: sessionUser.role,
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
             avatar: primaryUser?.avatar ?? null,
             plexConnected,
           },
