@@ -30,7 +30,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       const { newEmail, currentPassword } = request.body
-      const userId = request.session.user.id
+      const userId = request.user?.id
+      if (!userId) {
+        return reply.unauthorized('User not authenticated')
+      }
 
       try {
         const user = await fastify.db.getAdminUserById(userId)
@@ -65,7 +68,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           throw new Error('Failed to update email')
         }
 
-        request.session.user.email = newEmail
+        if (request.session.user?.id === userId) {
+          request.session.user.email = newEmail
+        }
 
         return { message: 'Email updated successfully' }
       } catch (error) {

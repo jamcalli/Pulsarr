@@ -7,6 +7,9 @@ declare module 'fastify' {
   interface Session {
     user: Auth
   }
+  interface FastifyRequest {
+    user: Auth | null
+  }
 }
 
 /**
@@ -16,15 +19,23 @@ declare module 'fastify' {
  */
 export default fp(
   async (fastify) => {
-    fastify.register(fastifyCookie)
-    fastify.register(fastifySession, {
+    await fastify.register(fastifyCookie)
+    await fastify.register(fastifySession, {
       secret: fastify.config.cookieSecret,
       cookieName: fastify.config.cookieName,
+      saveUninitialized: false,
       cookie: {
         secure: fastify.config.cookieSecured,
         httpOnly: true,
         maxAge: 604800000,
       },
+    })
+
+    fastify.decorateRequest('user', null)
+
+    // Must register after the session plugin so request.session exists when it runs
+    fastify.addHook('onRequest', async (request) => {
+      request.user = request.session.user ?? null
     })
   },
   {
