@@ -53,19 +53,10 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, _opts) => {
         return done(error)
       }
 
-      // Defensive: ensure session plugin has initialized `request.session`
-      if (!request.session) {
-        fastify.log.error(
-          { apiKey: `${apiKey.substring(0, 8)}...`, ip: request.ip },
-          'Session plugin not initialized - cannot populate user session',
-        )
-        return done(new Error('Session not initialized'))
-      }
-
-      request.session.user = user
+      request.user = user
       fastify.log.debug(
         { userId: user.id, username: user.username, ip: request.ip },
-        'API key authentication successful - user session populated',
+        'API key authentication successful',
       )
 
       done()

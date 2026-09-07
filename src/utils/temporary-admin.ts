@@ -1,18 +1,11 @@
 import type { AdminUser } from '@schemas/auth/auth.js'
 import type { FastifyRequest } from 'fastify'
 
-/**
- * Populates the session with the admin user for auth-bypassed requests.
- *
- * Built from the sole admin row when one exists, so bypassed requests carry
- * the same identity as real logins. The hardcoded fallback covers fresh
- * instances where no admin has been created yet.
- */
-export function createTemporaryAdminSession(
+export function assignTemporaryAdminUser(
   request: FastifyRequest,
   adminUser?: AdminUser,
 ): void {
-  request.session.user = adminUser
+  request.user = adminUser
     ? {
         id: adminUser.id,
         email: adminUser.email,

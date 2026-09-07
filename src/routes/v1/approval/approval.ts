@@ -314,7 +314,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const actorId = request.session.user?.id
+        const actorId = request.user?.id
         if (!actorId) {
           return reply.unauthorized('User not authenticated')
         }
@@ -529,7 +529,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const requestId = request.params.id
         const { reason } = request.body
-        const rejectedBy = request.session.user?.id
+        const rejectedBy = request.user?.id
         if (!rejectedBy) {
           return reply.unauthorized('User not authenticated')
         }
@@ -632,7 +632,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const requestId = request.params.id
         const { notes } = request.body
-        const approvedBy = request.session.user?.id
+        const approvedBy = request.user?.id
         if (!approvedBy) {
           return reply.unauthorized('User not authenticated')
         }
@@ -716,7 +716,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const { requestIds, notes } = request.body
-        const userId = request.session.user?.id
+        const userId = request.user?.id
         if (!userId) {
           return reply.unauthorized('User not authenticated')
         }
@@ -776,7 +776,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const { requestIds, reason } = request.body
-        const userId = request.session.user?.id
+        const userId = request.user?.id
         if (!userId) {
           return reply.unauthorized('User not authenticated')
         }

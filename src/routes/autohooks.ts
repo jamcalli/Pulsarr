@@ -1,5 +1,5 @@
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
-import { createTemporaryAdminSession } from '@utils/session.js'
+import { assignTemporaryAdminUser } from '@utils/temporary-admin.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance } from 'fastify'
 
@@ -94,14 +94,14 @@ export default async function (fastify: FastifyInstance) {
           'Bypassing authentication for local address',
         )
       }
-      if (!request.session.user) {
-        createTemporaryAdminSession(request, await fastify.db.getAdminUser())
+      if (!request.user) {
+        assignTemporaryAdminUser(request, await fastify.db.getAdminUser())
       }
       return
     }
 
     // Everything else requires a logged-in session
-    if (!request.session.user) {
+    if (!request.user) {
       await globalLimiter.call(fastify, request, reply)
       return reply.unauthorized(
         'You must be authenticated to access this route.',
