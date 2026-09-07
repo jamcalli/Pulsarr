@@ -1351,7 +1351,7 @@
 
     "toad-cache": ["toad-cache@3.7.4", "", {}, "sha512-m1TdR/rvT7kgGJZhspNtXdsdYk0fddFpJJFlG5s+UkPFo6lkLoZ3YLOaovPYjq1R75NP5JfeTlSHaOsE09peCg=="],
 
-    "toad-scheduler": ["toad-scheduler@4.1.0", "", { "dependencies": { "croner": "^10.0.1" } }, "sha512-2HF37I09Tc4SW+nF1nkSLd3tDaZzsNrCzMn6p+Hzg3io9Rqkc8JQ3KK26Q6AUtBqEg9coleau3bRj8873FHjGA=="],
+    "toad-scheduler": ["toad-scheduler@4.2.0", "", { "dependencies": { "croner": "^10.0.1" } }, "sha512-Jk3qwIHySLiutaSCN4RJIzg1UH5TrCiAxvZHFZAfHjIDUvfXs1V9RSlk2TNlEaadJgw/RXRWNFq2fjSkqRdYpg=="],
 
     "toidentifier": ["toidentifier@1.0.1", "", {}, "sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA=="],
 
