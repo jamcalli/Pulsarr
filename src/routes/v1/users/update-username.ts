@@ -72,7 +72,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           throw new Error('Failed to update username')
         }
 
-        if (request.session.user) {
+        if (request.session.user?.id === userId) {
           request.session.user.username = newUsername
         }
 
