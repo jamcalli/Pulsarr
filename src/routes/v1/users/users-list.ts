@@ -8,7 +8,7 @@ import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.get(
-    '/users/list',
+    '/list',
     {
       schema: {
         summary: 'Get users list',
@@ -41,7 +41,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   )
 
   fastify.get(
-    '/users/list/with-counts',
+    '/list/with-counts',
     {
       schema: {
         summary: 'Get users with watchlist counts',

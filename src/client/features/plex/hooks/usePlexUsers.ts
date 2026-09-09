@@ -39,7 +39,7 @@ export type UserWithQuotaInfo = UserWatchlistInfo & {
 }
 
 export const plexUserKeys = {
-  users: $api.queryOptions('get', '/v1/users/users/list/with-counts').queryKey,
+  users: $api.queryOptions('get', '/v1/users/list/with-counts').queryKey,
   quotaConfigs: $api.queryOptions('get', '/v1/quota/users').queryKey,
   // Prefix key: matches every body variant of the bulk status query
   quotaStatuses: ['post', '/v1/quota/users/status/bulk'] as const,
@@ -67,7 +67,7 @@ export function invalidateUserData() {
 export function useUsers() {
   return $api.useQuery(
     'get',
-    '/v1/users/users/list/with-counts',
+    '/v1/users/list/with-counts',
     {},
     { staleTime: USER_DATA_STALE_TIME },
   )
@@ -324,7 +324,7 @@ export function useUpdateUser() {
       userId: number
       updates: z.input<typeof plexUserSchema>
     }) => {
-      const { error } = await apiFetch.PATCH('/v1/users/users/{id}', {
+      const { error } = await apiFetch.PATCH('/v1/users/{id}', {
         params: { path: { id: userId } },
         body: {
           name: updates.name,

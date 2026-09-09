@@ -17,7 +17,7 @@ import {
 } from '@/lib/useMinLoading'
 
 export const apiKeyKeys = {
-  all: $api.queryOptions('get', '/v1/api-keys/api-keys').queryKey,
+  all: $api.queryOptions('get', '/v1/api-keys/').queryKey,
 }
 
 function invalidateApiKeyCaches() {
@@ -36,14 +36,14 @@ export function useApiKeys() {
     number | null
   >(null)
 
-  const query = useMinLoading($api.useQuery('get', '/v1/api-keys/api-keys'))
+  const query = useMinLoading($api.useQuery('get', '/v1/api-keys/'))
   const isRefreshing = useMinDuration(query.isRefetching)
 
   const createMutation = useMinLoadingMutation(
     useMutation({
       mutationFn: async (body: CreateApiKey) => {
         const { data, error } = await withMinDuration(
-          apiFetch.POST('/v1/api-keys/api-keys', { body }),
+          apiFetch.POST('/v1/api-keys/', { body }),
         )
         if (error) throw error
         return data
@@ -60,7 +60,7 @@ export function useApiKeys() {
     useMutation({
       mutationFn: async (id: number) => {
         const { error } = await withMinDuration(
-          apiFetch.DELETE('/v1/api-keys/api-keys/{id}', {
+          apiFetch.DELETE('/v1/api-keys/{id}', {
             params: { path: { id } },
           }),
         )
