@@ -11,7 +11,7 @@ import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Create API Key
   fastify.post(
-    '/api-keys',
+    '/',
     {
       schema: {
         summary: 'Create API key',
@@ -54,7 +54,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // Get API Keys
   fastify.get(
-    '/api-keys',
+    '/',
     {
       schema: {
         summary: 'Get API keys',
@@ -94,7 +94,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // Revoke API Key
   fastify.delete(
-    '/api-keys/:id',
+    '/:id',
     {
       schema: {
         summary: 'Revoke API key',

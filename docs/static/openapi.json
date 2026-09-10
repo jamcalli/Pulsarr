@@ -3982,7 +3982,7 @@
         }
       }
     },
-    "/v1/api-keys/api-keys": {
+    "/v1/api-keys/": {
       "post": {
         "operationId": "createApiKey",
         "summary": "Create API key",
@@ -4189,7 +4189,7 @@
         }
       }
     },
-    "/v1/api-keys/api-keys/{id}": {
+    "/v1/api-keys/{id}": {
       "delete": {
         "operationId": "revokeApiKey",
         "summary": "Revoke API key",
@@ -20884,6 +20884,240 @@
         }
       }
     },
+    "/v1/users/": {
+      "post": {
+        "operationId": "createUser",
+        "summary": "Create user",
+        "tags": [
+          "Users"
+        ],
+        "description": "Create a new user with the provided information",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 255
+                  },
+                  "apprise": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "alias": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 255
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "discord_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "notify_apprise": {
+                    "type": "boolean"
+                  },
+                  "notify_discord": {
+                    "type": "boolean"
+                  },
+                  "notify_discord_mention": {
+                    "type": "boolean"
+                  },
+                  "notify_plex_mobile": {
+                    "type": "boolean"
+                  },
+                  "can_sync": {
+                    "type": "boolean"
+                  },
+                  "requires_approval": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name",
+                  "apprise",
+                  "alias",
+                  "discord_id",
+                  "notify_apprise",
+                  "notify_discord",
+                  "notify_discord_mention",
+                  "notify_plex_mobile",
+                  "can_sync",
+                  "requires_approval"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "apprise": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "alias": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "discord_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "notify_apprise": {
+                          "type": "boolean"
+                        },
+                        "notify_discord": {
+                          "type": "boolean"
+                        },
+                        "notify_discord_mention": {
+                          "type": "boolean"
+                        },
+                        "notify_plex_mobile": {
+                          "type": "boolean"
+                        },
+                        "can_sync": {
+                          "type": "boolean"
+                        },
+                        "requires_approval": {
+                          "type": "boolean"
+                        },
+                        "is_primary_token": {
+                          "type": "boolean"
+                        },
+                        "plex_uuid": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "avatar": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "display_name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "friend_created_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "updated_at": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "apprise",
+                        "alias",
+                        "discord_id",
+                        "notify_apprise",
+                        "notify_discord",
+                        "notify_discord_mention",
+                        "notify_plex_mobile",
+                        "can_sync",
+                        "requires_approval",
+                        "is_primary_token",
+                        "created_at",
+                        "updated_at"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "user"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/users/alias-readiness": {
       "get": {
         "operationId": "getAliasReadiness",
@@ -21225,6 +21459,322 @@
           },
           "429": {
             "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/list": {
+      "get": {
+        "operationId": "getUsersList",
+        "summary": "Get users list",
+        "tags": [
+          "Users"
+        ],
+        "description": "Retrieve a list of all users",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "apprise": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "alias": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "discord_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "notify_apprise": {
+                            "type": "boolean"
+                          },
+                          "notify_discord": {
+                            "type": "boolean"
+                          },
+                          "notify_discord_mention": {
+                            "type": "boolean"
+                          },
+                          "notify_plex_mobile": {
+                            "type": "boolean"
+                          },
+                          "can_sync": {
+                            "type": "boolean"
+                          },
+                          "requires_approval": {
+                            "type": "boolean"
+                          },
+                          "is_primary_token": {
+                            "type": "boolean"
+                          },
+                          "plex_uuid": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "avatar": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "display_name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "friend_created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "string"
+                          },
+                          "updated_at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "apprise",
+                          "alias",
+                          "discord_id",
+                          "notify_apprise",
+                          "notify_discord",
+                          "notify_discord_mention",
+                          "notify_plex_mobile",
+                          "can_sync",
+                          "requires_approval",
+                          "is_primary_token",
+                          "created_at",
+                          "updated_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "users"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/list/with-counts": {
+      "get": {
+        "operationId": "getUsersWithCounts",
+        "summary": "Get users with watchlist counts",
+        "tags": [
+          "Users"
+        ],
+        "description": "Retrieve a list of all users including their watchlist item counts",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "apprise": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "alias": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "discord_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "notify_apprise": {
+                            "type": "boolean"
+                          },
+                          "notify_discord": {
+                            "type": "boolean"
+                          },
+                          "notify_discord_mention": {
+                            "type": "boolean"
+                          },
+                          "notify_plex_mobile": {
+                            "type": "boolean"
+                          },
+                          "can_sync": {
+                            "type": "boolean"
+                          },
+                          "requires_approval": {
+                            "type": "boolean"
+                          },
+                          "is_primary_token": {
+                            "type": "boolean"
+                          },
+                          "plex_uuid": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "avatar": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "display_name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "friend_created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "string"
+                          },
+                          "updated_at": {
+                            "type": "string"
+                          },
+                          "watchlist_count": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "apprise",
+                          "alias",
+                          "discord_id",
+                          "notify_apprise",
+                          "notify_discord",
+                          "notify_discord_mention",
+                          "notify_plex_mobile",
+                          "can_sync",
+                          "requires_approval",
+                          "is_primary_token",
+                          "created_at",
+                          "updated_at",
+                          "watchlist_count"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "users"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -21750,557 +22300,7 @@
         }
       }
     },
-    "/v1/users/users": {
-      "post": {
-        "operationId": "createUser",
-        "summary": "Create user",
-        "tags": [
-          "Users"
-        ],
-        "description": "Create a new user with the provided information",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 3,
-                    "maxLength": 255
-                  },
-                  "apprise": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "alias": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "minLength": 3,
-                        "maxLength": 255
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "discord_id": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "notify_apprise": {
-                    "type": "boolean"
-                  },
-                  "notify_discord": {
-                    "type": "boolean"
-                  },
-                  "notify_discord_mention": {
-                    "type": "boolean"
-                  },
-                  "notify_plex_mobile": {
-                    "type": "boolean"
-                  },
-                  "can_sync": {
-                    "type": "boolean"
-                  },
-                  "requires_approval": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "name",
-                  "apprise",
-                  "alias",
-                  "discord_id",
-                  "notify_apprise",
-                  "notify_discord",
-                  "notify_discord_mention",
-                  "notify_plex_mobile",
-                  "can_sync",
-                  "requires_approval"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "user": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "number"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "apprise": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "alias": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "discord_id": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "notify_apprise": {
-                          "type": "boolean"
-                        },
-                        "notify_discord": {
-                          "type": "boolean"
-                        },
-                        "notify_discord_mention": {
-                          "type": "boolean"
-                        },
-                        "notify_plex_mobile": {
-                          "type": "boolean"
-                        },
-                        "can_sync": {
-                          "type": "boolean"
-                        },
-                        "requires_approval": {
-                          "type": "boolean"
-                        },
-                        "is_primary_token": {
-                          "type": "boolean"
-                        },
-                        "plex_uuid": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "avatar": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "display_name": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "friend_created_at": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "created_at": {
-                          "type": "string"
-                        },
-                        "updated_at": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "name",
-                        "apprise",
-                        "alias",
-                        "discord_id",
-                        "notify_apprise",
-                        "notify_discord",
-                        "notify_discord_mention",
-                        "notify_plex_mobile",
-                        "can_sync",
-                        "requires_approval",
-                        "is_primary_token",
-                        "created_at",
-                        "updated_at"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "user"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/users/users/list": {
-      "get": {
-        "operationId": "getUsersList",
-        "summary": "Get users list",
-        "tags": [
-          "Users"
-        ],
-        "description": "Retrieve a list of all users",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "users": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "apprise": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "alias": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "discord_id": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "notify_apprise": {
-                            "type": "boolean"
-                          },
-                          "notify_discord": {
-                            "type": "boolean"
-                          },
-                          "notify_discord_mention": {
-                            "type": "boolean"
-                          },
-                          "notify_plex_mobile": {
-                            "type": "boolean"
-                          },
-                          "can_sync": {
-                            "type": "boolean"
-                          },
-                          "requires_approval": {
-                            "type": "boolean"
-                          },
-                          "is_primary_token": {
-                            "type": "boolean"
-                          },
-                          "plex_uuid": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "avatar": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "display_name": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "friend_created_at": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "created_at": {
-                            "type": "string"
-                          },
-                          "updated_at": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "apprise",
-                          "alias",
-                          "discord_id",
-                          "notify_apprise",
-                          "notify_discord",
-                          "notify_discord_mention",
-                          "notify_plex_mobile",
-                          "can_sync",
-                          "requires_approval",
-                          "is_primary_token",
-                          "created_at",
-                          "updated_at"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "users"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/users/users/list/with-counts": {
-      "get": {
-        "operationId": "getUsersWithCounts",
-        "summary": "Get users with watchlist counts",
-        "tags": [
-          "Users"
-        ],
-        "description": "Retrieve a list of all users including their watchlist item counts",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "users": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "apprise": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "alias": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "discord_id": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "notify_apprise": {
-                            "type": "boolean"
-                          },
-                          "notify_discord": {
-                            "type": "boolean"
-                          },
-                          "notify_discord_mention": {
-                            "type": "boolean"
-                          },
-                          "notify_plex_mobile": {
-                            "type": "boolean"
-                          },
-                          "can_sync": {
-                            "type": "boolean"
-                          },
-                          "requires_approval": {
-                            "type": "boolean"
-                          },
-                          "is_primary_token": {
-                            "type": "boolean"
-                          },
-                          "plex_uuid": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "avatar": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "display_name": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "friend_created_at": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "created_at": {
-                            "type": "string"
-                          },
-                          "updated_at": {
-                            "type": "string"
-                          },
-                          "watchlist_count": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "apprise",
-                          "alias",
-                          "discord_id",
-                          "notify_apprise",
-                          "notify_discord",
-                          "notify_discord_mention",
-                          "notify_plex_mobile",
-                          "can_sync",
-                          "requires_approval",
-                          "is_primary_token",
-                          "created_at",
-                          "updated_at",
-                          "watchlist_count"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "users"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/users/users/{id}": {
+    "/v1/users/{id}": {
       "patch": {
         "operationId": "updateUser",
         "summary": "Update user",

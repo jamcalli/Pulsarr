@@ -11,7 +11,7 @@ import { z } from 'zod'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.post(
-    '/users',
+    '/',
     {
       schema: {
         summary: 'Create user',
@@ -58,7 +58,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   )
 
   fastify.patch(
-    '/users/:id',
+    '/:id',
     {
       schema: {
         summary: 'Update user',
@@ -121,7 +121,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   )
 
   fastify.get(
-    '/users/:id',
+    '/:id',
     {
       schema: {
         summary: 'Get user by ID',
