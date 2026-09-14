@@ -11,11 +11,13 @@ import type {
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
 import { processItemsForUser } from '@services/plex-watchlist/index.js'
+import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
 import {
   checkInstanceHealth,
   queueForDeferredRouting,
-} from '../routing/index.js'
-import type { RssProcessorDeps } from '../types.js'
+} from '../routing/health-checker.js'
+import { routeEnrichedItemsForUser } from '../routing/item-router.js'
+import type { WorkflowDeps } from '../types.js'
 import { enrichRssItems } from './enricher.js'
 
 /**
@@ -34,7 +36,7 @@ import { enrichRssItems } from './enricher.js'
  */
 export async function processRssSelfItems(
   items: CachedRssItem[],
-  deps: RssProcessorDeps,
+  deps: WorkflowDeps,
 ): Promise<void> {
   const primaryUser = await deps.db.getPrimaryUser()
   if (!primaryUser) {
@@ -48,7 +50,7 @@ export async function processRssSelfItems(
     radarrManager: deps.radarrManager,
     plexServerService: deps.fastify.plexServerService,
     skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
-    deferredRoutingQueue: deps.deferredRoutingQueue,
+    deferredRoutingQueue: deps.state.deferredRoutingQueue,
     logger: deps.logger,
   })
 
@@ -113,7 +115,7 @@ export async function processRssSelfItems(
       {
         sonarrManager: deps.sonarrManager,
         radarrManager: deps.radarrManager,
-        deferredRoutingQueue: deps.deferredRoutingQueue,
+        deferredRoutingQueue: deps.state.deferredRoutingQueue,
         logger: deps.logger,
       },
       {
@@ -127,7 +129,7 @@ export async function processRssSelfItems(
   }
 
   // Route items immediately
-  await deps.routeEnrichedItemsForUser(primaryUser.id, allItems)
-  await deps.updateAutoApprovalUserAttribution()
-  deps.scheduleDebouncedStatusSync()
+  await routeEnrichedItemsForUser(primaryUser.id, allItems, deps)
+  await updateAutoApprovalUserAttribution(deps)
+  deps.state.scheduleDebouncedStatusSync(deps)
 }

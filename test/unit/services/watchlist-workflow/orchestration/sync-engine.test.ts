@@ -1,21 +1,22 @@
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import type { SyncResult } from '@services/watchlist-workflow/orchestration/sync-engine.js'
-import type { SyncEngineDeps } from '@services/watchlist-workflow/types.js'
+import { WorkflowState } from '@services/watchlist-workflow/state.js'
+import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
-vi.mock('@services/watchlist-workflow/routing/index.js', () => ({
+vi.mock('@services/watchlist-workflow/routing/content-router.js', () => ({
   routeMovie: vi.fn(async () => ({ routed: true })),
   routeShow: vi.fn(async () => ({ routed: true })),
-  checkInstanceHealth: vi.fn(),
-  checkHealthAndQueueIfUnavailable: vi.fn(),
-  queueForDeferredRouting: vi.fn(),
-  routeEnrichedItemsForUser: vi.fn(),
-  routeNewItemsForUser: vi.fn(),
-  routeSingleItem: vi.fn(),
-  hasUserField: vi.fn(),
 }))
+
+vi.mock(
+  '@services/watchlist-workflow/attribution/approval-attributor.js',
+  () => ({
+    updateAutoApprovalUserAttribution: vi.fn(async () => {}),
+  }),
+)
 
 vi.mock('@services/watchlist-workflow/quota/watchlist-cap-gate.js', () => ({
   evaluateWatchlistCaps: vi.fn(async () => ({
@@ -25,12 +26,13 @@ vi.mock('@services/watchlist-workflow/quota/watchlist-cap-gate.js', () => ({
   })),
 }))
 
+import { updateAutoApprovalUserAttribution } from '@services/watchlist-workflow/attribution/approval-attributor.js'
 import { syncWatchlistItems } from '@services/watchlist-workflow/orchestration/sync-engine.js'
 import { evaluateWatchlistCaps } from '@services/watchlist-workflow/quota/watchlist-cap-gate.js'
 import {
   routeMovie,
   routeShow,
-} from '@services/watchlist-workflow/routing/index.js'
+} from '@services/watchlist-workflow/routing/content-router.js'
 
 const ROUTING_SKIP_REASONS = ['default-skip', 'excluded'] as const
 const PRIMARY_USER = { id: 1, name: 'primary', can_sync: true }
@@ -127,25 +129,25 @@ function createDeps() {
     statusService: {
       syncAllStatuses: vi.fn(async () => ({ shows: 0, movies: 0 })),
     },
-    updateAutoApprovalUserAttributionWithPrefetch: vi.fn(async () => {}),
   }
 
   const config = { skipIfExistsOnPlex: false }
 
   const deps = {
     ...parts,
+    state: new WorkflowState(),
     logger: createMockLogger(),
     config,
     fastify: { plexServerService: parts.plexServerService },
     contentRouter: {},
     plexService: {},
-  } as unknown as SyncEngineDeps
+  } as unknown as WorkflowDeps
 
   return { deps, parts, config }
 }
 
 describe('syncWatchlistItems', () => {
-  let deps: SyncEngineDeps
+  let deps: WorkflowDeps
   let parts: ReturnType<typeof createDeps>['parts']
   let config: ReturnType<typeof createDeps>['config']
 
@@ -246,16 +248,14 @@ describe('syncWatchlistItems', () => {
       existingMovies,
       primaryUser: PRIMARY_USER,
     })
-    expect(
-      parts.updateAutoApprovalUserAttributionWithPrefetch,
-    ).toHaveBeenCalledWith(
+    expect(updateAutoApprovalUserAttribution).toHaveBeenCalledWith(deps, {
       shows,
       movies,
-      new Map([
+      userById: new Map([
         [PRIMARY_USER.id, PRIMARY_USER],
         [SECOND_USER.id, SECOND_USER],
       ]),
-    )
+    })
     expect(parts.statusService.syncAllStatuses).toHaveBeenCalledWith({
       existingSeries,
       existingMovies,

@@ -4,18 +4,8 @@
  * Fetches self and friends watchlists in parallel.
  */
 
-import type { PlexWatchlistService } from '@services/plex-watchlist.service.js'
-import type { FastifyBaseLogger } from 'fastify'
-
-/**
- * Dependencies for watchlist fetching
- */
-export interface WatchlistFetcherDeps {
-  logger: FastifyBaseLogger
-  plexService: PlexWatchlistService
-  /** Callback to unschedule pending reconciliation */
-  unschedulePendingReconciliation: () => Promise<void>
-}
+import { unschedulePendingReconciliation } from '../lifecycle/scheduler.js'
+import type { WorkflowDeps } from '../types.js'
 
 /**
  * Fetch watchlists for self and all friends in parallel.
@@ -26,12 +16,15 @@ export interface WatchlistFetcherDeps {
  * @param deps - Service dependencies
  */
 export async function fetchWatchlists(
-  deps: WatchlistFetcherDeps,
+  deps: Pick<WorkflowDeps, 'logger' | 'plexService' | 'fastify'>,
 ): Promise<void> {
   deps.logger.info('Refreshing watchlists')
 
   // Unschedule pending reconciliation since sync is starting
-  await deps.unschedulePendingReconciliation()
+  await unschedulePendingReconciliation({
+    logger: deps.logger,
+    fastify: deps.fastify,
+  })
 
   try {
     // Fetch both self and friends watchlists in parallel - both must succeed

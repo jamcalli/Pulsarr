@@ -27,23 +27,12 @@ import type {
   EtagPollResult,
   EtagUserInfo,
   Item,
-  TokenWatchlistItem,
-  UserMapEntry,
 } from '@root/types/plex.types.js'
 import type { ProgressEvent } from '@root/types/progress.types.js'
-import {
-  EtagPoller,
-  handleLinkedItemsForLabelSync,
-  type ItemCategorizerDeps,
-  type ItemProcessorDeps,
-  type RemovalHandlerDeps,
-  type RssFeedCacheManager,
-  type WatchlistSyncDeps,
-} from '@services/plex-watchlist/index.js'
+import { handleLinkedItemsForLabelSync } from '@services/plex-watchlist/index.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { systemStatusEvent } from '@utils/system-status-event.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { DeferredRoutingQueue } from './deferred-routing-queue.service.js'
 import {
   // Lifecycle
   cleanupExistingManualSync,
@@ -53,78 +42,30 @@ import {
   getEtagFriendsList,
   handleStaggeredPollResult,
   initializeWorkflow,
-  // Cache
-  lookupUserByUuid,
   // RSS
   processRssFriendsItems as processRssFriendsItemsModule,
   processRssSelfItems as processRssSelfItemsModule,
-  type ReconcileState,
+  RECONCILIATION_JOB_NAME,
   // Orchestration
   reconcile as reconcileModule,
-  refreshFriendsForStaggeredPolling,
+  refreshFriendsForStaggeredPolling as refreshFriendsForStaggeredPollingModule,
   // Routing
   routeEnrichedItemsForUser as routeEnrichedItemsForUserModule,
   routeNewItemsForUser as routeNewItemsForUserModule,
   schedulePendingReconciliation,
-  syncSingleFriend as syncSingleFriendModule,
-  syncWatchlistItems as syncWatchlistItemsModule,
   unschedulePendingReconciliation,
   // Attribution
   updateAutoApprovalUserAttribution,
-  updatePlexUuidCache,
+  type WorkflowDeps,
+  WorkflowState,
+  type WorkflowStatus,
 } from './watchlist-workflow/index.js'
 
-/** Represents the current state of the watchlist workflow */
-type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
-
 export class WatchlistWorkflowService {
-  private readonly MANUAL_SYNC_JOB_NAME = 'periodic-watchlist-reconciliation'
-  /** Current workflow status */
-  private status: WorkflowStatus = 'stopped'
-  /** Tracks if a reconciliation is currently in progress */
-  private isReconciling = false
   /** Service logger that inherits parent log level changes */
   private readonly log: FastifyBaseLogger
 
-  /** Tracks if the workflow is fully initialized */
-  private initialized = false
-
-  /** Tracks if the workflow is running in RSS mode */
-  private rssMode = false
-
-  /** Interval timer for checking RSS feeds */
-  private rssCheckInterval: NodeJS.Timeout | null = null
-
-  /** Flag to indicate if using RSS fallback */
-  private isEtagFallbackActive = false
-
-  /** Timestamp of the last successful watchlist sync */
-  private lastSuccessfulSyncTime: number = Date.now()
-
-  /** Poller for hybrid change detection */
-  private etagPoller: EtagPoller | null = null
-
-  /** RSS feed cache manager for item diffing and author tracking */
-  private rssFeedCache: RssFeedCacheManager | null = null
-
-  /** Debounce timer for syncAllStatuses after routing */
-  private statusSyncDebounceTimer: NodeJS.Timeout | null = null
-
-  /** Debounce delay for status sync in ms (1 minute) */
-  private readonly STATUS_SYNC_DEBOUNCE_MS = 60 * 1000
-
-  /**
-   * In-memory cache mapping Plex user UUIDs (watchlistId) to user info.
-   * Used for RSS author field lookups. Friends only - self-RSS is always primary user.
-   * Populated during friend sync operations.
-   */
-  private plexUuidCache: Map<string, UserMapEntry> = new Map()
-
-  /**
-   * Queue for routing attempts that fail due to instance unavailability.
-   * Retries automatically when instances recover.
-   */
-  private deferredRoutingQueue: DeferredRoutingQueue | null = null
+  private readonly state = new WorkflowState()
 
   /**
    * Creates a new WatchlistWorkflowService instance
@@ -142,7 +83,6 @@ export class WatchlistWorkflowService {
   ) {
     this.log = createServiceLogger(baseLog, 'WATCHLIST_WORKFLOW')
     this.log.info('Initializing Watchlist Workflow Service')
-    // Initialize ETag poller (needs config, so created lazily after config is available)
   }
 
   /**
@@ -194,48 +134,40 @@ export class WatchlistWorkflowService {
     return this.fastify.sync
   }
 
-  /**
-   * Gets the dependencies object for item categorization operations
-   */
-  private get categorizerDeps(): ItemCategorizerDeps {
-    return {
-      logger: this.log,
-    }
-  }
+  // Rebuilt per access: fastify.config is reassigned by updateConfig at runtime
+  private get deps(): WorkflowDeps {
+    const logger = this.log
+    const db = this.dbService
+    const config = this.config
+    const plexLabelSyncService = this.fastify.plexLabelSyncService
 
-  /**
-   * Gets the dependencies object for watchlist sync operations
-   */
-  private get watchlistSyncDeps(): WatchlistSyncDeps {
     return {
-      db: this.dbService,
-      logger: this.log,
-    }
-  }
-
-  /**
-   * Gets the dependencies object for removal handler operations
-   */
-  private get removalHandlerDeps(): RemovalHandlerDeps {
-    return {
-      db: this.dbService,
-      logger: this.log,
-      plexLabelSyncService: this.fastify.plexLabelSyncService,
-    }
-  }
-
-  /**
-   * Gets the dependencies object for item processor operations
-   */
-  private get itemProcessorDeps(): ItemProcessorDeps {
-    return {
-      db: this.dbService,
-      logger: this.log,
-      config: this.config,
+      logger,
+      config,
+      db,
       fastify: this.fastify,
-      plexLabelSyncService: this.fastify.plexLabelSyncService,
-      handleLinkedItemsForLabelSync: (linkItems) =>
-        handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
+      state: this.state,
+      plexService: this.plexService,
+      contentRouter: this.contentRouter,
+      sonarrManager: this.sonarrManager,
+      radarrManager: this.radarrManager,
+      plexServerService: this.fastify.plexServerService,
+      notifications: this.fastify.notifications,
+      statusService: this.showStatusService,
+      plexLabelSyncService,
+      itemProcessorDeps: {
+        db,
+        logger,
+        config,
+        fastify: this.fastify,
+        plexLabelSyncService,
+        handleLinkedItemsForLabelSync: (linkItems) =>
+          handleLinkedItemsForLabelSync(linkItems, {
+            db,
+            logger,
+            plexLabelSyncService,
+          }),
+      },
     }
   }
 
@@ -245,7 +177,7 @@ export class WatchlistWorkflowService {
    * @returns Current workflow status
    */
   getStatus(): WorkflowStatus {
-    return this.status
+    return this.state.status
   }
 
   statusEvent(): ProgressEvent {
@@ -253,16 +185,16 @@ export class WatchlistWorkflowService {
       'watchlist-workflow-status',
       'Watchlist workflow status',
       {
-        status: this.status,
-        syncMode: this.isEtagFallbackActive ? 'polling' : 'rss',
-        rssAvailable: !this.isEtagFallbackActive,
+        status: this.state.status,
+        syncMode: this.state.isEtagFallbackActive ? 'polling' : 'rss',
+        rssAvailable: !this.state.isEtagFallbackActive,
       },
     )
   }
 
   // intermediate starting/stopping states must reach the stream, not just final states
   private setStatus(status: WorkflowStatus): void {
-    this.status = status
+    this.state.status = status
     if (this.fastify.progress.hasActiveConnections()) {
       this.fastify.progress.emit(this.statusEvent())
     }
@@ -273,7 +205,7 @@ export class WatchlistWorkflowService {
    * @returns boolean indicating if the service is using RSS fallback
    */
   public getIsUsingRssFallback(): boolean {
-    return this.isEtagFallbackActive
+    return this.state.isEtagFallbackActive
   }
 
   /**
@@ -281,7 +213,7 @@ export class WatchlistWorkflowService {
    * @returns timestamp of the last successful sync
    */
   public getLastSuccessfulSyncTime(): number {
-    return this.lastSuccessfulSyncTime
+    return this.state.lastSuccessfulSyncTime
   }
 
   /**
@@ -290,7 +222,7 @@ export class WatchlistWorkflowService {
    * @returns boolean indicating if the workflow is fully initialized
    */
   isInitialized(): boolean {
-    return this.initialized
+    return this.state.initialized
   }
 
   /**
@@ -299,7 +231,7 @@ export class WatchlistWorkflowService {
    * @returns boolean indicating if the workflow is running in RSS mode
    */
   isRssMode(): boolean {
-    return this.rssMode
+    return this.state.rssMode
   }
 
   /**
@@ -334,33 +266,31 @@ export class WatchlistWorkflowService {
       })
 
       // Apply initialization results to service state
-      this.rssMode = result.rssMode
-      this.isEtagFallbackActive = result.isEtagFallbackActive
-      this.rssFeedCache = result.rssFeedCache
-      this.deferredRoutingQueue = result.deferredRoutingQueue
+      this.state.rssMode = result.rssMode
+      this.state.isEtagFallbackActive = result.isEtagFallbackActive
+      this.state.rssFeedCache = result.rssFeedCache
+      this.state.deferredRoutingQueue = result.deferredRoutingQueue
 
       // Establish baselines BEFORE reconciliation to detect changes during sync
       // Any items added while reconciliation runs will be caught on first poll
-      if (this.rssMode && this.rssFeedCache) {
+      if (this.state.rssMode && this.state.rssFeedCache) {
         const token = this.config.plexTokens?.[0]
         if (token) {
           this.log.debug('Priming RSS caches before reconciliation')
-          await this.rssFeedCache.primeCaches(
+          await this.state.rssFeedCache.primeCaches(
             this.config.selfRss,
             this.config.friendsRss,
             token,
           )
         }
-      } else if (!this.rssMode) {
+      } else if (!this.state.rssMode) {
         // ETag mode: establish baselines before sync
         this.log.debug('Establishing ETag baselines before reconciliation')
-        if (!this.etagPoller) {
-          this.etagPoller = new EtagPoller(this.config, this.log)
-        }
+        const etagPoller = this.state.ensureEtagPoller(this.config, this.log)
         const primaryUser = await this.dbService.getPrimaryUser()
         if (primaryUser) {
           const friends = await this.getEtagFriendsList()
-          await this.etagPoller.establishAllBaselines(primaryUser.id, friends)
+          await etagPoller.establishAllBaselines(primaryUser.id, friends)
         }
       }
 
@@ -389,7 +319,7 @@ export class WatchlistWorkflowService {
       }
 
       // Start the appropriate change detection based on mode
-      if (this.rssMode) {
+      if (this.state.rssMode) {
         // RSS mode: use RSS feeds for instant detection
         this.startRssCheck()
       } else {
@@ -400,12 +330,12 @@ export class WatchlistWorkflowService {
 
       // Update status to running
       this.setStatus('running')
-      this.initialized = true
+      this.state.initialized = true
 
       // Log the actual mode clearly:
       // - RSS mode: RSS feeds for instant detection + 2-hour full reconciliation
       // - ETag mode: 5-min staggered ETag polling + 2-hour full reconciliation (no RSS)
-      if (this.isEtagFallbackActive) {
+      if (this.state.isEtagFallbackActive) {
         this.log.info(
           'Watchlist workflow running in ETag mode (5-minute staggered polling, 2-hour full reconciliation)',
         )
@@ -418,8 +348,8 @@ export class WatchlistWorkflowService {
       return true
     } catch (error) {
       this.setStatus('stopped')
-      this.initialized = false
-      this.rssMode = false
+      this.state.initialized = false
+      this.state.rssMode = false
       this.log.error({ error }, 'Error in Watchlist workflow')
       throw error
     }
@@ -432,8 +362,10 @@ export class WatchlistWorkflowService {
    * @returns Promise resolving to true if stopped successfully, false otherwise
    */
   async stop(): Promise<boolean> {
-    if (this.status !== 'running' && this.status !== 'starting') {
-      this.log.warn(`Cannot stop workflow: current status is ${this.status}`)
+    if (this.state.status !== 'running' && this.state.status !== 'starting') {
+      this.log.warn(
+        `Cannot stop workflow: current status is ${this.state.status}`,
+      )
       return false
     }
 
@@ -441,21 +373,21 @@ export class WatchlistWorkflowService {
     this.setStatus('stopping')
 
     // Clear timers (service-level state)
-    if (this.rssCheckInterval) {
-      clearInterval(this.rssCheckInterval)
-      this.rssCheckInterval = null
+    if (this.state.rssCheckInterval) {
+      clearInterval(this.state.rssCheckInterval)
+      this.state.rssCheckInterval = null
     }
-    if (this.statusSyncDebounceTimer) {
-      clearTimeout(this.statusSyncDebounceTimer)
-      this.statusSyncDebounceTimer = null
+    if (this.state.statusSyncDebounceTimer) {
+      clearTimeout(this.state.statusSyncDebounceTimer)
+      this.state.statusSyncDebounceTimer = null
     }
 
     // Cleanup workflow components via extracted module
     const result = await cleanupWorkflow(
       {
-        etagPoller: this.etagPoller,
-        rssFeedCache: this.rssFeedCache,
-        deferredRoutingQueue: this.deferredRoutingQueue,
+        etagPoller: this.state.etagPoller,
+        rssFeedCache: this.state.rssFeedCache,
+        deferredRoutingQueue: this.state.deferredRoutingQueue,
       },
       {
         logger: this.log,
@@ -464,13 +396,13 @@ export class WatchlistWorkflowService {
     )
 
     // Apply cleanup results
-    this.rssFeedCache = result.rssFeedCache
-    this.deferredRoutingQueue = result.deferredRoutingQueue
+    this.state.rssFeedCache = result.rssFeedCache
+    this.state.deferredRoutingQueue = result.deferredRoutingQueue
 
     // Update status
     this.setStatus('stopped')
-    this.initialized = false
-    this.rssMode = false
+    this.state.initialized = false
+    this.state.rssMode = false
 
     return true
   }
@@ -486,16 +418,7 @@ export class WatchlistWorkflowService {
    * @param options.mode - 'full' for complete sync, 'etag' for lightweight ETag-based check
    */
   async reconcile(options: { mode: 'full' | 'etag' }): Promise<void> {
-    const state: ReconcileState = {
-      isReconciling: this.isReconciling,
-      lastSuccessfulSyncTime: this.lastSuccessfulSyncTime,
-    }
-    await reconcileModule(options, this.reconcilerDeps, state, (updates) => {
-      if (updates.isReconciling !== undefined)
-        this.isReconciling = updates.isReconciling
-      if (updates.lastSuccessfulSyncTime !== undefined)
-        this.lastSuccessfulSyncTime = updates.lastSuccessfulSyncTime
-    })
+    return reconcileModule(options, this.deps)
   }
 
   /**
@@ -506,21 +429,7 @@ export class WatchlistWorkflowService {
     userId: number,
     items: Item[],
   ): Promise<void> {
-    return routeEnrichedItemsForUserModule(
-      userId,
-      items,
-      this.contentRoutingDeps,
-    )
-  }
-
-  /**
-   * Sync a single friend's complete watchlist to DB.
-   * Delegates to extracted friend handler module.
-   */
-  private async syncSingleFriend(
-    friend: EtagUserInfo,
-  ): Promise<{ brandNewItems: Item[]; linkedItems: Item[] }> {
-    return syncSingleFriendModule(friend, this.syncSingleFriendDeps)
+    return routeEnrichedItemsForUserModule(userId, items, this.deps)
   }
 
   /**
@@ -528,174 +437,7 @@ export class WatchlistWorkflowService {
    * Delegates to extracted routing module.
    */
   private async routeNewItemsForUser(change: EtagPollResult): Promise<void> {
-    return routeNewItemsForUserModule(change, this.rssProcessorDeps)
-  }
-
-  /** UUID cache deps for extracted cache functions */
-  private get uuidCacheDeps() {
-    return {
-      logger: this.log,
-      plexService: this.plexService,
-    }
-  }
-
-  /** Watchlist fetcher deps */
-  private get watchlistFetcherDeps() {
-    return {
-      logger: this.log,
-      plexService: this.plexService,
-      unschedulePendingReconciliation: () =>
-        this.unschedulePendingReconciliation(),
-    }
-  }
-
-  /** RSS processor deps */
-  private get rssProcessorDeps() {
-    return {
-      logger: this.log,
-      config: this.config,
-      db: this.dbService,
-      fastify: this.fastify,
-      itemProcessorDeps: this.itemProcessorDeps,
-      sonarrManager: this.sonarrManager,
-      radarrManager: this.radarrManager,
-      deferredRoutingQueue: this.deferredRoutingQueue,
-      routeEnrichedItemsForUser: (userId: number, items: Item[]) =>
-        this.routeEnrichedItemsForUser(userId, items),
-      updateAutoApprovalUserAttribution: () =>
-        this.updateAutoApprovalUserAttribution(),
-      scheduleDebouncedStatusSync: () => this.scheduleDebouncedStatusSync(),
-    }
-  }
-
-  /** RSS friends processor deps (extends rssProcessorDeps) */
-  private get rssFriendsProcessorDeps() {
-    return {
-      ...this.rssProcessorDeps,
-      lookupUserByUuid: (uuid: string) => this.lookupUserByUuid(uuid),
-    }
-  }
-
-  /** Staggered poller deps */
-  private get staggeredPollerDeps() {
-    return {
-      logger: this.log,
-      config: this.config,
-      db: this.dbService,
-      fastify: this.fastify,
-      plexService: this.plexService,
-      sonarrManager: this.sonarrManager,
-      radarrManager: this.radarrManager,
-      etagPoller: this.etagPoller,
-      deferredRoutingQueue: this.deferredRoutingQueue,
-      itemProcessorDeps: this.itemProcessorDeps,
-      routeEnrichedItemsForUser: (userId: number, items: Item[]) =>
-        this.routeEnrichedItemsForUser(userId, items),
-      syncSingleFriend: (userInfo: {
-        userId: number
-        username: string
-        isPrimary: boolean
-        watchlistId?: string
-      }) => this.syncSingleFriend(userInfo),
-      updatePlexUuidCache: (userMap: Map<string, UserMapEntry>) =>
-        this.updatePlexUuidCache(userMap),
-      updateAutoApprovalUserAttribution: () =>
-        this.updateAutoApprovalUserAttribution(),
-      scheduleDebouncedStatusSync: () => this.scheduleDebouncedStatusSync(),
-    }
-  }
-
-  /** Content routing deps - used by routeShow, routeMovie, routeSingleItem, routeEnrichedItemsForUser */
-  private get contentRoutingDeps() {
-    return {
-      logger: this.log,
-      config: this.config,
-      db: this.dbService,
-      fastify: this.fastify,
-      contentRouter: this.contentRouter,
-      sonarrManager: this.sonarrManager,
-      radarrManager: this.radarrManager,
-      plexServerService: this.fastify.plexServerService,
-      plexService: this.plexService,
-      notifications: this.fastify.notifications,
-    }
-  }
-
-  /** Sync engine deps - used by syncWatchlistItems */
-  private get syncEngineDeps() {
-    return {
-      ...this.contentRoutingDeps,
-      statusService: this.showStatusService,
-      updateAutoApprovalUserAttributionWithPrefetch: (
-        shows: unknown[],
-        movies: unknown[],
-        userById: Map<number, { id: number; name: string }>,
-      ) =>
-        this.updateAutoApprovalUserAttribution(
-          shows as TokenWatchlistItem[],
-          movies as TokenWatchlistItem[],
-          userById as Map<
-            number,
-            Awaited<ReturnType<typeof this.dbService.getUser>>
-          >,
-        ),
-    }
-  }
-
-  /** Single friend sync deps */
-  private get syncSingleFriendDeps() {
-    return {
-      logger: this.log,
-      config: this.config,
-      db: this.dbService,
-      categorizerDeps: this.categorizerDeps,
-      watchlistSyncDeps: this.watchlistSyncDeps,
-      itemProcessorDeps: this.itemProcessorDeps,
-      removalHandlerDeps: this.removalHandlerDeps,
-    }
-  }
-
-  /** Reconciler deps - used by reconcile */
-  private get reconcilerDeps() {
-    return {
-      logger: this.log,
-      config: this.config,
-      db: this.dbService,
-      fastify: this.fastify,
-      plexService: this.plexService,
-      sonarrManager: this.sonarrManager,
-      radarrManager: this.radarrManager,
-      etagPoller: this.etagPoller,
-      deferredRoutingQueue: this.deferredRoutingQueue,
-      syncWatchlistItems: () => this.syncWatchlistItems(),
-      fetchWatchlists: () => this.fetchWatchlists(),
-      routeNewItemsForUser: (change: EtagPollResult) =>
-        this.routeNewItemsForUser(change),
-      routeEnrichedItemsForUser: (userId: number, items: Item[]) =>
-        this.routeEnrichedItemsForUser(userId, items),
-      updateAutoApprovalUserAttribution: () =>
-        this.updateAutoApprovalUserAttribution(),
-      scheduleDebouncedStatusSync: () => this.scheduleDebouncedStatusSync(),
-      getEtagPoller: () => this.etagPoller,
-      setEtagPoller: (poller: EtagPoller) => {
-        this.etagPoller = poller
-      },
-      syncSingleFriend: (userInfo: {
-        userId: number
-        username: string
-        isPrimary: boolean
-        watchlistId?: string
-      }) => this.syncSingleFriend(userInfo),
-      updatePlexUuidCache: (userMap: Map<string, UserMapEntry>) =>
-        this.updatePlexUuidCache(userMap),
-    }
-  }
-
-  /**
-   * Updates the in-memory UUID cache from a userMap.
-   */
-  private updatePlexUuidCache(userMap: Map<string, UserMapEntry>): void {
-    this.plexUuidCache = updatePlexUuidCache(userMap, this.uuidCacheDeps)
+    return routeNewItemsForUserModule(change, this.deps)
   }
 
   /**
@@ -714,9 +456,7 @@ export class WatchlistWorkflowService {
    * Polls users sequentially with even distribution across 5-minute cycles.
    */
   private async startStaggeredPolling(): Promise<void> {
-    if (!this.etagPoller) {
-      this.etagPoller = new EtagPoller(this.config, this.log)
-    }
+    const etagPoller = this.state.ensureEtagPoller(this.config, this.log)
 
     const primaryUser = await this.dbService.getPrimaryUser()
     if (!primaryUser) {
@@ -728,7 +468,7 @@ export class WatchlistWorkflowService {
     const friends = await this.getEtagFriendsList()
 
     // Start staggered polling with callbacks
-    this.etagPoller.startStaggeredPolling(
+    etagPoller.startStaggeredPolling(
       primaryUser.id,
       friends,
       // onUserChanged callback - handle watchlist changes
@@ -748,72 +488,35 @@ export class WatchlistWorkflowService {
   private async handleStaggeredPollResult(
     result: EtagPollResult,
   ): Promise<void> {
-    return handleStaggeredPollResult(result, this.staggeredPollerDeps)
+    return handleStaggeredPollResult(result, this.deps)
   }
 
   /**
    * Refresh friends list at the start of each staggered polling cycle.
    */
   private async refreshFriendsForStaggeredPolling(): Promise<EtagUserInfo[]> {
-    const result = await refreshFriendsForStaggeredPolling(
-      this.plexUuidCache,
-      this.staggeredPollerDeps,
-    )
-    this.plexUuidCache = result.updatedCache
-    return result.friends
+    return refreshFriendsForStaggeredPollingModule(this.deps)
   }
 
   /**
    * Get friends list formatted for EtagPoller.
    */
   private async getEtagFriendsList(): Promise<EtagUserInfo[]> {
-    return getEtagFriendsList({ plexService: this.plexService })
+    return getEtagFriendsList(this.deps)
   }
 
   /**
    * Schedule a debounced syncAllStatuses call after routing.
-   *
-   * This batches multiple rapid routing operations (e.g., user adds several items
-   * within seconds) into a single status sync call. The timer resets each time
-   * new items are routed, and syncAllStatuses is called 1 minute after the last
-   * routing operation.
-   *
-   * This prevents concurrent syncAllStatuses calls when RSS triggers multiple
-   * ETag reconciliations in quick succession.
    */
   private scheduleDebouncedStatusSync(): void {
-    // Clear any existing timer
-    if (this.statusSyncDebounceTimer) {
-      clearTimeout(this.statusSyncDebounceTimer)
-      this.log.debug('Reset status sync debounce timer')
-    }
-
-    // Schedule new timer
-    this.statusSyncDebounceTimer = setTimeout(async () => {
-      this.statusSyncDebounceTimer = null
-      try {
-        this.log.debug('Debounced status sync triggered')
-        const { shows: showUpdates, movies: movieUpdates } =
-          await this.showStatusService.syncAllStatuses()
-        this.log.info(
-          `Status sync completed: ${showUpdates} show updates, ${movieUpdates} movie updates`,
-        )
-      } catch (error) {
-        this.log.warn({ error }, 'Error in debounced status sync (non-fatal)')
-      }
-    }, this.STATUS_SYNC_DEBOUNCE_MS)
-
-    this.log.debug(
-      { delayMs: this.STATUS_SYNC_DEBOUNCE_MS },
-      'Scheduled debounced status sync',
-    )
+    this.state.scheduleDebouncedStatusSync(this.deps)
   }
 
   /**
    * Fetch all watchlists (self and friends)
    */
   async fetchWatchlists(): Promise<void> {
-    return fetchWatchlistsModule(this.watchlistFetcherDeps)
+    return fetchWatchlistsModule(this.deps)
   }
 
   /**
@@ -829,13 +532,13 @@ export class WatchlistWorkflowService {
    * Friends-RSS: Items attributed by author UUID lookup
    */
   private startRssCheck(): void {
-    if (this.rssCheckInterval) {
-      clearInterval(this.rssCheckInterval)
+    if (this.state.rssCheckInterval) {
+      clearInterval(this.state.rssCheckInterval)
     }
 
-    this.rssCheckInterval = setInterval(async () => {
+    this.state.rssCheckInterval = setInterval(async () => {
       try {
-        if (!this.rssFeedCache) {
+        if (!this.state.rssFeedCache) {
           this.log.warn('RSS feed cache not initialized, skipping check')
           return
         }
@@ -852,7 +555,7 @@ export class WatchlistWorkflowService {
 
         // Process self feed (primary user items)
         if (selfUrl) {
-          const selfResult = await this.rssFeedCache.checkSelfFeed(
+          const selfResult = await this.state.rssFeedCache.checkSelfFeed(
             selfUrl,
             token,
           )
@@ -867,7 +570,7 @@ export class WatchlistWorkflowService {
 
         // Process friends feed (items attributed by author UUID)
         if (friendsUrl) {
-          const friendsResult = await this.rssFeedCache.checkFriendsFeed(
+          const friendsResult = await this.state.rssFeedCache.checkFriendsFeed(
             friendsUrl,
             token,
           )
@@ -897,47 +600,25 @@ export class WatchlistWorkflowService {
    * Process new items from self RSS feed (primary user).
    */
   private async processRssSelfItems(items: CachedRssItem[]): Promise<void> {
-    return processRssSelfItemsModule(items, this.rssProcessorDeps)
+    return processRssSelfItemsModule(items, this.deps)
   }
 
   /**
    * Process new items from friends RSS feed.
    */
   private async processRssFriendsItems(items: CachedRssItem[]): Promise<void> {
-    return processRssFriendsItemsModule(items, this.rssFriendsProcessorDeps)
-  }
-
-  /**
-   * Look up user ID by Plex UUID (author field).
-   * First checks cache, then refreshes friend list if not found.
-   */
-  private async lookupUserByUuid(uuid: string): Promise<number | null> {
-    const result = await lookupUserByUuid(
-      uuid,
-      this.plexUuidCache,
-      this.uuidCacheDeps,
-    )
-    this.plexUuidCache = result.cache
-    return result.userId
-  }
-
-  /**
-   * Synchronize watchlist items between Plex, Sonarr, and Radarr.
-   * Delegates to extracted sync engine module.
-   */
-  private async syncWatchlistItems(): Promise<void> {
-    await syncWatchlistItemsModule(this.syncEngineDeps)
+    return processRssFriendsItemsModule(items, this.deps)
   }
 
   private async setupPeriodicReconciliation(): Promise<void> {
     try {
       // Create the periodic job with simple sync logic - no conditional checks
       await this.fastify.scheduler.scheduleJob(
-        this.MANUAL_SYNC_JOB_NAME,
+        RECONCILIATION_JOB_NAME,
         async (_jobName: string) => {
           try {
             // Skip if workflow is not running
-            if (this.status !== 'running') {
+            if (this.state.status !== 'running') {
               this.log.debug(
                 'Skipping periodic reconciliation - workflow not running',
               )
@@ -958,7 +639,7 @@ export class WatchlistWorkflowService {
               await this.reconcile({ mode: 'full' })
 
               // Update timing trackers
-              this.lastSuccessfulSyncTime = Date.now()
+              this.state.lastSuccessfulSyncTime = Date.now()
 
               this.log.info('Periodic reconciliation completed successfully')
             } finally {
@@ -1005,54 +686,28 @@ export class WatchlistWorkflowService {
   }
 
   private async cleanupExistingManualSync(): Promise<void> {
-    return cleanupExistingManualSync(this.schedulerDeps)
-  }
-
-  /** Attribution deps for extracted attribution functions */
-  private get attributionDeps() {
-    return {
-      logger: this.log,
-      db: this.dbService,
-      fastify: this.fastify,
-    }
+    return cleanupExistingManualSync(this.deps)
   }
 
   /**
    * Updates auto-approval records that were created with System user (ID: 0)
    * to attribute them to the actual users who added the content to their watchlists.
    */
-  private async updateAutoApprovalUserAttribution(
-    prefetchedShows?: TokenWatchlistItem[],
-    prefetchedMovies?: TokenWatchlistItem[],
-    userById?: Map<number, Awaited<ReturnType<typeof this.dbService.getUser>>>,
-  ): Promise<void> {
-    return updateAutoApprovalUserAttribution(this.attributionDeps, {
-      shows: prefetchedShows,
-      movies: prefetchedMovies,
-      userById,
-    })
-  }
-
-  /** Scheduler deps for extracted lifecycle functions */
-  private get schedulerDeps() {
-    return {
-      logger: this.log,
-      fastify: this.fastify,
-      jobName: this.MANUAL_SYNC_JOB_NAME,
-    }
+  private async updateAutoApprovalUserAttribution(): Promise<void> {
+    return updateAutoApprovalUserAttribution(this.deps)
   }
 
   /**
    * Schedule the next periodic reconciliation to run in 2 hours.
    */
   private async schedulePendingReconciliation(): Promise<void> {
-    return schedulePendingReconciliation(this.schedulerDeps)
+    return schedulePendingReconciliation(this.deps)
   }
 
   /**
    * Cancel any pending periodic reconciliation job
    */
   private async unschedulePendingReconciliation(): Promise<void> {
-    return unschedulePendingReconciliation(this.schedulerDeps)
+    return unschedulePendingReconciliation(this.deps)
   }
 }

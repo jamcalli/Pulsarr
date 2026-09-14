@@ -4,7 +4,6 @@
  * Handles new friend detection, watchlist syncing, and baseline establishment.
  */
 
-import type { Config } from '@root/types/config.types.js'
 import type {
   EtagUserInfo,
   Friend,
@@ -18,15 +17,15 @@ import {
   getOthersWatchlist,
   handleLinkedItemsForLabelSync,
   type ItemCategorizerDeps,
-  type ItemProcessorDeps,
   linkExistingItems,
   processAndSaveNewItems,
   type RemovalHandlerDeps,
   type WatchlistSyncDeps,
 } from '@services/plex-watchlist/index.js'
-import type { FastifyBaseLogger } from 'fastify'
-import { checkHealthAndQueueIfUnavailable } from '../routing/index.js'
-import type { FriendHandlerDeps } from '../types.js'
+import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
+import { checkHealthAndQueueIfUnavailable } from '../routing/health-checker.js'
+import { routeEnrichedItemsForUser } from '../routing/item-router.js'
+import type { WorkflowDeps } from '../types.js'
 
 /**
  * Result of handling a new friend
@@ -49,7 +48,7 @@ export interface NewFriendHandlerResult {
  */
 export async function handleNewFriendEtagMode(
   newFriend: EtagUserInfo,
-  deps: FriendHandlerDeps,
+  deps: WorkflowDeps,
 ): Promise<NewFriendHandlerResult> {
   deps.logger.info(
     { userId: newFriend.userId, username: newFriend.username },
@@ -57,8 +56,10 @@ export async function handleNewFriendEtagMode(
   )
 
   try {
-    const { brandNewItems, linkedItems } =
-      await deps.syncSingleFriend(newFriend)
+    const { brandNewItems, linkedItems } = await syncSingleFriend(
+      newFriend,
+      deps,
+    )
 
     // Route ALL items - both brand new AND linked
     // Linked items need routing because this user may have different router rules
@@ -72,7 +73,7 @@ export async function handleNewFriendEtagMode(
           radarrManager: deps.radarrManager,
           plexServerService: deps.fastify.plexServerService,
           skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
-          deferredRoutingQueue: deps.deferredRoutingQueue,
+          deferredRoutingQueue: deps.state.deferredRoutingQueue,
           logger: deps.logger,
         },
         {
@@ -107,18 +108,18 @@ export async function handleNewFriendEtagMode(
         )
 
         // Route pre-enriched items (no double enrichment)
-        await deps.routeEnrichedItemsForUser(newFriend.userId, allItemsToRoute)
+        await routeEnrichedItemsForUser(newFriend.userId, allItemsToRoute, deps)
 
         // Post-routing tasks - update attribution and schedule status sync
-        await deps.updateAutoApprovalUserAttribution()
-        deps.scheduleDebouncedStatusSync()
+        await updateAutoApprovalUserAttribution(deps)
+        deps.state.scheduleDebouncedStatusSync(deps)
       }
     }
 
     // Only establish baseline after successful sync
     // If sync failed, next full reconciliation will handle this friend
-    if (deps.etagPoller) {
-      await deps.etagPoller.establishBaseline(newFriend)
+    if (deps.state.etagPoller) {
+      await deps.state.etagPoller.establishBaseline(newFriend)
     }
 
     return { success: true, itemsRouted: allItemsToRoute.length }
@@ -147,7 +148,7 @@ export async function handleNewFriendEtagMode(
  */
 export async function handleNewFriendFullMode(
   newFriend: EtagUserInfo,
-  deps: Pick<FriendHandlerDeps, 'logger' | 'etagPoller'>,
+  deps: Pick<WorkflowDeps, 'logger' | 'state'>,
 ): Promise<void> {
   deps.logger.info(
     { userId: newFriend.userId, username: newFriend.username },
@@ -156,8 +157,8 @@ export async function handleNewFriendFullMode(
 
   // Full mode: fetchWatchlists() will handle this friend's items
   // Establish baseline for future change detection
-  if (deps.etagPoller) {
-    await deps.etagPoller.establishBaseline(newFriend)
+  if (deps.state.etagPoller) {
+    await deps.state.etagPoller.establishBaseline(newFriend)
   }
 }
 
@@ -171,15 +172,15 @@ export async function handleNewFriendFullMode(
  */
 export function handleRemovedFriend(
   removedFriend: EtagUserInfo,
-  deps: Pick<FriendHandlerDeps, 'logger' | 'etagPoller'>,
+  deps: Pick<WorkflowDeps, 'logger' | 'state'>,
 ): void {
   deps.logger.info(
     { userId: removedFriend.userId, username: removedFriend.username },
     'Friend removed, clearing watchlist cache',
   )
 
-  if (deps.etagPoller) {
-    deps.etagPoller.invalidateUser(
+  if (deps.state.etagPoller) {
+    deps.state.etagPoller.invalidateUser(
       removedFriend.userId,
       removedFriend.watchlistId,
     )
@@ -201,12 +202,12 @@ export async function processFriendChanges(
     userMap: Map<string, UserMapEntry>
     mode: 'full' | 'etag'
   },
-  deps: FriendHandlerDeps,
+  deps: WorkflowDeps,
 ): Promise<void> {
   const { added, removed, userMap, mode } = params
 
   // Update UUID cache with current friends mapping
-  deps.updatePlexUuidCache(userMap)
+  deps.state.updatePlexUuidCache(userMap, deps.logger)
 
   // Handle newly added friends
   for (const newFriend of added) {
@@ -226,28 +227,6 @@ export async function processFriendChanges(
 // ============================================================================
 // Single Friend Sync
 // ============================================================================
-
-/**
- * Dependencies for syncing a single friend's watchlist
- */
-export interface SyncSingleFriendDeps {
-  /** Logger instance */
-  logger: FastifyBaseLogger
-  /** Application config (full config needed by getOthersWatchlist) */
-  config: Config
-  /** Database service */
-  db: {
-    getAllWatchlistItemsForUser: (userId: number) => Promise<Item[]>
-  }
-  /** Item categorizer deps */
-  categorizerDeps: ItemCategorizerDeps
-  /** Watchlist sync deps */
-  watchlistSyncDeps: WatchlistSyncDeps
-  /** Item processor deps */
-  itemProcessorDeps: ItemProcessorDeps
-  /** Removal handler deps */
-  removalHandlerDeps: RemovalHandlerDeps
-}
 
 /**
  * Result of syncing a single friend's watchlist
@@ -270,8 +249,19 @@ export interface FriendSyncResult {
  */
 export async function syncSingleFriend(
   friend: EtagUserInfo,
-  deps: SyncSingleFriendDeps,
+  deps: WorkflowDeps,
 ): Promise<FriendSyncResult> {
+  const categorizerDeps: ItemCategorizerDeps = { logger: deps.logger }
+  const watchlistSyncDeps: WatchlistSyncDeps = {
+    db: deps.db,
+    logger: deps.logger,
+  }
+  const removalHandlerDeps: RemovalHandlerDeps = {
+    db: deps.db,
+    logger: deps.logger,
+    plexLabelSyncService: deps.plexLabelSyncService,
+  }
+
   const token = deps.config.plexTokens?.[0]
   if (!token || !friend.watchlistId) {
     deps.logger.warn(
@@ -309,20 +299,20 @@ export async function syncSingleFriend(
   // This ensures cross-user item detection works correctly
   const { allKeys, userKeyMap } = extractKeysAndRelationships(
     userWatchlistMap,
-    deps.watchlistSyncDeps,
+    watchlistSyncDeps,
   )
 
   // Query DB for items that already exist (for ANY user, not just new friend)
   const existingItems = await getExistingItems(
     userKeyMap,
     allKeys,
-    deps.watchlistSyncDeps,
+    watchlistSyncDeps,
   )
 
   const { brandNewItems, existingItemsToLink } = categorizeItems(
     userWatchlistMap,
     existingItems,
-    deps.categorizerDeps,
+    categorizerDeps,
     false, // forceRefresh = false
   )
 
@@ -336,10 +326,10 @@ export async function syncSingleFriend(
 
   // Link existing items - these also need routing for this user's target instances!
   await linkExistingItems(existingItemsToLink, {
-    db: deps.watchlistSyncDeps.db,
+    db: deps.db,
     logger: deps.logger,
     handleLinkedItemsForLabelSync: (linkItems) =>
-      handleLinkedItemsForLabelSync(linkItems, deps.removalHandlerDeps),
+      handleLinkedItemsForLabelSync(linkItems, removalHandlerDeps),
   })
 
   // Flatten Map<Friend, Set<Item>> to Item[]

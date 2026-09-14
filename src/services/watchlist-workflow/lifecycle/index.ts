@@ -7,6 +7,7 @@
 
 export {
   cleanupExistingManualSync,
+  RECONCILIATION_JOB_NAME,
   type SchedulerDeps,
   schedulePendingReconciliation,
   setupPeriodicReconciliation,

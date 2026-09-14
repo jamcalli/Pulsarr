@@ -6,13 +6,14 @@
 
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
+export const RECONCILIATION_JOB_NAME = 'periodic-watchlist-reconciliation'
+
 /**
  * Dependencies for scheduler operations
  */
 export interface SchedulerDeps {
   logger: FastifyBaseLogger
   fastify: FastifyInstance
-  jobName: string
 }
 
 /**
@@ -32,7 +33,7 @@ export async function schedulePendingReconciliation(
     const delayMinutes = 120 // 2 hours
 
     await deps.fastify.scheduler.updateJobSchedule(
-      deps.jobName,
+      RECONCILIATION_JOB_NAME,
       {
         minutes: delayMinutes,
         runImmediately: false,
@@ -65,7 +66,11 @@ export async function unschedulePendingReconciliation(
 ): Promise<void> {
   try {
     // Simply disable the job - scheduler handles existence check internally
-    await deps.fastify.scheduler.updateJobSchedule(deps.jobName, null, false)
+    await deps.fastify.scheduler.updateJobSchedule(
+      RECONCILIATION_JOB_NAME,
+      null,
+      false,
+    )
 
     deps.logger.debug('Unscheduled pending periodic reconciliation')
   } catch (error) {
@@ -90,15 +95,15 @@ export async function cleanupExistingManualSync(
 ): Promise<void> {
   try {
     const existingSchedule = await deps.fastify.db.getScheduleByName(
-      deps.jobName,
+      RECONCILIATION_JOB_NAME,
     )
 
     if (existingSchedule) {
       deps.logger.info(
         'Found existing periodic reconciliation job from previous run, cleaning up',
       )
-      await deps.fastify.scheduler.unscheduleJob(deps.jobName)
-      await deps.fastify.db.deleteSchedule(deps.jobName)
+      await deps.fastify.scheduler.unscheduleJob(RECONCILIATION_JOB_NAME)
+      await deps.fastify.db.deleteSchedule(RECONCILIATION_JOB_NAME)
       deps.logger.info(
         'Successfully cleaned up existing periodic reconciliation job',
       )
@@ -136,7 +141,7 @@ export async function setupPeriodicReconciliation(
 ): Promise<void> {
   try {
     // Create the periodic job with the provided tick handler
-    await deps.fastify.scheduler.scheduleJob(deps.jobName, onTick)
+    await deps.fastify.scheduler.scheduleJob(RECONCILIATION_JOB_NAME, onTick)
 
     deps.logger.info(
       'Periodic watchlist reconciliation job created (will be dynamically scheduled)',

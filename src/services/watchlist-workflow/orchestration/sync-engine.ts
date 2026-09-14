@@ -16,9 +16,10 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import pLimit from 'p-limit'
+import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
 import { evaluateWatchlistCaps } from '../quota/watchlist-cap-gate.js'
-import { routeMovie, routeShow } from '../routing/index.js'
-import type { SyncEngineDeps } from '../types.js'
+import { routeMovie, routeShow } from '../routing/content-router.js'
+import type { WorkflowDeps } from '../types.js'
 
 /**
  * Result of sync operation
@@ -49,7 +50,7 @@ export interface SyncResult {
  * @returns Sync result statistics
  */
 export async function syncWatchlistItems(
-  deps: SyncEngineDeps,
+  deps: WorkflowDeps,
 ): Promise<SyncResult> {
   deps.logger.info('Performing watchlist item sync')
 
@@ -489,11 +490,7 @@ export async function syncWatchlistItems(
     )
 
     // Update auto-approval records to attribute them to actual users
-    await deps.updateAutoApprovalUserAttributionWithPrefetch(
-      shows,
-      movies,
-      userById as Map<number, { id: number; name: string }>,
-    )
+    await updateAutoApprovalUserAttribution(deps, { shows, movies, userById })
 
     // Sync statuses after adding new content to ensure tags are applied
     // Pass the already-fetched data to avoid redundant API calls

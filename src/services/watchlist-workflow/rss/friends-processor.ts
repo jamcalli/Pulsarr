@@ -11,11 +11,13 @@ import type {
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
 import { processItemsForUser } from '@services/plex-watchlist/index.js'
+import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
 import {
   checkInstanceHealth,
   queueForDeferredRouting,
-} from '../routing/index.js'
-import type { RssFriendsProcessorDeps } from '../types.js'
+} from '../routing/health-checker.js'
+import { routeEnrichedItemsForUser } from '../routing/item-router.js'
+import type { WorkflowDeps } from '../types.js'
 import { enrichRssItems } from './enricher.js'
 
 /**
@@ -37,7 +39,7 @@ import { enrichRssItems } from './enricher.js'
  */
 export async function processRssFriendsItems(
   items: CachedRssItem[],
-  deps: RssFriendsProcessorDeps,
+  deps: WorkflowDeps,
 ): Promise<void> {
   // Group items by author UUID
   const itemsByAuthor = new Map<string, CachedRssItem[]>()
@@ -66,13 +68,13 @@ export async function processRssFriendsItems(
     radarrManager: deps.radarrManager,
     plexServerService: deps.fastify.plexServerService,
     skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
-    deferredRoutingQueue: deps.deferredRoutingQueue,
+    deferredRoutingQueue: deps.state.deferredRoutingQueue,
     logger: deps.logger,
   })
 
   // Process each author's items
   for (const [authorUuid, authorItems] of itemsByAuthor) {
-    const userId = await deps.lookupUserByUuid(authorUuid)
+    const userId = await deps.state.lookupUserByUuid(authorUuid, deps)
     if (!userId) {
       deps.logger.debug(
         { authorUuid, itemCount: authorItems.length },
@@ -150,7 +152,7 @@ export async function processRssFriendsItems(
         {
           sonarrManager: deps.sonarrManager,
           radarrManager: deps.radarrManager,
-          deferredRoutingQueue: deps.deferredRoutingQueue,
+          deferredRoutingQueue: deps.state.deferredRoutingQueue,
           logger: deps.logger,
         },
         {
@@ -164,10 +166,10 @@ export async function processRssFriendsItems(
     }
 
     // Route items immediately
-    await deps.routeEnrichedItemsForUser(userId, allItems)
+    await routeEnrichedItemsForUser(userId, allItems, deps)
   }
 
   // Post-routing tasks
-  await deps.updateAutoApprovalUserAttribution()
-  deps.scheduleDebouncedStatusSync()
+  await updateAutoApprovalUserAttribution(deps)
+  deps.state.scheduleDebouncedStatusSync(deps)
 }

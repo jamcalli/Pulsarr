@@ -1,5 +1,6 @@
 import type { CachedRssItem, Item } from '@root/types/plex.types.js'
-import type { RssProcessorDeps } from '@services/watchlist-workflow/types.js'
+import { WorkflowState } from '@services/watchlist-workflow/state.js'
+import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
@@ -12,7 +13,7 @@ vi.mock('@services/plex-watchlist/index.js', () => ({
   })),
 }))
 
-vi.mock('@services/watchlist-workflow/routing/index.js', () => ({
+vi.mock('@services/watchlist-workflow/routing/health-checker.js', () => ({
   checkInstanceHealth: vi.fn(async () => ({
     available: true,
     sonarrUnavailable: [],
@@ -20,24 +21,30 @@ vi.mock('@services/watchlist-workflow/routing/index.js', () => ({
     plexServerUnreachable: false,
   })),
   queueForDeferredRouting: vi.fn(() => true),
-  checkHealthAndQueueIfUnavailable: vi.fn(),
-  routeMovie: vi.fn(),
-  routeShow: vi.fn(),
-  routeEnrichedItemsForUser: vi.fn(),
-  routeNewItemsForUser: vi.fn(),
-  routeSingleItem: vi.fn(),
-  hasUserField: vi.fn(),
 }))
+
+vi.mock('@services/watchlist-workflow/routing/item-router.js', () => ({
+  routeEnrichedItemsForUser: vi.fn(async () => {}),
+}))
+
+vi.mock(
+  '@services/watchlist-workflow/attribution/approval-attributor.js',
+  () => ({
+    updateAutoApprovalUserAttribution: vi.fn(async () => {}),
+  }),
+)
 
 vi.mock('@services/watchlist-workflow/rss/enricher.js', () => ({
   enrichRssItems: vi.fn(async (): Promise<Item[]> => []),
 }))
 
 import { processItemsForUser } from '@services/plex-watchlist/index.js'
+import { updateAutoApprovalUserAttribution } from '@services/watchlist-workflow/attribution/approval-attributor.js'
 import {
   checkInstanceHealth,
   queueForDeferredRouting,
-} from '@services/watchlist-workflow/routing/index.js'
+} from '@services/watchlist-workflow/routing/health-checker.js'
+import { routeEnrichedItemsForUser } from '@services/watchlist-workflow/routing/item-router.js'
 import { enrichRssItems } from '@services/watchlist-workflow/rss/enricher.js'
 import { processRssSelfItems } from '@services/watchlist-workflow/rss/self-processor.js'
 
@@ -79,33 +86,38 @@ function processedResult(processed: Item[], linked: Item[]) {
 }
 
 function createDeps() {
+  const state = new WorkflowState()
+  state.deferredRoutingQueue = { enqueue: vi.fn() } as unknown as NonNullable<
+    WorkflowState['deferredRoutingQueue']
+  >
+
   const parts = {
     db: {
       getPrimaryUser: vi.fn(
         async (): Promise<{ id: number; name: string } | null> => PRIMARY_USER,
       ),
     },
-    deferredRoutingQueue: { enqueue: vi.fn() },
-    routeEnrichedItemsForUser: vi.fn(async () => {}),
-    updateAutoApprovalUserAttribution: vi.fn(async () => {}),
-    scheduleDebouncedStatusSync: vi.fn(),
+    scheduleDebouncedStatusSync: vi
+      .spyOn(state, 'scheduleDebouncedStatusSync')
+      .mockImplementation(() => {}),
   }
 
   const deps = {
     ...parts,
+    state,
     logger: createMockLogger(),
     config: { skipIfExistsOnPlex: false },
     fastify: { plexServerService: {} },
     sonarrManager: {},
     radarrManager: {},
     itemProcessorDeps: {},
-  } as unknown as RssProcessorDeps
+  } as unknown as WorkflowDeps
 
   return { deps, parts }
 }
 
 describe('processRssSelfItems', () => {
-  let deps: RssProcessorDeps
+  let deps: WorkflowDeps
   let parts: ReturnType<typeof createDeps>['parts']
 
   beforeEach(() => {
@@ -168,11 +180,12 @@ describe('processRssSelfItems', () => {
       ],
       isSelfWatchlist: true,
     })
-    expect(parts.routeEnrichedItemsForUser).toHaveBeenCalledWith(
+    expect(routeEnrichedItemsForUser).toHaveBeenCalledWith(
       PRIMARY_USER.id,
       [processed, linked],
+      deps,
     )
-    expect(parts.updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
+    expect(updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
     expect(parts.scheduleDebouncedStatusSync).toHaveBeenCalledTimes(1)
   })
 
@@ -199,7 +212,7 @@ describe('processRssSelfItems', () => {
       items: [processed],
     })
     expect(vi.mocked(queueForDeferredRouting).mock.calls[0][2]).toBe('rss-self')
-    expect(parts.routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
   })
 
   it('neither routes nor queues when processing yields nothing', async () => {
@@ -209,7 +222,7 @@ describe('processRssSelfItems', () => {
 
     await processRssSelfItems([rssItem('a')], deps)
 
-    expect(parts.routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
     expect(queueForDeferredRouting).not.toHaveBeenCalled()
   })
 })

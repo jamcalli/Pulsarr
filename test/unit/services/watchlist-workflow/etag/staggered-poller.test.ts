@@ -4,7 +4,8 @@ import type {
   Item,
   UserMapEntry,
 } from '@root/types/plex.types.js'
-import type { StaggeredPollerDeps } from '@services/watchlist-workflow/types.js'
+import { WorkflowState } from '@services/watchlist-workflow/state.js'
+import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
@@ -17,7 +18,7 @@ vi.mock('@services/plex-watchlist/index.js', () => ({
   })),
 }))
 
-vi.mock('@services/watchlist-workflow/routing/index.js', () => ({
+vi.mock('@services/watchlist-workflow/routing/health-checker.js', () => ({
   checkInstanceHealth: vi.fn(async () => ({
     available: true,
     sonarrUnavailable: [],
@@ -25,24 +26,40 @@ vi.mock('@services/watchlist-workflow/routing/index.js', () => ({
     plexServerUnreachable: false,
   })),
   queueForDeferredRouting: vi.fn(() => true),
-  checkHealthAndQueueIfUnavailable: vi.fn(),
-  routeMovie: vi.fn(),
-  routeShow: vi.fn(),
-  routeEnrichedItemsForUser: vi.fn(),
-  routeNewItemsForUser: vi.fn(),
-  routeSingleItem: vi.fn(),
-  hasUserField: vi.fn(),
+}))
+
+vi.mock('@services/watchlist-workflow/routing/item-router.js', () => ({
+  routeEnrichedItemsForUser: vi.fn(async () => {}),
+}))
+
+vi.mock(
+  '@services/watchlist-workflow/attribution/approval-attributor.js',
+  () => ({
+    updateAutoApprovalUserAttribution: vi.fn(async () => {}),
+  }),
+)
+
+vi.mock('@services/watchlist-workflow/orchestration/friend-handler.js', () => ({
+  syncSingleFriend: vi.fn(
+    async (): Promise<{ brandNewItems: Item[]; linkedItems: Item[] }> => ({
+      brandNewItems: [],
+      linkedItems: [],
+    }),
+  ),
 }))
 
 import { processItemsForUser } from '@services/plex-watchlist/index.js'
+import { updateAutoApprovalUserAttribution } from '@services/watchlist-workflow/attribution/approval-attributor.js'
 import {
   handleStaggeredPollResult,
   refreshFriendsForStaggeredPolling,
 } from '@services/watchlist-workflow/etag/staggered-poller.js'
+import { syncSingleFriend } from '@services/watchlist-workflow/orchestration/friend-handler.js'
 import {
   checkInstanceHealth,
   queueForDeferredRouting,
-} from '@services/watchlist-workflow/routing/index.js'
+} from '@services/watchlist-workflow/routing/health-checker.js'
+import { routeEnrichedItemsForUser } from '@services/watchlist-workflow/routing/item-router.js'
 
 const USER = { id: 9, name: 'poll-user' }
 
@@ -91,6 +108,15 @@ function friendChanges(
 }
 
 function createDeps() {
+  const state = new WorkflowState()
+  state.etagPoller = {
+    establishBaseline: vi.fn(async () => {}),
+    invalidateUser: vi.fn(),
+  } as unknown as NonNullable<WorkflowState['etagPoller']>
+  state.deferredRoutingQueue = { enqueue: vi.fn() } as unknown as NonNullable<
+    WorkflowState['deferredRoutingQueue']
+  >
+
   const parts = {
     db: {
       getUser: vi.fn(
@@ -100,38 +126,30 @@ function createDeps() {
     plexService: {
       checkFriendChanges: vi.fn(async () => friendChanges()),
     },
-    etagPoller: {
-      establishBaseline: vi.fn(async () => {}),
-      invalidateUser: vi.fn(),
-    },
-    deferredRoutingQueue: { enqueue: vi.fn() },
-    routeEnrichedItemsForUser: vi.fn(async () => {}),
-    syncSingleFriend: vi.fn(
-      async (): Promise<{ brandNewItems: Item[]; linkedItems: Item[] }> => ({
-        brandNewItems: [enrichedItem('brand-new')],
-        linkedItems: [enrichedItem('linked')],
-      }),
-    ),
-    updatePlexUuidCache: vi.fn(),
-    updateAutoApprovalUserAttribution: vi.fn(async () => {}),
-    scheduleDebouncedStatusSync: vi.fn(),
+    etagPoller: state.etagPoller,
+    enqueue: vi.mocked(state.deferredRoutingQueue.enqueue),
+    scheduleDebouncedStatusSync: vi
+      .spyOn(state, 'scheduleDebouncedStatusSync')
+      .mockImplementation(() => {}),
+    updatePlexUuidCache: vi.spyOn(state, 'updatePlexUuidCache'),
   }
 
   const deps = {
     ...parts,
+    state,
     logger: createMockLogger(),
     config: { skipIfExistsOnPlex: false },
     fastify: { plexServerService: {} },
     sonarrManager: {},
     radarrManager: {},
     itemProcessorDeps: {},
-  } as unknown as StaggeredPollerDeps
+  } as unknown as WorkflowDeps
 
-  return { deps, parts }
+  return { deps, parts, state }
 }
 
 describe('handleStaggeredPollResult', () => {
-  let deps: StaggeredPollerDeps
+  let deps: WorkflowDeps
   let parts: ReturnType<typeof createDeps>['parts']
 
   beforeEach(() => {
@@ -190,11 +208,12 @@ describe('handleStaggeredPollResult', () => {
       ],
       isSelfWatchlist: true,
     })
-    expect(parts.routeEnrichedItemsForUser).toHaveBeenCalledWith(USER.id, [
-      processed,
-      linked,
-    ])
-    expect(parts.updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
+    expect(routeEnrichedItemsForUser).toHaveBeenCalledWith(
+      USER.id,
+      [processed, linked],
+      deps,
+    )
+    expect(updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
     expect(parts.scheduleDebouncedStatusSync).toHaveBeenCalledTimes(1)
   })
 
@@ -214,12 +233,12 @@ describe('handleStaggeredPollResult', () => {
     await handleStaggeredPollResult(pollResult(), deps)
 
     expect(processItemsForUser).toHaveBeenCalledTimes(1)
-    expect(parts.deferredRoutingQueue.enqueue).toHaveBeenCalledWith({
+    expect(parts.enqueue).toHaveBeenCalledWith({
       type: 'items',
       userId: USER.id,
       items: [processed, linked],
     })
-    expect(parts.routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
   })
 
   it('routes anyway when instances are unavailable and no queue exists', async () => {
@@ -233,29 +252,29 @@ describe('handleStaggeredPollResult', () => {
       radarrUnavailable: [],
       plexServerUnreachable: false,
     })
-    const noQueueDeps = {
-      ...deps,
-      deferredRoutingQueue: null,
-    } as unknown as StaggeredPollerDeps
+    deps.state.deferredRoutingQueue = null
 
-    await handleStaggeredPollResult(pollResult(), noQueueDeps)
+    await handleStaggeredPollResult(pollResult(), deps)
 
-    expect(parts.routeEnrichedItemsForUser).toHaveBeenCalledWith(USER.id, [
-      processed,
-    ])
+    expect(routeEnrichedItemsForUser).toHaveBeenCalledWith(
+      USER.id,
+      [processed],
+      deps,
+    )
   })
 
   it('neither routes nor queues when processing yields nothing', async () => {
     await handleStaggeredPollResult(pollResult(), deps)
 
-    expect(parts.routeEnrichedItemsForUser).not.toHaveBeenCalled()
-    expect(parts.deferredRoutingQueue.enqueue).not.toHaveBeenCalled()
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(parts.enqueue).not.toHaveBeenCalled()
   })
 })
 
 describe('refreshFriendsForStaggeredPolling', () => {
-  let deps: StaggeredPollerDeps
+  let deps: WorkflowDeps
   let parts: ReturnType<typeof createDeps>['parts']
+  let state: WorkflowState
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -265,10 +284,15 @@ describe('refreshFriendsForStaggeredPolling', () => {
       radarrUnavailable: [],
       plexServerUnreachable: false,
     })
+    vi.mocked(syncSingleFriend).mockResolvedValue({
+      brandNewItems: [enrichedItem('brand-new')],
+      linkedItems: [enrichedItem('linked')],
+    })
 
     const created = createDeps()
     deps = created.deps
     parts = created.parts
+    state = created.state
   })
 
   it('returns the current friends when nothing changed', async () => {
@@ -279,12 +303,9 @@ describe('refreshFriendsForStaggeredPolling', () => {
       friendChanges({ userMap }),
     )
 
-    const { friends, updatedCache } = await refreshFriendsForStaggeredPolling(
-      new Map(),
-      deps,
-    )
+    const friends = await refreshFriendsForStaggeredPolling(deps)
 
-    expect(parts.updatePlexUuidCache).toHaveBeenCalledWith(userMap)
+    expect(parts.updatePlexUuidCache).toHaveBeenCalledWith(userMap, deps.logger)
     expect(friends).toEqual([
       {
         userId: 9,
@@ -293,8 +314,8 @@ describe('refreshFriendsForStaggeredPolling', () => {
         isPrimary: false,
       },
     ])
-    expect(updatedCache).toEqual(userMap)
-    expect(updatedCache).not.toBe(userMap)
+    expect(state.plexUuidCache).toEqual(userMap)
+    expect(state.plexUuidCache).not.toBe(userMap)
   })
 
   it('syncs and routes a newly added friend', async () => {
@@ -308,18 +329,19 @@ describe('refreshFriendsForStaggeredPolling', () => {
       friendChanges({ added: [newFriend] }),
     )
 
-    await refreshFriendsForStaggeredPolling(new Map(), deps)
+    await refreshFriendsForStaggeredPolling(deps)
 
-    expect(parts.syncSingleFriend).toHaveBeenCalledWith({
+    expect(vi.mocked(syncSingleFriend).mock.calls[0][0]).toEqual({
       userId: 11,
       username: 'new-friend',
       isPrimary: false,
       watchlistId: 'wl-11',
     })
-    expect(parts.routeEnrichedItemsForUser).toHaveBeenCalledWith(11, [
-      enrichedItem('brand-new'),
-      enrichedItem('linked'),
-    ])
+    expect(routeEnrichedItemsForUser).toHaveBeenCalledWith(
+      11,
+      [enrichedItem('brand-new'), enrichedItem('linked')],
+      deps,
+    )
     expect(parts.etagPoller.establishBaseline).toHaveBeenCalledWith({
       userId: 11,
       username: 'new-friend',
@@ -345,7 +367,7 @@ describe('refreshFriendsForStaggeredPolling', () => {
       plexServerUnreachable: false,
     })
 
-    await refreshFriendsForStaggeredPolling(new Map(), deps)
+    await refreshFriendsForStaggeredPolling(deps)
 
     expect(vi.mocked(queueForDeferredRouting).mock.calls[0][1]).toEqual({
       type: 'items',
@@ -355,7 +377,7 @@ describe('refreshFriendsForStaggeredPolling', () => {
     expect(vi.mocked(queueForDeferredRouting).mock.calls[0][2]).toBe(
       'staggered-new-friend',
     )
-    expect(parts.routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
     expect(parts.etagPoller.establishBaseline).toHaveBeenCalledTimes(1)
   })
 
@@ -372,9 +394,11 @@ describe('refreshFriendsForStaggeredPolling', () => {
     parts.plexService.checkFriendChanges.mockResolvedValue(
       friendChanges({ added: [newFriend], userMap }),
     )
-    parts.syncSingleFriend.mockRejectedValue(new Error('friend sync failed'))
+    vi.mocked(syncSingleFriend).mockRejectedValue(
+      new Error('friend sync failed'),
+    )
 
-    const { friends } = await refreshFriendsForStaggeredPolling(new Map(), deps)
+    const friends = await refreshFriendsForStaggeredPolling(deps)
 
     expect(parts.etagPoller.establishBaseline).not.toHaveBeenCalled()
     expect(friends).toEqual([
@@ -402,13 +426,10 @@ describe('refreshFriendsForStaggeredPolling', () => {
       friendChanges({ removed: [removed], userMap }),
     )
 
-    const { friends, updatedCache } = await refreshFriendsForStaggeredPolling(
-      new Map(),
-      deps,
-    )
+    const friends = await refreshFriendsForStaggeredPolling(deps)
 
     expect(parts.etagPoller.invalidateUser).toHaveBeenCalledWith(11, 'wl-11')
-    expect(updatedCache.has('wl-11')).toBe(false)
+    expect(state.plexUuidCache.has('wl-11')).toBe(false)
     expect(friends.map((friend) => friend.userId)).toEqual([9])
   })
 
@@ -416,16 +437,14 @@ describe('refreshFriendsForStaggeredPolling', () => {
     const cache = new Map<string, UserMapEntry>([
       ['wl-9', { userId: 9, username: 'poll-user' }],
     ])
+    state.plexUuidCache = cache
     parts.plexService.checkFriendChanges.mockRejectedValue(
       new Error('plex down'),
     )
 
-    const { friends, updatedCache } = await refreshFriendsForStaggeredPolling(
-      cache,
-      deps,
-    )
+    const friends = await refreshFriendsForStaggeredPolling(deps)
 
-    expect(updatedCache).toBe(cache)
+    expect(state.plexUuidCache).toBe(cache)
     expect(friends).toEqual([
       {
         userId: 9,

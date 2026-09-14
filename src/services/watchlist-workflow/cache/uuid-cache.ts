@@ -6,7 +6,8 @@
  */
 
 import type { UserMapEntry } from '@root/types/plex.types.js'
-import type { UuidCacheDeps } from '../types.js'
+import type { FastifyBaseLogger } from 'fastify'
+import type { WorkflowDeps } from '../types.js'
 
 /**
  * Look up user ID by Plex UUID from the cache.
@@ -20,7 +21,7 @@ import type { UuidCacheDeps } from '../types.js'
 export async function lookupUserByUuid(
   uuid: string,
   cache: Map<string, UserMapEntry>,
-  deps: UuidCacheDeps,
+  deps: Pick<WorkflowDeps, 'logger' | 'plexService'>,
 ): Promise<{ userId: number | null; cache: Map<string, UserMapEntry> }> {
   // Fast path: cache hit
   const cachedEntry = cache.get(uuid)
@@ -52,11 +53,11 @@ export async function lookupUserByUuid(
  */
 export async function refreshPlexUuidCache(
   currentCache: Map<string, UserMapEntry>,
-  deps: UuidCacheDeps,
+  deps: Pick<WorkflowDeps, 'logger' | 'plexService'>,
 ): Promise<Map<string, UserMapEntry>> {
   try {
     const friendChanges = await deps.plexService.checkFriendChanges()
-    const newCache = updatePlexUuidCache(friendChanges.userMap, deps)
+    const newCache = updatePlexUuidCache(friendChanges.userMap, deps.logger)
     deps.logger.debug({ cacheSize: newCache.size }, 'Plex UUID cache refreshed')
     return newCache
   } catch (error) {
@@ -71,14 +72,14 @@ export async function refreshPlexUuidCache(
  * Called whenever friend sync operations return a fresh userMap.
  *
  * @param userMap - Map of Plex UUID (watchlistId) to user info
- * @param deps - Service dependencies
+ * @param logger - Logger instance
  * @returns New cache map
  */
 export function updatePlexUuidCache(
   userMap: Map<string, UserMapEntry>,
-  deps: UuidCacheDeps,
+  logger: FastifyBaseLogger,
 ): Map<string, UserMapEntry> {
   const newCache = new Map(userMap)
-  deps.logger.debug({ cacheSize: newCache.size }, 'Updated Plex UUID cache')
+  logger.debug({ cacheSize: newCache.size }, 'Updated Plex UUID cache')
   return newCache
 }

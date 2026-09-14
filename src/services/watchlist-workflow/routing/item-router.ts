@@ -21,7 +21,7 @@ import {
   parseGenres,
   parseGuids,
 } from '@utils/guid-handler.js'
-import type { ContentRoutingDeps, RssProcessorDeps } from '../types.js'
+import type { ContentRoutingDeps, WorkflowDeps } from '../types.js'
 import { routeMovie, routeShow } from './content-router.js'
 
 /**
@@ -242,7 +242,7 @@ export async function routeEnrichedItemsForUser(
  */
 export async function routeNewItemsForUser(
   change: EtagPollResult,
-  deps: RssProcessorDeps,
+  deps: WorkflowDeps,
 ): Promise<void> {
   const { userId, newItems } = change
 
@@ -316,6 +316,6 @@ export async function routeNewItemsForUser(
       'Routing items for user',
     )
 
-    await deps.routeEnrichedItemsForUser(userId, allItemsToRoute)
+    await routeEnrichedItemsForUser(userId, allItemsToRoute, deps)
   }
 }

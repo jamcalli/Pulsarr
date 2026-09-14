@@ -1,5 +1,6 @@
 import type { CachedRssItem, Item } from '@root/types/plex.types.js'
-import type { RssFriendsProcessorDeps } from '@services/watchlist-workflow/types.js'
+import { WorkflowState } from '@services/watchlist-workflow/state.js'
+import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
@@ -12,7 +13,7 @@ vi.mock('@services/plex-watchlist/index.js', () => ({
   })),
 }))
 
-vi.mock('@services/watchlist-workflow/routing/index.js', () => ({
+vi.mock('@services/watchlist-workflow/routing/health-checker.js', () => ({
   checkInstanceHealth: vi.fn(async () => ({
     available: true,
     sonarrUnavailable: [],
@@ -20,24 +21,30 @@ vi.mock('@services/watchlist-workflow/routing/index.js', () => ({
     plexServerUnreachable: false,
   })),
   queueForDeferredRouting: vi.fn(() => true),
-  checkHealthAndQueueIfUnavailable: vi.fn(),
-  routeMovie: vi.fn(),
-  routeShow: vi.fn(),
-  routeEnrichedItemsForUser: vi.fn(),
-  routeNewItemsForUser: vi.fn(),
-  routeSingleItem: vi.fn(),
-  hasUserField: vi.fn(),
 }))
+
+vi.mock('@services/watchlist-workflow/routing/item-router.js', () => ({
+  routeEnrichedItemsForUser: vi.fn(async () => {}),
+}))
+
+vi.mock(
+  '@services/watchlist-workflow/attribution/approval-attributor.js',
+  () => ({
+    updateAutoApprovalUserAttribution: vi.fn(async () => {}),
+  }),
+)
 
 vi.mock('@services/watchlist-workflow/rss/enricher.js', () => ({
   enrichRssItems: vi.fn(async (): Promise<Item[]> => []),
 }))
 
 import { processItemsForUser } from '@services/plex-watchlist/index.js'
+import { updateAutoApprovalUserAttribution } from '@services/watchlist-workflow/attribution/approval-attributor.js'
 import {
   checkInstanceHealth,
   queueForDeferredRouting,
-} from '@services/watchlist-workflow/routing/index.js'
+} from '@services/watchlist-workflow/routing/health-checker.js'
+import { routeEnrichedItemsForUser } from '@services/watchlist-workflow/routing/item-router.js'
 import { enrichRssItems } from '@services/watchlist-workflow/rss/enricher.js'
 import { processRssFriendsItems } from '@services/watchlist-workflow/rss/friends-processor.js'
 
@@ -82,6 +89,11 @@ function processedResult(processed: Item[], linked: Item[]) {
 }
 
 function createDeps() {
+  const state = new WorkflowState()
+  state.deferredRoutingQueue = { enqueue: vi.fn() } as unknown as NonNullable<
+    WorkflowState['deferredRoutingQueue']
+  >
+
   const parts = {
     db: {
       getUser: vi.fn(
@@ -91,31 +103,30 @@ function createDeps() {
           [...USERS.values()].find((user) => user.id === userId),
       ),
     },
-    lookupUserByUuid: vi.fn(
-      async (uuid: string): Promise<number | null> =>
-        USERS.get(uuid)?.id ?? null,
-    ),
-    deferredRoutingQueue: { enqueue: vi.fn() },
-    routeEnrichedItemsForUser: vi.fn(async () => {}),
-    updateAutoApprovalUserAttribution: vi.fn(async () => {}),
-    scheduleDebouncedStatusSync: vi.fn(),
+    lookupUserByUuid: vi
+      .spyOn(state, 'lookupUserByUuid')
+      .mockImplementation(async (uuid: string) => USERS.get(uuid)?.id ?? null),
+    scheduleDebouncedStatusSync: vi
+      .spyOn(state, 'scheduleDebouncedStatusSync')
+      .mockImplementation(() => {}),
   }
 
   const deps = {
     ...parts,
+    state,
     logger: createMockLogger(),
     config: { skipIfExistsOnPlex: false },
     fastify: { plexServerService: {} },
     sonarrManager: {},
     radarrManager: {},
     itemProcessorDeps: {},
-  } as unknown as RssFriendsProcessorDeps
+  } as unknown as WorkflowDeps
 
   return { deps, parts }
 }
 
 describe('processRssFriendsItems', () => {
-  let deps: RssFriendsProcessorDeps
+  let deps: WorkflowDeps
   let parts: ReturnType<typeof createDeps>['parts']
 
   beforeEach(() => {
@@ -153,14 +164,20 @@ describe('processRssFriendsItems', () => {
       user: { userId: 11, username: 'friend-b', watchlistId: '' },
       isSelfWatchlist: false,
     })
-    expect(parts.routeEnrichedItemsForUser).toHaveBeenCalledTimes(2)
-    expect(parts.routeEnrichedItemsForUser).toHaveBeenNthCalledWith(1, 10, [
-      expect.objectContaining({ key: 'a1', user_id: 10 }),
-    ])
-    expect(parts.routeEnrichedItemsForUser).toHaveBeenNthCalledWith(2, 11, [
-      expect.objectContaining({ key: 'b1', user_id: 11 }),
-    ])
-    expect(parts.updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
+    expect(routeEnrichedItemsForUser).toHaveBeenCalledTimes(2)
+    expect(routeEnrichedItemsForUser).toHaveBeenNthCalledWith(
+      1,
+      10,
+      [expect.objectContaining({ key: 'a1', user_id: 10 })],
+      deps,
+    )
+    expect(routeEnrichedItemsForUser).toHaveBeenNthCalledWith(
+      2,
+      11,
+      [expect.objectContaining({ key: 'b1', user_id: 11 })],
+      deps,
+    )
+    expect(updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
     expect(parts.scheduleDebouncedStatusSync).toHaveBeenCalledTimes(1)
   })
 
@@ -182,14 +199,14 @@ describe('processRssFriendsItems', () => {
     await processRssFriendsItems([rssItem('a1', 'uuid-a')], deps)
 
     expect(processItemsForUser).not.toHaveBeenCalled()
-    expect(parts.routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
   })
 
   it('ignores items with no author but still finishes', async () => {
     await processRssFriendsItems([rssItem('orphan', '')], deps)
 
     expect(processItemsForUser).not.toHaveBeenCalled()
-    expect(parts.updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
+    expect(updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
   })
 
   it('queues each author when instances are unavailable', async () => {
@@ -217,13 +234,13 @@ describe('processRssFriendsItems', () => {
       type: 'items',
       userId: 11,
     })
-    expect(parts.routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
   })
 
   it('runs the post-routing tasks on an empty feed', async () => {
     await processRssFriendsItems([], deps)
 
-    expect(parts.updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
+    expect(updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
     expect(parts.scheduleDebouncedStatusSync).toHaveBeenCalledTimes(1)
   })
 })

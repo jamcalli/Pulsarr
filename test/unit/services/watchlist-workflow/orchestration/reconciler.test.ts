@@ -4,11 +4,9 @@ import type {
   UserMapEntry,
 } from '@root/types/plex.types.js'
 import type { EtagPoller } from '@services/plex-watchlist/etag/etag-poller.js'
-import type {
-  ReconcileDeps,
-  ReconcileState,
-} from '@services/watchlist-workflow/orchestration/reconciler.js'
-import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
+import { WorkflowState } from '@services/watchlist-workflow/state.js'
+import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
 const etagPollerMock = vi.hoisted(() => {
@@ -33,21 +31,32 @@ vi.mock('@services/plex-watchlist/etag/etag-poller.js', () => ({
   EtagPoller: etagPollerMock.EtagPollerCtor,
 }))
 
-vi.mock('@services/watchlist-workflow/routing/index.js', () => ({
+vi.mock('@services/watchlist-workflow/routing/health-checker.js', () => ({
   checkInstanceHealth: vi.fn(async () => ({
     available: true,
     sonarrUnavailable: [],
     radarrUnavailable: [],
     plexServerUnreachable: false,
   })),
-  queueForDeferredRouting: vi.fn(),
-  checkHealthAndQueueIfUnavailable: vi.fn(),
-  routeMovie: vi.fn(),
-  routeShow: vi.fn(),
-  routeEnrichedItemsForUser: vi.fn(),
-  routeNewItemsForUser: vi.fn(),
-  routeSingleItem: vi.fn(),
-  hasUserField: vi.fn(),
+}))
+
+vi.mock('@services/watchlist-workflow/routing/item-router.js', () => ({
+  routeNewItemsForUser: vi.fn(async () => {}),
+}))
+
+vi.mock(
+  '@services/watchlist-workflow/attribution/approval-attributor.js',
+  () => ({
+    updateAutoApprovalUserAttribution: vi.fn(async () => {}),
+  }),
+)
+
+vi.mock('@services/watchlist-workflow/fetching/watchlist-fetcher.js', () => ({
+  fetchWatchlists: vi.fn(async () => {}),
+}))
+
+vi.mock('@services/watchlist-workflow/orchestration/sync-engine.js', () => ({
+  syncWatchlistItems: vi.fn(async () => {}),
 }))
 
 vi.mock('@services/watchlist-workflow/orchestration/friend-handler.js', () => ({
@@ -59,13 +68,17 @@ vi.mock('@services/watchlist-workflow/orchestration/friend-handler.js', () => ({
   handleRemovedFriend: vi.fn(),
 }))
 
+import { updateAutoApprovalUserAttribution } from '@services/watchlist-workflow/attribution/approval-attributor.js'
+import { fetchWatchlists } from '@services/watchlist-workflow/fetching/watchlist-fetcher.js'
 import {
   handleNewFriendEtagMode,
   handleNewFriendFullMode,
   handleRemovedFriend,
 } from '@services/watchlist-workflow/orchestration/friend-handler.js'
 import { reconcile } from '@services/watchlist-workflow/orchestration/reconciler.js'
-import { checkInstanceHealth } from '@services/watchlist-workflow/routing/index.js'
+import { syncWatchlistItems } from '@services/watchlist-workflow/orchestration/sync-engine.js'
+import { checkInstanceHealth } from '@services/watchlist-workflow/routing/health-checker.js'
+import { routeNewItemsForUser } from '@services/watchlist-workflow/routing/item-router.js'
 
 const PRIMARY_USER = { id: 1, name: 'primary' }
 
@@ -91,6 +104,17 @@ function etagResult(overrides: Partial<EtagPollResult> = {}): EtagPollResult {
 }
 
 function createDeps() {
+  const state = new WorkflowState()
+  state.lastSuccessfulSyncTime = 0
+  state.deferredRoutingQueue = { enqueue: vi.fn() } as unknown as NonNullable<
+    WorkflowState['deferredRoutingQueue']
+  >
+  const enqueue = vi.mocked(state.deferredRoutingQueue.enqueue)
+  const scheduleDebouncedStatusSync = vi
+    .spyOn(state, 'scheduleDebouncedStatusSync')
+    .mockImplementation(() => {})
+  const updatePlexUuidCache = vi.spyOn(state, 'updatePlexUuidCache')
+
   const parts = {
     db: {
       getPrimaryUser: vi.fn(
@@ -100,40 +124,28 @@ function createDeps() {
     plexService: {
       checkFriendChanges: vi.fn(async () => friendChanges()),
     },
-    deferredRoutingQueue: { enqueue: vi.fn() },
-    fetchWatchlists: vi.fn(async () => {}),
-    syncWatchlistItems: vi.fn(async () => {}),
-    routeNewItemsForUser: vi.fn(async () => {}),
-    routeEnrichedItemsForUser: vi.fn(async () => {}),
-    updateAutoApprovalUserAttribution: vi.fn(async () => {}),
-    scheduleDebouncedStatusSync: vi.fn(),
-    updatePlexUuidCache: vi.fn(),
-    syncSingleFriend: vi.fn(async () => ({
-      brandNewItems: [],
-      linkedItems: [],
-    })),
-    getEtagPoller: vi.fn((): EtagPoller | null => null),
-    setEtagPoller: vi.fn(),
+    enqueue,
+    scheduleDebouncedStatusSync,
+    updatePlexUuidCache,
   }
 
   const deps = {
     ...parts,
+    state,
     logger: createMockLogger(),
     config: { skipIfExistsOnPlex: false },
     fastify: { plexServerService: {} },
     sonarrManager: {},
     radarrManager: {},
-    etagPoller: null,
-  } as unknown as ReconcileDeps
+  } as unknown as WorkflowDeps
 
-  return { deps, parts }
+  return { deps, parts, state }
 }
 
 describe('reconcile', () => {
-  let deps: ReconcileDeps
+  let deps: WorkflowDeps
   let parts: ReturnType<typeof createDeps>['parts']
-  let state: ReconcileState
-  let setState: Mock<(updates: Partial<ReconcileState>) => void>
+  let state: WorkflowState
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -148,18 +160,15 @@ describe('reconcile', () => {
     const created = createDeps()
     deps = created.deps
     parts = created.parts
-    state = { isReconciling: false, lastSuccessfulSyncTime: 0 }
-    setState = vi.fn((updates: Partial<ReconcileState>) => {
-      Object.assign(state, updates)
-    })
+    state = created.state
   })
 
   it('skips etag mode while a reconciliation is already running', async () => {
     state.isReconciling = true
 
-    await reconcile({ mode: 'etag' }, deps, state, setState)
+    await reconcile({ mode: 'etag' }, deps)
 
-    expect(setState).not.toHaveBeenCalled()
+    expect(state.isReconciling).toBe(true)
     expect(parts.db.getPrimaryUser).not.toHaveBeenCalled()
     expect(parts.plexService.checkFriendChanges).not.toHaveBeenCalled()
   })
@@ -171,10 +180,10 @@ describe('reconcile', () => {
       }),
     )
 
-    await reconcile({ mode: 'full' }, deps, state, setState)
+    await reconcile({ mode: 'full' }, deps)
 
-    expect(parts.fetchWatchlists.mock.invocationCallOrder[0]).toBeLessThan(
-      parts.syncWatchlistItems.mock.invocationCallOrder[0],
+    expect(vi.mocked(fetchWatchlists).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(syncWatchlistItems).mock.invocationCallOrder[0],
     )
     expect(etagPollerMock.methods.establishAllBaselines).toHaveBeenCalledWith(
       PRIMARY_USER.id,
@@ -187,44 +196,37 @@ describe('reconcile', () => {
         },
       ],
     )
-    expect(setState).toHaveBeenCalledWith({ isReconciling: true })
-    expect(setState).toHaveBeenCalledWith({
-      lastSuccessfulSyncTime: expect.any(Number),
-    })
-    expect(setState).toHaveBeenLastCalledWith({ isReconciling: false })
+    expect(state.lastSuccessfulSyncTime).toBeGreaterThan(0)
+    expect(state.isReconciling).toBe(false)
   })
 
   it('returns early when there is no primary user', async () => {
     parts.db.getPrimaryUser.mockResolvedValue(null)
 
-    await reconcile({ mode: 'full' }, deps, state, setState)
+    await reconcile({ mode: 'full' }, deps)
 
     expect(parts.plexService.checkFriendChanges).not.toHaveBeenCalled()
-    expect(parts.fetchWatchlists).not.toHaveBeenCalled()
-    expect(setState.mock.calls).toEqual([
-      [{ isReconciling: true }],
-      [{ isReconciling: false }],
-    ])
+    expect(fetchWatchlists).not.toHaveBeenCalled()
+    expect(state.lastSuccessfulSyncTime).toBe(0)
+    expect(state.isReconciling).toBe(false)
   })
 
   it('lazily creates the etag poller and hands it back to the service', async () => {
-    await reconcile({ mode: 'full' }, deps, state, setState)
+    await reconcile({ mode: 'full' }, deps)
 
     expect(etagPollerMock.EtagPollerCtor).toHaveBeenCalledTimes(1)
-    expect(parts.setEtagPoller).toHaveBeenCalledWith(
+    expect(state.etagPoller).toBe(
       etagPollerMock.EtagPollerCtor.mock.instances[0],
     )
   })
 
   it('reuses an existing etag poller', async () => {
-    parts.getEtagPoller.mockReturnValue(
-      etagPollerMock.methods as unknown as EtagPoller,
-    )
+    state.etagPoller = etagPollerMock.methods as unknown as EtagPoller
 
-    await reconcile({ mode: 'full' }, deps, state, setState)
+    await reconcile({ mode: 'full' }, deps)
 
     expect(etagPollerMock.EtagPollerCtor).not.toHaveBeenCalled()
-    expect(parts.setEtagPoller).not.toHaveBeenCalled()
+    expect(state.etagPoller).toBe(etagPollerMock.methods)
     expect(etagPollerMock.methods.establishAllBaselines).toHaveBeenCalledTimes(
       1,
     )
@@ -242,9 +244,9 @@ describe('reconcile', () => {
       friendChanges({ added: [newFriend], userMap }),
     )
 
-    await reconcile({ mode: 'etag' }, deps, state, setState)
+    await reconcile({ mode: 'etag' }, deps)
 
-    expect(parts.updatePlexUuidCache).toHaveBeenCalledWith(userMap)
+    expect(parts.updatePlexUuidCache).toHaveBeenCalledWith(userMap, deps.logger)
     expect(handleNewFriendEtagMode).toHaveBeenCalledTimes(1)
     expect(vi.mocked(handleNewFriendEtagMode).mock.calls[0][0]).toEqual(
       newFriend,
@@ -263,7 +265,7 @@ describe('reconcile', () => {
       friendChanges({ added: [newFriend] }),
     )
 
-    await reconcile({ mode: 'full' }, deps, state, setState)
+    await reconcile({ mode: 'full' }, deps)
 
     expect(vi.mocked(handleNewFriendFullMode).mock.calls[0][0]).toEqual(
       newFriend,
@@ -282,7 +284,7 @@ describe('reconcile', () => {
       friendChanges({ removed: [removedFriend] }),
     )
 
-    await reconcile({ mode: 'etag' }, deps, state, setState)
+    await reconcile({ mode: 'etag' }, deps)
 
     expect(vi.mocked(handleRemovedFriend).mock.calls[0][0]).toEqual(
       removedFriend,
@@ -296,15 +298,13 @@ describe('reconcile', () => {
       etagResult({ userId: 2, isPrimary: false, newItems: [] }),
     ])
 
-    await reconcile({ mode: 'etag' }, deps, state, setState)
+    await reconcile({ mode: 'etag' }, deps)
 
-    expect(parts.routeNewItemsForUser).toHaveBeenCalledTimes(1)
-    expect(parts.routeNewItemsForUser).toHaveBeenCalledWith(withItems)
-    expect(parts.updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
+    expect(routeNewItemsForUser).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(routeNewItemsForUser).mock.calls[0][0]).toBe(withItems)
+    expect(updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
     expect(parts.scheduleDebouncedStatusSync).toHaveBeenCalledTimes(1)
-    expect(setState).toHaveBeenCalledWith({
-      lastSuccessfulSyncTime: expect.any(Number),
-    })
+    expect(state.lastSuccessfulSyncTime).toBeGreaterThan(0)
   })
 
   it('queues etag changes for deferred routing when instances are unavailable', async () => {
@@ -320,26 +320,24 @@ describe('reconcile', () => {
       plexServerUnreachable: false,
     })
 
-    await reconcile({ mode: 'etag' }, deps, state, setState)
+    await reconcile({ mode: 'etag' }, deps)
 
-    expect(parts.deferredRoutingQueue.enqueue).toHaveBeenCalledTimes(1)
-    expect(parts.deferredRoutingQueue.enqueue).toHaveBeenCalledWith({
+    expect(parts.enqueue).toHaveBeenCalledTimes(1)
+    expect(parts.enqueue).toHaveBeenCalledWith({
       type: 'etag',
       change: withItems,
     })
-    expect(parts.routeNewItemsForUser).not.toHaveBeenCalled()
+    expect(routeNewItemsForUser).not.toHaveBeenCalled()
   })
 
   it('leaves the last successful sync time untouched when no etag changed', async () => {
     etagPollerMock.methods.checkAllEtags.mockResolvedValue([])
 
-    await reconcile({ mode: 'etag' }, deps, state, setState)
+    await reconcile({ mode: 'etag' }, deps)
 
-    expect(parts.routeNewItemsForUser).not.toHaveBeenCalled()
-    expect(setState.mock.calls).toEqual([
-      [{ isReconciling: true }],
-      [{ isReconciling: false }],
-    ])
+    expect(routeNewItemsForUser).not.toHaveBeenCalled()
+    expect(state.lastSuccessfulSyncTime).toBe(0)
+    expect(state.isReconciling).toBe(false)
   })
 
   it('propagates friend check failures and still clears the running flag', async () => {
@@ -347,11 +345,8 @@ describe('reconcile', () => {
       new Error('plex down'),
     )
 
-    await expect(
-      reconcile({ mode: 'etag' }, deps, state, setState),
-    ).rejects.toThrow('plex down')
+    await expect(reconcile({ mode: 'etag' }, deps)).rejects.toThrow('plex down')
 
-    expect(setState).toHaveBeenLastCalledWith({ isReconciling: false })
     expect(state.isReconciling).toBe(false)
   })
 })

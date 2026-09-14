@@ -1,13 +1,32 @@
 import type {
   EtagUserInfo,
+  Friend,
   Item,
+  TokenWatchlistItem,
   UserMapEntry,
 } from '@root/types/plex.types.js'
-import type { FriendHandlerDeps } from '@services/watchlist-workflow/types.js'
+import { WorkflowState } from '@services/watchlist-workflow/state.js'
+import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
-vi.mock('@services/watchlist-workflow/routing/index.js', () => ({
+vi.mock('@services/plex-watchlist/index.js', () => ({
+  getOthersWatchlist: vi.fn(async () => new Map()),
+  extractKeysAndRelationships: vi.fn(() => ({
+    allKeys: new Set<string>(),
+    userKeyMap: new Map(),
+  })),
+  getExistingItems: vi.fn(async () => []),
+  categorizeItems: vi.fn(() => ({
+    brandNewItems: new Map(),
+    existingItemsToLink: new Map(),
+  })),
+  processAndSaveNewItems: vi.fn(async () => new Map()),
+  linkExistingItems: vi.fn(async () => {}),
+  handleLinkedItemsForLabelSync: vi.fn(async () => {}),
+}))
+
+vi.mock('@services/watchlist-workflow/routing/health-checker.js', () => ({
   checkHealthAndQueueIfUnavailable: vi.fn(async () => ({
     health: {
       available: true,
@@ -17,29 +36,45 @@ vi.mock('@services/watchlist-workflow/routing/index.js', () => ({
     },
     shouldRoute: true,
   })),
-  checkInstanceHealth: vi.fn(),
-  queueForDeferredRouting: vi.fn(),
-  routeMovie: vi.fn(),
-  routeShow: vi.fn(),
-  routeEnrichedItemsForUser: vi.fn(),
-  routeNewItemsForUser: vi.fn(),
-  routeSingleItem: vi.fn(),
-  hasUserField: vi.fn(),
 }))
 
+vi.mock('@services/watchlist-workflow/routing/item-router.js', () => ({
+  routeEnrichedItemsForUser: vi.fn(async () => {}),
+}))
+
+vi.mock(
+  '@services/watchlist-workflow/attribution/approval-attributor.js',
+  () => ({
+    updateAutoApprovalUserAttribution: vi.fn(async () => {}),
+  }),
+)
+
+import {
+  categorizeItems,
+  getOthersWatchlist,
+  processAndSaveNewItems,
+} from '@services/plex-watchlist/index.js'
+import { updateAutoApprovalUserAttribution } from '@services/watchlist-workflow/attribution/approval-attributor.js'
 import {
   handleNewFriendEtagMode,
   handleNewFriendFullMode,
   handleRemovedFriend,
   processFriendChanges,
 } from '@services/watchlist-workflow/orchestration/friend-handler.js'
-import { checkHealthAndQueueIfUnavailable } from '@services/watchlist-workflow/routing/index.js'
+import { checkHealthAndQueueIfUnavailable } from '@services/watchlist-workflow/routing/health-checker.js'
+import { routeEnrichedItemsForUser } from '@services/watchlist-workflow/routing/item-router.js'
 
 const NEW_FRIEND: EtagUserInfo = {
   userId: 42,
   username: 'friend',
   watchlistId: 'wl-42',
   isPrimary: false,
+}
+
+const FRIEND_KEY: Friend = {
+  watchlistId: 'wl-42',
+  username: 'friend',
+  userId: 42,
 }
 
 function friendItem(key: string): Item {
@@ -56,45 +91,60 @@ function friendItem(key: string): Item {
   }
 }
 
+function tokenItem(key: string): TokenWatchlistItem {
+  return { ...friendItem(key), id: key }
+}
+
+function stubFriendWatchlist() {
+  vi.mocked(getOthersWatchlist).mockResolvedValue(
+    new Map([[FRIEND_KEY, new Set([tokenItem('brand-new')])]]),
+  )
+  vi.mocked(categorizeItems).mockReturnValue({
+    brandNewItems: new Map(),
+    existingItemsToLink: new Map([
+      [FRIEND_KEY, new Set([friendItem('linked')])],
+    ]),
+  })
+  vi.mocked(processAndSaveNewItems).mockResolvedValue(
+    new Map([[FRIEND_KEY, new Set([friendItem('brand-new')])]]),
+  )
+}
+
 function createDeps() {
+  const state = new WorkflowState()
+  state.etagPoller = {
+    establishBaseline: vi.fn(async () => {}),
+    invalidateUser: vi.fn(),
+  } as unknown as NonNullable<WorkflowState['etagPoller']>
+  state.deferredRoutingQueue = { enqueue: vi.fn() } as unknown as NonNullable<
+    WorkflowState['deferredRoutingQueue']
+  >
+
   const parts = {
-    etagPoller: {
-      establishBaseline: vi.fn(async () => {}),
-      invalidateUser: vi.fn(),
-    },
-    syncSingleFriend: vi.fn(
-      async (): Promise<{ brandNewItems: Item[]; linkedItems: Item[] }> => ({
-        brandNewItems: [friendItem('brand-new')],
-        linkedItems: [friendItem('linked')],
-      }),
-    ),
-    routeEnrichedItemsForUser: vi.fn(async () => {}),
-    updateAutoApprovalUserAttribution: vi.fn(async () => {}),
-    scheduleDebouncedStatusSync: vi.fn(),
-    updatePlexUuidCache: vi.fn(),
-    lookupUserByUuid: vi.fn(async (): Promise<number | null> => null),
-    deferredRoutingQueue: { enqueue: vi.fn() },
+    etagPoller: state.etagPoller,
+    scheduleDebouncedStatusSync: vi
+      .spyOn(state, 'scheduleDebouncedStatusSync')
+      .mockImplementation(() => {}),
+    updatePlexUuidCache: vi.spyOn(state, 'updatePlexUuidCache'),
   }
 
   const deps = {
-    ...parts,
+    state,
     logger: createMockLogger(),
-    config: { skipIfExistsOnPlex: false },
+    config: { skipIfExistsOnPlex: false, plexTokens: ['token'] },
     db: {},
     fastify: { plexServerService: {} },
     plexService: {},
     sonarrManager: {},
     radarrManager: {},
-    fetchWatchlists: vi.fn(async () => {}),
-    syncWatchlistItems: vi.fn(async () => {}),
-    routeNewItemsForUser: vi.fn(async () => {}),
-  } as unknown as FriendHandlerDeps
+    itemProcessorDeps: {},
+  } as unknown as WorkflowDeps
 
-  return { deps, parts }
+  return { deps, parts, state }
 }
 
 describe('handleNewFriendEtagMode', () => {
-  let deps: FriendHandlerDeps
+  let deps: WorkflowDeps
   let parts: ReturnType<typeof createDeps>['parts']
 
   beforeEach(() => {
@@ -108,6 +158,7 @@ describe('handleNewFriendEtagMode', () => {
       },
       shouldRoute: true,
     })
+    stubFriendWatchlist()
 
     const created = createDeps()
     deps = created.deps
@@ -117,11 +168,12 @@ describe('handleNewFriendEtagMode', () => {
   it('routes brand new and linked items, then establishes the baseline', async () => {
     const result = await handleNewFriendEtagMode(NEW_FRIEND, deps)
 
-    expect(parts.routeEnrichedItemsForUser).toHaveBeenCalledWith(
+    expect(routeEnrichedItemsForUser).toHaveBeenCalledWith(
       NEW_FRIEND.userId,
       [friendItem('brand-new'), friendItem('linked')],
+      deps,
     )
-    expect(parts.updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
+    expect(updateAutoApprovalUserAttribution).toHaveBeenCalledTimes(1)
     expect(parts.scheduleDebouncedStatusSync).toHaveBeenCalledTimes(1)
     expect(parts.etagPoller.establishBaseline).toHaveBeenCalledWith(NEW_FRIEND)
     expect(result).toEqual({ success: true, itemsRouted: 2 })
@@ -140,28 +192,25 @@ describe('handleNewFriendEtagMode', () => {
 
     const result = await handleNewFriendEtagMode(NEW_FRIEND, deps)
 
-    expect(parts.routeEnrichedItemsForUser).not.toHaveBeenCalled()
-    expect(parts.updateAutoApprovalUserAttribution).not.toHaveBeenCalled()
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(updateAutoApprovalUserAttribution).not.toHaveBeenCalled()
     expect(parts.etagPoller.establishBaseline).toHaveBeenCalledWith(NEW_FRIEND)
     expect(result).toEqual({ success: true, itemsRouted: 2 })
   })
 
   it('does not check health when the friend watchlist is empty', async () => {
-    parts.syncSingleFriend.mockResolvedValue({
-      brandNewItems: [],
-      linkedItems: [],
-    })
+    vi.mocked(getOthersWatchlist).mockResolvedValue(new Map())
 
     const result = await handleNewFriendEtagMode(NEW_FRIEND, deps)
 
     expect(checkHealthAndQueueIfUnavailable).not.toHaveBeenCalled()
-    expect(parts.routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
     expect(parts.etagPoller.establishBaseline).toHaveBeenCalledWith(NEW_FRIEND)
     expect(result).toEqual({ success: true, itemsRouted: 0 })
   })
 
   it('leaves the baseline unset when the friend sync fails', async () => {
-    parts.syncSingleFriend.mockRejectedValue(new Error('sync failed'))
+    vi.mocked(getOthersWatchlist).mockRejectedValue(new Error('sync failed'))
 
     const result = await handleNewFriendEtagMode(NEW_FRIEND, deps)
 
@@ -172,12 +221,9 @@ describe('handleNewFriendEtagMode', () => {
   })
 
   it('succeeds without an etag poller', async () => {
-    const noPollerDeps = {
-      ...deps,
-      etagPoller: null,
-    } as unknown as FriendHandlerDeps
+    deps.state.etagPoller = null
 
-    const result = await handleNewFriendEtagMode(NEW_FRIEND, noPollerDeps)
+    const result = await handleNewFriendEtagMode(NEW_FRIEND, deps)
 
     expect(result).toEqual({ success: true, itemsRouted: 2 })
   })
@@ -198,13 +244,10 @@ describe('handleNewFriendFullMode', () => {
 
   it('does nothing without an etag poller', async () => {
     const { deps } = createDeps()
-    const noPollerDeps = {
-      ...deps,
-      etagPoller: null,
-    } as unknown as FriendHandlerDeps
+    deps.state.etagPoller = null
 
     await expect(
-      handleNewFriendFullMode(NEW_FRIEND, noPollerDeps),
+      handleNewFriendFullMode(NEW_FRIEND, deps),
     ).resolves.toBeUndefined()
   })
 })
@@ -223,7 +266,7 @@ describe('handleRemovedFriend', () => {
 })
 
 describe('processFriendChanges', () => {
-  let deps: FriendHandlerDeps
+  let deps: WorkflowDeps
   let parts: ReturnType<typeof createDeps>['parts']
 
   beforeEach(() => {
@@ -237,6 +280,7 @@ describe('processFriendChanges', () => {
       },
       shouldRoute: true,
     })
+    stubFriendWatchlist()
 
     const created = createDeps()
     deps = created.deps
@@ -253,9 +297,12 @@ describe('processFriendChanges', () => {
       deps,
     )
 
-    expect(parts.updatePlexUuidCache).toHaveBeenCalledWith(userMap)
-    expect(parts.syncSingleFriend).toHaveBeenCalledWith(NEW_FRIEND)
-    expect(parts.routeEnrichedItemsForUser).toHaveBeenCalledTimes(1)
+    expect(parts.updatePlexUuidCache).toHaveBeenCalledWith(userMap, deps.logger)
+    expect(getOthersWatchlist).toHaveBeenCalledTimes(1)
+    expect(routeEnrichedItemsForUser).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(routeEnrichedItemsForUser).mock.calls[0][0]).toBe(
+      NEW_FRIEND.userId,
+    )
   })
 
   it('only establishes baselines for added friends in full mode', async () => {
@@ -269,7 +316,7 @@ describe('processFriendChanges', () => {
       deps,
     )
 
-    expect(parts.syncSingleFriend).not.toHaveBeenCalled()
+    expect(getOthersWatchlist).not.toHaveBeenCalled()
     expect(parts.etagPoller.establishBaseline).toHaveBeenCalledWith(NEW_FRIEND)
   })
 

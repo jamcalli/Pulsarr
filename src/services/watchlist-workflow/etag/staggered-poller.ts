@@ -10,14 +10,16 @@ import type {
   EtagUserInfo,
   Item,
   TokenWatchlistItem,
-  UserMapEntry,
 } from '@root/types/plex.types.js'
 import { processItemsForUser } from '@services/plex-watchlist/index.js'
+import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
+import { syncSingleFriend } from '../orchestration/friend-handler.js'
 import {
   checkInstanceHealth,
   queueForDeferredRouting,
-} from '../routing/index.js'
-import type { StaggeredPollerDeps } from '../types.js'
+} from '../routing/health-checker.js'
+import { routeEnrichedItemsForUser } from '../routing/item-router.js'
+import type { WorkflowDeps } from '../types.js'
 import { buildEtagUserInfoFromMap } from './helpers.js'
 
 /**
@@ -28,7 +30,7 @@ import { buildEtagUserInfoFromMap } from './helpers.js'
  */
 export async function handleStaggeredPollResult(
   result: EtagPollResult,
-  deps: StaggeredPollerDeps,
+  deps: WorkflowDeps,
 ): Promise<void> {
   if (!result.changed || result.newItems.length === 0) return
 
@@ -56,7 +58,7 @@ export async function handleStaggeredPollResult(
     radarrManager: deps.radarrManager,
     plexServerService: deps.fastify.plexServerService,
     skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
-    deferredRoutingQueue: deps.deferredRoutingQueue,
+    deferredRoutingQueue: deps.state.deferredRoutingQueue,
     logger: deps.logger,
   })
 
@@ -73,7 +75,7 @@ export async function handleStaggeredPollResult(
     updated_at: now,
   }))
 
-  if (!health.available && deps.deferredRoutingQueue) {
+  if (!health.available && deps.state.deferredRoutingQueue) {
     deps.logger.warn(
       {
         userId: result.userId,
@@ -103,7 +105,7 @@ export async function handleStaggeredPollResult(
     // because this user may have different router rules than the original owner
     const allItemsToQueue: Item[] = [...processedItems, ...linkedItems]
     if (allItemsToQueue.length > 0) {
-      deps.deferredRoutingQueue.enqueue({
+      deps.state.deferredRoutingQueue.enqueue({
         type: 'items',
         userId: result.userId,
         items: allItemsToQueue,
@@ -128,9 +130,9 @@ export async function handleStaggeredPollResult(
 
   const allItemsToRoute: Item[] = [...processedItems, ...linkedItems]
   if (allItemsToRoute.length > 0) {
-    await deps.routeEnrichedItemsForUser(result.userId, allItemsToRoute)
-    await deps.updateAutoApprovalUserAttribution()
-    deps.scheduleDebouncedStatusSync()
+    await routeEnrichedItemsForUser(result.userId, allItemsToRoute, deps)
+    await updateAutoApprovalUserAttribution(deps)
+    deps.state.scheduleDebouncedStatusSync(deps)
   }
 }
 
@@ -144,23 +146,15 @@ export async function handleStaggeredPollResult(
  *
  * New friends are immediately synced and added to the current cycle's rotation.
  *
- * @param plexUuidCache - Current UUID cache (for removal cleanup)
  * @param deps - Service dependencies
- * @returns Updated friends list and updated cache
+ * @returns Updated friends list
  */
 export async function refreshFriendsForStaggeredPolling(
-  plexUuidCache: Map<string, UserMapEntry>,
-  deps: StaggeredPollerDeps,
-): Promise<{
-  friends: EtagUserInfo[]
-  updatedCache: Map<string, UserMapEntry>
-}> {
-  let currentCache = plexUuidCache
-
+  deps: WorkflowDeps,
+): Promise<EtagUserInfo[]> {
   try {
     const friendChanges = await deps.plexService.checkFriendChanges()
-    deps.updatePlexUuidCache(friendChanges.userMap)
-    currentCache = new Map(friendChanges.userMap)
+    deps.state.updatePlexUuidCache(friendChanges.userMap, deps.logger)
 
     // Check instance health once before processing new friends
     // Health status won't change during a single refresh cycle
@@ -171,7 +165,7 @@ export async function refreshFriendsForStaggeredPolling(
             radarrManager: deps.radarrManager,
             plexServerService: deps.fastify.plexServerService,
             skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
-            deferredRoutingQueue: deps.deferredRoutingQueue,
+            deferredRoutingQueue: deps.state.deferredRoutingQueue,
             logger: deps.logger,
           })
         : null
@@ -185,12 +179,15 @@ export async function refreshFriendsForStaggeredPolling(
 
       try {
         // Sync new friend's watchlist
-        const { brandNewItems, linkedItems } = await deps.syncSingleFriend({
-          userId: newFriend.userId,
-          username: newFriend.username,
-          isPrimary: false,
-          watchlistId: newFriend.watchlistId,
-        })
+        const { brandNewItems, linkedItems } = await syncSingleFriend(
+          {
+            userId: newFriend.userId,
+            username: newFriend.username,
+            isPrimary: false,
+            watchlistId: newFriend.watchlistId,
+          },
+          deps,
+        )
 
         // Route ALL items - both brand new AND linked (matches ETag mode behavior)
         const allItemsToRoute: Item[] = [...brandNewItems, ...linkedItems]
@@ -213,7 +210,7 @@ export async function refreshFriendsForStaggeredPolling(
               {
                 sonarrManager: deps.sonarrManager,
                 radarrManager: deps.radarrManager,
-                deferredRoutingQueue: deps.deferredRoutingQueue,
+                deferredRoutingQueue: deps.state.deferredRoutingQueue,
                 logger: deps.logger,
               },
               {
@@ -234,19 +231,20 @@ export async function refreshFriendsForStaggeredPolling(
               'Routing new friend watchlist items (brand new + linked)',
             )
 
-            await deps.routeEnrichedItemsForUser(
+            await routeEnrichedItemsForUser(
               newFriend.userId,
               allItemsToRoute,
+              deps,
             )
 
-            await deps.updateAutoApprovalUserAttribution()
-            deps.scheduleDebouncedStatusSync()
+            await updateAutoApprovalUserAttribution(deps)
+            deps.state.scheduleDebouncedStatusSync(deps)
           }
         }
 
         // Establish baseline for new friend
-        if (deps.etagPoller) {
-          await deps.etagPoller.establishBaseline({
+        if (deps.state.etagPoller) {
+          await deps.state.etagPoller.establishBaseline({
             userId: newFriend.userId,
             username: newFriend.username,
             isPrimary: false,
@@ -268,30 +266,31 @@ export async function refreshFriendsForStaggeredPolling(
         'Friend removed, cleaning up from staggered polling',
       )
 
-      if (deps.etagPoller) {
-        deps.etagPoller.invalidateUser(removed.userId, removed.watchlistId)
+      if (deps.state.etagPoller) {
+        deps.state.etagPoller.invalidateUser(
+          removed.userId,
+          removed.watchlistId,
+        )
       }
 
       // Remove from UUID cache
-      for (const [uuid, entry] of currentCache.entries()) {
+      for (const [uuid, entry] of deps.state.plexUuidCache.entries()) {
         if (entry.userId === removed.userId) {
-          currentCache.delete(uuid)
+          deps.state.plexUuidCache.delete(uuid)
           break
         }
       }
     }
 
     // Return updated friends list derived from the in-memory cache
-    const friends = buildEtagUserInfoFromMap(currentCache)
-    return { friends, updatedCache: currentCache }
+    return buildEtagUserInfoFromMap(deps.state.plexUuidCache)
   } catch (error) {
     deps.logger.error(
       { error },
       'Failed to refresh friends for staggered polling',
     )
     // On error, fall back to whatever we have in the current cache
-    const friends = buildEtagUserInfoFromMap(currentCache)
-    return { friends, updatedCache: currentCache }
+    return buildEtagUserInfoFromMap(deps.state.plexUuidCache)
   }
 }
 
@@ -307,7 +306,7 @@ export async function refreshFriendsForStaggeredPolling(
  * @returns Array of EtagUserInfo for friends
  */
 export async function getEtagFriendsList(
-  deps: Pick<StaggeredPollerDeps, 'plexService'>,
+  deps: Pick<WorkflowDeps, 'plexService'>,
 ): Promise<EtagUserInfo[]> {
   const friendChanges = await deps.plexService.checkFriendChanges()
   return buildEtagUserInfoFromMap(friendChanges.userMap)

@@ -8,7 +8,8 @@
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
-import type { AttributionDeps } from '../types.js'
+import type { FastifyBaseLogger } from 'fastify'
+import type { WorkflowDeps } from '../types.js'
 
 /**
  * Optional prefetched data to avoid extra DB queries during reconciliation
@@ -19,7 +20,10 @@ export interface AttributionPrefetchedData {
   /** Pre-fetched movie watchlist items */
   movies?: TokenWatchlistItem[]
   /** Pre-fetched user map by ID */
-  userById?: Map<number, Awaited<ReturnType<DatabaseService['getUser']>>>
+  userById?: Map<
+    number,
+    NonNullable<Awaited<ReturnType<DatabaseService['getUser']>>>
+  >
 }
 
 /**
@@ -75,7 +79,7 @@ function findMatchingWatchlistItem(
   },
   keyIndex: Map<string, TokenWatchlistItem[]>,
   guidIndex: Map<string, TokenWatchlistItem[]>,
-  logger: AttributionDeps['logger'],
+  logger: FastifyBaseLogger,
 ): { item: TokenWatchlistItem | null; ambiguous: boolean } {
   // Prefer exact content key match
   if (approvalRecord.contentKey) {
@@ -147,7 +151,7 @@ function findMatchingWatchlistItem(
  * @param prefetched - Optional prefetched data to avoid extra DB queries
  */
 export async function updateAutoApprovalUserAttribution(
-  deps: AttributionDeps,
+  deps: Pick<WorkflowDeps, 'logger' | 'db' | 'fastify'>,
   prefetched?: AttributionPrefetchedData,
 ): Promise<void> {
   try {

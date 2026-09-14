@@ -24,15 +24,13 @@ export {
   refreshFriendsForStaggeredPolling,
 } from './etag/index.js'
 // Fetching
-export {
-  fetchWatchlists,
-  type WatchlistFetcherDeps,
-} from './fetching/index.js'
+export { fetchWatchlists } from './fetching/index.js'
 // Lifecycle
 export {
   cleanupExistingManualSync,
   cleanupWorkflow,
   initializeWorkflow,
+  RECONCILIATION_JOB_NAME,
   type SchedulerDeps,
   schedulePendingReconciliation,
   setupPeriodicReconciliation,
@@ -51,11 +49,8 @@ export {
   handleRemovedFriend,
   type NewFriendHandlerResult,
   processFriendChanges,
-  type ReconcileDeps,
-  type ReconcileState,
   reconcile,
   type SyncResult,
-  type SyncSingleFriendDeps,
   syncSingleFriend,
   syncWatchlistItems,
 } from './orchestration/index.js'
@@ -82,20 +77,13 @@ export {
   processRssSelfItems,
   type RssEnricherDeps,
 } from './rss/index.js'
+// State
+export { WorkflowState, type WorkflowStatus } from './state.js'
 // Types
 export type {
-  AttributionDeps,
-  BaseDeps,
   ContentRoutingDeps,
   ContentRoutingParams,
-  FriendHandlerDeps,
   HealthCheckDeps,
   HealthCheckResult,
-  LifecycleDeps,
-  ReconcilerDeps,
-  RssFriendsProcessorDeps,
-  RssProcessorDeps,
-  StaggeredPollerDeps,
-  SyncEngineDeps,
-  UuidCacheDeps,
+  WorkflowDeps,
 } from './types.js'
