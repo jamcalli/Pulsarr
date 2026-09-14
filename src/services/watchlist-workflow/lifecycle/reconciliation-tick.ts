@@ -8,29 +8,20 @@ import {
 export async function runPeriodicReconciliation(
   deps: WorkflowDeps,
 ): Promise<void> {
+  if (deps.state.status !== 'running') {
+    deps.logger.debug('Skipping periodic reconciliation - workflow not running')
+    return
+  }
+
+  deps.logger.info('Periodic reconciliation triggered - performing full sync')
+
+  // Unschedule first so a slow run cannot overlap the next tick
+  await unschedulePendingReconciliation(deps)
+
   try {
-    if (deps.state.status !== 'running') {
-      deps.logger.debug(
-        'Skipping periodic reconciliation - workflow not running',
-      )
-      return
-    }
-
-    deps.logger.info('Periodic reconciliation triggered - performing full sync')
-
-    // Unschedule first so a slow run cannot overlap the next tick
-    await unschedulePendingReconciliation(deps)
-
-    try {
-      // RSS and ETag detection keep running during this sync; deduplication handles the overlap
-      await reconcile({ mode: 'full' }, deps)
-
-      deps.state.lastSuccessfulSyncTime = Date.now()
-
-      deps.logger.info('Periodic reconciliation completed successfully')
-    } finally {
-      await schedulePendingReconciliation(deps)
-    }
+    // RSS and ETag detection keep running during this sync; deduplication handles the overlap
+    await reconcile({ mode: 'full' }, deps)
+    deps.logger.info('Periodic reconciliation completed successfully')
   } catch (error) {
     deps.logger.error(
       {
@@ -39,14 +30,17 @@ export async function runPeriodicReconciliation(
       },
       'Error in periodic watchlist reconciliation',
     )
-
-    try {
-      await schedulePendingReconciliation(deps)
-    } catch (scheduleError) {
-      deps.logger.error(
-        { error: scheduleError },
-        'Failed to reschedule after reconciliation error',
-      )
+  } finally {
+    // stop() during the run has already removed the schedule; do not recreate it
+    if (deps.state.status === 'running') {
+      try {
+        await schedulePendingReconciliation(deps)
+      } catch (scheduleError) {
+        deps.logger.error(
+          { error: scheduleError },
+          'Failed to reschedule periodic reconciliation',
+        )
+      }
     }
   }
 }

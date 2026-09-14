@@ -370,6 +370,41 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
     expect(routeContent).not.toHaveBeenCalled()
   })
 
+  it('releases the schedule and queue when startup fails, and can start again', async () => {
+    const knex = getTestDatabase()
+    await seedAll(knex)
+    await knex('configs').where({ id: 1 }).update({ _isReady: false })
+
+    useArrHandlers()
+
+    app = await build()
+    await app.ready()
+
+    vi.spyOn(app.plexWatchlist, 'generateAndSaveRssFeeds').mockRejectedValue(
+      new Error('rss unavailable'),
+    )
+    const checkFriendChanges = vi
+      .spyOn(app.plexWatchlist, 'checkFriendChanges')
+      .mockRejectedValue(new Error('plex down'))
+
+    service = new WatchlistWorkflowService(app.log, app, 50)
+
+    await expect(service.startWorkflow()).rejects.toThrow('plex down')
+
+    expect(service.getStatus()).toBe('stopped')
+    expect(app.scheduler.getActiveJobs()).not.toContain(RECONCILIATION_JOB_NAME)
+
+    checkFriendChanges.mockResolvedValue({
+      added: [],
+      removed: [],
+      userMap: new Map(),
+    })
+
+    await expect(service.startWorkflow()).resolves.toBe(true)
+    expect(service.getStatus()).toBe('running')
+    expect(app.scheduler.getActiveJobs()).toContain(RECONCILIATION_JOB_NAME)
+  })
+
   it('drains queued etag changes once Sonarr recovers', async () => {
     const knex = getTestDatabase()
     await seedAll(knex)

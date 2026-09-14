@@ -174,9 +174,7 @@ export class WatchlistWorkflowService {
         )
       } else {
         this.log.debug('Starting ETag staggered polling')
-        void startStaggeredPolling(this.deps).catch((error) => {
-          this.log.error({ error }, 'Failed to start staggered ETag polling')
-        })
+        await startStaggeredPolling(this.deps)
       }
 
       this.setStatus('running')
@@ -194,10 +192,18 @@ export class WatchlistWorkflowService {
 
       return true
     } catch (error) {
+      this.log.error({ error }, 'Error in Watchlist workflow')
+      try {
+        await cleanupWorkflow(this.deps)
+      } catch (cleanupError) {
+        this.log.error(
+          { error: cleanupError },
+          'Error cleaning up after failed workflow start',
+        )
+      }
       this.setStatus('stopped')
       this.state.initialized = false
       this.state.rssMode = false
-      this.log.error({ error }, 'Error in Watchlist workflow')
       throw error
     }
   }

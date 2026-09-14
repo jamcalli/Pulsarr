@@ -44,7 +44,7 @@ describe('runPeriodicReconciliation', () => {
     expect(state.lastSuccessfulSyncTime).toBe(0)
   })
 
-  it('unschedules, reconciles, reschedules and bumps the sync time', async () => {
+  it('unschedules, reconciles, then reschedules once', async () => {
     state.status = 'running'
 
     await runPeriodicReconciliation(deps)
@@ -57,18 +57,27 @@ describe('runPeriodicReconciliation', () => {
       vi.mocked(schedulePendingReconciliation).mock.invocationCallOrder[0],
     )
     expect(schedulePendingReconciliation).toHaveBeenCalledTimes(1)
-    expect(state.lastSuccessfulSyncTime).toBeGreaterThan(0)
   })
 
-  it('reschedules and swallows the error when reconcile throws', async () => {
+  it('reschedules once and swallows the error when reconcile throws', async () => {
     state.status = 'running'
     vi.mocked(reconcile).mockRejectedValue(new Error('reconcile failed'))
 
     await expect(runPeriodicReconciliation(deps)).resolves.toBeUndefined()
 
-    // once from the inner finally, once from the outer error path
-    expect(schedulePendingReconciliation).toHaveBeenCalledTimes(2)
-    expect(state.lastSuccessfulSyncTime).toBe(0)
+    expect(schedulePendingReconciliation).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not reschedule when the workflow stopped during the run', async () => {
+    state.status = 'running'
+    vi.mocked(reconcile).mockImplementation(async () => {
+      state.status = 'stopping'
+    })
+
+    await runPeriodicReconciliation(deps)
+
+    expect(reconcile).toHaveBeenCalledTimes(1)
+    expect(schedulePendingReconciliation).not.toHaveBeenCalled()
   })
 
   it('does not throw when rescheduling itself fails', async () => {
@@ -79,6 +88,6 @@ describe('runPeriodicReconciliation', () => {
 
     await expect(runPeriodicReconciliation(deps)).resolves.toBeUndefined()
 
-    expect(schedulePendingReconciliation).toHaveBeenCalledTimes(2)
+    expect(schedulePendingReconciliation).toHaveBeenCalledTimes(1)
   })
 })
