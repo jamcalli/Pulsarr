@@ -1,11 +1,3 @@
-/**
- * Content Router Module
- *
- * Unified routing module with separate show/movie entry points sharing
- * a common workflow: get target instances → check existence → check Plex →
- * route content → send notification.
- */
-
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type {
@@ -21,13 +13,8 @@ import {
 } from '@utils/guid-handler.js'
 import type { ContentRoutingDeps } from '../types.js'
 
-/**
- * Result of content routing
- */
 export interface RouteContentResult {
-  /** Whether content was routed (added to Sonarr/Radarr) */
   routed: boolean
-  /** Reason if skipped */
   skippedReason?:
     | 'no-target'
     | 'default-skip'
@@ -38,45 +25,24 @@ export interface RouteContentResult {
     | 'no-valid-id'
 }
 
-/**
- * Parameters for routing a show
- */
 export interface RouteShowParams {
-  /** Temporary item with routing metadata */
   tempItem: TemptRssWatchlistItem
-  /** User ID requesting the content */
   userId: number
-  /** Username for notifications */
   userName: string | undefined
-  /** Sonarr item for routing */
   sonarrItem: SonarrItem
-  /** Pre-fetched existing series for bulk mode (reconciliation path) */
   existingSeries?: SonarrItem[]
-  /** Primary user for Plex existence checks */
   primaryUser: { id: number } | null
 }
 
-/**
- * Parameters for routing a movie
- */
 export interface RouteMovieParams {
-  /** Temporary item with routing metadata */
   tempItem: TemptRssWatchlistItem
-  /** User ID requesting the content */
   userId: number
-  /** Username for notifications */
   userName: string | undefined
-  /** Radarr item for routing */
   radarrItem: RadarrItem
-  /** Pre-fetched existing movies for bulk mode (reconciliation path) */
   existingMovies?: RadarrItem[]
-  /** Primary user for Plex existence checks */
   primaryUser: { id: number } | null
 }
 
-/**
- * Check if show exists in target instances using bulk data (reconciliation path)
- */
 function checkShowExistsInBulkData(
   tempItem: TemptRssWatchlistItem,
   existingSeries: SonarrItem[],
@@ -89,15 +55,11 @@ function checkShowExistsInBulkData(
       targetInstanceIds.includes(series.sonarr_instance_id),
   )
 
-  // Check if any series has a matching GUID (no need to sort since we only check existence)
   return targetInstanceSeries.some((series) =>
     hasMatchingParsedGuids(parseGuids(series.guids), tempGuids),
   )
 }
 
-/**
- * Check if movie exists in target instances using bulk data (reconciliation path)
- */
 function checkMovieExistsInBulkData(
   tempItem: TemptRssWatchlistItem,
   existingMovies: RadarrItem[],
@@ -110,17 +72,12 @@ function checkMovieExistsInBulkData(
       targetInstanceIds.includes(movie.radarr_instance_id),
   )
 
-  // Check if any movie has a matching GUID (no need to sort since we only check existence)
   return targetInstanceMovies.some((movie) =>
     hasMatchingParsedGuids(parseGuids(movie.guids), tempGuids),
   )
 }
 
-/**
- * Check if show exists in target instances using API lookup (ETag path)
- *
- * Note: Caller (routeShow) must validate TVDB ID before calling this function.
- */
+// Caller must validate the TVDB ID before calling this
 async function checkShowExistsViaApi(
   tempItem: TemptRssWatchlistItem,
   targetInstanceIds: number[],
@@ -149,11 +106,7 @@ async function checkShowExistsViaApi(
   return { exists: false, anyChecked }
 }
 
-/**
- * Check if movie exists in target instances using API lookup (ETag path)
- *
- * Note: Caller (routeMovie) must validate TMDB ID before calling this function.
- */
+// Caller must validate the TMDB ID before calling this
 async function checkMovieExistsViaApi(
   tempItem: TemptRssWatchlistItem,
   targetInstanceIds: number[],
@@ -182,9 +135,6 @@ async function checkMovieExistsViaApi(
   return { exists: false, anyChecked }
 }
 
-/**
- * Send notification for routed content
- */
 async function sendRoutingNotification(
   tempItem: TemptRssWatchlistItem,
   userId: number,
@@ -220,20 +170,6 @@ async function sendRoutingNotification(
   }
 }
 
-/**
- * Route a show to Sonarr.
- *
- * Handles:
- * - Getting target instances from router rules
- * - Checking existence in target instances (bulk or API)
- * - Checking Plex existence if configured
- * - Routing to Sonarr
- * - Sending notifications
- *
- * @param params - Routing parameters
- * @param deps - Service dependencies
- * @returns Result indicating whether content was routed
- */
 export async function routeShow(
   params: RouteShowParams,
   deps: ContentRoutingDeps,
@@ -247,7 +183,6 @@ export async function routeShow(
     primaryUser,
   } = params
 
-  // Defensive check: Sonarr requires TVDB ID
   const tvdbId = extractTvdbId(parseGuids(tempItem.guids))
   if (tvdbId <= 0) {
     deps.logger.warn(
@@ -257,7 +192,6 @@ export async function routeShow(
     return { routed: false, skippedReason: 'no-valid-id' }
   }
 
-  // Get target instances based on routing rules
   const context: RoutingContext = {
     userId,
     userName,
@@ -270,8 +204,6 @@ export async function routeShow(
     await deps.contentRouter.getTargetInstances(sonarrItem, context)
 
   if (targetInstanceIds.length === 0) {
-    // Deliberate skip (skip toggle or exclude rule) - use debug level to
-    // avoid log spam during reconciliation; warn only when unexplained
     if (skipReason) {
       deps.logger.debug(
         `Show ${tempItem.title} not routed (${skipReason}), skipping`,
@@ -284,9 +216,7 @@ export async function routeShow(
     return { routed: false, skippedReason: 'no-target' }
   }
 
-  // Check existence in target instances
   if (existingSeries) {
-    // Bulk sync path - use debug level to avoid log spam during reconciliation
     const existsInTargetInstance = checkShowExistsInBulkData(
       tempItem,
       existingSeries,
@@ -299,7 +229,6 @@ export async function routeShow(
       return { routed: false, skippedReason: 'exists-in-target' }
     }
   } else {
-    // Real-time detection path (ETag/RSS) - use info level for visibility
     const { exists, anyChecked } = await checkShowExistsViaApi(
       tempItem,
       targetInstanceIds,
@@ -322,7 +251,6 @@ export async function routeShow(
     }
   }
 
-  // Check Plex existence if configured
   if (deps.config.skipIfExistsOnPlex) {
     const isPrimaryUser = primaryUser ? userId === primaryUser.id : false
 
@@ -341,7 +269,6 @@ export async function routeShow(
     }
   }
 
-  // Route content
   const { routedInstances, routingDetails } =
     await deps.contentRouter.routeContent(sonarrItem, tempItem.key, {
       userId,
@@ -349,7 +276,6 @@ export async function routeShow(
       syncing: false,
     })
 
-  // Send notification if routed
   if (routedInstances.length > 0 && userName) {
     await sendRoutingNotification(
       tempItem,
@@ -364,20 +290,6 @@ export async function routeShow(
   return { routed: routedInstances.length > 0 }
 }
 
-/**
- * Route a movie to Radarr.
- *
- * Handles:
- * - Getting target instances from router rules
- * - Checking existence in target instances (bulk or API)
- * - Checking Plex existence if configured
- * - Routing to Radarr
- * - Sending notifications
- *
- * @param params - Routing parameters
- * @param deps - Service dependencies
- * @returns Result indicating whether content was routed
- */
 export async function routeMovie(
   params: RouteMovieParams,
   deps: ContentRoutingDeps,
@@ -391,7 +303,6 @@ export async function routeMovie(
     primaryUser,
   } = params
 
-  // Defensive check: Radarr requires TMDB ID
   const tmdbId = extractTmdbId(parseGuids(tempItem.guids))
   if (tmdbId <= 0) {
     deps.logger.warn(
@@ -401,7 +312,6 @@ export async function routeMovie(
     return { routed: false, skippedReason: 'no-valid-id' }
   }
 
-  // Get target instances based on routing rules
   const context: RoutingContext = {
     userId,
     userName,
@@ -414,8 +324,6 @@ export async function routeMovie(
     await deps.contentRouter.getTargetInstances(radarrItem, context)
 
   if (targetInstanceIds.length === 0) {
-    // Deliberate skip (skip toggle or exclude rule) - use debug level to
-    // avoid log spam during reconciliation; warn only when unexplained
     if (skipReason) {
       deps.logger.debug(
         `Movie ${tempItem.title} not routed (${skipReason}), skipping`,
@@ -428,9 +336,7 @@ export async function routeMovie(
     return { routed: false, skippedReason: 'no-target' }
   }
 
-  // Check existence in target instances
   if (existingMovies) {
-    // Bulk sync path - use debug level to avoid log spam during reconciliation
     const existsInTargetInstance = checkMovieExistsInBulkData(
       tempItem,
       existingMovies,
@@ -443,7 +349,6 @@ export async function routeMovie(
       return { routed: false, skippedReason: 'exists-in-target' }
     }
   } else {
-    // Real-time detection path (ETag/RSS) - use info level for visibility
     const { exists, anyChecked } = await checkMovieExistsViaApi(
       tempItem,
       targetInstanceIds,
@@ -466,7 +371,6 @@ export async function routeMovie(
     }
   }
 
-  // Check Plex existence if configured
   if (deps.config.skipIfExistsOnPlex) {
     const isPrimaryUser = primaryUser ? userId === primaryUser.id : false
 
@@ -485,7 +389,6 @@ export async function routeMovie(
     }
   }
 
-  // Route content
   const { routedInstances, routingDetails } =
     await deps.contentRouter.routeContent(radarrItem, tempItem.key, {
       userId,
@@ -493,7 +396,6 @@ export async function routeMovie(
       syncing: false,
     })
 
-  // Send notification if routed
   if (routedInstances.length > 0 && userName) {
     await sendRoutingNotification(
       tempItem,

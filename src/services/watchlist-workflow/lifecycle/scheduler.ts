@@ -1,31 +1,13 @@
-/**
- * Scheduler Module
- *
- * Handles periodic reconciliation scheduling operations.
- */
-
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export const RECONCILIATION_JOB_NAME = 'periodic-watchlist-reconciliation'
 
-/**
- * Dependencies for scheduler operations
- */
 export interface SchedulerDeps {
   logger: FastifyBaseLogger
   fastify: FastifyInstance
 }
 
-/**
- * Schedule the next periodic reconciliation.
- *
- * With RSS/ETag handling real-time additions, this periodic sync primarily handles:
- * - Removal detection (comparing DB vs fetched watchlist)
- * - Label cleanup for items no longer on watchlists
- * - Catch-all failsafe for edge cases missed by incremental detection
- *
- * @param deps - Service dependencies
- */
+// RSS and ETag cover additions; removal detection and label cleanup only happen on this periodic sync
 export async function schedulePendingReconciliation(
   deps: SchedulerDeps,
 ): Promise<void> {
@@ -56,16 +38,11 @@ export async function schedulePendingReconciliation(
   }
 }
 
-/**
- * Cancel any pending periodic reconciliation job.
- *
- * @param deps - Service dependencies
- */
 export async function unschedulePendingReconciliation(
   deps: SchedulerDeps,
 ): Promise<void> {
   try {
-    // Simply disable the job - scheduler handles existence check internally
+    // The scheduler checks job existence internally, so no guard is needed here
     await deps.fastify.scheduler.updateJobSchedule(
       RECONCILIATION_JOB_NAME,
       null,
@@ -81,15 +58,10 @@ export async function unschedulePendingReconciliation(
       },
       'Error unscheduling pending reconciliation',
     )
-    // Don't throw here - this is called during sync start and shouldn't block sync
+    // Called during sync start, so a scheduler failure must not block the sync
   }
 }
 
-/**
- * Clean up any existing manual sync job from previous runs.
- *
- * @param deps - Service dependencies
- */
 export async function cleanupExistingManualSync(
   deps: SchedulerDeps,
 ): Promise<void> {
@@ -120,27 +92,11 @@ export async function cleanupExistingManualSync(
   }
 }
 
-/**
- * Setup periodic reconciliation job.
- *
- * Creates the scheduled job with the provided tick handler.
- * The tick handler is responsible for:
- * - Checking if workflow is running
- * - Unscheduling to prevent concurrent execution
- * - Pausing change detection
- * - Running reconciliation
- * - Resuming change detection
- * - Rescheduling the next run
- *
- * @param onTick - Callback to execute on each scheduled tick
- * @param deps - Service dependencies
- */
 export async function setupPeriodicReconciliation(
   onTick: (jobName: string) => Promise<void>,
   deps: SchedulerDeps,
 ): Promise<void> {
   try {
-    // Create the periodic job with the provided tick handler
     await deps.fastify.scheduler.scheduleJob(RECONCILIATION_JOB_NAME, onTick)
 
     deps.logger.info(

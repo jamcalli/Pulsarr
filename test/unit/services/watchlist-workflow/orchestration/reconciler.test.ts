@@ -1,13 +1,17 @@
+import type { User } from '@root/types/config.types.js'
 import type {
   EtagPollResult,
   FriendChangesResult,
   UserMapEntry,
 } from '@root/types/plex.types.js'
-import type { EtagPoller } from '@services/plex-watchlist/etag/etag-poller.js'
-import { WorkflowState } from '@services/watchlist-workflow/state.js'
+import type { WorkflowState } from '@services/watchlist-workflow/state.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createMockLogger } from '../../../../mocks/logger.js'
+import { createMockUser } from '../../../../mocks/user.js'
+import {
+  createWorkflowDeps,
+  type WorkflowDepsOverrides,
+} from '../../../../mocks/watchlist-workflow-deps.js'
 
 const etagPollerMock = vi.hoisted(() => {
   const methods = {
@@ -80,7 +84,7 @@ import { syncWatchlistItems } from '@services/watchlist-workflow/orchestration/s
 import { checkInstanceHealth } from '@services/watchlist-workflow/routing/health-checker.js'
 import { routeNewItemsForUser } from '@services/watchlist-workflow/routing/item-router.js'
 
-const PRIMARY_USER = { id: 1, name: 'primary' }
+const PRIMARY_USER = createMockUser(1, 'primary')
 
 function friendChanges(
   overrides: Partial<FriendChangesResult> = {},
@@ -103,41 +107,38 @@ function etagResult(overrides: Partial<EtagPollResult> = {}): EtagPollResult {
   }
 }
 
-function createDeps() {
-  const state = new WorkflowState()
-  state.lastSuccessfulSyncTime = 0
-  state.deferredRoutingQueue = { enqueue: vi.fn() } as unknown as NonNullable<
-    WorkflowState['deferredRoutingQueue']
-  >
-  const enqueue = vi.mocked(state.deferredRoutingQueue.enqueue)
-  const scheduleDebouncedStatusSync = vi
-    .spyOn(state, 'scheduleDebouncedStatusSync')
-    .mockImplementation(() => {})
-  const updatePlexUuidCache = vi.spyOn(state, 'updatePlexUuidCache')
-
-  const parts = {
+function createDeps(stateOverrides: WorkflowDepsOverrides['state'] = {}) {
+  const enqueue = vi.fn()
+  const services = {
     db: {
       getPrimaryUser: vi.fn(
-        async (): Promise<{ id: number; name: string } | null> => PRIMARY_USER,
+        async (): Promise<User | undefined> => PRIMARY_USER,
       ),
     },
     plexService: {
       checkFriendChanges: vi.fn(async () => friendChanges()),
     },
-    enqueue,
-    scheduleDebouncedStatusSync,
-    updatePlexUuidCache,
   }
 
-  const deps = {
-    ...parts,
-    state,
-    logger: createMockLogger(),
+  const deps = createWorkflowDeps({
+    ...services,
     config: { skipIfExistsOnPlex: false },
-    fastify: { plexServerService: {} },
-    sonarrManager: {},
-    radarrManager: {},
-  } as unknown as WorkflowDeps
+    state: {
+      lastSuccessfulSyncTime: 0,
+      deferredRoutingQueue: { enqueue },
+      ...stateOverrides,
+    },
+  })
+  const state = deps.state
+
+  const parts = {
+    ...services,
+    enqueue,
+    scheduleDebouncedStatusSync: vi
+      .spyOn(state, 'scheduleDebouncedStatusSync')
+      .mockImplementation(() => {}),
+    updatePlexUuidCache: vi.spyOn(state, 'updatePlexUuidCache'),
+  }
 
   return { deps, parts, state }
 }
@@ -201,7 +202,7 @@ describe('reconcile', () => {
   })
 
   it('returns early when there is no primary user', async () => {
-    parts.db.getPrimaryUser.mockResolvedValue(null)
+    parts.db.getPrimaryUser.mockResolvedValue(undefined)
 
     await reconcile({ mode: 'full' }, deps)
 
@@ -221,12 +222,12 @@ describe('reconcile', () => {
   })
 
   it('reuses an existing etag poller', async () => {
-    state.etagPoller = etagPollerMock.methods as unknown as EtagPoller
+    const existing = createDeps({ etagPoller: etagPollerMock.methods })
 
-    await reconcile({ mode: 'full' }, deps)
+    await reconcile({ mode: 'full' }, existing.deps)
 
     expect(etagPollerMock.EtagPollerCtor).not.toHaveBeenCalled()
-    expect(state.etagPoller).toBe(etagPollerMock.methods)
+    expect(existing.state.etagPoller).toBe(etagPollerMock.methods)
     expect(etagPollerMock.methods.establishAllBaselines).toHaveBeenCalledTimes(
       1,
     )

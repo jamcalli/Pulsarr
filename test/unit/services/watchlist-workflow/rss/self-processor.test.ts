@@ -1,8 +1,9 @@
+import type { User } from '@root/types/config.types.js'
 import type { CachedRssItem, Item } from '@root/types/plex.types.js'
-import { WorkflowState } from '@services/watchlist-workflow/state.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createMockLogger } from '../../../../mocks/logger.js'
+import { createMockUser } from '../../../../mocks/user.js'
+import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
 vi.mock('@services/plex-watchlist/index.js', () => ({
   processItemsForUser: vi.fn(async () => ({
@@ -48,7 +49,7 @@ import { routeEnrichedItemsForUser } from '@services/watchlist-workflow/routing/
 import { enrichRssItems } from '@services/watchlist-workflow/rss/enricher.js'
 import { processRssSelfItems } from '@services/watchlist-workflow/rss/self-processor.js'
 
-const PRIMARY_USER = { id: 1, name: 'primary' }
+const PRIMARY_USER = createMockUser(1, 'primary')
 
 function rssItem(stableKey: string): CachedRssItem {
   return {
@@ -86,32 +87,26 @@ function processedResult(processed: Item[], linked: Item[]) {
 }
 
 function createDeps() {
-  const state = new WorkflowState()
-  state.deferredRoutingQueue = { enqueue: vi.fn() } as unknown as NonNullable<
-    WorkflowState['deferredRoutingQueue']
-  >
-
-  const parts = {
+  const services = {
     db: {
       getPrimaryUser: vi.fn(
-        async (): Promise<{ id: number; name: string } | null> => PRIMARY_USER,
+        async (): Promise<User | undefined> => PRIMARY_USER,
       ),
     },
-    scheduleDebouncedStatusSync: vi
-      .spyOn(state, 'scheduleDebouncedStatusSync')
-      .mockImplementation(() => {}),
   }
 
-  const deps = {
-    ...parts,
-    state,
-    logger: createMockLogger(),
+  const deps = createWorkflowDeps({
+    ...services,
     config: { skipIfExistsOnPlex: false },
-    fastify: { plexServerService: {} },
-    sonarrManager: {},
-    radarrManager: {},
-    itemProcessorDeps: {},
-  } as unknown as WorkflowDeps
+    state: { deferredRoutingQueue: { enqueue: vi.fn() } },
+  })
+
+  const parts = {
+    ...services,
+    scheduleDebouncedStatusSync: vi
+      .spyOn(deps.state, 'scheduleDebouncedStatusSync')
+      .mockImplementation(() => {}),
+  }
 
   return { deps, parts }
 }
@@ -137,7 +132,7 @@ describe('processRssSelfItems', () => {
   })
 
   it('stops when there is no primary user', async () => {
-    parts.db.getPrimaryUser.mockResolvedValue(null)
+    parts.db.getPrimaryUser.mockResolvedValue(undefined)
 
     await processRssSelfItems([rssItem('a')], deps)
 

@@ -1,10 +1,3 @@
-/**
- * Watchlist Workflow Types
- *
- * Shared types and dependency interfaces for watchlist workflow modules.
- * Each handler function receives a deps object matching one of these interfaces.
- */
-
 import type { Config } from '@root/types/config.types.js'
 import type { Item } from '@root/types/plex.types.js'
 import type { ContentRouterService } from '@services/content-router.service.js'
@@ -21,9 +14,6 @@ import type { StatusService } from '@services/watchlist-status.service.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { WorkflowState } from './state.js'
 
-/**
- * Every deps object in this module is this shape or a Pick of it
- */
 export interface WorkflowDeps {
   logger: FastifyBaseLogger
   config: Config
@@ -55,18 +45,12 @@ export type ContentRoutingDeps = Pick<
   | 'notifications'
 >
 
-/**
- * Parameters for unified content routing
- */
 export interface ContentRoutingParams {
   item: Item
   userId: number
   userName: string | undefined
 }
 
-/**
- * Health check deps - for the repeated health-check-and-queue pattern
- */
 export interface HealthCheckDeps {
   sonarrManager: SonarrManagerService
   radarrManager: RadarrManagerService
@@ -76,9 +60,6 @@ export interface HealthCheckDeps {
   logger: FastifyBaseLogger
 }
 
-/**
- * Result of instance health check
- */
 export interface HealthCheckResult {
   available: boolean
   sonarrUnavailable: number[]

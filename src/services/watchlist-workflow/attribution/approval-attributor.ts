@@ -1,35 +1,18 @@
-/**
- * Approval Attributor Module
- *
- * Updates auto-approval records that were created with System user (ID: 0)
- * to attribute them to the actual users who added the content to their watchlists.
- */
-
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 import type { WorkflowDeps } from '../types.js'
 
-/**
- * Optional prefetched data to avoid extra DB queries during reconciliation
- */
 export interface AttributionPrefetchedData {
-  /** Pre-fetched show watchlist items */
   shows?: TokenWatchlistItem[]
-  /** Pre-fetched movie watchlist items */
   movies?: TokenWatchlistItem[]
-  /** Pre-fetched user map by ID */
   userById?: Map<
     number,
     NonNullable<Awaited<ReturnType<DatabaseService['getUser']>>>
   >
 }
 
-/**
- * Normalize a user ID value to a number.
- * Handles various formats that might come from the database.
- */
 function normalizeUserId(val: unknown): number | null {
   const id =
     typeof val === 'number'
@@ -40,9 +23,6 @@ function normalizeUserId(val: unknown): number | null {
   return Number.isFinite(id) && id > 0 ? id : null
 }
 
-/**
- * Build indexes for fast and unambiguous lookups of watchlist items.
- */
 function buildWatchlistIndexes(allWatchlistItems: TokenWatchlistItem[]): {
   keyIndex: Map<string, TokenWatchlistItem[]>
   guidIndex: Map<string, TokenWatchlistItem[]>
@@ -66,10 +46,6 @@ function buildWatchlistIndexes(allWatchlistItems: TokenWatchlistItem[]): {
   return { keyIndex, guidIndex }
 }
 
-/**
- * Find a matching watchlist item for an approval record.
- * Returns the item if unambiguous, null otherwise.
- */
 function findMatchingWatchlistItem(
   approvalRecord: {
     id: number
@@ -81,7 +57,6 @@ function findMatchingWatchlistItem(
   guidIndex: Map<string, TokenWatchlistItem[]>,
   logger: FastifyBaseLogger,
 ): { item: TokenWatchlistItem | null; ambiguous: boolean } {
-  // Prefer exact content key match
   if (approvalRecord.contentKey) {
     const keyCandidates = keyIndex.get(approvalRecord.contentKey)
     if (keyCandidates && keyCandidates.length === 1) {
@@ -107,7 +82,6 @@ function findMatchingWatchlistItem(
     }
   }
 
-  // Fallback to GUID-based candidates if no key match
   const recordGuids = approvalRecord.contentGuids
   const candidateSet = new Set<TokenWatchlistItem>()
   for (const g of recordGuids) {
@@ -143,13 +117,6 @@ function findMatchingWatchlistItem(
   return { item: null, ambiguous: false }
 }
 
-/**
- * Updates auto-approval records that were created with System user (ID: 0)
- * to attribute them to the actual users who added the content to their watchlists.
- *
- * @param deps - Service dependencies
- * @param prefetched - Optional prefetched data to avoid extra DB queries
- */
 export async function updateAutoApprovalUserAttribution(
   deps: Pick<WorkflowDeps, 'logger' | 'db' | 'fastify'>,
   prefetched?: AttributionPrefetchedData,
@@ -157,7 +124,6 @@ export async function updateAutoApprovalUserAttribution(
   try {
     deps.logger.debug('Updating auto-approval user attribution')
 
-    // Get all auto-approval records created by system user (ID: 0)
     const systemApprovalRecords = await deps.db.getApprovalRequestsByCriteria({
       userId: 0,
       status: 'auto_approved',
@@ -172,14 +138,12 @@ export async function updateAutoApprovalUserAttribution(
       `Found ${systemApprovalRecords.length} system auto-approval records to process`,
     )
 
-    // Get all watchlist items for matching (reuse prefetched lists if provided)
     const watchlistShows =
       prefetched?.shows ?? (await deps.db.getAllShowWatchlistItems())
     const watchlistMovies =
       prefetched?.movies ?? (await deps.db.getAllMovieWatchlistItems())
     const allWatchlistItems = [...watchlistShows, ...watchlistMovies]
 
-    // Build indexes for fast and unambiguous lookups
     const { keyIndex, guidIndex } = buildWatchlistIndexes(allWatchlistItems)
 
     let updatedRecords = 0
@@ -201,7 +165,6 @@ export async function updateAutoApprovalUserAttribution(
         }
 
         if (matchingWatchlistItem) {
-          // Normalize user ID
           const numericUserId = normalizeUserId(matchingWatchlistItem.user_id)
 
           if (!numericUserId) {
@@ -211,7 +174,6 @@ export async function updateAutoApprovalUserAttribution(
             continue
           }
 
-          // Get user details (from cache if available, otherwise query DB)
           const user =
             prefetched?.userById?.get(numericUserId) ??
             (await deps.db.getUser(numericUserId))
@@ -222,7 +184,6 @@ export async function updateAutoApprovalUserAttribution(
             continue
           }
 
-          // Update the approval record with the real user
           const updatedRequest = await deps.db.updateApprovalRequestAttribution(
             approvalRecord.id,
             numericUserId,
@@ -234,7 +195,6 @@ export async function updateAutoApprovalUserAttribution(
           )
           updatedRecords++
 
-          // Emit SSE event for the updated attribution
           if (deps.fastify.progress?.hasActiveConnections() && updatedRequest) {
             const metadata = {
               action: 'updated' as const,
@@ -287,6 +247,6 @@ export async function updateAutoApprovalUserAttribution(
       { error },
       'Failed to update auto-approval user attribution',
     )
-    // Don't throw - this is a non-critical operation
+    // Attribution is cosmetic, so a failure here must not fail the caller's sync
   }
 }

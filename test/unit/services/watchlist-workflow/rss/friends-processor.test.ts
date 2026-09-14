@@ -1,8 +1,9 @@
+import type { User } from '@root/types/config.types.js'
 import type { CachedRssItem, Item } from '@root/types/plex.types.js'
-import { WorkflowState } from '@services/watchlist-workflow/state.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createMockLogger } from '../../../../mocks/logger.js'
+import { createMockUser } from '../../../../mocks/user.js'
+import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
 vi.mock('@services/plex-watchlist/index.js', () => ({
   processItemsForUser: vi.fn(async () => ({
@@ -49,8 +50,8 @@ import { enrichRssItems } from '@services/watchlist-workflow/rss/enricher.js'
 import { processRssFriendsItems } from '@services/watchlist-workflow/rss/friends-processor.js'
 
 const USERS = new Map([
-  ['uuid-a', { id: 10, name: 'friend-a' }],
-  ['uuid-b', { id: 11, name: 'friend-b' }],
+  ['uuid-a', createMockUser(10, 'friend-a')],
+  ['uuid-b', createMockUser(11, 'friend-b')],
 ])
 
 function rssItem(stableKey: string, author: string): CachedRssItem {
@@ -89,20 +90,24 @@ function processedResult(processed: Item[], linked: Item[]) {
 }
 
 function createDeps() {
-  const state = new WorkflowState()
-  state.deferredRoutingQueue = { enqueue: vi.fn() } as unknown as NonNullable<
-    WorkflowState['deferredRoutingQueue']
-  >
-
-  const parts = {
+  const services = {
     db: {
       getUser: vi.fn(
-        async (
-          userId: number,
-        ): Promise<{ id: number; name: string } | undefined> =>
+        async (userId: number): Promise<User | undefined> =>
           [...USERS.values()].find((user) => user.id === userId),
       ),
     },
+  }
+
+  const deps = createWorkflowDeps({
+    ...services,
+    config: { skipIfExistsOnPlex: false },
+    state: { deferredRoutingQueue: { enqueue: vi.fn() } },
+  })
+  const state = deps.state
+
+  const parts = {
+    ...services,
     lookupUserByUuid: vi
       .spyOn(state, 'lookupUserByUuid')
       .mockImplementation(async (uuid: string) => USERS.get(uuid)?.id ?? null),
@@ -110,17 +115,6 @@ function createDeps() {
       .spyOn(state, 'scheduleDebouncedStatusSync')
       .mockImplementation(() => {}),
   }
-
-  const deps = {
-    ...parts,
-    state,
-    logger: createMockLogger(),
-    config: { skipIfExistsOnPlex: false },
-    fastify: { plexServerService: {} },
-    sonarrManager: {},
-    radarrManager: {},
-    itemProcessorDeps: {},
-  } as unknown as WorkflowDeps
 
   return { deps, parts }
 }

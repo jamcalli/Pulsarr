@@ -1,10 +1,13 @@
+import type { User } from '@root/types/config.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
+import type { RadarrItem } from '@root/types/radarr.types.js'
+import type { SonarrItem } from '@root/types/sonarr.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import type { SyncResult } from '@services/watchlist-workflow/orchestration/sync-engine.js'
-import { WorkflowState } from '@services/watchlist-workflow/state.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createMockLogger } from '../../../../mocks/logger.js'
+import { createMockUser } from '../../../../mocks/user.js'
+import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
 vi.mock('@services/watchlist-workflow/routing/content-router.js', () => ({
   routeMovie: vi.fn(async () => ({ routed: true })),
@@ -35,8 +38,8 @@ import {
 } from '@services/watchlist-workflow/routing/content-router.js'
 
 const ROUTING_SKIP_REASONS = ['default-skip', 'excluded'] as const
-const PRIMARY_USER = { id: 1, name: 'primary', can_sync: true }
-const SECOND_USER = { id: 2, name: 'second', can_sync: true }
+const PRIMARY_USER = createMockUser(1, 'primary')
+const SECOND_USER = createMockUser(2, 'second')
 
 function showItem(
   overrides: Partial<TokenWatchlistItem> = {},
@@ -90,7 +93,9 @@ function createDeps() {
   const parts = {
     db: {
       getAllUsers: vi.fn(async () => [PRIMARY_USER, SECOND_USER]),
-      getPrimaryUser: vi.fn(async () => PRIMARY_USER),
+      getPrimaryUser: vi.fn(
+        async (): Promise<User | undefined> => PRIMARY_USER,
+      ),
       getAllShowWatchlistItems: vi.fn(
         async (): Promise<TokenWatchlistItem[]> => [],
       ),
@@ -104,18 +109,14 @@ function createDeps() {
         available: [1],
         unavailable: [] as number[],
       })),
-      fetchAllSeries: vi.fn(
-        async (): Promise<Array<{ title: string; guids: string[] }>> => [],
-      ),
+      fetchAllSeries: vi.fn(async (): Promise<SonarrItem[]> => []),
     },
     radarrManager: {
       checkInstancesHealth: vi.fn(async () => ({
         available: [1],
         unavailable: [] as number[],
       })),
-      fetchAllMovies: vi.fn(
-        async (): Promise<Array<{ title: string; guids: string[] }>> => [],
-      ),
+      fetchAllMovies: vi.fn(async (): Promise<RadarrItem[]> => []),
     },
     plexServerService: {
       clearPlexResourcesCache: vi.fn(),
@@ -133,15 +134,7 @@ function createDeps() {
 
   const config = { skipIfExistsOnPlex: false }
 
-  const deps = {
-    ...parts,
-    state: new WorkflowState(),
-    logger: createMockLogger(),
-    config,
-    fastify: { plexServerService: parts.plexServerService },
-    contentRouter: {},
-    plexService: {},
-  } as unknown as WorkflowDeps
+  const deps = createWorkflowDeps({ ...parts, config })
 
   return { deps, parts, config }
 }
@@ -226,8 +219,12 @@ describe('syncWatchlistItems', () => {
   it('routes one show and one movie and runs the post-sync tasks', async () => {
     const shows = [showItem()]
     const movies = [movieItem()]
-    const existingSeries = [{ title: 'Show One', guids: ['tvdb:111'] }]
-    const existingMovies = [{ title: 'Movie One', guids: ['tmdb:222'] }]
+    const existingSeries: SonarrItem[] = [
+      { title: 'Show One', type: 'show', guids: ['tvdb:111'] },
+    ]
+    const existingMovies: RadarrItem[] = [
+      { title: 'Movie One', type: 'movie', guids: ['tmdb:222'] },
+    ]
     parts.db.getAllShowWatchlistItems.mockResolvedValue(shows)
     parts.db.getAllMovieWatchlistItems.mockResolvedValue(movies)
     parts.sonarrManager.fetchAllSeries.mockResolvedValue(existingSeries)
@@ -370,7 +367,7 @@ describe('syncWatchlistItems', () => {
 
   it('counts sonarr series that match no watchlist item as unmatched', async () => {
     parts.sonarrManager.fetchAllSeries.mockResolvedValue([
-      { title: 'Orphan', guids: ['tvdb:999'] },
+      { title: 'Orphan', type: 'show', guids: ['tvdb:999'] },
     ])
     parts.db.getAllShowWatchlistItems.mockResolvedValue([showItem()])
 

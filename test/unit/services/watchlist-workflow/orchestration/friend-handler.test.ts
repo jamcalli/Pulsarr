@@ -5,10 +5,9 @@ import type {
   TokenWatchlistItem,
   UserMapEntry,
 } from '@root/types/plex.types.js'
-import { WorkflowState } from '@services/watchlist-workflow/state.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createMockLogger } from '../../../../mocks/logger.js'
+import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
 vi.mock('@services/plex-watchlist/index.js', () => ({
   getOthersWatchlist: vi.fn(async () => new Map()),
@@ -111,34 +110,24 @@ function stubFriendWatchlist() {
 }
 
 function createDeps() {
-  const state = new WorkflowState()
-  state.etagPoller = {
+  const etagPoller = {
     establishBaseline: vi.fn(async () => {}),
     invalidateUser: vi.fn(),
-  } as unknown as NonNullable<WorkflowState['etagPoller']>
-  state.deferredRoutingQueue = { enqueue: vi.fn() } as unknown as NonNullable<
-    WorkflowState['deferredRoutingQueue']
-  >
+  }
+
+  const deps = createWorkflowDeps({
+    config: { skipIfExistsOnPlex: false, plexTokens: ['token'] },
+    state: { etagPoller, deferredRoutingQueue: { enqueue: vi.fn() } },
+  })
+  const state = deps.state
 
   const parts = {
-    etagPoller: state.etagPoller,
+    etagPoller,
     scheduleDebouncedStatusSync: vi
       .spyOn(state, 'scheduleDebouncedStatusSync')
       .mockImplementation(() => {}),
     updatePlexUuidCache: vi.spyOn(state, 'updatePlexUuidCache'),
   }
-
-  const deps = {
-    state,
-    logger: createMockLogger(),
-    config: { skipIfExistsOnPlex: false, plexTokens: ['token'] },
-    db: {},
-    fastify: { plexServerService: {} },
-    plexService: {},
-    sonarrManager: {},
-    radarrManager: {},
-    itemProcessorDeps: {},
-  } as unknown as WorkflowDeps
 
   return { deps, parts, state }
 }

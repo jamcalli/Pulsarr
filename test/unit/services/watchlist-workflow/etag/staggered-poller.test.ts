@@ -1,13 +1,15 @@
+import type { User } from '@root/types/config.types.js'
 import type {
   EtagPollResult,
   FriendChangesResult,
   Item,
   UserMapEntry,
 } from '@root/types/plex.types.js'
-import { WorkflowState } from '@services/watchlist-workflow/state.js'
+import type { WorkflowState } from '@services/watchlist-workflow/state.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createMockLogger } from '../../../../mocks/logger.js'
+import { createMockUser } from '../../../../mocks/user.js'
+import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
 vi.mock('@services/plex-watchlist/index.js', () => ({
   processItemsForUser: vi.fn(async () => ({
@@ -61,7 +63,7 @@ import {
 } from '@services/watchlist-workflow/routing/health-checker.js'
 import { routeEnrichedItemsForUser } from '@services/watchlist-workflow/routing/item-router.js'
 
-const USER = { id: 9, name: 'poll-user' }
+const USER = createMockUser(9, 'poll-user')
 
 function pollResult(overrides: Partial<EtagPollResult> = {}): EtagPollResult {
   return {
@@ -108,42 +110,37 @@ function friendChanges(
 }
 
 function createDeps() {
-  const state = new WorkflowState()
-  state.etagPoller = {
+  const etagPoller = {
     establishBaseline: vi.fn(async () => {}),
     invalidateUser: vi.fn(),
-  } as unknown as NonNullable<WorkflowState['etagPoller']>
-  state.deferredRoutingQueue = { enqueue: vi.fn() } as unknown as NonNullable<
-    WorkflowState['deferredRoutingQueue']
-  >
+  }
+  const enqueue = vi.fn()
 
-  const parts = {
+  const services = {
     db: {
-      getUser: vi.fn(
-        async (): Promise<{ id: number; name: string } | undefined> => USER,
-      ),
+      getUser: vi.fn(async (): Promise<User | undefined> => USER),
     },
     plexService: {
       checkFriendChanges: vi.fn(async () => friendChanges()),
     },
-    etagPoller: state.etagPoller,
-    enqueue: vi.mocked(state.deferredRoutingQueue.enqueue),
+  }
+
+  const deps = createWorkflowDeps({
+    ...services,
+    config: { skipIfExistsOnPlex: false },
+    state: { etagPoller, deferredRoutingQueue: { enqueue } },
+  })
+  const state = deps.state
+
+  const parts = {
+    ...services,
+    etagPoller,
+    enqueue,
     scheduleDebouncedStatusSync: vi
       .spyOn(state, 'scheduleDebouncedStatusSync')
       .mockImplementation(() => {}),
     updatePlexUuidCache: vi.spyOn(state, 'updatePlexUuidCache'),
   }
-
-  const deps = {
-    ...parts,
-    state,
-    logger: createMockLogger(),
-    config: { skipIfExistsOnPlex: false },
-    fastify: { plexServerService: {} },
-    sonarrManager: {},
-    radarrManager: {},
-    itemProcessorDeps: {},
-  } as unknown as WorkflowDeps
 
   return { deps, parts, state }
 }

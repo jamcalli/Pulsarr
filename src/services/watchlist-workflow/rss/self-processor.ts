@@ -1,10 +1,3 @@
-/**
- * RSS Self Processor
- *
- * Processes RSS items from the primary user's watchlist.
- * Enriches items, saves to DB, and routes to Sonarr/Radarr.
- */
-
 import type {
   CachedRssItem,
   Item,
@@ -20,20 +13,6 @@ import { routeEnrichedItemsForUser } from '../routing/item-router.js'
 import type { WorkflowDeps } from '../types.js'
 import { enrichRssItems } from './enricher.js'
 
-/**
- * Process new items from self (primary user) RSS feed.
- *
- * Flow:
- * 1. Get primary user
- * 2. Check instance health (for later decision)
- * 3. Enrich items via Plex GUID lookup
- * 4. Process through unified processor (saves to DB)
- * 5. If instances available, route immediately
- * 6. If instances unavailable, queue for deferred routing
- *
- * @param items - New RSS items to process
- * @param deps - Service dependencies
- */
 export async function processRssSelfItems(
   items: CachedRssItem[],
   deps: WorkflowDeps,
@@ -44,7 +23,6 @@ export async function processRssSelfItems(
     return
   }
 
-  // Check instance health before processing
   const health = await checkInstanceHealth({
     sonarrManager: deps.sonarrManager,
     radarrManager: deps.radarrManager,
@@ -54,7 +32,6 @@ export async function processRssSelfItems(
     logger: deps.logger,
   })
 
-  // Enrich items first (needed for both online and offline paths)
   const enrichedItems = await enrichRssItems(items, primaryUser.id, {
     logger: deps.logger,
     config: deps.config,
@@ -64,7 +41,6 @@ export async function processRssSelfItems(
     return
   }
 
-  // Convert to TokenWatchlistItems for unified processor
   const tokenItems: TokenWatchlistItem[] = enrichedItems.map((item) => ({
     id: item.key,
     title: item.title,
@@ -80,7 +56,7 @@ export async function processRssSelfItems(
     updated_at: item.updated_at,
   }))
 
-  // ALWAYS process through DB first - ensures items are persisted regardless of instance health
+  // Items are persisted before the routing decision so an unhealthy instance cannot lose them
   const { processedItems, linkedItems } = await processItemsForUser(
     {
       user: {
@@ -99,7 +75,6 @@ export async function processRssSelfItems(
     return
   }
 
-  // If instances unavailable, queue for deferred routing (items already in DB)
   if (!health.available) {
     deps.logger.warn(
       {
@@ -128,7 +103,6 @@ export async function processRssSelfItems(
     return
   }
 
-  // Route items immediately
   await routeEnrichedItemsForUser(primaryUser.id, allItems, deps)
   await updateAutoApprovalUserAttribution(deps)
   deps.state.scheduleDebouncedStatusSync(deps)

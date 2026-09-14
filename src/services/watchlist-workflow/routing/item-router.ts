@@ -1,10 +1,3 @@
-/**
- * Item Router Module
- *
- * Provides item-level routing functions that prepare items and delegate
- * to the content router. Handles user sync checks and item validation.
- */
-
 import type {
   EtagPollResult,
   Item,
@@ -24,33 +17,15 @@ import {
 import type { ContentRoutingDeps, WorkflowDeps } from '../types.js'
 import { routeMovie, routeShow } from './content-router.js'
 
-/**
- * Parameters for routing a single item
- */
 export interface RouteSingleItemParams {
-  /** The item to route */
   item: Item
-  /** User ID requesting the content */
   userId: number
-  /** Username for notifications */
   userName: string
-  /** Primary user for Plex existence checks */
   primaryUser: { id: number } | null
-  /** Pre-fetched existing series for bulk mode */
   existingShows?: SonarrItem[]
-  /** Pre-fetched existing movies for bulk mode */
   existingMovies?: RadarrItem[]
 }
 
-/**
- * Route a single item to Sonarr/Radarr.
- *
- * Validates the item, prepares it for routing, and delegates to routeShow/routeMovie.
- *
- * @param params - Item and user information
- * @param deps - Service dependencies
- * @returns true if content was routed, false otherwise
- */
 export async function routeSingleItem(
   params: RouteSingleItemParams,
   deps: ContentRoutingDeps,
@@ -159,16 +134,6 @@ export async function routeSingleItem(
   return false
 }
 
-/**
- * Route pre-enriched, already-saved items for a user.
- *
- * Used when items are synced via processAndSaveNewItems (new friend flow).
- * Does NOT enrich or save - items must already be in DB.
- *
- * @param userId - The user ID to route items for
- * @param items - Pre-enriched items (already have GUIDs/genres)
- * @param deps - Service dependencies
- */
 export async function routeEnrichedItemsForUser(
   userId: number,
   items: Item[],
@@ -192,7 +157,7 @@ export async function routeEnrichedItemsForUser(
 
   const primaryUser = await deps.db.getPrimaryUser()
 
-  // Exclusion gate (per-user or global SYSTEM_USER_ID veto), same as full sync
+  // SYSTEM_USER_ID in the exclusion set is a global veto, not a per-user one
   const exclusionMap = await deps.db.getExclusionMap()
 
   deps.logger.debug(
@@ -229,17 +194,6 @@ export async function routeEnrichedItemsForUser(
   }
 }
 
-/**
- * Route new items detected via ETag polling.
- *
- * Processes ETag poll results by:
- * 1. Converting items to TokenWatchlistItem format
- * 2. Processing through unified flow (enrich/save)
- * 3. Routing both new and linked items
- *
- * @param change - The ETag poll result with new items
- * @param deps - Service dependencies
- */
 export async function routeNewItemsForUser(
   change: EtagPollResult,
   deps: WorkflowDeps,
@@ -248,14 +202,12 @@ export async function routeNewItemsForUser(
 
   if (newItems.length === 0) return
 
-  // Get user info for routing context
   const user = await deps.db.getUser(userId)
   if (!user) {
     deps.logger.warn({ userId }, 'User not found for routing new items')
     return
   }
 
-  // Check if user has sync enabled
   if (!user.can_sync) {
     deps.logger.debug(
       { userId, username: user.name, itemCount: newItems.length },
@@ -269,7 +221,6 @@ export async function routeNewItemsForUser(
     'Processing new items for user',
   )
 
-  // Convert EtagPollItems to TokenWatchlistItems for unified processing
   const tokenItems: TokenWatchlistItem[] = newItems.map((etagItem) => ({
     id: etagItem.id,
     title: etagItem.title,
@@ -281,13 +232,8 @@ export async function routeNewItemsForUser(
     updated_at: new Date().toISOString(),
   }))
 
-  // Use isPrimary from EtagPollResult - already known at the source
   const isSelfWatchlist = change.isPrimary
 
-  // Use unified processing flow
-  // This efficiently categorizes items:
-  // - Brand new: enrich → save → return for routing
-  // - Existing: link to user → return for routing
   const { brandNewCount, linkedCount, processedItems, linkedItems } =
     await processItemsForUser(
       {
@@ -302,8 +248,6 @@ export async function routeNewItemsForUser(
       deps.itemProcessorDeps,
     )
 
-  // Route ALL items - both brand new AND linked
-  // Linked items need routing because this user may have different router rules
   const allItemsToRoute = [...processedItems, ...linkedItems]
 
   if (allItemsToRoute.length > 0) {

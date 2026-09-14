@@ -1,10 +1,3 @@
-/**
- * RSS Friends Processor
- *
- * Processes RSS items from friends' watchlists.
- * Groups items by author UUID, looks up user IDs, then routes.
- */
-
 import type {
   CachedRssItem,
   Item,
@@ -20,28 +13,10 @@ import { routeEnrichedItemsForUser } from '../routing/item-router.js'
 import type { WorkflowDeps } from '../types.js'
 import { enrichRssItems } from './enricher.js'
 
-/**
- * Process new items from friends RSS feed.
- * Groups items by author UUID, looks up user IDs, then routes.
- *
- * Flow:
- * 1. Group items by author UUID
- * 2. Check instance health (for later decision)
- * 3. For each author:
- *    a. Look up user ID via UUID
- *    b. Enrich items via Plex GUID lookup
- *    c. Process through unified processor (saves to DB)
- *    d. Route or queue based on health
- * 4. Run post-routing tasks
- *
- * @param items - New RSS items from friends feed
- * @param deps - Service dependencies
- */
 export async function processRssFriendsItems(
   items: CachedRssItem[],
   deps: WorkflowDeps,
 ): Promise<void> {
-  // Group items by author UUID
   const itemsByAuthor = new Map<string, CachedRssItem[]>()
   const itemsWithoutAuthor: CachedRssItem[] = []
 
@@ -62,7 +37,6 @@ export async function processRssFriendsItems(
     )
   }
 
-  // Check instance health before processing
   const health = await checkInstanceHealth({
     sonarrManager: deps.sonarrManager,
     radarrManager: deps.radarrManager,
@@ -72,7 +46,6 @@ export async function processRssFriendsItems(
     logger: deps.logger,
   })
 
-  // Process each author's items
   for (const [authorUuid, authorItems] of itemsByAuthor) {
     const userId = await deps.state.lookupUserByUuid(authorUuid, deps)
     if (!userId) {
@@ -83,14 +56,12 @@ export async function processRssFriendsItems(
       continue
     }
 
-    // Get user info for unified processor (needed for both online and offline paths)
     const user = await deps.db.getUser(userId)
     if (!user) {
       deps.logger.warn({ userId, authorUuid }, 'User not found for author UUID')
       continue
     }
 
-    // Enrich items
     const enrichedItems = await enrichRssItems(authorItems, userId, {
       logger: deps.logger,
       config: deps.config,
@@ -100,7 +71,6 @@ export async function processRssFriendsItems(
       continue
     }
 
-    // Convert to TokenWatchlistItems for unified processor
     const tokenItems: TokenWatchlistItem[] = enrichedItems.map((item) => ({
       id: item.key,
       title: item.title,
@@ -116,7 +86,7 @@ export async function processRssFriendsItems(
       updated_at: item.updated_at,
     }))
 
-    // ALWAYS process through DB first - ensures items are persisted regardless of instance health
+    // Items are persisted before the routing decision so an unhealthy instance cannot lose them
     const { processedItems, linkedItems } = await processItemsForUser(
       {
         user: {
@@ -135,7 +105,6 @@ export async function processRssFriendsItems(
       continue
     }
 
-    // If instances unavailable, queue for deferred routing (items already in DB)
     if (!health.available) {
       deps.logger.warn(
         {
@@ -165,11 +134,9 @@ export async function processRssFriendsItems(
       continue
     }
 
-    // Route items immediately
     await routeEnrichedItemsForUser(userId, allItems, deps)
   }
 
-  // Post-routing tasks
   await updateAutoApprovalUserAttribution(deps)
   deps.state.scheduleDebouncedStatusSync(deps)
 }
