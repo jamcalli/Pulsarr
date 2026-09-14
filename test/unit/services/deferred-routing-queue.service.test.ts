@@ -79,6 +79,23 @@ describe('DeferredRoutingQueue drain', () => {
     expect(queue.getQueueSize()).toBe(0)
   })
 
+  it('routes the last entry but skips onDrained when the run ends mid-drain', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const controller = new AbortController()
+    const { queue, callbacks } = createQueue(controller.signal)
+    callbacks.routeEtagChange.mockImplementation(async () => {
+      controller.abort()
+    })
+
+    queue.enqueue({ type: 'etag', change: CHANGE })
+    queue.start()
+
+    await vi.advanceTimersByTimeAsync(HEALTH_CHECK_INTERVAL_MS)
+
+    expect(callbacks.routeEtagChange).toHaveBeenCalledTimes(1)
+    expect(callbacks.onDrained).not.toHaveBeenCalled()
+  })
+
   it('routes nothing once the run has ended', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     const controller = new AbortController()

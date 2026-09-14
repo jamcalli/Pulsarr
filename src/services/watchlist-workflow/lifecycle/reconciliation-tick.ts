@@ -14,6 +14,7 @@ export async function runPeriodicReconciliation(
   }
 
   deps.logger.info('Periodic reconciliation triggered - performing full sync')
+  const { signal } = deps.state
 
   // Unschedule first so a slow run cannot overlap the next tick
   await unschedulePendingReconciliation(deps)
@@ -31,8 +32,8 @@ export async function runPeriodicReconciliation(
       'Error in periodic watchlist reconciliation',
     )
   } finally {
-    // stop() during the run has already removed the schedule; do not recreate it
-    if (deps.state.status === 'running') {
+    // stop() or a restart during the run owns the schedule now; do not recreate it
+    if (!signal.aborted) {
       try {
         await schedulePendingReconciliation(deps)
       } catch (scheduleError) {

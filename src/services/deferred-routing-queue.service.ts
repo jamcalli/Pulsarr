@@ -215,7 +215,9 @@ export class DeferredRoutingQueue {
       // If queue is fully drained, notify caller
       if (this.queue.length === 0) {
         this.log.info('Deferred queue fully drained')
-        this.callbacks.onDrained()
+        if (!this.signal.aborted) {
+          this.callbacks.onDrained()
+        }
       } else {
         this.log.info(
           { remaining: this.queue.length },

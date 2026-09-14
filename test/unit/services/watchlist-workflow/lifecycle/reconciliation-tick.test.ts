@@ -72,11 +72,25 @@ describe('runPeriodicReconciliation', () => {
     state.status = 'running'
     vi.mocked(reconcile).mockImplementation(async () => {
       state.status = 'stopping'
+      state.endRun()
     })
 
     await runPeriodicReconciliation(deps)
 
     expect(reconcile).toHaveBeenCalledTimes(1)
+    expect(schedulePendingReconciliation).not.toHaveBeenCalled()
+  })
+
+  it('does not reschedule into a run that replaced it', async () => {
+    state.status = 'running'
+    vi.mocked(reconcile).mockImplementation(async () => {
+      state.endRun()
+      state.beginRun()
+      state.status = 'running'
+    })
+
+    await runPeriodicReconciliation(deps)
+
     expect(schedulePendingReconciliation).not.toHaveBeenCalled()
   })
 
