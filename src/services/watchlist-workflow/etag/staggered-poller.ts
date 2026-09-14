@@ -1,34 +1,23 @@
-/**
- * Staggered Poller Module
- *
- * Handles staggered polling for non-RSS mode.
- * Polls users sequentially with even distribution across 5-minute cycles.
- */
-
 import type {
   EtagPollResult,
   EtagUserInfo,
   Item,
   TokenWatchlistItem,
-  UserMapEntry,
 } from '@root/types/plex.types.js'
 import { processItemsForUser } from '@services/plex-watchlist/index.js'
+import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
+import { syncSingleFriend } from '../orchestration/friend-handler.js'
 import {
   checkInstanceHealth,
   queueForDeferredRouting,
-} from '../routing/index.js'
-import type { StaggeredPollerDeps } from '../types.js'
+} from '../routing/health-checker.js'
+import { routeEnrichedItemsForUser } from '../routing/item-router.js'
+import type { WorkflowDeps } from '../types.js'
 import { buildEtagUserInfoFromMap } from './helpers.js'
 
-/**
- * Handle a staggered poll result when a user has new items.
- *
- * @param result - The poll result from EtagPoller
- * @param deps - Service dependencies
- */
 export async function handleStaggeredPollResult(
   result: EtagPollResult,
-  deps: StaggeredPollerDeps,
+  deps: WorkflowDeps,
 ): Promise<void> {
   if (!result.changed || result.newItems.length === 0) return
 
@@ -50,17 +39,15 @@ export async function handleStaggeredPollResult(
     'Staggered poll detected new items',
   )
 
-  // Check instance health
   const health = await checkInstanceHealth({
     sonarrManager: deps.sonarrManager,
     radarrManager: deps.radarrManager,
     plexServerService: deps.fastify.plexServerService,
     skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
-    deferredRoutingQueue: deps.deferredRoutingQueue,
+    deferredRoutingQueue: deps.state.deferredRoutingQueue,
     logger: deps.logger,
   })
 
-  // Convert EtagPollItems to TokenWatchlistItems
   const now = new Date().toISOString()
   const tokenItems: TokenWatchlistItem[] = result.newItems.map((item) => ({
     id: item.id,
@@ -73,7 +60,7 @@ export async function handleStaggeredPollResult(
     updated_at: now,
   }))
 
-  if (!health.available && deps.deferredRoutingQueue) {
+  if (!health.available && deps.state.deferredRoutingQueue) {
     deps.logger.warn(
       {
         userId: result.userId,
@@ -85,7 +72,6 @@ export async function handleStaggeredPollResult(
       'Instances unavailable, queuing items for deferred routing',
     )
 
-    // Process through DB first (ensures items are persisted), then queue for routing
     const { processedItems, linkedItems } = await processItemsForUser(
       {
         user: {
@@ -99,11 +85,12 @@ export async function handleStaggeredPollResult(
       deps.itemProcessorDeps,
     )
 
-    // Queue BOTH processed and linked items - linked items also need routing
-    // because this user may have different router rules than the original owner
+    if (deps.state.signal.aborted) return
+
+    // Linked items need routing too: this user may have different router rules than the owner
     const allItemsToQueue: Item[] = [...processedItems, ...linkedItems]
     if (allItemsToQueue.length > 0) {
-      deps.deferredRoutingQueue.enqueue({
+      deps.state.deferredRoutingQueue.enqueue({
         type: 'items',
         userId: result.userId,
         items: allItemsToQueue,
@@ -112,7 +99,6 @@ export async function handleStaggeredPollResult(
     return
   }
 
-  // Process and route items
   const { processedItems, linkedItems } = await processItemsForUser(
     {
       user: {
@@ -126,44 +112,29 @@ export async function handleStaggeredPollResult(
     deps.itemProcessorDeps,
   )
 
+  if (deps.state.signal.aborted) return
+
   const allItemsToRoute: Item[] = [...processedItems, ...linkedItems]
   if (allItemsToRoute.length > 0) {
-    await deps.routeEnrichedItemsForUser(result.userId, allItemsToRoute)
-    await deps.updateAutoApprovalUserAttribution()
-    deps.scheduleDebouncedStatusSync()
+    await routeEnrichedItemsForUser(result.userId, allItemsToRoute, deps)
+    await updateAutoApprovalUserAttribution(deps)
+    deps.state.scheduleDebouncedStatusSync(deps)
   }
 }
 
-/**
- * Refresh friends list at the start of each staggered polling cycle.
- *
- * This method:
- * 1. Detects new Plex friends → creates DB user → syncs watchlist → establishes baseline
- * 2. Detects removed friends → invalidates ETag cache → removes from UUID cache
- * 3. Returns updated friends list for the polling rotation
- *
- * New friends are immediately synced and added to the current cycle's rotation.
- *
- * @param plexUuidCache - Current UUID cache (for removal cleanup)
- * @param deps - Service dependencies
- * @returns Updated friends list and updated cache
- */
 export async function refreshFriendsForStaggeredPolling(
-  plexUuidCache: Map<string, UserMapEntry>,
-  deps: StaggeredPollerDeps,
-): Promise<{
-  friends: EtagUserInfo[]
-  updatedCache: Map<string, UserMapEntry>
-}> {
-  let currentCache = plexUuidCache
-
+  deps: WorkflowDeps,
+): Promise<EtagUserInfo[]> {
   try {
     const friendChanges = await deps.plexService.checkFriendChanges()
-    deps.updatePlexUuidCache(friendChanges.userMap)
-    currentCache = new Map(friendChanges.userMap)
 
-    // Check instance health once before processing new friends
-    // Health status won't change during a single refresh cycle
+    if (deps.state.signal.aborted) {
+      return buildEtagUserInfoFromMap(deps.state.plexUuidCache)
+    }
+
+    deps.state.updatePlexUuidCache(friendChanges.userMap, deps.logger)
+
+    // Health is checked once per cycle: it will not change mid-refresh
     const health =
       friendChanges.added.length > 0
         ? await checkInstanceHealth({
@@ -171,12 +142,11 @@ export async function refreshFriendsForStaggeredPolling(
             radarrManager: deps.radarrManager,
             plexServerService: deps.fastify.plexServerService,
             skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
-            deferredRoutingQueue: deps.deferredRoutingQueue,
+            deferredRoutingQueue: deps.state.deferredRoutingQueue,
             logger: deps.logger,
           })
         : null
 
-    // Handle new friends - sync immediately and establish baseline
     for (const newFriend of friendChanges.added) {
       deps.logger.info(
         { username: newFriend.username, userId: newFriend.userId },
@@ -184,15 +154,20 @@ export async function refreshFriendsForStaggeredPolling(
       )
 
       try {
-        // Sync new friend's watchlist
-        const { brandNewItems, linkedItems } = await deps.syncSingleFriend({
-          userId: newFriend.userId,
-          username: newFriend.username,
-          isPrimary: false,
-          watchlistId: newFriend.watchlistId,
-        })
+        const { brandNewItems, linkedItems } = await syncSingleFriend(
+          {
+            userId: newFriend.userId,
+            username: newFriend.username,
+            isPrimary: false,
+            watchlistId: newFriend.watchlistId,
+          },
+          deps,
+        )
 
-        // Route ALL items - both brand new AND linked (matches ETag mode behavior)
+        if (deps.state.signal.aborted) {
+          return buildEtagUserInfoFromMap(deps.state.plexUuidCache)
+        }
+
         const allItemsToRoute: Item[] = [...brandNewItems, ...linkedItems]
 
         if (allItemsToRoute.length > 0) {
@@ -213,7 +188,7 @@ export async function refreshFriendsForStaggeredPolling(
               {
                 sonarrManager: deps.sonarrManager,
                 radarrManager: deps.radarrManager,
-                deferredRoutingQueue: deps.deferredRoutingQueue,
+                deferredRoutingQueue: deps.state.deferredRoutingQueue,
                 logger: deps.logger,
               },
               {
@@ -234,19 +209,19 @@ export async function refreshFriendsForStaggeredPolling(
               'Routing new friend watchlist items (brand new + linked)',
             )
 
-            await deps.routeEnrichedItemsForUser(
+            await routeEnrichedItemsForUser(
               newFriend.userId,
               allItemsToRoute,
+              deps,
             )
 
-            await deps.updateAutoApprovalUserAttribution()
-            deps.scheduleDebouncedStatusSync()
+            await updateAutoApprovalUserAttribution(deps)
+            deps.state.scheduleDebouncedStatusSync(deps)
           }
         }
 
-        // Establish baseline for new friend
-        if (deps.etagPoller) {
-          await deps.etagPoller.establishBaseline({
+        if (deps.state.etagPoller) {
+          await deps.state.etagPoller.establishBaseline({
             userId: newFriend.userId,
             username: newFriend.username,
             isPrimary: false,
@@ -261,54 +236,60 @@ export async function refreshFriendsForStaggeredPolling(
       }
     }
 
-    // Handle removed friends - clean up cache
     for (const removed of friendChanges.removed) {
       deps.logger.info(
         { userId: removed.userId, username: removed.username },
         'Friend removed, cleaning up from staggered polling',
       )
 
-      if (deps.etagPoller) {
-        deps.etagPoller.invalidateUser(removed.userId, removed.watchlistId)
+      if (deps.state.etagPoller) {
+        deps.state.etagPoller.invalidateUser(
+          removed.userId,
+          removed.watchlistId,
+        )
       }
 
-      // Remove from UUID cache
-      for (const [uuid, entry] of currentCache.entries()) {
+      for (const [uuid, entry] of deps.state.plexUuidCache.entries()) {
         if (entry.userId === removed.userId) {
-          currentCache.delete(uuid)
+          deps.state.plexUuidCache.delete(uuid)
           break
         }
       }
     }
 
-    // Return updated friends list derived from the in-memory cache
-    const friends = buildEtagUserInfoFromMap(currentCache)
-    return { friends, updatedCache: currentCache }
+    return buildEtagUserInfoFromMap(deps.state.plexUuidCache)
   } catch (error) {
     deps.logger.error(
       { error },
       'Failed to refresh friends for staggered polling',
     )
-    // On error, fall back to whatever we have in the current cache
-    const friends = buildEtagUserInfoFromMap(currentCache)
-    return { friends, updatedCache: currentCache }
+    return buildEtagUserInfoFromMap(deps.state.plexUuidCache)
   }
 }
 
-/**
- * Get friends list formatted for EtagPoller.
- *
- * Note: Uses checkFriendChanges() which also ensures users exist in DB.
- * This is intentional - after initial reconciliation, existing users are
- * returned with no side effects. New users are created if Plex friends
- * changed between calls, which is the desired behavior.
- *
- * @param deps - Service dependencies
- * @returns Array of EtagUserInfo for friends
- */
+// checkFriendChanges also creates DB users for Plex friends added since the last call
 export async function getEtagFriendsList(
-  deps: Pick<StaggeredPollerDeps, 'plexService'>,
+  deps: Pick<WorkflowDeps, 'plexService'>,
 ): Promise<EtagUserInfo[]> {
   const friendChanges = await deps.plexService.checkFriendChanges()
   return buildEtagUserInfoFromMap(friendChanges.userMap)
+}
+
+export async function startStaggeredPolling(deps: WorkflowDeps): Promise<void> {
+  const etagPoller = deps.state.ensureEtagPoller(deps.config, deps.logger)
+
+  const primaryUser = await deps.db.getPrimaryUser()
+  if (!primaryUser) {
+    deps.logger.warn('No primary user found, cannot start staggered polling')
+    return
+  }
+
+  const friends = await getEtagFriendsList(deps)
+
+  etagPoller.startStaggeredPolling(
+    primaryUser.id,
+    friends,
+    (result) => handleStaggeredPollResult(result, deps),
+    () => refreshFriendsForStaggeredPolling(deps),
+  )
 }

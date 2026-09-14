@@ -1,66 +1,22 @@
-/**
- * Reconciler Module
- *
- * Main reconciliation entry point that coordinates the hybrid RSS + ETag sync.
- * Handles both full sync and lightweight ETag-based change detection.
- */
-
-import type {
-  EtagUserInfo,
-  Item,
-  UserMapEntry,
-} from '@root/types/plex.types.js'
-import { EtagPoller } from '@services/plex-watchlist/etag/etag-poller.js'
-import { buildEtagUserInfoFromMap } from '../etag/index.js'
-import { checkInstanceHealth } from '../routing/index.js'
-import type { ReconcilerDeps } from '../types.js'
+import type { EtagUserInfo } from '@root/types/plex.types.js'
+import type { EtagPoller } from '@services/plex-watchlist/etag/etag-poller.js'
+import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
+import { buildEtagUserInfoFromMap } from '../etag/helpers.js'
+import { fetchWatchlists } from '../fetching/watchlist-fetcher.js'
+import { checkInstanceHealth } from '../routing/health-checker.js'
+import { routeNewItemsForUser } from '../routing/item-router.js'
+import type { WorkflowState } from '../state.js'
+import type { WorkflowDeps } from '../types.js'
 import {
   handleNewFriendEtagMode,
   handleNewFriendFullMode,
   handleRemovedFriend,
 } from './friend-handler.js'
+import { syncWatchlistItems } from './sync-engine.js'
 
-/**
- * Reconciliation state managed by the service
- */
-export interface ReconcileState {
-  isReconciling: boolean
-  lastSuccessfulSyncTime: number
-}
-
-/**
- * Dependencies for reconciliation that include state management
- */
-export interface ReconcileDeps extends ReconcilerDeps {
-  /** Function to get current ETag poller (may be lazily initialized) */
-  getEtagPoller: () => EtagPoller | null
-  /** Function to set ETag poller after lazy initialization */
-  setEtagPoller: (poller: EtagPoller) => void
-  /** Callback for syncing a single friend's watchlist */
-  syncSingleFriend: (userInfo: {
-    userId: number
-    username: string
-    isPrimary: boolean
-    watchlistId?: string
-  }) => Promise<{
-    brandNewItems: Item[]
-    linkedItems: Item[]
-  }>
-  /** Callback for updating UUID cache */
-  updatePlexUuidCache: (userMap: Map<string, UserMapEntry>) => void
-}
-
-/**
- * Wait for any in-progress reconciliation to complete.
- *
- * @param state - Current reconciliation state
- * @param logger - Logger instance
- * @param maxWaitMs - Maximum time to wait (default 5 minutes)
- * @returns true if we should proceed, false if timed out
- */
 async function waitForInProgressReconciliation(
-  state: ReconcileState,
-  logger: ReconcileDeps['logger'],
+  state: WorkflowState,
+  logger: WorkflowDeps['logger'],
   maxWaitMs = 5 * 60 * 1000,
 ): Promise<boolean> {
   const startWait = Date.now()
@@ -79,15 +35,9 @@ async function waitForInProgressReconciliation(
   return true
 }
 
-/**
- * Handle ETag mode changes - route new items for users with changes.
- *
- * @param changes - ETag poll results with new items
- * @param deps - Service dependencies
- */
 async function handleEtagModeChanges(
   changes: Awaited<ReturnType<EtagPoller['checkAllEtags']>>,
-  deps: ReconcileDeps,
+  deps: WorkflowDeps,
 ): Promise<void> {
   const changesWithNewItems = changes.filter(
     (c) => c.changed && c.newItems.length > 0,
@@ -97,13 +47,12 @@ async function handleEtagModeChanges(
     return
   }
 
-  // Check instance health before routing - queue if ANY instance is unavailable
   const health = await checkInstanceHealth({
     sonarrManager: deps.sonarrManager,
     radarrManager: deps.radarrManager,
     plexServerService: deps.fastify.plexServerService,
     skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
-    deferredRoutingQueue: deps.deferredRoutingQueue,
+    deferredRoutingQueue: deps.state.deferredRoutingQueue,
     logger: deps.logger,
   })
 
@@ -118,10 +67,9 @@ async function handleEtagModeChanges(
       'Some instances unavailable, queuing changes for deferred routing',
     )
 
-    // Queue each change for retry when instances recover
-    if (deps.deferredRoutingQueue) {
+    if (deps.state.deferredRoutingQueue) {
       for (const change of changesWithNewItems) {
-        deps.deferredRoutingQueue.enqueue({ type: 'etag', change })
+        deps.state.deferredRoutingQueue.enqueue({ type: 'etag', change })
       }
     }
     return
@@ -136,43 +84,21 @@ async function handleEtagModeChanges(
   )
 
   for (const change of changesWithNewItems) {
-    await deps.routeNewItemsForUser(change)
+    await routeNewItemsForUser(change, deps)
   }
 
-  // Post-routing tasks
-  await deps.updateAutoApprovalUserAttribution()
-  deps.scheduleDebouncedStatusSync()
+  await updateAutoApprovalUserAttribution(deps)
+  deps.state.scheduleDebouncedStatusSync(deps)
 }
 
-/**
- * Unified reconciliation entry point for hybrid RSS + ETag sync.
- *
- * @param options.mode - 'full' for complete sync, 'etag' for lightweight ETag-based check
- * @param deps - Service dependencies
- * @param state - Current reconciliation state
- * @param setState - Function to update state
- *
- * Full mode (startup, manual refresh):
- * - Syncs all users, all items
- * - Establishes ETag baselines
- *
- * ETag mode (5-min interval, RSS trigger):
- * - Checks friend changes (add/remove)
- * - Checks ETags for all users
- * - Only syncs users with changes (instant routing of new items)
- */
 export async function reconcile(
   options: { mode: 'full' | 'etag' },
-  deps: ReconcileDeps,
-  state: ReconcileState,
-  setState: (updates: Partial<ReconcileState>) => void,
+  deps: WorkflowDeps,
 ): Promise<void> {
-  // Full sync takes priority - wait for any in-progress reconciliation
   if (options.mode === 'full') {
-    await waitForInProgressReconciliation(state, deps.logger)
+    await waitForInProgressReconciliation(deps.state, deps.logger)
   } else {
-    // ETag mode skips if anything is running
-    if (state.isReconciling) {
+    if (deps.state.isReconciling) {
       deps.logger.debug(
         { requestedMode: options.mode },
         'Reconciliation already in progress, skipping',
@@ -181,91 +107,48 @@ export async function reconcile(
     }
   }
 
-  setState({ isReconciling: true })
+  deps.state.isReconciling = true
   const startTime = Date.now()
 
   try {
-    // Ensure ETag poller is initialized
-    let etagPoller = deps.getEtagPoller()
-    if (!etagPoller) {
-      etagPoller = new EtagPoller(deps.config, deps.logger)
-      deps.setEtagPoller(etagPoller)
-    }
+    const etagPoller = deps.state.ensureEtagPoller(deps.config, deps.logger)
 
-    // Get primary user for ETag operations
     const primaryUser = await deps.db.getPrimaryUser()
     if (!primaryUser) {
       deps.logger.warn('No primary user found, cannot reconcile')
       return
     }
 
-    // Check friend changes ALWAYS (regardless of mode)
     const friendChanges = await deps.plexService.checkFriendChanges()
 
-    // Update UUID cache with current friends mapping
-    deps.updatePlexUuidCache(friendChanges.userMap)
+    deps.state.updatePlexUuidCache(friendChanges.userMap, deps.logger)
 
-    // Handle newly added friends immediately
     for (const newFriend of friendChanges.added) {
       if (options.mode === 'etag') {
-        // Build FriendHandlerDeps by combining ReconcilerDeps with additional required fields
-        await handleNewFriendEtagMode(newFriend, {
-          // From ReconcilerDeps (via deps)
-          logger: deps.logger,
-          config: deps.config,
-          db: deps.db,
-          fastify: deps.fastify,
-          plexService: deps.plexService,
-          sonarrManager: deps.sonarrManager,
-          radarrManager: deps.radarrManager,
-          etagPoller,
-          deferredRoutingQueue: deps.deferredRoutingQueue,
-          syncWatchlistItems: deps.syncWatchlistItems,
-          fetchWatchlists: deps.fetchWatchlists,
-          routeNewItemsForUser: deps.routeNewItemsForUser,
-          routeEnrichedItemsForUser: deps.routeEnrichedItemsForUser,
-          updateAutoApprovalUserAttribution:
-            deps.updateAutoApprovalUserAttribution,
-          scheduleDebouncedStatusSync: deps.scheduleDebouncedStatusSync,
-          // Additional FriendHandlerDeps fields
-          lookupUserByUuid: async () => null, // Not needed for new friend handling
-          updatePlexUuidCache: deps.updatePlexUuidCache,
-          syncSingleFriend: deps.syncSingleFriend,
-        })
+        await handleNewFriendEtagMode(newFriend, deps)
       } else {
-        await handleNewFriendFullMode(newFriend, {
-          logger: deps.logger,
-          etagPoller,
-        })
+        await handleNewFriendFullMode(newFriend, deps)
       }
     }
 
-    // Handle removed friends - clear their watchlist cache
     for (const removedFriend of friendChanges.removed) {
-      handleRemovedFriend(removedFriend, {
-        logger: deps.logger,
-        etagPoller,
-      })
+      handleRemovedFriend(removedFriend, deps)
     }
 
-    // Build user info array for current friends
     const friends: EtagUserInfo[] = buildEtagUserInfoFromMap(
       friendChanges.userMap,
     )
 
     if (options.mode === 'full') {
-      // Full sync - existing behavior
       deps.logger.info('Starting full reconciliation')
-      await deps.fetchWatchlists()
-      await deps.syncWatchlistItems()
+      await fetchWatchlists(deps)
+      await syncWatchlistItems(deps)
 
-      // Establish ETag baselines for all users after full sync
       await etagPoller.establishAllBaselines(primaryUser.id, friends)
 
-      setState({ lastSuccessfulSyncTime: Date.now() })
+      deps.state.lastSuccessfulSyncTime = Date.now()
       deps.logger.info('Full reconciliation completed')
     } else {
-      // Lightweight check with instant routing
       deps.logger.debug('Checking for watchlist changes')
 
       const changes = await etagPoller.checkAllEtags(primaryUser.id, friends)
@@ -277,7 +160,7 @@ export async function reconcile(
 
       await handleEtagModeChanges(changes, deps)
 
-      setState({ lastSuccessfulSyncTime: Date.now() })
+      deps.state.lastSuccessfulSyncTime = Date.now()
       deps.logger.debug('Watchlist change check completed')
     }
   } finally {
@@ -285,6 +168,6 @@ export async function reconcile(
       { mode: options.mode, durationMs: Date.now() - startTime },
       'Reconciliation completed',
     )
-    setState({ isReconciling: false })
+    deps.state.isReconciling = false
   }
 }
