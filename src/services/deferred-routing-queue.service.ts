@@ -44,6 +44,7 @@ export interface DeferredRoutingQueueDeps {
   sonarrManager: SonarrManagerService
   radarrManager: RadarrManagerService
   callbacks: DeferredRoutingCallbacks
+  signal: AbortSignal
   log: FastifyBaseLogger
 }
 
@@ -62,12 +63,14 @@ export class DeferredRoutingQueue {
   private readonly sonarrManager: SonarrManagerService
   private readonly radarrManager: RadarrManagerService
   private readonly callbacks: DeferredRoutingCallbacks
+  private readonly signal: AbortSignal
   private readonly log: FastifyBaseLogger
 
   constructor(deps: DeferredRoutingQueueDeps) {
     this.sonarrManager = deps.sonarrManager
     this.radarrManager = deps.radarrManager
     this.callbacks = deps.callbacks
+    this.signal = deps.signal
     this.log = deps.log
   }
 
@@ -185,6 +188,11 @@ export class DeferredRoutingQueue {
 
       // Process all queued items through their original entry points
       for (const entry of toProcess) {
+        // a drain started before stop must not route into the next workflow run
+        if (this.signal.aborted) {
+          return
+        }
+
         try {
           switch (entry.type) {
             case 'etag':

@@ -139,6 +139,7 @@ export async function routeEnrichedItemsForUser(
   items: Item[],
   deps: ContentRoutingDeps,
 ): Promise<void> {
+  if (deps.state.signal.aborted) return
   if (items.length === 0) return
 
   const user = await deps.db.getUser(userId)
@@ -198,6 +199,8 @@ export async function routeNewItemsForUser(
   change: EtagPollResult,
   deps: WorkflowDeps,
 ): Promise<void> {
+  if (deps.state.signal.aborted) return
+
   const { userId, newItems } = change
 
   if (newItems.length === 0) return

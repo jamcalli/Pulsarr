@@ -6,6 +6,8 @@ export async function cleanupWorkflow(
 ): Promise<void> {
   const { state } = deps
 
+  state.endRun()
+
   if (state.rssCheckInterval) {
     clearInterval(state.rssCheckInterval)
     state.rssCheckInterval = null

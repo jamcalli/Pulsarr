@@ -113,6 +113,7 @@ export class WatchlistWorkflowService {
 
   async startWorkflow(): Promise<boolean> {
     try {
+      this.state.beginRun()
       this.setStatus('starting')
       this.log.debug('Starting watchlist workflow initialization')
 

@@ -405,6 +405,80 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
     expect(app.scheduler.getActiveJobs()).toContain(RECONCILIATION_JOB_NAME)
   })
 
+  it('drops an in-flight etag reconcile when the service stops mid-poll', async () => {
+    const knex = getTestDatabase()
+    await seedAll(knex)
+    await knex('configs').where({ id: 1 }).update({ _isReady: false })
+
+    useArrHandlers()
+    server.use(
+      http.get(
+        'https://discover.provider.plex.tv/library/metadata/stopped-movie',
+        () =>
+          HttpResponse.json({
+            MediaContainer: {
+              Metadata: [
+                {
+                  ratingKey: 'stopped-movie',
+                  title: 'Stopped Movie',
+                  Guid: [{ id: 'tmdb://880088' }],
+                  Genre: [{ tag: 'Action' }],
+                },
+              ],
+            },
+          }),
+      ),
+      http.get('http://test-radarr:7878/api/v3/movie/lookup', () =>
+        HttpResponse.json([]),
+      ),
+    )
+
+    app = await build()
+    await app.ready()
+
+    vi.spyOn(app.plexWatchlist, 'generateAndSaveRssFeeds').mockRejectedValue(
+      new Error('rss unavailable'),
+    )
+    vi.spyOn(app.plexWatchlist, 'checkFriendChanges').mockResolvedValue({
+      added: [],
+      removed: [],
+      userMap: new Map(),
+    })
+    const routeContent = vi
+      .spyOn(app.contentRouter, 'routeContent')
+      .mockResolvedValue({ routedInstances: [], routingDetails: [] })
+
+    service = new WatchlistWorkflowService(app.log, app, 50)
+    await service.startWorkflow()
+
+    const change: EtagPollResult = {
+      changed: true,
+      userId: 1,
+      isPrimary: true,
+      newItems: [
+        { id: 'stopped-movie', title: 'Stopped Movie', type: 'movie' },
+      ],
+    }
+    vi.spyOn(EtagPoller.prototype, 'checkAllEtags').mockImplementationOnce(
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        return [change]
+      },
+    )
+
+    const reconciling = service.reconcile({ mode: 'etag' })
+
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    await service.stop()
+    service = undefined
+
+    await reconciling
+
+    expect(routeContent).not.toHaveBeenCalled()
+    const rows = await knex('watchlist_items').where({ key: 'stopped-movie' })
+    expect(rows).toHaveLength(0)
+  })
+
   it('drains queued etag changes once Sonarr recovers', async () => {
     const knex = getTestDatabase()
     await seedAll(knex)

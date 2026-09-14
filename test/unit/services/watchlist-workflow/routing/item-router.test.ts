@@ -1,4 +1,4 @@
-import type { Item } from '@root/types/plex.types.js'
+import type { EtagPollResult, Item } from '@root/types/plex.types.js'
 import { SYSTEM_USER_ID } from '@services/database/methods/watchlist-exclusion.js'
 import type { ContentRoutingDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -14,7 +14,10 @@ import {
   routeMovie,
   routeShow,
 } from '@services/watchlist-workflow/routing/content-router.js'
-import { routeEnrichedItemsForUser } from '@services/watchlist-workflow/routing/item-router.js'
+import {
+  routeEnrichedItemsForUser,
+  routeNewItemsForUser,
+} from '@services/watchlist-workflow/routing/item-router.js'
 
 const USER_ID = 7
 const USER = createMockUser(USER_ID, 'Tester')
@@ -92,5 +95,36 @@ describe('routeEnrichedItemsForUser exclusion gate', () => {
     )
 
     expect(routeMovie).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('routing after the run has ended', () => {
+  const pollChange: EtagPollResult = {
+    changed: true,
+    userId: USER_ID,
+    isPrimary: false,
+    newItems: [{ id: 'rk-1', title: 'New Item', type: 'movie' }],
+  }
+
+  it('routeEnrichedItemsForUser touches neither the database nor routing', async () => {
+    const getUser = vi.fn(async () => USER)
+    const deps = createWorkflowDeps({ aborted: true, db: { getUser } })
+
+    await routeEnrichedItemsForUser(USER_ID, [movieItem('a', 'A')], deps)
+
+    expect(getUser).not.toHaveBeenCalled()
+    expect(routeMovie).not.toHaveBeenCalled()
+    expect(routeShow).not.toHaveBeenCalled()
+  })
+
+  it('routeNewItemsForUser touches neither the database nor routing', async () => {
+    const getUser = vi.fn(async () => USER)
+    const deps = createWorkflowDeps({ aborted: true, db: { getUser } })
+
+    await routeNewItemsForUser(pollChange, deps)
+
+    expect(getUser).not.toHaveBeenCalled()
+    expect(routeMovie).not.toHaveBeenCalled()
+    expect(routeShow).not.toHaveBeenCalled()
   })
 })

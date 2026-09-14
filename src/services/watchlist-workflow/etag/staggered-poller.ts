@@ -85,6 +85,8 @@ export async function handleStaggeredPollResult(
       deps.itemProcessorDeps,
     )
 
+    if (deps.state.signal.aborted) return
+
     // Linked items need routing too: this user may have different router rules than the owner
     const allItemsToQueue: Item[] = [...processedItems, ...linkedItems]
     if (allItemsToQueue.length > 0) {
@@ -110,6 +112,8 @@ export async function handleStaggeredPollResult(
     deps.itemProcessorDeps,
   )
 
+  if (deps.state.signal.aborted) return
+
   const allItemsToRoute: Item[] = [...processedItems, ...linkedItems]
   if (allItemsToRoute.length > 0) {
     await routeEnrichedItemsForUser(result.userId, allItemsToRoute, deps)
@@ -123,6 +127,11 @@ export async function refreshFriendsForStaggeredPolling(
 ): Promise<EtagUserInfo[]> {
   try {
     const friendChanges = await deps.plexService.checkFriendChanges()
+
+    if (deps.state.signal.aborted) {
+      return buildEtagUserInfoFromMap(deps.state.plexUuidCache)
+    }
+
     deps.state.updatePlexUuidCache(friendChanges.userMap, deps.logger)
 
     // Health is checked once per cycle: it will not change mid-refresh
@@ -154,6 +163,10 @@ export async function refreshFriendsForStaggeredPolling(
           },
           deps,
         )
+
+        if (deps.state.signal.aborted) {
+          return buildEtagUserInfoFromMap(deps.state.plexUuidCache)
+        }
 
         const allItemsToRoute: Item[] = [...brandNewItems, ...linkedItems]
 

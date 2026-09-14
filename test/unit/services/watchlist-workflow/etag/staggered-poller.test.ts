@@ -266,6 +266,19 @@ describe('handleStaggeredPollResult', () => {
     expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
     expect(parts.enqueue).not.toHaveBeenCalled()
   })
+
+  it('persists but neither routes nor queues when the run ends during processing', async () => {
+    vi.mocked(processItemsForUser).mockImplementation(async () => {
+      deps.state.endRun()
+      return processedResult([enrichedItem('processed')], [])
+    })
+
+    await handleStaggeredPollResult(pollResult(), deps)
+
+    expect(processItemsForUser).toHaveBeenCalledTimes(1)
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(parts.enqueue).not.toHaveBeenCalled()
+  })
 })
 
 describe('refreshFriendsForStaggeredPolling', () => {
@@ -428,6 +441,67 @@ describe('refreshFriendsForStaggeredPolling', () => {
     expect(parts.etagPoller.invalidateUser).toHaveBeenCalledWith(11, 'wl-11')
     expect(state.plexUuidCache.has('wl-11')).toBe(false)
     expect(friends.map((friend) => friend.userId)).toEqual([9])
+  })
+
+  it('keeps the cache and returns the current friends when the run ends during the friend check', async () => {
+    const cache = new Map<string, UserMapEntry>([
+      ['wl-9', { userId: 9, username: 'poll-user' }],
+    ])
+    state.plexUuidCache = cache
+    parts.plexService.checkFriendChanges.mockImplementation(async () => {
+      state.endRun()
+      return friendChanges({
+        userMap: new Map<string, UserMapEntry>([
+          ['wl-77', { userId: 77, username: 'late-friend' }],
+        ]),
+      })
+    })
+
+    const friends = await refreshFriendsForStaggeredPolling(deps)
+
+    expect(parts.updatePlexUuidCache).not.toHaveBeenCalled()
+    expect(state.plexUuidCache).toBe(cache)
+    expect(friends).toEqual([
+      {
+        userId: 9,
+        username: 'poll-user',
+        watchlistId: 'wl-9',
+        isPrimary: false,
+      },
+    ])
+  })
+
+  it('stops before routing when the run ends while syncing a new friend', async () => {
+    const newFriend = {
+      userId: 11,
+      username: 'new-friend',
+      watchlistId: 'wl-11',
+      isPrimary: false,
+    }
+    const userMap = new Map<string, UserMapEntry>([
+      ['wl-11', { userId: 11, username: 'new-friend' }],
+    ])
+    parts.plexService.checkFriendChanges.mockResolvedValue(
+      friendChanges({ added: [newFriend], userMap }),
+    )
+    vi.mocked(syncSingleFriend).mockImplementation(async () => {
+      state.endRun()
+      return { brandNewItems: [enrichedItem('brand-new')], linkedItems: [] }
+    })
+
+    const friends = await refreshFriendsForStaggeredPolling(deps)
+
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(queueForDeferredRouting).not.toHaveBeenCalled()
+    expect(parts.etagPoller.establishBaseline).not.toHaveBeenCalled()
+    expect(friends).toEqual([
+      {
+        userId: 11,
+        username: 'new-friend',
+        watchlistId: 'wl-11',
+        isPrimary: false,
+      },
+    ])
   })
 
   it('falls back to the supplied cache when the friend check fails', async () => {

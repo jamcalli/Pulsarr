@@ -28,6 +28,23 @@ export class WorkflowState {
   rssCheckInterval: NodeJS.Timeout | null = null
   statusSyncDebounceTimer: NodeJS.Timeout | null = null
 
+  private runController: AbortController | null = null
+
+  // a fresh state is aborted until beginRun opens a run
+  get signal(): AbortSignal {
+    return this.runController?.signal ?? AbortSignal.abort()
+  }
+
+  beginRun(): void {
+    this.runController?.abort()
+    this.runController = new AbortController()
+  }
+
+  endRun(): void {
+    this.runController?.abort()
+    this.runController = null
+  }
+
   ensureEtagPoller(config: Config, logger: FastifyBaseLogger): EtagPoller {
     if (!this.etagPoller) {
       this.etagPoller = new EtagPoller(config, logger)
@@ -54,6 +71,9 @@ export class WorkflowState {
   scheduleDebouncedStatusSync(
     deps: Pick<WorkflowDeps, 'logger' | 'statusService'>,
   ): void {
+    const { signal } = this
+    if (signal.aborted) return
+
     if (this.statusSyncDebounceTimer) {
       clearTimeout(this.statusSyncDebounceTimer)
       deps.logger.debug('Reset status sync debounce timer')
@@ -61,6 +81,7 @@ export class WorkflowState {
 
     this.statusSyncDebounceTimer = setTimeout(async () => {
       this.statusSyncDebounceTimer = null
+      if (signal.aborted) return
       try {
         deps.logger.debug('Debounced status sync triggered')
         const { shows: showUpdates, movies: movieUpdates } =

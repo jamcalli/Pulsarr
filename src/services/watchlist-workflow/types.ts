@@ -37,6 +37,7 @@ export type ContentRoutingDeps = Pick<
   | 'config'
   | 'db'
   | 'fastify'
+  | 'state'
   | 'contentRouter'
   | 'sonarrManager'
   | 'radarrManager'

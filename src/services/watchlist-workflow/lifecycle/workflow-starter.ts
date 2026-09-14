@@ -80,6 +80,7 @@ export async function initializeWorkflow(deps: WorkflowDeps): Promise<void> {
         deps.state.scheduleDebouncedStatusSync(deps)
       },
     },
+    signal: deps.state.signal,
     log: deps.logger,
   })
   deps.state.deferredRoutingQueue = deferredRoutingQueue
