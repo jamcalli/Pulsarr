@@ -5,14 +5,33 @@
  * from the AniDB anime-list-full.xml file.
  */
 
-import type { InsertAnimeId } from '@root/types/anime.types.js'
+import type { AnimeSource, InsertAnimeId } from '@root/types/anime.types.js'
 import { ANIME_LIST_URL, ANIME_SOURCES } from '@root/types/anime.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { canonicalImdbId, canonicalNumericId } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { fetchContent } from '@utils/streaming-updater.js'
 import { USER_AGENT } from '@utils/version.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger } from 'fastify'
+
+interface AnimeListEntry {
+  tvdbid?: string | number
+  tmdbid?: string | number
+  tmdbtv?: string | number
+  imdbid?: string | number
+}
+
+const ID_ATTRIBUTES: ReadonlyArray<{
+  attribute: keyof AnimeListEntry
+  source: AnimeSource
+  canonical: (raw: string) => string | undefined
+}> = [
+  { attribute: 'tvdbid', source: 'tvdb', canonical: canonicalNumericId },
+  { attribute: 'tmdbid', source: 'tmdb_movie', canonical: canonicalNumericId },
+  { attribute: 'tmdbtv', source: 'tmdb_tv', canonical: canonicalNumericId },
+  { attribute: 'imdbid', source: 'imdb', canonical: canonicalImdbId },
+]
 
 export class AnimeService {
   private readonly log: FastifyBaseLogger
@@ -155,48 +174,14 @@ export class AnimeService {
       for (const anime of animes) {
         if (!anime || typeof anime !== 'object') continue
 
-        // Extract IDs from anime element attributes
-        const tvdbId = anime.tvdbid?.toString().trim()
-        const tmdbMovieId = anime.tmdbid?.toString().trim()
-        const tmdbTvId = anime.tmdbtv?.toString().trim()
-        const imdbId = anime.imdbid?.toString().trim()
+        for (const { attribute, source, canonical } of ID_ATTRIBUTES) {
+          const raw = (anime as AnimeListEntry)[attribute]
+          if (raw === undefined) continue
 
-        // Add TVDB ID if present and numeric
-        if (tvdbId && tvdbId !== '' && !Number.isNaN(Number(tvdbId))) {
-          animeIds.push({
-            external_id: tvdbId,
-            source: 'tvdb',
-          })
-        }
-
-        // Add TMDB Movie ID if present and numeric
-        if (
-          tmdbMovieId &&
-          tmdbMovieId !== '' &&
-          !Number.isNaN(Number(tmdbMovieId))
-        ) {
-          animeIds.push({
-            external_id: tmdbMovieId,
-            source: 'tmdb_movie',
-          })
-        }
-
-        // Add TMDB TV ID if present and numeric
-        if (tmdbTvId && tmdbTvId !== '' && !Number.isNaN(Number(tmdbTvId))) {
-          animeIds.push({
-            external_id: tmdbTvId,
-            source: 'tmdb_tv',
-          })
-        }
-
-        // Add IMDb ID if present (remove 'tt' prefix if exists)
-        if (imdbId && imdbId !== '' && imdbId !== 'movie') {
-          const cleanImdbId = imdbId.replace(/^tt/, '')
-          if (cleanImdbId && !Number.isNaN(Number(cleanImdbId))) {
-            animeIds.push({
-              external_id: cleanImdbId,
-              source: 'imdb',
-            })
+          // One AniDB entry can map to several external ids, comma separated
+          for (const part of raw.toString().split(',')) {
+            const externalId = canonical(part)
+            if (externalId) animeIds.push({ external_id: externalId, source })
           }
         }
       }
