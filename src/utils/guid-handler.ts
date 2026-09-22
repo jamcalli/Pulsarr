@@ -259,21 +259,25 @@ export function extractTvdbId(guids: string[] | string | undefined): number {
   return Number.isNaN(id) ? 0 : id
 }
 
-/**
- * Extracts the numeric IMDb ID from the first GUID prefixed with "imdb:".
- *
- * Removes the "imdb:" prefix and an optional leading "tt" before parsing the numeric ID. Returns 0 if no valid IMDb GUID is found or if the extracted ID is not a number.
- *
- * @returns The numeric IMDb ID, or 0 if not found or invalid.
- */
-export function extractImdbId(guids: string[] | string | undefined): number {
-  const parsed = parseGuids(guids)
-  const imdbGuid = parsed.find((guid) => guid.startsWith('imdb:'))
-  if (!imdbGuid) return 0
+// IMDb IDs are zero-padded, so they canonicalise as strings and never as numbers
+export function canonicalImdbId(raw: string): string | undefined {
+  const digits = raw.trim().toLowerCase().replace(/^tt/, '')
+  return /^\d+$/.test(digits) ? `tt${digits}` : undefined
+}
 
-  const rawId = imdbGuid.replace('imdb:', '').replace(/^tt/i, '')
-  const id = Number.parseInt(rawId, 10)
-  return Number.isNaN(id) ? 0 : id
+// TMDB and TVDB IDs are unpadded integers, so the parsed form is the canonical string
+export function canonicalNumericId(raw: string): string | undefined {
+  const trimmed = raw.trim()
+  return /^\d+$/.test(trimmed)
+    ? String(Number.parseInt(trimmed, 10))
+    : undefined
+}
+
+export function extractImdbId(
+  guids: string[] | string | undefined,
+): string | undefined {
+  const imdbGuid = parseGuids(guids).find((guid) => guid.startsWith('imdb:'))
+  return imdbGuid ? canonicalImdbId(imdbGuid.slice('imdb:'.length)) : undefined
 }
 
 /**
