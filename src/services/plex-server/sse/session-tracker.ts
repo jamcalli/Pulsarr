@@ -1,8 +1,8 @@
 /**
  * Session Tracker
  *
- * Tracks per-session playback state from SSE playing events to detect
- * meaningful state transitions and sweep stale sessions.
+ * Fires once per (sessionKey, ratingKey) pair seen in SSE playing events and
+ * sweeps stale sessions.
  */
 
 import type {
@@ -14,7 +14,6 @@ import type { FastifyBaseLogger } from 'fastify'
 interface TrackedSession {
   sessionKey: string
   ratingKey: string
-  lastState: string
   lastEventTime: number
 }
 
@@ -27,8 +26,7 @@ export class SessionTracker {
   }
 
   /**
-   * Process a playing event and return whether it represents a meaningful
-   * state transition worth acting on (new session, state change, etc.).
+   * Return true only for a new session or a new ratingKey on a tracked session.
    */
   handlePlayingEvent(notification: PlexPlaySessionNotification): boolean {
     const { sessionKey, ratingKey, state } = notification
@@ -36,11 +34,11 @@ export class SessionTracker {
     const now = Date.now()
 
     if (!existing) {
-      // New session we haven't seen before
+      if (state === 'stopped') return false
+
       this.sessions.set(sessionKey, {
         sessionKey,
         ratingKey,
-        lastState: state,
         lastEventTime: now,
       })
       this.log.debug(
@@ -50,25 +48,22 @@ export class SessionTracker {
       return true
     }
 
-    // Update timestamp regardless
     existing.lastEventTime = now
 
-    if (existing.lastState === state) {
-      // Same state, not a meaningful transition (e.g. repeated "playing" events)
-      return false
+    if (state === 'stopped' || ratingKey === '') return false
+
+    if (existing.ratingKey === '') {
+      existing.ratingKey = ratingKey
+      return true
     }
 
-    // State changed
+    if (ratingKey === existing.ratingKey) return false
+
     this.log.debug(
-      { sessionKey, from: existing.lastState, to: state },
-      'Session state transition',
+      { sessionKey, from: existing.ratingKey, to: ratingKey },
+      'Session media changed',
     )
-    existing.lastState = state
-
-    if (state === 'stopped') {
-      this.sessions.delete(sessionKey)
-    }
-
+    existing.ratingKey = ratingKey
     return true
   }
 
@@ -81,8 +76,7 @@ export class SessionTracker {
 
   /**
    * Seed the tracker with live sessions from the REST API so that SSE events
-   * arriving after reconnect are correctly deduplicated. Sessions already
-   * tracked (e.g. from a previous connection) are left untouched.
+   * arriving after reconnect are correctly deduplicated.
    */
   hydrate(liveSessions: PlexSession[]): number {
     const now = Date.now()
@@ -94,13 +88,17 @@ export class SessionTracker {
       this.sessions.set(session.sessionKey, {
         sessionKey: session.sessionKey,
         ratingKey: session.ratingKey,
-        lastState: 'playing',
         lastEventTime: now,
       })
       added++
     }
 
     return added
+  }
+
+  /** Caller could not act on the fired event, so the next event for this session fires again. */
+  forget(sessionKey: string): void {
+    this.sessions.delete(sessionKey)
   }
 
   /**
