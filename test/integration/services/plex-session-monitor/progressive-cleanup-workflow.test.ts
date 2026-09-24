@@ -1494,6 +1494,37 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       expect(mockGetSeriesById).toHaveBeenCalled()
     })
 
+    it('retries on the next event when the REST list still shows the previous episode', async () => {
+      await seedStellaAtS4E6()
+      const mockGetSeriesById = stubSonarr()
+
+      app.plexServerService.getSessionTracker = vi
+        .fn()
+        .mockReturnValue(new SessionTracker(app.log))
+      const stale = makeEpisodeSession({ season: 4, episode: 6 })
+      const current = {
+        ...makeEpisodeSession({ season: 4, episode: 7 }),
+        ratingKey: '106943',
+      }
+      const mockGetActiveSessions = vi
+        .fn()
+        .mockResolvedValueOnce([stale])
+        .mockResolvedValueOnce([current])
+      app.plexServerService.getActiveSessions = mockGetActiveSessions
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification({ ratingKey: '106943' }),
+      ])
+      expect(mockGetSeriesById).not.toHaveBeenCalled()
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification({ ratingKey: '106943' }),
+      ])
+
+      expect(mockGetActiveSessions).toHaveBeenCalledTimes(2)
+      expect(mockGetSeriesById).toHaveBeenCalled()
+    })
+
     it('keeps a movie session seen after the first fetch', async () => {
       await seedStellaAtS4E6()
       stubSonarr()

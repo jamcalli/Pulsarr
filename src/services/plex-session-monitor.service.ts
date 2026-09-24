@@ -181,9 +181,11 @@ export class PlexSessionMonitorService {
         rollingUpdates: [],
       }
 
-      // sessionKey is unique per playback and present in both the SSE event and REST session
+      // The REST list can lag the event by one item; a sessionKey match on the old ratingKey is not this playback yet
       const session = sessions.find(
-        (candidate) => candidate.sessionKey === notification.sessionKey,
+        (candidate) =>
+          candidate.sessionKey === notification.sessionKey &&
+          candidate.ratingKey === notification.ratingKey,
       )
       if (!session) {
         tracker.forget(notification.sessionKey)
