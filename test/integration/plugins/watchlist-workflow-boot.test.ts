@@ -4,6 +4,8 @@ import type {
 } from '@root/types/plex.types.js'
 import { EtagPoller } from '@services/plex-watchlist/etag/etag-poller.js'
 import { RECONCILIATION_JOB_NAME } from '@services/watchlist-workflow/lifecycle/scheduler.js'
+import type { WorkflowState } from '@services/watchlist-workflow/state.js'
+import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { WatchlistWorkflowService } from '@services/watchlist-workflow.service.js'
 import type { FastifyInstance } from 'fastify'
 import type { Knex } from 'knex'
@@ -575,5 +577,119 @@ describe('watchlist workflow etag fallback', { timeout: 30_000 }, () => {
       'deferred-movie',
       expect.objectContaining({ userId: 1 }),
     )
+  })
+})
+
+describe('watchlist workflow start and stop races', { timeout: 30_000 }, () => {
+  let app: FastifyInstance | undefined
+  let service: WatchlistWorkflowService | undefined
+
+  beforeAll(async () => {
+    await initializeTestDatabase()
+  })
+
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  afterEach(async () => {
+    vi.useRealTimers()
+    await service?.stop()
+    service = undefined
+    await app?.close()
+    app = undefined
+  })
+
+  async function bootInEtagMode(): Promise<FastifyInstance> {
+    const knex = getTestDatabase()
+    await seedAll(knex)
+    await knex('configs').where({ id: 1 }).update({ _isReady: false })
+
+    useArrHandlers()
+
+    const booted = await build()
+    await booted.ready()
+
+    vi.spyOn(booted.plexWatchlist, 'generateAndSaveRssFeeds').mockRejectedValue(
+      new Error('rss unavailable'),
+    )
+    vi.spyOn(booted.plexWatchlist, 'checkFriendChanges').mockResolvedValue({
+      added: [],
+      removed: [],
+      userMap: new Map(),
+    })
+    return booted
+  }
+
+  function workflowState(workflow: WatchlistWorkflowService): WorkflowState {
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    return workflow['state']
+  }
+
+  function workflowDeps(workflow: WatchlistWorkflowService): WorkflowDeps {
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    return workflow['deps']
+  }
+
+  function holdPrimaryUserLookup(booted: FastifyInstance) {
+    const gate = Promise.withResolvers<void>()
+    const getPrimaryUser = booted.db.getPrimaryUser.bind(booted.db)
+    const spy = vi
+      .spyOn(booted.db, 'getPrimaryUser')
+      .mockImplementationOnce(async () => {
+        await gate.promise
+        return getPrimaryUser()
+      })
+    return { release: gate.resolve, spy }
+  }
+
+  it('stop during startup leaves the workflow stopped with no timers', async () => {
+    app = await bootInEtagMode()
+    const held = holdPrimaryUserLookup(app)
+    const workflow = new WatchlistWorkflowService(app.log, app, 50)
+
+    const starting = workflow.startWorkflow()
+    await vi.waitFor(() => expect(held.spy).toHaveBeenCalled())
+    expect(workflow.getStatus()).toBe('starting')
+
+    await expect(workflow.stop()).resolves.toBe(true)
+    held.release()
+
+    await expect(starting).resolves.toBe(false)
+    expect(workflow.getStatus()).toBe('stopped')
+    expect(workflowState(workflow).rssCheckInterval).toBeNull()
+    expect(workflowState(workflow).deferredRoutingQueue).toBeNull()
+    expect(app.scheduler.getActiveJobs()).not.toContain(RECONCILIATION_JOB_NAME)
+  })
+
+  it('a second start while starting returns false and does not replace the queue', async () => {
+    app = await bootInEtagMode()
+    const held = holdPrimaryUserLookup(app)
+    service = new WatchlistWorkflowService(app.log, app, 50)
+
+    const starting = service.startWorkflow()
+    await vi.waitFor(() => expect(held.spy).toHaveBeenCalled())
+    const queue = workflowState(service).deferredRoutingQueue
+    expect(queue).not.toBeNull()
+
+    await expect(service.startWorkflow()).resolves.toBe(false)
+    expect(service.getStatus()).toBe('starting')
+    expect(workflowState(service).deferredRoutingQueue).toBe(queue)
+
+    held.release()
+    await expect(starting).resolves.toBe(true)
+    expect(service.getStatus()).toBe('running')
+  })
+
+  it('workflow deps read config reassigned by updateConfig', async () => {
+    app = await bootInEtagMode()
+    await app.updateConfig({ skipIfExistsOnPlex: false })
+    service = new WatchlistWorkflowService(app.log, app, 50)
+    const deps = workflowDeps(service)
+
+    await app.updateConfig({ skipIfExistsOnPlex: true })
+
+    expect(deps.config.skipIfExistsOnPlex).toBe(true)
+    expect(deps.itemProcessorDeps.config.skipIfExistsOnPlex).toBe(true)
   })
 })

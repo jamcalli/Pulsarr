@@ -45,7 +45,7 @@ export class SessionTracker {
         { sessionKey, ratingKey, state },
         'New session detected via SSE',
       )
-      return true
+      return ratingKey !== ''
     }
 
     existing.lastEventTime = now

@@ -83,6 +83,7 @@ export async function initializeWorkflow(deps: WorkflowDeps): Promise<void> {
     signal: deps.state.signal,
     log: deps.logger,
   })
+  deps.state.deferredRoutingQueue?.stop()
   deps.state.deferredRoutingQueue = deferredRoutingQueue
   deferredRoutingQueue.start()
 }

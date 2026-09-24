@@ -81,8 +81,9 @@ export class EtagPoller {
   /** Callback for when a new polling cycle starts (for friend refresh) */
   private onCycleStartCallback: (() => Promise<EtagUserInfo[]>) | null = null
 
+  // Read through the getter: the poller outlives config updates, which reassign fastify.config
   constructor(
-    private readonly config: Config,
+    private readonly getConfig: () => Config,
     private readonly log: FastifyBaseLogger,
   ) {}
 
@@ -97,7 +98,7 @@ export class EtagPoller {
    * @param user - User info for establishing baseline
    */
   async establishBaseline(user: EtagUserInfo): Promise<void> {
-    const token = this.config.plexTokens?.[0]
+    const token = this.getConfig().plexTokens?.[0]
     if (!token) {
       this.log.warn('Cannot establish baseline: no Plex token configured')
       return
@@ -131,7 +132,7 @@ export class EtagPoller {
     primaryUserId: number,
     friends: EtagUserInfo[],
   ): Promise<void> {
-    const token = this.config.plexTokens?.[0]
+    const token = this.getConfig().plexTokens?.[0]
     if (!token) {
       this.log.warn('Cannot establish baselines: no Plex token configured')
       return
@@ -181,7 +182,7 @@ export class EtagPoller {
     primaryUserId: number,
     friends: EtagUserInfo[],
   ): Promise<EtagPollResult[]> {
-    const token = this.config.plexTokens?.[0]
+    const token = this.getConfig().plexTokens?.[0]
     if (!token) {
       this.log.warn('Cannot check watchlists: no Plex token configured')
       return []
@@ -358,7 +359,7 @@ export class EtagPoller {
    * @returns Poll result with any new items
    */
   async checkUser(user: EtagUserInfo): Promise<EtagPollResult> {
-    const token = this.config.plexTokens?.[0]
+    const token = this.getConfig().plexTokens?.[0]
     if (!token) {
       return {
         changed: false,
