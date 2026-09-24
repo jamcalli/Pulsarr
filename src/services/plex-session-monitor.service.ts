@@ -196,9 +196,10 @@ export class PlexSessionMonitorService {
       try {
         await this.processSession(session, result, isUserAllowed)
       } catch (error) {
+        tracker.forget(notification.sessionKey)
         this.log.warn(
           { error, ratingKey: notification.ratingKey },
-          'Failed to process session from SSE event - polling will catch it',
+          'Failed to process session from SSE event - will retry on the next event',
         )
         continue
       }
@@ -622,7 +623,7 @@ export class PlexSessionMonitorService {
       return resolved
     } catch (error) {
       this.log.error({ error }, 'Error getting rolling monitored shows:')
-      return []
+      throw error
     }
   }
 

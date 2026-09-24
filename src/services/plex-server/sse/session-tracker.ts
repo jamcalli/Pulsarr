@@ -54,7 +54,7 @@ export class SessionTracker {
 
     if (existing.ratingKey === '') {
       existing.ratingKey = ratingKey
-      return false
+      return true
     }
 
     if (ratingKey === existing.ratingKey) return false

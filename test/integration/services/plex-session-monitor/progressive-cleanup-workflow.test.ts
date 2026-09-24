@@ -1525,6 +1525,36 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       expect(mockGetSeriesById).toHaveBeenCalled()
     })
 
+    it('retries on the next event when the rolling lookup fails', async () => {
+      await seedStellaAtS4E6()
+      const mockGetSeriesById = stubSonarr()
+
+      app.plexServerService.getSessionTracker = vi
+        .fn()
+        .mockReturnValue(new SessionTracker(app.log))
+      const mockGetActiveSessions = vi
+        .fn()
+        .mockResolvedValue([makeEpisodeSession({ season: 4, episode: 7 })])
+      app.plexServerService.getActiveSessions = mockGetActiveSessions
+      const realMatches = app.db.getRollingMonitoredShowMatches.bind(app.db)
+      app.db.getRollingMonitoredShowMatches = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('db unavailable'))
+        .mockImplementation(realMatches)
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+      expect(mockGetSeriesById).not.toHaveBeenCalled()
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+
+      expect(mockGetActiveSessions).toHaveBeenCalledTimes(2)
+      expect(mockGetSeriesById).toHaveBeenCalled()
+    })
+
     it('keeps a movie session seen after the first fetch', async () => {
       await seedStellaAtS4E6()
       stubSonarr()

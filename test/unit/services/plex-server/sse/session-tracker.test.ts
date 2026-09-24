@@ -94,13 +94,13 @@ describe('SessionTracker', () => {
     expect(tracker.getTrackedSessions().get('322')?.ratingKey).toBe('100')
   })
 
-  it('adopts the first real ratingKey when the stored one is empty', () => {
+  it('fires when an empty stored ratingKey gains its first real one', () => {
     const tracker = new SessionTracker(createMockLogger())
     tracker.handlePlayingEvent(makeNotification({ ratingKey: '' }))
 
     expect(
       tracker.handlePlayingEvent(makeNotification({ ratingKey: '100' })),
-    ).toBe(false)
+    ).toBe(true)
     expect(tracker.getTrackedSessions().get('322')?.ratingKey).toBe('100')
     expect(
       tracker.handlePlayingEvent(makeNotification({ ratingKey: '101' })),
