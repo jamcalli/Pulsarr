@@ -1445,5 +1445,78 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
       expect(mockGetActiveSessions).toHaveBeenCalledTimes(2)
       expect(mockGetSeriesById).toHaveBeenCalled()
     })
+
+    it('retries on the next event when the session fetch fails', async () => {
+      await seedStellaAtS4E6()
+      const mockGetSeriesById = stubSonarr()
+
+      app.plexServerService.getSessionTracker = vi
+        .fn()
+        .mockReturnValue(new SessionTracker(app.log))
+      const mockGetActiveSessions = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Plex unreachable'))
+        .mockResolvedValueOnce([makeEpisodeSession({ season: 4, episode: 7 })])
+      app.plexServerService.getActiveSessions = mockGetActiveSessions
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+
+      expect(mockGetActiveSessions).toHaveBeenCalledTimes(2)
+      expect(mockGetSeriesById).toHaveBeenCalled()
+    })
+
+    it('retries on the next event when Plex has not listed the session yet', async () => {
+      await seedStellaAtS4E6()
+      const mockGetSeriesById = stubSonarr()
+
+      app.plexServerService.getSessionTracker = vi
+        .fn()
+        .mockReturnValue(new SessionTracker(app.log))
+      const mockGetActiveSessions = vi
+        .fn()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([makeEpisodeSession({ season: 4, episode: 7 })])
+      app.plexServerService.getActiveSessions = mockGetActiveSessions
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification({ state: 'buffering' }),
+      ])
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+
+      expect(mockGetActiveSessions).toHaveBeenCalledTimes(2)
+      expect(mockGetSeriesById).toHaveBeenCalled()
+    })
+
+    it('keeps a movie session seen after the first fetch', async () => {
+      await seedStellaAtS4E6()
+      stubSonarr()
+
+      app.plexServerService.getSessionTracker = vi
+        .fn()
+        .mockReturnValue(new SessionTracker(app.log))
+      const mockGetActiveSessions = vi.fn().mockResolvedValue([
+        {
+          ...makeEpisodeSession({ season: 4, episode: 7 }),
+          type: 'movie',
+        },
+      ])
+      app.plexServerService.getActiveSessions = mockGetActiveSessions
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+
+      expect(mockGetActiveSessions).toHaveBeenCalledTimes(1)
+    })
   })
 })

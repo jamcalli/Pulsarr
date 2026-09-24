@@ -76,8 +76,7 @@ export class SessionTracker {
 
   /**
    * Seed the tracker with live sessions from the REST API so that SSE events
-   * arriving after reconnect are correctly deduplicated. Sessions already
-   * tracked (e.g. from a previous connection) are left untouched.
+   * arriving after reconnect are correctly deduplicated.
    */
   hydrate(liveSessions: PlexSession[]): number {
     const now = Date.now()
@@ -95,6 +94,11 @@ export class SessionTracker {
     }
 
     return added
+  }
+
+  /** Caller could not act on the fired event, so the next event for this session fires again. */
+  forget(sessionKey: string): void {
+    this.sessions.delete(sessionKey)
   }
 
   /**

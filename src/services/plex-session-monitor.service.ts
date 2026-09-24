@@ -151,8 +151,11 @@ export class PlexSessionMonitorService {
     } catch (error) {
       this.log.warn(
         { error },
-        'Failed to resolve user filter for SSE event - polling will catch it',
+        'Failed to resolve user filter for SSE event - will retry on the next event',
       )
+      for (const notification of transitions) {
+        tracker.forget(notification.sessionKey)
+      }
       return
     }
 
@@ -162,8 +165,11 @@ export class PlexSessionMonitorService {
     } catch (error) {
       this.log.warn(
         { error },
-        'Failed to hydrate session from SSE event - polling will catch it',
+        'Failed to hydrate session from SSE event - will retry on the next event',
       )
+      for (const notification of transitions) {
+        tracker.forget(notification.sessionKey)
+      }
       return
     }
 
@@ -177,11 +183,13 @@ export class PlexSessionMonitorService {
 
       // sessionKey is unique per playback and present in both the SSE event and REST session
       const session = sessions.find(
-        (candidate) =>
-          candidate.type === 'episode' &&
-          candidate.sessionKey === notification.sessionKey,
+        (candidate) => candidate.sessionKey === notification.sessionKey,
       )
-      if (!session) continue
+      if (!session) {
+        tracker.forget(notification.sessionKey)
+        continue
+      }
+      if (session.type !== 'episode') continue
 
       try {
         await this.processSession(session, result, isUserAllowed)

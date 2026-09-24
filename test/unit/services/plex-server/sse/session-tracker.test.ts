@@ -130,6 +130,52 @@ describe('SessionTracker', () => {
     ).toBe(false)
   })
 
+  it('forget removes the entry so the same pair fires again', () => {
+    const tracker = new SessionTracker(createMockLogger())
+    tracker.handlePlayingEvent(makeNotification())
+
+    tracker.forget('322')
+
+    expect(tracker.handlePlayingEvent(makeNotification())).toBe(true)
+  })
+
+  it('forget on an unknown sessionKey is a no-op', () => {
+    const tracker = new SessionTracker(createMockLogger())
+    tracker.handlePlayingEvent(makeNotification())
+
+    tracker.forget('unknown')
+
+    expect(tracker.getTrackedSessions().size).toBe(1)
+    expect(tracker.handlePlayingEvent(makeNotification())).toBe(false)
+  })
+
+  it('clear then hydrate re-seeds live sessions and drops the rest', () => {
+    const tracker = new SessionTracker(createMockLogger())
+    const session = makeEpisodeSession({ season: 4, episode: 7 })
+    tracker.handlePlayingEvent(
+      makeNotification({
+        sessionKey: session.sessionKey,
+        ratingKey: session.ratingKey,
+      }),
+    )
+    tracker.handlePlayingEvent(makeNotification({ sessionKey: 'recycled' }))
+
+    tracker.clear()
+    tracker.hydrate([session])
+
+    expect(
+      tracker.handlePlayingEvent(
+        makeNotification({
+          sessionKey: session.sessionKey,
+          ratingKey: session.ratingKey,
+        }),
+      ),
+    ).toBe(false)
+    expect(
+      tracker.handlePlayingEvent(makeNotification({ sessionKey: 'recycled' })),
+    ).toBe(true)
+  })
+
   it('sweeps entries older than maxAgeMs and returns their keys', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
