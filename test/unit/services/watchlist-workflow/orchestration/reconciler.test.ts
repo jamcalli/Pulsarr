@@ -201,6 +201,32 @@ describe('reconcile', () => {
     expect(state.isReconciling).toBe(false)
   })
 
+  it('stops a full sync before routing when the run is aborted mid-fetch', async () => {
+    vi.mocked(fetchWatchlists).mockImplementationOnce(async () => {
+      state.endRun()
+    })
+
+    await reconcile({ mode: 'full' }, deps)
+
+    expect(syncWatchlistItems).not.toHaveBeenCalled()
+    expect(etagPollerMock.methods.establishAllBaselines).not.toHaveBeenCalled()
+    expect(state.lastSuccessfulSyncTime).toBe(0)
+    expect(state.isReconciling).toBe(false)
+  })
+
+  it('stays cancelled when a new run opens before the aborted sync resumes', async () => {
+    vi.mocked(fetchWatchlists).mockImplementationOnce(async () => {
+      state.endRun()
+      state.beginRun()
+    })
+
+    await reconcile({ mode: 'full' }, deps)
+
+    expect(syncWatchlistItems).not.toHaveBeenCalled()
+    expect(state.lastSuccessfulSyncTime).toBe(0)
+    expect(state.isReconciling).toBe(false)
+  })
+
   it('returns early when there is no primary user', async () => {
     parts.db.getPrimaryUser.mockResolvedValue(undefined)
 

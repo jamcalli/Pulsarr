@@ -108,6 +108,8 @@ export async function reconcile(
   }
 
   deps.state.isReconciling = true
+  // a restart mid-sync opens a new signal; this sync answers only to the one it started under
+  const { signal } = deps.state
   const startTime = Date.now()
 
   try {
@@ -123,6 +125,7 @@ export async function reconcile(
     }
 
     const friendChanges = await deps.plexService.checkFriendChanges()
+    if (signal.aborted) return
 
     deps.state.updatePlexUuidCache(friendChanges.userMap, deps.logger)
 
@@ -145,7 +148,9 @@ export async function reconcile(
     if (options.mode === 'full') {
       deps.logger.info('Starting full reconciliation')
       await fetchWatchlists(deps)
+      if (signal.aborted) return
       await syncWatchlistItems(deps)
+      if (signal.aborted) return
 
       await etagPoller.establishAllBaselines(primaryUser.id, friends)
 

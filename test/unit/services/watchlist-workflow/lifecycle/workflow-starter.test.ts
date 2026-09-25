@@ -33,4 +33,23 @@ describe('initializeWorkflow', () => {
     expect(stop).toHaveBeenCalledTimes(1)
     expect(deps.state.deferredRoutingQueue).not.toBe(previousQueue)
   })
+
+  it('publishes no mode state when stop lands during RSS feed generation', async () => {
+    deps = createWorkflowDeps({
+      plexService: {
+        pingPlex: vi.fn(async () => true),
+        generateAndSaveRssFeeds: vi.fn(async () => {
+          deps?.state.endRun()
+          return { self: '', friends: '' }
+        }),
+      },
+    })
+
+    await initializeWorkflow(deps)
+
+    expect(deps.state.rssMode).toBe(false)
+    expect(deps.state.rssFeedCache).toBeNull()
+    expect(deps.state.isEtagFallbackActive).toBe(false)
+    expect(deps.state.deferredRoutingQueue).toBeNull()
+  })
 })
