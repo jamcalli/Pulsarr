@@ -661,16 +661,25 @@ describe('watchlist workflow start and stop races', { timeout: 30_000 }, () => {
     return { release: gate.resolve, spy }
   }
 
-  function holdPrimaryUserLookup(booted: FastifyInstance) {
+  function holdPrimaryUserLookup(
+    booted: FastifyInstance,
+    shouldHold: (call: number) => boolean = (call) => call === 1,
+  ) {
     const gate = Promise.withResolvers<void>()
     const getPrimaryUser = booted.db.getPrimaryUser.bind(booted.db)
+    let calls = 0
+    let held = false
     const spy = vi
       .spyOn(booted.db, 'getPrimaryUser')
-      .mockImplementationOnce(async () => {
-        await gate.promise
+      .mockImplementation(async () => {
+        calls += 1
+        if (!held && shouldHold(calls)) {
+          held = true
+          await gate.promise
+        }
         return getPrimaryUser()
       })
-    return { release: gate.resolve, spy }
+    return { release: gate.resolve, spy, isHeld: () => held }
   }
 
   it('stop during startup leaves the workflow stopped with no timers', async () => {
@@ -690,6 +699,33 @@ describe('watchlist workflow start and stop races', { timeout: 30_000 }, () => {
     expect(workflowState(workflow).rssCheckInterval).toBeNull()
     expect(workflowState(workflow).deferredRoutingQueue).toBeNull()
     expect(app.scheduler.getActiveJobs()).not.toContain(RECONCILIATION_JOB_NAME)
+  })
+
+  it('stop while the staggered poller is starting leaves the poller unarmed', async () => {
+    app = await bootInEtagMode()
+    const workflow = new WatchlistWorkflowService(app.log, app, 50)
+    const state = workflowState(workflow)
+    // the baseline lookup is call 1; reconcile owns the rest until the poller's own lookup
+    const held = holdPrimaryUserLookup(
+      app,
+      (call) => call > 1 && !state.isReconciling,
+    )
+
+    const starting = workflow.startWorkflow()
+    await vi.waitFor(() => expect(held.isHeld()).toBe(true), {
+      timeout: 10_000,
+    })
+    expect(workflow.getStatus()).toBe('starting')
+    const etagPoller = state.etagPoller
+    if (!etagPoller) throw new Error('etag poller was not created')
+    const arm = vi.spyOn(etagPoller, 'startStaggeredPolling')
+
+    await expect(workflow.stop()).resolves.toBe(true)
+    held.release()
+
+    await expect(starting).resolves.toBe(false)
+    expect(workflow.getStatus()).toBe('stopped')
+    expect(arm).not.toHaveBeenCalled()
   })
 
   it('stop during Plex verification publishes no job or queue', async () => {
