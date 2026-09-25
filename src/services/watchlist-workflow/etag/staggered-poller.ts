@@ -276,15 +276,19 @@ export async function getEtagFriendsList(
 }
 
 export async function startStaggeredPolling(deps: WorkflowDeps): Promise<void> {
+  // stop() aborts this signal mid-start; the poller must not arm after that
+  const { signal } = deps.state
   const etagPoller = deps.state.ensureEtagPoller(() => deps.config, deps.logger)
 
   const primaryUser = await deps.db.getPrimaryUser()
+  if (signal.aborted) return
   if (!primaryUser) {
     deps.logger.warn('No primary user found, cannot start staggered polling')
     return
   }
 
   const friends = await getEtagFriendsList(deps)
+  if (signal.aborted) return
 
   etagPoller.startStaggeredPolling(
     primaryUser.id,
