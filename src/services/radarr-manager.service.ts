@@ -345,6 +345,30 @@ export class RadarrManagerService {
     }
 
     const result = await radarrService.movieExistsByTmdbId(tmdbId)
+    if (result.checked && !result.found) {
+      const instance = await this.fastify.db.getRadarrInstance(instanceId)
+      if (instance && !instance.bypassIgnored) {
+        try {
+          if (await radarrService.isTmdbIdExcluded(tmdbId)) {
+            return {
+              found: true,
+              checked: true,
+              excluded: true,
+              serviceName: 'Radarr',
+              instanceId,
+            }
+          }
+        } catch (err) {
+          return {
+            found: false,
+            checked: false,
+            serviceName: 'Radarr',
+            instanceId,
+            error: err instanceof Error ? err.message : String(err),
+          }
+        }
+      }
+    }
     // Add instance ID to the result
     return { ...result, instanceId }
   }

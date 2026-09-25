@@ -82,7 +82,7 @@ async function checkShowExistsViaApi(
   tempItem: TemptRssWatchlistItem,
   targetInstanceIds: number[],
   deps: ContentRoutingDeps,
-): Promise<{ exists: boolean; anyChecked: boolean }> {
+): Promise<{ exists: boolean; excluded: boolean; anyChecked: boolean }> {
   const tvdbId = extractTvdbId(parseGuids(tempItem.guids))
 
   let anyChecked = false
@@ -100,10 +100,14 @@ async function checkShowExistsViaApi(
     }
     anyChecked = true
     if (result.found) {
-      return { exists: true, anyChecked: true }
+      return {
+        exists: true,
+        excluded: result.excluded === true,
+        anyChecked: true,
+      }
     }
   }
-  return { exists: false, anyChecked }
+  return { exists: false, excluded: false, anyChecked }
 }
 
 // Caller must validate the TMDB ID before calling this
@@ -111,7 +115,7 @@ async function checkMovieExistsViaApi(
   tempItem: TemptRssWatchlistItem,
   targetInstanceIds: number[],
   deps: ContentRoutingDeps,
-): Promise<{ exists: boolean; anyChecked: boolean }> {
+): Promise<{ exists: boolean; excluded: boolean; anyChecked: boolean }> {
   const tmdbId = extractTmdbId(parseGuids(tempItem.guids))
 
   let anyChecked = false
@@ -129,10 +133,14 @@ async function checkMovieExistsViaApi(
     }
     anyChecked = true
     if (result.found) {
-      return { exists: true, anyChecked: true }
+      return {
+        exists: true,
+        excluded: result.excluded === true,
+        anyChecked: true,
+      }
     }
   }
-  return { exists: false, anyChecked }
+  return { exists: false, excluded: false, anyChecked }
 }
 
 async function sendRoutingNotification(
@@ -229,7 +237,7 @@ export async function routeShow(
       return { routed: false, skippedReason: 'exists-in-target' }
     }
   } else {
-    const { exists, anyChecked } = await checkShowExistsViaApi(
+    const { exists, excluded, anyChecked } = await checkShowExistsViaApi(
       tempItem,
       targetInstanceIds,
       deps,
@@ -245,7 +253,9 @@ export async function routeShow(
 
     if (exists) {
       deps.logger.info(
-        `Show ${tempItem.title} already exists in Sonarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+        excluded
+          ? `Show ${tempItem.title} is an import list exclusion in Sonarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`
+          : `Show ${tempItem.title} already exists in Sonarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
       )
       return { routed: false, skippedReason: 'exists-in-target' }
     }
@@ -349,7 +359,7 @@ export async function routeMovie(
       return { routed: false, skippedReason: 'exists-in-target' }
     }
   } else {
-    const { exists, anyChecked } = await checkMovieExistsViaApi(
+    const { exists, excluded, anyChecked } = await checkMovieExistsViaApi(
       tempItem,
       targetInstanceIds,
       deps,
@@ -365,7 +375,9 @@ export async function routeMovie(
 
     if (exists) {
       deps.logger.info(
-        `Movie ${tempItem.title} already exists in Radarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+        excluded
+          ? `Movie ${tempItem.title} is an import list exclusion in Radarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`
+          : `Movie ${tempItem.title} already exists in Radarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
       )
       return { routed: false, skippedReason: 'exists-in-target' }
     }
