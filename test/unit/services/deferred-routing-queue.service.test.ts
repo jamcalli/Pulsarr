@@ -96,6 +96,38 @@ describe('DeferredRoutingQueue drain', () => {
     expect(callbacks.onDrained).not.toHaveBeenCalled()
   })
 
+  it('does not arm the health check when the run is already over', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const controller = new AbortController()
+    controller.abort()
+    const { queue, callbacks } = createQueue(controller.signal)
+
+    queue.enqueue({ type: 'etag', change: CHANGE })
+    queue.start()
+
+    expect(vi.getTimerCount()).toBe(0)
+    await vi.advanceTimersByTimeAsync(HEALTH_CHECK_INTERVAL_MS * 2)
+
+    expect(callbacks.routeEtagChange).not.toHaveBeenCalled()
+  })
+
+  it('stops its own health check once the run ends', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const controller = new AbortController()
+    const { queue, callbacks } = createQueue(controller.signal)
+
+    queue.start()
+    expect(vi.getTimerCount()).toBe(1)
+    controller.abort()
+    queue.enqueue({ type: 'etag', change: CHANGE })
+
+    await vi.advanceTimersByTimeAsync(HEALTH_CHECK_INTERVAL_MS)
+
+    expect(vi.getTimerCount()).toBe(0)
+    expect(callbacks.routeEtagChange).not.toHaveBeenCalled()
+    expect(queue.getQueueSize()).toBe(0)
+  })
+
   it('routes nothing once the run has ended', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     const controller = new AbortController()

@@ -111,7 +111,10 @@ export async function reconcile(
   const startTime = Date.now()
 
   try {
-    const etagPoller = deps.state.ensureEtagPoller(deps.config, deps.logger)
+    const etagPoller = deps.state.ensureEtagPoller(
+      () => deps.config,
+      deps.logger,
+    )
 
     const primaryUser = await deps.db.getPrimaryUser()
     if (!primaryUser) {

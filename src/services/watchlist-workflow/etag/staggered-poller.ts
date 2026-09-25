@@ -276,7 +276,7 @@ export async function getEtagFriendsList(
 }
 
 export async function startStaggeredPolling(deps: WorkflowDeps): Promise<void> {
-  const etagPoller = deps.state.ensureEtagPoller(deps.config, deps.logger)
+  const etagPoller = deps.state.ensureEtagPoller(() => deps.config, deps.logger)
 
   const primaryUser = await deps.db.getPrimaryUser()
   if (!primaryUser) {

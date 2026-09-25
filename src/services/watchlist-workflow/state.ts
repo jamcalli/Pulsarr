@@ -45,9 +45,12 @@ export class WorkflowState {
     this.runController = null
   }
 
-  ensureEtagPoller(config: Config, logger: FastifyBaseLogger): EtagPoller {
+  ensureEtagPoller(
+    getConfig: () => Config,
+    logger: FastifyBaseLogger,
+  ): EtagPoller {
     if (!this.etagPoller) {
-      this.etagPoller = new EtagPoller(config, logger)
+      this.etagPoller = new EtagPoller(getConfig, logger)
     }
     return this.etagPoller
   }

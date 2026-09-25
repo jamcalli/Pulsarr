@@ -36,14 +36,16 @@ export class WatchlistWorkflowService {
     this.log.info('Initializing Watchlist Workflow Service')
   }
 
-  // Rebuilt per access: fastify.config is reassigned by updateConfig at runtime
+  // config is a getter because updateConfig reassigns fastify.config and deps outlive a single call
   private get deps(): WorkflowDeps {
     const { fastify, log: logger } = this
-    const { db, config, plexLabelSyncService } = fastify
+    const { db, plexLabelSyncService } = fastify
 
     return {
       logger,
-      config,
+      get config() {
+        return fastify.config
+      },
       db,
       fastify,
       state: this.state,
@@ -58,7 +60,9 @@ export class WatchlistWorkflowService {
       itemProcessorDeps: {
         db,
         logger,
-        config,
+        get config() {
+          return fastify.config
+        },
         fastify,
         plexLabelSyncService,
         handleLinkedItemsForLabelSync: (linkItems) =>
@@ -112,12 +116,22 @@ export class WatchlistWorkflowService {
   }
 
   async startWorkflow(): Promise<boolean> {
+    if (this.state.status !== 'stopped') {
+      this.log.warn(
+        `Cannot start workflow: current status is ${this.state.status}`,
+      )
+      return false
+    }
+
+    this.state.beginRun()
+    const { signal } = this.state
+
     try {
-      this.state.beginRun()
       this.setStatus('starting')
       this.log.debug('Starting watchlist workflow initialization')
 
       await initializeWorkflow(this.deps)
+      if (signal.aborted) return false
 
       // Baselines come before reconciliation so items added mid-sync are caught on the first poll
       if (this.state.rssMode && this.state.rssFeedCache) {
@@ -129,24 +143,30 @@ export class WatchlistWorkflowService {
             this.fastify.config.friendsRss,
             token,
           )
+          if (signal.aborted) return false
         }
       } else if (!this.state.rssMode) {
         this.log.debug('Establishing ETag baselines before reconciliation')
         const etagPoller = this.state.ensureEtagPoller(
-          this.fastify.config,
+          () => this.fastify.config,
           this.log,
         )
         const primaryUser = await this.fastify.db.getPrimaryUser()
+        if (signal.aborted) return false
         if (primaryUser) {
           const friends = await getEtagFriendsList(this.deps)
+          if (signal.aborted) return false
           await etagPoller.establishAllBaselines(primaryUser.id, friends)
+          if (signal.aborted) return false
         }
       }
 
       try {
         this.log.debug('Starting initial full reconciliation')
         await this.reconcile({ mode: 'full' })
+        if (signal.aborted) return false
         await schedulePendingReconciliation(this.deps)
+        if (signal.aborted) return false
       } catch (syncError) {
         this.log.error(
           { error: syncError },
@@ -154,6 +174,7 @@ export class WatchlistWorkflowService {
         )
         try {
           await schedulePendingReconciliation(this.deps)
+          if (signal.aborted) return false
         } catch (scheduleError) {
           this.log.error(
             { error: scheduleError },
@@ -178,6 +199,7 @@ export class WatchlistWorkflowService {
         await startStaggeredPolling(this.deps)
       }
 
+      if (signal.aborted) return false
       this.setStatus('running')
       this.state.initialized = true
 
@@ -193,6 +215,10 @@ export class WatchlistWorkflowService {
 
       return true
     } catch (error) {
+      if (signal.aborted) {
+        this.log.debug({ error }, 'Workflow start cancelled by stop')
+        return false
+      }
       this.log.error({ error }, 'Error in Watchlist workflow')
       try {
         await cleanupWorkflow(this.deps)
