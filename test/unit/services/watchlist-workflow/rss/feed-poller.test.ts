@@ -103,4 +103,23 @@ describe('checkRssFeeds', () => {
     expect(checkFriendsFeed).not.toHaveBeenCalled()
     expect(processRssFriendsItems).not.toHaveBeenCalled()
   })
+
+  it('stays cancelled when a new run opens during the fetch', async () => {
+    checkSelfFeed.mockImplementation(async () => {
+      deps.state.endRun()
+      deps.state.beginRun()
+      return {
+        feed: 'self',
+        changed: true,
+        newItems: [rssItem('self-item')],
+        totalItems: 1,
+      }
+    })
+
+    await checkRssFeeds(deps)
+
+    expect(processRssSelfItems).not.toHaveBeenCalled()
+    expect(checkFriendsFeed).not.toHaveBeenCalled()
+    expect(processRssFriendsItems).not.toHaveBeenCalled()
+  })
 })

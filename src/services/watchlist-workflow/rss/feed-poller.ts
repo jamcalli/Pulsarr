@@ -3,6 +3,7 @@ import { processRssFriendsItems } from './friends-processor.js'
 import { processRssSelfItems } from './self-processor.js'
 
 export async function checkRssFeeds(deps: WorkflowDeps): Promise<void> {
+  const { signal } = deps.state
   try {
     if (!deps.state.rssFeedCache) {
       deps.logger.warn('RSS feed cache not initialized, skipping check')
@@ -23,7 +24,7 @@ export async function checkRssFeeds(deps: WorkflowDeps): Promise<void> {
         selfUrl,
         token,
       )
-      if (deps.state.signal.aborted) return
+      if (signal.aborted) return
       if (selfResult.changed && selfResult.newItems.length > 0) {
         deps.logger.info(
           { newItems: selfResult.newItems.length },
@@ -38,7 +39,7 @@ export async function checkRssFeeds(deps: WorkflowDeps): Promise<void> {
         friendsUrl,
         token,
       )
-      if (deps.state.signal.aborted) return
+      if (signal.aborted) return
       if (friendsResult.changed && friendsResult.newItems.length > 0) {
         deps.logger.info(
           { newItems: friendsResult.newItems.length },

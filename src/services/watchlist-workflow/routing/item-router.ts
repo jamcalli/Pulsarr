@@ -139,10 +139,12 @@ export async function routeEnrichedItemsForUser(
   items: Item[],
   deps: ContentRoutingDeps,
 ): Promise<void> {
-  if (deps.state.signal.aborted) return
+  const { signal } = deps.state
+  if (signal.aborted) return
   if (items.length === 0) return
 
   const user = await deps.db.getUser(userId)
+  if (signal.aborted) return
   if (!user) {
     deps.logger.warn({ userId }, 'User not found for routing enriched items')
     return
@@ -160,6 +162,7 @@ export async function routeEnrichedItemsForUser(
 
   // SYSTEM_USER_ID in the exclusion set is a global veto, not a per-user one
   const exclusionMap = await deps.db.getExclusionMap()
+  if (signal.aborted) return
 
   deps.logger.debug(
     { userId, username: user.name, itemCount: items.length },
@@ -167,6 +170,7 @@ export async function routeEnrichedItemsForUser(
   )
 
   for (const item of items) {
+    if (signal.aborted) return
     const excludedUsers = exclusionMap.get(item.key)
     if (excludedUsers?.has(userId) || excludedUsers?.has(SYSTEM_USER_ID)) {
       deps.logger.debug(
@@ -199,13 +203,15 @@ export async function routeNewItemsForUser(
   change: EtagPollResult,
   deps: WorkflowDeps,
 ): Promise<void> {
-  if (deps.state.signal.aborted) return
+  const { signal } = deps.state
+  if (signal.aborted) return
 
   const { userId, newItems } = change
 
   if (newItems.length === 0) return
 
   const user = await deps.db.getUser(userId)
+  if (signal.aborted) return
   if (!user) {
     deps.logger.warn({ userId }, 'User not found for routing new items')
     return
@@ -250,6 +256,7 @@ export async function routeNewItemsForUser(
       },
       deps.itemProcessorDeps,
     )
+  if (signal.aborted) return
 
   const allItemsToRoute = [...processedItems, ...linkedItems]
 

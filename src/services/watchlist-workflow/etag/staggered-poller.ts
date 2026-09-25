@@ -20,6 +20,7 @@ export async function handleStaggeredPollResult(
   deps: WorkflowDeps,
 ): Promise<void> {
   if (!result.changed || result.newItems.length === 0) return
+  const { signal } = deps.state
 
   const user = await deps.db.getUser(result.userId)
   if (!user) {
@@ -85,7 +86,7 @@ export async function handleStaggeredPollResult(
       deps.itemProcessorDeps,
     )
 
-    if (deps.state.signal.aborted) return
+    if (signal.aborted) return
 
     // Linked items need routing too: this user may have different router rules than the owner
     const allItemsToQueue: Item[] = [...processedItems, ...linkedItems]
@@ -112,7 +113,7 @@ export async function handleStaggeredPollResult(
     deps.itemProcessorDeps,
   )
 
-  if (deps.state.signal.aborted) return
+  if (signal.aborted) return
 
   const allItemsToRoute: Item[] = [...processedItems, ...linkedItems]
   if (allItemsToRoute.length > 0) {
@@ -125,10 +126,11 @@ export async function handleStaggeredPollResult(
 export async function refreshFriendsForStaggeredPolling(
   deps: WorkflowDeps,
 ): Promise<EtagUserInfo[]> {
+  const { signal } = deps.state
   try {
     const friendChanges = await deps.plexService.checkFriendChanges()
 
-    if (deps.state.signal.aborted) {
+    if (signal.aborted) {
       return buildEtagUserInfoFromMap(deps.state.plexUuidCache)
     }
 
@@ -164,7 +166,7 @@ export async function refreshFriendsForStaggeredPolling(
           deps,
         )
 
-        if (deps.state.signal.aborted) {
+        if (signal.aborted) {
           return buildEtagUserInfoFromMap(deps.state.plexUuidCache)
         }
 

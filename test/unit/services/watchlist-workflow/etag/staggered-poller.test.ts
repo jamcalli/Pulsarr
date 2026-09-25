@@ -279,6 +279,19 @@ describe('handleStaggeredPollResult', () => {
     expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
     expect(parts.enqueue).not.toHaveBeenCalled()
   })
+
+  it('stays cancelled when a new run opens during processing', async () => {
+    vi.mocked(processItemsForUser).mockImplementation(async () => {
+      deps.state.endRun()
+      deps.state.beginRun()
+      return processedResult([enrichedItem('processed')], [])
+    })
+
+    await handleStaggeredPollResult(pollResult(), deps)
+
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(parts.enqueue).not.toHaveBeenCalled()
+  })
 })
 
 describe('refreshFriendsForStaggeredPolling', () => {
@@ -469,6 +482,28 @@ describe('refreshFriendsForStaggeredPolling', () => {
         isPrimary: false,
       },
     ])
+  })
+
+  it('keeps the cache when a new run opens during the friend check', async () => {
+    const cache = new Map<string, UserMapEntry>([
+      ['wl-9', { userId: 9, username: 'poll-user' }],
+    ])
+    state.plexUuidCache = cache
+    parts.plexService.checkFriendChanges.mockImplementation(async () => {
+      state.endRun()
+      state.beginRun()
+      return friendChanges({
+        userMap: new Map<string, UserMapEntry>([
+          ['wl-77', { userId: 77, username: 'late-friend' }],
+        ]),
+      })
+    })
+
+    await refreshFriendsForStaggeredPolling(deps)
+
+    expect(parts.updatePlexUuidCache).not.toHaveBeenCalled()
+    expect(state.plexUuidCache).toBe(cache)
+    expect(syncSingleFriend).not.toHaveBeenCalled()
   })
 
   it('stops before routing when the run ends while syncing a new friend', async () => {
