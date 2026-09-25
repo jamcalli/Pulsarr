@@ -57,6 +57,11 @@ function useArrHandlers(): void {
   )
 }
 
+function workflowState(workflow: WatchlistWorkflowService): WorkflowState {
+  // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+  return workflow['state']
+}
+
 async function seedAll(knex: Knex): Promise<void> {
   await seedConfig(knex)
   await seedUsers(knex)
@@ -161,7 +166,14 @@ describe('watchlist workflow full reconcile', { timeout: 30_000 }, () => {
 
     const before = app.watchlistWorkflow.getLastSuccessfulSyncTime()
 
-    await app.watchlistWorkflow.reconcile({ mode: 'full' })
+    // reconcile only runs inside an open run; a fresh state is aborted
+    const state = workflowState(app.watchlistWorkflow)
+    state.beginRun()
+    try {
+      await app.watchlistWorkflow.reconcile({ mode: 'full' })
+    } finally {
+      state.endRun()
+    }
 
     expect(app.watchlistWorkflow.getLastSuccessfulSyncTime()).toBeGreaterThan(
       before,
@@ -619,11 +631,6 @@ describe('watchlist workflow start and stop races', { timeout: 30_000 }, () => {
       userMap: new Map(),
     })
     return booted
-  }
-
-  function workflowState(workflow: WatchlistWorkflowService): WorkflowState {
-    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
-    return workflow['state']
   }
 
   function workflowDeps(workflow: WatchlistWorkflowService): WorkflowDeps {

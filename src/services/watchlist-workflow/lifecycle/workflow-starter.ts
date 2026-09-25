@@ -39,26 +39,24 @@ export async function initializeWorkflow(deps: WorkflowDeps): Promise<void> {
   }
   if (signal.aborted) return
 
+  let rssReady = false
   try {
     deps.logger.debug('Generating RSS feeds')
     await deps.plexService.generateAndSaveRssFeeds()
-
-    deps.logger.debug(
-      'RSS feeds generated successfully, initializing monitoring',
-    )
-    deps.state.rssFeedCache = new RssFeedCacheManager(deps.logger)
-    deps.state.isEtagFallbackActive = false
-    deps.state.rssMode = true
+    rssReady = true
   } catch (rssError) {
     deps.logger.warn(
       { error: rssError },
       'Failed to generate RSS feeds, falling back to manual sync',
     )
-    deps.state.rssFeedCache = null
-    deps.state.isEtagFallbackActive = true
-    deps.state.rssMode = false
   }
   if (signal.aborted) return
+
+  deps.state.rssFeedCache = rssReady
+    ? new RssFeedCacheManager(deps.logger)
+    : null
+  deps.state.isEtagFallbackActive = !rssReady
+  deps.state.rssMode = rssReady
 
   try {
     deps.logger.debug('Setting up periodic reconciliation job')

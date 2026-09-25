@@ -141,6 +141,7 @@ export class EtagPoller {
       this.log.warn('Cannot establish baselines: no Plex token configured')
       return
     }
+    this.adoptToken(token)
 
     // Primary user baseline
     await this.establishPrimaryBaseline(token, primaryUserId)
@@ -191,6 +192,7 @@ export class EtagPoller {
       this.log.warn('Cannot check watchlists: no Plex token configured')
       return []
     }
+    this.adoptToken(token)
 
     const results: EtagPollResult[] = []
 

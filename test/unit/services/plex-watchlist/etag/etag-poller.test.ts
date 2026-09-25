@@ -63,6 +63,23 @@ describe('EtagPoller config access', () => {
     expect(conditional).toEqual([false, false])
   })
 
+  it('discards bulk baselines when the token changes before the first bulk check', async () => {
+    let config = { plexTokens: ['token-old'] } as Config
+    const poller = new EtagPoller(() => config, createMockLogger())
+    const conditional: boolean[] = []
+    const tokens = captureTokens(conditional)
+
+    await poller.establishAllBaselines(1, [])
+    expect(poller.getCache().has('primary:1')).toBe(true)
+
+    config = { plexTokens: ['token-new'] } as Config
+    const results = await poller.checkAllEtags(1, [])
+
+    expect(results).toEqual([])
+    expect(tokens).toEqual(['token-old', 'token-new'])
+    expect(conditional).toEqual([false, false])
+  })
+
   it('skips the baseline while no token is configured, then proceeds once one is set', async () => {
     let config = { plexTokens: [] as string[] } as Config
     const poller = new EtagPoller(() => config, createMockLogger())

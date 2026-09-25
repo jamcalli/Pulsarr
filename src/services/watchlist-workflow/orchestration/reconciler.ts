@@ -123,6 +123,7 @@ export async function reconcile(
     }
 
     const friendChanges = await deps.plexService.checkFriendChanges()
+    if (deps.state.signal.aborted) return
 
     deps.state.updatePlexUuidCache(friendChanges.userMap, deps.logger)
 
@@ -145,7 +146,9 @@ export async function reconcile(
     if (options.mode === 'full') {
       deps.logger.info('Starting full reconciliation')
       await fetchWatchlists(deps)
+      if (deps.state.signal.aborted) return
       await syncWatchlistItems(deps)
+      if (deps.state.signal.aborted) return
 
       await etagPoller.establishAllBaselines(primaryUser.id, friends)
 
