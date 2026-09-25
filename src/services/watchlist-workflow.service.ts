@@ -116,7 +116,7 @@ export class WatchlistWorkflowService {
   }
 
   async startWorkflow(): Promise<boolean> {
-    if (this.state.status === 'starting' || this.state.status === 'running') {
+    if (this.state.status !== 'stopped') {
       this.log.warn(
         `Cannot start workflow: current status is ${this.state.status}`,
       )

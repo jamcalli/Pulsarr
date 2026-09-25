@@ -8,11 +8,12 @@ import { server } from '../../../../setup/msw-setup.js'
 const WATCHLIST_URL =
   'https://discover.provider.plex.tv/library/sections/watchlist/all'
 
-function captureTokens(): string[] {
+function captureTokens(conditional: boolean[] = []): string[] {
   const tokens: string[] = []
   server.use(
     http.get(WATCHLIST_URL, ({ request }) => {
       tokens.push(request.headers.get('X-Plex-Token') ?? '')
+      conditional.push(request.headers.has('If-None-Match'))
       return HttpResponse.json(
         { MediaContainer: { Metadata: [] } },
         { headers: { etag: 'W/"1"' } },
@@ -42,6 +43,24 @@ describe('EtagPoller config access', () => {
     })
 
     expect(tokens).toEqual(['token-old', 'token-new'])
+  })
+
+  it('discards baselines when the token changes so the new account is re-baselined', async () => {
+    let config = { plexTokens: ['token-old'] } as Config
+    const poller = new EtagPoller(() => config, createMockLogger())
+    const conditional: boolean[] = []
+    const tokens = captureTokens(conditional)
+    const primary = { userId: 1, username: 'primary', isPrimary: true }
+
+    await poller.establishBaseline(primary)
+    expect(poller.getCache().has('primary:1')).toBe(true)
+
+    config = { plexTokens: ['token-new'] } as Config
+    const result = await poller.checkUser(primary)
+
+    expect(result.changed).toBe(false)
+    expect(tokens).toEqual(['token-old', 'token-new'])
+    expect(conditional).toEqual([false, false])
   })
 
   it('skips the baseline while no token is configured, then proceeds once one is set', async () => {

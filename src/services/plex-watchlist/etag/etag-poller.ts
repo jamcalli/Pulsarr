@@ -58,6 +58,9 @@ export class EtagPoller {
   /** ETag cache keyed by 'primary:{userId}' or 'friend:{watchlistId}' */
   private cache = new Map<string, WatchlistEtagCache>()
 
+  /** Baselines belong to one account, so a token change invalidates them */
+  private cacheToken: string | null = null
+
   /** Timer for staggered polling */
   private staggeredTimer: NodeJS.Timeout | null = null
 
@@ -103,6 +106,7 @@ export class EtagPoller {
       this.log.warn('Cannot establish baseline: no Plex token configured')
       return
     }
+    this.adoptToken(token)
 
     if (user.isPrimary) {
       await this.establishPrimaryBaseline(token, user.userId)
@@ -274,6 +278,14 @@ export class EtagPoller {
     this.log.debug('Watchlist cache cleared')
   }
 
+  private adoptToken(token: string): void {
+    if (this.cacheToken !== null && this.cacheToken !== token) {
+      this.log.info('Plex token changed, discarding ETag baselines')
+      this.cache.clear()
+    }
+    this.cacheToken = token
+  }
+
   /**
    * Get a copy of the current cache for debugging/status.
    */
@@ -369,6 +381,7 @@ export class EtagPoller {
         error: 'No Plex token configured',
       }
     }
+    this.adoptToken(token)
 
     if (user.isPrimary) {
       return this.checkPrimary(token, user.userId)

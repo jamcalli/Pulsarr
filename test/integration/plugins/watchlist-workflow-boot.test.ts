@@ -631,6 +631,29 @@ describe('watchlist workflow start and stop races', { timeout: 30_000 }, () => {
     return workflow['deps']
   }
 
+  function holdPlexPing(booted: FastifyInstance) {
+    const gate = Promise.withResolvers<void>()
+    const spy = vi
+      .spyOn(booted.plexWatchlist, 'pingPlex')
+      .mockImplementationOnce(async () => {
+        await gate.promise
+        return true
+      })
+    return { release: gate.resolve, spy }
+  }
+
+  function holdReconciliationUnschedule(booted: FastifyInstance) {
+    const gate = Promise.withResolvers<void>()
+    const unscheduleJob = booted.scheduler.unscheduleJob.bind(booted.scheduler)
+    const spy = vi
+      .spyOn(booted.scheduler, 'unscheduleJob')
+      .mockImplementationOnce(async (name: string) => {
+        await gate.promise
+        return unscheduleJob(name)
+      })
+    return { release: gate.resolve, spy }
+  }
+
   function holdPrimaryUserLookup(booted: FastifyInstance) {
     const gate = Promise.withResolvers<void>()
     const getPrimaryUser = booted.db.getPrimaryUser.bind(booted.db)
@@ -660,6 +683,39 @@ describe('watchlist workflow start and stop races', { timeout: 30_000 }, () => {
     expect(workflowState(workflow).rssCheckInterval).toBeNull()
     expect(workflowState(workflow).deferredRoutingQueue).toBeNull()
     expect(app.scheduler.getActiveJobs()).not.toContain(RECONCILIATION_JOB_NAME)
+  })
+
+  it('stop during Plex verification publishes no job or queue', async () => {
+    app = await bootInEtagMode()
+    const held = holdPlexPing(app)
+    const workflow = new WatchlistWorkflowService(app.log, app, 50)
+
+    const starting = workflow.startWorkflow()
+    await vi.waitFor(() => expect(held.spy).toHaveBeenCalled())
+
+    await expect(workflow.stop()).resolves.toBe(true)
+    held.release()
+
+    await expect(starting).resolves.toBe(false)
+    expect(workflow.getStatus()).toBe('stopped')
+    expect(workflowState(workflow).deferredRoutingQueue).toBeNull()
+    expect(app.scheduler.getActiveJobs()).not.toContain(RECONCILIATION_JOB_NAME)
+  })
+
+  it('a start while stopping returns false', async () => {
+    app = await bootInEtagMode()
+    service = new WatchlistWorkflowService(app.log, app, 50)
+    await expect(service.startWorkflow()).resolves.toBe(true)
+    const held = holdReconciliationUnschedule(app)
+
+    const stopping = service.stop()
+    await vi.waitFor(() => expect(held.spy).toHaveBeenCalled())
+    expect(service.getStatus()).toBe('stopping')
+
+    await expect(service.startWorkflow()).resolves.toBe(false)
+    held.release()
+    await expect(stopping).resolves.toBe(true)
+    expect(service.getStatus()).toBe('stopped')
   })
 
   it('a second start while starting returns false and does not replace the queue', async () => {

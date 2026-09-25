@@ -78,8 +78,8 @@ export class DeferredRoutingQueue {
    * Start the health check timer for periodic queue drain attempts
    */
   start(): void {
-    if (this.healthCheckTimer) {
-      return // Already running
+    if (this.healthCheckTimer || this.signal.aborted) {
+      return
     }
 
     this.healthCheckTimer = setInterval(
@@ -145,6 +145,10 @@ export class DeferredRoutingQueue {
    */
   private async checkHealthAndDrain(): Promise<void> {
     try {
+      if (this.signal.aborted) {
+        this.stop()
+        return
+      }
       if (this.queue.length === 0) {
         return
       }

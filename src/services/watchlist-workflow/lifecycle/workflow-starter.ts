@@ -13,6 +13,9 @@ import {
 } from './scheduler.js'
 
 export async function initializeWorkflow(deps: WorkflowDeps): Promise<void> {
+  // stop() aborts this signal mid-start; nothing may be published after that
+  const { signal } = deps.state
+
   try {
     deps.logger.debug('Cleaning up existing manual sync jobs')
     await cleanupExistingManualSync(deps)
@@ -34,6 +37,7 @@ export async function initializeWorkflow(deps: WorkflowDeps): Promise<void> {
     )
     throw new Error('Failed to verify Plex connectivity', { cause: plexError })
   }
+  if (signal.aborted) return
 
   try {
     deps.logger.debug('Generating RSS feeds')
@@ -54,6 +58,7 @@ export async function initializeWorkflow(deps: WorkflowDeps): Promise<void> {
     deps.state.isEtagFallbackActive = true
     deps.state.rssMode = false
   }
+  if (signal.aborted) return
 
   try {
     deps.logger.debug('Setting up periodic reconciliation job')
@@ -66,6 +71,10 @@ export async function initializeWorkflow(deps: WorkflowDeps): Promise<void> {
       { error: reconciliationError },
       'Failed to setup periodic reconciliation',
     )
+  }
+  if (signal.aborted) {
+    await cleanupExistingManualSync(deps)
+    return
   }
 
   const deferredRoutingQueue = new DeferredRoutingQueue({
