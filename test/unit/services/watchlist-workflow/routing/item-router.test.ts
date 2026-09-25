@@ -127,4 +127,62 @@ describe('routing after the run has ended', () => {
     expect(routeMovie).not.toHaveBeenCalled()
     expect(routeShow).not.toHaveBeenCalled()
   })
+
+  it('routeEnrichedItemsForUser stays cancelled when a new run opens during the user lookup', async () => {
+    const getPrimaryUser = vi.fn(async () => PRIMARY_USER)
+    const deps = createWorkflowDeps({
+      db: {
+        getUser: vi.fn(async () => {
+          deps.state.endRun()
+          deps.state.beginRun()
+          return USER
+        }),
+        getPrimaryUser,
+      },
+    })
+
+    await routeEnrichedItemsForUser(USER_ID, [movieItem('a', 'A')], deps)
+
+    expect(getPrimaryUser).not.toHaveBeenCalled()
+    expect(routeMovie).not.toHaveBeenCalled()
+  })
+
+  it('routeEnrichedItemsForUser stops mid-batch when the run ends', async () => {
+    const deps = createWorkflowDeps({
+      db: {
+        getUser: vi.fn(async () => USER),
+        getPrimaryUser: vi.fn(async () => PRIMARY_USER),
+        getExclusionMap: vi.fn(async () => new Map()),
+      },
+    })
+    vi.mocked(routeMovie).mockImplementationOnce(async () => {
+      deps.state.endRun()
+      return { routed: true }
+    })
+
+    await routeEnrichedItemsForUser(
+      USER_ID,
+      [movieItem('a', 'A'), movieItem('b', 'B')],
+      deps,
+    )
+
+    expect(routeMovie).toHaveBeenCalledTimes(1)
+  })
+
+  it('routeNewItemsForUser stays cancelled when a new run opens during the user lookup', async () => {
+    const deps = createWorkflowDeps({
+      db: {
+        getUser: vi.fn(async () => {
+          deps.state.endRun()
+          deps.state.beginRun()
+          return USER
+        }),
+      },
+    })
+
+    await routeNewItemsForUser(pollChange, deps)
+
+    expect(routeMovie).not.toHaveBeenCalled()
+    expect(routeShow).not.toHaveBeenCalled()
+  })
 })
