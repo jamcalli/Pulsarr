@@ -21,20 +21,22 @@ const RADARR_ITEM: RadarrItem = {
   guids: ['tmdb:456'],
 }
 
-function buildDeps(existence: ExistenceCheckResult): ContentRoutingDeps {
+function buildDeps(...byInstance: ExistenceCheckResult[]): ContentRoutingDeps {
+  const instanceIds = byInstance.map((_, index) => index + 1)
+  const existence = async (instanceId: number) => byInstance[instanceId - 1]
   return createWorkflowDeps({
     contentRouter: {
-      getTargetInstances: vi.fn(async () => ({ instanceIds: [1] })),
+      getTargetInstances: vi.fn(async () => ({ instanceIds })),
       routeContent: vi.fn(async () => ({
         routedInstances: [1],
         routingDetails: [],
       })),
     },
     sonarrManager: {
-      seriesExistsByTvdbId: vi.fn(async () => existence),
+      seriesExistsByTvdbId: vi.fn(existence),
     },
     radarrManager: {
-      movieExistsByTmdbId: vi.fn(async () => existence),
+      movieExistsByTmdbId: vi.fn(existence),
     },
   })
 }
@@ -81,6 +83,21 @@ describe('routeShow API existence check', () => {
 
     expect(result).toEqual({ routed: true })
     expect(deps.contentRouter.routeContent).toHaveBeenCalledTimes(1)
+  })
+
+  it('skips a show when one of several targets could not be checked', async () => {
+    deps = buildDeps(
+      { found: false, checked: false, serviceName: 'Sonarr' },
+      { found: false, checked: true, serviceName: 'Sonarr' },
+    )
+
+    const result = await route()
+
+    expect(result).toEqual({
+      routed: false,
+      skippedReason: 'no-instances-available',
+    })
+    expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
   })
 
   it('skips a show when no instance could be checked', async () => {
@@ -138,6 +155,21 @@ describe('routeMovie API existence check', () => {
 
     expect(result).toEqual({ routed: true })
     expect(deps.contentRouter.routeContent).toHaveBeenCalledTimes(1)
+  })
+
+  it('skips a movie when one of several targets could not be checked', async () => {
+    deps = buildDeps(
+      { found: false, checked: false, serviceName: 'Radarr' },
+      { found: false, checked: true, serviceName: 'Radarr' },
+    )
+
+    const result = await route()
+
+    expect(result).toEqual({
+      routed: false,
+      skippedReason: 'no-instances-available',
+    })
+    expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
   })
 
   it('skips a movie when no instance could be checked', async () => {
