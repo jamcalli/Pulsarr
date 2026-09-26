@@ -37,9 +37,9 @@ async function waitForInProgressReconciliation(
 
 async function handleEtagModeChanges(
   changes: Awaited<ReturnType<EtagPoller['checkAllEtags']>>,
+  signal: AbortSignal,
   deps: WorkflowDeps,
 ): Promise<void> {
-  const { signal } = deps.state
   const changesWithNewItems = changes.filter(
     (c) => c.changed && c.newItems.length > 0,
   )
@@ -165,13 +165,14 @@ export async function reconcile(
       deps.logger.debug('Checking for watchlist changes')
 
       const changes = await etagPoller.checkAllEtags(primaryUser.id, friends)
+      if (signal.aborted) return
 
       if (changes.length === 0) {
         deps.logger.debug('No watchlist changes detected')
         return
       }
 
-      await handleEtagModeChanges(changes, deps)
+      await handleEtagModeChanges(changes, signal, deps)
       if (signal.aborted) return
 
       deps.state.lastSuccessfulSyncTime = Date.now()

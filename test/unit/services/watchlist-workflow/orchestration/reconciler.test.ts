@@ -378,6 +378,21 @@ describe('reconcile', () => {
     expect(routeNewItemsForUser).not.toHaveBeenCalled()
   })
 
+  it('neither routes nor queues etag changes when a new run opens during the etag check', async () => {
+    etagPollerMock.methods.checkAllEtags.mockImplementationOnce(async () => {
+      state.endRun()
+      state.beginRun()
+      return [etagResult()]
+    })
+
+    await reconcile({ mode: 'etag' }, deps)
+
+    expect(checkInstanceHealth).not.toHaveBeenCalled()
+    expect(parts.enqueue).not.toHaveBeenCalled()
+    expect(routeNewItemsForUser).not.toHaveBeenCalled()
+    expect(state.lastSuccessfulSyncTime).toBe(0)
+  })
+
   it('neither routes nor queues etag changes when a new run opens during the health check', async () => {
     etagPollerMock.methods.checkAllEtags.mockResolvedValue([etagResult()])
     vi.mocked(checkInstanceHealth).mockImplementationOnce(async () => {
