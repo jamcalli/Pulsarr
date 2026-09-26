@@ -209,6 +209,55 @@ describe('handleNewFriendEtagMode', () => {
     expect(result.error?.message).toBe('sync failed')
   })
 
+  it('stays cancelled when a new run opens during the friend sync', async () => {
+    vi.mocked(processAndSaveNewItems).mockImplementationOnce(async () => {
+      deps.state.endRun()
+      deps.state.beginRun()
+      return new Map([[FRIEND_KEY, new Set([friendItem('brand-new')])]])
+    })
+
+    const result = await handleNewFriendEtagMode(NEW_FRIEND, deps)
+
+    expect(checkHealthAndQueueIfUnavailable).not.toHaveBeenCalled()
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(parts.etagPoller.establishBaseline).not.toHaveBeenCalled()
+    expect(result).toEqual({ success: false, itemsRouted: 0 })
+  })
+
+  it('does not route when the run ends during the health check', async () => {
+    vi.mocked(checkHealthAndQueueIfUnavailable).mockImplementationOnce(
+      async () => {
+        deps.state.endRun()
+        return {
+          health: {
+            available: true,
+            sonarrUnavailable: [],
+            radarrUnavailable: [],
+            plexServerUnreachable: false,
+          },
+          shouldRoute: true,
+        }
+      },
+    )
+
+    const result = await handleNewFriendEtagMode(NEW_FRIEND, deps)
+
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(parts.etagPoller.establishBaseline).not.toHaveBeenCalled()
+    expect(result).toEqual({ success: false, itemsRouted: 0 })
+  })
+
+  it('leaves the baseline unset when the run ends during routing', async () => {
+    vi.mocked(routeEnrichedItemsForUser).mockImplementationOnce(async () => {
+      deps.state.endRun()
+    })
+
+    const result = await handleNewFriendEtagMode(NEW_FRIEND, deps)
+
+    expect(parts.etagPoller.establishBaseline).not.toHaveBeenCalled()
+    expect(result).toEqual({ success: false, itemsRouted: 0 })
+  })
+
   it('succeeds without an etag poller', async () => {
     deps.state.etagPoller = null
 

@@ -210,6 +210,40 @@ describe('processRssSelfItems', () => {
     expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
   })
 
+  it('stays cancelled when a new run opens during processing', async () => {
+    vi.mocked(enrichRssItems).mockResolvedValue([
+      enriched('rk-1', PRIMARY_USER.id),
+    ])
+    vi.mocked(processItemsForUser).mockImplementation(async () => {
+      deps.state.endRun()
+      deps.state.beginRun()
+      return processedResult([enriched('processed', PRIMARY_USER.id)], [])
+    })
+
+    await processRssSelfItems([rssItem('a')], deps)
+
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(queueForDeferredRouting).not.toHaveBeenCalled()
+    expect(updateAutoApprovalUserAttribution).not.toHaveBeenCalled()
+  })
+
+  it('skips post-routing tasks when the run ends during routing', async () => {
+    vi.mocked(enrichRssItems).mockResolvedValue([
+      enriched('rk-1', PRIMARY_USER.id),
+    ])
+    vi.mocked(processItemsForUser).mockResolvedValue(
+      processedResult([enriched('processed', PRIMARY_USER.id)], []),
+    )
+    vi.mocked(routeEnrichedItemsForUser).mockImplementationOnce(async () => {
+      deps.state.endRun()
+    })
+
+    await processRssSelfItems([rssItem('a')], deps)
+
+    expect(updateAutoApprovalUserAttribution).not.toHaveBeenCalled()
+    expect(parts.scheduleDebouncedStatusSync).not.toHaveBeenCalled()
+  })
+
   it('neither routes nor queues when processing yields nothing', async () => {
     vi.mocked(enrichRssItems).mockResolvedValue([
       enriched('rk-1', PRIMARY_USER.id),

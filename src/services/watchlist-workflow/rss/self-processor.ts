@@ -17,6 +17,7 @@ export async function processRssSelfItems(
   items: CachedRssItem[],
   deps: WorkflowDeps,
 ): Promise<void> {
+  const { signal } = deps.state
   const primaryUser = await deps.db.getPrimaryUser()
   if (!primaryUser) {
     deps.logger.warn('No primary user found, skipping self RSS processing')
@@ -69,6 +70,7 @@ export async function processRssSelfItems(
     },
     deps.itemProcessorDeps,
   )
+  if (signal.aborted) return
 
   const allItems: Item[] = [...processedItems, ...linkedItems]
   if (allItems.length === 0) {
@@ -104,6 +106,7 @@ export async function processRssSelfItems(
   }
 
   await routeEnrichedItemsForUser(primaryUser.id, allItems, deps)
+  if (signal.aborted) return
   await updateAutoApprovalUserAttribution(deps)
   deps.state.scheduleDebouncedStatusSync(deps)
 }
