@@ -48,6 +48,7 @@ export async function processRssFriendsItems(
   })
 
   for (const [authorUuid, authorItems] of itemsByAuthor) {
+    if (signal.aborted) return
     const userId = await deps.state.lookupUserByUuid(authorUuid, deps)
     if (!userId) {
       deps.logger.debug(

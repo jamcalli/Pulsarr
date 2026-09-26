@@ -254,6 +254,8 @@ describe('handleNewFriendEtagMode', () => {
 
     const result = await handleNewFriendEtagMode(NEW_FRIEND, deps)
 
+    expect(updateAutoApprovalUserAttribution).not.toHaveBeenCalled()
+    expect(parts.scheduleDebouncedStatusSync).not.toHaveBeenCalled()
     expect(parts.etagPoller.establishBaseline).not.toHaveBeenCalled()
     expect(result).toEqual({ success: false, itemsRouted: 0 })
   })

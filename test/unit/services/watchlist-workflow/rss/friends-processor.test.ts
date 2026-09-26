@@ -254,8 +254,13 @@ describe('processRssFriendsItems', () => {
       deps.state.endRun()
     })
 
-    await processRssFriendsItems([rssItem('a1', 'uuid-a')], deps)
+    await processRssFriendsItems(
+      [rssItem('a1', 'uuid-a'), rssItem('b1', 'uuid-b')],
+      deps,
+    )
 
+    expect(parts.lookupUserByUuid).toHaveBeenCalledTimes(1)
+    expect(processItemsForUser).toHaveBeenCalledTimes(1)
     expect(updateAutoApprovalUserAttribution).not.toHaveBeenCalled()
     expect(parts.scheduleDebouncedStatusSync).not.toHaveBeenCalled()
   })

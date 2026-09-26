@@ -89,6 +89,7 @@ export async function handleNewFriendEtagMode(
         )
 
         await routeEnrichedItemsForUser(newFriend.userId, allItemsToRoute, deps)
+        if (signal.aborted) return { success: false, itemsRouted: 0 }
 
         await updateAutoApprovalUserAttribution(deps)
         deps.state.scheduleDebouncedStatusSync(deps)
