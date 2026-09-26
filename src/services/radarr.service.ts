@@ -628,14 +628,22 @@ export class RadarrService {
     }
   }
 
-  // The pending promise is cached so a burst of misses shares one fetch; a failure evicts it
+  // A pending fetch stays shared until it settles; the TTL starts only once it succeeds
   async isTmdbIdExcluded(tmdbId: number): Promise<boolean> {
     if (!this.exclusionTmdbIds || Date.now() >= this.exclusionCacheExpiry) {
-      this.exclusionCacheExpiry = Date.now() + this.EXCLUSION_CACHE_TTL
-      this.exclusionTmdbIds = this.fetchExclusionTmdbIds().catch((err) => {
-        this.exclusionTmdbIds = null
-        throw err
-      })
+      const pending = this.fetchExclusionTmdbIds()
+      this.exclusionTmdbIds = pending
+      this.exclusionCacheExpiry = Number.POSITIVE_INFINITY
+      pending.then(
+        () => {
+          if (this.exclusionTmdbIds === pending) {
+            this.exclusionCacheExpiry = Date.now() + this.EXCLUSION_CACHE_TTL
+          }
+        },
+        () => {
+          if (this.exclusionTmdbIds === pending) this.exclusionTmdbIds = null
+        },
+      )
     }
     return (await this.exclusionTmdbIds).has(tmdbId)
   }

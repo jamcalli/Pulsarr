@@ -797,14 +797,22 @@ export class SonarrService {
     }
   }
 
-  // The pending promise is cached so a burst of misses shares one fetch; a failure evicts it
+  // A pending fetch stays shared until it settles; the TTL starts only once it succeeds
   async isTvdbIdExcluded(tvdbId: number): Promise<boolean> {
     if (!this.exclusionTvdbIds || Date.now() >= this.exclusionCacheExpiry) {
-      this.exclusionCacheExpiry = Date.now() + this.EXCLUSION_CACHE_TTL
-      this.exclusionTvdbIds = this.fetchExclusionTvdbIds().catch((err) => {
-        this.exclusionTvdbIds = null
-        throw err
-      })
+      const pending = this.fetchExclusionTvdbIds()
+      this.exclusionTvdbIds = pending
+      this.exclusionCacheExpiry = Number.POSITIVE_INFINITY
+      pending.then(
+        () => {
+          if (this.exclusionTvdbIds === pending) {
+            this.exclusionCacheExpiry = Date.now() + this.EXCLUSION_CACHE_TTL
+          }
+        },
+        () => {
+          if (this.exclusionTvdbIds === pending) this.exclusionTvdbIds = null
+        },
+      )
     }
     return (await this.exclusionTvdbIds).has(tvdbId)
   }

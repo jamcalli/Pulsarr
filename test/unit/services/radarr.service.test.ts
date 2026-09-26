@@ -18,11 +18,15 @@ const INSTANCE: RadarrInstance = {
   isDefault: true,
 }
 
-function serveExclusions(tmdbIds: number[]): { calls: number } {
+function serveExclusions(
+  tmdbIds: number[],
+  gate?: Promise<void>,
+): { calls: number } {
   const counter = { calls: 0 }
   server.use(
-    http.get(EXCLUSIONS_URL, () => {
+    http.get(EXCLUSIONS_URL, async () => {
       counter.calls++
+      await gate
       return HttpResponse.json({
         page: 1,
         pageSize: 1000,
@@ -74,6 +78,24 @@ describe('RadarrService.isTmdbIdExcluded', () => {
 
     expect(results).toEqual([true, false])
     expect(counter.calls).toBe(1)
+  })
+
+  it('shares a pending fetch that outlives the TTL', async () => {
+    const gate = Promise.withResolvers<void>()
+    const counter = serveExclusions([123], gate.promise)
+    const now = Date.now()
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(now)
+    try {
+      const first = service.isTmdbIdExcluded(123)
+      clock.mockReturnValue(now + 31_000)
+      const second = service.isTmdbIdExcluded(123)
+      gate.resolve()
+
+      await expect(Promise.all([first, second])).resolves.toEqual([true, true])
+      expect(counter.calls).toBe(1)
+    } finally {
+      clock.mockRestore()
+    }
   })
 
   it('serves a second call within the TTL from cache', async () => {

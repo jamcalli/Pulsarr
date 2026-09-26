@@ -82,10 +82,9 @@ async function checkShowExistsViaApi(
   tempItem: TemptRssWatchlistItem,
   targetInstanceIds: number[],
   deps: ContentRoutingDeps,
-): Promise<{ exists: boolean; excluded: boolean; anyChecked: boolean }> {
+): Promise<{ exists: boolean; excluded: boolean; allChecked: boolean }> {
   const tvdbId = extractTvdbId(parseGuids(tempItem.guids))
 
-  let anyChecked = false
   for (const instanceId of targetInstanceIds) {
     const result = await deps.sonarrManager.seriesExistsByTvdbId(
       instanceId,
@@ -94,20 +93,19 @@ async function checkShowExistsViaApi(
     if (!result.checked) {
       deps.logger.warn(
         { error: result.error, instanceId },
-        `Sonarr instance ${instanceId} unavailable for ${tempItem.title}, skipping instance`,
+        `Sonarr instance ${instanceId} could not be checked for ${tempItem.title}`,
       )
-      continue
+      return { exists: false, excluded: false, allChecked: false }
     }
-    anyChecked = true
     if (result.found) {
       return {
         exists: true,
         excluded: result.excluded === true,
-        anyChecked: true,
+        allChecked: true,
       }
     }
   }
-  return { exists: false, excluded: false, anyChecked }
+  return { exists: false, excluded: false, allChecked: true }
 }
 
 // Caller must validate the TMDB ID before calling this
@@ -115,10 +113,9 @@ async function checkMovieExistsViaApi(
   tempItem: TemptRssWatchlistItem,
   targetInstanceIds: number[],
   deps: ContentRoutingDeps,
-): Promise<{ exists: boolean; excluded: boolean; anyChecked: boolean }> {
+): Promise<{ exists: boolean; excluded: boolean; allChecked: boolean }> {
   const tmdbId = extractTmdbId(parseGuids(tempItem.guids))
 
-  let anyChecked = false
   for (const instanceId of targetInstanceIds) {
     const result = await deps.radarrManager.movieExistsByTmdbId(
       instanceId,
@@ -127,20 +124,19 @@ async function checkMovieExistsViaApi(
     if (!result.checked) {
       deps.logger.warn(
         { error: result.error, instanceId },
-        `Radarr instance ${instanceId} unavailable for ${tempItem.title}, skipping instance`,
+        `Radarr instance ${instanceId} could not be checked for ${tempItem.title}`,
       )
-      continue
+      return { exists: false, excluded: false, allChecked: false }
     }
-    anyChecked = true
     if (result.found) {
       return {
         exists: true,
         excluded: result.excluded === true,
-        anyChecked: true,
+        allChecked: true,
       }
     }
   }
-  return { exists: false, excluded: false, anyChecked }
+  return { exists: false, excluded: false, allChecked: true }
 }
 
 async function sendRoutingNotification(
@@ -237,16 +233,16 @@ export async function routeShow(
       return { routed: false, skippedReason: 'exists-in-target' }
     }
   } else {
-    const { exists, excluded, anyChecked } = await checkShowExistsViaApi(
+    const { exists, excluded, allChecked } = await checkShowExistsViaApi(
       tempItem,
       targetInstanceIds,
       deps,
     )
 
-    if (!anyChecked) {
+    if (!allChecked) {
       deps.logger.warn(
         { title: tempItem.title, targetInstanceIds },
-        'No Sonarr instances available to check existence, skipping item',
+        'Not every target Sonarr instance could be checked, skipping item',
       )
       return { routed: false, skippedReason: 'no-instances-available' }
     }
@@ -359,16 +355,16 @@ export async function routeMovie(
       return { routed: false, skippedReason: 'exists-in-target' }
     }
   } else {
-    const { exists, excluded, anyChecked } = await checkMovieExistsViaApi(
+    const { exists, excluded, allChecked } = await checkMovieExistsViaApi(
       tempItem,
       targetInstanceIds,
       deps,
     )
 
-    if (!anyChecked) {
+    if (!allChecked) {
       deps.logger.warn(
         { title: tempItem.title, targetInstanceIds },
-        'No Radarr instances available to check existence, skipping item',
+        'Not every target Radarr instance could be checked, skipping item',
       )
       return { routed: false, skippedReason: 'no-instances-available' }
     }
