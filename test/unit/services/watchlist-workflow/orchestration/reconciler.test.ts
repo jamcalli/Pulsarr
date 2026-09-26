@@ -300,6 +300,27 @@ describe('reconcile', () => {
     expect(handleNewFriendEtagMode).not.toHaveBeenCalled()
   })
 
+  it('stops handling added friends once the run ends', async () => {
+    const friend = (userId: number) => ({
+      userId,
+      username: `friend-${userId}`,
+      watchlistId: `wl-${userId}`,
+      isPrimary: false,
+    })
+    parts.plexService.checkFriendChanges.mockResolvedValue(
+      friendChanges({ added: [friend(5), friend(6)] }),
+    )
+    vi.mocked(handleNewFriendEtagMode).mockImplementationOnce(async () => {
+      state.endRun()
+      return { success: false, itemsRouted: 0 }
+    })
+
+    await reconcile({ mode: 'etag' }, deps)
+
+    expect(handleNewFriendEtagMode).toHaveBeenCalledTimes(1)
+    expect(etagPollerMock.methods.checkAllEtags).not.toHaveBeenCalled()
+  })
+
   it('passes removed friends to the removal handler', async () => {
     const removedFriend = {
       userId: 6,
@@ -355,6 +376,42 @@ describe('reconcile', () => {
       change: withItems,
     })
     expect(routeNewItemsForUser).not.toHaveBeenCalled()
+  })
+
+  it('neither routes nor queues etag changes when a new run opens during the health check', async () => {
+    etagPollerMock.methods.checkAllEtags.mockResolvedValue([etagResult()])
+    vi.mocked(checkInstanceHealth).mockImplementationOnce(async () => {
+      state.endRun()
+      state.beginRun()
+      return {
+        available: false,
+        sonarrUnavailable: [1],
+        radarrUnavailable: [],
+        plexServerUnreachable: false,
+      }
+    })
+
+    await reconcile({ mode: 'etag' }, deps)
+
+    expect(parts.enqueue).not.toHaveBeenCalled()
+    expect(routeNewItemsForUser).not.toHaveBeenCalled()
+  })
+
+  it('stops routing etag changes and skips follow-ups when the run ends mid-route', async () => {
+    etagPollerMock.methods.checkAllEtags.mockResolvedValue([
+      etagResult(),
+      etagResult({ userId: 2, isPrimary: false }),
+    ])
+    vi.mocked(routeNewItemsForUser).mockImplementationOnce(async () => {
+      state.endRun()
+    })
+
+    await reconcile({ mode: 'etag' }, deps)
+
+    expect(routeNewItemsForUser).toHaveBeenCalledTimes(1)
+    expect(updateAutoApprovalUserAttribution).not.toHaveBeenCalled()
+    expect(parts.scheduleDebouncedStatusSync).not.toHaveBeenCalled()
+    expect(state.lastSuccessfulSyncTime).toBe(0)
   })
 
   it('leaves the last successful sync time untouched when no etag changed', async () => {

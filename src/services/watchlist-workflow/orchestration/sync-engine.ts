@@ -34,6 +34,7 @@ export async function syncWatchlistItems(
   deps: WorkflowDeps,
 ): Promise<SyncResult> {
   deps.logger.info('Performing watchlist item sync')
+  const { signal } = deps.state
 
   try {
     deps.fastify.plexServerService.clearPlexResourcesCache()
@@ -212,6 +213,7 @@ export async function syncWatchlistItems(
     const processingResults = await Promise.allSettled(
       allWatchlistItems.map((item) =>
         limit(async () => {
+          if (signal.aborted) return { type: 'skipped', reason: 'aborted' }
           try {
             const numericUserId = item.user_id
 
@@ -437,6 +439,7 @@ export async function syncWatchlistItems(
       'Watchlist sync completed',
     )
 
+    if (signal.aborted) return summary
     await updateAutoApprovalUserAttribution(deps, { shows, movies, userById })
 
     try {

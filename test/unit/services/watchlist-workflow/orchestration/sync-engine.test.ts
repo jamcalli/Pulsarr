@@ -259,6 +259,22 @@ describe('syncWatchlistItems', () => {
     })
   })
 
+  it('routes nothing and skips post-sync tasks when the run ends before routing', async () => {
+    parts.db.getAllShowWatchlistItems.mockResolvedValue([showItem()])
+    parts.db.getAllMovieWatchlistItems.mockResolvedValue([movieItem()])
+    parts.sonarrManager.fetchAllSeries.mockImplementationOnce(async () => {
+      deps.state.endRun()
+      return []
+    })
+
+    await syncWatchlistItems(deps)
+
+    expect(routeShow).not.toHaveBeenCalled()
+    expect(routeMovie).not.toHaveBeenCalled()
+    expect(updateAutoApprovalUserAttribution).not.toHaveBeenCalled()
+    expect(parts.statusService.syncAllStatuses).not.toHaveBeenCalled()
+  })
+
   it('skips items owned by a user with sync disabled', async () => {
     parts.db.getAllUsers.mockResolvedValue([
       PRIMARY_USER,
