@@ -1,12 +1,4 @@
-/**
- * Watchlist Cap Gate Module
- *
- * Determines which pending watchlist items should be skipped because
- * the owning user has reached their watchlist cap.
- *
- * Binary gate: total items (all statuses) > cap → skip ALL pending items
- * for that user+contentType. Bypass-approval users are exempt.
- */
+// Binary gate: once a user's total items for a content type exceed the cap, every pending one is skipped
 
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 import type { DatabaseService } from '@services/database.service.js'
@@ -30,14 +22,6 @@ export interface WatchlistCapGateResult {
   cappedEntries: CappedEntry[]
 }
 
-/**
- * Evaluates watchlist caps and returns the set of item IDs that should be
- * skipped during sync because their owner has hit their cap.
- *
- * @param deps - Database and logger
- * @param allWatchlistItems - Combined show + movie watchlist items
- * @returns Set of item IDs to skip and total skipped count
- */
 export async function evaluateWatchlistCaps(
   deps: WatchlistCapGateDeps,
   allWatchlistItems: TokenWatchlistItem[],
@@ -57,7 +41,6 @@ export async function evaluateWatchlistCaps(
     capsMap.set(`${row.userId}:${row.contentType}`, row.watchlistCap)
   }
 
-  // Count total items per user+type (all statuses)
   const totalCounts = new Map<string, number>()
   const pendingItems = new Map<string, TokenWatchlistItem[]>()
 
@@ -73,7 +56,6 @@ export async function evaluateWatchlistCaps(
     }
   }
 
-  // Build skip set — binary gate: total > cap → skip ALL pending
   for (const [mapKey, cap] of capsMap) {
     const total = totalCounts.get(mapKey) ?? 0
     const pending = pendingItems.get(mapKey) ?? []
@@ -95,7 +77,7 @@ export async function evaluateWatchlistCaps(
           cap,
           pendingSkipped: pending.length,
         },
-        'Watchlist cap reached — skipping all pending items',
+        'Watchlist cap reached, skipping all pending items',
       )
       cappedEntries.push({
         userId: numericUserId,

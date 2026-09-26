@@ -1,5 +1,5 @@
 # Node image for hosts whose kernel cannot run Bun
-FROM node:24.20.0-alpine@sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf AS builder
+FROM node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS builder
 WORKDIR /app
 
 ARG TMDBAPIKEY
@@ -9,7 +9,7 @@ ENV tmdbApiKey=${TMDBAPIKEY}
 COPY package.json ./package.json.bak
 RUN cat package.json.bak \
     | sed 's|"file:packages/better-sqlite3-bun"|"13.0.3"|' \
-    | sed '/"better-sqlite3":/a\    "tsx": "^4.23.13",' \
+    | sed '/"better-sqlite3":/a\    "tsx": "^4.23.15",' \
     | sed 's|bun run build:server|npm run build:server|g' \
     | sed 's|bun run clean:server|npm run clean:server|g' \
     | sed 's|bun run clean:client|npm run clean:client|g' \
@@ -32,7 +32,7 @@ RUN npm prune --omit=dev && \
            node_modules/@rollup \
            node_modules/rolldown node_modules/@rolldown
 
-FROM node:24.20.0-alpine@sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf
+FROM node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1
 WORKDIR /app
 
 # tini reaps zombies as PID 1, wget serves the healthcheck, su-exec drops privileges in the entrypoint

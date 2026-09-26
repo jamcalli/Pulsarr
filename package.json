@@ -114,7 +114,7 @@
     "undici": "^6.27.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.12",
+    "@biomejs/biome": "^2.5.14",
     "@commitlint/cli": "^21.0.0",
     "@commitlint/config-conventional": "^21.0.0",
     "@epic-web/invariant": "^1.0.0",
@@ -154,7 +154,7 @@
     "@vitest/coverage-v8": "^5.0.0",
     "@vitest/ui": "^5.0.0",
     "autoprefixer": "^10.4.20",
-    "bun-types": "1.4.1",
+    "bun-types": "1.4.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
