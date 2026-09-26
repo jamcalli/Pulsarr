@@ -280,6 +280,20 @@ describe('handleStaggeredPollResult', () => {
     expect(parts.enqueue).not.toHaveBeenCalled()
   })
 
+  it('skips post-routing tasks when the run ends during routing', async () => {
+    vi.mocked(processItemsForUser).mockResolvedValue(
+      processedResult([enrichedItem('processed')], []),
+    )
+    vi.mocked(routeEnrichedItemsForUser).mockImplementationOnce(async () => {
+      deps.state.endRun()
+    })
+
+    await handleStaggeredPollResult(pollResult(), deps)
+
+    expect(updateAutoApprovalUserAttribution).not.toHaveBeenCalled()
+    expect(parts.scheduleDebouncedStatusSync).not.toHaveBeenCalled()
+  })
+
   it('stays cancelled when a new run opens during processing', async () => {
     vi.mocked(processItemsForUser).mockImplementation(async () => {
       deps.state.endRun()
@@ -537,6 +551,27 @@ describe('refreshFriendsForStaggeredPolling', () => {
         isPrimary: false,
       },
     ])
+  })
+
+  it('skips follow-ups and the baseline when the run ends while routing a new friend', async () => {
+    const newFriend = {
+      userId: 11,
+      username: 'new-friend',
+      watchlistId: 'wl-11',
+      isPrimary: false,
+    }
+    parts.plexService.checkFriendChanges.mockResolvedValue(
+      friendChanges({ added: [newFriend] }),
+    )
+    vi.mocked(routeEnrichedItemsForUser).mockImplementationOnce(async () => {
+      state.endRun()
+    })
+
+    await refreshFriendsForStaggeredPolling(deps)
+
+    expect(routeEnrichedItemsForUser).toHaveBeenCalledTimes(1)
+    expect(updateAutoApprovalUserAttribution).not.toHaveBeenCalled()
+    expect(parts.etagPoller.establishBaseline).not.toHaveBeenCalled()
   })
 
   it('falls back to the supplied cache when the friend check fails', async () => {

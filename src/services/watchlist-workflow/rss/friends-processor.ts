@@ -17,6 +17,7 @@ export async function processRssFriendsItems(
   items: CachedRssItem[],
   deps: WorkflowDeps,
 ): Promise<void> {
+  const { signal } = deps.state
   const itemsByAuthor = new Map<string, CachedRssItem[]>()
   const itemsWithoutAuthor: CachedRssItem[] = []
 
@@ -47,6 +48,7 @@ export async function processRssFriendsItems(
   })
 
   for (const [authorUuid, authorItems] of itemsByAuthor) {
+    if (signal.aborted) return
     const userId = await deps.state.lookupUserByUuid(authorUuid, deps)
     if (!userId) {
       deps.logger.debug(
@@ -99,6 +101,7 @@ export async function processRssFriendsItems(
       },
       deps.itemProcessorDeps,
     )
+    if (signal.aborted) return
 
     const allItems: Item[] = [...processedItems, ...linkedItems]
     if (allItems.length === 0) {
@@ -137,6 +140,7 @@ export async function processRssFriendsItems(
     await routeEnrichedItemsForUser(userId, allItems, deps)
   }
 
+  if (signal.aborted) return
   await updateAutoApprovalUserAttribution(deps)
   deps.state.scheduleDebouncedStatusSync(deps)
 }

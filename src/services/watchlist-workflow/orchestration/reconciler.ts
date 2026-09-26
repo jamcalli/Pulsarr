@@ -37,6 +37,7 @@ async function waitForInProgressReconciliation(
 
 async function handleEtagModeChanges(
   changes: Awaited<ReturnType<EtagPoller['checkAllEtags']>>,
+  signal: AbortSignal,
   deps: WorkflowDeps,
 ): Promise<void> {
   const changesWithNewItems = changes.filter(
@@ -55,6 +56,7 @@ async function handleEtagModeChanges(
     deferredRoutingQueue: deps.state.deferredRoutingQueue,
     logger: deps.logger,
   })
+  if (signal.aborted) return
 
   if (!health.available) {
     deps.logger.warn(
@@ -84,9 +86,11 @@ async function handleEtagModeChanges(
   )
 
   for (const change of changesWithNewItems) {
+    if (signal.aborted) return
     await routeNewItemsForUser(change, deps)
   }
 
+  if (signal.aborted) return
   await updateAutoApprovalUserAttribution(deps)
   deps.state.scheduleDebouncedStatusSync(deps)
 }
@@ -130,6 +134,7 @@ export async function reconcile(
     deps.state.updatePlexUuidCache(friendChanges.userMap, deps.logger)
 
     for (const newFriend of friendChanges.added) {
+      if (signal.aborted) return
       if (options.mode === 'etag') {
         await handleNewFriendEtagMode(newFriend, deps)
       } else {
@@ -160,13 +165,15 @@ export async function reconcile(
       deps.logger.debug('Checking for watchlist changes')
 
       const changes = await etagPoller.checkAllEtags(primaryUser.id, friends)
+      if (signal.aborted) return
 
       if (changes.length === 0) {
         deps.logger.debug('No watchlist changes detected')
         return
       }
 
-      await handleEtagModeChanges(changes, deps)
+      await handleEtagModeChanges(changes, signal, deps)
+      if (signal.aborted) return
 
       deps.state.lastSuccessfulSyncTime = Date.now()
       deps.logger.debug('Watchlist change check completed')

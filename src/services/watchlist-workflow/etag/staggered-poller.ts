@@ -118,6 +118,7 @@ export async function handleStaggeredPollResult(
   const allItemsToRoute: Item[] = [...processedItems, ...linkedItems]
   if (allItemsToRoute.length > 0) {
     await routeEnrichedItemsForUser(result.userId, allItemsToRoute, deps)
+    if (signal.aborted) return
     await updateAutoApprovalUserAttribution(deps)
     deps.state.scheduleDebouncedStatusSync(deps)
   }
@@ -216,6 +217,9 @@ export async function refreshFriendsForStaggeredPolling(
               allItemsToRoute,
               deps,
             )
+            if (signal.aborted) {
+              return buildEtagUserInfoFromMap(deps.state.plexUuidCache)
+            }
 
             await updateAutoApprovalUserAttribution(deps)
             deps.state.scheduleDebouncedStatusSync(deps)

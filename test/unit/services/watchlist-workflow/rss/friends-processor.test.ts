@@ -231,6 +231,40 @@ describe('processRssFriendsItems', () => {
     expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
   })
 
+  it('stays cancelled when a new run opens during processing', async () => {
+    vi.mocked(processItemsForUser).mockImplementationOnce(async (input) => {
+      deps.state.endRun()
+      deps.state.beginRun()
+      return processedResult(input.items as Item[], [])
+    })
+
+    await processRssFriendsItems(
+      [rssItem('a1', 'uuid-a'), rssItem('b1', 'uuid-b')],
+      deps,
+    )
+
+    expect(processItemsForUser).toHaveBeenCalledTimes(1)
+    expect(routeEnrichedItemsForUser).not.toHaveBeenCalled()
+    expect(queueForDeferredRouting).not.toHaveBeenCalled()
+    expect(updateAutoApprovalUserAttribution).not.toHaveBeenCalled()
+  })
+
+  it('skips post-routing tasks when the run ends during routing', async () => {
+    vi.mocked(routeEnrichedItemsForUser).mockImplementationOnce(async () => {
+      deps.state.endRun()
+    })
+
+    await processRssFriendsItems(
+      [rssItem('a1', 'uuid-a'), rssItem('b1', 'uuid-b')],
+      deps,
+    )
+
+    expect(parts.lookupUserByUuid).toHaveBeenCalledTimes(1)
+    expect(processItemsForUser).toHaveBeenCalledTimes(1)
+    expect(updateAutoApprovalUserAttribution).not.toHaveBeenCalled()
+    expect(parts.scheduleDebouncedStatusSync).not.toHaveBeenCalled()
+  })
+
   it('runs the post-routing tasks on an empty feed', async () => {
     await processRssFriendsItems([], deps)
 

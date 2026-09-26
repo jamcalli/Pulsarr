@@ -35,12 +35,14 @@ export async function handleNewFriendEtagMode(
     { userId: newFriend.userId, username: newFriend.username },
     'New friend detected',
   )
+  const { signal } = deps.state
 
   try {
     const { brandNewItems, linkedItems } = await syncSingleFriend(
       newFriend,
       deps,
     )
+    if (signal.aborted) return { success: false, itemsRouted: 0 }
 
     const allItemsToRoute = [...brandNewItems, ...linkedItems]
 
@@ -61,6 +63,7 @@ export async function handleNewFriendEtagMode(
         },
         'new-friend',
       )
+      if (signal.aborted) return { success: false, itemsRouted: 0 }
 
       if (!shouldRoute) {
         deps.logger.warn(
@@ -86,12 +89,14 @@ export async function handleNewFriendEtagMode(
         )
 
         await routeEnrichedItemsForUser(newFriend.userId, allItemsToRoute, deps)
+        if (signal.aborted) return { success: false, itemsRouted: 0 }
 
         await updateAutoApprovalUserAttribution(deps)
         deps.state.scheduleDebouncedStatusSync(deps)
       }
     }
 
+    if (signal.aborted) return { success: false, itemsRouted: 0 }
     // Baseline only after a successful sync, otherwise the failed items are never seen again
     if (deps.state.etagPoller) {
       await deps.state.etagPoller.establishBaseline(newFriend)
