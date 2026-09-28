@@ -433,6 +433,30 @@ export class SonarrManagerService {
     }
 
     const result = await sonarrService.seriesExistsByTvdbId(tvdbId)
+    if (result.checked && !result.found) {
+      const instance = await this.fastify.db.getSonarrInstance(instanceId)
+      if (instance && !instance.bypassIgnored) {
+        try {
+          if (await sonarrService.isTvdbIdExcluded(tvdbId)) {
+            return {
+              found: true,
+              checked: true,
+              excluded: true,
+              serviceName: 'Sonarr',
+              instanceId,
+            }
+          }
+        } catch (err) {
+          return {
+            found: false,
+            checked: false,
+            serviceName: 'Sonarr',
+            instanceId,
+            error: err instanceof Error ? err.message : String(err),
+          }
+        }
+      }
+    }
     // Add instance ID to the result
     return { ...result, instanceId }
   }

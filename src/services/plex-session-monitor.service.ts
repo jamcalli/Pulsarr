@@ -128,7 +128,7 @@ export class PlexSessionMonitorService {
 
   /**
    * Handle SSE playing events for immediate session processing.
-   * Only processes meaningful state transitions (new sessions, state changes).
+   * Only processes sessions the tracker reports as newly started or changed media.
    * Falls back gracefully if the REST hydration call fails.
    */
   async handlePlayingEvent(
@@ -139,16 +139,9 @@ export class PlexSessionMonitorService {
     const tracker = this.plexServer.getSessionTracker()
     if (!tracker) return
 
-    const transitions: PlexPlaySessionNotification[] = []
-    for (const notification of notifications) {
-      const isTransition = tracker.handlePlayingEvent(notification)
-      if (!isTransition) continue
-
-      // Stopped sessions just get removed from tracking, no processing needed
-      if (notification.state === 'stopped') continue
-
-      transitions.push(notification)
-    }
+    const transitions = notifications.filter((notification) =>
+      tracker.handlePlayingEvent(notification),
+    )
 
     if (transitions.length === 0) return
 
@@ -158,47 +151,66 @@ export class PlexSessionMonitorService {
     } catch (error) {
       this.log.warn(
         { error },
-        'Failed to resolve user filter for SSE event - polling will catch it',
+        'Failed to resolve user filter for SSE event - will retry on the next event',
       )
+      for (const notification of transitions) {
+        tracker.forget(notification.sessionKey)
+      }
+      return
+    }
+
+    let sessions: PlexSession[]
+    try {
+      sessions = await this.plexServer.getActiveSessions()
+    } catch (error) {
+      this.log.warn(
+        { error },
+        'Failed to hydrate session from SSE event - will retry on the next event',
+      )
+      for (const notification of transitions) {
+        tracker.forget(notification.sessionKey)
+      }
       return
     }
 
     for (const notification of transitions) {
-      // For new/resumed sessions, hydrate full session data from the REST API
-      // so we can reuse the existing processSession logic
+      const result: SessionMonitoringResult = {
+        processedSessions: 0,
+        triggeredSearches: 0,
+        errors: [],
+        rollingUpdates: [],
+      }
+
+      // The REST list can lag the event by one item; a sessionKey match on the old ratingKey is not this playback yet
+      const session = sessions.find(
+        (candidate) =>
+          candidate.sessionKey === notification.sessionKey &&
+          candidate.ratingKey === notification.ratingKey,
+      )
+      if (!session) {
+        tracker.forget(notification.sessionKey)
+        continue
+      }
+      if (session.type !== 'episode') continue
+
       try {
-        const sessions = await this.plexServer.getActiveSessions()
-        const result: SessionMonitoringResult = {
-          processedSessions: 0,
-          triggeredSearches: 0,
-          errors: [],
-          rollingUpdates: [],
-        }
-
-        // Match on sessionKey - unique per playback session and present in
-        // both the SSE event and the REST session response
-        for (const session of sessions) {
-          if (session.type !== 'episode') continue
-
-          if (session.sessionKey === notification.sessionKey) {
-            await this.processSession(session, result, isUserAllowed)
-            break
-          }
-        }
-
-        if (result.triggeredSearches > 0) {
-          this.log.info(
-            {
-              ratingKey: notification.ratingKey,
-              searches: result.triggeredSearches,
-            },
-            'SSE playing event triggered search',
-          )
-        }
+        await this.processSession(session, result, isUserAllowed)
       } catch (error) {
+        tracker.forget(notification.sessionKey)
         this.log.warn(
           { error, ratingKey: notification.ratingKey },
-          'Failed to hydrate session from SSE event - polling will catch it',
+          'Failed to process session from SSE event - will retry on the next event',
+        )
+        continue
+      }
+
+      if (result.triggeredSearches > 0) {
+        this.log.info(
+          {
+            ratingKey: notification.ratingKey,
+            searches: result.triggeredSearches,
+          },
+          'SSE playing event triggered search',
         )
       }
     }
@@ -250,7 +262,7 @@ export class PlexSessionMonitorService {
 
     const episodeInfo = `${session.grandparentTitle} S${String(session.parentIndex).padStart(2, '0')}E${String(session.index).padStart(2, '0')}`
     this.log.info(
-      `Processing session: ${episodeInfo} watched by ${session.User.title}`,
+      `Processing session: ${episodeInfo} watched by ${session.User.title} (session ${session.sessionKey}, item ${session.ratingKey})`,
     )
 
     // Synced shows have one rolling entry per instance, so process all of them.
@@ -611,7 +623,7 @@ export class PlexSessionMonitorService {
       return resolved
     } catch (error) {
       this.log.error({ error }, 'Error getting rolling monitored shows:')
-      return []
+      throw error
     }
   }
 

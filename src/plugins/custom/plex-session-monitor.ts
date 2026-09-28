@@ -25,10 +25,14 @@ export default fp(
     fastify.addHook('onReady', async () => {
       try {
         // Subscribe to SSE playing events for immediate session processing
+        let playingChain: Promise<void> = Promise.resolve()
         fastify.plexServerService.onSSE('playing', (notifications) => {
-          if (fastify.config.plexSessionMonitoring?.enabled) {
-            void service.handlePlayingEvent(notifications)
-          }
+          if (!fastify.config.plexSessionMonitoring?.enabled) return
+          playingChain = playingChain
+            .then(() => service.handlePlayingEvent(notifications))
+            .catch((error) => {
+              fastify.log.error({ error }, 'SSE playing handler failed')
+            })
         })
 
         // On SSE disconnect, run one immediate poll to bridge the gap

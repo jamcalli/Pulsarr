@@ -44,6 +44,7 @@ export interface DeferredRoutingQueueDeps {
   sonarrManager: SonarrManagerService
   radarrManager: RadarrManagerService
   callbacks: DeferredRoutingCallbacks
+  signal: AbortSignal
   log: FastifyBaseLogger
 }
 
@@ -62,12 +63,14 @@ export class DeferredRoutingQueue {
   private readonly sonarrManager: SonarrManagerService
   private readonly radarrManager: RadarrManagerService
   private readonly callbacks: DeferredRoutingCallbacks
+  private readonly signal: AbortSignal
   private readonly log: FastifyBaseLogger
 
   constructor(deps: DeferredRoutingQueueDeps) {
     this.sonarrManager = deps.sonarrManager
     this.radarrManager = deps.radarrManager
     this.callbacks = deps.callbacks
+    this.signal = deps.signal
     this.log = deps.log
   }
 
@@ -75,8 +78,8 @@ export class DeferredRoutingQueue {
    * Start the health check timer for periodic queue drain attempts
    */
   start(): void {
-    if (this.healthCheckTimer) {
-      return // Already running
+    if (this.healthCheckTimer || this.signal.aborted) {
+      return
     }
 
     this.healthCheckTimer = setInterval(
@@ -142,6 +145,10 @@ export class DeferredRoutingQueue {
    */
   private async checkHealthAndDrain(): Promise<void> {
     try {
+      if (this.signal.aborted) {
+        this.stop()
+        return
+      }
       if (this.queue.length === 0) {
         return
       }
@@ -185,6 +192,11 @@ export class DeferredRoutingQueue {
 
       // Process all queued items through their original entry points
       for (const entry of toProcess) {
+        // a drain started before stop must not route into the next workflow run
+        if (this.signal.aborted) {
+          return
+        }
+
         try {
           switch (entry.type) {
             case 'etag':
@@ -207,7 +219,9 @@ export class DeferredRoutingQueue {
       // If queue is fully drained, notify caller
       if (this.queue.length === 0) {
         this.log.info('Deferred queue fully drained')
-        this.callbacks.onDrained()
+        if (!this.signal.aborted) {
+          this.callbacks.onDrained()
+        }
       } else {
         this.log.info(
           { remaining: this.queue.length },

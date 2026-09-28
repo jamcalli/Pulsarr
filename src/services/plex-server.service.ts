@@ -1582,12 +1582,10 @@ export class PlexServerService {
     this.timelineDebouncer?.onContentScanned(handler)
   }
 
-  /**
-   * On SSE reconnect, hydrate the session tracker with any sessions that
-   * started while we were disconnected.
-   */
+  /** Drop pre-disconnect entries so recycled session keys after a Plex restart fire again, then seed live sessions. */
   private async reconcileSessionsOnConnect(): Promise<void> {
     try {
+      this.sessionTracker?.clear()
       const liveSessions = await this.getActiveSessions()
       if (liveSessions.length === 0) return
 

@@ -1,89 +1,31 @@
-/**
- * Workflow Starter Module
- *
- * Handles workflow initialization including Plex connectivity verification,
- * RSS feed setup, and component initialization.
- */
-
-import type { EtagPollResult, Item } from '@root/types/plex.types.js'
 import { DeferredRoutingQueue } from '@services/deferred-routing-queue.service.js'
 import { RssFeedCacheManager } from '@services/plex-watchlist/cache/rss-feed-cache.js'
-import type { PlexWatchlistService } from '@services/plex-watchlist.service.js'
-import type { RadarrManagerService } from '@services/radarr-manager.service.js'
-import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
-import type { FastifyBaseLogger } from 'fastify'
+import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
+import {
+  routeEnrichedItemsForUser,
+  routeNewItemsForUser,
+} from '../routing/item-router.js'
+import type { WorkflowDeps } from '../types.js'
+import { runPeriodicReconciliation } from './reconciliation-tick.js'
+import {
+  cleanupExistingManualSync,
+  setupPeriodicReconciliation,
+} from './scheduler.js'
 
-/**
- * Dependencies for workflow initialization
- */
-export interface WorkflowStartDeps {
-  logger: FastifyBaseLogger
-  plexService: PlexWatchlistService
-  sonarrManager: SonarrManagerService
-  radarrManager: RadarrManagerService
-  /** Callback to cleanup existing manual sync jobs */
-  cleanupExistingManualSync: () => Promise<void>
-  /** Callback to setup periodic reconciliation */
-  setupPeriodicReconciliation: () => Promise<void>
-  /** Callback for routing ETag changes (bound from service) */
-  routeEtagChange: (change: EtagPollResult) => Promise<void>
-  /** Callback for routing items for user (bound from service) */
-  routeItemsForUser: (userId: number, items: Item[]) => Promise<void>
-  /** Callback for post-queue-drain tasks (bound from service) */
-  onQueueDrained: () => void
-}
+export async function initializeWorkflow(deps: WorkflowDeps): Promise<void> {
+  // stop() aborts this signal mid-start; nothing may be published after that
+  const { signal } = deps.state
 
-/**
- * Result of workflow initialization
- */
-export interface WorkflowInitResult {
-  /** Whether RSS mode is enabled */
-  rssMode: boolean
-  /** Whether using RSS fallback (manual sync mode) */
-  isEtagFallbackActive: boolean
-  /** RSS feed cache manager instance (null if RSS mode disabled) */
-  rssFeedCache: RssFeedCacheManager | null
-  /** Deferred routing queue instance */
-  deferredRoutingQueue: DeferredRoutingQueue
-}
-
-/**
- * Initialize workflow components.
- *
- * This function handles:
- * 1. Cleaning up existing manual sync jobs
- * 2. Verifying Plex connectivity
- * 3. Generating RSS feeds (or falling back to manual sync)
- * 4. Setting up periodic reconciliation
- * 5. Creating the deferred routing queue
- *
- * Timer management (RSS check interval, ETag check interval) and
- * reconciliation execution remain in the service since they manage
- * service-level state.
- *
- * @param deps - Initialization dependencies
- * @returns Initialized components and mode flags
- */
-export async function initializeWorkflow(
-  deps: WorkflowStartDeps,
-): Promise<WorkflowInitResult> {
-  let rssMode = false
-  let isEtagFallbackActive = false
-  let rssFeedCache: RssFeedCacheManager | null = null
-
-  // Clean up any existing manual sync jobs from previous runs
   try {
     deps.logger.debug('Cleaning up existing manual sync jobs')
-    await deps.cleanupExistingManualSync()
+    await cleanupExistingManualSync(deps)
   } catch (cleanupError) {
     deps.logger.warn(
       { error: cleanupError },
       'Error during cleanup of existing manual sync jobs (non-fatal)',
     )
-    // Continue despite this error
   }
 
-  // Verify Plex connectivity
   try {
     deps.logger.debug('Verifying Plex connectivity')
     await deps.plexService.pingPlex()
@@ -95,58 +37,60 @@ export async function initializeWorkflow(
     )
     throw new Error('Failed to verify Plex connectivity', { cause: plexError })
   }
+  if (signal.aborted) return
 
-  // Try to generate RSS feeds
+  let rssReady = false
   try {
     deps.logger.debug('Generating RSS feeds')
     await deps.plexService.generateAndSaveRssFeeds()
-
-    // Initialize RSS monitoring if feeds were generated successfully
-    deps.logger.debug(
-      'RSS feeds generated successfully, initializing monitoring',
-    )
-    // Initialize RSS feed cache for item diffing (stable key comparison)
-    rssFeedCache = new RssFeedCacheManager(deps.logger)
-    isEtagFallbackActive = false
-    rssMode = true
+    rssReady = true
   } catch (rssError) {
     deps.logger.warn(
       { error: rssError },
       'Failed to generate RSS feeds, falling back to manual sync',
     )
-    isEtagFallbackActive = true
-    rssMode = false
   }
+  if (signal.aborted) return
 
-  // Set up periodic reconciliation job regardless of RSS mode
+  deps.state.rssFeedCache = rssReady
+    ? new RssFeedCacheManager(deps.logger)
+    : null
+  deps.state.isEtagFallbackActive = !rssReady
+  deps.state.rssMode = rssReady
+
   try {
     deps.logger.debug('Setting up periodic reconciliation job')
-    await deps.setupPeriodicReconciliation()
+    await setupPeriodicReconciliation(
+      (_jobName: string) => runPeriodicReconciliation(deps),
+      deps,
+    )
   } catch (reconciliationError) {
     deps.logger.warn(
       { error: reconciliationError },
       'Failed to setup periodic reconciliation',
     )
-    // Continue despite this error
+  }
+  if (signal.aborted) {
+    await cleanupExistingManualSync(deps)
+    return
   }
 
-  // Initialize deferred routing queue for instance unavailability recovery
   const deferredRoutingQueue = new DeferredRoutingQueue({
     sonarrManager: deps.sonarrManager,
     radarrManager: deps.radarrManager,
     callbacks: {
-      routeEtagChange: deps.routeEtagChange,
-      routeItemsForUser: deps.routeItemsForUser,
-      onDrained: deps.onQueueDrained,
+      routeEtagChange: (change) => routeNewItemsForUser(change, deps),
+      routeItemsForUser: (userId, items) =>
+        routeEnrichedItemsForUser(userId, items, deps),
+      onDrained: () => {
+        void updateAutoApprovalUserAttribution(deps)
+        deps.state.scheduleDebouncedStatusSync(deps)
+      },
     },
+    signal: deps.state.signal,
     log: deps.logger,
   })
+  deps.state.deferredRoutingQueue?.stop()
+  deps.state.deferredRoutingQueue = deferredRoutingQueue
   deferredRoutingQueue.start()
-
-  return {
-    rssMode,
-    isEtagFallbackActive,
-    rssFeedCache,
-    deferredRoutingQueue,
-  }
 }

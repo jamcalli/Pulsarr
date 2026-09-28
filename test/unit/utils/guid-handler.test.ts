@@ -1,5 +1,7 @@
 import {
   buildPlexGuid,
+  canonicalImdbId,
+  canonicalNumericId,
   collectGuidsFromMetadata,
   createGuidSet,
   extractImdbId,
@@ -296,25 +298,58 @@ describe('guid-handler', () => {
     })
   })
 
+  describe('canonicalImdbId', () => {
+    it('should preserve the zero padding IMDb IDs carry', () => {
+      expect(canonicalImdbId('tt0094625')).toBe('tt0094625')
+    })
+
+    it('should add the tt prefix when it is absent', () => {
+      expect(canonicalImdbId('0094625')).toBe('tt0094625')
+    })
+
+    it('should reject non numeric values', () => {
+      expect(canonicalImdbId('ttinvalid')).toBeUndefined()
+      expect(canonicalImdbId('movie')).toBeUndefined()
+    })
+  })
+
+  describe('canonicalNumericId', () => {
+    it('should strip padding so it matches the parsed lookup form', () => {
+      expect(canonicalNumericId('0123')).toBe('123')
+      expect(canonicalNumericId('72025')).toBe('72025')
+    })
+
+    it('should reject the non numeric placeholders anime-lists uses', () => {
+      expect(canonicalNumericId('movie')).toBeUndefined()
+      expect(canonicalNumericId('hentai')).toBeUndefined()
+      expect(canonicalNumericId('123abc')).toBeUndefined()
+    })
+  })
+
   describe('extractImdbId', () => {
     it('should extract IMDb ID from guids array', () => {
       const guids = ['tmdb://12345', 'imdb://tt1234567']
-      expect(extractImdbId(guids)).toBe(1234567)
+      expect(extractImdbId(guids)).toBe('tt1234567')
     })
 
     it('should handle IMDb ID without tt prefix', () => {
       const guids = ['imdb://1234567']
-      expect(extractImdbId(guids)).toBe(1234567)
+      expect(extractImdbId(guids)).toBe('tt1234567')
     })
 
-    it('should return 0 if no IMDb ID found', () => {
+    it('should preserve the zero padding IMDb IDs carry', () => {
+      const guids = ['imdb://tt0094625']
+      expect(extractImdbId(guids)).toBe('tt0094625')
+    })
+
+    it('should return undefined if no IMDb ID found', () => {
       const guids = ['tmdb://12345']
-      expect(extractImdbId(guids)).toBe(0)
+      expect(extractImdbId(guids)).toBeUndefined()
     })
 
-    it('should return 0 for invalid IMDb ID', () => {
+    it('should return undefined for invalid IMDb ID', () => {
       const guids = ['imdb://ttinvalid']
-      expect(extractImdbId(guids)).toBe(0)
+      expect(extractImdbId(guids)).toBeUndefined()
     })
   })
 

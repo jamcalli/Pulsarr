@@ -1,10 +1,3 @@
-/**
- * Sync Engine Module
- *
- * Main sync engine that processes all watchlist items during reconciliation.
- * Handles routing to Sonarr/Radarr with user sync settings respected.
- */
-
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
@@ -16,13 +9,11 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import pLimit from 'p-limit'
+import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
 import { evaluateWatchlistCaps } from '../quota/watchlist-cap-gate.js'
-import { routeMovie, routeShow } from '../routing/index.js'
-import type { SyncEngineDeps } from '../types.js'
+import { routeMovie, routeShow } from '../routing/content-router.js'
+import type { WorkflowDeps } from '../types.js'
 
-/**
- * Result of sync operation
- */
 export interface SyncResult {
   added: {
     shows: number
@@ -39,30 +30,17 @@ export interface SyncResult {
   skippedDueToRouting: number
 }
 
-/**
- * Synchronize watchlist items between Plex, Sonarr, and Radarr.
- *
- * Processes all watchlist items, respecting user sync settings,
- * and ensures items are correctly routed to the appropriate instances.
- *
- * @param deps - Service dependencies
- * @returns Sync result statistics
- */
 export async function syncWatchlistItems(
-  deps: SyncEngineDeps,
+  deps: WorkflowDeps,
 ): Promise<SyncResult> {
   deps.logger.info('Performing watchlist item sync')
+  const { signal } = deps.state
 
   try {
-    // Clear Plex resources cache to ensure fresh data for this reconciliation cycle
     deps.fastify.plexServerService.clearPlexResourcesCache()
 
-    // Clear content availability cache for this reconciliation cycle
-    // This is reconciliation-scoped - cache is rebuilt fresh each cycle
     deps.fastify.plexServerService.clearContentCacheForReconciliation()
 
-    // Check health of all Sonarr/Radarr instances before proceeding
-    // Abort if ANY instance is unavailable to prevent incorrect routing decisions
     const [sonarrHealth, radarrHealth] = await Promise.all([
       deps.sonarrManager.checkInstancesHealth(),
       deps.radarrManager.checkInstancesHealth(),
@@ -111,9 +89,7 @@ export async function syncWatchlistItems(
       }
     }
 
-    // When skipIfExistsOnPlex is enabled, verify the primary Plex server is
-    // reachable before processing. If it's down, existence checks would
-    // return "not found" for everything, causing mass-routing to Sonarr/Radarr.
+    // With skipIfExistsOnPlex on, an unreachable Plex answers not-found for everything and mass-routes
     if (deps.config.skipIfExistsOnPlex) {
       const plexHealth =
         await deps.fastify.plexServerService.checkPlexServerHealth()
@@ -135,41 +111,35 @@ export async function syncWatchlistItems(
       }
     }
 
-    // Get all users to check their sync permissions
     const allUsers = await deps.db.getAllUsers()
     const userSyncStatus = new Map<number, boolean>()
     const userById = new Map<number, (typeof allUsers)[number]>()
 
-    // Create maps for user sync status and user objects for quick lookups (avoids N+1 queries)
     for (const user of allUsers) {
       userSyncStatus.set(user.id, user.can_sync !== false)
       userById.set(user.id, user)
     }
 
-    // Fetch primary user once to avoid N+1 queries during item processing
     const primaryUser = (await deps.db.getPrimaryUser()) ?? null
 
     for (const [userId, canSync] of userSyncStatus.entries()) {
       deps.logger.debug(`User ${userId} can_sync setting: ${canSync}`)
     }
 
-    // Get all shows and movies from watchlists
     const [shows, movies] = await Promise.all([
       deps.db.getAllShowWatchlistItems(),
       deps.db.getAllMovieWatchlistItems(),
     ])
     const allWatchlistItems = [...shows, ...movies]
 
-    // --- Watchlist cap gate ---
     const { skipIds, cappedEntries } = await evaluateWatchlistCaps(
       { db: deps.db, logger: deps.logger },
       allWatchlistItems,
     )
 
-    // --- Exclusion gate ---
     const exclusionMap = await deps.db.getExclusionMap()
 
-    // Fire cap notifications (debounced by notification service)
+    // The notification service debounces these, so repeats per cycle are harmless
     for (const entry of cappedEntries) {
       const user = userById.get(entry.userId)
       deps.notifications.sendWatchlistCapReached({
@@ -181,14 +151,12 @@ export async function syncWatchlistItems(
       })
     }
 
-    // Get all existing series and movies from Sonarr/Radarr
-    // Each instance's bypassIgnored setting determines if exclusions are included
+    // Each instance's bypassIgnored setting decides whether exclusions come back in these fetches
     const [existingSeries, existingMovies] = await Promise.all([
       deps.sonarrManager.fetchAllSeries(),
       deps.radarrManager.fetchAllMovies(),
     ])
 
-    // Statistics tracking
     let showsAdded = 0
     let moviesAdded = 0
     let unmatchedShows = 0
@@ -203,12 +171,10 @@ export async function syncWatchlistItems(
       movies: [],
     }
 
-    // Create a set of all watchlist GUIDs for fast lookup
     const watchlistGuids = new Set(
       allWatchlistItems.flatMap((item) => parseGuids(item.guids)),
     )
 
-    // Check unmatched items in Sonarr/Radarr (for reporting purposes)
     for (const series of existingSeries) {
       const hasMatch = series.guids.some((guid) => watchlistGuids.has(guid))
       if (!hasMatch) {
@@ -237,8 +203,6 @@ export async function syncWatchlistItems(
       }
     }
 
-    // Process watchlist items with rate limiting to prevent overwhelming Plex
-    // Use same concurrency pattern as label sync service
     const concurrencyLimit = deps.config.plexLabelSync?.concurrencyLimit || 5
     const limit = pLimit(concurrencyLimit)
 
@@ -249,6 +213,7 @@ export async function syncWatchlistItems(
     const processingResults = await Promise.allSettled(
       allWatchlistItems.map((item) =>
         limit(async () => {
+          if (signal.aborted) return { type: 'skipped', reason: 'aborted' }
           try {
             const numericUserId = item.user_id
 
@@ -259,7 +224,6 @@ export async function syncWatchlistItems(
               return { type: 'skipped', reason: 'invalid_user_id' }
             }
 
-            // Check if user has sync enabled
             const canSync = userSyncStatus.get(numericUserId)
 
             if (canSync === false) {
@@ -269,12 +233,11 @@ export async function syncWatchlistItems(
               return { type: 'skipped', reason: 'user_setting' }
             }
 
-            // Check watchlist cap gate
             if (skipIds.has(item.id)) {
               return { type: 'skipped', reason: 'watchlist_cap' }
             }
 
-            // Check exclusion gate (per-user or global SYSTEM_USER_ID veto)
+            // SYSTEM_USER_ID in the exclusion set is a global veto, not a per-user one
             const excludedUsers = exclusionMap.get(item.key)
             if (
               excludedUsers?.has(numericUserId) ||
@@ -286,11 +249,9 @@ export async function syncWatchlistItems(
               return { type: 'skipped', reason: 'exclusion' }
             }
 
-            // Parse GUIDs and genres once for reuse
             const parsedGuids = parseGuids(item.guids)
             const parsedGenres = parseGenres(item.genres)
 
-            // Convert item to temp format for processing
             const tempItem: TemptRssWatchlistItem = {
               title: item.title,
               type: item.type,
@@ -300,9 +261,7 @@ export async function syncWatchlistItems(
               key: item.key,
             }
 
-            // Process shows
             if (item.type === 'show') {
-              // Check for TVDB ID using extractTvdbId
               const tvdbId = extractTvdbId(parsedGuids)
 
               if (tvdbId === 0) {
@@ -314,7 +273,6 @@ export async function syncWatchlistItems(
                 }
               }
 
-              // Use helper for routing-aware existence check and routing
               const user = userById.get(numericUserId)
               const sonarrItem: SonarrItem = {
                 title: tempItem.title,
@@ -348,9 +306,7 @@ export async function syncWatchlistItems(
                 skippedReason: result.skippedReason,
               }
             }
-            // Process movies
             if (item.type === 'movie') {
-              // Check for TMDB ID using extractTmdbId
               const tmdbId = extractTmdbId(parsedGuids)
 
               if (tmdbId === 0) {
@@ -362,7 +318,6 @@ export async function syncWatchlistItems(
                 }
               }
 
-              // Use helper for routing-aware existence check and routing
               const user = userById.get(numericUserId)
               const radarrItem: RadarrItem = {
                 title: tempItem.title,
@@ -396,7 +351,6 @@ export async function syncWatchlistItems(
 
             return { type: 'unknown' }
           } catch (error) {
-            // Return error with context instead of throwing
             return {
               type: 'error',
               error,
@@ -409,7 +363,6 @@ export async function syncWatchlistItems(
       ),
     )
 
-    // Aggregate results
     for (const result of processingResults) {
       if (result.status === 'fulfilled') {
         const value = result.value
@@ -450,7 +403,6 @@ export async function syncWatchlistItems(
           )
         }
       } else {
-        // Promise rejection (shouldn't happen with try-catch, but handle defensively)
         deps.logger.error(
           { error: result.reason },
           'Unexpected rejection processing watchlist item',
@@ -458,7 +410,6 @@ export async function syncWatchlistItems(
       }
     }
 
-    // Prepare summary statistics
     const summary: SyncResult = {
       added: {
         shows: showsAdded,
@@ -488,15 +439,9 @@ export async function syncWatchlistItems(
       'Watchlist sync completed',
     )
 
-    // Update auto-approval records to attribute them to actual users
-    await deps.updateAutoApprovalUserAttributionWithPrefetch(
-      shows,
-      movies,
-      userById as Map<number, { id: number; name: string }>,
-    )
+    if (signal.aborted) return summary
+    await updateAutoApprovalUserAttribution(deps, { shows, movies, userById })
 
-    // Sync statuses after adding new content to ensure tags are applied
-    // Pass the already-fetched data to avoid redundant API calls
     try {
       const { shows: showUpdates, movies: movieUpdates } =
         await deps.statusService.syncAllStatuses({
@@ -511,17 +456,14 @@ export async function syncWatchlistItems(
         { error: statusError },
         'Error syncing statuses after watchlist sync (non-fatal)',
       )
-      // Continue despite this error
     }
 
-    // Log warnings about unmatched items
     if (unmatchedShows > 0 || unmatchedMovies > 0) {
       deps.logger.debug(
         `Found ${unmatchedShows} shows and ${unmatchedMovies} movies in Sonarr/Radarr that are not in watchlists`,
       )
     }
 
-    // Log skipped items info
     if (skippedDueToUserSetting > 0) {
       deps.logger.info(
         `Skipped ${skippedDueToUserSetting} items due to user sync settings`,

@@ -24,7 +24,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/api-keys/api-keys": {
+    "/v1/api-keys/": {
         parameters: {
             query?: never;
             header?: never;
@@ -48,7 +48,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/api-keys/api-keys/{id}": {
+    "/v1/api-keys/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2356,6 +2356,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/users/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create user
+         * @description Create a new user with the provided information
+         */
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/users/alias-readiness": {
         parameters: {
             query?: never;
@@ -2430,6 +2450,46 @@ export interface paths {
          * @description Create the first admin user account for the system
          */
         post: operations["createAdminUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get users list
+         * @description Retrieve a list of all users
+         */
+        get: operations["getUsersList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/list/with-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get users with watchlist counts
+         * @description Retrieve a list of all users including their watchlist item counts
+         */
+        get: operations["getUsersWithCounts"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2556,67 +2616,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/users/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create user
-         * @description Create a new user with the provided information
-         */
-        post: operations["createUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/users/list": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get users list
-         * @description Retrieve a list of all users
-         */
-        get: operations["getUsersList"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/users/list/with-counts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get users with watchlist counts
-         * @description Retrieve a list of all users including their watchlist item counts
-         */
-        get: operations["getUsersWithCounts"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/users/users/{id}": {
+    "/v1/users/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -12378,6 +12378,91 @@ export interface operations {
             };
         };
     };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    apprise: string | null;
+                    alias: string | null;
+                    discord_id: string | null;
+                    notify_apprise: boolean;
+                    notify_discord: boolean;
+                    notify_discord_mention: boolean;
+                    notify_plex_mobile: boolean;
+                    can_sync: boolean;
+                    requires_approval: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        user: {
+                            id: number;
+                            name: string;
+                            apprise: string | null;
+                            alias: string | null;
+                            discord_id: string | null;
+                            notify_apprise: boolean;
+                            notify_discord: boolean;
+                            notify_discord_mention: boolean;
+                            notify_plex_mobile: boolean;
+                            can_sync: boolean;
+                            requires_approval: boolean;
+                            is_primary_token: boolean;
+                            plex_uuid?: string | null;
+                            avatar?: string | null;
+                            display_name?: string | null;
+                            friend_created_at?: string | null;
+                            created_at: string;
+                            updated_at: string;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getAliasReadiness: {
         parameters: {
             query?: never;
@@ -12573,6 +12658,129 @@ export interface operations {
             };
             /** @description Rate limit exceeded */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getUsersList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        users: {
+                            id: number;
+                            name: string;
+                            apprise: string | null;
+                            alias: string | null;
+                            discord_id: string | null;
+                            notify_apprise: boolean;
+                            notify_discord: boolean;
+                            notify_discord_mention: boolean;
+                            notify_plex_mobile: boolean;
+                            can_sync: boolean;
+                            requires_approval: boolean;
+                            is_primary_token: boolean;
+                            plex_uuid?: string | null;
+                            avatar?: string | null;
+                            display_name?: string | null;
+                            friend_created_at?: string | null;
+                            created_at: string;
+                            updated_at: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getUsersWithCounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        users: {
+                            id: number;
+                            name: string;
+                            apprise: string | null;
+                            alias: string | null;
+                            discord_id: string | null;
+                            notify_apprise: boolean;
+                            notify_discord: boolean;
+                            notify_discord_mention: boolean;
+                            notify_plex_mobile: boolean;
+                            can_sync: boolean;
+                            requires_approval: boolean;
+                            is_primary_token: boolean;
+                            plex_uuid?: string | null;
+                            avatar?: string | null;
+                            display_name?: string | null;
+                            friend_created_at?: string | null;
+                            created_at: string;
+                            updated_at: string;
+                            watchlist_count: number;
+                        }[];
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12932,214 +13140,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    createUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name: string;
-                    apprise: string | null;
-                    alias: string | null;
-                    discord_id: string | null;
-                    notify_apprise: boolean;
-                    notify_discord: boolean;
-                    notify_discord_mention: boolean;
-                    notify_plex_mobile: boolean;
-                    can_sync: boolean;
-                    requires_approval: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Default Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        user: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                        };
-                    };
-                };
-            };
-            /** @description Default Response */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getUsersList: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        users: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                        }[];
-                    };
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description Default Response */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getUsersWithCounts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Default Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        users: {
-                            id: number;
-                            name: string;
-                            apprise: string | null;
-                            alias: string | null;
-                            discord_id: string | null;
-                            notify_apprise: boolean;
-                            notify_discord: boolean;
-                            notify_discord_mention: boolean;
-                            notify_plex_mobile: boolean;
-                            can_sync: boolean;
-                            requires_approval: boolean;
-                            is_primary_token: boolean;
-                            plex_uuid?: string | null;
-                            avatar?: string | null;
-                            display_name?: string | null;
-                            friend_created_at?: string | null;
-                            created_at: string;
-                            updated_at: string;
-                            watchlist_count: number;
-                        }[];
-                    };
                 };
             };
             /** @description Rate limit exceeded */

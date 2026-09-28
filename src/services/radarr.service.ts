@@ -66,6 +66,9 @@ export class RadarrService {
     new Map()
   private tagsCacheExpiry: Map<number, number> = new Map()
   private TAG_CACHE_TTL = 30000 // 30 seconds in milliseconds
+  private exclusionTmdbIds: Promise<Set<number>> | null = null
+  private exclusionCacheExpiry = 0
+  private readonly EXCLUSION_CACHE_TTL = 30000
   private readonly log: FastifyBaseLogger
 
   constructor(
@@ -623,6 +626,35 @@ export class RadarrService {
         error: err instanceof Error ? err.message : String(err),
       }
     }
+  }
+
+  // A pending fetch stays shared until it settles; the TTL starts only once it succeeds
+  async isTmdbIdExcluded(tmdbId: number): Promise<boolean> {
+    if (!this.exclusionTmdbIds || Date.now() >= this.exclusionCacheExpiry) {
+      const pending = this.fetchExclusionTmdbIds()
+      this.exclusionTmdbIds = pending
+      this.exclusionCacheExpiry = Number.POSITIVE_INFINITY
+      pending.then(
+        () => {
+          if (this.exclusionTmdbIds === pending) {
+            this.exclusionCacheExpiry = Date.now() + this.EXCLUSION_CACHE_TTL
+          }
+        },
+        () => {
+          if (this.exclusionTmdbIds === pending) this.exclusionTmdbIds = null
+        },
+      )
+    }
+    return (await this.exclusionTmdbIds).has(tmdbId)
+  }
+
+  private async fetchExclusionTmdbIds(): Promise<Set<number>> {
+    const ids = new Set<number>()
+    for (const item of await this.fetchExclusions()) {
+      const id = extractTmdbId(item.guids)
+      if (id) ids.add(id)
+    }
+    return ids
   }
 
   async fetchExclusions(pageSize = 1000): Promise<Set<Item>> {

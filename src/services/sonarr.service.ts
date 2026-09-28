@@ -66,6 +66,9 @@ export class SonarrService {
     new Map()
   private tagsCacheExpiry: Map<number, number> = new Map()
   private TAG_CACHE_TTL = 30000 // 30 seconds in milliseconds
+  private exclusionTvdbIds: Promise<Set<number>> | null = null
+  private exclusionCacheExpiry = 0
+  private readonly EXCLUSION_CACHE_TTL = 30000
   private readonly log: FastifyBaseLogger
 
   constructor(
@@ -792,6 +795,35 @@ export class SonarrService {
       )
       throw err
     }
+  }
+
+  // A pending fetch stays shared until it settles; the TTL starts only once it succeeds
+  async isTvdbIdExcluded(tvdbId: number): Promise<boolean> {
+    if (!this.exclusionTvdbIds || Date.now() >= this.exclusionCacheExpiry) {
+      const pending = this.fetchExclusionTvdbIds()
+      this.exclusionTvdbIds = pending
+      this.exclusionCacheExpiry = Number.POSITIVE_INFINITY
+      pending.then(
+        () => {
+          if (this.exclusionTvdbIds === pending) {
+            this.exclusionCacheExpiry = Date.now() + this.EXCLUSION_CACHE_TTL
+          }
+        },
+        () => {
+          if (this.exclusionTvdbIds === pending) this.exclusionTvdbIds = null
+        },
+      )
+    }
+    return (await this.exclusionTvdbIds).has(tvdbId)
+  }
+
+  private async fetchExclusionTvdbIds(): Promise<Set<number>> {
+    const ids = new Set<number>()
+    for (const item of await this.fetchExclusions()) {
+      const id = extractTvdbId(item.guids)
+      if (id) ids.add(id)
+    }
+    return ids
   }
 
   async fetchExclusions(pageSize = 1000): Promise<Set<Item>> {

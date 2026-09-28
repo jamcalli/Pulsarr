@@ -299,14 +299,12 @@ export async function enrichItemMetadata(
         try {
           const tvdbIdNum = extractTvdbId(item.guids)
           const tmdbIdNum = extractTmdbId(item.guids)
-          const imdbIdNum = extractImdbId(item.guids)
 
           const tvdbId =
             tvdbIdNum && tvdbIdNum > 0 ? tvdbIdNum.toString() : undefined
           const tmdbId =
             tmdbIdNum && tmdbIdNum > 0 ? tmdbIdNum.toString() : undefined
-          const imdbId =
-            imdbIdNum && imdbIdNum > 0 ? imdbIdNum.toString() : undefined
+          const imdbId = extractImdbId(item.guids)
 
           if (tvdbId || tmdbId || imdbId) {
             const isAnimeContent = await fastify.anime.isAnime(
@@ -412,14 +410,12 @@ export async function enrichItemMetadata(
         try {
           const tvdbIdNum = extractTvdbId(item.guids)
           const tmdbIdNum = extractTmdbId(item.guids)
-          const imdbIdNum = extractImdbId(item.guids)
 
           const tvdbId =
             tvdbIdNum && tvdbIdNum > 0 ? tvdbIdNum.toString() : undefined
           const tmdbId =
             tmdbIdNum && tmdbIdNum > 0 ? tmdbIdNum.toString() : undefined
-          const imdbId =
-            imdbIdNum && imdbIdNum > 0 ? imdbIdNum.toString() : undefined
+          const imdbId = extractImdbId(item.guids)
 
           if (tvdbId || tmdbId || imdbId) {
             const isAnimeContent = await fastify.anime.isAnime(

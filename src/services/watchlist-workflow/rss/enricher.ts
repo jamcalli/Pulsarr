@@ -1,10 +1,3 @@
-/**
- * RSS Item Enricher
- *
- * Enriches RSS items by looking up Plex metadata via GUID.
- * Used by both self and friends RSS processors.
- */
-
 import type { Config } from '@root/types/config.types.js'
 import type { CachedRssItem, Item } from '@root/types/plex.types.js'
 import {
@@ -13,23 +6,11 @@ import {
 } from '@services/plex-watchlist/index.js'
 import type { FastifyBaseLogger } from 'fastify'
 
-/**
- * Dependencies for RSS enrichment
- */
 export interface RssEnricherDeps {
   logger: FastifyBaseLogger
   config: Config
 }
 
-/**
- * Enrich RSS items by looking up Plex rating keys via GUID.
- * Items that fail enrichment are skipped.
- *
- * @param items - Cached RSS items to enrich
- * @param userId - User ID to associate with enriched items
- * @param deps - Dependencies
- * @returns Enriched items with full Plex metadata
- */
 export async function enrichRssItems(
   items: CachedRssItem[],
   userId: number,
@@ -45,7 +26,6 @@ export async function enrichRssItems(
 
   for (const item of items) {
     try {
-      // Select best GUID for lookup
       const primaryGuid = selectPrimaryGuid(item.guids, item.type)
       if (!primaryGuid) {
         deps.logger.debug(
@@ -55,10 +35,9 @@ export async function enrichRssItems(
         continue
       }
 
-      // Convert normalized GUID (tmdb:123) back to Plex format (tmdb://123) for API lookup
+      // The Plex API wants tmdb://123, not the normalized tmdb:123
       const plexGuid = primaryGuid.replace(/^(tmdb|imdb|tvdb):/, '$1://')
 
-      // Look up full Plex metadata including rating key
       const metadata = await lookupByGuid(
         { token },
         deps.logger,
@@ -74,7 +53,6 @@ export async function enrichRssItems(
         continue
       }
 
-      // Build Item with enriched data
       enrichedItems.push({
         title: metadata.title || item.title,
         key: metadata.ratingKey,

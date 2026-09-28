@@ -9,6 +9,8 @@ export interface ExistenceCheckResult {
   instanceId?: number
   /** Error details if the check failed */
   error?: string
+  /** Found only as an import list exclusion on the instance */
+  excluded?: boolean
 }
 
 /**

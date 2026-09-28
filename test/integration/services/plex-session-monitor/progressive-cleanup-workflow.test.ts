@@ -7,7 +7,9 @@
  * which files get deleted) for each monitoring type.
  */
 
+import type { PlexPlaySessionNotification } from '@root/types/plex-session.types.js'
 import type { SonarrEpisode } from '@root/types/sonarr.types.js'
+import { SessionTracker } from '@services/plex-server/sse/session-tracker.js'
 import type { FastifyInstance } from 'fastify'
 import {
   afterAll,
@@ -1302,6 +1304,280 @@ describe('Progressive Cleanup → Multi-User Safety Integration', () => {
         .first()
       expect(healthyRow.last_watched_season).toBe(1)
       expect(healthyRow.last_watched_episode).toBe(15)
+    })
+  })
+
+  describe('SSE first-sight gating', () => {
+    async function seedStellaAtS4E6() {
+      const knex = getTestDatabase()
+
+      await app.updateConfig({
+        plexSessionMonitoring: sessionMonitoringConfig(),
+      })
+
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+      await insertRollingShow(knex, {
+        show_title: 'Stella',
+        monitoring_type: 'firstSeasonRolling',
+        sonarr_series_id: 1566,
+        sonarr_instance_id: 1,
+        tvdb_id: '90210',
+      })
+      await insertRollingShow(knex, {
+        show_title: 'Stella',
+        monitoring_type: 'firstSeasonRolling',
+        sonarr_series_id: 1566,
+        sonarr_instance_id: 1,
+        tvdb_id: '90210',
+        plex_user_id: 'u_nicole',
+        plex_username: 'nicole3876',
+        last_watched_season: 4,
+        last_watched_episode: 6,
+        current_monitored_season: 5,
+        last_session_date: yesterday,
+      })
+    }
+
+    function stubSonarr() {
+      app.plexServerService.getShowMetadata = vi
+        .fn()
+        .mockResolvedValue(makeShowMetadata('90210'))
+
+      const mockGetSeriesById = vi
+        .fn()
+        .mockResolvedValue(makeSonarrSeries(1566, 5))
+      const fakeSonarr = makeFakeSonarr({
+        getSeriesById: mockGetSeriesById,
+        getEpisodes: vi
+          .fn()
+          .mockResolvedValue(makeEpisodesWithFiles([2, 3], 1566)),
+      })
+
+      app.sonarrManager.getAllInstances = vi
+        .fn()
+        .mockResolvedValue([
+          { id: 1, name: 'Test Sonarr', baseUrl: 'http://x', apiKey: 'k' },
+        ])
+      app.sonarrManager.getSonarrService = vi
+        .fn()
+        .mockReturnValue(
+          fakeSonarr as unknown as ReturnType<
+            typeof app.sonarrManager.getSonarrService
+          >,
+        )
+
+      return mockGetSeriesById
+    }
+
+    function makePlayingNotification(
+      overrides: Partial<PlexPlaySessionNotification> = {},
+    ): PlexPlaySessionNotification {
+      return {
+        sessionKey: 'sess-nicole',
+        clientIdentifier: 'client-nicole',
+        guid: 'plex://episode/abc',
+        ratingKey: '106942',
+        url: '',
+        key: '/library/metadata/106942',
+        viewOffset: 0,
+        playQueueItemID: 1,
+        state: 'playing',
+        ...overrides,
+      }
+    }
+
+    it('fetches sessions once across pause, resume, and stop of the same item', async () => {
+      await seedStellaAtS4E6()
+      stubSonarr()
+
+      app.plexServerService.getSessionTracker = vi
+        .fn()
+        .mockReturnValue(new SessionTracker(app.log))
+      const mockGetActiveSessions = vi
+        .fn()
+        .mockResolvedValue([makeEpisodeSession({ season: 4, episode: 6 })])
+      app.plexServerService.getActiveSessions = mockGetActiveSessions
+
+      const states = [
+        'playing',
+        'paused',
+        'playing',
+        'stopped',
+        'playing',
+      ] as const
+      for (const state of states) {
+        await app.plexSessionMonitor.handlePlayingEvent([
+          makePlayingNotification({ state }),
+        ])
+      }
+
+      expect(mockGetActiveSessions).toHaveBeenCalledTimes(1)
+    })
+
+    it('processes the next episode when autoplay keeps the sessionKey', async () => {
+      await seedStellaAtS4E6()
+      const mockGetSeriesById = stubSonarr()
+
+      app.plexServerService.getSessionTracker = vi
+        .fn()
+        .mockReturnValue(new SessionTracker(app.log))
+      const mockGetActiveSessions = vi
+        .fn()
+        .mockResolvedValueOnce([makeEpisodeSession({ season: 4, episode: 6 })])
+        .mockResolvedValueOnce([
+          {
+            ...makeEpisodeSession({ season: 4, episode: 7 }),
+            ratingKey: '106943',
+          },
+        ])
+      app.plexServerService.getActiveSessions = mockGetActiveSessions
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification({ ratingKey: '106942' }),
+      ])
+      expect(mockGetSeriesById).not.toHaveBeenCalled()
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification({ ratingKey: '106943' }),
+      ])
+
+      expect(mockGetActiveSessions).toHaveBeenCalledTimes(2)
+      expect(mockGetSeriesById).toHaveBeenCalled()
+    })
+
+    it('retries on the next event when the session fetch fails', async () => {
+      await seedStellaAtS4E6()
+      const mockGetSeriesById = stubSonarr()
+
+      app.plexServerService.getSessionTracker = vi
+        .fn()
+        .mockReturnValue(new SessionTracker(app.log))
+      const mockGetActiveSessions = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Plex unreachable'))
+        .mockResolvedValueOnce([makeEpisodeSession({ season: 4, episode: 7 })])
+      app.plexServerService.getActiveSessions = mockGetActiveSessions
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+
+      expect(mockGetActiveSessions).toHaveBeenCalledTimes(2)
+      expect(mockGetSeriesById).toHaveBeenCalled()
+    })
+
+    it('retries on the next event when Plex has not listed the session yet', async () => {
+      await seedStellaAtS4E6()
+      const mockGetSeriesById = stubSonarr()
+
+      app.plexServerService.getSessionTracker = vi
+        .fn()
+        .mockReturnValue(new SessionTracker(app.log))
+      const mockGetActiveSessions = vi
+        .fn()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([makeEpisodeSession({ season: 4, episode: 7 })])
+      app.plexServerService.getActiveSessions = mockGetActiveSessions
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification({ state: 'buffering' }),
+      ])
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+
+      expect(mockGetActiveSessions).toHaveBeenCalledTimes(2)
+      expect(mockGetSeriesById).toHaveBeenCalled()
+    })
+
+    it('retries on the next event when the REST list still shows the previous episode', async () => {
+      await seedStellaAtS4E6()
+      const mockGetSeriesById = stubSonarr()
+
+      app.plexServerService.getSessionTracker = vi
+        .fn()
+        .mockReturnValue(new SessionTracker(app.log))
+      const stale = makeEpisodeSession({ season: 4, episode: 6 })
+      const current = {
+        ...makeEpisodeSession({ season: 4, episode: 7 }),
+        ratingKey: '106943',
+      }
+      const mockGetActiveSessions = vi
+        .fn()
+        .mockResolvedValueOnce([stale])
+        .mockResolvedValueOnce([current])
+      app.plexServerService.getActiveSessions = mockGetActiveSessions
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification({ ratingKey: '106943' }),
+      ])
+      expect(mockGetSeriesById).not.toHaveBeenCalled()
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification({ ratingKey: '106943' }),
+      ])
+
+      expect(mockGetActiveSessions).toHaveBeenCalledTimes(2)
+      expect(mockGetSeriesById).toHaveBeenCalled()
+    })
+
+    it('retries on the next event when the rolling lookup fails', async () => {
+      await seedStellaAtS4E6()
+      const mockGetSeriesById = stubSonarr()
+
+      app.plexServerService.getSessionTracker = vi
+        .fn()
+        .mockReturnValue(new SessionTracker(app.log))
+      const mockGetActiveSessions = vi
+        .fn()
+        .mockResolvedValue([makeEpisodeSession({ season: 4, episode: 7 })])
+      app.plexServerService.getActiveSessions = mockGetActiveSessions
+      const realMatches = app.db.getRollingMonitoredShowMatches.bind(app.db)
+      app.db.getRollingMonitoredShowMatches = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('db unavailable'))
+        .mockImplementation(realMatches)
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+      expect(mockGetSeriesById).not.toHaveBeenCalled()
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+
+      expect(mockGetActiveSessions).toHaveBeenCalledTimes(2)
+      expect(mockGetSeriesById).toHaveBeenCalled()
+    })
+
+    it('keeps a movie session seen after the first fetch', async () => {
+      await seedStellaAtS4E6()
+      stubSonarr()
+
+      app.plexServerService.getSessionTracker = vi
+        .fn()
+        .mockReturnValue(new SessionTracker(app.log))
+      const mockGetActiveSessions = vi.fn().mockResolvedValue([
+        {
+          ...makeEpisodeSession({ season: 4, episode: 7 }),
+          type: 'movie',
+        },
+      ])
+      app.plexServerService.getActiveSessions = mockGetActiveSessions
+
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+      await app.plexSessionMonitor.handlePlayingEvent([
+        makePlayingNotification(),
+      ])
+
+      expect(mockGetActiveSessions).toHaveBeenCalledTimes(1)
     })
   })
 })

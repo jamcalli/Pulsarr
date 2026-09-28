@@ -1,58 +1,38 @@
-/**
- * RSS Self Processor
- *
- * Processes RSS items from the primary user's watchlist.
- * Enriches items, saves to DB, and routes to Sonarr/Radarr.
- */
-
 import type {
   CachedRssItem,
   Item,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
 import { processItemsForUser } from '@services/plex-watchlist/index.js'
+import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
 import {
   checkInstanceHealth,
   queueForDeferredRouting,
-} from '../routing/index.js'
-import type { RssProcessorDeps } from '../types.js'
+} from '../routing/health-checker.js'
+import { routeEnrichedItemsForUser } from '../routing/item-router.js'
+import type { WorkflowDeps } from '../types.js'
 import { enrichRssItems } from './enricher.js'
 
-/**
- * Process new items from self (primary user) RSS feed.
- *
- * Flow:
- * 1. Get primary user
- * 2. Check instance health (for later decision)
- * 3. Enrich items via Plex GUID lookup
- * 4. Process through unified processor (saves to DB)
- * 5. If instances available, route immediately
- * 6. If instances unavailable, queue for deferred routing
- *
- * @param items - New RSS items to process
- * @param deps - Service dependencies
- */
 export async function processRssSelfItems(
   items: CachedRssItem[],
-  deps: RssProcessorDeps,
+  deps: WorkflowDeps,
 ): Promise<void> {
+  const { signal } = deps.state
   const primaryUser = await deps.db.getPrimaryUser()
   if (!primaryUser) {
     deps.logger.warn('No primary user found, skipping self RSS processing')
     return
   }
 
-  // Check instance health before processing
   const health = await checkInstanceHealth({
     sonarrManager: deps.sonarrManager,
     radarrManager: deps.radarrManager,
     plexServerService: deps.fastify.plexServerService,
     skipIfExistsOnPlex: deps.config.skipIfExistsOnPlex,
-    deferredRoutingQueue: deps.deferredRoutingQueue,
+    deferredRoutingQueue: deps.state.deferredRoutingQueue,
     logger: deps.logger,
   })
 
-  // Enrich items first (needed for both online and offline paths)
   const enrichedItems = await enrichRssItems(items, primaryUser.id, {
     logger: deps.logger,
     config: deps.config,
@@ -62,7 +42,6 @@ export async function processRssSelfItems(
     return
   }
 
-  // Convert to TokenWatchlistItems for unified processor
   const tokenItems: TokenWatchlistItem[] = enrichedItems.map((item) => ({
     id: item.key,
     title: item.title,
@@ -78,7 +57,7 @@ export async function processRssSelfItems(
     updated_at: item.updated_at,
   }))
 
-  // ALWAYS process through DB first - ensures items are persisted regardless of instance health
+  // Items are persisted before the routing decision so an unhealthy instance cannot lose them
   const { processedItems, linkedItems } = await processItemsForUser(
     {
       user: {
@@ -91,13 +70,13 @@ export async function processRssSelfItems(
     },
     deps.itemProcessorDeps,
   )
+  if (signal.aborted) return
 
   const allItems: Item[] = [...processedItems, ...linkedItems]
   if (allItems.length === 0) {
     return
   }
 
-  // If instances unavailable, queue for deferred routing (items already in DB)
   if (!health.available) {
     deps.logger.warn(
       {
@@ -113,7 +92,7 @@ export async function processRssSelfItems(
       {
         sonarrManager: deps.sonarrManager,
         radarrManager: deps.radarrManager,
-        deferredRoutingQueue: deps.deferredRoutingQueue,
+        deferredRoutingQueue: deps.state.deferredRoutingQueue,
         logger: deps.logger,
       },
       {
@@ -126,8 +105,8 @@ export async function processRssSelfItems(
     return
   }
 
-  // Route items immediately
-  await deps.routeEnrichedItemsForUser(primaryUser.id, allItems)
-  await deps.updateAutoApprovalUserAttribution()
-  deps.scheduleDebouncedStatusSync()
+  await routeEnrichedItemsForUser(primaryUser.id, allItems, deps)
+  if (signal.aborted) return
+  await updateAutoApprovalUserAttribution(deps)
+  deps.state.scheduleDebouncedStatusSync(deps)
 }
