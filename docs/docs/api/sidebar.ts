@@ -1094,6 +1094,12 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
+          id: "api/create-user",
+          label: "Create user",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
           id: "api/get-alias-readiness",
           label: "Check alias readiness for tag/label naming",
           className: "api-method get",
@@ -1106,18 +1112,6 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-current-user",
-          label: "Get current user information",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/create-user",
-          label: "Create user",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
           id: "api/get-users-list",
           label: "Get users list",
           className: "api-method get",
@@ -1126,6 +1120,12 @@ const sidebar: SidebarsConfig = {
           type: "doc",
           id: "api/get-users-with-counts",
           label: "Get users with watchlist counts",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-current-user",
+          label: "Get current user information",
           className: "api-method get",
         },
         {
