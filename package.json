@@ -111,6 +111,7 @@
     "zod": "^4.0.17"
   },
   "overrides": {
+    "colorette": "^2.0.19",
     "undici": "^6.27.0"
   },
   "devDependencies": {
