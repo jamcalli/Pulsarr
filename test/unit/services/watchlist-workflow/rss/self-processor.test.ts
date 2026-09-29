@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockUser } from '../../../../mocks/user.js'
 import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
-vi.mock('@services/plex-watchlist/index.js', () => ({
+vi.mock('@services/plex-watchlist/orchestration/unified-processor.js', () => ({
   processItemsForUser: vi.fn(async () => ({
     brandNewCount: 0,
     linkedCount: 0,
@@ -39,7 +39,7 @@ vi.mock('@services/watchlist-workflow/rss/enricher.js', () => ({
   enrichRssItems: vi.fn(async (): Promise<Item[]> => []),
 }))
 
-import { processItemsForUser } from '@services/plex-watchlist/index.js'
+import { processItemsForUser } from '@services/plex-watchlist/orchestration/unified-processor.js'
 import { updateAutoApprovalUserAttribution } from '@services/watchlist-workflow/attribution/approval-attributor.js'
 import {
   checkInstanceHealth,

@@ -1,10 +1,3 @@
-/**
- * Item Processor Orchestration
- *
- * Functions for processing and saving new watchlist items.
- * Extracted from PlexWatchlistService to support thin orchestrator pattern.
- */
-
 import type { Config } from '@root/types/config.types.js'
 import type {
   Friend,
@@ -17,12 +10,9 @@ import { parseGenres, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 import type { PlexLabelSyncService } from '../../plex-label-sync.service.js'
-import { resolveTmdbPosters } from '../enrichment/index.js'
-import { processWatchlistItems } from '../index.js'
+import { resolveTmdbPosters } from '../enrichment/poster-resolver.js'
+import { processWatchlistItems } from '../enrichment/watchlist-processor.js'
 
-/**
- * Dependencies for item processor operations
- */
 export interface ItemProcessorDeps {
   db: DatabaseService
   logger: FastifyBaseLogger
@@ -32,9 +22,6 @@ export interface ItemProcessorDeps {
   handleLinkedItemsForLabelSync: (linkItems: WatchlistItem[]) => Promise<void>
 }
 
-/**
- * Item prepared for database insertion
- */
 export interface PreparedItem {
   user_id: number
   title: string
@@ -49,27 +36,17 @@ export interface PreparedItem {
   updated_at: string
 }
 
-/**
- * Prepares processed items for database insertion.
- * Filters out items for users with sync disabled.
- *
- * @param processedItems - Map of users to their processed watchlist items
- * @param deps - Dependencies for database access and logging
- * @returns Array of items ready for database insertion
- */
+/** Drops items for users with sync disabled; a user missing from the DB counts as sync enabled. */
 export async function prepareItemsForInsertion(
   processedItems: Map<Friend & { userId: number }, Set<WatchlistItem>>,
   deps: Pick<ItemProcessorDeps, 'db' | 'logger'>,
 ): Promise<PreparedItem[]> {
   const { db, logger } = deps
 
-  // Get all user IDs from the processedItems
   const userIds = Array.from(processedItems.keys()).map((user) => user.userId)
 
-  // Fetch all users in one batch to get their sync permissions
   const users = await Promise.all(
     userIds.map((id) => {
-      // Ensure we're always passing a simple number, not an object
       const numericId =
         typeof id === 'object' && id !== null
           ? 'id' in id
@@ -80,7 +57,6 @@ export async function prepareItemsForInsertion(
     }),
   )
 
-  // Create a map of user ID to their can_sync permission
   const userSyncPermissions = new Map<number, boolean>()
   users.forEach((user, index) => {
     if (user) {
@@ -89,7 +65,6 @@ export async function prepareItemsForInsertion(
   })
 
   return Array.from(processedItems.entries()).flatMap(([user, items]) => {
-    // Make sure we have a numeric user ID
     const numericUserId =
       typeof user.userId === 'object' && user.userId !== null
         ? 'id' in user.userId
@@ -124,16 +99,7 @@ export async function prepareItemsForInsertion(
   })
 }
 
-/**
- * Processes and saves new watchlist items to the database.
- * Handles progress reporting, label sync, and database operations.
- *
- * @param brandNewItems - Map of users to their new watchlist items
- * @param isSelfWatchlist - Whether this is the self watchlist (vs friends)
- * @param isMetadataRefresh - Whether this is a metadata refresh operation
- * @param deps - Dependencies for processing
- * @returns Map of users to their processed items
- */
+/** Also inserts the items and triggers Plex label sync; the return includes rows the insert ignored. */
 export async function processAndSaveNewItems(
   brandNewItems: Map<Friend, Set<TokenWatchlistItem>>,
   isSelfWatchlist: boolean,
@@ -151,7 +117,6 @@ export async function processAndSaveNewItems(
   const operationId = `process-${Date.now()}`
   const emitProgress = fastify.progress.hasActiveConnections()
 
-  // Use the passed parameter to determine the type
   const type = isSelfWatchlist ? 'self-watchlist' : 'others-watchlist'
 
   if (emitProgress) {
@@ -202,7 +167,6 @@ export async function processAndSaveNewItems(
       )
       await db.syncGenresFromWatchlist()
 
-      // Queue newly inserted items for immediate Plex labeling if enabled
       if (
         plexLabelSyncService &&
         config.plexLabelSync?.enabled &&
@@ -214,10 +178,8 @@ export async function processAndSaveNewItems(
             `Syncing immediate Plex labeling with tag fetching for ${insertedResults.length} newly added items`,
           )
 
-          // Create a map of key -> item for efficient lookup
           const itemMap = new Map(itemsToInsert.map((item) => [item.key, item]))
 
-          // Process inserted items with bounded concurrency to avoid overwhelming *arr services
           const concurrencyLimit = config.plexLabelSync?.concurrencyLimit || 5
           const limit = pLimit(concurrencyLimit)
 
@@ -232,13 +194,12 @@ export async function processAndSaveNewItems(
                 return await plexLabelSyncService.syncLabelForNewWatchlistItem(
                   id,
                   originalItem.title,
-                  true, // Enable tag fetching
+                  true,
                 )
               }),
             ),
           )
 
-          // Log any failures
           const failed = syncResults
             .filter((result) => result.status === 'rejected')
             .map((result) => (result as PromiseRejectedResult).reason)
@@ -280,13 +241,6 @@ export async function processAndSaveNewItems(
   )
 }
 
-/**
- * Links existing items to new users in the database.
- * Queues re-added items for label synchronization.
- *
- * @param existingItemsToLink - Map of users to items that need linking
- * @param deps - Dependencies for database access and logging
- */
 export async function linkExistingItems(
   existingItemsToLink: Map<Friend, Set<WatchlistItem>>,
   deps: Pick<
@@ -342,7 +296,6 @@ export async function linkExistingItems(
       `Successfully linked ${linkItems.length} existing items to new users`,
     )
 
-    // Queue re-added items for label synchronization
     await handleLinkedItemsForLabelSync(linkItems)
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error))

@@ -1,13 +1,3 @@
-/**
- * RSS Item Enricher
- *
- * Provides GUID lookup and enrichment for RSS items that lack the Plex rating key.
- * RSS feeds contain GUIDs (tmdb://, tvdb://, imdb://) but not the Plex key needed
- * for label sync and content matching.
- *
- * Uses the /library/metadata/matches API to resolve GUIDs to full Plex metadata.
- */
-
 import type { ItemRatings, PlexRating } from '@root/types/plex.types.js'
 import {
   collectGuidsFromMetadata,
@@ -16,12 +6,10 @@ import {
 import { normalizePosterPath } from '@utils/poster-url.js'
 import { PLEX_CLIENT_IDENTIFIER, USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
-import { PLEX_API_TIMEOUT_MS, PlexRateLimiter } from '../api/index.js'
+import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
+import { PlexRateLimiter } from '../api/rate-limiter.js'
 import { parseRatings } from './rating-parser.js'
 
-/**
- * Enriched metadata returned from GUID lookup
- */
 export interface EnrichedRssMetadata {
   ratingKey: string
   title: string
@@ -29,35 +17,20 @@ export interface EnrichedRssMetadata {
   thumb?: string
   guids: string[]
   genres: string[]
-  /** Ratings from Plex metadata (IMDb, Rotten Tomatoes, TMDB) */
   ratings?: ItemRatings
 }
 
-/**
- * Configuration for GUID lookup
- */
 export interface GuidLookupConfig {
   token: string
   timeout?: number
 }
 
-/**
- * Select the primary GUID for lookup based on content type.
- *
- * Priority order:
- * - Movies: TMDB (Radarr uses this) > IMDB > TVDB
- * - Shows: TVDB (Sonarr uses this) > IMDB > TMDB
- *
- * @param guids - Array of GUID strings in normalized format (e.g., ['tmdb:123', 'imdb:tt456'])
- * @param category - Content type ('movie' or 'show')
- * @returns The selected GUID or null if none found
- */
+/** Returns a normalized guid like "tmdb:123", preferring tmdb for movies and tvdb for shows. */
 export function selectPrimaryGuid(
   guids: string[],
   category: 'movie' | 'show',
 ): string | null {
   if (category === 'movie') {
-    // Priority: TMDB (Radarr uses this) > IMDB > TVDB
     return (
       extractTypedGuid(guids, 'tmdb:') ??
       extractTypedGuid(guids, 'imdb:') ??
@@ -65,7 +38,6 @@ export function selectPrimaryGuid(
       null
     )
   }
-  // Priority: TVDB (Sonarr uses this) > IMDB > TMDB
   return (
     extractTypedGuid(guids, 'tvdb:') ??
     extractTypedGuid(guids, 'imdb:') ??
@@ -74,20 +46,7 @@ export function selectPrimaryGuid(
   )
 }
 
-/**
- * Lookup Plex metadata by GUID via /library/metadata/matches API.
- *
- * This API resolves external GUIDs (tmdb://, tvdb://, imdb://) to full Plex
- * metadata including the rating key needed for label sync.
- *
- * @param config - Token and optional timeout configuration
- * @param log - Logger instance
- * @param guid - The GUID to look up (e.g., 'tmdb://550')
- * @param contentType - 'movie' or 'show'
- * @param retryCount - Current retry attempt (internal use)
- * @param maxRetries - Maximum retry attempts for rate limiting
- * @returns Enriched metadata or null if not found/error
- */
+/** Takes the tmdb://123 guid form; returns null on no match or any failure, never throws. */
 export async function lookupByGuid(
   config: GuidLookupConfig,
   log: FastifyBaseLogger,
@@ -167,7 +126,6 @@ export async function lookupByGuid(
       return null
     }
 
-    // Parse ratings from metadata
     const imdbVotes =
       metadata.imdbRatingCount ?? json.MediaContainer?.imdbRatingCount
     const ratings = parseRatings(metadata.Rating, imdbVotes)
@@ -191,17 +149,7 @@ export async function lookupByGuid(
   }
 }
 
-/**
- * Batch lookup multiple GUIDs with rate limiting.
- *
- * Processes GUIDs sequentially to respect rate limits.
- * Returns a map of GUID -> metadata for successful lookups.
- *
- * @param config - Token and optional timeout configuration
- * @param log - Logger instance
- * @param items - Array of items with guids and category
- * @returns Map of original GUID to enriched metadata
- */
+/** Keyed by the normalized primary guid; items with no usable guid or no match are absent. */
 export async function batchLookupByGuid(
   config: GuidLookupConfig,
   log: FastifyBaseLogger,
@@ -220,7 +168,6 @@ export async function batchLookupByGuid(
     const plexGuid = primaryGuid.replace(/^(tmdb|imdb|tvdb):/, '$1://')
     const metadata = await lookupByGuid(config, log, plexGuid, item.category)
     if (metadata) {
-      // Store by the primary GUID we looked up
       results.set(primaryGuid, metadata)
     }
   }

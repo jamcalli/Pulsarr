@@ -3,9 +3,10 @@ import {
   hasValidPlexTokens,
   isRateLimitError,
   PLEX_API_TIMEOUT_MS,
+  parseRetryAfter,
   type RateLimitError,
-} from '@services/plex-watchlist/index.js'
-import { describe, expect, it } from 'vitest'
+} from '@services/plex-watchlist/api/helpers.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 describe('plex/helpers', () => {
   describe('PLEX_API_TIMEOUT_MS', () => {
@@ -87,6 +88,30 @@ describe('plex/helpers', () => {
         plexTokens: 'not-an-array' as unknown as string[],
       } as Config
       expect(hasValidPlexTokens(config)).toBe(false)
+    })
+  })
+
+  describe('parseRetryAfter', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('should parse delay-seconds', () => {
+      expect(parseRetryAfter('120')).toBe(120)
+    })
+
+    it('should convert a future HTTP date to seconds from now', () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
+      expect(parseRetryAfter('Thu, 01 Jan 2026 00:00:30 GMT')).toBe(30)
+    })
+
+    it('should return undefined for garbage', () => {
+      expect(parseRetryAfter('not-a-date')).toBeUndefined()
+    })
+
+    it('should return undefined when the header is absent', () => {
+      expect(parseRetryAfter(null)).toBeUndefined()
     })
   })
 })

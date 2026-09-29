@@ -1,5 +1,5 @@
 import type { ProgressEvent } from '@root/types/progress.types.js'
-import { handleLinkedItemsForLabelSync } from '@services/plex-watchlist/index.js'
+import { handleLinkedItemsForLabelSync } from '@services/plex-watchlist/orchestration/removal-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { systemStatusEvent } from '@utils/system-status-event.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'

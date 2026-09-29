@@ -3,10 +3,8 @@ import type {
   PlexApiResponse,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
-import {
-  PlexRateLimiter,
-  toItemsBatch,
-} from '@services/plex-watchlist/index.js'
+import { PlexRateLimiter } from '@services/plex-watchlist/api/rate-limiter.js'
+import { toItemsBatch } from '@services/plex-watchlist/enrichment/batch-processor.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
@@ -152,7 +150,6 @@ describe('plex/processors/batch-processor', () => {
           () => {
             callCount++
             if (callCount === 1) {
-              // Use minimal retry time to speed up test
               return new HttpResponse(null, {
                 status: 429,
                 headers: { 'Retry-After': '0' },
@@ -208,7 +205,6 @@ describe('plex/processors/batch-processor', () => {
           () => {
             attempts++
             if (attempts <= 2) {
-              // Return 429 to trigger rate limit
               return new HttpResponse(null, {
                 status: 429,
                 headers: { 'Retry-After': '0' },
@@ -242,7 +238,6 @@ describe('plex/processors/batch-processor', () => {
           () => {
             attempts++
             if (attempts === 1) {
-              // Return 429 which will create "HTTP 429" error message
               return new HttpResponse(null, {
                 status: 429,
                 headers: { 'Retry-After': '0' },

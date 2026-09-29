@@ -1,10 +1,10 @@
 import type { Config } from '@root/types/config.types.js'
 import type { Friend, Item, PlexResponse } from '@root/types/plex.types.js'
+import { PlexRateLimiter } from '@services/plex-watchlist/api/rate-limiter.js'
 import {
   fetchSelfWatchlist,
   getOthersWatchlist,
-  PlexRateLimiter,
-} from '@services/plex-watchlist/index.js'
+} from '@services/plex-watchlist/fetching/watchlist-fetcher.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
@@ -14,7 +14,6 @@ describe('plex/watchlist-fetcher', () => {
   const mockLogger = createMockLogger()
 
   beforeEach(() => {
-    // Reset rate limiter state between tests
     PlexRateLimiter.getInstance().reset()
   })
 
@@ -146,7 +145,6 @@ describe('plex/watchlist-fetcher', () => {
 
       const resultPromise = fetchSelfWatchlist(config, mockLogger, 1)
 
-      // Advance timers to skip jitter delays
       await vi.runAllTimersAsync()
 
       const result = await resultPromise
@@ -176,7 +174,6 @@ describe('plex/watchlist-fetcher', () => {
                     key: null,
                   },
                 ],
-                // totalSize should be 1 (filtered count), not 2 (raw count)
                 totalSize: 1,
               },
             } as unknown as PlexResponse)
@@ -206,7 +203,6 @@ describe('plex/watchlist-fetcher', () => {
             const token = request.headers.get('X-Plex-Token')
             if (token === 'token1') {
               _token1Calls++
-              // Return 429 status to trigger rate limit handling
               return new HttpResponse(null, {
                 status: 429,
                 headers: { 'Retry-After': '0' },
@@ -406,10 +402,6 @@ describe('plex/watchlist-fetcher', () => {
         }),
       )
 
-      const config: Config = {
-        plexTokens: ['token1', 'token2'],
-      } as Config
-
       const friend1: Friend & { userId: number } = {
         watchlistId: 'user-1',
         username: 'friend1',
@@ -426,19 +418,15 @@ describe('plex/watchlist-fetcher', () => {
         [friend2, 'token2'],
       ])
 
-      const result = await getOthersWatchlist(config, mockLogger, friends)
+      const result = await getOthersWatchlist(mockLogger, friends)
 
       expect(result.size).toBe(2)
     })
 
     it('should handle empty friends set', async () => {
-      const config: Config = {
-        plexTokens: ['token'],
-      } as Config
-
       const friends = new Set<[Friend & { userId: number }, string]>()
 
-      const result = await getOthersWatchlist(config, mockLogger, friends)
+      const result = await getOthersWatchlist(mockLogger, friends)
 
       expect(result.size).toBe(0)
     })
@@ -459,10 +447,6 @@ describe('plex/watchlist-fetcher', () => {
         }),
       )
 
-      const config: Config = {
-        plexTokens: ['token'],
-      } as Config
-
       const friend: Friend & { userId: number } = {
         watchlistId: 'user-1',
         username: 'friend1',
@@ -473,7 +457,7 @@ describe('plex/watchlist-fetcher', () => {
         [friend, 'token'],
       ])
 
-      const result = await getOthersWatchlist(config, mockLogger, friends)
+      const result = await getOthersWatchlist(mockLogger, friends)
 
       expect(result.size).toBe(1)
       const friendItems = result.get(friend)
@@ -504,10 +488,6 @@ describe('plex/watchlist-fetcher', () => {
         }),
       )
 
-      const config: Config = {
-        plexTokens: ['token'],
-      } as Config
-
       const friends = new Set<[Friend & { userId: number }, string]>()
       for (let i = 0; i < 10; i++) {
         friends.add([
@@ -520,9 +500,8 @@ describe('plex/watchlist-fetcher', () => {
         ])
       }
 
-      const resultPromise = getOthersWatchlist(config, mockLogger, friends)
+      const resultPromise = getOthersWatchlist(mockLogger, friends)
 
-      // Advance timers to skip batch delays
       await vi.runAllTimersAsync()
 
       await resultPromise
@@ -535,17 +514,12 @@ describe('plex/watchlist-fetcher', () => {
     it('should handle rate limit error', async () => {
       server.use(
         http.post('https://community.plex.tv/api', () => {
-          // Return 429 to trigger rate limit handling
           return new HttpResponse(null, {
             status: 429,
             headers: { 'Retry-After': '0' },
           })
         }),
       )
-
-      const config: Config = {
-        plexTokens: ['token'],
-      } as Config
 
       const friend: Friend & { userId: number } = {
         watchlistId: 'user-1',
@@ -558,7 +532,7 @@ describe('plex/watchlist-fetcher', () => {
       ])
 
       vi.useFakeTimers()
-      const promise = getOthersWatchlist(config, mockLogger, friends)
+      const promise = getOthersWatchlist(mockLogger, friends)
       await vi.runAllTimersAsync()
       const result = await promise
       vi.useRealTimers()
@@ -571,14 +545,9 @@ describe('plex/watchlist-fetcher', () => {
 
       server.use(
         http.post('https://community.plex.tv/api', () => {
-          // Return 500 error
           return new HttpResponse(null, { status: 500 })
         }),
       )
-
-      const config: Config = {
-        plexTokens: ['token'],
-      } as Config
 
       const friend: Friend & { userId: number } = {
         watchlistId: 'user-1',
@@ -590,16 +559,13 @@ describe('plex/watchlist-fetcher', () => {
         [friend, 'token'],
       ])
 
-      const promise = getOthersWatchlist(config, mockLogger, friends)
+      const promise = getOthersWatchlist(mockLogger, friends)
       await vi.runAllTimersAsync()
       const result = await promise
 
       vi.useRealTimers()
 
-      // When getWatchlistForUser encounters retryable errors, it eventually returns empty Set
-      // The user is still added to the map with empty items (success = true)
-      expect(result.size).toBe(1)
-      expect(result.get(friend)?.size).toBe(0)
+      expect(result.size).toBe(0)
     })
   })
 })

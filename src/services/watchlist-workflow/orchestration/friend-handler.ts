@@ -4,18 +4,24 @@ import type {
   Item,
   UserMapEntry,
 } from '@root/types/plex.types.js'
+import { getOthersWatchlist } from '@services/plex-watchlist/fetching/watchlist-fetcher.js'
 import {
-  categorizeItems,
-  extractKeysAndRelationships,
-  getExistingItems,
-  getOthersWatchlist,
-  handleLinkedItemsForLabelSync,
-  type ItemCategorizerDeps,
   linkExistingItems,
   processAndSaveNewItems,
+} from '@services/plex-watchlist/orchestration/item-processor.js'
+import {
+  handleLinkedItemsForLabelSync,
   type RemovalHandlerDeps,
+} from '@services/plex-watchlist/orchestration/removal-handler.js'
+import {
+  extractKeysAndRelationships,
+  getExistingItems,
   type WatchlistSyncDeps,
-} from '@services/plex-watchlist/index.js'
+} from '@services/plex-watchlist/orchestration/watchlist-sync.js'
+import {
+  categorizeItems,
+  type ItemCategorizerDeps,
+} from '@services/plex-watchlist/sync/item-categorizer.js'
 import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
 import { checkHealthAndQueueIfUnavailable } from '../routing/health-checker.js'
 import { routeEnrichedItemsForUser } from '../routing/item-router.js'
@@ -27,6 +33,7 @@ export interface NewFriendHandlerResult {
   error?: Error
 }
 
+/** Never throws; a failed sync comes back as success false with the error. */
 export async function handleNewFriendEtagMode(
   newFriend: EtagUserInfo,
   deps: WorkflowDeps,
@@ -147,6 +154,7 @@ export function handleRemovedFriend(
   }
 }
 
+/** Replaces the plexUuid cache with userMap before handling added and removed friends. */
 export async function processFriendChanges(
   params: {
     added: EtagUserInfo[]
@@ -211,7 +219,6 @@ export async function syncSingleFriend(
   const friendSet = new Set([[friendDataForMap, token]] as [Friend, string][])
 
   const userWatchlistMap = await getOthersWatchlist(
-    deps.config,
     deps.logger,
     friendSet,
     (userId: number) => deps.db.getAllWatchlistItemsForUser(userId),
@@ -240,13 +247,13 @@ export async function syncSingleFriend(
     userWatchlistMap,
     existingItems,
     categorizerDeps,
-    false, // forceRefresh = false
+    false,
   )
 
   const processedItems = await processAndSaveNewItems(
     brandNewItems,
-    false, // isSelfWatchlist = false
-    false, // isMetadataRefresh = false
+    false,
+    false,
     deps.itemProcessorDeps,
   )
 

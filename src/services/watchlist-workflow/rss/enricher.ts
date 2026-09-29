@@ -3,7 +3,7 @@ import type { CachedRssItem, Item } from '@root/types/plex.types.js'
 import {
   lookupByGuid,
   selectPrimaryGuid,
-} from '@services/plex-watchlist/index.js'
+} from '@services/plex-watchlist/enrichment/rss-item-enricher.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 export interface RssEnricherDeps {
@@ -11,6 +11,7 @@ export interface RssEnricherDeps {
   config: Config
 }
 
+/** Items with no usable guid or a failed lookup are dropped, so the result can be shorter than the input. */
 export async function enrichRssItems(
   items: CachedRssItem[],
   userId: number,

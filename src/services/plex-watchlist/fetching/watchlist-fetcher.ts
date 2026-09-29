@@ -10,15 +10,7 @@ import type { FastifyBaseLogger } from 'fastify'
 import { getWatchlist, getWatchlistForUser } from '../api/graphql.js'
 import { isRateLimitError } from '../api/helpers.js'
 
-/**
- * Fetches the current user's own watchlist from Plex.
- *
- * @param config - Application configuration
- * @param log - Fastify logger instance
- * @param userId - Internal user ID
- * @param getAllWatchlistItemsForUser - Optional fallback function to get database items
- * @returns Promise resolving to a Set of TokenWatchlistItems
- */
+/** Falls back to the stored DB items when the Plex fetch fails and a DB getter is supplied. */
 export const fetchSelfWatchlist = async (
   config: Config,
   log: FastifyBaseLogger,
@@ -34,7 +26,6 @@ export const fetchSelfWatchlist = async (
   }
 
   for (const token of config.plexTokens) {
-    // Skip falsy tokens to prevent predictable API failures
     if (!token) {
       continue
     }
@@ -92,15 +83,12 @@ export const fetchSelfWatchlist = async (
 
           currentStart += metadata.length
         } catch (innerError) {
-          // Check if this is a rate limit exhaustion error
           if (isRateLimitError(innerError)) {
             log.warn(
               `Rate limit exhausted while fetching watchlist for token at start=${currentStart}. Moving to next token.`,
             )
-            // Break out of the loop for this token and move on to the next one
             break
           }
-          // For other errors, rethrow to be handled by outer catch
           throw innerError
         }
 
@@ -112,18 +100,14 @@ export const fetchSelfWatchlist = async (
     } catch (err) {
       log.error({ error: err }, 'Error fetching watchlist for token')
 
-      // If we have the database function, try to get existing items
       if (getAllWatchlistItemsForUser) {
         try {
           log.info(`Falling back to existing database items for user ${userId}`)
           const existingItems = await getAllWatchlistItemsForUser(userId)
 
-          // Convert database items to TokenWatchlistItems
           for (const item of existingItems) {
-            // Normalize guids using the parseGuids utility to handle JSON strings, arrays, and null values
             const guids = parseGuids(item.guids)
 
-            // Normalize genres using the parseGenres utility to handle JSON strings, arrays, and null values
             const genres = parseGenres(item.genres)
 
             const tokenItem: TokenWatchlistItem = {
@@ -148,7 +132,7 @@ export const fetchSelfWatchlist = async (
           log.info(
             `Successfully fell back to ${existingItems.length} existing database items for user ${userId}`,
           )
-          break // Break out of the token loop since we have fallback data
+          break
         } catch (fallbackError) {
           log.error(
             { error: fallbackError, userId },
@@ -165,17 +149,8 @@ export const fetchSelfWatchlist = async (
   return allItems
 }
 
-/**
- * Fetches watchlists for multiple friends concurrently with controlled batching.
- *
- * @param config - Application configuration
- * @param log - Fastify logger instance
- * @param friends - Set of Friends with their tokens and user IDs
- * @param getAllWatchlistItemsForUser - Optional fallback function to get database items
- * @returns Promise resolving to a Map of Friends to their TokenWatchlistItems
- */
+/** Friends whose fetch failed are absent from the map; an empty watchlist is an empty set. */
 export const getOthersWatchlist = async (
-  config: Config,
   log: FastifyBaseLogger,
   friends: Set<[Friend & { userId: number }, string]>,
   getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>,
@@ -183,8 +158,7 @@ export const getOthersWatchlist = async (
   const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>()
   log.info(`Starting fetch of watchlists for ${friends.size} friends`)
 
-  // Simple concurrency pool implementation
-  const MAX_CONCURRENT = 2 // Maximum number of concurrent friend fetches
+  const MAX_CONCURRENT = 2
   const friendsArray = Array.from(friends)
   const results: Array<{
     user: Friend & { userId: number }
@@ -192,28 +166,22 @@ export const getOthersWatchlist = async (
     success: boolean
   }> = []
 
-  // Create batches of friends to process
   for (let i = 0; i < friendsArray.length; i += MAX_CONCURRENT) {
     const batch = friendsArray.slice(i, i + MAX_CONCURRENT)
     log.debug(
       `Processing batch of ${batch.length} friends (${i + 1}-${Math.min(i + batch.length, friendsArray.length)} of ${friendsArray.length})`,
     )
 
-    // Process this batch concurrently
     const batchPromises = batch.map(async ([user, token]) => {
       log.debug(`Processing friend: ${user.username} (userId: ${user.userId})`)
       try {
-        const watchlistItems = await getWatchlistForUser(
-          config,
-          log,
+        const watchlistItems = await getWatchlistForUser({
           token,
+          log,
           user,
-          user.userId,
-          null,
-          0,
-          3,
+          userId: user.userId,
           getAllWatchlistItemsForUser,
-        )
+        })
         return { user, watchlistItems, success: true }
       } catch (error) {
         if (isRateLimitError(error)) {
@@ -233,11 +201,9 @@ export const getOthersWatchlist = async (
       }
     })
 
-    // Wait for the current batch to complete before processing the next batch
     const batchResults = await Promise.all(batchPromises)
     results.push(...batchResults)
 
-    // Introduce a delay between batches to avoid rate limits
     if (i + MAX_CONCURRENT < friendsArray.length) {
       await new Promise((resolve) =>
         setTimeout(resolve, 1_000 + Math.ceil(Math.random() * 4_000)),
@@ -245,11 +211,8 @@ export const getOthersWatchlist = async (
     }
   }
 
-  // Add each successfully fetched result to the map
-  // Note: Failed fetches are excluded to prevent data loss in downstream processing
   for (const { user, watchlistItems, success } of results) {
     if (success) {
-      // Add user to map (even with empty watchlist if they legitimately have no items)
       userWatchlistMap.set(user, watchlistItems)
       log.debug(
         `Added ${watchlistItems.size} items for friend ${user.username}`,

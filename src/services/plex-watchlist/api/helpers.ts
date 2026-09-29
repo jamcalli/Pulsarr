@@ -1,20 +1,11 @@
 import type { Config } from '@root/types/config.types.js'
 
-// Network timeout constants
-// Increased to 30 seconds to handle large watchlists (1000+ items) and slow Plex responses
 export const PLEX_API_TIMEOUT_MS = 30_000
 
-// Custom error interface for rate limit errors
 export interface RateLimitError extends Error {
   isRateLimitExhausted: boolean
 }
 
-/**
- * Determines whether an error represents a Plex API rate limit exhaustion.
- *
- * @param error - The value to check.
- * @returns `true` if the error is a {@link RateLimitError} with rate limit exhaustion; otherwise, `false`.
- */
 export function isRateLimitError(error: unknown): error is RateLimitError {
   return (
     error instanceof Error &&
@@ -23,15 +14,20 @@ export function isRateLimitError(error: unknown): error is RateLimitError {
   )
 }
 
-/**
- * Checks if the configuration includes at least one Plex token.
- *
- * @returns `true` if the configuration's `plexTokens` property is a non-empty array; otherwise, `false`.
- */
 export function hasValidPlexTokens(config: Config): boolean {
   return Boolean(
     config.plexTokens &&
       Array.isArray(config.plexTokens) &&
       config.plexTokens.length > 0,
   )
+}
+
+/** Seconds to wait; undefined for a missing or unparseable header, 0 for a date already past. */
+export function parseRetryAfter(header: string | null): number | undefined {
+  if (!header) return undefined
+  const asSeconds = Number.parseInt(header, 10)
+  if (!Number.isNaN(asSeconds)) return asSeconds
+  const asDateMs = Date.parse(header)
+  if (Number.isNaN(asDateMs)) return undefined
+  return Math.ceil(Math.max(0, asDateMs - Date.now()) / 1000)
 }
