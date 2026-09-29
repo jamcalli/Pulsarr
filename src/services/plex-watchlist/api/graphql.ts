@@ -244,7 +244,8 @@ const paginatedGraphQLFetch = async <
         err.isRateLimitExhausted = true
         throw err
       }
-      if (retryCount < maxRetries) {
+      const transient = response.status >= 500 || response.status === 408
+      if (transient && retryCount < maxRetries) {
         retryCount++
         const retryDelay = Math.min(1000 * 2 ** retryCount, 10000)
         options.log.warn(

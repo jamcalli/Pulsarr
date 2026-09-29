@@ -67,6 +67,21 @@ describe('friend-users', () => {
       expect(added).toEqual([])
     })
 
+    it('keeps the stored name when the new username is still held by another user', async () => {
+      mockDb.getAllUsers.mockResolvedValue([
+        createMockUser(5, 'old-name', { plex_uuid: 'uuid-1' }),
+        createMockUser(6, 'new-name', { plex_uuid: 'uuid-2' }),
+      ])
+
+      const { userMap } = await ensureFriendUsers(
+        friendSet(friend('uuid-1', 'new-name')),
+        deps,
+      )
+
+      expect(mockDb.updateUser).not.toHaveBeenCalled()
+      expect(userMap.get('uuid-1')).toEqual({ userId: 5, username: 'new-name' })
+    })
+
     it('falls through to getOrCreateUser when no uuid matches', async () => {
       mockDb.getAllUsers.mockResolvedValue([
         createMockUser(9, 'carol', { plex_uuid: 'uuid-other' }),

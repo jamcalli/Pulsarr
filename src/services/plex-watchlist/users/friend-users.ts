@@ -22,11 +22,13 @@ export async function ensureFriendUsers(
 ): Promise<{ userMap: Map<string, UserMapEntry>; added: EtagUserInfo[] }> {
   const userMap = new Map<string, UserMapEntry>()
   const added: EtagUserInfo[] = []
+  const allUsers = await deps.db.getAllUsers()
   const usersByUuid = new Map(
-    (await deps.db.getAllUsers())
+    allUsers
       .filter((user) => user.plex_uuid)
       .map((user) => [user.plex_uuid, user]),
   )
+  const usersByName = new Map(allUsers.map((user) => [user.name, user]))
 
   await Promise.all(
     Array.from(friends).map(async ([friend]) => {
@@ -60,7 +62,19 @@ export async function ensureFriendUsers(
         const updates: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>> =
           {}
         if (user.name !== friend.username) {
-          updates.name = friend.username
+          const holder = usersByName.get(friend.username)
+          if (holder && holder.id !== user.id) {
+            deps.logger.warn(
+              {
+                userId: user.id,
+                username: friend.username,
+                holderId: holder.id,
+              },
+              'Username is still held by another user, keeping the stored name',
+            )
+          } else {
+            updates.name = friend.username
+          }
         }
         if (friend.watchlistId && user.plex_uuid !== friend.watchlistId) {
           updates.plex_uuid = friend.watchlistId

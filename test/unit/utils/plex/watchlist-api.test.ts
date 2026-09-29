@@ -465,6 +465,26 @@ describe('plex/watchlist-api', () => {
       ).rejects.toThrow(/HTTP 401/)
     })
 
+    it('should not retry a 401 with the default retry count', async () => {
+      let callCount = 0
+      server.use(
+        http.post('https://community.plex.tv/api', () => {
+          callCount++
+          return new HttpResponse(null, { status: 401 })
+        }),
+      )
+
+      await expect(
+        getWatchlistForUser({
+          token: 'token',
+          log: mockLogger,
+          user,
+          userId: 1,
+        }),
+      ).rejects.toThrow(/HTTP 401/)
+      expect(callCount).toBe(1)
+    })
+
     it('should return database items on 401 error when a fallback is provided', async () => {
       server.use(
         http.post('https://community.plex.tv/api', () => {
