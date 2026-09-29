@@ -3,7 +3,7 @@ import type {
   Item,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
-import { processItemsForUser } from '@services/plex-watchlist/index.js'
+import { processItemsForUser } from '@services/plex-watchlist/orchestration/unified-processor.js'
 import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
 import {
   checkInstanceHealth,

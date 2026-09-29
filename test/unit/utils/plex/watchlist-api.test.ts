@@ -1,4 +1,3 @@
-import type { Config } from '@root/types/config.types.js'
 import type {
   Friend,
   Item,
@@ -8,8 +7,8 @@ import type {
 import {
   getWatchlist,
   getWatchlistForUser,
-  PlexRateLimiter,
-} from '@services/plex-watchlist/index.js'
+} from '@services/plex-watchlist/api/graphql.js'
+import { PlexRateLimiter } from '@services/plex-watchlist/api/rate-limiter.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
@@ -19,7 +18,6 @@ describe('plex/watchlist-api', () => {
   const mockLogger = createMockLogger()
 
   beforeEach(() => {
-    // Reset rate limiter state between tests
     PlexRateLimiter.getInstance().reset()
   })
 
@@ -181,7 +179,6 @@ describe('plex/watchlist-api', () => {
       )
 
       vi.useFakeTimers()
-      // Attach error handler immediately to prevent unhandled rejection
       const promise = getWatchlist('token', mockLogger).catch((e) => e)
 
       await vi.runAllTimersAsync()
@@ -207,14 +204,12 @@ describe('plex/watchlist-api', () => {
         ),
       )
 
-      // Don't use fake timers - just test the error
       await expect(getWatchlist('token', mockLogger)).rejects.toThrow(
         'Plex API error: HTTP 500 - Internal Server Error',
       )
     })
 
     it('should handle timeout error', async () => {
-      // Mock AbortSignal.timeout to return an immediately aborted signal
       const originalTimeout = AbortSignal.timeout
       try {
         AbortSignal.timeout = () => {
@@ -227,7 +222,6 @@ describe('plex/watchlist-api', () => {
           http.get(
             'https://discover.provider.plex.tv/library/sections/watchlist/all',
             async () => {
-              // This handler won't be reached due to immediate abort
               return HttpResponse.json({
                 MediaContainer: { Metadata: [], totalSize: 0 },
               } as PlexResponse)
@@ -273,15 +267,37 @@ describe('plex/watchlist-api', () => {
   })
 
   describe('getWatchlistForUser', () => {
-    const config: Config = {
-      plexTokens: ['test-token'],
-    } as Config
-
     const user: Friend = {
       watchlistId: 'user-123',
       username: 'testuser',
       userId: 1,
     }
+
+    const mockDbItems: Item[] = [
+      {
+        key: 'db-item-1',
+        title: 'DB Movie',
+        type: 'movie',
+        guids: ['tmdb://12345'],
+        genres: ['Action'],
+        user_id: 1,
+        status: 'pending',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+        thumb: '',
+      },
+    ]
+
+    const emptyWatchlistResponse = {
+      data: {
+        userV2: {
+          watchlist: {
+            nodes: [],
+            pageInfo: { hasNextPage: false, endCursor: null },
+          },
+        },
+      },
+    } as unknown as PlexApiResponse
 
     it('should fetch watchlist for user successfully', async () => {
       server.use(
@@ -308,13 +324,12 @@ describe('plex/watchlist-api', () => {
         }),
       )
 
-      const result = await getWatchlistForUser(
-        config,
-        mockLogger,
-        'token',
+      const result = await getWatchlistForUser({
+        token: 'token',
+        log: mockLogger,
         user,
-        1,
-      )
+        userId: 1,
+      })
 
       expect(result.size).toBe(1)
       const items = Array.from(result)
@@ -360,13 +375,12 @@ describe('plex/watchlist-api', () => {
         }),
       )
 
-      const resultPromise = getWatchlistForUser(
-        config,
-        mockLogger,
-        'token',
+      const resultPromise = getWatchlistForUser({
+        token: 'token',
+        log: mockLogger,
         user,
-        1,
-      )
+        userId: 1,
+      })
       await vi.runAllTimersAsync()
       const result = await resultPromise
 
@@ -379,7 +393,12 @@ describe('plex/watchlist-api', () => {
       const invalidUser = { username: 'test' } as unknown as Friend
 
       await expect(
-        getWatchlistForUser(config, mockLogger, 'token', invalidUser, 1),
+        getWatchlistForUser({
+          token: 'token',
+          log: mockLogger,
+          user: invalidUser,
+          userId: 1,
+        }),
       ).rejects.toThrow('Invalid user object provided to getWatchlistForUser')
     })
 
@@ -389,20 +408,16 @@ describe('plex/watchlist-api', () => {
       server.use(
         http.post('https://community.plex.tv/api', async ({ request }) => {
           capturedBody = await request.json()
-          return HttpResponse.json({
-            data: {
-              userV2: {
-                watchlist: {
-                  nodes: [],
-                  pageInfo: { hasNextPage: false, endCursor: null },
-                },
-              },
-            },
-          } as unknown as PlexApiResponse)
+          return HttpResponse.json(emptyWatchlistResponse)
         }),
       )
 
-      await getWatchlistForUser(config, mockLogger, 'token', user, 1)
+      await getWatchlistForUser({
+        token: 'token',
+        log: mockLogger,
+        user,
+        userId: 1,
+      })
 
       expect(capturedBody).toHaveProperty('query')
       expect((capturedBody as { query: string }).query).toContain(
@@ -415,25 +430,137 @@ describe('plex/watchlist-api', () => {
       ).toBe('user-123')
     })
 
-    it('should handle 401 error', async () => {
+    it('should return an empty set for a genuinely empty watchlist', async () => {
+      server.use(
+        http.post('https://community.plex.tv/api', () => {
+          return HttpResponse.json(emptyWatchlistResponse)
+        }),
+      )
+
+      const result = await getWatchlistForUser({
+        token: 'token',
+        log: mockLogger,
+        user,
+        userId: 1,
+      })
+
+      expect(result.size).toBe(0)
+    })
+
+    it('should reject on 401 error when no fallback is provided', async () => {
       server.use(
         http.post('https://community.plex.tv/api', () => {
           return new HttpResponse(null, { status: 401 })
         }),
       )
 
-      const result = await getWatchlistForUser(
-        config,
-        mockLogger,
-        'token',
-        user,
-        1,
-        null,
-        0,
-        0,
+      await expect(
+        getWatchlistForUser({
+          token: 'token',
+          log: mockLogger,
+          user,
+          userId: 1,
+          maxRetries: 0,
+        }),
+      ).rejects.toThrow(/HTTP 401/)
+    })
+
+    it('should return database items on 401 error when a fallback is provided', async () => {
+      server.use(
+        http.post('https://community.plex.tv/api', () => {
+          return new HttpResponse(null, { status: 401 })
+        }),
       )
 
+      const getAllWatchlistItemsForUser = vi.fn().mockResolvedValue(mockDbItems)
+
+      const result = await getWatchlistForUser({
+        token: 'token',
+        log: mockLogger,
+        user,
+        userId: 1,
+        maxRetries: 0,
+        getAllWatchlistItemsForUser,
+      })
+
+      expect(result.size).toBe(1)
+      expect(Array.from(result)[0].key).toBe('db-item-1')
+    })
+
+    it('should retry non-429 HTTP errors up to maxRetries', async () => {
+      vi.useFakeTimers()
+      let callCount = 0
+      server.use(
+        http.post('https://community.plex.tv/api', () => {
+          callCount++
+          if (callCount < 3) {
+            return new HttpResponse(null, { status: 502 })
+          }
+          return HttpResponse.json(emptyWatchlistResponse)
+        }),
+      )
+
+      const resultPromise = getWatchlistForUser({
+        token: 'token',
+        log: mockLogger,
+        user,
+        userId: 1,
+        maxRetries: 2,
+      })
+      await vi.runAllTimersAsync()
+      const result = await resultPromise
+
       expect(result.size).toBe(0)
+      expect(callCount).toBe(3)
+      vi.useRealTimers()
+    })
+
+    it('should reject on a null watchlist payload when no fallback is provided', async () => {
+      let callCount = 0
+      server.use(
+        http.post('https://community.plex.tv/api', () => {
+          callCount++
+          return HttpResponse.json({
+            data: { userV2: null },
+          } as unknown as PlexApiResponse)
+        }),
+      )
+
+      await expect(
+        getWatchlistForUser({
+          token: 'token',
+          log: mockLogger,
+          user,
+          userId: 1,
+        }),
+      ).rejects.toThrow(/no watchlist payload/)
+      expect(callCount).toBe(1)
+    })
+
+    it('should return database items on a null watchlist payload when a fallback is provided', async () => {
+      let callCount = 0
+      server.use(
+        http.post('https://community.plex.tv/api', () => {
+          callCount++
+          return HttpResponse.json({
+            data: { userV2: null },
+          } as unknown as PlexApiResponse)
+        }),
+      )
+
+      const getAllWatchlistItemsForUser = vi.fn().mockResolvedValue(mockDbItems)
+
+      const result = await getWatchlistForUser({
+        token: 'token',
+        log: mockLogger,
+        user,
+        userId: 1,
+        getAllWatchlistItemsForUser,
+      })
+
+      expect(result.size).toBe(1)
+      expect(getAllWatchlistItemsForUser).toHaveBeenCalledWith(1)
+      expect(callCount).toBe(1)
     })
 
     it('should handle 429 rate limit', async () => {
@@ -444,8 +571,14 @@ describe('plex/watchlist-api', () => {
       )
 
       await expect(
-        getWatchlistForUser(config, mockLogger, 'token', user, 1, null, 0, 0),
-      ).rejects.toThrow('Rate limited by Plex GraphQL (429)')
+        getWatchlistForUser({
+          token: 'token',
+          log: mockLogger,
+          user,
+          userId: 1,
+          maxRetries: 0,
+        }),
+      ).rejects.toThrow(/Rate limit exceeded/)
     })
 
     it('should set isRateLimitExhausted when max retries reached', async () => {
@@ -456,31 +589,36 @@ describe('plex/watchlist-api', () => {
       )
 
       await expect(
-        getWatchlistForUser(config, mockLogger, 'token', user, 1, null, 3, 3),
+        getWatchlistForUser({
+          token: 'token',
+          log: mockLogger,
+          user,
+          userId: 1,
+          maxRetries: 0,
+        }),
       ).rejects.toHaveProperty('isRateLimitExhausted', true)
     })
 
-    it('should handle GraphQL errors', async () => {
+    it('should reject on GraphQL errors without retrying', async () => {
+      let callCount = 0
       server.use(
         http.post('https://community.plex.tv/api', () => {
+          callCount++
           return HttpResponse.json({
             errors: [{ message: 'GraphQL error' }],
           } as unknown as PlexApiResponse)
         }),
       )
 
-      const result = await getWatchlistForUser(
-        config,
-        mockLogger,
-        'token',
-        user,
-        1,
-        null,
-        0,
-        0,
-      )
-
-      expect(result.size).toBe(0)
+      await expect(
+        getWatchlistForUser({
+          token: 'token',
+          log: mockLogger,
+          user,
+          userId: 1,
+        }),
+      ).rejects.toThrow(/GraphQL errors/)
+      expect(callCount).toBe(1)
     })
 
     it('should retry on generic error up to maxRetries', async () => {
@@ -492,29 +630,17 @@ describe('plex/watchlist-api', () => {
           if (callCount < 3) {
             return HttpResponse.error()
           }
-          return HttpResponse.json({
-            data: {
-              userV2: {
-                watchlist: {
-                  nodes: [],
-                  pageInfo: { hasNextPage: false, endCursor: null },
-                },
-              },
-            },
-          } as unknown as PlexApiResponse)
+          return HttpResponse.json(emptyWatchlistResponse)
         }),
       )
 
-      const resultPromise = getWatchlistForUser(
-        config,
-        mockLogger,
-        'token',
+      const resultPromise = getWatchlistForUser({
+        token: 'token',
+        log: mockLogger,
         user,
-        1,
-        null,
-        0,
-        2,
-      )
+        userId: 1,
+        maxRetries: 2,
+      })
       await vi.runAllTimersAsync()
       const result = await resultPromise
 
@@ -530,34 +656,16 @@ describe('plex/watchlist-api', () => {
         }),
       )
 
-      const mockDbItems: Item[] = [
-        {
-          key: 'db-item-1',
-          title: 'DB Movie',
-          type: 'movie',
-          guids: ['tmdb://12345'],
-          genres: ['Action'],
-          user_id: 1,
-          status: 'pending',
-          created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z',
-          thumb: '',
-        },
-      ]
-
       const getAllWatchlistItemsForUser = vi.fn().mockResolvedValue(mockDbItems)
 
-      const result = await getWatchlistForUser(
-        config,
-        mockLogger,
-        'token',
+      const result = await getWatchlistForUser({
+        token: 'token',
+        log: mockLogger,
         user,
-        1,
-        null,
-        0,
-        0,
+        userId: 1,
+        maxRetries: 0,
         getAllWatchlistItemsForUser,
-      )
+      })
 
       expect(result.size).toBe(1)
       expect(getAllWatchlistItemsForUser).toHaveBeenCalledWith(1)
@@ -570,7 +678,7 @@ describe('plex/watchlist-api', () => {
         }),
       )
 
-      const mockDbItems: Item[] = [
+      const jsonStringDbItems: Item[] = [
         {
           key: 'db-item-1',
           title: 'DB Movie',
@@ -585,19 +693,18 @@ describe('plex/watchlist-api', () => {
         },
       ]
 
-      const getAllWatchlistItemsForUser = vi.fn().mockResolvedValue(mockDbItems)
+      const getAllWatchlistItemsForUser = vi
+        .fn()
+        .mockResolvedValue(jsonStringDbItems)
 
-      const result = await getWatchlistForUser(
-        config,
-        mockLogger,
-        'token',
+      const result = await getWatchlistForUser({
+        token: 'token',
+        log: mockLogger,
         user,
-        1,
-        null,
-        0,
-        0,
+        userId: 1,
+        maxRetries: 0,
         getAllWatchlistItemsForUser,
-      )
+      })
 
       const items = Array.from(result)
       expect(items[0].guids).toHaveLength(2)
@@ -611,19 +718,24 @@ describe('plex/watchlist-api', () => {
         }),
       )
 
-      // Rate limit error should be propagated (thrown), not returned as empty set
       await expect(
-        getWatchlistForUser(config, mockLogger, 'token', user, 1, null, 0, 0),
+        getWatchlistForUser({
+          token: 'token',
+          log: mockLogger,
+          user,
+          userId: 1,
+          maxRetries: 0,
+        }),
       ).rejects.toMatchObject({
-        message: expect.stringContaining('Rate limited'),
+        message: expect.stringContaining('Rate limit'),
         isRateLimitExhausted: true,
       })
     })
 
-    it('should log error when database fallback fails', async () => {
+    it('should rethrow the fetch error when database fallback fails', async () => {
       server.use(
         http.post('https://community.plex.tv/api', () => {
-          return HttpResponse.error()
+          return new HttpResponse(null, { status: 503 })
         }),
       )
 
@@ -631,19 +743,17 @@ describe('plex/watchlist-api', () => {
         .fn()
         .mockRejectedValue(new Error('DB error'))
 
-      const result = await getWatchlistForUser(
-        config,
-        mockLogger,
-        'token',
-        user,
-        1,
-        null,
-        0,
-        0,
-        getAllWatchlistItemsForUser,
-      )
-
-      expect(result.size).toBe(0)
+      await expect(
+        getWatchlistForUser({
+          token: 'token',
+          log: mockLogger,
+          user,
+          userId: 1,
+          maxRetries: 0,
+          getAllWatchlistItemsForUser,
+        }),
+      ).rejects.toThrow(/HTTP 503/)
+      expect(getAllWatchlistItemsForUser).toHaveBeenCalledWith(1)
     })
   })
 })

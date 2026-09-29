@@ -3,10 +3,8 @@ import type {
   PlexApiResponse,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
-import {
-  PlexRateLimiter,
-  toItemsSingle,
-} from '@services/plex-watchlist/index.js'
+import { PlexRateLimiter } from '@services/plex-watchlist/api/rate-limiter.js'
+import { toItemsSingle } from '@services/plex-watchlist/enrichment/single-item.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
@@ -20,7 +18,6 @@ describe('plex/processors/single-item', () => {
 
   afterEach(() => {
     server.resetHandlers()
-    // Ensure each test starts with a clean limiter state
     PlexRateLimiter.getInstance().reset()
   })
 
@@ -162,7 +159,6 @@ describe('plex/processors/single-item', () => {
           () => {
             callCount++
             if (callCount === 1) {
-              // Return HTTP-date format (1.5 seconds in the future)
               const futureDate = new Date(Date.now() + 1500)
               return new HttpResponse(null, {
                 status: 429,
@@ -203,7 +199,6 @@ describe('plex/processors/single-item', () => {
         ),
       )
 
-      // HTTP 429 responses should skip the item and return empty Set when retries are exhausted
       const result = await toItemsSingle(config, mockLogger, mockItem, 0, 0)
       expect(result).toEqual(new Set())
     })
@@ -300,7 +295,6 @@ describe('plex/processors/single-item', () => {
       const item = items[0]
       if (!item) throw new Error('Expected item to be defined')
       expect(item.guids).toHaveLength(1)
-      // GUIDs are normalized by normalizeGuid which converts :// to :
       if (!item.guids) throw new Error('Expected guids to be defined')
       expect(item.guids[0]).toBe('tmdb:123')
     })
@@ -450,7 +444,6 @@ describe('plex/processors/single-item', () => {
 
       const items = Array.from(result)
       expect(items.length).toBeGreaterThan(0)
-      // Code prefers item.thumb || metadata.thumb (item first)
       expect(items[0].thumb).toBe('https://item-thumb.jpg')
     })
 
@@ -484,13 +477,11 @@ describe('plex/processors/single-item', () => {
     })
 
     it('should propagate rate limit error when already exhausted', async () => {
-      // Create a rate limit error directly in the flow
       const rateLimitError = new Error('Rate limited') as Error & {
         isRateLimitExhausted: boolean
       }
       rateLimitError.isRateLimitExhausted = true
 
-      // Mock fetch to simulate the condition that triggers rate limit detection
       const originalFetch = global.fetch
       global.fetch = vi.fn().mockRejectedValue(rateLimitError)
 
@@ -509,10 +500,8 @@ describe('plex/processors/single-item', () => {
       global.fetch = vi.fn(async (_url, _init?: RequestInit) => {
         callCount++
         if (callCount === 1) {
-          // Simulate a transport error so the catch block sees the message
           throw new Error('Rate limit exceeded')
         }
-        // Success on retry
         return new Response(
           JSON.stringify({
             MediaContainer: {

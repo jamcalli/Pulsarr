@@ -3,7 +3,7 @@ import {
   fetchWatchlistFromRss,
   getPlexWatchlistUrls,
   getRssFromPlexToken,
-} from '@services/plex-watchlist/index.js'
+} from '@services/plex-watchlist/fetching/rss-fetcher.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
@@ -234,7 +234,6 @@ describe('plex/rss', () => {
       const tokens = new Set(['token1', 'token2'])
       const result = await getPlexWatchlistUrls(tokens, true, mockLogger)
 
-      // Only first token is used
       expect(callCount).toBe(1)
       expect(capturedToken).toBe('token1')
       expect(result.selfRss).toBe('https://rss.plex.tv/feed/watchlist/1')
@@ -371,7 +370,6 @@ describe('plex/rss', () => {
       )
 
       const items = Array.from(result)
-      // Key should be stable and based on GUIDs (sorted, normalized, joined)
       expect(items[0].key).toBe('imdb:tt9999999|tmdb:11111')
       expect(items[0].user_id).toBe(2)
     })
@@ -482,7 +480,6 @@ describe('plex/rss', () => {
       )
 
       const items = Array.from(result)
-      // Should only have valid guids (empty string and whitespace filtered out)
       expect(items[0].guids).toHaveLength(2)
       expect(items[0].guids).toContain('tmdb:12345')
       expect(items[0].guids).toContain('imdb:tt1234')
@@ -540,7 +537,6 @@ describe('plex/rss', () => {
             credits: [],
             guids: [],
           },
-          // This will cause an error during processing
           null as never,
           {
             title: 'Another Valid Item',
@@ -566,7 +562,6 @@ describe('plex/rss', () => {
         mockLogger,
       )
 
-      // Should have processed at least the valid items (may skip the null)
       expect(result.size).toBeGreaterThanOrEqual(1)
     })
 

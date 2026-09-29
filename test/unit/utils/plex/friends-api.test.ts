@@ -5,7 +5,7 @@ import {
   getFriendRequests,
   getFriends,
   sendFriendRequest,
-} from '@services/plex-watchlist/index.js'
+} from '@services/plex-watchlist/fetching/friends-api.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
@@ -130,7 +130,6 @@ describe('plex/friends-api', () => {
 
       const result = await getFriends(config, mockLogger)
 
-      // Should deduplicate by watchlistId
       expect(result.friends.size).toBe(2)
       expect(result.success).toBe(true)
     })
@@ -214,7 +213,6 @@ describe('plex/friends-api', () => {
 
       await getFriends(config, mockLogger)
 
-      // Should only make 1 request (for 'valid-token')
       expect(requestCount).toBe(1)
     })
 
@@ -279,7 +277,6 @@ describe('plex/friends-api', () => {
     })
 
     it('should handle timeout errors', async () => {
-      // Mock AbortSignal.timeout to return an immediately aborted signal
       const originalTimeout = AbortSignal.timeout
       try {
         AbortSignal.timeout = () => {
@@ -290,7 +287,6 @@ describe('plex/friends-api', () => {
 
         server.use(
           http.post('https://community.plex.tv/api', async () => {
-            // This handler won't be reached due to immediate abort
             return HttpResponse.json({
               data: { allFriendsV2: [] },
             } as PlexApiResponse)

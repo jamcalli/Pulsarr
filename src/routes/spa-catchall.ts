@@ -1,4 +1,4 @@
-import { hasValidPlexTokens } from '@services/plex-watchlist/index.js'
+import { hasValidPlexTokens } from '@services/plex-watchlist/api/helpers.js'
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 import { assignTemporaryAdminUser } from '@utils/temporary-admin.js'
 import { normalizeBasePath } from '@utils/url.js'
@@ -24,7 +24,6 @@ export default async function spaRoute(fastify: FastifyInstance) {
           ? rawPath.slice(basePath.length) || '/'
           : rawPath
 
-        // Skip API routes and static assets — ensure we do NOT fall through to SPA HTML
         const lastSeg = path.split('/').pop() ?? ''
         if (
           path === '/v1' ||
@@ -35,7 +34,6 @@ export default async function spaRoute(fastify: FastifyInstance) {
           return reply.callNotFound()
         }
 
-        // Only serve SPA for HTML navigations; return 404 for non-HTML (e.g., XHR/fetch)
         const accept = request.headers.accept ?? ''
         if (typeof accept === 'string' && !accept.includes('text/html')) {
           return reply.callNotFound()
@@ -108,7 +106,6 @@ export default async function spaRoute(fastify: FastifyInstance) {
           return
         }
 
-        // Prevent create-user access when users already exist
         if (isCreateUserPage) {
           return reply.redirect(buildPath('/login'))
         }

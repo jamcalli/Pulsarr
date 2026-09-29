@@ -9,19 +9,31 @@ import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createWorkflowDeps } from '../../../../mocks/watchlist-workflow-deps.js'
 
-vi.mock('@services/plex-watchlist/index.js', () => ({
+vi.mock('@services/plex-watchlist/fetching/watchlist-fetcher.js', () => ({
   getOthersWatchlist: vi.fn(async () => new Map()),
+}))
+
+vi.mock('@services/plex-watchlist/orchestration/watchlist-sync.js', () => ({
   extractKeysAndRelationships: vi.fn(() => ({
     allKeys: new Set<string>(),
     userKeyMap: new Map(),
   })),
   getExistingItems: vi.fn(async () => []),
+}))
+
+vi.mock('@services/plex-watchlist/sync/item-categorizer.js', () => ({
   categorizeItems: vi.fn(() => ({
     brandNewItems: new Map(),
     existingItemsToLink: new Map(),
   })),
+}))
+
+vi.mock('@services/plex-watchlist/orchestration/item-processor.js', () => ({
   processAndSaveNewItems: vi.fn(async () => new Map()),
   linkExistingItems: vi.fn(async () => {}),
+}))
+
+vi.mock('@services/plex-watchlist/orchestration/removal-handler.js', () => ({
   handleLinkedItemsForLabelSync: vi.fn(async () => {}),
 }))
 
@@ -48,11 +60,9 @@ vi.mock(
   }),
 )
 
-import {
-  categorizeItems,
-  getOthersWatchlist,
-  processAndSaveNewItems,
-} from '@services/plex-watchlist/index.js'
+import { getOthersWatchlist } from '@services/plex-watchlist/fetching/watchlist-fetcher.js'
+import { processAndSaveNewItems } from '@services/plex-watchlist/orchestration/item-processor.js'
+import { categorizeItems } from '@services/plex-watchlist/sync/item-categorizer.js'
 import { updateAutoApprovalUserAttribution } from '@services/watchlist-workflow/attribution/approval-attributor.js'
 import {
   handleNewFriendEtagMode,
