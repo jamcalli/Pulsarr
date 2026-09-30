@@ -46,7 +46,10 @@ export default fp(
       }
     }
 
-    setImmediate(startWorkflow)
+    // not awaited: the initial reconcile takes minutes and must not hold up ready()
+    fastify.addHook('onReady', async () => {
+      void startWorkflow()
+    })
 
     fastify.decorate('watchlistWorkflow', watchlistWorkflow)
 
@@ -61,14 +64,19 @@ export default fp(
   {
     name: 'watchlist-workflow-service',
     dependencies: [
+      'config',
+      'content-router',
+      'database',
+      'notification-service',
+      'plex-label-sync',
       'plex-server',
       'plex-watchlist',
-      'sonarr-manager',
-      'radarr-manager',
-      'sync',
-      'config',
       'progress',
+      'radarr-manager',
       'scheduler',
+      'sonarr-manager',
+      'sync',
+      'tmdb',
     ],
   },
 )

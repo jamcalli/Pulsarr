@@ -65,15 +65,16 @@ export default fp(
   {
     name: 'delete-sync-service',
     dependencies: [
+      'approval',
+      'config',
+      'database',
+      'notification-service',
+      'plex-server',
+      'plex-watchlist',
+      'radarr-manager',
       'scheduler',
       'sonarr-manager',
-      'radarr-manager',
-      'database',
-      'config',
-      'notification-service',
-      'plex-watchlist',
-      'plex-server',
-      'approval',
+      'user-tag',
     ],
   },
 )

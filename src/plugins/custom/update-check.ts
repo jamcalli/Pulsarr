@@ -146,5 +146,5 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
 export default fp(plugin, {
   name: 'update-check',
-  dependencies: ['scheduler', 'database', 'config', 'notification-service'],
+  dependencies: ['config', 'database', 'notification-service', 'scheduler'],
 })

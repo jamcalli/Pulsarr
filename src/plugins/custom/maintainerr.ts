@@ -96,6 +96,6 @@ export default fp(
   },
   {
     name: 'maintainerr',
-    dependencies: ['scheduler', 'database', 'config'],
+    dependencies: ['config', 'database', 'scheduler'],
   },
 )
