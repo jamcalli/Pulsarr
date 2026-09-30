@@ -32,12 +32,15 @@ export default fp(
   {
     name: 'content-router',
     dependencies: [
+      'anime',
+      'approval',
       'database',
       'notification-service',
-      'sonarr-manager',
-      'radarr-manager',
+      'progress',
       'quota',
-      'approval',
+      'radarr-manager',
+      'sonarr-manager',
+      'tmdb',
     ],
   },
 )

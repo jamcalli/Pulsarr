@@ -37,10 +37,10 @@ export default fp(
     name: 'webhook-queue',
     dependencies: [
       'database',
-      'scheduler',
       'notification-service',
-      'sonarr-manager',
       'plex-label-sync',
+      'scheduler',
+      'sonarr-manager',
     ],
   },
 )

@@ -21,6 +21,13 @@ export default fp(
   },
   {
     name: 'sync',
-    dependencies: ['database', 'sonarr-manager', 'radarr-manager', 'user-tag'],
+    dependencies: [
+      'content-router',
+      'database',
+      'progress',
+      'radarr-manager',
+      'sonarr-manager',
+      'user-tag',
+    ],
   },
 )
