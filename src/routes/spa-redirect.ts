@@ -1,4 +1,4 @@
-import { hasValidPlexTokens } from '@services/plex-watchlist/index.js'
+import { hasValidPlexTokens } from '@services/plex-watchlist/api/helpers.js'
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 import { assignTemporaryAdminUser } from '@utils/temporary-admin.js'
 import { normalizeBasePath } from '@utils/url.js'

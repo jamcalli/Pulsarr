@@ -3,7 +3,7 @@ import type {
   Item,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
-import { processItemsForUser } from '@services/plex-watchlist/index.js'
+import { processItemsForUser } from '@services/plex-watchlist/orchestration/unified-processor.js'
 import { updateAutoApprovalUserAttribution } from '../attribution/approval-attributor.js'
 import {
   checkInstanceHealth,
@@ -13,6 +13,7 @@ import { routeEnrichedItemsForUser } from '../routing/item-router.js'
 import type { WorkflowDeps } from '../types.js'
 import { enrichRssItems } from './enricher.js'
 
+/** Items without an author are skipped. */
 export async function processRssFriendsItems(
   items: CachedRssItem[],
   deps: WorkflowDeps,

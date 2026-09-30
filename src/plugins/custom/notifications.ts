@@ -47,6 +47,6 @@ export default fp(
   },
   {
     name: 'notification-service',
-    dependencies: ['config', 'database', 'progress', 'plex-server'],
+    dependencies: ['config', 'database', 'plex-server', 'progress'],
   },
 )

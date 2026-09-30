@@ -78,5 +78,5 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
 export default fp(plugin, {
   name: 'metadata-refresh',
-  dependencies: ['scheduler', 'plex-watchlist', 'database', 'config'],
+  dependencies: ['config', 'database', 'plex-watchlist', 'scheduler'],
 })

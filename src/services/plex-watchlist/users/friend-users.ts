@@ -1,10 +1,3 @@
-/**
- * Friend Users Module
- *
- * Handles ensuring friend users exist in the database and
- * checking for removed friends that should be cleaned up.
- */
-
 import type { Config, User } from '@root/types/config.types.js'
 import type {
   EtagUserInfo,
@@ -22,49 +15,67 @@ export interface FriendUsersDeps {
   fastify: FastifyInstance
 }
 
-/**
- * Ensures friend users exist in the database and tracks newly added friends.
- *
- * @param friends - Set of friends from Plex API
- * @param deps - Service dependencies
- * @returns Promise resolving to userMap and list of added users
- */
+/** Creates a DB user and default quotas per unstored friend; `added` holds only those new users. */
 export async function ensureFriendUsers(
   friends: Set<[Friend, string]>,
   deps: FriendUsersDeps,
 ): Promise<{ userMap: Map<string, UserMapEntry>; added: EtagUserInfo[] }> {
   const userMap = new Map<string, UserMapEntry>()
   const added: EtagUserInfo[] = []
+  const allUsers = await deps.db.getAllUsers()
+  const usersByUuid = new Map(
+    allUsers
+      .filter((user) => user.plex_uuid)
+      .map((user) => [user.plex_uuid, user]),
+  )
+  const usersByName = new Map(allUsers.map((user) => [user.name, user]))
 
   await Promise.all(
     Array.from(friends).map(async ([friend]) => {
-      const { user, created } = await deps.db.getOrCreateUser({
-        name: friend.username,
-        apprise: null,
-        alias: null,
-        discord_id: null,
-        notify_apprise: false,
-        notify_discord: false,
-        notify_discord_mention: true,
-        notify_plex_mobile: false,
-        can_sync: deps.config.newUserDefaultCanSync ?? true,
-        requires_approval: deps.config.newUserDefaultRequiresApproval ?? false,
-        is_primary_token: false,
-        plex_uuid: friend.watchlistId,
-        avatar: friend.avatar ?? null,
-        display_name: friend.displayName ?? null,
-        friend_created_at: friend.createdAt ?? null,
-      })
+      const existing = usersByUuid.get(friend.watchlistId)
+      const { user, created } = existing
+        ? { user: existing, created: false }
+        : await deps.db.getOrCreateUser({
+            name: friend.username,
+            apprise: null,
+            alias: null,
+            discord_id: null,
+            notify_apprise: false,
+            notify_discord: false,
+            notify_discord_mention: true,
+            notify_plex_mobile: false,
+            can_sync: deps.config.newUserDefaultCanSync ?? true,
+            requires_approval:
+              deps.config.newUserDefaultRequiresApproval ?? false,
+            is_primary_token: false,
+            plex_uuid: friend.watchlistId,
+            avatar: friend.avatar ?? null,
+            display_name: friend.displayName ?? null,
+            friend_created_at: friend.createdAt ?? null,
+          })
 
       if (created) {
-        // Send native webhook notification for user creation (fire-and-forget)
         void deps.fastify.notifications.sendUserCreated(user)
 
-        // Create default quotas for the new user
         await createDefaultQuotasForUser(user.id, deps)
       } else {
         const updates: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>> =
           {}
+        if (user.name !== friend.username) {
+          const holder = usersByName.get(friend.username)
+          if (holder && holder.id !== user.id) {
+            deps.logger.warn(
+              {
+                userId: user.id,
+                username: friend.username,
+                holderId: holder.id,
+              },
+              'Username is still held by another user, keeping the stored name',
+            )
+          } else {
+            updates.name = friend.username
+          }
+        }
         if (friend.watchlistId && user.plex_uuid !== friend.watchlistId) {
           updates.plex_uuid = friend.watchlistId
         }
@@ -94,7 +105,6 @@ export async function ensureFriendUsers(
         username: friend.username,
       })
 
-      // Track newly added users for ETag baseline establishment
       if (created) {
         added.push({
           userId: user.id,
@@ -109,17 +119,7 @@ export async function ensureFriendUsers(
   return { userMap, added }
 }
 
-/**
- * Checks for and removes users (friends) who are no longer in the current friends list.
- *
- * This method compares all existing users in the database (excluding the primary token user)
- * with the current friends list from Plex. Any users not found in the current friends list
- * are deleted from the database, which will cascade delete their watchlist items.
- *
- * @param currentFriends - Set of current friends from Plex API
- * @param deps - Service dependencies
- * @returns Promise resolving to list of removed users for ETag cache invalidation
- */
+/** Deletes DB users who are no longer friends; never throws, and returns only rows actually deleted. */
 export async function checkForRemovedFriends(
   currentFriends: Set<[Friend, string]>,
   deps: FriendUsersDeps,
@@ -127,27 +127,31 @@ export async function checkForRemovedFriends(
   const removed: EtagUserInfo[] = []
 
   try {
-    // Get all users from database
     const allUsers = await deps.db.getAllUsers()
 
-    // Get the primary user to exclude from cleanup
     const primaryUser = await deps.db.getPrimaryUser()
 
-    // Create a set of current friend usernames for O(1) lookup (case-insensitive)
     const currentFriendUsernames = new Set(
       Array.from(currentFriends).map(([friend]) =>
         friend.username.toLowerCase(),
       ),
     )
 
-    // Find users who are no longer friends (excluding primary user)
+    const currentFriendUuids = new Set(
+      Array.from(currentFriends)
+        .map(([friend]) => friend.watchlistId)
+        .filter(Boolean),
+    )
+
     const usersToDelete = allUsers.filter((user) => {
-      // Never delete the primary user
       if (primaryUser && user.id === primaryUser.id) {
         return false
       }
 
-      // Delete users who are not in the current friends list (case-insensitive comparison)
+      if (user.plex_uuid) {
+        return !currentFriendUuids.has(user.plex_uuid)
+      }
+
       return !currentFriendUsernames.has(user.name.toLowerCase())
     })
 
@@ -156,7 +160,6 @@ export async function checkForRemovedFriends(
         `Found ${usersToDelete.length} users who are no longer friends, removing them from database`,
       )
 
-      // Delete users (this will cascade delete their watchlist items)
       const userIds = usersToDelete.map((user) => user.id)
       const result = await deps.db.deleteUsers(userIds)
 
@@ -164,7 +167,6 @@ export async function checkForRemovedFriends(
         `Successfully removed ${result.deletedCount} former friends from database`,
       )
 
-      // Log details of removed users for transparency
       const successfullyDeleted = usersToDelete.filter(
         (user) => !result.failedIds.includes(user.id),
       )
@@ -173,7 +175,6 @@ export async function checkForRemovedFriends(
         deps.logger.debug(
           `Removed former friend: ${user.name} (ID: ${user.id})`,
         )
-        // Track removed users for ETag cache invalidation
         removed.push({
           userId: user.id,
           username: user.name,
@@ -181,7 +182,6 @@ export async function checkForRemovedFriends(
         })
       }
 
-      // Log any failures
       if (result.failedIds.length > 0) {
         const failedUsers = usersToDelete.filter((user) =>
           result.failedIds.includes(user.id),

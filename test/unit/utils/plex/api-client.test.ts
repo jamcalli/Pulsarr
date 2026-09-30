@@ -1,4 +1,4 @@
-import { pingPlex } from '@services/plex-watchlist/index.js'
+import { pingPlex } from '@services/plex-watchlist/api/client.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
@@ -69,7 +69,6 @@ describe('plex/api-client', () => {
     })
 
     it('should return false when request times out', async () => {
-      // Mock AbortSignal.timeout to return an immediately aborted signal
       const originalTimeout = AbortSignal.timeout
       try {
         AbortSignal.timeout = () => {
@@ -80,7 +79,6 @@ describe('plex/api-client', () => {
 
         server.use(
           http.get('https://plex.tv/api/v2/ping', async () => {
-            // This handler won't be reached due to immediate abort
             return HttpResponse.json({ status: 'ok' })
           }),
         )

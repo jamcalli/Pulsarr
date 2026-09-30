@@ -1,10 +1,3 @@
-/**
- * RSS Processor Orchestration
- *
- * Functions for processing RSS watchlist feeds.
- * Extracted from PlexWatchlistService to support thin orchestrator pattern.
- */
-
 import type { Config } from '@root/types/config.types.js'
 import type {
   RssWatchlistResults,
@@ -14,12 +7,12 @@ import type {
 import type { RssFeedsSuccess } from '@schemas/plex/generate-rss-feeds.schema.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { fetchWatchlistFromRss, getPlexWatchlistUrls } from '../index.js'
+import {
+  fetchWatchlistFromRss,
+  getPlexWatchlistUrls,
+} from '../fetching/rss-fetcher.js'
 import { mapRssItemsToWatchlist } from '../rss/rss-mapper.js'
 
-/**
- * Dependencies for RSS processor operations
- */
 export interface RssProcessorDeps {
   db: DatabaseService
   logger: FastifyBaseLogger
@@ -27,13 +20,7 @@ export interface RssProcessorDeps {
   fastify: FastifyInstance
 }
 
-/**
- * Generates and saves RSS feed URLs for the configured Plex tokens.
- *
- * @param deps - Dependencies for the operation
- * @returns RSS feed response with self and friends URLs
- * @throws Error if no Plex token is configured or URLs cannot be fetched
- */
+/** Persists the URLs to config and the DB; throws when no Plex token is configured. */
 export async function generateAndSaveRssFeeds(
   deps: RssProcessorDeps,
 ): Promise<RssFeedsSuccess> {
@@ -71,12 +58,7 @@ export async function generateAndSaveRssFeeds(
   }
 }
 
-/**
- * Ensures RSS feeds are configured, generating them if necessary.
- *
- * @param deps - Dependencies for the operation
- * @returns Object with selfRss and friendsRss URLs
- */
+/** Generates and saves the feed URLs when neither is configured; throws if none can be obtained. */
 export async function ensureRssFeeds(
   deps: RssProcessorDeps,
 ): Promise<{ selfRss?: string; friendsRss?: string }> {
@@ -100,14 +82,6 @@ export async function ensureRssFeeds(
   return config
 }
 
-/**
- * Processes a single RSS watchlist feed.
- *
- * @param rssUrl - URL of the RSS feed
- * @param source - Source identifier ('self' or 'friends')
- * @param logger - Logger instance
- * @returns Watchlist group with total and users array
- */
 async function processRssWatchlist(
   rssUrl: string,
   source: 'self' | 'friends',
@@ -133,12 +107,6 @@ async function processRssWatchlist(
   }
 }
 
-/**
- * Processes both self and friends RSS watchlist feeds.
- *
- * @param deps - Dependencies for the operation
- * @returns Combined results from both RSS feeds
- */
 export async function processRssWatchlists(
   deps: RssProcessorDeps,
 ): Promise<RssWatchlistResults> {
@@ -171,20 +139,12 @@ export async function processRssWatchlists(
   return results
 }
 
-/**
- * Process RSS watchlists with real user details for API responses.
- * This method is optimized for API endpoints that need actual user information.
- *
- * @param deps - Dependencies for the operation
- * @returns Combined results with real user details
- */
 export async function processRssWatchlistsWithUserDetails(
   deps: RssProcessorDeps,
 ): Promise<RssWatchlistResults> {
   const { db } = deps
   const results = await processRssWatchlists(deps)
 
-  // Lazy load primary user details only when needed for API response
   if (results.self.users.length > 0) {
     const primaryUser = await db.getPrimaryUser()
     if (primaryUser) {

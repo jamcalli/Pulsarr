@@ -1,10 +1,3 @@
-/**
- * Plex Server Service
- *
- * A stateful service class for interacting with Plex Media Server.
- * Provides connection management, user operations, and playlist protection functionality.
- */
-
 import type { Item } from '@root/types/plex.types.js'
 import type {
   PlexMetadata,
@@ -20,7 +13,7 @@ import type {
   PlexShowMetadata,
   PlexShowMetadataResponse,
 } from '@root/types/plex-session.types.js'
-import { toItemsSingle } from '@services/plex-watchlist/index.js'
+import { toItemsSingle } from '@services/plex-watchlist/enrichment/single-item.js'
 import { buildPlexGuid, parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { isSameServerEndpoint } from '@utils/url.js'
@@ -65,34 +58,27 @@ import {
   TimelineDebouncer,
 } from './plex-server/sse/timeline-debouncer.js'
 
-// HTTP timeout constants
-const PLEX_API_TIMEOUT = 30000 // 30 seconds for Plex API operations
+const PLEX_API_TIMEOUT = 30000
 
-/** Convert XML boolean values ("0"/"1" strings or actual booleans) to boolean */
+// Plex XML booleans arrive as "0"/"1" strings
 const xmlBool = (val: string | boolean | undefined): boolean | undefined => {
   if (val === undefined) return undefined
   if (typeof val === 'boolean') return val
   return val === '1'
 }
 
-/**
- * PlexServerService class for maintaining state and providing Plex operations
- */
 export class PlexServerService {
   private readonly log: FastifyBaseLogger
 
-  // Connection and server information cache
   private serverConnections: PlexServerConnectionInfo[] | null = null
   private serverMachineId: string | null = null
   private serverName: string | null = null
 
-  // Plex Pass and admin identity (runtime-only, set during token validation)
   private _hasPlexPass: boolean | null = null
   private _adminPlexId: number | null = null
   private connectionTimestamp = 0
-  private selectedConnectionUrl: string | null = null // Track which URL we've selected
+  private selectedConnectionUrl: string | null = null
 
-  // User-related cache
   private users: PlexUser[] | null = null
   private usersTimestamp = 0
   private userTokens: Map<string, { token: string; timestamp: number }> =
@@ -100,45 +86,29 @@ export class PlexServerService {
   private sharedServerInfo: Map<string, PlexSharedServerInfo> | null = null
   private sharedServerInfoTimestamp = 0
 
-  // Server list cache - caches the raw Plex resources from plex.tv API
   private plexResourcesCache: PlexResource[] | null = null
 
-  // Playlist and protection workflow cache
-  // These are intended to be used within a single workflow execution
   private protectedPlaylistsMap: Map<string, string> | null = null
   private protectedItemsCache: Set<string> | null = null
 
-  // Connection selection cache - TTL-based (survives across reconciliations)
-  // Caches the best working connection for each server
   private serverConnectionCache: Map<string, CachedConnection> = new Map()
 
-  // Content availability cache - reconciliation-scoped (no TTL, cleared at cycle start)
-  // Caches which content exists on which servers within a single reconciliation
+  // Reconciliation-scoped: no TTL, cleared at cycle start
   private contentAvailabilityCache: Map<string, CachedContentAvailability> =
     new Map()
 
-  // Dead server tracking for backoff - prevents hammering unavailable servers
   private deadServerCache: Map<string, number> = new Map()
 
-  // Cache TTL constants
-  private readonly CONNECTION_CACHE_TTL = 30 * 60 * 1000 // 30 minutes
-  private readonly DEAD_SERVER_BACKOFF = 5 * 60 * 1000 // 5 minutes
-  // Note: No CONTENT_CACHE_TTL - content cache is reconciliation-scoped
+  private readonly CONNECTION_CACHE_TTL = 30 * 60 * 1000
+  private readonly DEAD_SERVER_BACKOFF = 5 * 60 * 1000
 
-  // SSE connection and session tracking
   private eventSource: PlexEventSource | null = null
   private sessionTracker: SessionTracker | null = null
   private timelineDebouncer: TimelineDebouncer | null = null
   private staleSweepInterval: ReturnType<typeof setInterval> | null = null
-  private static readonly STALE_SESSION_MS = 5 * 60 * 1000 // 5 minutes
-  private static readonly STALE_SWEEP_INTERVAL_MS = 60 * 1000 // 60 seconds
+  private static readonly STALE_SESSION_MS = 5 * 60 * 1000
+  private static readonly STALE_SWEEP_INTERVAL_MS = 60 * 1000
 
-  /**
-   * Creates a new PlexServerService instance
-   *
-   * @param log - Fastify logger instance
-   * @param fastify - Fastify instance for accessing configuration
-   */
   constructor(
     readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
@@ -147,9 +117,6 @@ export class PlexServerService {
     this.log.info('Initializing PlexServerService')
   }
 
-  /**
-   * Access to application configuration
-   */
   private get config() {
     return this.fastify.config
   }
@@ -178,38 +145,20 @@ export class PlexServerService {
     this._adminPlexId = id
   }
 
-  /**
-   * Retrieves the configured protection playlist name or returns default
-   *
-   * @returns The playlist name used for content protection
-   */
   private getProtectionPlaylistName(): string {
     return this.config.plexProtectionPlaylistName || 'Do Not Delete'
   }
 
-  // Track initialization state
   private initialized = false
 
-  /**
-   * Check if the service has been properly initialized
-   *
-   * @returns true if service is initialized, false otherwise
-   */
   isInitialized(): boolean {
     return this.initialized
   }
 
-  /**
-   * Initializes the service by loading connections and users
-   * Called during application startup to prepare the service
-   *
-   * @returns Promise that resolves to true if initialization succeeded, false otherwise
-   */
   async initialize(): Promise<boolean> {
     try {
       this.log.info('Initializing PlexServerService connections and users')
 
-      // Load server connections
       const connections = await this.getPlexServerConnectionInfo()
       if (!connections || connections.length === 0) {
         this.log.error(
@@ -219,7 +168,6 @@ export class PlexServerService {
         return false
       }
 
-      // Load users
       const users = await this.getPlexUsers()
       if (!users || users.length === 0) {
         this.log.warn('No Plex users found during initialization')
@@ -229,7 +177,6 @@ export class PlexServerService {
         )
       }
 
-      // Load shared server info to get user tokens
       const serverInfo = await this.getSharedServerInfo()
       if (serverInfo.size === 0) {
         this.log.warn('No shared server info found during initialization')
@@ -248,15 +195,8 @@ export class PlexServerService {
     }
   }
 
-  /**
-   * Retrieves and prioritizes Plex server connection details
-   * Uses caching for performance optimization
-   *
-   * @returns Promise resolving to array of connection configurations
-   */
   async getPlexServerConnectionInfo(): Promise<PlexServerConnectionInfo[]> {
     try {
-      // Use cached connection data if valid (less than 15 minutes old)
       if (
         this.serverConnections &&
         Date.now() - this.connectionTimestamp < 15 * 60 * 1000
@@ -273,7 +213,6 @@ export class PlexServerService {
         return this.getDefaultConnectionInfo()
       }
 
-      // Retrieve server resources from Plex.tv API
       const resourcesUrl = new URL('/api/v2/resources', plexTvUrl)
       resourcesUrl.searchParams.append('includeHttps', '1')
       const resourcesResponse = await fetch(resourcesUrl.toString(), {
@@ -305,14 +244,11 @@ export class PlexServerService {
         return this.getDefaultConnectionInfo()
       }
 
-      // Resolve which server the admin selected by matching plexServerUrl
-      // against all server resources' connections
       const configUrl = this.config.plexServerUrl
       const defaultUrl = 'http://localhost:32400'
 
       let server: PlexResource | undefined
       if (configUrl && configUrl !== defaultUrl) {
-        // Find the server whose connections include the configured URL
         for (const candidate of serverResources) {
           const match = candidate.connections.some(
             (conn) =>
@@ -332,21 +268,18 @@ export class PlexServerService {
         }
 
         if (!server) {
-          // URL doesn't match any discovered server — fall back to first
           server = serverResources[0]
           this.log.warn(
             `Configured URL "${configUrl}" does not match any discovered server connection - falling back to "${server.name}"`,
           )
         }
       } else {
-        // No manual URL configured — use first server
         server = serverResources[0]
         this.log.debug(
           `Using auto-discovered server "${server.name}" (no manual override)`,
         )
       }
 
-      // Extract and categorize connections by priority
       const connections: PlexServerConnectionInfo[] = []
 
       for (const conn of server.connections) {
@@ -358,7 +291,6 @@ export class PlexServerService {
         })
       }
 
-      // Sort connections by priority: non-relay first, then local first
       connections.sort((a, b) => {
         if (!a.relay && b.relay) return -1
         if (a.relay && !b.relay) return 1
@@ -394,12 +326,10 @@ export class PlexServerService {
         }
       }
 
-      // Mark the first one as default
       if (connections.length > 0) {
         connections[0].isDefault = true
       }
 
-      // If a manual URL is configured, promote it to default
       if (configUrl && configUrl !== defaultUrl) {
         const configMatch = connections.find((c) =>
           isSameServerEndpoint(c.url, configUrl),
@@ -414,7 +344,6 @@ export class PlexServerService {
             'Manually configured URL matches a discovered connection - setting as default',
           )
         } else {
-          // URL didn't match any server — add as manual override
           connections.push({
             url: configUrl,
             local: false,
@@ -432,13 +361,11 @@ export class PlexServerService {
         }
       }
 
-      // Cache the result
       this.serverConnections = connections
       this.connectionTimestamp = Date.now()
       this.serverMachineId = server.clientIdentifier
       this.serverName = server.name
 
-      // Check if manual config is being used
       const manualConfigUsed =
         this.config.plexServerUrl &&
         this.config.plexServerUrl !== 'http://localhost:32400'
@@ -453,7 +380,6 @@ export class PlexServerService {
         )
       }
 
-      // Log connection details at info level for clear auto-configuration visibility
       if (connections.length > 0) {
         this.log.debug('Available Plex connections:')
         for (const [index, conn] of connections.entries()) {
@@ -470,17 +396,10 @@ export class PlexServerService {
     }
   }
 
-  /**
-   * Returns a default connection configuration using the config value or localhost
-   *
-   * @returns Array containing a single default connection configuration
-   */
   private getDefaultConnectionInfo(): PlexServerConnectionInfo[] {
-    // Check if there's a manually configured URL that's not the default
     const configUrl = this.config.plexServerUrl
     const defaultUrl = 'http://localhost:32400'
 
-    // Only use the configured URL if it's provided and not the default value
     if (configUrl && configUrl !== defaultUrl) {
       this.log.debug(
         `Using manually configured Plex URL as fallback: ${configUrl}`,
@@ -496,26 +415,18 @@ export class PlexServerService {
       ]
     }
 
-    // Otherwise use localhost as the default fallback
     this.log.debug('Using localhost as default fallback Plex URL')
     return [
       {
         url: defaultUrl,
-        local: true, // Localhost is always local
+        local: true,
         relay: false,
         isDefault: true,
       },
     ]
   }
 
-  /**
-   * Selects the optimal Plex server URL for API calls based on priority
-   *
-   * @param preferLocal - Whether to prioritize local connections
-   * @returns The best available Plex server URL
-   */
   async getPlexServerUrl(preferLocal = true): Promise<string> {
-    // If we've already selected a connection, reuse it without logging
     if (this.selectedConnectionUrl) {
       return this.selectedConnectionUrl
     }
@@ -530,7 +441,6 @@ export class PlexServerService {
       return this.selectedConnectionUrl
     }
 
-    // Prioritize default connection if available
     const defaultConn = connections.find((c) => c.isDefault)
     if (defaultConn) {
       this.log.debug(`Using default Plex connection: ${defaultConn.url}`)
@@ -538,7 +448,6 @@ export class PlexServerService {
       return this.selectedConnectionUrl
     }
 
-    // Otherwise if we prefer local and there's a local connection, use that
     if (preferLocal) {
       const localConn = connections.find((c) => c.local)
       if (localConn) {
@@ -548,7 +457,6 @@ export class PlexServerService {
       }
     }
 
-    // Then try non-relay connections
     const nonRelayConn = connections.find((c) => !c.relay)
     if (nonRelayConn) {
       this.log.debug(`Using non-relay Plex connection: ${nonRelayConn.url}`)
@@ -556,7 +464,6 @@ export class PlexServerService {
       return this.selectedConnectionUrl
     }
 
-    // Finally use the first available connection, even if it's a relay
     this.log.debug(
       `Using fallback Plex connection (relay): ${connections[0].url}`,
     )
@@ -564,16 +471,8 @@ export class PlexServerService {
     return this.selectedConnectionUrl
   }
 
-  /**
-   * Retrieves Plex users with access to the configured server
-   * Filters by serverMachineId to only return users for this server
-   *
-   * @param options.skipCache - Bypass the 30-minute cache for fresh data
-   * @returns Promise resolving to array of Plex users
-   */
   async getPlexUsers(options?: { skipCache?: boolean }): Promise<PlexUser[]> {
     try {
-      // Use cached user data if valid (less than 30 minutes old)
       if (
         !options?.skipCache &&
         this.users &&
@@ -591,7 +490,6 @@ export class PlexServerService {
         return []
       }
 
-      // Get all users including friends and home users
       const usersUrl = new URL('/api/users', plexTvUrl)
       const usersResponse = await fetch(usersUrl.toString(), {
         headers: {
@@ -622,7 +520,6 @@ export class PlexServerService {
         `Parsed ${allUsers.length} total users from Plex API response`,
       )
 
-      // Filter to only users with access to the configured server
       const users = this.serverMachineId
         ? allUsers.filter(
             (user: { Server?: Array<{ machineIdentifier?: string }> }) => {
@@ -640,7 +537,6 @@ export class PlexServerService {
         )
       }
 
-      // Format users into a consistent structure that matches the PlexUser interface
       const formattedUsers = users
         .map(
           (user: {
@@ -711,7 +607,6 @@ export class PlexServerService {
             !!user.id && (!!user.username || !!user.title),
         ) as PlexUser[]
 
-      // Cache the result and return
       this.users = formattedUsers
       this.usersTimestamp = Date.now()
 
@@ -723,15 +618,8 @@ export class PlexServerService {
     }
   }
 
-  /**
-   * Retrieves shared server information including user access tokens
-   * Essential for multi-user authentication
-   *
-   * @returns Promise resolving to a map of username to shared server info
-   */
   async getSharedServerInfo(): Promise<Map<string, PlexSharedServerInfo>> {
     try {
-      // Use cached server info if valid (less than 6 hours old)
       if (
         this.sharedServerInfo &&
         Date.now() - this.sharedServerInfoTimestamp < 6 * 60 * 60 * 1000
@@ -750,7 +638,6 @@ export class PlexServerService {
         return new Map()
       }
 
-      // Fetch server machine ID if not already cached
       if (!this.serverMachineId) {
         await this.getPlexServerConnectionInfo()
         if (!this.serverMachineId) {
@@ -758,7 +645,6 @@ export class PlexServerService {
         }
       }
 
-      // Fetch shared server info which contains user access tokens
       const sharedServersUrl = new URL(
         `/api/servers/${this.serverMachineId}/shared_servers`,
         plexTvUrl,
@@ -783,13 +669,10 @@ export class PlexServerService {
         )
       }
 
-      // Get response as text in XML format
       const responseText = await response.text()
 
-      // Map to store username -> server info mapping
       const serverInfoMap = new Map<string, PlexSharedServerInfo>()
 
-      // Use proper XML parser
       const xmlParser = new XMLParser({
         ignoreAttributes: false,
         attributeNamePrefix: '',
@@ -797,7 +680,6 @@ export class PlexServerService {
       })
 
       try {
-        // Parse XML
         const parsed = xmlParser.parse(responseText)
         const sharedServers = parsed.MediaContainer?.SharedServer || []
 
@@ -819,10 +701,8 @@ export class PlexServerService {
       } catch (xmlError) {
         this.log.error({ error: xmlError }, 'Error parsing shared servers XML:')
 
-        // Fallback to regex as a last resort
         this.log.warn('Falling back to regex parsing for shared servers')
 
-        // Parse XML response with regex as fallback
         const sharedServerMatches =
           responseText.match(/<SharedServer[^>]*>/g) || []
         this.log.debug(
@@ -849,25 +729,21 @@ export class PlexServerService {
         }
       }
 
-      // Add admin/owner information with appropriate access token
       if (this.serverMachineId && adminToken) {
-        // Add the server owner with admin token permissions
         const serverOwnerInfo = {
           id: 'owner',
-          username: 'owner', // This can be updated with the actual owner username if needed
+          username: 'owner',
           email: '',
           userID: 'owner',
           accessToken: adminToken,
         }
 
-        // Add the server owner entry
         serverInfoMap.set('owner', serverOwnerInfo)
         this.log.debug(
           'Added server owner to shared server info with admin token',
         )
       }
 
-      // Cache the result
       this.sharedServerInfo = serverInfoMap
       this.sharedServerInfoTimestamp = Date.now()
 
@@ -879,16 +755,8 @@ export class PlexServerService {
     }
   }
 
-  /**
-   * Retrieves a Plex authentication token for the specified user
-   * Uses cached data when available, otherwise fetches from shared server info
-   *
-   * @param username - The username to retrieve token for
-   * @returns Promise resolving to the auth token or null if unavailable
-   */
   async getUserToken(username: string): Promise<string | null> {
     try {
-      // Check cache first
       const cachedInfo = this.userTokens.get(username.toLowerCase())
       if (
         cachedInfo &&
@@ -898,16 +766,12 @@ export class PlexServerService {
         return cachedInfo.token
       }
 
-      // Get shared server info which contains user tokens
       const serverInfoMap = await this.getSharedServerInfo()
 
-      // Try to find the user (case-insensitive search)
       let userInfo: PlexSharedServerInfo | undefined
 
-      // First try exact match
       userInfo = serverInfoMap.get(username)
 
-      // If not found, try case-insensitive match
       if (!userInfo) {
         for (const [key, info] of serverInfoMap.entries()) {
           if (
@@ -925,7 +789,6 @@ export class PlexServerService {
         return null
       }
 
-      // Cache the token
       this.userTokens.set(username.toLowerCase(), {
         token: userInfo.accessToken,
         timestamp: Date.now(),
@@ -939,13 +802,6 @@ export class PlexServerService {
     }
   }
 
-  /**
-   * Locates a user's playlist by its title
-   *
-   * @param username - The Plex username
-   * @param title - The playlist title to search for
-   * @returns Promise resolving to playlist ID or null if not found
-   */
   async findUserPlaylistByTitle(
     username: string,
     title: string,
@@ -961,13 +817,6 @@ export class PlexServerService {
     return findUserPlaylistByTitle(title, serverUrl, token, this.log)
   }
 
-  /**
-   * Creates a new playlist for the specified user
-   *
-   * @param username - The Plex username
-   * @param options - Playlist configuration options
-   * @returns Promise resolving to the new playlist ID or null if creation failed
-   */
   async createUserPlaylist(
     username: string,
     options: {
@@ -991,17 +840,9 @@ export class PlexServerService {
     return createUserPlaylist(options, serverUrl, token, this.log)
   }
 
-  /**
-   * Ensures protection playlists exist for all users
-   * Maintains a map of username to playlist ID for tracking
-   *
-   * @param createIfMissing - Whether to create playlists that don't exist
-   * @returns Promise resolving to a map of username to playlist ID
-   */
   async getOrCreateProtectionPlaylists(
     createIfMissing = true,
   ): Promise<Map<string, string>> {
-    // Use cached playlist map if available
     if (this.protectedPlaylistsMap) {
       return this.protectedPlaylistsMap
     }
@@ -1009,16 +850,13 @@ export class PlexServerService {
     const playlistMap = new Map<string, string>()
 
     try {
-      // Use the configured playlist name if available
       const playlistName = this.getProtectionPlaylistName()
 
       // Get all users (clone to avoid mutating cached array)
       const users = [...(await this.getPlexUsers())]
 
-      // Ensure the admin/owner user is included
       const adminToken = this.config.plexTokens?.[0]
       if (adminToken) {
-        // Check if owner is already in the list
         const hasOwner = users.some(
           (user) =>
             user.username.toLowerCase() === 'owner' ||
@@ -1026,7 +864,6 @@ export class PlexServerService {
         )
 
         if (!hasOwner) {
-          // Add the owner user if not present
           this.log.debug(
             'Adding admin/owner user to the protection playlist creation list',
           )
@@ -1041,10 +878,8 @@ export class PlexServerService {
 
       this.log.info(`Checking protection playlists for ${users.length} users`)
 
-      // Process each user
       for (const user of users) {
         try {
-          // First try to find the existing playlist
           const existingPlaylistId = await this.findUserPlaylistByTitle(
             user.username,
             playlistName,
@@ -1058,12 +893,11 @@ export class PlexServerService {
             continue
           }
 
-          // Create the playlist if it doesn't exist and creation is enabled
           if (createIfMissing) {
             const newPlaylistId = await this.createUserPlaylist(user.username, {
               title: playlistName,
-              type: 'mixed', // Allow both movies and shows
-              smart: false, // Regular playlist, not smart
+              type: 'mixed',
+              smart: false,
             })
 
             if (newPlaylistId) {
@@ -1093,7 +927,6 @@ export class PlexServerService {
         `Successfully processed protection playlists for ${playlistMap.size} of ${users.length} users`,
       )
 
-      // Cache the result
       this.protectedPlaylistsMap = playlistMap
 
       return playlistMap
@@ -1103,13 +936,6 @@ export class PlexServerService {
     }
   }
 
-  /**
-   * Retrieves all items in a user's playlist with pagination support
-   *
-   * @param username - The Plex username
-   * @param playlistId - The playlist ID to retrieve items from
-   * @returns Promise resolving to a set of playlist items
-   */
   async getUserPlaylistItems(
     username: string,
     playlistId: string,
@@ -1125,17 +951,7 @@ export class PlexServerService {
     return getUserPlaylistItems(playlistId, serverUrl, token, this.log)
   }
 
-  /**
-   * Retrieves all protected item GUIDs from all user protection playlists
-   * Fetches complete metadata for each item and extracts standardized GUIDs
-   *
-   * @returns Promise resolving to a set of protected GUIDs
-   */
   async getProtectedItems(): Promise<Set<string>> {
-    // This method should be called at the start of a delete sync workflow
-    // The result is cached only for the duration of a single workflow execution
-
-    // Use cached results if available during the current workflow
     if (this.protectedItemsCache) {
       this.log.debug('Using cached protected items from current workflow')
       return this.protectedItemsCache
@@ -1143,7 +959,6 @@ export class PlexServerService {
 
     const protectedGuids = new Set<string>()
 
-    // Use the configured playlist name if available
     const playlistName = this.getProtectionPlaylistName()
 
     if (!this.config.enablePlexPlaylistProtection) {
@@ -1152,11 +967,9 @@ export class PlexServerService {
     }
 
     try {
-      // Get or create playlists for all users
       const userPlaylists = await this.getOrCreateProtectionPlaylists(true)
 
-      // Owner always succeeds (admin token). If shared users exist
-      // but none got through, Plex has revoked token access.
+      // Plex has revoked token access when shared users exist but none got through
       const sharedUserCount = (await this.getPlexUsers()).length
       const nonOwnerPlaylists = [...userPlaylists.keys()].filter(
         (u) => u !== 'owner',
@@ -1167,7 +980,6 @@ export class PlexServerService {
         )
       }
 
-      // Process each user's playlist
       for (const [username, playlistId] of userPlaylists.entries()) {
         try {
           const playlistItems = await this.getUserPlaylistItems(
@@ -1186,7 +998,6 @@ export class PlexServerService {
             `Processing ${playlistItems.size} protected items from playlist "${playlistName}" for user "${username}"`,
           )
 
-          // Process each item to fetch full metadata and extract standardized GUIDs
           for (const item of playlistItems) {
             try {
               const itemMetadata = await this.getItemMetadata(
@@ -1197,7 +1008,6 @@ export class PlexServerService {
               )
 
               if (itemMetadata?.guids && itemMetadata.guids.length > 0) {
-                // Add each standardized GUID to the protected set
                 for (const guid of itemMetadata.guids) {
                   protectedGuids.add(guid)
                   this.log.debug(
@@ -1236,7 +1046,6 @@ export class PlexServerService {
         `Found a total of ${protectedGuids.size} unique protected GUIDs across all users`,
       )
 
-      // Log a sample of protected GUIDs at debug level only
       if (
         protectedGuids.size > 0 &&
         (this.log.level === 'debug' || this.log.level === 'trace')
@@ -1248,7 +1057,6 @@ export class PlexServerService {
         }
       }
 
-      // Store in cache for the duration of the current workflow
       this.protectedItemsCache = protectedGuids
       this.log.debug(
         `Cached ${protectedGuids.size} protected GUIDs for current workflow`,
@@ -1265,15 +1073,6 @@ export class PlexServerService {
     }
   }
 
-  /**
-   * Retrieves comprehensive metadata for a Plex item including standardized GUIDs
-   *
-   * @param username - The Plex username to authenticate as
-   * @param plexGuid - The Plex GUID in format "plex://movie/5d776832a091de001f2e780f" or "plex://episode/5ea3e26f382f910042f103d0"
-   * @param grandparentGuid - For TV episodes, the show's GUID in format "plex://show/5eb6b5ffac1f29003f4a737b"
-   * @param itemType - The type of the item ("movie", "show", "episode")
-   * @returns Promise resolving to an object with title and GUIDs, or null if not found
-   */
   async getItemMetadata(
     _username: string,
     plexGuid: string,
@@ -1281,25 +1080,21 @@ export class PlexServerService {
     itemType?: string,
   ): Promise<{ title: string; guids: string[] } | null> {
     try {
-      // For TV shows, use the grandparentGuid (show GUID) if available
       const guidToUse =
         itemType === 'episode' && grandparentGuid ? grandparentGuid : plexGuid
 
-      // Extract the media ID from the Plex GUID to create a key
       const mediaId = guidToUse.split(/[/:]/).pop()
       if (!mediaId) {
         this.log.warn(`Invalid Plex GUID format: "${guidToUse}"`)
         return null
       }
 
-      // Determine the content type from the GUID
       const contentType = guidToUse.includes('/movie/')
         ? 'movie'
         : guidToUse.includes('/show/')
           ? 'show'
           : itemType || (plexGuid.includes('/episode/') ? 'show' : 'movie')
 
-      // Create a temporary item structure for metadata retrieval
       const tempItem = {
         id: mediaId,
         key: mediaId,
@@ -1313,18 +1108,8 @@ export class PlexServerService {
         genres: [],
       }
 
-      // No pre-check needed, letting toItemsSingle handle the metadata retrieval and retries
+      const itemSet = await toItemsSingle(this.config, this.log, tempItem, 0, 3)
 
-      // Utilize toItemsSingle utility for standardized GUID extraction
-      const itemSet = await toItemsSingle(
-        this.config,
-        this.log,
-        tempItem,
-        0, // start with retry count 0
-        3, // Allow standard retry count for metadata retrieval
-      )
-
-      // Extract first result from the metadata set
       const items = Array.from(itemSet)
       if (items.length === 0) {
         this.log.warn('No metadata found for item')
@@ -1333,14 +1118,12 @@ export class PlexServerService {
 
       const item = items[0] as Item
 
-      // Extract standardized GUIDs and ensure we return a valid array
       const extractedGuids = Array.isArray(item.guids)
         ? item.guids
         : typeof item.guids === 'string'
           ? parseGuids(item.guids)
           : []
 
-      // Log the found GUIDs at debug level
       if (extractedGuids.length > 0) {
         this.log.debug(
           `Found ${extractedGuids.length} GUIDs for item "${item.title || 'Unknown'}"`,
@@ -1361,18 +1144,10 @@ export class PlexServerService {
     }
   }
 
-  /**
-   * Determines if an item is protected by any user's protection playlist
-   *
-   * @param itemGuids - The GUIDs of the item to check, can be a string, array, or undefined
-   * @param itemTitle - Optional title for better logging
-   * @returns True if item is protected, false otherwise
-   */
   async isItemProtected(
     itemGuids: string[] | string | undefined,
     itemTitle?: string,
   ): Promise<boolean> {
-    // Early return if protection is disabled
     if (!this.config.enablePlexPlaylistProtection) {
       this.log.debug(
         'Plex playlist protection is disabled - skipping protection check',
@@ -1380,7 +1155,6 @@ export class PlexServerService {
       return false
     }
 
-    // Validate input GUIDs
     if (
       !itemGuids ||
       (Array.isArray(itemGuids) && itemGuids.length === 0) ||
@@ -1392,14 +1166,12 @@ export class PlexServerService {
       return false
     }
 
-    // Get all protected GUIDs
     const protectedGuids = await this.getProtectedItems()
     if (protectedGuids.size === 0) {
       this.log.debug('No protected items found in any user playlist')
       return false
     }
 
-    // Parse the input GUIDs to standardized format
     const parsedGuids = parseGuids(itemGuids)
     if (parsedGuids.length === 0) {
       this.log.warn(
@@ -1408,7 +1180,6 @@ export class PlexServerService {
       return false
     }
 
-    // Check for any matching GUIDs against the protected set
     for (const guid of parsedGuids) {
       if (protectedGuids.has(guid)) {
         this.log.info(
@@ -1418,7 +1189,6 @@ export class PlexServerService {
       }
     }
 
-    // For debugging, log the GUIDs we checked
     if (this.log.level === 'debug' || this.log.level === 'trace') {
       this.log.debug(
         `Item${itemTitle ? ` "${itemTitle}"` : ''} with GUIDs [${parsedGuids.join(', ')}] is not protected`,
@@ -1427,12 +1197,6 @@ export class PlexServerService {
     return false
   }
 
-  /**
-   * Resets all cached data to force fresh retrieval
-   * Useful for testing or when manual refresh is required
-   *
-   * @param resetInitialized - If true, will also reset the initialized state (default: false)
-   */
   clearCaches(resetInitialized = false): void {
     this.log.debug('Clearing all PlexServerService caches')
     this.serverConnections = null
@@ -1451,22 +1215,16 @@ export class PlexServerService {
     this.sharedServerInfoTimestamp = 0
     this.plexResourcesCache = null
 
-    // Clear connection and content caches
     this.serverConnectionCache.clear()
     this.contentAvailabilityCache.clear()
     this.deadServerCache.clear()
 
-    // Only reset the initialized state if explicitly requested
     if (resetInitialized) {
       this.log.warn('Resetting Plex server initialization state')
       this.initialized = false
     }
   }
 
-  /**
-   * Connect to Plex SSE notification endpoint for real-time event delivery.
-   * Polling jobs remain as a safety net - SSE provides faster reaction times.
-   */
   async connectSSE(): Promise<void> {
     const serverUrl = await this.getPlexServerUrl()
     const token = this.config.plexTokens?.[0] || ''
@@ -1498,7 +1256,6 @@ export class PlexServerService {
       this.log.warn('SSE disconnected - polling continues as fallback')
     })
 
-    // Start stale session sweep
     this.staleSweepInterval = setInterval(() => {
       if (this.sessionTracker) {
         const stale = this.sessionTracker.sweepStale(
@@ -1516,9 +1273,6 @@ export class PlexServerService {
     await this.eventSource.connect()
   }
 
-  /**
-   * Disconnect SSE and clean up all related resources.
-   */
   disconnectSSE(): void {
     if (this.staleSweepInterval) {
       clearInterval(this.staleSweepInterval)
@@ -1539,9 +1293,6 @@ export class PlexServerService {
     }
   }
 
-  /**
-   * Subscribe to SSE events emitted by the Plex connection.
-   */
   onSSE<K extends keyof PlexSSEEventMap>(
     event: K,
     handler: (...args: PlexSSEEventMap[K]) => void,
@@ -1549,17 +1300,10 @@ export class PlexServerService {
     this.eventSource?.on(event, handler)
   }
 
-  /**
-   * Check if the SSE connection to Plex is currently active.
-   * Used by polling jobs to skip redundant work when SSE delivers events in real time.
-   */
   isSSEConnected(): boolean {
     return this.eventSource?.isConnected() ?? false
   }
 
-  /**
-   * Unsubscribe from SSE events.
-   */
   offSSE<K extends keyof PlexSSEEventMap>(
     event: K,
     handler: (...args: PlexSSEEventMap[K]) => void,
@@ -1567,22 +1311,16 @@ export class PlexServerService {
     this.eventSource?.off(event, handler)
   }
 
-  /**
-   * Get the session tracker instance for SSE playing event filtering.
-   */
   getSessionTracker(): SessionTracker | null {
     return this.sessionTracker
   }
 
-  /**
-   * Subscribe to debounced "content scanned" events from Plex timeline SSE.
-   * Fires after a 2-second quiet period following state-5 timeline entries.
-   */
+  // Fires after a 2-second quiet period following state-5 timeline entries
   onContentScanned(handler: ContentScannedHandler): void {
     this.timelineDebouncer?.onContentScanned(handler)
   }
 
-  /** Drop pre-disconnect entries so recycled session keys after a Plex restart fire again, then seed live sessions. */
+  // Drop pre-disconnect entries so recycled session keys after a Plex restart fire again, then seed live sessions
   private async reconcileSessionsOnConnect(): Promise<void> {
     try {
       this.sessionTracker?.clear()
@@ -1601,47 +1339,23 @@ export class PlexServerService {
     }
   }
 
-  /**
-   * Clears only the workflow-specific caches
-   * Should be called at the end of a delete sync workflow
-   */
   clearWorkflowCaches(): void {
     this.log.debug('Clearing workflow-specific caches')
     this.protectedPlaylistsMap = null
     this.protectedItemsCache = null
-
-    // Ensure we don't reset the initialized state, as that's managed separately
-    // through the initialize() method
   }
 
-  /**
-   * Clears the Plex resources cache
-   *
-   * Should be called at the start of reconciliation to ensure fresh server list
-   */
   clearPlexResourcesCache(): void {
     this.plexResourcesCache = null
     this.log.debug('Cleared Plex resources cache')
   }
 
-  /**
-   * Retrieves active Plex sessions from the server
-   *
-   * @returns Promise resolving to array of active sessions
-   */
   async getActiveSessions(): Promise<PlexSession[]> {
     const serverUrl = await this.getPlexServerUrl()
     const token = this.config.plexTokens?.[0] || ''
     return getActiveSessions(serverUrl, token, this.log)
   }
 
-  /**
-   * Retrieves detailed show metadata including season and episode information
-   *
-   * @param ratingKey - The show's rating key
-   * @param includeChildren - Whether to include season/episode details
-   * @returns Promise resolving to show metadata or null
-   */
   async getShowMetadata(
     ratingKey: string,
     includeChildren: true,
@@ -1665,23 +1379,12 @@ export class PlexServerService {
     )
   }
 
-  /**
-   * Searches for content in the Plex library by GUID
-   *
-   * @param guid - The GUID to search for (will be normalized)
-   * @returns Promise resolving to array of matching PlexMetadata items
-   */
   async searchByGuid(guid: string): Promise<PlexMetadata[]> {
     const serverUrl = await this.getPlexServerUrl()
     const token = this.config.plexTokens?.[0] || ''
     return searchByGuid(guid, serverUrl, token, this.log)
   }
 
-  /**
-   * Retrieves direct children of a library item via /library/metadata/{id}/children
-   *
-   * For a show, returns seasons. For a season, returns episodes.
-   */
   async getMetadataChildren(
     ratingKey: string,
   ): Promise<PlexChildrenResponse | null> {
@@ -1690,23 +1393,11 @@ export class PlexServerService {
     return getMetadataChildren(ratingKey, serverUrl, token, this.log)
   }
 
-  /**
-   * Clears the content cache at the start of each reconciliation.
-   * Content cache is reconciliation-scoped, not TTL-based.
-   * Called from watchlist-workflow.service.ts at the start of syncWatchlistItems().
-   */
   clearContentCacheForReconciliation(): void {
     clearContentCacheForReconciliation(this.contentAvailabilityCache, this.log)
   }
 
-  /**
-   * Checks if the owner's Plex server is reachable via the /identity endpoint.
-   * Used as a pre-flight check before processing watchlist items when
-   * skipIfExistsOnPlex is enabled - if the primary server is down, we can't
-   * trust "not found" results and must abort to prevent mass-routing.
-   *
-   * @returns Promise resolving to health status with reachable flag
-   */
+  // A down primary server makes 'not found' untrustworthy, so callers must abort to prevent mass-routing
   async checkPlexServerHealth(): Promise<{
     reachable: boolean
     serverName: string | null
@@ -1739,10 +1430,7 @@ export class PlexServerService {
         return { reachable: false, serverName: this.serverName }
       }
 
-      // /identity only confirms the HTTP server is up. During startup
-      // maintenance or DB migrations, Plex returns 503 on authenticated
-      // endpoints and library queries return empty results. Probe
-      // /library/sections to verify the library is actually queryable.
+      // /identity is up during startup while library queries return empty, so probe /library/sections
       const token = this.config.plexTokens?.[0] || ''
       const serverUri = reachable[0].uri
       const libraryReady = await this.waitForLibraryReady(serverUri, token)
@@ -1769,12 +1457,7 @@ export class PlexServerService {
     }
   }
 
-  /**
-   * Polls /library/sections until the library is queryable or the retry
-   * budget is exhausted. Plex returns 503 during startup maintenance and
-   * DB migrations - hitting the library in that state causes empty results
-   * that look like "content not found" and triggers false routing.
-   */
+  // Plex returns 503 during startup maintenance, and empty library results look like missing content
   private async waitForLibraryReady(
     serverUri: string,
     token: string,
@@ -1850,18 +1533,6 @@ export class PlexServerService {
     return false
   }
 
-  /**
-   * Checks if content exists across accessible Plex servers using the primary token.
-   * Uses cached connections (one per server) and reconciliation-scoped content cache
-   * for efficient checking across multiple items.
-   *
-   * @param plexKey - The Plex GUID part (e.g., "5d7768376f4521001ea9c9ad")
-   * @param contentType - The content type ("movie" or "show")
-   * @param isPrimaryUser - Whether the requesting user is the primary token user (server owner)
-   *                        - If true: checks owner's server + all shared servers
-   *                        - If false: checks only owner's server
-   * @returns Promise<boolean> true if found on any accessible server, false otherwise
-   */
   async checkExistenceAcrossServers(
     plexKey: string | undefined,
     contentType: 'movie' | 'show',
@@ -1882,7 +1553,6 @@ export class PlexServerService {
         return false
       }
 
-      // Fetch all accessible servers from plex.tv API (with caching)
       let allResources = this.plexResourcesCache
       if (!allResources) {
         this.log.debug('Server resources cache miss, fetching from plex.tv API')
@@ -1892,10 +1562,8 @@ export class PlexServerService {
         this.log.debug('Using cached server resources')
       }
 
-      // Get owner's server connections (respects plexServerUrl setting)
       const ownerConnections = await this.getPlexServerConnectionInfo()
 
-      // Build list of unique servers (not connections) to check
       const serversToCheck = buildUniqueServerList(
         ownerConnections,
         allResources,
@@ -1921,7 +1589,6 @@ export class PlexServerService {
         'Checking content existence across Plex servers',
       )
 
-      // Prepare dependencies for module functions
       const connectionCacheDeps = {
         logger: this.log,
         connectionCacheTtl: this.CONNECTION_CACHE_TTL,
@@ -1929,11 +1596,9 @@ export class PlexServerService {
       }
       const contentCacheDeps = { logger: this.log }
 
-      // Check all servers in parallel with AbortController for early termination
       const abortController = new AbortController()
 
       const serverChecks = serversToCheck.map(async (server) => {
-        // Get the best cached connection for this server
         const connection = await getBestServerConnection(
           server.clientIdentifier,
           server.name,
@@ -1951,7 +1616,6 @@ export class PlexServerService {
           return { server: server.name, found: false }
         }
 
-        // Check content on this server (uses content cache)
         const found = await checkContentOnServer(
           server.clientIdentifier,
           server.name,
@@ -1969,17 +1633,14 @@ export class PlexServerService {
           this.log.info(
             `Content found on Plex server "${server.name}" - skipping download`,
           )
-          // Cancel other pending requests
           abortController.abort()
         }
 
         return { server: server.name, found }
       })
 
-      // Wait for all checks to complete (or abort early)
       const results = await Promise.allSettled(serverChecks)
 
-      // Check if any server found the content
       const foundOnAnyServer = results.some(
         (result) => result.status === 'fulfilled' && result.value.found,
       )
@@ -1999,47 +1660,22 @@ export class PlexServerService {
     }
   }
 
-  /**
-   * Fetches all Plex resources (servers) from plex.tv API
-   *
-   * @param token - The Plex token to use for authentication
-   * @returns Array of PlexResource objects
-   */
   private async getAllPlexResources(token: string): Promise<PlexResource[]> {
     return getAllPlexResources(token, this.log)
   }
 
-  /**
-   * Retrieves detailed metadata for a specific item by rating key
-   *
-   * @param ratingKey - The Plex rating key of the item
-   * @returns Promise resolving to metadata or null if not found
-   */
   async getMetadata(ratingKey: string): Promise<PlexMetadata | null> {
     const serverUrl = await this.getPlexServerUrl()
     const token = this.config.plexTokens?.[0] || ''
     return getMetadata(ratingKey, serverUrl, token, this.log)
   }
 
-  /**
-   * Gets current labels for a specific Plex item
-   *
-   * @param ratingKey - The Plex rating key of the item
-   * @returns Promise resolving to array of current label strings, or empty array if none found
-   */
   async getCurrentLabels(ratingKey: string): Promise<string[]> {
     const serverUrl = await this.getPlexServerUrl()
     const token = this.config.plexTokens?.[0] || ''
     return getCurrentLabels(ratingKey, serverUrl, token, this.log)
   }
 
-  /**
-   * Removes specific labels from a Plex item by updating with filtered labels
-   *
-   * @param ratingKey - The Plex rating key of the item
-   * @param labelsToRemove - Array of label strings to remove from the item
-   * @returns Promise resolving to true if successful, false otherwise
-   */
   async removeSpecificLabels(
     ratingKey: string,
     labelsToRemove: string[],
@@ -2055,13 +1691,6 @@ export class PlexServerService {
     )
   }
 
-  /**
-   * Updates the labels for a specific Plex item
-   *
-   * @param ratingKey - The Plex rating key of the item to update
-   * @param labels - Array of label strings to set on the item
-   * @returns Promise resolving to true if successful, false otherwise
-   */
   async updateLabels(ratingKey: string, labels: string[]): Promise<boolean> {
     const serverUrl = await this.getPlexServerUrl()
     const token = this.config.plexTokens?.[0] || ''

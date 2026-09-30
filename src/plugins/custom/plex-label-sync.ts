@@ -189,13 +189,13 @@ export default fp(
   {
     name: 'plex-label-sync',
     dependencies: [
-      'database',
       'config',
+      'database',
       'plex-server',
-      'scheduler',
-      'radarr-manager',
-      'sonarr-manager',
       'progress',
+      'radarr-manager',
+      'scheduler',
+      'sonarr-manager',
     ],
   },
 )
