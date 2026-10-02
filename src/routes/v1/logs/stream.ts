@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto'
-import { once } from 'node:events'
 import {
   type LogEntry,
   LogStreamQuerySchema,
@@ -56,19 +55,6 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       const matchesFilter = (entry: LogEntry) =>
         !filter || entry.message.toLowerCase().includes(filter.toLowerCase())
 
-      // once() per call keeps logs lossy under pressure - entries arriving mid-yield drop instead of buffering against a slow client
-      const nextLogEntry = async (): Promise<LogEntry | undefined> => {
-        while (!abortController.signal.aborted) {
-          const [entry] = (await once(emitter, 'log', {
-            signal: abortController.signal,
-          })) as [LogEntry]
-          if (matchesFilter(entry)) {
-            return entry
-          }
-        }
-        return undefined
-      }
-
       return reply.sse(
         (async function* source() {
           try {
@@ -78,7 +64,9 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 tail > 0
                   ? () => logService.getTailLines(tail, filter)
                   : undefined,
-              next: follow ? nextLogEntry : async () => undefined,
+              live: follow
+                ? { emitter, event: 'log', filter: matchesFilter }
+                : undefined,
               serialize: (entry) => ({
                 id: randomUUID(),
                 data: JSON.stringify(entry),
