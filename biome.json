@@ -63,8 +63,8 @@
     },
     {
       "includes": [
-        "**/src/client/components/ui/**/*",
-        "**/src/client/hooks/**/*"
+        "**/src/client/legacy/components/ui/**/*",
+        "**/src/client/legacy/hooks/**/*"
       ],
       "formatter": {
         "enabled": false
@@ -109,7 +109,11 @@
       }
     },
     {
-      "includes": ["**/src/client/**", "!**/src/client/components/ui/**"],
+      "includes": [
+        "**/src/client/**",
+        "!**/src/client/components/ui/**",
+        "!**/src/client/legacy/components/ui/**"
+      ],
       "linter": {
         "rules": {
           "style": {
@@ -130,8 +134,9 @@
         "**/src/client/lib/basePath.ts",
         "**/src/client/lib/queryClient.ts",
         "**/src/client/lib/tanstackApi.ts",
-        "**/src/client/hooks/arr/instanceMutations.ts",
-        "!**/src/client/components/ui/**"
+        "**/src/client/legacy/hooks/arr/instanceMutations.ts",
+        "!**/src/client/components/ui/**",
+        "!**/src/client/legacy/components/ui/**"
       ],
       "linter": {
         "rules": {
@@ -153,8 +158,33 @@
         "**/src/client/hooks/**",
         "**/src/client/lib/**",
         "**/src/client/stores/**",
-        "**/src/client/layouts/**"
+        "**/src/client/layouts/**",
+        "!**/src/client/layouts/root.tsx"
       ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features", "@/features/**", "../**"],
+                    "message": "Shared client code cannot depend on a feature; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": ["@/legacy", "@/legacy/**"],
+                    "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/layouts/root.tsx"],
       "linter": {
         "rules": {
           "style": {
@@ -190,6 +220,10 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": ["@/legacy", "@/legacy/**"],
+                    "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
                   }
                 ]
               }
@@ -215,6 +249,10 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": ["@/legacy", "@/legacy/**"],
+                    "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
                   }
                 ]
               }
@@ -240,6 +278,10 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": ["@/legacy", "@/legacy/**"],
+                    "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
                   }
                 ]
               }
@@ -265,6 +307,10 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": ["@/legacy", "@/legacy/**"],
+                    "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
                   }
                 ]
               }
@@ -290,6 +336,10 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": ["@/legacy", "@/legacy/**"],
+                    "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
                   }
                 ]
               }
@@ -315,6 +365,10 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": ["@/legacy", "@/legacy/**"],
+                    "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
                   }
                 ]
               }
@@ -340,6 +394,10 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": ["@/legacy", "@/legacy/**"],
+                    "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
                   }
                 ]
               }
@@ -365,6 +423,10 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": ["@/legacy", "@/legacy/**"],
+                    "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
                   }
                 ]
               }
@@ -390,6 +452,10 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": ["@/legacy", "@/legacy/**"],
+                    "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
                   }
                 ]
               }
@@ -415,6 +481,35 @@
                       "../**"
                     ],
                     "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": ["@/legacy", "@/legacy/**"],
+                    "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/legacy/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features",
+                      "@/features/**",
+                      "@/components/ui/**",
+                      "!@/components/ui/sonner"
+                    ],
+                    "message": "Legacy code cannot import the new tree."
                   }
                 ]
               }

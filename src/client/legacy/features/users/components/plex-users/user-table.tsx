@@ -1,0 +1,719 @@
+import {
+  type ColumnDef,
+  type ColumnFiltersState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  type Row,
+  type SortingState,
+  useReactTable,
+  type VisibilityState,
+} from '@tanstack/react-table'
+import {
+  ArrowUpDown,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Target,
+  X,
+} from 'lucide-react'
+import * as React from 'react'
+import { useId } from 'react'
+import { toast } from 'sonner'
+import { createSelectColumn } from '@/legacy/components/table/data-table-select-column'
+import { TableSkeleton } from '@/legacy/components/table/table-skeleton'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@/legacy/components/ui/avatar'
+import { Button } from '@/legacy/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/legacy/components/ui/dropdown-menu'
+import { Input } from '@/legacy/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/legacy/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/legacy/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/legacy/components/ui/tooltip'
+import { FriendStatusBadge } from '@/legacy/features/users/components/plex-users/friend-status-badge'
+import { QuotaStatusBadge } from '@/legacy/features/users/components/plex-users/quota-status-badge'
+import { UserWatchlistSheet } from '@/legacy/features/users/components/plex-users/user-watchlist-sheet'
+import { useUserWatchlist } from '@/legacy/features/users/hooks/useUserWatchlist'
+import type { PlexUserTableRow } from '@/legacy/features/users/lib/types'
+import type { UserWithQuotaInfo } from '@/legacy/hooks/usePlexUsers'
+import { useTablePagination } from '@/legacy/hooks/useTablePagination'
+
+interface ColumnMetaType {
+  className?: string
+  headerClassName?: string
+  displayName?: string
+}
+
+interface UserTableProps {
+  users: UserWithQuotaInfo[]
+  onEditUser: (user: UserWithQuotaInfo) => void
+  onEditQuota: (user: UserWithQuotaInfo) => void
+  isLoading?: boolean
+  onBulkEdit?: (selectedRows: PlexUserTableRow[]) => void
+  onBulkEditQuotas?: (selectedRows: PlexUserTableRow[]) => void
+  onRefreshStatus: () => void
+}
+
+const isNonFriend = (row: Row<UserWithQuotaInfo>) => {
+  const status = row.original.friendStatus
+  return (
+    status === 'server_only' ||
+    status === 'pending_sent' ||
+    status === 'pending_received' ||
+    status === 'managed'
+  )
+}
+
+const NON_FRIEND_DASH = (
+  <div className="flex justify-center">
+    <span className="text-sm text-muted-foreground">-</span>
+  </div>
+)
+
+/**
+ * Renders an interactive user management table with sorting, filtering, pagination, column visibility, row selection, and editing capabilities.
+ *
+ * Allows editing individual users and quotas, performing bulk edits on selected users, and viewing a user's watchlist in a modal. The table displays notification settings, sync and approval status, quota details, and watchlist counts for each user. Controls and appearance adapt to loading state, and error feedback is provided if a watchlist is requested for a user with an invalid ID.
+ *
+ * @param users - The list of users with quota information to display in the table.
+ * @param onEditUser - Callback invoked to edit an individual user.
+ * @param onEditQuota - Callback invoked to edit a user's quotas.
+ * @param isLoading - Optional flag indicating if the table is in a loading state.
+ * @param onBulkEdit - Optional callback for bulk editing settings of selected users.
+ * @param onBulkEditQuotas - Optional callback for bulk editing quotas of selected users.
+ * @returns The rendered user management table component.
+ */
+
+export default function UserTable({
+  users,
+  onEditUser,
+  onEditQuota,
+  isLoading = false,
+  onBulkEdit,
+  onBulkEditQuotas,
+  onRefreshStatus,
+}: UserTableProps) {
+  const editIconTitleId = useId()
+  // Table state
+  const [sorting, setSorting] = React.useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    [],
+  )
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({})
+  const [rowSelection, setRowSelection] = React.useState({})
+  const [selectedUserName, setSelectedUserName] = React.useState<string>('')
+
+  // Persistent table pagination
+  const { pageSize, setPageSize } = useTablePagination('users', 20)
+
+  const {
+    watchlistData,
+    isLoading: isWatchlistLoading,
+    error: watchlistError,
+    isOpen,
+    handleOpen,
+    handleClose,
+  } = useUserWatchlist()
+
+  const columns: ColumnDef<UserWithQuotaInfo>[] = [
+    createSelectColumn<UserWithQuotaInfo>({
+      disabled: (row) => isLoading || !row.getCanSelect(),
+      headerDisabled: () => isLoading,
+    }),
+    {
+      accessorKey: 'name',
+      meta: {
+        displayName: 'Username',
+      },
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="noShadow"
+            size="sm"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="whitespace-nowrap"
+          >
+            Username
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2 font-medium max-w-xs">
+          <Avatar
+            className="h-6 w-6 shrink-0"
+            style={{ backgroundColor: '#212121' }}
+          >
+            {row.original.avatar && (
+              <AvatarImage
+                src={row.original.avatar}
+                alt={row.getValue('name')}
+                className="object-cover"
+              />
+            )}
+            <AvatarFallback
+              style={{ backgroundColor: '#212121' }}
+              className="text-white text-xs"
+            >
+              {(row.getValue('name') as string).charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <span className="truncate">
+            {row.getValue('name')}
+            {row.original.alias && (
+              <span className="ml-2 text-sm text-muted-foreground">
+                ({row.original.alias})
+              </span>
+            )}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: 'friendStatus',
+      meta: {
+        displayName: 'Friend Status',
+      },
+      header: () => <div className="text-center">Status</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <FriendStatusBadge
+            status={row.original.friendStatus ?? 'friend_only'}
+            username={row.original.name}
+            avatar={row.original.avatar}
+            uuid={row.original.plex_uuid ?? ''}
+            pendingSince={row.original.pendingSince}
+            onStatusChange={onRefreshStatus}
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'notify_apprise',
+      meta: {
+        displayName: 'Apprise Notifications',
+      },
+      header: () => <div className="text-center">Apprise</div>,
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        return (
+          <div className="flex justify-center">
+            {row.getValue('notify_apprise') ? (
+              <Check className="h-4 w-4 text-main" />
+            ) : (
+              <X className="h-4 w-4 text-error" />
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'notify_discord',
+      meta: {
+        displayName: 'Discord Notifications',
+      },
+      header: () => <div className="text-center">Discord</div>,
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        return (
+          <div className="flex justify-center">
+            {row.getValue('notify_discord') ? (
+              <Check className="h-4 w-4 text-main" />
+            ) : (
+              <X className="h-4 w-4 text-error" />
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'notify_discord_mention',
+      meta: {
+        displayName: 'Public Mentions',
+      },
+      header: () => <div className="text-center">Mentions</div>,
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        return (
+          <div className="flex justify-center">
+            {row.getValue('notify_discord_mention') ? (
+              <Check className="h-4 w-4 text-main" />
+            ) : (
+              <X className="h-4 w-4 text-error" />
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'notify_plex_mobile',
+      meta: {
+        displayName: 'Plex Mobile Notifications',
+      },
+      header: () => <div className="text-center">Plex Mobile</div>,
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        return (
+          <div className="flex justify-center">
+            {row.getValue('notify_plex_mobile') ? (
+              <Check className="h-4 w-4 text-main" />
+            ) : (
+              <X className="h-4 w-4 text-error" />
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'can_sync',
+      meta: {
+        displayName: 'Can Sync',
+      },
+      header: () => <div className="text-center">Can Sync</div>,
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        return (
+          <div className="flex justify-center">
+            {row.getValue('can_sync') ? (
+              <Check className="h-4 w-4 text-main" />
+            ) : (
+              <X className="h-4 w-4 text-error" />
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'requires_approval',
+      meta: {
+        displayName: 'Requires Approval',
+      },
+      header: () => <div className="text-center">Approval</div>,
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        return (
+          <div className="flex justify-center">
+            {row.getValue('requires_approval') ? (
+              <Check className="h-4 w-4 text-main" />
+            ) : (
+              <X className="h-4 w-4 text-error" />
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'userQuotas.movieQuota.quotaType',
+      meta: {
+        displayName: 'Quotas',
+      },
+      header: () => <div className="text-center">Quotas</div>,
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        const userQuotas = row.original.userQuotas
+        return (
+          <div className="text-center">
+            <QuotaStatusBadge userQuotas={userQuotas} />
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'watchlist_count',
+      meta: {
+        displayName: 'Watchlist Items',
+      },
+      header: ({ column }) => {
+        return (
+          <div className="text-center">
+            <Button
+              variant="noShadow"
+              size="sm"
+              onClick={() =>
+                column.toggleSorting(column.getIsSorted() === 'asc')
+              }
+              className="whitespace-nowrap"
+            >
+              Items
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        if (isNonFriend(row)) return NON_FRIEND_DASH
+        const count = Number(row.getValue('watchlist_count'))
+        return (
+          <div className="text-center font-medium">
+            {count.toLocaleString()}
+          </div>
+        )
+      },
+    },
+    {
+      id: 'actions',
+      enableHiding: false,
+      cell: ({ row }) => {
+        if (
+          row.original.isTracked === false ||
+          (row.original.friendStatus !== 'friend' &&
+            row.original.friendStatus !== 'friend_only' &&
+            row.original.friendStatus !== 'self')
+        ) {
+          return <div className="w-8" />
+        }
+
+        const user = row.original
+
+        return (
+          <div className="w-8">
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="noShadow" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">More actions</p>
+                </TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onEditUser(user)}>
+                  Edit user
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEditQuota(user)}>
+                  Edit quotas
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setSelectedUserName(user.name)
+                    const userId = user.id
+                    if (userId > 0) {
+                      handleOpen(userId)
+                    } else {
+                      console.error('Invalid user ID:', user.id)
+                      toast.error('Unable to open watchlist for this user')
+                    }
+                  }}
+                >
+                  View Watchlist
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )
+      },
+    },
+  ]
+
+  const table = useReactTable({
+    data: users,
+    columns,
+    enableRowSelection: (row) => row.original.isTracked !== false,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    initialState: {
+      pagination: {
+        pageSize,
+      },
+    },
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      rowSelection,
+    },
+  })
+
+  // Sync table pageSize when the persisted preference changes
+  React.useEffect(() => {
+    table.setPageSize(pageSize)
+  }, [pageSize, table])
+
+  return (
+    <div className="w-full font-base text-main-foreground overflow-x-auto">
+      <div>
+        <div className="flex items-center justify-between py-4">
+          <Input
+            placeholder="Filter by username..."
+            value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
+            onChange={(event) =>
+              table.getColumn('name')?.setFilterValue(event.target.value)
+            }
+            className="w-full max-w-sm min-w-0"
+            disabled={isLoading}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="noShadow" className="ml-4" disabled={isLoading}>
+                Columns <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {(column.columnDef.meta as ColumnMetaType)?.displayName ||
+                        column.id}
+                    </DropdownMenuCheckboxItem>
+                  )
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Bulk edit buttons that appear when rows are selected */}
+        {table.getFilteredSelectedRowModel().rows.length > 0 &&
+          (onBulkEdit || onBulkEditQuotas) && (
+            <div className="pb-4 flex gap-2">
+              {onBulkEdit && (
+                <Button
+                  variant="bluenoShadow"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    onBulkEdit(table.getFilteredSelectedRowModel().rows)
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-edit"
+                    aria-labelledby={editIconTitleId}
+                  >
+                    <title id={editIconTitleId}>Edit Icon</title>
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  Bulk Edit Settings (
+                  {table.getFilteredSelectedRowModel().rows.length})
+                </Button>
+              )}
+              {onBulkEditQuotas && (
+                <Button
+                  variant="cancel"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    onBulkEditQuotas(table.getFilteredSelectedRowModel().rows)
+                  }}
+                >
+                  <Target className="mr-2 h-4 w-4" />
+                  Bulk Edit Quotas (
+                  {table.getFilteredSelectedRowModel().rows.length})
+                </Button>
+              )}
+            </div>
+          )}
+      </div>
+      <div className="rounded-md">
+        {isLoading ? (
+          <TableSkeleton
+            rows={table.getState().pagination.pageSize}
+            columns={[
+              { type: 'checkbox' },
+              { type: 'avatar', width: 'w-24' },
+              { type: 'badge', width: 'w-20' },
+              { type: 'icon' },
+              { type: 'icon' },
+              { type: 'icon' },
+              { type: 'icon' },
+              { type: 'icon' },
+              { type: 'icon' },
+              { type: 'text', width: 'w-20' },
+              { type: 'text', width: 'w-20' },
+              { type: 'badge', width: 'w-24' },
+              { type: 'text', width: 'w-16' },
+              { type: 'button', width: 'w-8', className: 'text-right' },
+            ]}
+            showHeader={true}
+          />
+        ) : (
+          <Table>
+            <TableHeader className="font-heading">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const headerClassName = `px-2 py-2 ${
+                      (header.column.columnDef.meta as ColumnMetaType)
+                        ?.headerClassName || ''
+                    }`
+                    return (
+                      <TableHead key={header.id} className={headerClassName}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    )
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const cellClassName = `px-2 py-2 ${
+                        (cell.column.columnDef.meta as ColumnMetaType)
+                          ?.className || ''
+                      }`
+                      return (
+                        <TableCell key={cell.id} className={cellClassName}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      )
+                    })}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+      <div className="flex items-center justify-between px-2 pt-4">
+        <div className="flex items-center space-x-2">
+          <Select
+            value={`${table.getState().pagination.pageSize}`}
+            onValueChange={(value) => {
+              const newPageSize = Number(value)
+              setPageSize(newPageSize)
+              table.setPageSize(newPageSize)
+            }}
+            disabled={isLoading}
+          >
+            <SelectTrigger className="h-8 w-17.5">
+              <SelectValue placeholder={table.getState().pagination.pageSize} />
+            </SelectTrigger>
+            <SelectContent side="top">
+              {[10, 20, 30, 40, 50].map((pageSize) => (
+                <SelectItem key={pageSize} value={`${pageSize}`}>
+                  {pageSize}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-foreground font-medium hidden xs:block">
+            per page
+          </p>
+        </div>
+
+        <div className="flex items-center justify-center text-sm font-medium text-foreground">
+          Page {table.getState().pagination.pageIndex + 1} of{' '}
+          {table.getPageCount()}
+        </div>
+
+        <div className="space-x-2">
+          <Button
+            variant="noShadow"
+            size="sm"
+            aria-label="Previous page"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage() || isLoading}
+          >
+            <ChevronLeft className="h-4 w-4 xs:hidden" />
+            <span className="hidden xs:inline">Previous</span>
+          </Button>
+          <Button
+            variant="noShadow"
+            size="sm"
+            aria-label="Next page"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage() || isLoading}
+          >
+            <ChevronRight className="h-4 w-4 xs:hidden" />
+            <span className="hidden xs:inline">Next</span>
+          </Button>
+        </div>
+      </div>
+      {isOpen && (
+        <UserWatchlistSheet
+          isOpen={isOpen}
+          onClose={handleClose}
+          userName={selectedUserName}
+          watchlistItems={watchlistData?.watchlistItems}
+          isLoading={isWatchlistLoading}
+          error={watchlistError}
+        />
+      )}
+    </div>
+  )
+}

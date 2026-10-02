@@ -1,0 +1,144 @@
+import type { ApprovalStatsResponse } from '@root/schemas/approval/approval.schema'
+import {
+  AlertCircle,
+  BarChart3,
+  Bot,
+  CheckCircle,
+  Clock,
+  XCircle,
+} from 'lucide-react'
+import { Skeleton } from '@/legacy/components/ui/skeleton'
+
+interface ApprovalStatsHeaderProps {
+  stats: ApprovalStatsResponse['stats'] | null
+  loading?: boolean
+}
+
+/**
+ * Render a responsive header showing approval request statistics.
+ *
+ * Displays six statistic cards (Pending, Approved, Rejected, Expired, Auto-Approved, Total) with icons, color-coded values, and percentage of the total. While loading, renders six skeleton placeholders; if `stats` is null or undefined, renders a centered "Unable to load approval statistics" message.
+ *
+ * @param stats - The approval statistics object (or `null`/`undefined`). When present, its numeric fields are used to populate the cards; when missing, an error message is shown.
+ * @param loading - If true, renders loading skeletons instead of the stats UI.
+ * @returns A React element containing the stats grid, loading skeletons, or an error message.
+ */
+export default function ApprovalStatsHeader({
+  stats,
+  loading,
+}: ApprovalStatsHeaderProps) {
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+        {[
+          'pending',
+          'approved',
+          'rejected',
+          'expired',
+          'auto_approved',
+          'total',
+        ].map((type) => (
+          <Skeleton
+            key={`skeleton-${type}`}
+            className="h-[106px] w-full rounded-md"
+          />
+        ))}
+      </div>
+    )
+  }
+
+  if (!stats) {
+    return (
+      <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-md">
+        <div className="text-center text-gray-500 dark:text-gray-400">
+          <BarChart3 className="w-8 h-8 mx-auto mb-2" />
+          <p>Unable to load approval statistics</p>
+        </div>
+      </div>
+    )
+  }
+
+  const statCards = [
+    {
+      title: 'Pending',
+      value: stats.pending,
+      icon: Clock,
+      color: 'text-status-pending',
+      bgColor: 'bg-status-pending/10',
+    },
+    {
+      title: 'Approved',
+      value: stats.approved,
+      icon: CheckCircle,
+      color: 'text-status-approved',
+      bgColor: 'bg-status-approved/10',
+    },
+    {
+      title: 'Rejected',
+      value: stats.rejected,
+      icon: XCircle,
+      color: 'text-status-rejected',
+      bgColor: 'bg-status-rejected/10',
+    },
+    {
+      title: 'Expired',
+      value: stats.expired,
+      icon: AlertCircle,
+      color: 'text-status-expired',
+      bgColor: 'bg-status-expired/10',
+    },
+    {
+      title: 'Auto-Approved',
+      value: stats.auto_approved,
+      icon: Bot,
+      color: 'text-status-auto-approved',
+      bgColor: 'bg-status-auto-approved/10',
+    },
+    {
+      title: 'Total',
+      value: stats.totalRequests,
+      icon: BarChart3,
+      color: 'text-main',
+      bgColor: 'bg-main/10',
+    },
+  ]
+
+  const getPercentage = (value: number) => {
+    return stats.totalRequests > 0
+      ? Math.round((value / stats.totalRequests) * 100)
+      : 0
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+      {statCards.map((stat) => {
+        const Icon = stat.icon
+        const percentage =
+          stat.title !== 'Total' ? getPercentage(stat.value) : null
+
+        return (
+          <div
+            key={stat.title}
+            className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-foreground">
+                {stat.title}
+              </h3>
+              <Icon className={`h-4 w-4 ${stat.color}`} />
+            </div>
+            <div className={`text-2xl font-bold ${stat.color} mb-1`}>
+              {stat.value.toLocaleString()}
+            </div>
+            {percentage !== null && (
+              <p className="text-xs text-foreground">{percentage}% of total</p>
+            )}
+            {stat.title === 'Total' && stats.totalRequests > 0 && (
+              <p className="text-xs text-foreground">All requests</p>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}

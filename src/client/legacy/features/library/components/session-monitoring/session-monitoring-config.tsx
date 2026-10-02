@@ -1,0 +1,125 @@
+import { HelpCircle } from 'lucide-react'
+
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/legacy/components/ui/form'
+import { Input } from '@/legacy/components/ui/input'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/legacy/components/ui/tooltip'
+
+import type { SessionMonitoringComponentProps } from '@/legacy/features/library/lib/session-monitoring/constants'
+
+interface SessionMonitoringConfigProps
+  extends SessionMonitoringComponentProps {}
+
+/**
+ * Renders a configuration section for session monitoring settings within a form.
+ *
+ * Displays input fields for polling interval and remaining episodes threshold, each with explanatory tooltips and validation. Inputs are disabled when monitoring is not enabled.
+ */
+export function SessionMonitoringConfig({
+  form,
+  isEnabled,
+}: SessionMonitoringConfigProps) {
+  return (
+    <div>
+      <h3 className="font-medium text-sm text-foreground mb-2">
+        Monitoring Configuration
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="pollingIntervalMinutes"
+          render={({ field }) => (
+            <FormItem className="space-y-1">
+              <div className="flex items-center">
+                <FormLabel className="text-foreground m-0">
+                  Polling Interval (minutes)
+                </FormLabel>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      How often to check for active Plex sessions (1-1440
+                      minutes). Lower values provide more responsive monitoring
+                      but increase server load.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <FormControl>
+                <Input
+                  type="number"
+                  {...field}
+                  onChange={(e) => {
+                    const value =
+                      e.target.value === '' ? 0 : Number(e.target.value)
+                    if (!Number.isNaN(value)) {
+                      field.onChange(value)
+                    }
+                  }}
+                  min={1}
+                  max={1440}
+                  disabled={!isEnabled}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="remainingEpisodes"
+          render={({ field }) => (
+            <FormItem className="space-y-1">
+              <div className="flex items-center">
+                <FormLabel className="text-foreground m-0">
+                  Remaining Episodes Threshold
+                </FormLabel>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Trigger searches when this many episodes remain in a
+                      season. For example, with threshold 2, searches trigger
+                      when watching episode 8 of a 10-episode season.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <FormControl>
+                <Input
+                  type="number"
+                  {...field}
+                  onChange={(e) => {
+                    const value =
+                      e.target.value === '' ? 0 : Number(e.target.value)
+                    if (!Number.isNaN(value)) {
+                      field.onChange(value)
+                    }
+                  }}
+                  min={1}
+                  max={10}
+                  disabled={!isEnabled}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </div>
+  )
+}

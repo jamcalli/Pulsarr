@@ -1,0 +1,1147 @@
+import {
+  AlertCircle,
+  Clock,
+  HelpCircle,
+  Loader2,
+  Power,
+  RefreshCw,
+  Save,
+  Trash2,
+  X,
+} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { useConfig } from '@/hooks/useConfig'
+import { useShowLoading } from '@/hooks/useMinLoading'
+import { PageError } from '@/legacy/components/page-error'
+import { TimeSelector } from '@/legacy/components/time-input'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/legacy/components/ui/alert'
+import { Button } from '@/legacy/components/ui/button'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/legacy/components/ui/form'
+import { Input } from '@/legacy/components/ui/input'
+import { Progress } from '@/legacy/components/ui/progress'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/legacy/components/ui/select'
+import { Separator } from '@/legacy/components/ui/separator'
+import { Switch } from '@/legacy/components/ui/switch'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/legacy/components/ui/tooltip'
+import { UtilitySectionHeader } from '@/legacy/components/utility-section-header'
+import { AliasReadinessCredenza } from '@/legacy/features/users/components/alias-readiness-credenza'
+import { PlexLabelsDeleteConfirmationModal } from '@/legacy/features/users/components/plex-labels/plex-labels-delete-confirmation-modal'
+import { PlexLabelsPageSkeleton } from '@/legacy/features/users/components/plex-labels/plex-labels-page-skeleton'
+import { useLabelingProgress } from '@/legacy/features/users/hooks/plex-labels/useLabelingProgress'
+import {
+  isCleanupLabelsResponse,
+  isSyncLabelsResponse,
+  usePlexLabels,
+} from '@/legacy/features/users/hooks/plex-labels/usePlexLabels'
+import { formatScheduleDisplay } from '@/lib/utils'
+import { useProgressStore } from '@/stores/progressStore'
+
+/**
+ * Renders the Plex Labels management page for administrators to configure and control user-based labeling in Plex.
+ *
+ * This page provides controls to enable or disable Plex labeling, adjust label prefix and concurrency settings, manage cleanup and removal behaviors, and configure tag synchronization with Radarr and Sonarr. Administrators can trigger label synchronization, cleanup, and removal actions, view real-time progress and operation results, and manage a scheduled full sync with time and day selection. The UI includes safeguards against conflicting actions and accidental destructive operations, and displays detailed status and error feedback.
+ *
+ * @returns A React element representing the Plex label management interface.
+ */
+export function PlexLabelsPage() {
+  const {
+    config,
+    initialize: configInitialize,
+    error: configError,
+  } = useConfig()
+  const isInitializing = useShowLoading(!config)
+
+  const {
+    form,
+    isSaving,
+    isToggling,
+    isSyncingLabels,
+    isCleaningLabels,
+    isRemovingLabels,
+    isLoading,
+    error,
+    lastResults,
+    lastActionResults,
+    lastRemoveResults,
+    labelDefinitionsDeleted,
+    isLabelDeletionComplete,
+    showDeleteConfirmation,
+    setShowDeleteConfirmation,
+    onSubmit,
+    handleCancel,
+    handleToggle,
+    handleSyncLabels,
+    handleCleanupLabels,
+    initiateRemoveLabels,
+    handleRemoveLabels,
+    // Full sync schedule functionality (now included in usePlexLabels)
+    scheduleTime,
+    dayOfWeek,
+    fullSyncJob,
+    formatLastRun,
+    formatNextRun,
+    isTogglingFullSyncStatus,
+    handleToggleFullSyncStatus,
+    handleTimeChange,
+  } = usePlexLabels()
+
+  // Use the custom hook for progress tracking
+  const plexLabelSyncProgress = useLabelingProgress('plex-label-sync')
+  const plexLabelRemovalProgress = useLabelingProgress('plex-label-removal')
+
+  // Initialize progress connection
+  useEffect(() => {
+    const progressStore = useProgressStore.getState()
+    progressStore.initialize()
+    return () => {
+      progressStore.cleanup()
+    }
+  }, [])
+
+  // Determine the enabled status badge info
+  const isEnabled = form.watch('enabled')
+
+  const status = isEnabled ? 'enabled' : 'disabled'
+
+  // Determine if label settings can be edited
+  const canEditLabelSettings =
+    (isLabelDeletionComplete && labelDefinitionsDeleted) ||
+    !lastResults?.config?.enabled
+
+  // Alias readiness credenza state
+  const [showAliasCredenza, setShowAliasCredenza] = useState(false)
+
+  const handleNamingSourceChange = useCallback(
+    (value: string) => {
+      if (value === 'alias') {
+        setShowAliasCredenza(true)
+      } else {
+        form.setValue('labelNamingSource', 'username', {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true,
+        })
+      }
+    },
+    [form],
+  )
+
+  const handleAliasConfirm = useCallback(() => {
+    form.setValue('labelNamingSource', 'alias', {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    })
+    setShowAliasCredenza(false)
+  }, [form])
+
+  // Helper function to get current schedule display (form state takes precedence)
+  const getCurrentScheduleDisplay = () => {
+    const currentTime =
+      form.formState.isDirty && form.watch('scheduleTime')
+        ? (form.watch('scheduleTime') as Date)
+        : scheduleTime
+
+    const currentDay =
+      form.formState.isDirty && form.watch('dayOfWeek')
+        ? (form.watch('dayOfWeek') as string)
+        : dayOfWeek
+
+    return formatScheduleDisplay(currentTime, currentDay)
+  }
+
+  if (configError && !config) {
+    return (
+      <PageError message={configError} onRetry={() => configInitialize(true)} />
+    )
+  }
+
+  if (isInitializing || isLoading) {
+    return <PlexLabelsPageSkeleton />
+  }
+
+  if (!config?.plexLabelSync) {
+    return null
+  }
+
+  return (
+    <>
+      <PlexLabelsDeleteConfirmationModal
+        open={showDeleteConfirmation}
+        onOpenChange={setShowDeleteConfirmation}
+        onConfirm={handleRemoveLabels}
+        isSubmitting={isRemovingLabels}
+      />
+      <AliasReadinessCredenza
+        open={showAliasCredenza}
+        onOpenChange={(open) => {
+          setShowAliasCredenza(open)
+        }}
+        onConfirm={handleAliasConfirm}
+      />
+
+      <div>
+        <UtilitySectionHeader
+          title="Plex Labels"
+          description="Configure user-based labeling for Plex content"
+          status={status}
+        />
+
+        <div className="mt-6 space-y-6">
+          {/* Actions section */}
+          <div>
+            <h3 className="font-medium text-foreground mb-2">Actions</h3>
+            <div className="flex flex-wrap items-center gap-4">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handleToggle(!isEnabled)}
+                disabled={isSaving || isToggling || form.formState.isDirty}
+                variant={isEnabled ? 'error' : 'noShadow'}
+                className="h-8"
+              >
+                {isToggling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Power className="h-4 w-4" />
+                )}
+                <span className="ml-2">
+                  {isToggling
+                    ? isEnabled
+                      ? 'Disabling...'
+                      : 'Enabling...'
+                    : isEnabled
+                      ? 'Disable'
+                      : 'Enable'}
+                </span>
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleSyncLabels}
+                disabled={
+                  isSyncingLabels ||
+                  isCleaningLabels ||
+                  isRemovingLabels ||
+                  isToggling ||
+                  !isEnabled ||
+                  form.formState.isDirty
+                }
+                variant="noShadow"
+                className="h-8"
+              >
+                {isSyncingLabels ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span className="ml-2">Sync Labels</span>
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleCleanupLabels}
+                disabled={
+                  isSyncingLabels ||
+                  isCleaningLabels ||
+                  isRemovingLabels ||
+                  isToggling ||
+                  !isEnabled ||
+                  !form.watch('cleanupOrphanedLabels') ||
+                  form.formState.isDirty
+                }
+                variant="noShadow"
+                className="h-8"
+              >
+                {isCleaningLabels ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                <span className="ml-2">Clean Up</span>
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                onClick={initiateRemoveLabels}
+                disabled={
+                  isSyncingLabels ||
+                  isCleaningLabels ||
+                  isRemovingLabels ||
+                  isToggling ||
+                  !isEnabled ||
+                  form.formState.isDirty
+                }
+                variant="error"
+                className="h-8"
+              >
+                {isRemovingLabels ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                <span className="ml-2">Remove Pulsarr Labels</span>
+              </Button>
+            </div>
+
+            {/* Notify users when they have unsaved changes */}
+            {form.formState.isDirty && (
+              <div className="mt-2 text-sm text-error">
+                You have unsaved changes. Please save your configuration before
+                performing label operations.
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Status section - displays last action results if available */}
+          {(lastActionResults ||
+            lastResults ||
+            lastRemoveResults ||
+            isSyncingLabels ||
+            isRemovingLabels) && (
+            <div>
+              <h3 className="font-medium text-foreground mb-2">Status</h3>
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
+                {/* Display appropriate status message */}
+                {!(isSyncingLabels || isRemovingLabels) && (
+                  <p className="text-sm text-foreground">
+                    {lastRemoveResults?.message ||
+                      lastActionResults?.message ||
+                      lastResults?.message ||
+                      'Configuration status'}
+                  </p>
+                )}
+
+                {/* Progress bars for sync operations */}
+                {isSyncingLabels && (
+                  <div className="mt-3 space-y-3">
+                    {/* Overall progress message */}
+                    <p className="text-sm text-foreground mb-2">
+                      Synchronizing Pulsarr labels...
+                    </p>
+
+                    {/* Plex progress bar */}
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-medium text-foreground">
+                          Plex
+                        </span>
+                        <span className="text-xs text-foreground">
+                          {plexLabelSyncProgress.progress}%
+                        </span>
+                      </div>
+                      <Progress value={plexLabelSyncProgress.progress} />
+                      {plexLabelSyncProgress.message && (
+                        <p className="text-xs text-foreground mt-1">
+                          {plexLabelSyncProgress.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Progress bars for removal operations */}
+                {isRemovingLabels && (
+                  <div className="mt-3 space-y-3">
+                    {/* Overall progress message */}
+                    <p className="text-sm text-foreground mb-2">
+                      Removing Pulsarr labels...
+                    </p>
+
+                    {/* Plex progress bar */}
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-medium text-foreground">
+                          Plex
+                        </span>
+                        <span className="text-xs text-foreground">
+                          {plexLabelRemovalProgress.progress}%
+                        </span>
+                      </div>
+                      <Progress value={plexLabelRemovalProgress.progress} />
+                      {plexLabelRemovalProgress.message && (
+                        <p className="text-xs text-foreground mt-1">
+                          {plexLabelRemovalProgress.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {lastActionResults && !isSyncingLabels && !isRemovingLabels && (
+                  <>
+                    <h4 className="font-medium text-sm text-foreground mt-3 mb-1">
+                      Last Operation Results
+                    </h4>
+
+                    {/* Sync results */}
+                    {isSyncLabelsResponse(lastActionResults) && (
+                      <div className="mt-2">
+                        <h5 className="text-xs font-medium text-foreground">
+                          Plex Sync Results
+                        </h5>
+                        <ul className="mt-1 space-y-1">
+                          <li className="text-xs text-foreground">
+                            Processed: {lastActionResults.results.processed},
+                            Updated: {lastActionResults.results.updated},
+                            Failed: {lastActionResults.results.failed}, Pending:{' '}
+                            {lastActionResults.results.pending}
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Cleanup results */}
+                    {isCleanupLabelsResponse(lastActionResults) && (
+                      <div className="mt-2">
+                        <h5 className="text-xs font-medium text-foreground">
+                          Cleanup Results
+                        </h5>
+                        <ul className="mt-1 space-y-1">
+                          <li className="text-xs text-foreground">
+                            Pending: {lastActionResults.pending.removed}{' '}
+                            removed, {lastActionResults.pending.failed} failed
+                          </li>
+                          <li className="text-xs text-foreground">
+                            Orphaned: {lastActionResults.orphaned.removed}{' '}
+                            removed, {lastActionResults.orphaned.failed} failed
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Label removal results */}
+                {lastRemoveResults && !isRemovingLabels && (
+                  <>
+                    <h4 className="font-medium text-sm text-foreground mt-3 mb-1">
+                      Label Removal Results
+                    </h4>
+
+                    {/* Plex removal results */}
+                    <div className="mt-2">
+                      <h5 className="text-xs font-medium text-foreground">
+                        Plex
+                      </h5>
+                      <ul className="mt-1 space-y-1">
+                        <li className="text-xs text-foreground">
+                          Processed: {lastRemoveResults.results.processed},
+                          Removed: {lastRemoveResults.results.removed}, Failed:{' '}
+                          {lastRemoveResults.results.failed}
+                        </li>
+                      </ul>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <Alert variant="error">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <Separator />
+
+          {/* Full Sync Actions section */}
+          <div>
+            <h3 className="font-medium text-foreground mb-2">
+              Full Sync Actions
+            </h3>
+            <div className="flex flex-wrap items-center gap-4">
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleToggleFullSyncStatus}
+                disabled={isTogglingFullSyncStatus || !isEnabled}
+                variant={fullSyncJob?.enabled ? 'error' : 'noShadow'}
+                className="h-8"
+              >
+                {isTogglingFullSyncStatus ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Power className="h-4 w-4" />
+                )}
+                <span className="ml-2">
+                  {fullSyncJob?.enabled
+                    ? 'Disable Schedule'
+                    : 'Enable Schedule'}
+                </span>
+              </Button>
+            </div>
+
+            {/* Disabled state message */}
+            {!isEnabled && (
+              <div className="text-sm text-error mt-2">
+                Enable Plex labeling to use the full sync schedule.
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Full Sync Status section */}
+          {fullSyncJob && (
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-col items-center text-center">
+                  <h3 className="font-medium text-sm text-foreground mb-1">
+                    Schedule Status
+                  </h3>
+                  <p className="font-medium text-foreground">
+                    {fullSyncJob.enabled ? 'Enabled' : 'Disabled'}
+                  </p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <h3 className="font-medium text-sm text-foreground mb-1">
+                    Last Run
+                  </h3>
+                  <p className="font-medium text-foreground">
+                    {formatLastRun(fullSyncJob.last_run)}
+                  </p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <h3 className="font-medium text-sm text-foreground mb-1">
+                    Next Run
+                  </h3>
+                  <p className="font-medium text-foreground">
+                    {formatNextRun(fullSyncJob.next_run)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Separator />
+
+          {/* Schedule section */}
+          <div>
+            <div className="flex items-center mb-3">
+              <Clock className="h-4 w-4 mr-2 text-foreground" />
+              <h3 className="font-medium text-sm text-foreground">
+                Full Sync Schedule
+              </h3>
+            </div>
+
+            {fullSyncJob ? (
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="scheduleTime"
+                  render={({ field }) => (
+                    <div className="shrink-0">
+                      <TimeSelector
+                        value={
+                          field.value instanceof Date &&
+                          !Number.isNaN(field.value.getTime())
+                            ? field.value
+                            : scheduleTime
+                        }
+                        onChange={handleTimeChange}
+                        dayOfWeek={form.watch('dayOfWeek')}
+                        disabled={
+                          !fullSyncJob.enabled || isTogglingFullSyncStatus
+                        }
+                      />
+                    </div>
+                  )}
+                />
+
+                {fullSyncJob.type === 'cron' &&
+                  fullSyncJob.config?.expression && (
+                    <div className="text-xs text-foreground">
+                      <p>Current schedule: {getCurrentScheduleDisplay()}</p>
+                    </div>
+                  )}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                Loading schedule configuration...
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <h3 className="font-medium text-sm text-foreground mb-2">
+                  Label Configuration
+                </h3>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="labelPrefix"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground">
+                            Label Prefix
+                          </FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  Defines the prefix used for all user labels.
+                                  Username will be appended after a colon.
+                                </p>
+                                <code className="bg-slate-700 text-white px-1 py-0.5 rounded-xs block text-center">
+                                  {form.watch('labelPrefix') || 'pulsarr'}:
+                                  {form.watch('labelNamingSource') === 'alias'
+                                    ? 'alias'
+                                    : 'username'}
+                                </code>
+
+                                <p className="text-xs">
+                                  <span className="font-semibold">
+                                    Examples:
+                                  </span>
+                                  <br />• With default prefix:{' '}
+                                  <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
+                                    pulsarr:john_doe
+                                  </code>
+                                  <br />• With "user" prefix:{' '}
+                                  <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
+                                    user:john_doe
+                                  </code>
+                                </p>
+
+                                <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                  <strong>Note:</strong> Changing this requires
+                                  removing existing Pulsarr labels first, as old
+                                  labels won't be recognized with the new
+                                  prefix.
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="pulsarr"
+                            disabled={!canEditLabelSettings}
+                          />
+                        </FormControl>
+                        {isEnabled && !canEditLabelSettings && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            You must remove existing Pulsarr labels before
+                            changing the label prefix.
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          Final format:{' '}
+                          <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
+                            {form.watch('labelPrefix') || 'pulsarr'}:
+                            {form.watch('labelNamingSource') === 'alias'
+                              ? 'alias'
+                              : 'username'}
+                          </code>
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="labelNamingSource"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground">
+                            Naming Source
+                          </FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  Controls whether labels use the Plex username
+                                  or user alias for the name portion of the
+                                  label.
+                                </p>
+                                <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                  <strong>Note:</strong> Changing this requires
+                                  removing existing labels first. Users without
+                                  an alias will fall back to their Plex
+                                  username.
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <FormControl>
+                          <Select
+                            value={field.value || 'username'}
+                            onValueChange={handleNamingSourceChange}
+                            disabled={!canEditLabelSettings}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select naming source..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="username">Username</SelectItem>
+                              <SelectItem value="alias">Alias</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="concurrencyLimit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground">
+                            Concurrency Limit
+                          </FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Maximum number of concurrent operations when
+                                processing labels. Lower values reduce server
+                                load but take longer. Recommended: 5-10.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={20}
+                            {...field}
+                            onChange={(e) => {
+                              const raw = e.target.value
+                              const num = Number.parseInt(raw, 10)
+                              const next =
+                                raw === '' || Number.isNaN(num)
+                                  ? undefined
+                                  : Math.max(1, Math.min(20, num))
+                              field.onChange(next)
+                            }}
+                          />
+                        </FormControl>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Number of concurrent operations (1-20, default: 5)
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h3 className="font-medium text-sm text-foreground mb-2">
+                  Cleanup Settings
+                </h3>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="cleanupOrphanedLabels"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-3">
+                          <FormControl>
+                            <Switch
+                              checked={field.value ?? false}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="flex items-center">
+                            <FormLabel className="text-foreground">
+                              Clean Up Orphaned Labels
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Removes labels that no longer correspond to
+                                  active users. Prevents accumulation of unused
+                                  labels when users are deleted or renamed.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="autoResetOnScheduledSync"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-3">
+                          <FormControl>
+                            <Switch
+                              checked={field.value ?? false}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="flex items-center">
+                            <FormLabel className="text-foreground">
+                              Auto-Reset Before Sync
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs space-y-2">
+                                  <p>
+                                    Automatically reset labels before ALL sync
+                                    operations to clean up dangling entries
+                                    based on current removal mode settings.
+                                  </p>
+                                  <p>
+                                    This helps maintain label consistency when
+                                    switching between removal modes or when
+                                    dangling entries accumulate from "keep"
+                                    mode.
+                                  </p>
+                                  <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                    <strong>Note:</strong> Applies to both
+                                    manual and scheduled sync operations when
+                                    enabled.
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="removedLabelMode"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1">
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground">
+                            Label Behavior on Removal
+                          </FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  Controls what happens to user labels when
+                                  content is removed from a user's watchlist:
+                                </p>
+                                <ul className="list-disc pl-4 space-y-1">
+                                  <li>
+                                    <strong>Remove</strong>: User label is
+                                    removed (default)
+                                  </li>
+                                  <li>
+                                    <strong>Keep</strong>: User label is kept
+                                    forever
+                                  </li>
+                                  <li>
+                                    <strong>Special Label</strong>: User label
+                                    is removed and a "removed" label is added
+                                  </li>
+                                </ul>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <FormControl>
+                          <Select
+                            value={field.value || 'remove'}
+                            onValueChange={field.onChange}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select behavior..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="remove">Remove</SelectItem>
+                              <SelectItem value="keep">Keep</SelectItem>
+                              <SelectItem value="special-label">
+                                Special Label
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {form.watch('removedLabelMode') === 'special-label' && (
+                    <FormField
+                      control={form.control}
+                      name="removedLabelPrefix"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center">
+                            <FormLabel className="text-foreground">
+                              Removed Label Prefix
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs space-y-2">
+                                  <p>
+                                    Label prefix used to mark content that was
+                                    previously in a user's watchlist when using
+                                    "Special Label" mode.
+                                  </p>
+                                  <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                    <strong>Note:</strong> Changing this
+                                    requires removing existing labels first, as
+                                    old removed labels won't be recognized with
+                                    the new value.
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="pulsarr:removed"
+                              disabled={!canEditLabelSettings}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                          {form.watch('removedLabelMode') === 'special-label' &&
+                            isEnabled &&
+                            !canEditLabelSettings && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                You must remove existing Pulsarr labels before
+                                changing the removed label prefix.
+                              </p>
+                            )}
+                          <p className="text-xs text-gray-500 mt-1">
+                            Label format:{' '}
+                            <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
+                              {form.watch('removedLabelPrefix') ||
+                                'pulsarr:removed'}
+                            </code>
+                          </p>
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h3 className="font-medium text-sm text-foreground mb-2">
+                  Tag Sync Configuration
+                </h3>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="tagSync.enabled"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-3">
+                          <FormControl>
+                            <Switch
+                              checked={field.value ?? false}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="flex items-center">
+                            <FormLabel className="text-foreground">
+                              Enable Tag Syncing
+                            </FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Enable syncing of tags from Radarr and Sonarr
+                                  instances as Plex labels. This allows content
+                                  to be labeled with metadata from your *arr
+                                  applications.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {form.watch('tagSync.enabled') && (
+                    <div className="ml-6 space-y-4 border-l-2 border-border pl-4">
+                      <FormField
+                        control={form.control}
+                        name="tagSync.syncRadarrTags"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center space-x-3">
+                              <FormControl>
+                                <Switch
+                                  checked={field.value ?? true}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="flex items-center">
+                                <FormLabel className="text-foreground">
+                                  Sync Radarr Tags
+                                </FormLabel>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      Synchronize tags from configured Radarr
+                                      instances as Plex labels on movies.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="tagSync.syncSonarrTags"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center space-x-3">
+                              <FormControl>
+                                <Switch
+                                  checked={field.value ?? true}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="flex items-center">
+                                <FormLabel className="text-foreground">
+                                  Sync Sonarr Tags
+                                </FormLabel>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      Synchronize tags from configured Sonarr
+                                      instances as Plex labels on TV shows.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action buttons - always show, but disable save when not dirty */}
+              <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
+                {form.formState.isDirty && !isSaving && !isToggling && (
+                  <Button
+                    type="button"
+                    variant="cancel"
+                    onClick={handleCancel}
+                    disabled={isSaving || isToggling}
+                    className="flex items-center gap-1"
+                  >
+                    <X className="h-4 w-4" />
+                    <span>Cancel</span>
+                  </Button>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={
+                    isSaving ||
+                    isToggling ||
+                    !form.formState.isDirty ||
+                    !form.formState.isValid
+                  }
+                  className="flex items-center gap-2"
+                  variant="bluenoShadow"
+                >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
+      </div>
+    </>
+  )
+}
+
+export default PlexLabelsPage

@@ -1,0 +1,135 @@
+import { z } from 'zod'
+import { SONARR_MONITORING_OPTIONS } from '@/legacy/lib/arr/sonarr-constants'
+import type { SonarrMonitoringType } from '@/legacy/lib/arr/sonarr-types'
+
+const urlWithoutTrailingSlash = z
+  .string()
+  .url({ error: 'Please enter a valid URL' })
+  .refine((val) => !val.endsWith('/'), {
+    message: 'URL should not end with a trailing slash (/)',
+  })
+
+const baseObjectSchema = z.object({
+  name: z.string().min(1, { error: 'Name is required' }),
+  baseUrl: urlWithoutTrailingSlash,
+  apiKey: z.string().min(1, { error: 'API Key is required' }),
+  bypassIgnored: z.boolean(),
+  seasonMonitoring: z.custom<SonarrMonitoringType>((val) =>
+    Object.keys(SONARR_MONITORING_OPTIONS).includes(val as string),
+  ),
+  monitorNewItems: z.enum(['all', 'none']).default('all'),
+  searchOnAdd: z.boolean().default(true),
+  createSeasonFolders: z.boolean().default(false),
+  tags: z.array(z.string()),
+  isDefault: z.boolean(),
+  syncedInstances: z.array(z.number()).optional(),
+  seriesType: z.enum(['standard', 'anime', 'daily']).default('standard'),
+  skipDefaultRoutingWhenNoMatch: z.boolean().default(false),
+  _connectionTested: z.boolean().optional(),
+  _originalBaseUrl: z.string().optional(),
+  _originalApiKey: z.string().optional(),
+})
+
+export const baseInstanceSchema = baseObjectSchema.superRefine((data, ctx) => {
+  const hasChangedApiSettings =
+    (data._originalBaseUrl !== undefined &&
+      data._originalBaseUrl !== data.baseUrl) ||
+    (data._originalApiKey !== undefined && data._originalApiKey !== data.apiKey)
+
+  if (
+    data.baseUrl &&
+    !data.baseUrl.endsWith('/') &&
+    data.apiKey &&
+    !data._connectionTested &&
+    ((data._originalBaseUrl === undefined &&
+      data._originalApiKey === undefined) ||
+      hasChangedApiSettings)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Please test connection before continuing',
+      path: ['apiKey'],
+    })
+  }
+})
+
+const initialObjectSchema = baseObjectSchema.extend({
+  qualityProfile: z.string(),
+  rootFolder: z.string(),
+})
+
+const fullObjectSchema = baseObjectSchema.extend({
+  qualityProfile: z.string().min(1, { error: 'Quality Profile is required' }),
+  rootFolder: z.string().min(1, { error: 'Root Folder is required' }),
+})
+
+export const initialInstanceSchema = initialObjectSchema.superRefine(
+  (data, ctx) => {
+    const hasChangedApiSettings =
+      (data._originalBaseUrl !== undefined &&
+        data._originalBaseUrl !== data.baseUrl) ||
+      (data._originalApiKey !== undefined &&
+        data._originalApiKey !== data.apiKey)
+
+    if (
+      data.baseUrl &&
+      !data.baseUrl.endsWith('/') &&
+      data.apiKey &&
+      !data._connectionTested &&
+      ((data._originalBaseUrl === undefined &&
+        data._originalApiKey === undefined) ||
+        hasChangedApiSettings)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Please test connection before continuing',
+        path: ['apiKey'],
+      })
+    }
+  },
+)
+
+export const fullInstanceSchema = fullObjectSchema.superRefine((data, ctx) => {
+  const hasChangedApiSettings =
+    (data._originalBaseUrl !== undefined &&
+      data._originalBaseUrl !== data.baseUrl) ||
+    (data._originalApiKey !== undefined && data._originalApiKey !== data.apiKey)
+
+  if (
+    data.baseUrl &&
+    !data.baseUrl.endsWith('/') &&
+    data.apiKey &&
+    !data._connectionTested &&
+    ((data._originalBaseUrl === undefined &&
+      data._originalApiKey === undefined) ||
+      hasChangedApiSettings)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Please test connection before continuing',
+      path: ['apiKey'],
+    })
+  }
+})
+
+export type SonarrInstanceSchema = z.input<typeof fullInstanceSchema>
+
+export const genreRouteSchema = z.object({
+  name: z.string().min(2, {
+    error: 'Route name must be at least 2 characters.',
+  }),
+  genre: z.string().min(1, {
+    error: 'Genre is required.',
+  }),
+  sonarrInstanceId: z.number().min(1, {
+    error: 'Instance selection is required.',
+  }),
+  rootFolder: z.string().min(1, {
+    error: 'Root folder is required.',
+  }),
+  qualityProfile: z.string().min(1, {
+    error: 'Quality Profile is required',
+  }),
+})
+
+export type GenreRouteFormValues = z.infer<typeof genreRouteSchema>

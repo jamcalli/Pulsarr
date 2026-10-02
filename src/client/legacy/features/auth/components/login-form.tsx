@@ -1,0 +1,87 @@
+import { Check, Loader2 } from 'lucide-react'
+import { LoginErrorMessage } from '@/legacy/components/login-error'
+import { Button } from '@/legacy/components/ui/button'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from '@/legacy/components/ui/form'
+import { Input } from '@/legacy/components/ui/input'
+import { useLoginForm } from '@/legacy/features/auth/hooks/useLoginForm'
+
+export function LoginForm() {
+  const { form, status, backendError, loginInputRef, handleSubmit } =
+    useLoginForm()
+
+  return (
+    <Form {...form}>
+      <form
+        className="grid gap-4"
+        noValidate
+        onSubmit={form.handleSubmit(handleSubmit)}
+      >
+        <FormField
+          control={form.control}
+          name="login"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Input
+                  {...field}
+                  ref={(el) => {
+                    field.ref(el)
+                    loginInputRef.current = el
+                  }}
+                  type="text"
+                  placeholder="Email or Username"
+                  autoComplete="username"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Input
+                  {...field}
+                  type="password"
+                  placeholder="Password"
+                  autoComplete="current-password"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        {backendError && <LoginErrorMessage message={backendError} />}
+        <Button
+          type="submit"
+          className="w-full h-12 font-heading"
+          disabled={status !== 'idle'}
+          variant="fun"
+        >
+          {status === 'loading' ? (
+            <>
+              <Loader2 className="animate-spin mr-2" />
+              Logging in...
+            </>
+          ) : status === 'success' ? (
+            <>
+              <Check className="animate-check mr-2" />
+              Success!
+            </>
+          ) : (
+            'Login'
+          )}
+        </Button>
+      </form>
+    </Form>
+  )
+}

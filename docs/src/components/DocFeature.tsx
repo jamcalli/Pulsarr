@@ -34,7 +34,7 @@ export default function DocFeature({
       }
     >
       {() => {
-        const { ScrollArea: _ } = require('@/client/components/ui/scroll-area')
+        const { ScrollArea: _ } = require('@/client/legacy/components/ui/scroll-area')
         const { useMediaQuery } = require('@/client/hooks/useMediaQuery')
 
         const ClientDocFeature = () => {

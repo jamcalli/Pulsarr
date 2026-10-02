@@ -1,57 +1,69 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
-import AuthenticatedLayout from '@/layouts/authenticated'
 import RootLayout from '@/layouts/root'
+import AuthenticatedLayout from '@/legacy/layouts/authenticated'
 import { BASE_PATH } from '@/lib/basePath.js'
 
-const LoginPage = lazy(() => import('@/features/auth'))
-const CreateUserPage = lazy(() => import('@/features/setup'))
+const LoginPage = lazy(() => import('@/legacy/features/auth'))
+const CreateUserPage = lazy(() => import('@/legacy/features/setup'))
 const PlexConfigurationPage = lazy(
-  () => import('@/features/system/pages/plex-connection'),
+  () => import('@/legacy/features/system/pages/plex-connection'),
 )
-const PlexUsersPage = lazy(() => import('@/features/users/pages/plex-users'))
-const ApprovalsPage = lazy(() => import('@/features/requests'))
-const NotificationsConfigPage = lazy(() => import('@/features/notifications'))
-const DashboardPage = lazy(() => import('@/features/home'))
+const PlexUsersPage = lazy(
+  () => import('@/legacy/features/users/pages/plex-users'),
+)
+const ApprovalsPage = lazy(() => import('@/legacy/features/requests'))
+const NotificationsConfigPage = lazy(
+  () => import('@/legacy/features/notifications'),
+)
+const DashboardPage = lazy(() => import('@/legacy/features/home'))
 const DeleteSyncPage = lazy(
-  () => import('@/features/library/pages/delete-sync'),
+  () => import('@/legacy/features/library/pages/delete-sync'),
 )
 const PlexNotificationsPage = lazy(
-  () => import('@/features/system/pages/plex-notifications'),
+  () => import('@/legacy/features/system/pages/plex-notifications'),
 )
 const NewUserDefaultsPage = lazy(
-  () => import('@/features/users/pages/new-user-defaults'),
+  () => import('@/legacy/features/users/pages/new-user-defaults'),
 )
 const PlexSessionMonitoringPage = lazy(
-  () => import('@/features/library/pages/plex-session-monitoring'),
+  () => import('@/legacy/features/library/pages/plex-session-monitoring'),
 )
-const UserTagsPage = lazy(() => import('@/features/users/pages/user-tags'))
-const PlexLabelsPage = lazy(() => import('@/features/users/pages/plex-labels'))
-const ApiKeysPage = lazy(() => import('@/features/system/pages/api-keys'))
+const UserTagsPage = lazy(
+  () => import('@/legacy/features/users/pages/user-tags'),
+)
+const PlexLabelsPage = lazy(
+  () => import('@/legacy/features/users/pages/plex-labels'),
+)
+const ApiKeysPage = lazy(
+  () => import('@/legacy/features/system/pages/api-keys'),
+)
 const WatchlistExclusionsPage = lazy(
-  () => import('@/features/users/pages/watchlist-exclusions'),
+  () => import('@/legacy/features/users/pages/watchlist-exclusions'),
 )
-const LogViewerPage = lazy(() => import('@/features/system/pages/log-viewer'))
+const LogViewerPage = lazy(
+  () => import('@/legacy/features/system/pages/log-viewer'),
+)
 const ApprovalSettingsPage = lazy(
-  () => import('@/features/requests/pages/approval-settings'),
+  () => import('@/legacy/features/requests/pages/approval-settings'),
 )
 const QuotaSettingsPage = lazy(
-  () => import('@/features/requests/pages/quota-settings'),
+  () => import('@/legacy/features/requests/pages/quota-settings'),
 )
 const SonarrInstancesPage = lazy(
-  () => import('@/features/library/pages/sonarr-instances'),
+  () => import('@/legacy/features/library/pages/sonarr-instances'),
 )
 const SonarrContentRouterPage = lazy(
-  () => import('@/features/library/pages/sonarr-content-router'),
+  () => import('@/legacy/features/library/pages/sonarr-content-router'),
 )
 const RadarrInstancesPage = lazy(
-  () => import('@/features/library/pages/radarr-instances'),
+  () => import('@/legacy/features/library/pages/radarr-instances'),
 )
 const RadarrContentRouterPage = lazy(
-  () => import('@/features/library/pages/radarr-content-router'),
+  () => import('@/legacy/features/library/pages/radarr-content-router'),
 )
-const NotFoundPage = lazy(() => import('@/features/not-found'))
-const AccountSettingsPage = lazy(() => import('@/features/account'))
+const NotFoundPage = lazy(() => import('@/legacy/features/not-found'))
+const AccountSettingsPage = lazy(() => import('@/legacy/features/account'))
 
 const LoadingFallback = () => null
 

@@ -1,0 +1,15 @@
+import { WatchlistStatusBadge } from '@/legacy/components/status/workflow-status-badge'
+
+/**
+ * Dashboard header showing title and watchlist status badge.
+ */
+export function StatsHeader() {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
+        <h1 className="text-3xl font-bold text-foreground">Main Workflow</h1>
+        <WatchlistStatusBadge />
+      </div>
+    </div>
+  )
+}

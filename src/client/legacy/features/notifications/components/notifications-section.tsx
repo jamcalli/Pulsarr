@@ -1,0 +1,142 @@
+import { useNavigate } from 'react-router-dom'
+import { Separator } from '@/legacy/components/ui/separator'
+import { AppriseForm } from '@/legacy/features/notifications/components/apprise/apprise-form'
+import { DiscordBotForm } from '@/legacy/features/notifications/components/discord/discord-bot-form'
+import { DiscordWebhookForm } from '@/legacy/features/notifications/components/discord/discord-webhook-form'
+import { GeneralSettingsForm } from '@/legacy/features/notifications/components/general/general-settings-form'
+import { PlexMobileForm } from '@/legacy/features/notifications/components/plex-mobile/plex-mobile-form'
+import { PublicContentForm } from '@/legacy/features/notifications/components/public-content/public-content-form'
+import { WebhookEndpointsSection } from '@/legacy/features/notifications/components/webhooks/webhook-endpoints-section'
+
+interface NotificationsSectionProps {
+  isInitialized: boolean
+}
+
+/**
+ * Displays a sectioned interface for configuring notification settings.
+ *
+ * Sections are ordered alphabetically: Apprise, Discord, General, Native Webhooks, Plex Mobile, Public Content.
+ * Each section contains labeled forms for its respective notification integration, separated by visual dividers.
+ *
+ * @param isInitialized - Indicates whether the notification forms should be initialized.
+ */
+export function NotificationsSection({
+  isInitialized,
+}: NotificationsSectionProps) {
+  const navigate = useNavigate()
+
+  // Section IDs are stable anchors for deep-linking (alphabetically ordered)
+  const appriseId = 'apprise-notifications'
+  const discordId = 'discord-notifications'
+  const generalId = 'general-notifications'
+  const nativeWebhooksId = 'native-webhooks'
+  const plexMobileId = 'plex-mobile-notifications'
+  const publicContentId = 'public-content-notifications'
+  return (
+    <div className="grid gap-6">
+      {/* Feature-specific notification settings info */}
+      <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+        <p>
+          Some features have their own notification settings. Configure{' '}
+          <button
+            type="button"
+            onClick={() => navigate('/approvals/settings')}
+            className="text-blue-400 hover:text-blue-500 cursor-pointer"
+          >
+            Approval Notifications
+          </button>{' '}
+          and{' '}
+          <button
+            type="button"
+            onClick={() => navigate('/utilities/delete-sync')}
+            className="text-blue-400 hover:text-blue-500 cursor-pointer"
+          >
+            Delete Sync Notifications
+          </button>{' '}
+          in their respective settings pages.
+        </p>
+      </div>
+
+      {/* Apprise Notifications Section */}
+      <div id={appriseId}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-foreground">
+            Apprise Notifications
+          </h2>
+        </div>
+        <div className="grid gap-4 mt-4">
+          <AppriseForm isInitialized={isInitialized} />
+        </div>
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Discord Notifications Section */}
+      <div id={discordId}>
+        <h2 className="text-2xl font-bold text-foreground">
+          Discord Notifications
+        </h2>
+        <div className="grid gap-4 mt-4">
+          <DiscordWebhookForm isInitialized={isInitialized} />
+          <DiscordBotForm isInitialized={isInitialized} />
+        </div>
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* General Settings Section */}
+      <div id={generalId}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-foreground">
+            General Settings
+          </h2>
+        </div>
+        <div className="grid gap-4 mt-4">
+          <GeneralSettingsForm isInitialized={isInitialized} />
+        </div>
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Native Webhooks Section */}
+      <div id={nativeWebhooksId}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-foreground">
+            Native Webhooks
+          </h2>
+        </div>
+        <div className="grid gap-4 mt-4">
+          <WebhookEndpointsSection />
+        </div>
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Plex Mobile Notifications Section */}
+      <div id={plexMobileId}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-foreground">
+            Plex Mobile Notifications
+          </h2>
+        </div>
+        <div className="grid gap-4 mt-4">
+          <PlexMobileForm isInitialized={isInitialized} />
+        </div>
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Public Content Notifications Section */}
+      <div id={publicContentId}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-foreground">
+            Public Content Notifications
+          </h2>
+        </div>
+        <div className="grid gap-4 mt-4">
+          <PublicContentForm isInitialized={isInitialized} />
+        </div>
+      </div>
+    </div>
+  )
+}

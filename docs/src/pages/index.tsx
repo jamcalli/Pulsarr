@@ -44,10 +44,10 @@ export default function Home(): React.ReactElement {
           const CrtOverlay =
             require('@/client/components/backdrop/crt-overlay').default
           const Asteroids = require('@/client/components/backdrop/asteroids').default
-          const { AspectRatio } = require('@/client/components/ui/aspect-ratio')
+          const { AspectRatio } = require('@/client/legacy/components/ui/aspect-ratio')
           const { useMediaQuery } = require('@/client/hooks/useMediaQuery')
           const Pulsar = require('@/client/components/backdrop/pulsar').default
-          const { Button } = require('@/client/components/ui/button')
+          const { Button } = require('@/client/legacy/components/ui/button')
 
           const ClientHome = () => {
             const [isHydrated, setIsHydrated] = React.useState(false)

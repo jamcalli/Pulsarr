@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import { SettingsProvider } from '@/components/settings-provider'
 import { ThemeProvider } from '@/components/theme-provider'
-import { TooltipProvider } from '@/components/ui/tooltip'
+import { TooltipProvider } from '@/legacy/components/ui/tooltip'
 import { queryClient } from '@/lib/queryClient'
 import { router } from '@/router/router'
 

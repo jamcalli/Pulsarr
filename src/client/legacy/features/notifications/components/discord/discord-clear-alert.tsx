@@ -1,0 +1,61 @@
+import { Button } from '@/legacy/components/ui/button'
+import {
+  Credenza,
+  CredenzaClose,
+  CredenzaContent,
+  CredenzaDescription,
+  CredenzaFooter,
+  CredenzaHeader,
+  CredenzaTitle,
+} from '@/legacy/components/ui/credenza'
+
+interface DiscordClearAlertProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onConfirm: () => Promise<void>
+  title: string
+  description: string
+}
+
+/**
+ * Displays a modal confirmation dialog with customizable title and description for clearing Discord-related data.
+ *
+ * Offers "Cancel" and "Clear" actions; selecting "Clear" awaits the provided confirmation callback before closing the dialog.
+ */
+export function DiscordClearAlert({
+  open,
+  onOpenChange,
+  onConfirm,
+  title,
+  description,
+}: DiscordClearAlertProps) {
+  return (
+    <Credenza open={open} onOpenChange={onOpenChange}>
+      <CredenzaContent>
+        <CredenzaHeader>
+          <CredenzaTitle className="text-foreground">{title}</CredenzaTitle>
+          <CredenzaDescription>{description}</CredenzaDescription>
+        </CredenzaHeader>
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral">Cancel</Button>
+          </CredenzaClose>
+          <Button
+            variant="clear"
+            onClick={async () => {
+              try {
+                await onConfirm()
+              } finally {
+                onOpenChange(false)
+              }
+            }}
+          >
+            Clear
+          </Button>
+        </CredenzaFooter>
+      </CredenzaContent>
+    </Credenza>
+  )
+}
+
+export default DiscordClearAlert

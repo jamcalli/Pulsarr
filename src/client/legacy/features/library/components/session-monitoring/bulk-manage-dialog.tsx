@@ -1,0 +1,178 @@
+import { Activity, Clock, Layers } from 'lucide-react'
+import { useId, useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/legacy/components/ui/button'
+import { Checkbox } from '@/legacy/components/ui/checkbox'
+import {
+  Credenza,
+  CredenzaBody,
+  CredenzaClose,
+  CredenzaContent,
+  CredenzaDescription,
+  CredenzaFooter,
+  CredenzaHeader,
+  CredenzaTitle,
+} from '@/legacy/components/ui/credenza'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/legacy/components/ui/select'
+import { useBulkManageMutation } from '@/legacy/features/library/hooks/session-monitoring/useSessionMonitoringQueries'
+import type { components } from '@/types/api.js'
+
+type MonitoringType = components['schemas']['MonitoringType']
+
+type SonarrShow = components['schemas']['SonarrShowWithEnrollment']
+
+interface BulkManageDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  selectedShows: SonarrShow[]
+  onSuccess: () => void
+}
+
+export function BulkManageDialog({
+  open,
+  onOpenChange,
+  selectedShows,
+  onSuccess,
+}: BulkManageDialogProps) {
+  const [monitoringType, setMonitoringType] = useState<MonitoringType | ''>('')
+  const [resetMonitoring, setResetMonitoring] = useState(false)
+  const bulkManage = useBulkManageMutation()
+  const resetCheckboxId = useId()
+
+  const handleConfirm = async () => {
+    if (!monitoringType) return
+
+    bulkManage.mutate(
+      {
+        shows: selectedShows.map((s) => ({
+          sonarrSeriesId: s.sonarrSeriesId,
+          sonarrInstanceId: s.sonarrInstanceId,
+          title: s.title,
+          guids: s.guids,
+          rollingShowId: s.rollingShowId,
+        })),
+        monitoringType,
+        resetMonitoring,
+      },
+      {
+        onSuccess: (data) => {
+          const parts: string[] = []
+          if (data.enrolled > 0) parts.push(`${data.enrolled} enrolled`)
+          if (data.modified > 0) parts.push(`${data.modified} modified`)
+          if (data.skipped > 0) parts.push(`${data.skipped} skipped`)
+          if (data.failed > 0) parts.push(`${data.failed} failed`)
+          const summary = parts.join(', ') || data.message
+          if (data.failed > 0) {
+            toast.warning(summary)
+          } else {
+            toast.success(summary)
+          }
+          setMonitoringType('')
+          setResetMonitoring(false)
+          onSuccess()
+        },
+        onError: (error) => {
+          toast.error(error.message || 'Failed to manage shows')
+        },
+      },
+    )
+  }
+
+  return (
+    <Credenza open={open} onOpenChange={onOpenChange}>
+      <CredenzaContent>
+        <CredenzaHeader>
+          <CredenzaTitle className="text-foreground">
+            Manage Rolling Monitoring
+          </CredenzaTitle>
+          <CredenzaDescription>
+            Configure rolling monitoring for {selectedShows.length} selected
+            show
+            {selectedShows.length !== 1 ? 's' : ''}
+          </CredenzaDescription>
+        </CredenzaHeader>
+        <CredenzaBody>
+          <div className="space-y-2">
+            <span className="text-sm font-medium text-foreground">
+              Monitoring Type
+            </span>
+            <Select
+              value={monitoringType}
+              onValueChange={(val) => setMonitoringType(val as MonitoringType)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select monitoring type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pilotRolling">
+                  <span className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 shrink-0" />
+                    Pilot Rolling
+                  </span>
+                </SelectItem>
+                <SelectItem value="firstSeasonRolling">
+                  <span className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 shrink-0" />
+                    First Season Rolling
+                  </span>
+                </SelectItem>
+                <SelectItem value="allSeasonPilotRolling">
+                  <span className="flex items-center gap-2">
+                    <Layers className="h-4 w-4 shrink-0" />
+                    All Season Pilot Rolling
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center space-x-2 mt-4">
+            <Checkbox
+              id={resetCheckboxId}
+              checked={resetMonitoring}
+              onCheckedChange={(val) => setResetMonitoring(!!val)}
+            />
+            <label
+              htmlFor={resetCheckboxId}
+              className="text-sm font-medium text-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Reset monitoring to baseline
+            </label>
+          </div>
+          <p className="text-xs text-foreground mt-1 ml-6">
+            Unmonitors all episodes and applies the selected type from scratch
+          </p>
+
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-md mt-4">
+            <p className="text-yellow-800 dark:text-yellow-200 text-sm">
+              Resetting to baseline will immediately unmonitor excess episodes
+              and delete their files based on the selected type. If unchecked,
+              shows keep their current monitoring state. If automatic resets are
+              enabled, they reset after exceeding the inactivity threshold.
+              Selecting All Season Pilot monitors the first episode of every
+              season even without a reset.
+            </p>
+          </div>
+        </CredenzaBody>
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral">Cancel</Button>
+          </CredenzaClose>
+          <Button
+            variant="clear"
+            onClick={handleConfirm}
+            disabled={!monitoringType || bulkManage.isPending}
+          >
+            {bulkManage.isPending ? 'Processing...' : 'Confirm'}
+          </Button>
+        </CredenzaFooter>
+      </CredenzaContent>
+    </Credenza>
+  )
+}

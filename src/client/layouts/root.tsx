@@ -8,10 +8,10 @@ import CRTOverlay from '@/components/backdrop/crt-overlay'
 import Pulsar from '@/components/backdrop/pulsar'
 import ParallaxStarfield from '@/components/backdrop/starfield'
 import { useSettings } from '@/components/settings-provider'
-import { AspectRatio } from '@/components/ui/aspect-ratio'
 import { Toaster } from '@/components/ui/sonner'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { usePageVisibility } from '@/hooks/usePageVisibility'
+import { AspectRatio } from '@/legacy/components/ui/aspect-ratio'
 
 interface RootLayoutProps {
   children: ReactNode

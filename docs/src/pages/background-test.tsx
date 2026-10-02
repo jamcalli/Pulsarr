@@ -31,7 +31,7 @@ export default function BackgroundTest(): React.ReactElement {
           const CrtOverlay =
             require('@/client/components/backdrop/crt-overlay').default
           const Asteroids = require('@/client/components/backdrop/asteroids').default
-          const { AspectRatio } = require('@/client/components/ui/aspect-ratio')
+          const { AspectRatio } = require('@/client/legacy/components/ui/aspect-ratio')
           const { useMediaQuery } = require('@/client/hooks/useMediaQuery')
           const planetDesktop =
             require('@/client/assets/images/planet.webp').default
