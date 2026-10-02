@@ -107,6 +107,346 @@
           }
         }
       }
+    },
+    {
+      "includes": ["**/src/client/**", "!**/src/client/components/ui/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": {
+              "level": "error",
+              "options": {
+                "filenameCases": ["kebab-case"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "**/src/client/**/hooks/**/use*",
+        "**/src/client/**/*Store.ts",
+        "**/src/client/lib/basePath.ts",
+        "**/src/client/lib/queryClient.ts",
+        "**/src/client/lib/tanstackApi.ts",
+        "**/src/client/hooks/arr/instanceMutations.ts",
+        "!**/src/client/components/ui/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": {
+              "level": "error",
+              "options": {
+                "filenameCases": ["camelCase"],
+                "strictCase": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "**/src/client/components/**",
+        "**/src/client/hooks/**",
+        "**/src/client/lib/**",
+        "**/src/client/stores/**",
+        "**/src/client/layouts/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features", "@/features/**", "../**"],
+                    "message": "Shared client code cannot depend on a feature; move the shared piece to components/, hooks/ or lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/features/account/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/**",
+                      "!@/features/account",
+                      "!@/features/account/**",
+                      "../**"
+                    ],
+                    "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/features/auth/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/**",
+                      "!@/features/auth",
+                      "!@/features/auth/**",
+                      "../**"
+                    ],
+                    "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/features/home/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/**",
+                      "!@/features/home",
+                      "!@/features/home/**",
+                      "../**"
+                    ],
+                    "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/features/library/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/**",
+                      "!@/features/library",
+                      "!@/features/library/**",
+                      "../**"
+                    ],
+                    "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/features/not-found/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/**",
+                      "!@/features/not-found",
+                      "!@/features/not-found/**",
+                      "../**"
+                    ],
+                    "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/features/notifications/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/**",
+                      "!@/features/notifications",
+                      "!@/features/notifications/**",
+                      "../**"
+                    ],
+                    "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/features/plex/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/**",
+                      "!@/features/plex",
+                      "!@/features/plex/**",
+                      "../**"
+                    ],
+                    "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/features/requests/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/**",
+                      "!@/features/requests",
+                      "!@/features/requests/**",
+                      "../**"
+                    ],
+                    "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/features/setup/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/**",
+                      "!@/features/setup",
+                      "!@/features/setup/**",
+                      "../**"
+                    ],
+                    "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/features/system/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/**",
+                      "!@/features/system",
+                      "!@/features/system/**",
+                      "../**"
+                    ],
+                    "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/src/client/features/users/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/**",
+                      "!@/features/users",
+                      "!@/features/users/**",
+                      "../**"
+                    ],
+                    "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

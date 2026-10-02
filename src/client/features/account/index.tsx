@@ -1,11 +1,11 @@
-import { PageError } from '@/components/ui/page-error'
+import { PageError } from '@/components/page-error'
 import { Separator } from '@/components/ui/separator'
-import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { UtilitySectionHeader } from '@/components/utility-section-header'
 import { AccountProfileForm } from '@/features/account/components/account-profile-form'
 import { AccountSettingsPageSkeleton } from '@/features/account/components/account-settings-page-skeleton'
 import { ChangePasswordForm } from '@/features/account/components/change-password-form'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
-import { useShowLoading } from '@/lib/useMinLoading'
+import { useShowLoading } from '@/hooks/useMinLoading'
 
 export default function AccountSettingsPage() {
   const { currentUser, currentUserLoading } = useCurrentUser()

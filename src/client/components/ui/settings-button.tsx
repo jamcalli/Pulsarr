@@ -1,6 +1,7 @@
 import { LogOut, Moon, Settings, Sparkles, Sun } from 'lucide-react'
 import { useState } from 'react'
 import { useSettings } from '@/components/settings-provider'
+import { LogoutAlert } from '@/components/sidebar/logout-alert'
 import { useTheme } from '@/components/theme-provider'
 import {
   DropdownMenu,
@@ -8,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { LogoutAlert } from '@/components/ui/logout-alert'
 import {
   Tooltip,
   TooltipContent,

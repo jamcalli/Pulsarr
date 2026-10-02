@@ -1,0 +1,18 @@
+import { useMinLoading } from '@/hooks/useMinLoading'
+import { $api } from '@/lib/tanstackApi'
+
+/**
+ * Key for approval stats, separate from approval list keys for
+ * independent invalidation.
+ */
+export const approvalStatsKeys = {
+  all: $api.queryOptions('get', '/v1/approval/stats').queryKey,
+}
+
+/**
+ * Fetches approval statistics: aggregate counts by status
+ * (pending, approved, rejected, expired, auto_approved).
+ */
+export function useApprovalStats() {
+  return useMinLoading($api.useQuery('get', '/v1/approval/stats'))
+}

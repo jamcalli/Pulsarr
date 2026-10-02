@@ -1,0 +1,104 @@
+import { useCallback, useEffect, useRef } from 'react'
+import { PageError } from '@/components/page-error'
+import { AnalyticsDashboard } from '@/features/home/components/analytics-dashboard'
+import { PopularityRankings } from '@/features/home/components/popularity-rankings'
+import { RecentRequests } from '@/features/home/components/recent-requests'
+import { StatsHeader } from '@/features/home/components/stats-header'
+import { useDashboardSSE } from '@/features/home/hooks/useDashboardSSE'
+import { useDashboardStats } from '@/features/home/hooks/useDashboardStats'
+import { useConfig } from '@/hooks/useConfig'
+import { toast } from '@/hooks/useToast'
+
+/**
+ * Dashboard page that ensures configuration is initialized, surfaces config errors, and renders dashboard UI.
+ *
+ * Initializes the app configuration once on mount (if not already initialized), listens for configuration errors and shows a destructive toast for new errors, and provides a stable refresh handler that triggers stats refreshes and surfaces failures via toast. Renders the StatsHeader (with refresh button), PopularityRankings, and AnalyticsDashboard.
+ *
+ * @returns The Dashboard page React element.
+ */
+export function DashboardPage() {
+  // Centralized SSE subscription for all dashboard data
+  useDashboardSSE()
+
+  const { refreshStats, isLoading, isRefreshing } = useDashboardStats()
+  const {
+    initialize: configInitialize,
+    isInitialized: isConfigInitialized,
+    error: configError,
+  } = useConfig()
+
+  const hasInitialRefresh = useRef(false)
+  const initInFlight = useRef(false)
+  const lastConfigErrorRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (hasInitialRefresh.current || initInFlight.current) return
+      initInFlight.current = true
+      try {
+        if (!isConfigInitialized) {
+          await configInitialize()
+        }
+      } catch (e) {
+        console.error('Dashboard init error:', e)
+        // Errors are handled in store; we surface via a separate effect below.
+      } finally {
+        if (!cancelled) {
+          hasInitialRefresh.current = true
+        }
+        initInFlight.current = false
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [configInitialize, isConfigInitialized])
+
+  // React to config errors after initial load; pre-init failures render PageError
+  useEffect(() => {
+    if (!configError || !isConfigInitialized) return
+    const msg =
+      typeof configError === 'string' ? configError : String(configError)
+    if (lastConfigErrorRef.current === msg) return
+    toast({
+      variant: 'destructive',
+      title: 'Configuration Error',
+      description: msg,
+    })
+    lastConfigErrorRef.current = msg
+  }, [configError, isConfigInitialized])
+
+  const handleRefresh = useCallback(async () => {
+    if (!isLoading && !isRefreshing) {
+      try {
+        await refreshStats()
+      } catch (err) {
+        console.error('Dashboard stats refresh error:', err)
+        const message = err instanceof Error ? err.message : String(err)
+        toast({
+          variant: 'destructive',
+          title: 'Stats Refresh Failed',
+          description: `Unable to refresh dashboard statistics. ${message}`,
+        })
+      }
+    }
+  }, [refreshStats, isLoading, isRefreshing])
+
+  if (configError && !isConfigInitialized) {
+    return (
+      <PageError message={configError} onRetry={() => configInitialize(true)} />
+    )
+  }
+
+  return (
+    <div className="space-y-8">
+      <StatsHeader />
+      <RecentRequests />
+      <PopularityRankings onRefresh={handleRefresh} />
+      <AnalyticsDashboard />
+    </div>
+  )
+}
+
+export default DashboardPage

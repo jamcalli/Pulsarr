@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { toast } from 'sonner'
+import { useMinLoading } from '@/hooks/useMinLoading'
 import { $api } from '@/lib/tanstackApi'
-import { useMinLoading } from '@/lib/useMinLoading'
 
 export interface VersionCheckResult {
   updateAvailable: boolean

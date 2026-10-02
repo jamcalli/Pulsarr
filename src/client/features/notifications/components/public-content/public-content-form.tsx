@@ -9,13 +9,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { MultiInput } from '@/components/ui/multi-input'
 import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { MultiInput } from '@/features/notifications/components/multi-input'
 import { PublicContentClearAlert } from '@/features/notifications/components/public-content/public-content-clear-alert'
 import { usePublicContentNotifications } from '@/features/notifications/hooks/usePublicContentNotifications'
 

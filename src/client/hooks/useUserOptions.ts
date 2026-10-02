@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useUsers } from '@/features/plex/hooks/usePlexUsers'
+import { useUsers } from '@/hooks/usePlexUsers'
 
 export interface UserOption {
   label: string
