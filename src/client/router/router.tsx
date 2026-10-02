@@ -4,7 +4,7 @@ import RootLayout from '@/layouts/root'
 import AuthenticatedLayout from '@/legacy/layouts/authenticated'
 import { BASE_PATH } from '@/lib/basePath.js'
 
-const LoginPage = lazy(() => import('@/legacy/features/auth'))
+const LoginPage = lazy(() => import('@/features/auth'))
 const CreateUserPage = lazy(() => import('@/legacy/features/setup'))
 const PlexConfigurationPage = lazy(
   () => import('@/legacy/features/system/pages/plex-connection'),

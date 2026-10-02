@@ -1,12 +1,12 @@
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
-import { useTheme } from '@/components/theme-provider'
+import { useTheme } from '@/hooks/useTheme'
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = 'system' } = useTheme()
+  const { theme } = useTheme()
 
   return (
     <Sonner
-      theme={theme as ToasterProps['theme']}
+      theme={theme}
       style={{ fontFamily: 'inherit', overflowWrap: 'anywhere' }}
       toastOptions={{
         unstyled: true,

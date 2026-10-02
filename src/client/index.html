@@ -1,8 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Lockstep with themePref in lib/theme.ts: runs before first paint so a light preference never flashes dark. -->
+    <script>
+      try {
+        if (localStorage.getItem('pulsarr-theme') === 'light') {
+          document.documentElement.classList.replace('dark', 'light')
+        }
+      } catch {}
+    </script>
     <title>Pulsarr</title>
     <link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml">
     <link rel="icon" href="/favicon.ico" sizes="48x48">

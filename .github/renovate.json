@@ -74,10 +74,11 @@
   ],
   "packageRules": [
     {
-      "description": "Group all Radix UI components",
+      "description": "Group all Radix UI and Base UI components",
       "groupName": "Radix UI",
       "matchPackageNames": [
-        "/^@radix-ui//"
+        "/^@radix-ui//",
+        "@base-ui/react"
       ]
     },
     {
@@ -226,6 +227,7 @@
         "!tw-animate-css",
         "!/^@types//",
         "!/^@radix-ui//",
+        "!@base-ui/react",
         "!/^@tanstack//",
         "!react",
         "!react-dom",
@@ -350,10 +352,11 @@
       "prPriority": 20
     },
     {
-      "description": "Auto-merge patch updates for Radix UI",
+      "description": "Auto-merge patch updates for Radix UI and Base UI",
       "groupName": "Radix UI",
       "matchPackageNames": [
-        "/^@radix-ui//"
+        "/^@radix-ui//",
+        "@base-ui/react"
       ],
       "matchUpdateTypes": [
         "patch"

@@ -153,6 +153,30 @@
       }
     },
     {
+      "includes": ["**/src/client/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": [
         "**/src/client/components/**",
         "**/src/client/hooks/**",
@@ -175,6 +199,14 @@
                   {
                     "group": ["@/legacy", "@/legacy/**"],
                     "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -195,6 +227,14 @@
                   {
                     "group": ["@/features", "@/features/**", "../**"],
                     "message": "Shared client code cannot depend on a feature; move the shared piece to components/, hooks/ or lib/."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -224,6 +264,14 @@
                   {
                     "group": ["@/legacy", "@/legacy/**"],
                     "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -253,6 +301,14 @@
                   {
                     "group": ["@/legacy", "@/legacy/**"],
                     "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -282,6 +338,14 @@
                   {
                     "group": ["@/legacy", "@/legacy/**"],
                     "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -311,6 +375,14 @@
                   {
                     "group": ["@/legacy", "@/legacy/**"],
                     "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -340,6 +412,14 @@
                   {
                     "group": ["@/legacy", "@/legacy/**"],
                     "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -369,6 +449,14 @@
                   {
                     "group": ["@/legacy", "@/legacy/**"],
                     "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -398,6 +486,14 @@
                   {
                     "group": ["@/legacy", "@/legacy/**"],
                     "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -427,6 +523,14 @@
                   {
                     "group": ["@/legacy", "@/legacy/**"],
                     "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -456,6 +560,14 @@
                   {
                     "group": ["@/legacy", "@/legacy/**"],
                     "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -485,6 +597,14 @@
                   {
                     "group": ["@/legacy", "@/legacy/**"],
                     "message": "New client code cannot import legacy/; rebuild the piece in the new tree."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
@@ -510,6 +630,14 @@
                       "!@/components/ui/sonner"
                     ],
                     "message": "Legacy code cannot import the new tree."
+                  },
+                  {
+                    "group": [
+                      "@root/**",
+                      "!@root/schemas/**",
+                      "!@root/types/**"
+                    ],
+                    "message": "Client code may import only @root/schemas and @root/types from the server tree."
                   }
                 ]
               }
