@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Cell, Label, Pie, PieChart, Tooltip } from 'recharts'
-import { useTheme } from '@/components/theme-provider'
+import { useTheme } from '@/hooks/useTheme'
 import { AspectRatio } from '@/legacy/components/ui/aspect-ratio'
 import { Card, CardContent } from '@/legacy/components/ui/card'
 import { type ChartConfig, ChartContainer } from '@/legacy/components/ui/chart'
@@ -20,10 +20,7 @@ interface NotificationChartData {
 export function NotificationCharts() {
   const { data: notificationStats, isLoading } = useNotificationStatsData()
   const { theme } = useTheme()
-  const isDarkMode =
-    theme === 'dark' ||
-    (theme === 'system' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const isDarkMode = theme === 'dark'
 
   // CSS Custom Properties
   const cssColors = useMemo(

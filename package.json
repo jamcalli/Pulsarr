@@ -115,6 +115,7 @@
     "undici": "^6.27.0"
   },
   "devDependencies": {
+    "@base-ui/react": "^1.8.0",
     "@biomejs/biome": "^2.5.14",
     "@commitlint/cli": "^21.0.0",
     "@commitlint/config-conventional": "^21.0.0",
@@ -140,6 +141,7 @@
     "@radix-ui/react-toast": "^1.2.11",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tailwindcss/postcss": "^4.1.10",
+    "@tanstack/react-form": "^1.33.5",
     "@tanstack/react-query": "^5.90.12",
     "@tanstack/react-table": "^8.21.3",
     "@types/node": "^26.4.0",
@@ -156,6 +158,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "cn": "^0.4.0",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "fastify-cli": "^8.0.0",
