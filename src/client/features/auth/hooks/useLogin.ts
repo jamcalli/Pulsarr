@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useMinLoadingMutation } from '@/hooks/useMinLoading'
-import { $api, apiErrorMessage } from '@/lib/tanstackApi'
+import { $api, mutationErrorMessage } from '@/lib/tanstackApi'
 
 export function useLogin() {
   const navigate = useNavigate()
@@ -17,9 +17,7 @@ export function useLogin() {
   const errorMessage =
     login.isPending || !login.error
       ? null
-      : login.error instanceof Error
-        ? 'An unexpected error occurred. Please try again.'
-        : (apiErrorMessage(login.error) ?? 'Login failed. Please try again.')
+      : mutationErrorMessage(login.error, 'Login failed. Please try again.')
 
   return { ...login, errorMessage }
 }

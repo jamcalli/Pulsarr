@@ -190,7 +190,19 @@
         "autoprefixer",
         "tailwind-merge",
         "class-variance-authority",
-        "tw-animate-css"
+        "tw-animate-css",
+        "cn"
+      ]
+    },
+    {
+      "description": "Group test tooling (Vitest, MSW, Testing Library, happy-dom)",
+      "groupName": "Testing",
+      "matchPackageNames": [
+        "vitest",
+        "/^@vitest\\//",
+        "msw",
+        "happy-dom",
+        "/^@testing-library\\//"
       ]
     },
     {
@@ -234,7 +246,13 @@
         "!react-hook-form",
         "!react-router-dom",
         "!@hookform/resolvers",
-        "!recharts"
+        "!recharts",
+        "!cn",
+        "!vitest",
+        "!/^@vitest\\//",
+        "!msw",
+        "!happy-dom",
+        "!/^@testing-library\\//"
       ]
     },
     {
@@ -426,7 +444,25 @@
         "autoprefixer",
         "tailwind-merge",
         "class-variance-authority",
-        "tw-animate-css"
+        "tw-animate-css",
+        "cn"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "2 days"
+    },
+    {
+      "description": "Auto-merge patch updates for Testing",
+      "groupName": "Testing",
+      "matchPackageNames": [
+        "vitest",
+        "/^@vitest\\//",
+        "msw",
+        "happy-dom",
+        "/^@testing-library\\//"
       ],
       "matchUpdateTypes": [
         "patch"
