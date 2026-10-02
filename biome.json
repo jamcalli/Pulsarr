@@ -324,31 +324,6 @@
       }
     },
     {
-      "includes": ["**/src/client/features/plex/**"],
-      "linter": {
-        "rules": {
-          "style": {
-            "noRestrictedImports": {
-              "level": "error",
-              "options": {
-                "patterns": [
-                  {
-                    "group": [
-                      "@/features/**",
-                      "!@/features/plex",
-                      "!@/features/plex/**",
-                      "../**"
-                    ],
-                    "message": "Features cannot import another feature's internals; move the shared piece to components/, hooks/ or lib/."
-                  }
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    {
       "includes": ["**/src/client/features/requests/**"],
       "linter": {
         "rules": {
