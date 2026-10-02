@@ -28,3 +28,11 @@ export function apiErrorMessage(error: unknown): string | null {
   }
   return null
 }
+
+/** Error instances (network, parse) get a generic message, API error bodies get their own message or the fallback. */
+export function mutationErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    return 'An unexpected error occurred. Please try again.'
+  }
+  return apiErrorMessage(error) ?? fallback
+}
