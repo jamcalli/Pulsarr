@@ -16,7 +16,9 @@ export function LoginForm() {
       modeAfterSubmission: 'blur',
     }),
     validators: { onDynamic: CredentialsSchema },
-    onSubmit: ({ value }) => login.mutate({ body: value }),
+    // The alert shows the error from the mutation, so this catch only ends the submit.
+    onSubmit: ({ value }) =>
+      login.mutateAsync({ body: value }).catch(() => undefined),
   })
 
   return (
