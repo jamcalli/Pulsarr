@@ -40,13 +40,13 @@ export default function Home(): React.ReactElement {
         }
       >
         {() => {
-          const Starfield = require('@/client/components/ui/starfield').default
+          const Starfield = require('@/client/components/backdrop/starfield').default
           const CrtOverlay =
-            require('@/client/components/ui/crt-overlay').default
-          const Asteroids = require('@/client/components/ui/asteroids').default
+            require('@/client/components/backdrop/crt-overlay').default
+          const Asteroids = require('@/client/components/backdrop/asteroids').default
           const { AspectRatio } = require('@/client/components/ui/aspect-ratio')
-          const { useMediaQuery } = require('@/client/hooks/use-media-query')
-          const Pulsar = require('@/client/components/ui/pulsar').default
+          const { useMediaQuery } = require('@/client/hooks/useMediaQuery')
+          const Pulsar = require('@/client/components/backdrop/pulsar').default
           const { Button } = require('@/client/components/ui/button')
 
           const ClientHome = () => {

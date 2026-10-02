@@ -68,7 +68,7 @@ src/schemas/**/*.schema.ts   (Zod route schemas - source of truth)
 - **Do not run the Docusaurus API doc generation locally** (`docusaurus gen-api-docs`). CI owns that step; it regenerates hundreds of files.
 - **No client-side response validation is needed.** Responses are serialized through the Zod schema on the server (`serializerCompiler` in `src/app.ts`), so the emitted JSON always matches the declared shape the types were generated from.
 - **Cache invalidation uses the derived key shape.** `['get', '/v1/feature/things']` as a query key prefix invalidates every params variant of that path. Feature hooks export their prefixes as key constants - reuse those instead of writing literals.
-- **Skeleton loading:** wrap query results in `useMinLoading` (and mutation results in `useMinLoadingMutation`) from `src/client/lib/useMinLoading.ts` to keep the minimum-duration loading behavior consistent across the app.
+- **Skeleton loading:** wrap query results in `useMinLoading` (and mutation results in `useMinLoadingMutation`) from `src/client/hooks/useMinLoading.ts` to keep the minimum-duration loading behavior consistent across the app.
 
 ## Why the codegen lives in `scripts/openapi-codegen/`
 

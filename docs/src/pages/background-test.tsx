@@ -27,12 +27,12 @@ export default function BackgroundTest(): React.ReactElement {
         }
       >
         {() => {
-          const Starfield = require('@/client/components/ui/starfield').default
+          const Starfield = require('@/client/components/backdrop/starfield').default
           const CrtOverlay =
-            require('@/client/components/ui/crt-overlay').default
-          const Asteroids = require('@/client/components/ui/asteroids').default
+            require('@/client/components/backdrop/crt-overlay').default
+          const Asteroids = require('@/client/components/backdrop/asteroids').default
           const { AspectRatio } = require('@/client/components/ui/aspect-ratio')
-          const { useMediaQuery } = require('@/client/hooks/use-media-query')
+          const { useMediaQuery } = require('@/client/hooks/useMediaQuery')
           const planetDesktop =
             require('@/client/assets/images/planet.webp').default
           const planetMobile =
