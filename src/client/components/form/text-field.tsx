@@ -5,12 +5,13 @@ import { useFieldContext } from '@/lib/form-context'
 
 type TextFieldProps = { label: string } & Pick<
   ComponentProps<typeof Input>,
-  'type' | 'autoComplete' | 'autoFocus' | 'placeholder'
+  'type' | 'autoComplete' | 'autoFocus' | 'placeholder' | 'required'
 >
 
 export function TextField({ label, ...inputProps }: TextFieldProps) {
   const field = useFieldContext<string>()
   const isInvalid = field.state.meta.errors.length > 0
+  const errorId = `${field.name}-error`
 
   return (
     <Field data-invalid={isInvalid}>
@@ -23,8 +24,9 @@ export function TextField({ label, ...inputProps }: TextFieldProps) {
         onBlur={field.handleBlur}
         onChange={(event) => field.handleChange(event.target.value)}
         aria-invalid={isInvalid}
+        aria-describedby={isInvalid ? errorId : undefined}
       />
-      <FieldError errors={field.state.meta.errors} />
+      <FieldError id={errorId} errors={field.state.meta.errors} />
     </Field>
   )
 }

@@ -34,6 +34,7 @@ export function LoginForm() {
               label="Email or username"
               type="text"
               autoComplete="username"
+              required
               placeholder="Username or email address"
               autoFocus
             />
@@ -45,6 +46,7 @@ export function LoginForm() {
               label="Password"
               type="password"
               autoComplete="current-password"
+              required
               placeholder="Your password"
             />
           )}
