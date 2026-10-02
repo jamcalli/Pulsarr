@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { usePlexMobileStatus } from '@/hooks/notifications/usePlexMobileStatus'
+import { usePlexMobileStatus } from '@/features/notifications/hooks/usePlexMobileStatus'
 import { updateConfig, useConfig } from '@/hooks/useConfig'
 import { cn } from '@/lib/utils'
 

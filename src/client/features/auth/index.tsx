@@ -1,10 +1,10 @@
+import { ModeToggle } from '@/components/mode-toggle'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
 } from '@/components/ui/card'
-import { ModeToggle } from '@/components/ui/mode-toggle'
 import { LoginForm } from '@/features/auth/components/login-form'
 
 export function LoginPage() {

@@ -2,6 +2,7 @@ import type { WebhookEndpoint } from '@root/schemas/webhooks/webhook-endpoints.s
 import { Check, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
+import { MultiSelect } from '@/components/multi-select'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -22,7 +23,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { MultiSelect } from '@/components/ui/multi-select'
 import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,

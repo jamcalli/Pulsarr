@@ -1,4 +1,5 @@
 import { Check, Loader2 } from 'lucide-react'
+import { LoginErrorMessage } from '@/components/login-error'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -8,7 +9,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { LoginErrorMessage } from '@/features/auth/components/login-error'
 import { useLoginForm } from '@/features/auth/hooks/useLoginForm'
 
 export function LoginForm() {

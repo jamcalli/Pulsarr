@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useMediaQuery } from "@/hooks/useMediaQuery"
 
 import { parseBoolean, readPref, writePref } from "@/lib/prefs"
 import { cn } from "@/lib/utils"

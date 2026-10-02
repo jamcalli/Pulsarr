@@ -1,8 +1,8 @@
-import { PageError } from '@/components/ui/page-error'
+import { PageError } from '@/components/page-error'
 import { NotificationsSection } from '@/features/notifications/components/notifications-section'
 import { NotificationsSkeleton } from '@/features/notifications/components/notifications-skeleton'
 import { useConfig } from '@/hooks/useConfig'
-import { useShowLoading } from '@/lib/useMinLoading'
+import { useShowLoading } from '@/hooks/useMinLoading'
 
 /**
  * Renders the notifications configuration page with a skeleton loader until both initialization and a minimum loading delay are complete.
