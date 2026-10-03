@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { useSettings } from '@/components/settings-provider'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { useSettings } from '@/hooks/useSettings'
 import { AppSidebar } from '@/legacy/components/sidebar/app-sidebar'
 import { ScrollArea } from '@/legacy/components/ui/scroll-area'
 import {

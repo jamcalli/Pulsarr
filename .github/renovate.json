@@ -74,11 +74,12 @@
   ],
   "packageRules": [
     {
-      "description": "Group all Radix UI and Base UI components",
+      "description": "Group all Radix UI, Base UI and shadcn",
       "groupName": "Radix UI",
       "matchPackageNames": [
         "/^@radix-ui//",
-        "@base-ui/react"
+        "@base-ui/react",
+        "shadcn"
       ]
     },
     {
@@ -191,7 +192,8 @@
         "tailwind-merge",
         "class-variance-authority",
         "tw-animate-css",
-        "cn"
+        "cn",
+        "@tailwindcss/typography"
       ]
     },
     {
@@ -202,7 +204,8 @@
         "/^@vitest\\//",
         "msw",
         "happy-dom",
-        "/^@testing-library\\//"
+        "/^@testing-library\\//",
+        "jsdom"
       ]
     },
     {
@@ -252,7 +255,10 @@
         "!/^@vitest\\//",
         "!msw",
         "!happy-dom",
-        "!/^@testing-library\\//"
+        "!/^@testing-library\\//",
+        "!shadcn",
+        "!@tailwindcss/typography",
+        "!jsdom"
       ]
     },
     {
@@ -370,11 +376,12 @@
       "prPriority": 20
     },
     {
-      "description": "Auto-merge patch updates for Radix UI and Base UI",
+      "description": "Auto-merge patch updates for Radix UI, Base UI and shadcn",
       "groupName": "Radix UI",
       "matchPackageNames": [
         "/^@radix-ui//",
-        "@base-ui/react"
+        "@base-ui/react",
+        "shadcn"
       ],
       "matchUpdateTypes": [
         "patch"
@@ -445,7 +452,8 @@
         "tailwind-merge",
         "class-variance-authority",
         "tw-animate-css",
-        "cn"
+        "cn",
+        "@tailwindcss/typography"
       ],
       "matchUpdateTypes": [
         "patch"
@@ -462,7 +470,8 @@
         "/^@vitest\\//",
         "msw",
         "happy-dom",
-        "/^@testing-library\\//"
+        "/^@testing-library\\//",
+        "jsdom"
       ],
       "matchUpdateTypes": [
         "patch"

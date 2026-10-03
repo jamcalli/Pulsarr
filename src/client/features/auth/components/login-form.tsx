@@ -1,7 +1,7 @@
 import { CredentialsSchema } from '@root/schemas/auth/login'
 import { revalidateLogic } from '@tanstack/react-form'
-import { CircleAlert, Loader2 } from 'lucide-react'
-import { Alert, AlertTitle } from '@/components/ui/alert'
+import { Loader2 } from 'lucide-react'
+import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
 import { useLogin } from '@/features/auth/hooks/useLogin'
@@ -48,12 +48,7 @@ export function LoginForm() {
               />
             )}
           </form.AppField>
-          {login.errorMessage && (
-            <Alert variant="danger">
-              <CircleAlert />
-              <AlertTitle>{login.errorMessage}</AlertTitle>
-            </Alert>
-          )}
+          <ErrorAlert message={login.errorMessage} />
           <Button type="submit" className="w-full" disabled={login.isPending}>
             {login.isPending ? (
               <>

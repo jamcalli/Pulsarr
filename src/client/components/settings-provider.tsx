@@ -1,58 +1,12 @@
-'use client'
-import * as React from 'react'
-import { createContext, useContext } from 'react'
-import { type PrefDef, parseBoolean, usePref } from '@/lib/prefs'
+import { type ReactNode, useMemo } from 'react'
+import { usePref } from '@/lib/prefs'
+import { asteroidsPref, fullscreenPref, SettingsContext } from '@/lib/settings'
 
-type SettingsProviderProps = {
-  children: React.ReactNode
-}
-
-type SettingsProviderState = {
-  asteroidsEnabled: boolean
-  setAsteroidsEnabled: (enabled: boolean) => void
-  fullscreenEnabled: boolean
-  setFullscreenEnabled: (enabled: boolean) => void
-}
-
-const initialState: SettingsProviderState = {
-  asteroidsEnabled: true,
-  setAsteroidsEnabled: () => null,
-  fullscreenEnabled: false,
-  setFullscreenEnabled: () => null,
-}
-
-const asteroidsPref: PrefDef<boolean> = {
-  key: 'pulsarr-asteroids-enabled',
-  fallback: true,
-  parse: parseBoolean,
-  serialize: String,
-}
-
-const fullscreenPref: PrefDef<boolean> = {
-  key: 'pulsarr-fullscreen-enabled',
-  fallback: false,
-  parse: parseBoolean,
-  serialize: String,
-}
-
-const SettingsProviderContext =
-  createContext<SettingsProviderState>(initialState)
-
-/**
- * Provides asteroid and fullscreen settings, along with their update functions, to descendant components via React context.
- *
- * Settings persist as preferences, defaulting to `true` for asteroids and `false` for fullscreen.
- *
- * @param children - The React nodes to render within the provider.
- */
-export function SettingsProvider({
-  children,
-  ...props
-}: SettingsProviderProps) {
+export function SettingsProvider({ children }: { children: ReactNode }) {
   const [asteroidsEnabled, setAsteroidsEnabled] = usePref(asteroidsPref)
   const [fullscreenEnabled, setFullscreenEnabled] = usePref(fullscreenPref)
 
-  const value = React.useMemo(
+  const value = useMemo(
     () => ({
       asteroidsEnabled,
       setAsteroidsEnabled,
@@ -68,18 +22,8 @@ export function SettingsProvider({
   )
 
   return (
-    <SettingsProviderContext.Provider {...props} value={value}>
+    <SettingsContext.Provider value={value}>
       {children}
-    </SettingsProviderContext.Provider>
+    </SettingsContext.Provider>
   )
-}
-
-export const useSettings = () => {
-  const context = useContext(SettingsProviderContext)
-
-  if (context === undefined) {
-    throw new Error('useSettings must be used within a SettingsProvider')
-  }
-
-  return context
 }
