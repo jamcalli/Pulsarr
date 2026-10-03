@@ -310,7 +310,7 @@ export function PlexLabelsPage() {
 
             {/* Notify users when they have unsaved changes */}
             {form.formState.isDirty && (
-              <div className="mt-2 text-sm text-error">
+              <div className="mt-2 text-sm text-destructive">
                 You have unsaved changes. Please save your configuration before
                 performing label operations.
               </div>
@@ -503,7 +503,7 @@ export function PlexLabelsPage() {
 
             {/* Disabled state message */}
             {!isEnabled && (
-              <div className="text-sm text-error mt-2">
+              <div className="text-sm text-destructive mt-2">
                 Enable Plex labeling to use the full sync schedule.
               </div>
             )}

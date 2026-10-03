@@ -87,8 +87,8 @@ export function ContentDistributionChart() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Content Type Distribution Card */}
       <div className="flex flex-col">
-        <Card className="bg-secondary-background relative shadow-md">
-          <div className="bg-main text-black px-4 py-3 text-center">
+        <Card className="bg-card relative shadow-md">
+          <div className="bg-primary text-black px-4 py-3 text-center">
             <h4 className="text-base font-medium">Content Types</h4>
           </div>
           <CardContent className="pt-4">

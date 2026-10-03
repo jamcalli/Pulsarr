@@ -21,7 +21,7 @@ export function TopGenresChart() {
   const cssColors = useMemo(() => {
     const fun =
       getComputedStyle(document.documentElement)
-        .getPropertyValue('--fun')
+        .getPropertyValue('--gold')
         .trim() || '#d4b483'
     return { fun }
   }, [])

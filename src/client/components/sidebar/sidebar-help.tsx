@@ -23,7 +23,10 @@ export function SidebarHelp() {
             >
               <Icon />
               <span>{label}</span>
-              <ArrowUpRight className="ml-auto text-muted" aria-hidden="true" />
+              <ArrowUpRight
+                className="ml-auto text-muted-foreground"
+                aria-hidden="true"
+              />
               <span className="sr-only">(opens in a new tab)</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

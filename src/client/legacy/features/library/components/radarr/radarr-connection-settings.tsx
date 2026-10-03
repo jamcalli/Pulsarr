@@ -140,7 +140,7 @@ export default function ConnectionSettings({
                   <TooltipContent
                     className={
                       hasConnectionTestError || needsConnectionTest
-                        ? 'bg-error text-black'
+                        ? 'bg-destructive text-black'
                         : ''
                     }
                   >

@@ -29,7 +29,7 @@ function Button({
     height: '2.5rem', // 40px (h-10)
     width: '2.5rem', // 40px (w-10)
     border: '2px solid #000',
-    backgroundColor: isDark ? '#212121' : '#e4dfda', // --bw in light/dark mode
+    backgroundColor: isDark ? '#212121' : '#e4dfda', // --card in light/dark mode
     color: isDark ? '#e6e6e6' : '#000', // --text in light/dark mode
     position: 'relative' as const,
     cursor: 'pointer',

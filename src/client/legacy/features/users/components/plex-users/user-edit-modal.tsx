@@ -64,7 +64,7 @@ const FormContent = React.memo(
                   <FormControl>
                     <Input
                       placeholder="Plex user name"
-                      className="bg-muted/50 cursor-not-allowed"
+                      className="bg-muted-foreground/50 cursor-not-allowed"
                       disabled={true}
                       readOnly
                       {...field}

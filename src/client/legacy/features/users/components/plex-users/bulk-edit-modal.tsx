@@ -218,7 +218,7 @@ const FormContent = ({
                         <FormLabel className="text-foreground">
                           Enable Apprise notifications
                           {form.watch('clearApprise') && (
-                            <span className="text-error text-xs ml-2">
+                            <span className="text-destructive text-xs ml-2">
                               (Disabled without Apprise endpoint)
                             </span>
                           )}
@@ -278,7 +278,7 @@ const FormContent = ({
                         <FormLabel className="text-foreground">
                           Enable Discord notifications
                           {form.watch('clearDiscordId') && (
-                            <span className="text-error text-xs ml-2">
+                            <span className="text-destructive text-xs ml-2">
                               (Disabled without Discord ID)
                             </span>
                           )}
@@ -338,7 +338,7 @@ const FormContent = ({
                         <FormLabel className="text-foreground">
                           Include in public channel @mentions
                           {form.watch('clearDiscordId') && (
-                            <span className="text-error text-xs ml-2">
+                            <span className="text-destructive text-xs ml-2">
                               (Disabled without Discord ID)
                             </span>
                           )}

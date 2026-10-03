@@ -16,9 +16,9 @@ const Switch = React.forwardRef<
 >(({ className, variant = "default", ...props }, ref) => {
   // Define variant color classes
   const variantClasses = {
-    default: "data-[state=checked]:bg-main",
+    default: "data-[state=checked]:bg-primary",
     success: "data-[state=checked]:bg-green-500",
-    danger: "data-[state=checked]:bg-error",
+    danger: "data-[state=checked]:bg-destructive",
     warning: "data-[state=checked]:bg-yellow-500",
     info: "data-[state=checked]:bg-blue-500",
   }
@@ -26,7 +26,7 @@ const Switch = React.forwardRef<
   return (
     <SwitchPrimitives.Root
       className={cn(
-        "peer inline-flex h-6 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 data-[state=unchecked]:bg-secondary-background",
+        "peer inline-flex h-6 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 data-[state=unchecked]:bg-card",
         variantClasses[variant],
         className,
       )}

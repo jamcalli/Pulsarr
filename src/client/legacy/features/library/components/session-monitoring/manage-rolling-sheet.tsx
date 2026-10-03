@@ -261,7 +261,7 @@ export function ManageRollingSheet({
     }
 
     return (
-      <div className="w-full font-base text-main-foreground">
+      <div className="w-full font-base text-primary-foreground">
         <div>
           <div className="flex items-center justify-between py-4">
             <Input

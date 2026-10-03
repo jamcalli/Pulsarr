@@ -20,7 +20,7 @@ interface AccountProfileFormProps {
 }
 
 const readOnlyFieldClassName =
-  'flex h-10 w-full min-w-0 flex-1 items-center overflow-hidden rounded-base border-2 border-border bg-secondary-background px-3 py-2 text-sm font-base text-foreground/60'
+  'flex h-10 w-full min-w-0 flex-1 items-center overflow-hidden rounded-base border-2 border-border bg-card px-3 py-2 text-sm font-base text-foreground/60'
 
 interface ProfileFieldProps {
   label: string

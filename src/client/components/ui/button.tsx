@@ -3,23 +3,23 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-md border-2 border-transparent bg-clip-padding text-sm font-bold whitespace-nowrap transition-all select-none outline-foreground/50 focus-visible:outline-3 focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-danger [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-md border-2 border-transparent bg-clip-padding text-sm font-bold whitespace-nowrap transition-all select-none outline-foreground/50 focus-visible:outline-3 focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          'border-border bg-main text-main-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none',
-        warn: 'border-border bg-warn text-main-foreground',
+          'border-border bg-primary text-primary-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none',
+        warn: 'border-border bg-gold text-primary-foreground',
         neutral:
-          'border-border bg-inset text-foreground hover:bg-chip aria-expanded:bg-chip',
+          'border-border bg-inset text-foreground hover:bg-accent aria-expanded:bg-accent',
         ghost:
-          'text-muted hover:bg-chip hover:text-foreground aria-expanded:bg-chip aria-expanded:text-foreground',
+          'text-muted-foreground hover:bg-accent hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground',
         outline:
-          'border-border bg-inset text-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none aria-expanded:bg-chip',
+          'border-border bg-inset text-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none aria-expanded:bg-accent',
         secondary:
-          'bg-surface text-foreground hover:bg-chip aria-expanded:bg-chip',
+          'bg-surface text-foreground hover:bg-accent aria-expanded:bg-accent',
         destructive:
-          'bg-danger/10 text-danger hover:bg-danger/20 dark:bg-danger/20 dark:hover:bg-danger/30',
+          'bg-destructive/10 text-destructive hover:bg-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30',
         link: 'text-foreground underline underline-offset-4 hover:no-underline',
       },
       size: {

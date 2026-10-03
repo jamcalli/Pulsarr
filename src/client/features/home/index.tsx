@@ -6,7 +6,7 @@ export default function HomePage() {
   return (
     <Page>
       <PageHeader title="Home" />
-      <p className="text-muted">
+      <p className="text-muted-foreground">
         The new dashboard is not built yet. Open the{' '}
         <Link
           to={NAV_PAGES.dashboard.legacy[0]}

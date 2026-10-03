@@ -9,9 +9,9 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-main text-main-foreground",
-        neutral: "bg-secondary-background text-foreground",
-        warn: "bg-fun text-main-foreground",
+        default: "bg-primary text-primary-foreground",
+        neutral: "bg-card text-foreground",
+        warn: "bg-gold text-primary-foreground",
       },
     },
     defaultVariants: {

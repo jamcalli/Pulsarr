@@ -72,7 +72,7 @@ export function MediaCard({
       <PopoverContent
         side="bottom"
         align="end"
-        className="w-auto min-w-[120px] p-2 bg-secondary-background"
+        className="w-auto min-w-[120px] p-2 bg-card"
       >
         <p className="text-xs font-medium mb-1">Watchlisted by:</p>
         <ul className="text-xs space-y-0.5">

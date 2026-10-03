@@ -35,7 +35,7 @@ export function NotificationsSection({
   return (
     <div className="grid gap-6">
       {/* Feature-specific notification settings info */}
-      <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+      <div className="text-sm text-foreground p-3 bg-card rounded-base border-2 border-border">
         <p>
           Some features have their own notification settings. Configure{' '}
           <button

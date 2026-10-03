@@ -27,10 +27,7 @@ export function MediaRowItem({
 }: MediaRowItemProps) {
   return (
     <Card
-      className={cn(
-        'relative shadow-none bg-secondary-background text-foreground',
-        className,
-      )}
+      className={cn('relative shadow-none bg-card text-foreground', className)}
     >
       <CardContent className="flex flex-row items-center gap-2.5 p-2">
         {onSelect && (

@@ -417,7 +417,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <CollapsibleTrigger asChild>
               <SidebarMenuButton
-                className="data-[state=open]:bg-main data-[state=open]:outline-border data-[state=open]:text-main-foreground"
+                className="data-[state=open]:bg-primary data-[state=open]:outline-border data-[state=open]:text-primary-foreground"
                 tooltip={item.title}
               >
                 {item.icon && <item.icon />}
@@ -493,7 +493,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <DropdownMenu>
                 <DropdownMenuTrigger className="focus-visible:ring-0" asChild>
                   <SidebarMenuButton
-                    className="data-[state=open]:bg-main data-[state=open]:text-main-foreground data-[state=open]:outline-border data-[state=open]:outline-2 group-data-[state=collapsed]:hover:outline-0 group-data-[state=collapsed]:hover:bg-transparent group-data-[collapsible=icon]:data-[state=open]:bg-transparent group-data-[collapsible=icon]:data-[state=open]:outline-0 overflow-visible"
+                    className="data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:outline-border data-[state=open]:outline-2 group-data-[state=collapsed]:hover:outline-0 group-data-[state=collapsed]:hover:bg-transparent group-data-[collapsible=icon]:data-[state=open]:bg-transparent group-data-[collapsible=icon]:data-[state=open]:outline-0 overflow-visible"
                     size="sm"
                   >
                     <Avatar

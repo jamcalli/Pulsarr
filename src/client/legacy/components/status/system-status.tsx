@@ -98,7 +98,7 @@ export function SystemStatus({
 
       {/* Schedule Description */}
       {job && (
-        <div className="mt-4 p-3 bg-muted/50 rounded-md">
+        <div className="mt-4 p-3 bg-muted-foreground/50 rounded-md">
           <p className="text-sm text-muted-foreground">
             <strong>What this schedule does:</strong> {description}
           </p>

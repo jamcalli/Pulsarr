@@ -133,7 +133,7 @@ export function PlexPinAuth({
           rel="noopener noreferrer"
         >
           Open Plex
-          <ExternalLink className="ml-2 h-4 w-4 text-main-foreground" />
+          <ExternalLink className="ml-2 h-4 w-4 text-primary-foreground" />
         </a>
       </Button>
 

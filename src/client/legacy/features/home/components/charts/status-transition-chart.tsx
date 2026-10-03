@@ -47,7 +47,7 @@ export function StatusTransitionsChart() {
     return {
       movie: read('--color-movie', '#1a5999'),
       show: read('--color-show', '#39b978'),
-      error: read('--error', '#c1666b'),
+      error: read('--destructive', '#c1666b'),
     }
   }, [])
 

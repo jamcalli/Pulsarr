@@ -98,8 +98,8 @@ export default function ApprovalStatsHeader({
       title: 'Total',
       value: stats.totalRequests,
       icon: BarChart3,
-      color: 'text-main',
-      bgColor: 'bg-main/10',
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
     },
   ]
 

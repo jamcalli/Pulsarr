@@ -11,21 +11,26 @@
   --font-weight-medium: 500;
   --font-weight-bold: 700;
 
-  --color-main: var(--main);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--text);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--primary-foreground);
+  --color-input: var(--border);
+  --color-gold: var(--gold);
+  --color-backdrop-title: var(--backdrop-title);
+  --color-static-space: var(--static-space);
   --color-overlay: var(--overlay);
   --color-background: var(--bg);
-  --color-secondary-background: var(--bw);
-  --color-blank: var(--blank);
   --color-foreground: var(--text);
-  --color-main-foreground: var(--mtext);
   --color-border: var(--border);
   --color-ring: var(--ring);
   --color-ring-offset: var(--ring-offset);
-  --color-secondary-black: #212121;
   --color-static-asteroid-fill: var(--static-asteroid-fill);
   --color-static-asteroid-border: var(--static-asteroid-border);
-  --color-error: var(--error);
-  --color-fun: var(--fun);
   --color-orange: var(--orange);
   --color-blue: var(--blue);
 
@@ -128,23 +133,23 @@
 }
 
 :root {
-  --main: #48a9a6;
+  --primary: #48a9a6;
   --overlay: rgba(0, 0, 0, 0.8);
-  --static-text: #c1666b;
-  --error: #c1666b;
-  --fun: #d4b483;
+  --backdrop-title: #c1666b;
+  --destructive: #c1666b;
+  --gold: #d4b483;
   --orange: #f6723a;
   --blue: #4a94b5;
   /* Static asteroid variables */
   --static-asteroid-fill: #948d89;
+  --static-space: #212121;
   --static-asteroid-border: #dedede;
 
   --bg: #dfe5f2;
-  --bw: #e4dfda;
-  --blank: #000;
+  --card: #e4dfda;
   --border: #000;
   --text: #000;
-  --mtext: #000;
+  --primary-foreground: #000;
   --ring: #000;
   --ring-offset: #e4dfda;
 
@@ -171,11 +176,10 @@
 
 .dark {
   --bg: #272933;
-  --bw: #212121;
-  --blank: #e4dfda;
+  --card: #212121;
   --border: #000;
   --text: #e6e6e6;
-  --mtext: #000;
+  --primary-foreground: #000;
   --ring: #e4dfda;
   --ring-offset: #000;
 
@@ -185,16 +189,16 @@
 /* Card and component utilities */
 @layer utilities {
   /* Background utilities - v4 naming */
-  .bg-main {
-    background-color: var(--main);
+  .bg-primary {
+    background-color: var(--primary);
   }
 
   .bg-background {
     background-color: var(--bg);
   }
 
-  .bg-secondary-background {
-    background-color: var(--bw);
+  .bg-card {
+    background-color: var(--card);
   }
 
   /* Legacy v3 support for existing components */
@@ -203,7 +207,7 @@
   }
 
   .bg-bw {
-    background-color: var(--bw);
+    background-color: var(--card);
   }
 
   /* Text color utilities - v4 naming */
@@ -211,8 +215,8 @@
     color: var(--text);
   }
 
-  .text-main-foreground {
-    color: var(--mtext);
+  .text-primary-foreground {
+    color: var(--primary-foreground);
   }
 
   /* Legacy v3 support for existing components */
@@ -221,7 +225,7 @@
   }
 
   .text-mtext {
-    color: var(--mtext);
+    color: var(--primary-foreground);
   }
 
   /* Additional text colors */
@@ -235,7 +239,7 @@
 
   /* Static text color for special elements */
   .text-static {
-    color: var(--static-text);
+    color: var(--backdrop-title);
   }
 
   /* Border utilities */
@@ -243,8 +247,8 @@
     border-color: var(--border);
   }
 
-  .border-main {
-    border-color: var(--main);
+  .border-primary {
+    border-color: var(--primary);
   }
 
   /* Shadow utilities */
@@ -364,22 +368,22 @@
   }
 
   /* Direct button hover animations - ONLY target button elements */
-  button[class*="bg-main"]:hover {
+  button[class*="bg-primary"]:hover {
     transform: translate(4px, 4px) !important;
     box-shadow: none !important;
   }
 
-  button[class*="bg-secondary-background"]:hover {
+  button[class*="bg-card"]:hover {
     transform: translate(4px, 4px) !important;
     box-shadow: none !important;
   }
 
-  button[class*="bg-error"]:hover {
+  button[class*="bg-destructive"]:hover {
     transform: translate(4px, 4px) !important;
     box-shadow: none !important;
   }
 
-  button[class*="bg-fun"]:hover {
+  button[class*="bg-gold"]:hover {
     transform: translate(4px, 4px) !important;
     box-shadow: none !important;
   }

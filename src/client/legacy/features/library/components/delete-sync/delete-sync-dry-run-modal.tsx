@@ -348,7 +348,7 @@ export function DeleteSyncDryRunModal({
             ) : (
               <div className={`${tableMaxHeight} overflow-y-auto`}>
                 <Table>
-                  <TableHeader className="bg-main text-foreground uppercase sticky top-0 z-10">
+                  <TableHeader className="bg-primary text-foreground uppercase sticky top-0 z-10">
                     <TableRow>
                       <TableHead className="text-left py-3 px-4 font-medium">
                         Title
@@ -365,11 +365,7 @@ export function DeleteSyncDryRunModal({
                     {filteredMovies?.map((movie, index) => (
                       <TableRow
                         key={movie.guid}
-                        className={
-                          index % 2 === 0
-                            ? 'bg-main'
-                            : 'bg-secondary-background'
-                        }
+                        className={index % 2 === 0 ? 'bg-primary' : 'bg-card'}
                       >
                         <TableCell className="py-3 px-4 font-medium text-foreground">
                           {movie.title}
@@ -398,7 +394,7 @@ export function DeleteSyncDryRunModal({
             ) : (
               <div className={`${tableMaxHeight} overflow-y-auto`}>
                 <Table>
-                  <TableHeader className="bg-main text-foreground uppercase sticky top-0 z-10">
+                  <TableHeader className="bg-primary text-foreground uppercase sticky top-0 z-10">
                     <TableRow>
                       <TableHead className="text-left py-3 px-4 font-medium">
                         Title
@@ -415,11 +411,7 @@ export function DeleteSyncDryRunModal({
                     {filteredShows?.map((show, index) => (
                       <TableRow
                         key={show.guid}
-                        className={
-                          index % 2 === 0
-                            ? 'bg-main'
-                            : 'bg-secondary-background'
-                        }
+                        className={index % 2 === 0 ? 'bg-primary' : 'bg-card'}
                       >
                         <TableCell className="py-3 px-4 font-medium text-foreground">
                           {show.title}

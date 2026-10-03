@@ -2,15 +2,15 @@
 
 /* Feature heading variants */
 .feature-heading-primary {
-  color: var(--main);
+  color: var(--primary);
 }
 
 .feature-heading-danger {
-  color: var(--error);
+  color: var(--destructive);
 }
 
 .feature-heading-fun {
-  color: var(--fun);
+  color: var(--gold);
 }
 
 .feature-heading-orange {

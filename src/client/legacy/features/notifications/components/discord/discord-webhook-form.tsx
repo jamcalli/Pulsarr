@@ -448,7 +448,9 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent
-                        className={showTestError ? 'bg-error text-black' : ''}
+                        className={
+                          showTestError ? 'bg-destructive text-black' : ''
+                        }
                       >
                         <p>Test connection</p>
                       </TooltipContent>

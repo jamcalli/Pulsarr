@@ -13,31 +13,38 @@
   --font-sans: Shuttleblock, ui-sans-serif, system-ui, sans-serif;
   --font-heading: Shuttleblock, ui-sans-serif, system-ui, sans-serif;
 
-  --color-main: var(--main);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--text);
+  --color-secondary: var(--inset);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--primary-foreground);
+  --color-input: var(--border);
+  --color-gold: var(--gold);
+  --color-backdrop-title: var(--backdrop-title);
+  --color-static-space: var(--static-space);
   --color-overlay: var(--overlay);
   --color-background: var(--bg);
-  --color-secondary-background: var(--bw);
   --color-surface: var(--surface);
-  --color-blank: var(--blank);
   --color-foreground: var(--text);
-  --color-main-foreground: var(--mtext);
   --color-border: var(--border);
   --color-ring: var(--ring);
   --color-ring-offset: var(--ring-offset);
-  --color-secondary-black: #212121;
-  --color-error: var(--error);
-  --color-fun: var(--fun);
   --color-orange: var(--orange);
   --color-blue: var(--blue);
   --color-plex: var(--plex);
   --color-inset: var(--inset);
   --color-divider: var(--divider);
-  --color-muted: var(--muted);
-  --color-chip: var(--chip);
   --color-ok: var(--ok);
   --color-info: var(--info);
-  --color-warn: var(--fun);
-  --color-danger: var(--error);
 
   /* Status colors */
   --color-status-pending: var(--status-pending);
@@ -139,19 +146,19 @@
 @utility prose-tokens {
   --tw-prose-body: var(--color-foreground);
   --tw-prose-headings: var(--color-foreground);
-  --tw-prose-lead: var(--color-muted);
+  --tw-prose-lead: var(--color-muted-foreground);
   --tw-prose-links: var(--color-foreground);
   --tw-prose-bold: var(--color-foreground);
-  --tw-prose-counters: var(--color-muted);
-  --tw-prose-bullets: var(--color-muted);
+  --tw-prose-counters: var(--color-muted-foreground);
+  --tw-prose-bullets: var(--color-muted-foreground);
   --tw-prose-hr: var(--color-divider);
-  --tw-prose-quotes: var(--color-muted);
+  --tw-prose-quotes: var(--color-muted-foreground);
   --tw-prose-quote-borders: var(--color-divider);
-  --tw-prose-captions: var(--color-muted);
+  --tw-prose-captions: var(--color-muted-foreground);
   --tw-prose-kbd: var(--color-foreground);
   --tw-prose-code: var(--color-foreground);
   --tw-prose-pre-code: var(--color-foreground);
-  --tw-prose-pre-bg: var(--color-chip);
+  --tw-prose-pre-bg: var(--color-accent);
   --tw-prose-th-borders: var(--color-divider);
   --tw-prose-td-borders: var(--color-divider);
 }
@@ -181,7 +188,7 @@
   }
 
   *:hover {
-    scrollbar-color: var(--color-muted) transparent;
+    scrollbar-color: var(--color-muted-foreground) transparent;
   }
 
   ::-webkit-scrollbar {
@@ -202,36 +209,36 @@
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-muted);
+    background-color: var(--color-muted-foreground);
   }
 }
 
 :root {
-  --main: #48a9a6;
+  --primary: #48a9a6;
   --overlay: rgba(0, 0, 0, 0.8);
-  --static-text: #c1666b;
-  --error: #c1666b;
-  --fun: #d4b483;
+  --backdrop-title: #c1666b;
+  --destructive: #c1666b;
+  --gold: #d4b483;
   --orange: #f6723a;
   --blue: #4a94b5;
   --plex: #e5a00d;
   /* Static asteroid variables */
   --static-asteroid-fill: #948d89;
+  --static-space: #212121;
   --static-asteroid-border: #dedede;
 
   --bg: #f2ebdd;
-  --bw: #fffaf0;
+  --card: #fffaf0;
   --surface: #f7f0e2;
   --inset: #f2ebdd;
   --divider: #ddd3c0;
-  --muted: #5a5750;
-  --chip: #ebe2d1;
+  --muted-foreground: #5a5750;
+  --accent: #ebe2d1;
   --ok: #2d7a4f;
   --info: #7fb8d6;
-  --blank: #000;
   --border: #1a1a1a;
   --text: #1a1a1a;
-  --mtext: #000;
+  --primary-foreground: #000;
   --ring: #000;
   --ring-offset: #e4dfda;
 
@@ -267,18 +274,17 @@
 
 .dark {
   --bg: #121317;
-  --bw: #26282f;
+  --card: #26282f;
   --surface: #2e3038;
   --inset: #1d1e23;
   --divider: #3a3d46;
-  --muted: #a8a8a8;
-  --chip: #33363f;
+  --muted-foreground: #a8a8a8;
+  --accent: #33363f;
   --ok: #5fbf8a;
   --info: #7fb8d6;
-  --blank: #e4dfda;
   --border: #0b0b0d;
   --text: #ececec;
-  --mtext: #000;
+  --primary-foreground: #000;
   --ring: #e4dfda;
   --ring-offset: #000;
 

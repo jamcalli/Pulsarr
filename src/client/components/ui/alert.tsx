@@ -9,7 +9,7 @@ const alertVariants = cva(
       variant: {
         default: 'text-foreground *:[svg]:text-current',
         danger:
-          'text-danger *:[svg]:text-current *:data-[slot=alert-description]:text-danger',
+          'text-destructive *:[svg]:text-current *:data-[slot=alert-description]:text-destructive',
       },
     },
     defaultVariants: {
@@ -54,7 +54,7 @@ function AlertDescription({
     <div
       data-slot="alert-description"
       className={cn(
-        'text-sm text-balance text-muted md:text-pretty [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4',
+        'text-sm text-balance text-muted-foreground md:text-pretty [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4',
         className,
       )}
       {...props}

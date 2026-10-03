@@ -152,8 +152,8 @@ export function NotificationCharts() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="flex flex-col">
-        <Card className="bg-secondary-background relative shadow-md">
-          <div className="bg-main text-black px-4 py-3 text-center">
+        <Card className="bg-card relative shadow-md">
+          <div className="bg-primary text-black px-4 py-3 text-center">
             <h4 className="text-base font-medium">By Channel</h4>
           </div>
           <CardContent className="pt-4">
@@ -257,8 +257,8 @@ export function NotificationCharts() {
       </div>
 
       <div className="flex flex-col">
-        <Card className="bg-secondary-background relative shadow-md">
-          <div className="bg-main text-black px-4 py-3 text-center">
+        <Card className="bg-card relative shadow-md">
+          <div className="bg-primary text-black px-4 py-3 text-center">
             <h4 className="text-base font-medium">By Type</h4>
           </div>
           <CardContent className="pt-4">

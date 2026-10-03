@@ -145,7 +145,7 @@ export function RecentRequestCard({
       <PopoverContent
         side="bottom"
         align="end"
-        className="w-auto min-w-40 p-2 bg-secondary-background"
+        className="w-auto min-w-40 p-2 bg-card"
       >
         <p className="text-xs font-medium mb-1">Status:</p>
         <ul className="text-xs space-y-0.5">
