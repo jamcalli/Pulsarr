@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 @custom-variant w600 (@media (max-width: 600px));
@@ -135,6 +136,26 @@
   If we ever want to remove these styles, we need to add an explicit border
   color utility to any element that depends on these defaults.
 */
+@utility prose-tokens {
+  --tw-prose-body: var(--color-foreground);
+  --tw-prose-headings: var(--color-foreground);
+  --tw-prose-lead: var(--color-muted);
+  --tw-prose-links: var(--color-foreground);
+  --tw-prose-bold: var(--color-foreground);
+  --tw-prose-counters: var(--color-muted);
+  --tw-prose-bullets: var(--color-muted);
+  --tw-prose-hr: var(--color-divider);
+  --tw-prose-quotes: var(--color-muted);
+  --tw-prose-quote-borders: var(--color-divider);
+  --tw-prose-captions: var(--color-muted);
+  --tw-prose-kbd: var(--color-foreground);
+  --tw-prose-code: var(--color-foreground);
+  --tw-prose-pre-code: var(--color-foreground);
+  --tw-prose-pre-bg: var(--color-chip);
+  --tw-prose-th-borders: var(--color-divider);
+  --tw-prose-td-borders: var(--color-divider);
+}
+
 @layer base {
   *,
   ::after,
@@ -142,6 +163,16 @@
   ::backdrop,
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role^="menuitem"]:not([aria-disabled="true"]):not([data-disabled]),
+  label[for] {
+    cursor: pointer;
   }
 
   * {

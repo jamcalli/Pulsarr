@@ -34,8 +34,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import { useSyncControls } from '@/hooks/useSyncControls'
+import { type SyncControls, useSyncControls } from '@/hooks/useSyncControls'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import {
@@ -68,13 +69,14 @@ function SyncDot({ state }: { state: SyncState | null }) {
 
 function SyncPanel({
   status,
+  controls,
   onNavigate,
 }: {
   status: SyncStatus
+  controls: SyncControls
   onNavigate: () => void
 }) {
   const { state, mode } = status
-  const controls = useSyncControls()
   const autoStartId = useId()
   const control = syncControlFor(state)
   const busy = Boolean(control?.busy) || controls.isToggling
@@ -167,6 +169,7 @@ function SyncPanel({
 
 export function SidebarSyncStatus() {
   const status = useSyncStatus()
+  const controls = useSyncControls()
   const { setOpenMobile } = useSidebar()
   const [open, setOpen] = useState(false)
 
@@ -186,8 +189,19 @@ export function SidebarSyncStatus() {
             />
           }
         >
-          <SyncDot state={status.state} />
-          <span className="flex-1">Sync {syncStateLabel(status.state)}</span>
+          {status.state ? (
+            <>
+              <SyncDot state={status.state} />
+              <span className="flex-1">
+                Sync {syncStateLabel(status.state)}
+              </span>
+            </>
+          ) : (
+            <>
+              <Skeleton className="h-4 flex-1" />
+              <span className="sr-only">Loading sync status</span>
+            </>
+          )}
           {status.mode && (
             <span className="text-xs text-muted tabular-nums">
               {SYNC_MODE_LABELS[status.mode]}
@@ -201,7 +215,11 @@ export function SidebarSyncStatus() {
           sideOffset={8}
           className="w-70 max-w-(--available-width) gap-0 overflow-hidden p-0"
         >
-          <SyncPanel status={status} onNavigate={closeAll} />
+          <SyncPanel
+            status={status}
+            controls={controls}
+            onNavigate={closeAll}
+          />
         </PopoverContent>
       </Popover>
     </SidebarMenuItem>

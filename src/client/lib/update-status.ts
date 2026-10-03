@@ -6,7 +6,6 @@ type UpdateStatus =
 export interface AvailableUpdate {
   latestVersion: string
   releaseUrl: string
-  releaseName: string | null
   releaseBodyHtml: string | null
   publishedAt: string | null
 }
@@ -29,7 +28,6 @@ export function availableUpdate(
   return {
     latestVersion: status.latestVersion,
     releaseUrl: status.releaseUrl,
-    releaseName: status.releaseName,
     releaseBodyHtml: status.releaseBodyHtml,
     publishedAt: status.publishedAt,
   }

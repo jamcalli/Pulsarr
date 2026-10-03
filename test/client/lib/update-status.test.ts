@@ -19,7 +19,6 @@ describe('availableUpdate', () => {
     expect(availableUpdate(base)).toEqual({
       latestVersion: '0.20.0',
       releaseUrl: base.releaseUrl,
-      releaseName: 'v0.20.0',
       releaseBodyHtml: '<p>notes</p>',
       publishedAt: base.publishedAt,
     })

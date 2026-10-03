@@ -4,6 +4,8 @@ import { useMinLoadingMutation } from '@/hooks/useMinLoading'
 import type { SyncAction } from '@/lib/sync-status'
 import { $api, mutationErrorMessage } from '@/lib/tanstackApi'
 
+export type SyncControls = ReturnType<typeof useSyncControls>
+
 export function useSyncControls() {
   const { config } = useConfig()
   const start = useMinLoadingMutation(

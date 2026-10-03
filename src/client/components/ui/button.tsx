@@ -15,7 +15,7 @@ const buttonVariants = cva(
         ghost:
           'text-muted hover:bg-chip hover:text-foreground aria-expanded:bg-chip aria-expanded:text-foreground',
         outline:
-          'border-border bg-inset text-foreground hover:bg-chip aria-expanded:bg-chip',
+          'border-border bg-inset text-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none aria-expanded:bg-chip',
         secondary:
           'bg-surface text-foreground hover:bg-chip aria-expanded:bg-chip',
         destructive:

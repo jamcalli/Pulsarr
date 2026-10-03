@@ -2,6 +2,7 @@ import { cn } from 'cn'
 import { ArrowUpCircle, ArrowUpRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import pulsarrLogo from '@/assets/images/pulsarr.svg'
+import { ReleaseNotes } from '@/components/release-notes'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Popover,
@@ -17,7 +18,7 @@ import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import type { AvailableUpdate } from '@/lib/update-status'
 
 function UpdatePopover({ update }: { update: AvailableUpdate }) {
-  const title = `${update.releaseName ?? `v${update.latestVersion}`} available`
+  const title = `v${update.latestVersion} available`
   const released = update.publishedAt
     ? ` Released ${new Date(update.publishedAt).toLocaleDateString()}.`
     : ''
@@ -28,7 +29,10 @@ function UpdatePopover({ update }: { update: AvailableUpdate }) {
         <ArrowUpCircle data-icon="inline-start" />
         Update
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-85 max-w-[90vw] gap-3">
+      <PopoverContent
+        align="start"
+        className="max-h-(--available-height) w-110 max-w-(--available-width) gap-3"
+      >
         <PopoverHeader>
           <PopoverTitle className="text-base">{title}</PopoverTitle>
           <PopoverDescription className="text-xs">
@@ -36,9 +40,9 @@ function UpdatePopover({ update }: { update: AvailableUpdate }) {
           </PopoverDescription>
         </PopoverHeader>
         {update.releaseBodyHtml && (
-          <div
-            className="max-h-55 overflow-y-auto rounded-md border-2 border-border bg-inset px-3 py-2.5 text-sm [&_a]:underline [&_code]:rounded-sm [&_code]:bg-chip [&_code]:px-1 [&_code]:font-mono [&_h1]:my-1 [&_h1]:font-bold [&_h2]:my-1 [&_h2]:font-bold [&_h3]:my-1 [&_h3]:text-xs [&_h3]:font-bold [&_h3]:text-muted [&_li]:ml-4 [&_li]:list-disc [&_p]:my-1 [&_pre]:overflow-x-auto [&_pre]:rounded-sm [&_pre]:bg-chip [&_pre]:p-2 [&_ul]:my-1"
-            dangerouslySetInnerHTML={{ __html: update.releaseBodyHtml }}
+          <ReleaseNotes
+            html={update.releaseBodyHtml}
+            className="min-h-0 flex-1"
           />
         )}
         <a
