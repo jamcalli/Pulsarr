@@ -214,16 +214,16 @@ describe('AppSidebar', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Display')).toBeInTheDocument()
     expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Asteroids' }),
+    ).toBeChecked()
+
+    await user.click(screen.getByRole('menuitem', { name: 'Full screen' }))
+
+    expect(
       screen.queryByRole('menuitemcheckbox', { name: 'Asteroids' }),
     ).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole('menuitem', { name: 'Windowed' }))
-
     expect(
-      await screen.findByRole('menuitemcheckbox', { name: 'Asteroids' }),
-    ).toBeChecked()
-    expect(
-      screen.getByRole('menuitem', { name: 'Full screen' }),
+      screen.getByRole('menuitem', { name: 'Windowed' }),
     ).toBeInTheDocument()
   })
 

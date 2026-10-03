@@ -14,13 +14,17 @@ export default function AppLayout() {
 
   return (
     <div
-      className={cn('flex size-full', !fullscreenEnabled && 'md:px-10 md:py-7')}
+      className={cn(
+        'flex size-full',
+        !fullscreenEnabled &&
+          'md:px-[clamp(16px,2.5vw,48px)] md:py-[clamp(16px,4vh,48px)]',
+      )}
     >
       <SidebarProvider
         className={cn(
           'min-h-0 flex-1 overflow-hidden bg-inset',
           !fullscreenEnabled &&
-            'md:rounded-lg md:border-2 md:border-border md:shadow-shadow',
+            'md:mx-auto md:max-w-400 md:rounded-lg md:border-2 md:border-border md:shadow-shadow',
         )}
       >
         <AppSidebar />

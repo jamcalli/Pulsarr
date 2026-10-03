@@ -17,7 +17,7 @@ export const asteroidsPref: PrefDef<boolean> = {
 
 export const fullscreenPref: PrefDef<boolean> = {
   key: 'pulsarr-fullscreen-enabled',
-  fallback: true,
+  fallback: false,
   parse: parseBoolean,
   serialize: String,
 }
