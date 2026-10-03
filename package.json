@@ -182,6 +182,7 @@
     "react-router-dom": "^7.8.0",
     "recharts": "^2.15.3",
     "rimraf": "^6.1.0",
+    "shadcn": "^4.21.1",
     "sonner": "^2.0.5",
     "spin-delay": "^2.0.1",
     "tailwind-merge": "^3.3.1",

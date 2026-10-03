@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
-import { useSettings } from '@/components/settings-provider'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { useSettings } from '@/hooks/useSettings'
 import { Button } from '@/legacy/components/ui/button'
 import {
   Card,
