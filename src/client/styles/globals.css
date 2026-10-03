@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 @custom-variant w600 (@media (max-width: 600px));
@@ -134,6 +136,26 @@
   If we ever want to remove these styles, we need to add an explicit border
   color utility to any element that depends on these defaults.
 */
+@utility prose-tokens {
+  --tw-prose-body: var(--color-foreground);
+  --tw-prose-headings: var(--color-foreground);
+  --tw-prose-lead: var(--color-muted);
+  --tw-prose-links: var(--color-foreground);
+  --tw-prose-bold: var(--color-foreground);
+  --tw-prose-counters: var(--color-muted);
+  --tw-prose-bullets: var(--color-muted);
+  --tw-prose-hr: var(--color-divider);
+  --tw-prose-quotes: var(--color-muted);
+  --tw-prose-quote-borders: var(--color-divider);
+  --tw-prose-captions: var(--color-muted);
+  --tw-prose-kbd: var(--color-foreground);
+  --tw-prose-code: var(--color-foreground);
+  --tw-prose-pre-code: var(--color-foreground);
+  --tw-prose-pre-bg: var(--color-chip);
+  --tw-prose-th-borders: var(--color-divider);
+  --tw-prose-td-borders: var(--color-divider);
+}
+
 @layer base {
   *,
   ::after,
@@ -142,6 +164,46 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
   }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role^="menuitem"]:not([aria-disabled="true"]):not([data-disabled]),
+  label[for] {
+    cursor: pointer;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-divider) transparent;
+  }
+
+  *:hover {
+    scrollbar-color: var(--color-muted) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+    background-color: var(--color-divider);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-muted);
+  }
 }
 
 :root {
@@ -149,7 +211,7 @@
   --overlay: rgba(0, 0, 0, 0.8);
   --static-text: #c1666b;
   --error: #c1666b;
-  --fun: #8a5d14;
+  --fun: #d4b483;
   --orange: #f6723a;
   --blue: #4a94b5;
   --plex: #e5a00d;
@@ -213,7 +275,6 @@
   --chip: #33363f;
   --ok: #5fbf8a;
   --info: #7fb8d6;
-  --fun: #d4b483;
   --blank: #e4dfda;
   --border: #0b0b0d;
   --text: #ececec;

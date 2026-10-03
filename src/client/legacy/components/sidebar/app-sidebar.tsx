@@ -24,7 +24,7 @@ import {
 import * as React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import pulsarrLogo from '@/assets/images/pulsarr.svg'
-import { useSettings } from '@/components/settings-provider'
+import { useSettings } from '@/hooks/useSettings'
 import { useTheme } from '@/hooks/useTheme'
 import { DiscordIcon } from '@/legacy/components/icons/discord-icon'
 import { LogoutAlert } from '@/legacy/components/sidebar/logout-alert'

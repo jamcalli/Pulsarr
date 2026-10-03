@@ -7,10 +7,10 @@ import AsteroidsBackground from '@/components/backdrop/asteroids'
 import CRTOverlay from '@/components/backdrop/crt-overlay'
 import Pulsar from '@/components/backdrop/pulsar'
 import ParallaxStarfield from '@/components/backdrop/starfield'
-import { useSettings } from '@/components/settings-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { usePageVisibility } from '@/hooks/usePageVisibility'
+import { useSettings } from '@/hooks/useSettings'
 import { AspectRatio } from '@/legacy/components/ui/aspect-ratio'
 
 interface RootLayoutProps {

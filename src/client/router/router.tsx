@@ -1,10 +1,13 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
+import { PageSkeleton } from '@/components/page-header'
+import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
 import AuthenticatedLayout from '@/legacy/layouts/authenticated'
 import { BASE_PATH } from '@/lib/basePath.js'
 
 const LoginPage = lazy(() => import('@/features/auth'))
+const HomePage = lazy(() => import('@/features/home'))
 const CreateUserPage = lazy(() => import('@/legacy/features/setup'))
 const PlexConfigurationPage = lazy(
   () => import('@/legacy/features/system/pages/plex-connection'),
@@ -86,8 +89,17 @@ export const router = createBrowserRouter(
       ),
       children: [
         {
-          index: true,
-          element: <Navigate to="/dashboard" replace />,
+          element: <AppLayout />,
+          children: [
+            {
+              index: true,
+              element: (
+                <Suspense fallback={<PageSkeleton />}>
+                  <HomePage />
+                </Suspense>
+              ),
+            },
+          ],
         },
         {
           path: 'login',
