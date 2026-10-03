@@ -50,9 +50,9 @@ import {
 
 const DOT_CLASSES: Record<SyncState, string> = {
   running: 'bg-ok',
-  starting: 'bg-warn',
-  stopping: 'bg-warn',
-  stopped: 'bg-danger',
+  starting: 'bg-gold',
+  stopping: 'bg-gold',
+  stopped: 'bg-destructive',
 }
 
 function SyncDot({ state }: { state: SyncState | null }) {
@@ -61,7 +61,7 @@ function SyncDot({ state }: { state: SyncState | null }) {
       aria-hidden="true"
       className={cn(
         'size-2 shrink-0 rounded-full',
-        state ? DOT_CLASSES[state] : 'bg-muted',
+        state ? DOT_CLASSES[state] : 'bg-muted-foreground',
       )}
     />
   )
@@ -99,7 +99,7 @@ function SyncPanel({
               <>
                 <span
                   aria-hidden="true"
-                  className="size-1 shrink-0 rounded-full bg-muted"
+                  className="size-1 shrink-0 rounded-full bg-muted-foreground"
                 />
                 <span className="truncate">{SYNC_MODE_LABELS[mode]}</span>
               </>
@@ -130,7 +130,7 @@ function SyncPanel({
         <ErrorAlert message={controls.toggleErrorMessage} />
         <ErrorAlert message={controls.autoStartErrorMessage} />
         <Item size="sm">
-          <ItemMedia variant="icon" className="text-muted">
+          <ItemMedia variant="icon" className="text-muted-foreground">
             <Power />
           </ItemMedia>
           <ItemContent>
@@ -152,13 +152,13 @@ function SyncPanel({
           size="sm"
           render={<Link to={pageHref(NAV_PAGES.logs)} onClick={onNavigate} />}
         >
-          <ItemMedia variant="icon" className="text-muted">
+          <ItemMedia variant="icon" className="text-muted-foreground">
             <ScrollText />
           </ItemMedia>
           <ItemContent>
             <ItemTitle>View logs</ItemTitle>
           </ItemContent>
-          <ItemActions className="text-muted">
+          <ItemActions className="text-muted-foreground">
             <ArrowRight className="size-4" />
           </ItemActions>
         </Item>
@@ -185,7 +185,7 @@ export function SidebarSyncStatus() {
           render={
             <SidebarMenuButton
               size="lg"
-              className="text-foreground aria-expanded:bg-chip"
+              className="text-foreground aria-expanded:bg-accent"
             />
           }
         >
@@ -203,11 +203,11 @@ export function SidebarSyncStatus() {
             </>
           )}
           {status.mode && (
-            <span className="text-xs text-muted tabular-nums">
+            <span className="text-xs text-muted-foreground tabular-nums">
               {SYNC_MODE_LABELS[status.mode]}
             </span>
           )}
-          <ChevronsUpDown className="ml-auto size-4 text-muted" />
+          <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
         </PopoverTrigger>
         <PopoverContent
           side="top"

@@ -71,7 +71,7 @@ export function SidebarUser() {
           render={
             <SidebarMenuButton
               size="lg"
-              className="text-foreground aria-expanded:bg-chip"
+              className="text-foreground aria-expanded:bg-accent"
             />
           }
         >
@@ -82,10 +82,12 @@ export function SidebarUser() {
           <div className="grid flex-1 text-left text-sm leading-tight">
             <span className="truncate font-medium">{name}</span>
             {user?.email && (
-              <span className="truncate text-xs text-muted">{user.email}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {user.email}
+              </span>
             )}
           </div>
-          <ChevronsUpDown className="ml-auto size-4 text-muted" />
+          <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           side="top"

@@ -230,9 +230,9 @@ export default function UserTable({
         return (
           <div className="flex justify-center">
             {row.getValue('notify_apprise') ? (
-              <Check className="h-4 w-4 text-main" />
+              <Check className="h-4 w-4 text-primary" />
             ) : (
-              <X className="h-4 w-4 text-error" />
+              <X className="h-4 w-4 text-destructive" />
             )}
           </div>
         )
@@ -249,9 +249,9 @@ export default function UserTable({
         return (
           <div className="flex justify-center">
             {row.getValue('notify_discord') ? (
-              <Check className="h-4 w-4 text-main" />
+              <Check className="h-4 w-4 text-primary" />
             ) : (
-              <X className="h-4 w-4 text-error" />
+              <X className="h-4 w-4 text-destructive" />
             )}
           </div>
         )
@@ -268,9 +268,9 @@ export default function UserTable({
         return (
           <div className="flex justify-center">
             {row.getValue('notify_discord_mention') ? (
-              <Check className="h-4 w-4 text-main" />
+              <Check className="h-4 w-4 text-primary" />
             ) : (
-              <X className="h-4 w-4 text-error" />
+              <X className="h-4 w-4 text-destructive" />
             )}
           </div>
         )
@@ -287,9 +287,9 @@ export default function UserTable({
         return (
           <div className="flex justify-center">
             {row.getValue('notify_plex_mobile') ? (
-              <Check className="h-4 w-4 text-main" />
+              <Check className="h-4 w-4 text-primary" />
             ) : (
-              <X className="h-4 w-4 text-error" />
+              <X className="h-4 w-4 text-destructive" />
             )}
           </div>
         )
@@ -306,9 +306,9 @@ export default function UserTable({
         return (
           <div className="flex justify-center">
             {row.getValue('can_sync') ? (
-              <Check className="h-4 w-4 text-main" />
+              <Check className="h-4 w-4 text-primary" />
             ) : (
-              <X className="h-4 w-4 text-error" />
+              <X className="h-4 w-4 text-destructive" />
             )}
           </div>
         )
@@ -325,9 +325,9 @@ export default function UserTable({
         return (
           <div className="flex justify-center">
             {row.getValue('requires_approval') ? (
-              <Check className="h-4 w-4 text-main" />
+              <Check className="h-4 w-4 text-primary" />
             ) : (
-              <X className="h-4 w-4 text-error" />
+              <X className="h-4 w-4 text-destructive" />
             )}
           </div>
         )
@@ -474,7 +474,7 @@ export default function UserTable({
   }, [pageSize, table])
 
   return (
-    <div className="w-full font-base text-main-foreground overflow-x-auto">
+    <div className="w-full font-base text-primary-foreground overflow-x-auto">
       <div>
         <div className="flex items-center justify-between py-4">
           <Input

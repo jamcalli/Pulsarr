@@ -157,12 +157,12 @@ const FormMessage = React.forwardRef<
       ref={ref}
       id={formMessageId}
       className={cn(
-        'text-sm font-base text-error',
+        'text-sm font-base text-destructive',
         className
       )}
       {...props}
     >
-      <span className="inline-block bg-secondary-background px-2 py-1 rounded-xs">
+      <span className="inline-block bg-card px-2 py-1 rounded-xs">
         {body}
       </span>
     </p>

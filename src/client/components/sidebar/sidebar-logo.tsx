@@ -66,7 +66,7 @@ export function SidebarLogo() {
   const update = useAvailableUpdate()
 
   return (
-    <SidebarHeader className="h-16 shrink-0 flex-row items-center gap-2.5 border-b-2 border-border bg-main py-0 pr-3.5 pl-4.5 text-main-foreground">
+    <SidebarHeader className="h-16 shrink-0 flex-row items-center gap-2.5 border-b-2 border-border bg-primary py-0 pr-3.5 pl-4.5 text-primary-foreground">
       <Link
         to={pageHref(NAV_PAGES.dashboard)}
         className="flex min-w-0 flex-1 items-center gap-2.5 rounded-sm outline-foreground/50 focus-visible:outline-3 focus-visible:outline-offset-0"

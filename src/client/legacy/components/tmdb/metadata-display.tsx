@@ -165,7 +165,7 @@ export function TmdbMetadataDisplay({
                 {/* TMDB - from details or plexRatings */}
                 {(details.vote_average > 0 || plexRatings?.tmdb) && (
                   <div className="flex items-center gap-1.5">
-                    <div className="p-1 bg-secondary-background rounded">
+                    <div className="p-1 bg-card rounded">
                       <img src={tmdbIcon} alt="TMDB" className="w-4 h-4" />
                     </div>
                     <span>
@@ -176,7 +176,7 @@ export function TmdbMetadataDisplay({
                 {/* IMDB - from radarrRatings (movies) or plexRatings (shows) */}
                 {(isMovie ? radarrRatings?.imdb : plexRatings?.imdb) && (
                   <div className="flex items-center gap-1.5">
-                    <div className="p-1 bg-secondary-background rounded">
+                    <div className="p-1 bg-card rounded">
                       <img src={imdbIcon} alt="IMDB" className="w-4 h-4" />
                     </div>
                     <span>
@@ -189,7 +189,7 @@ export function TmdbMetadataDisplay({
                 {/* RT Critic - from plexRatings (both movies and shows) */}
                 {plexRatings?.rtCritic != null && (
                   <div className="flex items-center gap-1.5">
-                    <div className="p-1 bg-secondary-background rounded">
+                    <div className="p-1 bg-card rounded">
                       <img
                         src={
                           plexRatings.rtCritic >= 6 ? rtFreshIcon : rtRottenIcon
@@ -204,7 +204,7 @@ export function TmdbMetadataDisplay({
                 {/* RT Audience - from plexRatings (both movies and shows) */}
                 {plexRatings?.rtAudience != null && (
                   <div className="flex items-center gap-1.5">
-                    <div className="p-1 bg-secondary-background rounded">
+                    <div className="p-1 bg-card rounded">
                       <img
                         src={
                           plexRatings.rtAudience >= 6
@@ -221,7 +221,7 @@ export function TmdbMetadataDisplay({
                 {/* Metacritic - from radarrRatings (movies only) */}
                 {isMovie && radarrRatings?.metacritic && (
                   <div className="flex items-center gap-1.5">
-                    <div className="p-1 bg-secondary-background rounded">
+                    <div className="p-1 bg-card rounded">
                       <img
                         src={metacriticIcon}
                         alt="Metacritic"
@@ -234,7 +234,7 @@ export function TmdbMetadataDisplay({
                 {/* Trakt - from radarrRatings (movies only) */}
                 {isMovie && radarrRatings?.trakt && (
                   <div className="flex items-center gap-1.5">
-                    <div className="p-1 bg-secondary-background rounded">
+                    <div className="p-1 bg-card rounded">
                       <img src={traktIcon} alt="Trakt" className="w-4 h-4" />
                     </div>
                     <span>{Math.round(radarrRatings.trakt.value)}%</span>

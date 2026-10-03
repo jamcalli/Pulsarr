@@ -243,7 +243,7 @@ export function InstanceCard({
           <div
             className={cn(
               'absolute -inset-0.5 rounded-lg border-2 z-50',
-              instance.id === -1 ? 'border-blue' : 'border-fun',
+              instance.id === -1 ? 'border-blue' : 'border-gold',
               'animate-pulse pointer-events-none',
             )}
           />

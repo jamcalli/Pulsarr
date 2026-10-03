@@ -9,7 +9,7 @@ const Table = React.forwardRef<
     <table
       ref={ref}
       className={cn(
-        "w-full min-w-0 caption-bottom bg-secondary-background text-sm",
+        "w-full min-w-0 caption-bottom bg-card text-sm",
         className
       )}
       {...props}
@@ -55,7 +55,7 @@ const TableFooter = React.forwardRef<
   <tfoot
     ref={ref}
     className={cn(
-      "border-t border-border bg-secondary-background font-base [&>tr]:last:border-b-0",
+      "border-t border-border bg-card font-base [&>tr]:last:border-b-0",
       className
     )}
     {...props}

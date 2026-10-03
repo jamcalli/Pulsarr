@@ -138,7 +138,7 @@ function WebhookField({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent
-                    className={showTestError ? 'bg-error text-black' : ''}
+                    className={showTestError ? 'bg-destructive text-black' : ''}
                   >
                     <p>Test connection</p>
                   </TooltipContent>
@@ -291,7 +291,7 @@ export function PublicContentForm({ isInitialized }: PublicContentFormProps) {
 
   return (
     <div className="grid gap-4">
-      <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+      <div className="text-sm text-foreground p-3 bg-card rounded-base border-2 border-border">
         <p>
           {isEnabled
             ? 'Public content notifications are enabled. ALL content ready ' +

@@ -125,11 +125,11 @@ export function MaintainerrSection() {
           </div>
 
           {failureDetail && (
-            <div className="mt-2 text-sm text-error">{failureDetail}</div>
+            <div className="mt-2 text-sm text-destructive">{failureDetail}</div>
           )}
 
           {form.formState.isDirty && (
-            <div className="mt-2 text-sm text-error">
+            <div className="mt-2 text-sm text-destructive">
               You have unsaved changes. Please save your configuration before
               enabling or syncing.
             </div>

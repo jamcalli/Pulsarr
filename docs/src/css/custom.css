@@ -42,15 +42,14 @@
   --static-asteroid-border: #dedede;
 
   /* Starfield variables */
-  --color-secondary-black: #212121;
+  --color-static-space: var(--static-space);
 
   /* Make sure CSS variables from client match Docusaurus light mode */
-  --main: #48a9a6;
-  --mtext: #000;
-  --static-text: #c1666b;
+  --primary: #48a9a6;
+  --primary-foreground: #000;
+  --backdrop-title: #c1666b;
   --bg: #dfe5f2;
-  --bw: #e4dfda;
-  --blank: #000;
+  --card: #e4dfda;
   --border: #000;
   --text: #000;
   --box-shadow-x: 4px;
@@ -71,12 +70,11 @@ html[data-theme="dark"] {
   --ifm-menu-color-background-hover: #323642;
 
   /* Make sure CSS variables from client match Docusaurus dark mode */
-  --main: #48a9a6;
-  --mtext: #000;
-  --static-text: #c1666b;
+  --primary: #48a9a6;
+  --primary-foreground: #000;
+  --backdrop-title: #c1666b;
   --bg: #272933;
-  --bw: #212121;
-  --blank: #e4dfda;
+  --card: #212121;
   --border: #000;
   --text: #e6e6e6;
   --box-shadow-x: 4px;
@@ -110,8 +108,8 @@ button {
 }
 
 button[class*="default"] {
-  background-color: var(--main) !important;
-  color: var(--mtext) !important;
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
   border-color: var(--border) !important;
 }
 
@@ -190,7 +188,7 @@ button[class*="default"].hero-button {
 }
 
 /* More specific targeting for main background buttons only */
-button[class*="bg-main"].hero-button {
+button[class*="bg-primary"].hero-button {
   color: #000 !important;
 }
 

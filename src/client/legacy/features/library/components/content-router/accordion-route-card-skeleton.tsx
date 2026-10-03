@@ -12,7 +12,7 @@ export const AccordionRouteCardSkeleton = () => {
         value="route"
         className="border-2 border-border rounded-base overflow-hidden"
       >
-        <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
+        <AccordionTrigger className="px-6 py-4 bg-primary hover:bg-primary hover:no-underline">
           <div className="flex justify-between items-center w-full pr-2">
             <div>
               <Skeleton className="h-5 w-48" />

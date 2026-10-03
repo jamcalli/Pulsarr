@@ -783,7 +783,7 @@ const AccordionRouteCard = ({
         <div
           className={cn(
             'absolute -inset-0.5 rounded-lg border-2 z-50',
-            isNew ? 'border-blue' : 'border-fun',
+            isNew ? 'border-blue' : 'border-gold',
             'animate-pulse pointer-events-none',
           )}
         />
@@ -802,12 +802,12 @@ const AccordionRouteCard = ({
           {/* interactive controls must be siblings of the triggers, never inside their native buttons */}
           <div
             className={cn(
-              'group/route-header flex items-center bg-main pr-4 [&>h3]:min-w-0',
+              'group/route-header flex items-center bg-primary pr-4 [&>h3]:min-w-0',
               accordionValue && 'rounded-b-none border-b-2 border-border',
             )}
           >
             {isTitleEditing ? (
-              <div className="flex items-center flex-1 min-w-0 px-6 py-4 text-base text-main-foreground font-heading">
+              <div className="flex items-center flex-1 min-w-0 px-6 py-4 text-base text-primary-foreground font-heading">
                 <InlineEdit
                   value={form.watch('name') || ''}
                   onCommit={handleTitleChange}
@@ -831,7 +831,7 @@ const AccordionRouteCard = ({
                   />
                 )}
                 <div className="flex-1" />
-                <div className="flex items-center text-base text-main-foreground">
+                <div className="flex items-center text-base text-primary-foreground">
                   {routeBadges}
                 </div>
                 <AccordionTrigger

@@ -47,7 +47,7 @@ export default function DocFeature({
             >
               {/* Simple header like other cards */}
               <header
-                className="border-b-border dark:border-b-darkBorder relative flex items-center justify-center bg-main
+                className="border-b-border dark:border-b-darkBorder relative flex items-center justify-center bg-primary
                   rounded-t-base border-b-4 h-[60px] w-full docfeature-header"
               >
                 <h2

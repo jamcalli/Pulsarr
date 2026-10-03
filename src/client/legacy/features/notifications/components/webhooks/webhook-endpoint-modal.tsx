@@ -150,7 +150,9 @@ export function WebhookEndpointModal({
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent
-                              className={needsTest ? 'bg-error text-black' : ''}
+                              className={
+                                needsTest ? 'bg-destructive text-black' : ''
+                              }
                             >
                               <p>
                                 {needsTest

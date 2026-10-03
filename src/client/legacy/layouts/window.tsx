@@ -32,7 +32,7 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
         <SidebarProvider>
           <AppSidebar />
           {/* Header - always visible */}
-          <header className="rounded-none border-r-0 border-b-4 h-[50px] border-b-border dark:border-b-darkBorder fixed top-0 left-0 w-full z-50 bg-main flex items-center justify-center">
+          <header className="rounded-none border-r-0 border-b-4 h-[50px] border-b-border dark:border-b-darkBorder fixed top-0 left-0 w-full z-50 bg-primary flex items-center justify-center">
             {/* Mobile Menu Button */}
             <SidebarTrigger className="absolute left-3 top-1/2 -translate-y-1/2" />
 
@@ -64,7 +64,7 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
     : 'outline-border grid grid-cols-[80px_auto] h-[90vh] w-[98vw] max-w-[1600px] rounded-base shadow-[10px_10px_0_0_#000] outline-4'
 
   const headerClass =
-    'border-r-border relative flex items-center justify-center bg-main rounded-l-base border-r-4'
+    'border-r-border relative flex items-center justify-center bg-primary rounded-l-base border-r-4'
 
   const mainClass = fullscreenEnabled
     ? 'bg-background relative flex h-screen overflow-hidden min-h-0'
@@ -87,7 +87,7 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset className="bg-background">
-            <header className="flex h-12 shrink-0 items-center justify-between transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 bg-main border-b-4 border-b-border">
+            <header className="flex h-12 shrink-0 items-center justify-between transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 bg-primary border-b-4 border-b-border">
               <div className="flex items-center gap-2 px-4">
                 <SidebarTrigger className="-ml-1" />
               </div>

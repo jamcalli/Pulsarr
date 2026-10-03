@@ -204,7 +204,7 @@ export const WatchlistExclusionsTable = React.forwardRef<
   }, [sorting, columnFilters, table])
 
   return (
-    <div className="w-full min-w-0 font-base text-main-foreground overflow-x-auto">
+    <div className="w-full min-w-0 font-base text-primary-foreground overflow-x-auto">
       <WatchlistExclusionsTableToolbar
         table={table}
         userFilterOptions={userFilterOptions}

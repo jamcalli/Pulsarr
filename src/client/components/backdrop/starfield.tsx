@@ -75,7 +75,7 @@ const ParallaxStarfield = ({ children }: { children: React.ReactNode }) => {
   return (
     <div
       className="fixed inset-0 overflow-hidden pointer-events-none"
-      style={{ backgroundColor: 'var(--color-secondary-black)' }}
+      style={{ backgroundColor: 'var(--color-static-space)' }}
     >
       <canvas ref={canvasRef} className="absolute inset-0" />
       <div className="relative z-10">{children}</div>

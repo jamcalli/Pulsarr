@@ -38,7 +38,7 @@ export function AnalyticsDashboard() {
       <h2 className="mb-4 text-2xl font-bold text-foreground">
         Media Analytics
       </h2>
-      <Card className="w-full bg-secondary-background relative overflow-hidden">
+      <Card className="w-full bg-card relative overflow-hidden">
         <ChartHeader activeChart={activeChart} onChartChange={setActiveChart} />
         <CardContent className="px-6 py-6">{renderChart()}</CardContent>
       </Card>

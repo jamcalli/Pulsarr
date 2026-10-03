@@ -28,7 +28,7 @@ const sectionRowClass = 'h-10 gap-3 px-2.5 text-base [&_svg]:size-4.5'
 function PendingBadge({ count }: { count: number }) {
   if (count === 0) return null
   return (
-    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-md border-2 border-border bg-warn px-1.5 text-xs font-bold text-main-foreground tabular-nums">
+    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-md border-2 border-border bg-gold px-1.5 text-xs font-bold text-primary-foreground tabular-nums">
       {count}
     </span>
   )

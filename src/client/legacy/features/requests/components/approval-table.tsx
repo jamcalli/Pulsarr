@@ -175,7 +175,7 @@ export const ApprovalTable = React.forwardRef<
     }
 
     return (
-      <div className="w-full font-base text-main-foreground overflow-x-auto">
+      <div className="w-full font-base text-primary-foreground overflow-x-auto">
         <div>
           <div className="py-4">
             <ApprovalTableToolbar

@@ -21,7 +21,7 @@ export function NotificationsSkeleton() {
   return (
     <div className="grid gap-6">
       {/* Feature-specific notification settings info */}
-      <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+      <div className="text-sm text-foreground p-3 bg-card rounded-base border-2 border-border">
         <p>
           Some features have their own notification settings. Configure{' '}
           <Link
@@ -56,7 +56,7 @@ export function NotificationsSkeleton() {
               </h3>
               <Skeleton className="h-6 w-16" /> {/* Status badge */}
             </div>
-            <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+            <div className="text-sm text-foreground p-3 bg-card rounded-base border-2 border-border">
               <p>
                 Apprise is a notification service that can send alerts to
                 multiple platforms. The service status is determined at server
@@ -198,7 +198,7 @@ export function NotificationsSkeleton() {
         </div>
         <div className="grid gap-4 mt-4">
           <div className="space-y-4">
-            <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+            <div className="text-sm text-foreground p-3 bg-card rounded-base border-2 border-border">
               <p>
                 Configure webhook endpoints to receive notifications for Pulsarr
                 events. Webhooks send JSON payloads to your specified URLs when
@@ -242,7 +242,7 @@ export function NotificationsSkeleton() {
               <Skeleton className="h-7 w-64" /> {/* Subheading */}
               <Skeleton className="h-7 w-16" /> {/* Status badge */}
             </div>
-            <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+            <div className="text-sm text-foreground p-3 bg-card rounded-base border-2 border-border">
               <p>
                 Enable this feature to send native push notifications to users
                 via the Plex mobile app when their requested content becomes
@@ -267,7 +267,7 @@ export function NotificationsSkeleton() {
         </div>
         <div className="grid gap-4 mt-4">
           <div className="space-y-4">
-            <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+            <div className="text-sm text-foreground p-3 bg-card rounded-base border-2 border-border">
               <p>
                 Enable this feature to broadcast ALL content availability to
                 public Discord channels and shared Apprise endpoints for

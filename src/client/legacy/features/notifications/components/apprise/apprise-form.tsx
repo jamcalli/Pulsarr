@@ -163,7 +163,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
         <AppriseStatusBadge />
       </div>
 
-      <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+      <div className="text-sm text-foreground p-3 bg-card rounded-base border-2 border-border">
         <p>
           Apprise is a notification service that can send alerts to multiple
           platforms. The service status is determined at server startup and
@@ -199,7 +199,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
           <Input
             value={config?.appriseUrl || ''}
             disabled={true}
-            className="bg-secondary-background opacity-80 text-foreground"
+            className="bg-card opacity-80 text-foreground"
           />
         </div>
       </div>

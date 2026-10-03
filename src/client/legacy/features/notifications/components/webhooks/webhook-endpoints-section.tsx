@@ -58,7 +58,7 @@ export function WebhookEndpointsSection() {
   return (
     <div className="space-y-4">
       {/* Info banner */}
-      <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+      <div className="text-sm text-foreground p-3 bg-card rounded-base border-2 border-border">
         <p>
           Configure webhook endpoints to receive notifications for Pulsarr
           events. Webhooks send JSON payloads to your specified URLs when events

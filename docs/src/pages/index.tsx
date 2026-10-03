@@ -162,7 +162,7 @@ export default function Home(): React.ReactElement {
                         <Heading
                           as="h1"
                           style={{
-                            color: '#c1666b', // --static-text red color from main app
+                            color: '#c1666b', // --backdrop-title red color from main app
                             fontSize: '4rem',
                             fontWeight: 'bold',
                             fontFamily:
@@ -176,7 +176,7 @@ export default function Home(): React.ReactElement {
                       <p
                         id="subtitle"
                         style={{
-                          color: '#c1666b', // --static-text red color
+                          color: '#c1666b', // --backdrop-title red color
                           fontSize: '1.5rem',
                           fontFamily:
                             'Shuttleblock, system-ui, -apple-system, sans-serif',

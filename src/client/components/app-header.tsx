@@ -20,7 +20,7 @@ export function AppHeader() {
   const frameLabel = fullscreenEnabled ? 'Windowed' : 'Full screen'
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b-2 border-border bg-secondary-background px-4 md:pr-6 md:pl-8">
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b-2 border-border bg-card px-4 md:pr-6 md:pl-8">
       <SidebarTrigger className="md:hidden" />
       <Breadcrumb className="min-w-0 flex-1">
         <BreadcrumbList className="text-base">
@@ -34,7 +34,9 @@ export function AppHeader() {
               >
                 {index === crumbs.length - 1 ? (
                   <BreadcrumbPage
-                    className={index === 0 ? 'font-medium' : 'text-muted'}
+                    className={
+                      index === 0 ? 'font-medium' : 'text-muted-foreground'
+                    }
                   >
                     {crumb}
                   </BreadcrumbPage>

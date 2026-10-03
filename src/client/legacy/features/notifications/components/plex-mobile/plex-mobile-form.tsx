@@ -97,7 +97,7 @@ export function PlexMobileForm({ isInitialized }: PlexMobileFormProps) {
         {getStatusBadge()}
       </div>
 
-      <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+      <div className="text-sm text-foreground p-3 bg-card rounded-base border-2 border-border">
         <p>
           {isEnabled
             ? 'Plex mobile push notifications are enabled. Users with Plex mobile apps will receive native push notifications when their content becomes available.'
