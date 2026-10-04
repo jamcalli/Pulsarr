@@ -14,6 +14,7 @@ import type {
   SonarrInstance,
   SonarrPost,
   SonarrSeries,
+  SonarrTagDetail,
   WebhookNotification,
 } from '@root/types/sonarr.types.js'
 import {
@@ -1383,6 +1384,10 @@ export class SonarrService {
     }
 
     return this.refreshTagsCache(this.instanceId)
+  }
+
+  async getTagDetails(): Promise<SonarrTagDetail[]> {
+    return await this.getFromSonarr<SonarrTagDetail[]>('tag/detail')
   }
 
   /**

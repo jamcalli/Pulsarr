@@ -7,6 +7,12 @@ export interface RadarrAddOptions {
   monitor?: RadarrMonitorType
 }
 
+export interface RadarrTagDetail {
+  id: number
+  label: string
+  movieIds: number[]
+}
+
 export interface RadarrMovie {
   title: string
   originalTitle?: string

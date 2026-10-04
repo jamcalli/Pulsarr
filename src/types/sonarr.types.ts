@@ -100,6 +100,12 @@ export interface SonarrEpisode {
   grabbed: boolean
 }
 
+export interface SonarrTagDetail {
+  id: number
+  label: string
+  seriesIds: number[]
+}
+
 export interface SonarrSeries {
   title: string
   alternateTitles?: Array<{
