@@ -120,8 +120,10 @@ describe('removeUserTags', () => {
     expect(results.itemsUpdated).toBe(2)
   })
 
-  it('does nothing when tagging is disabled for the type', async () => {
-    const adapter = createFakeAdapter()
+  it('still removes leftover tags when tagging is disabled for the type', async () => {
+    const adapter = createFakeAdapter({
+      getTagDetails: vi.fn(async () => USER_TAGS),
+    })
     useAdapters({ sonarr: [adapter] })
 
     const results = await removeUserTags(
@@ -129,8 +131,13 @@ describe('removeUserTags', () => {
       createUserTagDeps({ config: { tagUsersInSonarr: false } }),
     )
 
-    expect(adapter.getTagDetails).not.toHaveBeenCalled()
-    expect(results.instances).toBe(0)
+    expect(adapter.bulkUpdateTags).toHaveBeenCalledWith(
+      expect.any(Array),
+      'remove',
+    )
+    expect(adapter.deleteTag).toHaveBeenCalledTimes(2)
+    expect(adapter.deleteTag).not.toHaveBeenCalledWith(3)
+    expect(results.tagsDeleted).toBe(2)
   })
 })
 

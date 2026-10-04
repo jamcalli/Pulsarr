@@ -383,33 +383,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const config = fastify.config
-
-        if (!config.tagUsersInSonarr && !config.tagUsersInRadarr) {
-          return {
-            success: false,
-            message:
-              'Tag removal skipped: user tagging is disabled in configuration',
-            mode: 'remove' as const,
-            sonarr: {
-              itemsProcessed: 0,
-              itemsUpdated: 0,
-              tagsRemoved: 0,
-              tagsDeleted: 0,
-              failed: 0,
-              instances: 0,
-            },
-            radarr: {
-              itemsProcessed: 0,
-              itemsUpdated: 0,
-              tagsRemoved: 0,
-              tagsDeleted: 0,
-              failed: 0,
-              instances: 0,
-            },
-          }
-        }
-
         const { deleteTagDefinitions = false } = request.body
         const results =
           await fastify.userTags.removeAllUserTags(deleteTagDefinitions)

@@ -3,7 +3,6 @@ import {
   getTagSettings,
   groupTagsByItem,
   isAppUserTag,
-  isTaggingEnabled,
 } from '../tag-operations/tag-predicate.js'
 import {
   ARR_META,
@@ -36,13 +35,7 @@ export async function removeUserTags(
   const { displayName, itemNoun } = ARR_META[type]
   const results = emptyResults()
 
-  if (!isTaggingEnabled(deps.config, type)) {
-    deps.logger.debug(
-      `${displayName} user tagging disabled, skipping tag removal`,
-    )
-    return results
-  }
-
+  // Removal runs even when tagging is off, since leftover tags block prefix changes.
   await ensureMigrationComplete(type, deps)
 
   const { tagPrefix } = getTagSettings(deps.config)
