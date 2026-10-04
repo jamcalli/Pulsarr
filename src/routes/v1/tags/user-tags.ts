@@ -6,11 +6,41 @@ import {
   RemoveTagsRequestSchema,
   RemoveTagsResponseSchema,
   SyncTaggingResponseSchema,
+  TagStatusResponseSchema,
 } from '@schemas/tags/user-tags.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  // Get user tag status
+  fastify.get(
+    '/status',
+    {
+      schema: {
+        summary: 'Get user tag status',
+        operationId: 'getUserTagStatus',
+        description:
+          'Report whether user tags exist and how many items carry them per instance',
+        response: {
+          200: TagStatusResponseSchema,
+          500: ErrorSchema,
+        },
+        tags: ['Tags'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const status = await fastify.userTags.getTagStatus()
+        return { success: true, ...status }
+      } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to get user tag status',
+        })
+        return reply.internalServerError('Unable to get user tag status')
+      }
+    },
+  )
+
   // Create user tags
   fastify.post(
     '/create',

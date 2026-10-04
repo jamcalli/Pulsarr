@@ -2236,6 +2236,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tags/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user tag status
+         * @description Report whether user tags exist and how many items carry them per instance
+         */
+        get: operations["getUserTagStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tags/sync": {
         parameters: {
             query?: never;
@@ -3093,6 +3113,17 @@ export interface components {
             monitoringType: components["schemas"]["MonitoringType"];
             resetMonitoring?: boolean;
         };
+        /** @description Result of removing references to deleted tags, keyed by instance */
+        CleanupOrphanedTagRefsResponse: {
+            success: boolean;
+            message: string;
+            radarr: {
+                [key: string]: components["schemas"]["OrphanedTagRefInstanceResult"];
+            };
+            sonarr: {
+                [key: string]: components["schemas"]["OrphanedTagRefInstanceResult"];
+            };
+        };
         /**
          * @description Comparison operator applied to a condition value
          * @enum {string}
@@ -3488,6 +3519,15 @@ export interface components {
          * @enum {string}
          */
         ContentType: "movie" | "show";
+        /** @description Result of creating user tags in Sonarr and Radarr */
+        CreateTaggingResponse: {
+            success: boolean;
+            message: string;
+            /** @constant */
+            mode: "create";
+            sonarr: components["schemas"]["TagCreateStats"];
+            radarr: components["schemas"]["TagCreateStats"];
+        };
         /** @description Standard error response */
         Error: {
             /** @description HTTP status code */
@@ -3545,6 +3585,14 @@ export interface components {
          * @enum {string}
          */
         MonitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
+        /** @description Orphaned tag reference cleanup result for one instance */
+        OrphanedTagRefInstanceResult: {
+            instanceName: string;
+            itemsScanned: number;
+            orphanedTagsFound: number;
+            itemsUpdated: number;
+            error?: string;
+        };
         /** @description Ratings captured from stored Plex watchlist metadata. */
         PlexRatings: {
             imdb?: {
@@ -3587,6 +3635,29 @@ export interface components {
                 /** @enum {string} */
                 type: "user" | "critic";
             };
+        };
+        /** @description Options for removing user tags */
+        RemoveTagsPayload: {
+            /** @default false */
+            deleteTagDefinitions?: boolean;
+        };
+        /** @description Result of removing user tags from Sonarr and Radarr content */
+        RemoveTagsResponse: {
+            success: boolean;
+            message: string;
+            /** @constant */
+            mode: "remove";
+            sonarr: components["schemas"]["RemoveTagsStats"];
+            radarr: components["schemas"]["RemoveTagsStats"];
+        };
+        /** @description User tag removal counts for one arr type */
+        RemoveTagsStats: {
+            itemsProcessed: number;
+            itemsUpdated: number;
+            tagsRemoved: number;
+            tagsDeleted: number;
+            failed: number;
+            instances: number;
         };
         /** @description Rolling monitored show entry (master record or per-user tracking row) */
         RollingMonitoredShow: {
@@ -3741,6 +3812,40 @@ export interface components {
             max_days: number;
             count: number;
         };
+        /** @description Result of syncing user tags onto Sonarr and Radarr content */
+        SyncTaggingResponse: {
+            success: boolean;
+            message: string;
+            /** @constant */
+            mode: "sync";
+            sonarr: components["schemas"]["TagSyncStats"];
+            radarr: components["schemas"]["TagSyncStats"];
+            orphanedCleanup?: {
+                radarr: components["schemas"]["TagCleanupStats"];
+                sonarr: components["schemas"]["TagCleanupStats"];
+            };
+        };
+        /** @description Result of cleaning up orphaned user tags */
+        TagCleanupResponse: {
+            success: boolean;
+            message: string;
+            radarr: components["schemas"]["TagCleanupStats"];
+            sonarr: components["schemas"]["TagCleanupStats"];
+        };
+        /** @description Orphaned user tag cleanup counts for one arr type */
+        TagCleanupStats: {
+            removed: number;
+            skipped: number;
+            failed: number;
+            instances: number;
+        };
+        /** @description User tag creation counts for one arr type */
+        TagCreateStats: {
+            created: number;
+            skipped: number;
+            failed: number;
+            instances: number;
+        };
         /** @description Tag format migration status per Radarr/Sonarr instance */
         TagMigration: {
             radarr: {
@@ -3772,6 +3877,27 @@ export interface components {
             sonarr: {
                 [key: string]: components["schemas"]["TagMigrationEntryOutput"];
             };
+        };
+        /** @description Whether user tags exist on any instance with tagging enabled, with per-instance counts */
+        TagStatus: {
+            success: boolean;
+            tagsExist: boolean;
+            instances: components["schemas"]["TagStatusInstance"][];
+        };
+        /** @description User tag counts for one instance, zero when the instance could not be read */
+        TagStatusInstance: {
+            /** @enum {string} */
+            type: "sonarr" | "radarr";
+            instanceId: number;
+            name: string;
+            tagCount: number;
+            taggedItemCount: number;
+        };
+        /** @description User tag sync counts for one arr type */
+        TagSyncStats: {
+            tagged: number;
+            skipped: number;
+            failed: number;
         };
         /** @description Metadata for either a movie or a TV show. */
         TmdbContentMetadata: components["schemas"]["TmdbMovieMetadata"] | components["schemas"]["TmdbTvMetadata"];
@@ -5497,6 +5623,15 @@ export interface operations {
             };
             /** @description Default Response */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11785,22 +11920,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        radarr: {
-                            removed: number;
-                            skipped: number;
-                            failed: number;
-                            instances: number;
-                        };
-                        sonarr: {
-                            removed: number;
-                            skipped: number;
-                            failed: number;
-                            instances: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["TagCleanupResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -11838,28 +11958,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        radarr: {
-                            [key: string]: {
-                                instanceName: string;
-                                itemsScanned: number;
-                                orphanedTagsFound: number;
-                                itemsUpdated: number;
-                                error?: string;
-                            };
-                        };
-                        sonarr: {
-                            [key: string]: {
-                                instanceName: string;
-                                itemsScanned: number;
-                                orphanedTagsFound: number;
-                                itemsUpdated: number;
-                                error?: string;
-                            };
-                        };
-                    };
+                    "application/json": components["schemas"]["CleanupOrphanedTagRefsResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -11897,24 +11996,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @constant */
-                        mode: "create";
-                        sonarr: {
-                            created: number;
-                            skipped: number;
-                            failed: number;
-                            instances: number;
-                        };
-                        radarr: {
-                            created: number;
-                            skipped: number;
-                            failed: number;
-                            instances: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["CreateTaggingResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -11944,12 +12026,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Options for removing user tags */
         requestBody: {
             content: {
-                "application/json": {
-                    /** @default false */
-                    deleteTagDefinitions?: boolean;
-                };
+                "application/json": components["schemas"]["RemoveTagsPayload"];
             };
         };
         responses: {
@@ -11959,28 +12039,45 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @constant */
-                        mode: "remove";
-                        sonarr: {
-                            itemsProcessed: number;
-                            itemsUpdated: number;
-                            tagsRemoved: number;
-                            tagsDeleted: number;
-                            failed: number;
-                            instances: number;
-                        };
-                        radarr: {
-                            itemsProcessed: number;
-                            itemsUpdated: number;
-                            tagsRemoved: number;
-                            tagsDeleted: number;
-                            failed: number;
-                            instances: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["RemoveTagsResponse"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getUserTagStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagStatus"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -12018,36 +12115,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @constant */
-                        mode: "sync";
-                        sonarr: {
-                            tagged: number;
-                            skipped: number;
-                            failed: number;
-                        };
-                        radarr: {
-                            tagged: number;
-                            skipped: number;
-                            failed: number;
-                        };
-                        orphanedCleanup?: {
-                            radarr: {
-                                removed: number;
-                                skipped: number;
-                                failed: number;
-                                instances: number;
-                            };
-                            sonarr: {
-                                removed: number;
-                                skipped: number;
-                                failed: number;
-                                instances: number;
-                            };
-                        };
-                    };
+                    "application/json": components["schemas"]["SyncTaggingResponse"];
                 };
             };
             /** @description Rate limit exceeded */

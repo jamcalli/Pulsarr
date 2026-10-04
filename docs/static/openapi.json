@@ -89,6 +89,39 @@
         ],
         "description": "Shows to enroll in or switch between rolling monitoring types"
       },
+      "CleanupOrphanedTagRefsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "radarr": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {
+              "$ref": "#/components/schemas/OrphanedTagRefInstanceResult"
+            }
+          },
+          "sonarr": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {
+              "$ref": "#/components/schemas/OrphanedTagRefInstanceResult"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "radarr",
+          "sonarr"
+        ],
+        "additionalProperties": false,
+        "description": "Result of removing references to deleted tags, keyed by instance"
+      },
       "ConditionOperator": {
         "type": "string",
         "enum": [
@@ -1733,6 +1766,36 @@
         ],
         "description": "Media kind, movie or show"
       },
+      "CreateTaggingResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "const": "create"
+          },
+          "sonarr": {
+            "$ref": "#/components/schemas/TagCreateStats"
+          },
+          "radarr": {
+            "$ref": "#/components/schemas/TagCreateStats"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "mode",
+          "sonarr",
+          "radarr"
+        ],
+        "additionalProperties": false,
+        "description": "Result of creating user tags in Sonarr and Radarr"
+      },
       "Error": {
         "type": "object",
         "properties": {
@@ -1926,6 +1989,34 @@
         ],
         "description": "Rolling monitoring strategy for a show"
       },
+      "OrphanedTagRefInstanceResult": {
+        "type": "object",
+        "properties": {
+          "instanceName": {
+            "type": "string"
+          },
+          "itemsScanned": {
+            "type": "number"
+          },
+          "orphanedTagsFound": {
+            "type": "number"
+          },
+          "itemsUpdated": {
+            "type": "number"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "instanceName",
+          "itemsScanned",
+          "orphanedTagsFound",
+          "itemsUpdated"
+        ],
+        "additionalProperties": false,
+        "description": "Orphaned tag reference cleanup result for one instance"
+      },
       "PlexRatings": {
         "type": "object",
         "properties": {
@@ -2087,6 +2178,79 @@
         },
         "additionalProperties": false,
         "description": "Ratings for a movie as reported by Radarr."
+      },
+      "RemoveTagsPayload": {
+        "type": "object",
+        "properties": {
+          "deleteTagDefinitions": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "description": "Options for removing user tags"
+      },
+      "RemoveTagsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "const": "remove"
+          },
+          "sonarr": {
+            "$ref": "#/components/schemas/RemoveTagsStats"
+          },
+          "radarr": {
+            "$ref": "#/components/schemas/RemoveTagsStats"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "mode",
+          "sonarr",
+          "radarr"
+        ],
+        "additionalProperties": false,
+        "description": "Result of removing user tags from Sonarr and Radarr content"
+      },
+      "RemoveTagsStats": {
+        "type": "object",
+        "properties": {
+          "itemsProcessed": {
+            "type": "number"
+          },
+          "itemsUpdated": {
+            "type": "number"
+          },
+          "tagsRemoved": {
+            "type": "number"
+          },
+          "tagsDeleted": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
+          },
+          "instances": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "itemsProcessed",
+          "itemsUpdated",
+          "tagsRemoved",
+          "tagsDeleted",
+          "failed",
+          "instances"
+        ],
+        "additionalProperties": false,
+        "description": "User tag removal counts for one arr type"
       },
       "RollingMonitoredShow": {
         "type": "object",
@@ -2750,6 +2914,127 @@
         "additionalProperties": false,
         "description": "Aggregate days spent moving between two watchlist statuses for a content type."
       },
+      "SyncTaggingResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "const": "sync"
+          },
+          "sonarr": {
+            "$ref": "#/components/schemas/TagSyncStats"
+          },
+          "radarr": {
+            "$ref": "#/components/schemas/TagSyncStats"
+          },
+          "orphanedCleanup": {
+            "type": "object",
+            "properties": {
+              "radarr": {
+                "$ref": "#/components/schemas/TagCleanupStats"
+              },
+              "sonarr": {
+                "$ref": "#/components/schemas/TagCleanupStats"
+              }
+            },
+            "required": [
+              "radarr",
+              "sonarr"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "mode",
+          "sonarr",
+          "radarr"
+        ],
+        "additionalProperties": false,
+        "description": "Result of syncing user tags onto Sonarr and Radarr content"
+      },
+      "TagCleanupResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "radarr": {
+            "$ref": "#/components/schemas/TagCleanupStats"
+          },
+          "sonarr": {
+            "$ref": "#/components/schemas/TagCleanupStats"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "radarr",
+          "sonarr"
+        ],
+        "additionalProperties": false,
+        "description": "Result of cleaning up orphaned user tags"
+      },
+      "TagCleanupStats": {
+        "type": "object",
+        "properties": {
+          "removed": {
+            "type": "number"
+          },
+          "skipped": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
+          },
+          "instances": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "removed",
+          "skipped",
+          "failed",
+          "instances"
+        ],
+        "additionalProperties": false,
+        "description": "Orphaned user tag cleanup counts for one arr type"
+      },
+      "TagCreateStats": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "number"
+          },
+          "skipped": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
+          },
+          "instances": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "created",
+          "skipped",
+          "failed",
+          "instances"
+        ],
+        "additionalProperties": false,
+        "description": "User tag creation counts for one arr type"
+      },
       "TagMigration": {
         "type": "object",
         "properties": {
@@ -2847,6 +3132,84 @@
         ],
         "additionalProperties": false,
         "description": "Tag format migration status per Radarr/Sonarr instance"
+      },
+      "TagStatus": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "tagsExist": {
+            "type": "boolean"
+          },
+          "instances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagStatusInstance"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "tagsExist",
+          "instances"
+        ],
+        "additionalProperties": false,
+        "description": "Whether user tags exist on any instance with tagging enabled, with per-instance counts"
+      },
+      "TagStatusInstance": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "sonarr",
+              "radarr"
+            ]
+          },
+          "instanceId": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tagCount": {
+            "type": "number"
+          },
+          "taggedItemCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "type",
+          "instanceId",
+          "name",
+          "tagCount",
+          "taggedItemCount"
+        ],
+        "additionalProperties": false,
+        "description": "User tag counts for one instance, zero when the instance could not be read"
+      },
+      "TagSyncStats": {
+        "type": "object",
+        "properties": {
+          "tagged": {
+            "type": "number"
+          },
+          "skipped": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "tagged",
+          "skipped",
+          "failed"
+        ],
+        "additionalProperties": false,
+        "description": "User tag sync counts for one arr type"
       },
       "TmdbContentMetadata": {
         "anyOf": [
@@ -7792,6 +8155,16 @@
             }
           },
           "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -19847,70 +20220,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "radarr": {
-                      "type": "object",
-                      "properties": {
-                        "removed": {
-                          "type": "number"
-                        },
-                        "skipped": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        },
-                        "instances": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "removed",
-                        "skipped",
-                        "failed",
-                        "instances"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "sonarr": {
-                      "type": "object",
-                      "properties": {
-                        "removed": {
-                          "type": "number"
-                        },
-                        "skipped": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        },
-                        "instances": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "removed",
-                        "skipped",
-                        "failed",
-                        "instances"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "radarr",
-                    "sonarr"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/TagCleanupResponse"
                 }
               }
             }
@@ -19952,84 +20262,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "radarr": {
-                      "type": "object",
-                      "properties": {},
-                      "additionalProperties": {
-                        "type": "object",
-                        "properties": {
-                          "instanceName": {
-                            "type": "string"
-                          },
-                          "itemsScanned": {
-                            "type": "number"
-                          },
-                          "orphanedTagsFound": {
-                            "type": "number"
-                          },
-                          "itemsUpdated": {
-                            "type": "number"
-                          },
-                          "error": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "instanceName",
-                          "itemsScanned",
-                          "orphanedTagsFound",
-                          "itemsUpdated"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "sonarr": {
-                      "type": "object",
-                      "properties": {},
-                      "additionalProperties": {
-                        "type": "object",
-                        "properties": {
-                          "instanceName": {
-                            "type": "string"
-                          },
-                          "itemsScanned": {
-                            "type": "number"
-                          },
-                          "orphanedTagsFound": {
-                            "type": "number"
-                          },
-                          "itemsUpdated": {
-                            "type": "number"
-                          },
-                          "error": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "instanceName",
-                          "itemsScanned",
-                          "orphanedTagsFound",
-                          "itemsUpdated"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "radarr",
-                    "sonarr"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/CleanupOrphanedTagRefsResponse"
                 }
               }
             }
@@ -20071,75 +20304,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "mode": {
-                      "type": "string",
-                      "const": "create"
-                    },
-                    "sonarr": {
-                      "type": "object",
-                      "properties": {
-                        "created": {
-                          "type": "number"
-                        },
-                        "skipped": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        },
-                        "instances": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "created",
-                        "skipped",
-                        "failed",
-                        "instances"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "radarr": {
-                      "type": "object",
-                      "properties": {
-                        "created": {
-                          "type": "number"
-                        },
-                        "skipped": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        },
-                        "instances": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "created",
-                        "skipped",
-                        "failed",
-                        "instances"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "mode",
-                    "sonarr",
-                    "radarr"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/CreateTaggingResponse"
                 }
               }
             }
@@ -20180,16 +20345,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "deleteTagDefinitions": {
-                    "default": false,
-                    "type": "boolean"
-                  }
-                }
+                "$ref": "#/components/schemas/RemoveTagsPayload"
               }
             }
-          }
+          },
+          "description": "Options for removing user tags"
         },
         "responses": {
           "200": {
@@ -20197,91 +20357,49 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "mode": {
-                      "type": "string",
-                      "const": "remove"
-                    },
-                    "sonarr": {
-                      "type": "object",
-                      "properties": {
-                        "itemsProcessed": {
-                          "type": "number"
-                        },
-                        "itemsUpdated": {
-                          "type": "number"
-                        },
-                        "tagsRemoved": {
-                          "type": "number"
-                        },
-                        "tagsDeleted": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        },
-                        "instances": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "itemsProcessed",
-                        "itemsUpdated",
-                        "tagsRemoved",
-                        "tagsDeleted",
-                        "failed",
-                        "instances"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "radarr": {
-                      "type": "object",
-                      "properties": {
-                        "itemsProcessed": {
-                          "type": "number"
-                        },
-                        "itemsUpdated": {
-                          "type": "number"
-                        },
-                        "tagsRemoved": {
-                          "type": "number"
-                        },
-                        "tagsDeleted": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        },
-                        "instances": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "itemsProcessed",
-                        "itemsUpdated",
-                        "tagsRemoved",
-                        "tagsDeleted",
-                        "failed",
-                        "instances"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "mode",
-                    "sonarr",
-                    "radarr"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RemoveTagsResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tags/status": {
+      "get": {
+        "operationId": "getUserTagStatus",
+        "summary": "Get user tag status",
+        "tags": [
+          "Tags"
+        ],
+        "description": "Report whether user tags exist and how many items carry them per instance",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagStatus"
                 }
               }
             }
@@ -20323,125 +20441,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "mode": {
-                      "type": "string",
-                      "const": "sync"
-                    },
-                    "sonarr": {
-                      "type": "object",
-                      "properties": {
-                        "tagged": {
-                          "type": "number"
-                        },
-                        "skipped": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "tagged",
-                        "skipped",
-                        "failed"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "radarr": {
-                      "type": "object",
-                      "properties": {
-                        "tagged": {
-                          "type": "number"
-                        },
-                        "skipped": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "tagged",
-                        "skipped",
-                        "failed"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "orphanedCleanup": {
-                      "type": "object",
-                      "properties": {
-                        "radarr": {
-                          "type": "object",
-                          "properties": {
-                            "removed": {
-                              "type": "number"
-                            },
-                            "skipped": {
-                              "type": "number"
-                            },
-                            "failed": {
-                              "type": "number"
-                            },
-                            "instances": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "removed",
-                            "skipped",
-                            "failed",
-                            "instances"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "sonarr": {
-                          "type": "object",
-                          "properties": {
-                            "removed": {
-                              "type": "number"
-                            },
-                            "skipped": {
-                              "type": "number"
-                            },
-                            "failed": {
-                              "type": "number"
-                            },
-                            "instances": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "removed",
-                            "skipped",
-                            "failed",
-                            "instances"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "radarr",
-                        "sonarr"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "mode",
-                    "sonarr",
-                    "radarr"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/SyncTaggingResponse"
                 }
               }
             }

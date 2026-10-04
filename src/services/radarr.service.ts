@@ -10,6 +10,7 @@ import type {
   RadarrMonitorType,
   RadarrMovie,
   RadarrPost,
+  RadarrTagDetail,
   RootFolder,
   WebhookNotification,
 } from '@root/types/radarr.types.js'
@@ -1445,6 +1446,10 @@ export class RadarrService {
     }
 
     return this.refreshTagsCache(this.instanceId)
+  }
+
+  async getTagDetails(): Promise<RadarrTagDetail[]> {
+    return await this.getFromRadarr<RadarrTagDetail[]>('tag/detail')
   }
 
   /**

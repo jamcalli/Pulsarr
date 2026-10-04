@@ -4,6 +4,7 @@ import {
   ConfigResponseSchema,
   ConfigUpdateSchema,
 } from '@root/schemas/config/config.schema.js'
+import { UserTagsExistError } from '@services/user-tags/types.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import type { z } from 'zod'
@@ -70,6 +71,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           200: ConfigResponseSchema,
           400: ConfigErrorSchema,
           404: ConfigErrorSchema,
+          409: ConfigErrorSchema,
           500: ConfigErrorSchema,
         },
         tags: ['Config'],
@@ -91,6 +93,17 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         // Store current config state before changes for service management
         const currentConfig = await fastify.db.getConfig()
+
+        try {
+          await fastify.userTags.assertPrefixChangeAllowed(safeConfigUpdate)
+        } catch (error) {
+          if (error instanceof UserTagsExistError) {
+            return reply.conflict(
+              'Remove existing user tags before changing the tag prefix or naming source',
+            )
+          }
+          throw error
+        }
 
         try {
           await fastify.updateConfigAndPersist(safeConfigUpdate)
