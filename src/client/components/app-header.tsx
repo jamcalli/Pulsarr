@@ -20,7 +20,7 @@ export function AppHeader() {
   const frameLabel = fullscreenEnabled ? 'Windowed' : 'Full screen'
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b-2 border-border bg-card px-4 md:pr-6 md:pl-8">
+    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b-2 border-border bg-card px-4 md:pr-6 md:pl-8">
       <SidebarTrigger className="md:hidden" />
       <Breadcrumb className="min-w-0 flex-1">
         <BreadcrumbList className="text-base">

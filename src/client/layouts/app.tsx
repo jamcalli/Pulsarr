@@ -2,7 +2,7 @@ import { cn } from 'cn'
 import { Outlet } from 'react-router-dom'
 import { AppHeader } from '@/components/app-header'
 import { AppSidebar } from '@/components/sidebar/app-sidebar'
-import { SidebarProvider } from '@/components/ui/sidebar'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useApprovalToasts } from '@/hooks/useApprovalToasts'
 import { useProgressConnection } from '@/hooks/useProgressConnection'
 import { useSettings } from '@/hooks/useSettings'
@@ -15,25 +15,28 @@ export default function AppLayout() {
   return (
     <div
       className={cn(
-        'flex size-full',
+        'w-full',
         !fullscreenEnabled &&
-          'md:px-[clamp(16px,2.5vw,48px)] md:py-[clamp(16px,4vh,48px)]',
+          'md:h-svh md:px-[clamp(16px,2.5vw,48px)] md:py-[clamp(16px,4vh,48px)]',
       )}
     >
       <SidebarProvider
         className={cn(
-          'min-h-0 flex-1 overflow-hidden bg-inset',
+          'bg-inset',
           !fullscreenEnabled &&
-            'md:mx-auto md:max-w-400 md:rounded-lg md:border-2 md:border-border md:shadow-shadow',
+            'md:mx-auto md:h-full md:min-h-0 md:max-w-400 md:overflow-hidden md:rounded-lg md:border-2 md:border-border md:shadow-shadow',
         )}
       >
         <AppSidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <SidebarInset
+          className={cn(
+            'min-w-0 overflow-x-clip bg-inset',
+            !fullscreenEnabled && 'md:min-h-0 md:overflow-y-auto',
+          )}
+        >
           <AppHeader />
-          <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-            <Outlet />
-          </div>
-        </div>
+          <Outlet />
+        </SidebarInset>
       </SidebarProvider>
     </div>
   )

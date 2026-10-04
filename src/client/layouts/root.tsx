@@ -116,16 +116,11 @@ function BackgroundLayer() {
  */
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <div className="h-screen relative overflow-hidden">
-      {/* Background layer */}
+    <div className="relative min-h-svh">
       <BackgroundLayer />
-
-      {/* Content layer */}
-      <div className="relative h-full flex items-center justify-center">
-        <main className="z-10 w-full h-full flex items-center justify-center">
-          {children}
-        </main>
-      </div>
+      <main className="relative z-10 flex min-h-svh items-center justify-center">
+        {children}
+      </main>
       <Toaster />
     </div>
   )

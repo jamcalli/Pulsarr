@@ -310,6 +310,7 @@
 
 html {
   color-scheme: light;
+  overscroll-behavior-y: none;
 }
 
 html.dark {
@@ -319,19 +320,11 @@ html.dark {
 body {
   background-color: var(--bg);
   color: var(--text);
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
-  height: 100%;
   touch-action: pan-y pinch-zoom;
 }
 
 #app {
   isolation: isolate;
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
 }
 
 /* Font heading utility - only applies to direct heading elements */
