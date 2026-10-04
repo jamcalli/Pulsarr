@@ -20,6 +20,7 @@ const USER_TAGS = [
   { id: 1, label: 'pulsarr-user-alice', itemIds: [10, 11] },
   { id: 2, label: 'pulsarr-user-bob', itemIds: [11] },
   { id: 3, label: 'unrelated', itemIds: [10, 12] },
+  { id: 4, label: 'pulsarr-removed', itemIds: [12] },
 ]
 
 describe('removeUserTags', () => {
@@ -43,14 +44,15 @@ describe('removeUserTags', () => {
       [
         { itemId: 10, tagIds: [1] },
         { itemId: 11, tagIds: [1, 2] },
+        { itemId: 12, tagIds: [4] },
       ],
       'remove',
     )
     expect(adapter.deleteTag).not.toHaveBeenCalled()
     expect(results).toEqual({
-      itemsProcessed: 2,
-      itemsUpdated: 2,
-      tagsRemoved: 3,
+      itemsProcessed: 3,
+      itemsUpdated: 3,
+      tagsRemoved: 4,
       tagsDeleted: 0,
       failed: 0,
       instances: 1,
@@ -68,12 +70,12 @@ describe('removeUserTags', () => {
       createUserTagDeps(),
     )
 
-    expect(vi.mocked(adapter.deleteTag).mock.calls).toEqual([[1], [2]])
+    expect(vi.mocked(adapter.deleteTag).mock.calls).toEqual([[1], [2], [4]])
     const bulkOrder = vi.mocked(adapter.bulkUpdateTags).mock
       .invocationCallOrder[0]
     const deleteOrder = vi.mocked(adapter.deleteTag).mock.invocationCallOrder[0]
     expect(bulkOrder).toBeLessThan(deleteOrder)
-    expect(results.tagsDeleted).toBe(2)
+    expect(results.tagsDeleted).toBe(3)
   })
 
   it('keeps definitions when the bulk update failed', async () => {
@@ -91,7 +93,7 @@ describe('removeUserTags', () => {
     )
 
     expect(adapter.deleteTag).not.toHaveBeenCalled()
-    expect(results.failed).toBe(2)
+    expect(results.failed).toBe(3)
     expect(results.itemsUpdated).toBe(0)
   })
 
@@ -117,7 +119,7 @@ describe('removeUserTags', () => {
 
     expect(healthy.bulkUpdateTags).toHaveBeenCalledTimes(1)
     expect(results.instances).toBe(2)
-    expect(results.itemsUpdated).toBe(2)
+    expect(results.itemsUpdated).toBe(3)
   })
 
   it('still removes leftover tags when tagging is disabled for the type', async () => {
@@ -135,9 +137,9 @@ describe('removeUserTags', () => {
       expect.any(Array),
       'remove',
     )
-    expect(adapter.deleteTag).toHaveBeenCalledTimes(2)
+    expect(adapter.deleteTag).toHaveBeenCalledTimes(3)
     expect(adapter.deleteTag).not.toHaveBeenCalledWith(3)
-    expect(results.tagsDeleted).toBe(2)
+    expect(results.tagsDeleted).toBe(3)
   })
 })
 
@@ -154,7 +156,7 @@ describe('removeAllUserTags', () => {
 
     const results = await removeAllUserTags(false, createUserTagDeps())
 
-    expect(results.sonarr.itemsUpdated).toBe(2)
+    expect(results.sonarr.itemsUpdated).toBe(3)
     expect(results.radarr.itemsUpdated).toBe(0)
     expect(radarr.bulkUpdateTags).not.toHaveBeenCalled()
   })

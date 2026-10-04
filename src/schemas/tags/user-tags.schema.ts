@@ -167,7 +167,7 @@ const TagStatusInstanceSchema = z
   .meta({
     id: 'TagStatusInstance',
     description:
-      'User tag counts for one instance; counts are zero and reachable is false when the instance could not be read',
+      'Pulsarr-owned tag counts (user tags and the removed marker) for one instance; counts are zero and reachable is false when the instance could not be read',
   })
 
 export const TagStatusResponseSchema = z

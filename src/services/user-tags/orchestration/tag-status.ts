@@ -2,7 +2,7 @@ import type { NamingSource } from '@utils/tag-normalization.js'
 import { listInstances } from '../arr-adapter.js'
 import {
   getTagSettings,
-  isAppUserTag,
+  isOwnedTag,
   isTaggingEnabled,
 } from '../tag-operations/tag-predicate.js'
 import {
@@ -20,7 +20,7 @@ async function statusForType(
   type: ArrType,
   deps: UserTagDeps,
 ): Promise<TagStatusInstance[]> {
-  const { tagPrefix } = getTagSettings(deps.config)
+  const settings = getTagSettings(deps.config)
   const enabled = isTaggingEnabled(deps.config, type)
   const instances = await listInstances(type, deps)
 
@@ -38,7 +38,7 @@ async function statusForType(
       try {
         if (!adapter) return unknown
         const userTags = (await adapter.getTagDetails()).filter((tag) =>
-          isAppUserTag(tag.label, tagPrefix),
+          isOwnedTag(tag.label, settings),
         )
         const taggedItems = new Set(userTags.flatMap((tag) => tag.itemIds))
         return {
@@ -73,6 +73,7 @@ export async function getTagStatus(deps: UserTagDeps): Promise<TagStatus> {
 export interface TagNamingUpdate {
   tagPrefix?: string
   tagNamingSource?: NamingSource
+  removedTagPrefix?: string
 }
 
 /** Throws TagNamingBlockedError when the update changes the prefix or naming source while user tags remain or an instance cannot be read. */
@@ -80,18 +81,22 @@ export async function assertPrefixChangeAllowed(
   update: TagNamingUpdate,
   deps: UserTagDeps,
 ): Promise<void> {
-  const { tagPrefix, tagNamingSource } = getTagSettings(deps.config)
+  const { tagPrefix, tagNamingSource, removedTagPrefix } = getTagSettings(
+    deps.config,
+  )
   const changed =
     (update.tagPrefix !== undefined && update.tagPrefix !== tagPrefix) ||
     (update.tagNamingSource !== undefined &&
-      update.tagNamingSource !== tagNamingSource)
+      update.tagNamingSource !== tagNamingSource) ||
+    (update.removedTagPrefix !== undefined &&
+      update.removedTagPrefix !== removedTagPrefix)
   if (!changed) return
 
   const { tagsExist, instances } = await getTagStatus(deps)
   if (tagsExist) {
     throw new TagNamingBlockedError(
       'tags-exist',
-      'Remove existing user tags before changing the tag prefix or naming source',
+      'Remove existing user tags before changing the tag prefix, removed tag label or naming source',
     )
   }
   const unreachable = instances.filter((instance) => !instance.reachable)
@@ -99,7 +104,7 @@ export async function assertPrefixChangeAllowed(
     const names = unreachable.map((instance) => instance.name).join(', ')
     throw new TagNamingBlockedError(
       'unreachable',
-      `Could not verify user tags on ${names}; fix the connection before changing the tag prefix or naming source`,
+      `Could not verify user tags on ${names}; fix the connection before changing the tag prefix, removed tag label or naming source`,
     )
   }
 }

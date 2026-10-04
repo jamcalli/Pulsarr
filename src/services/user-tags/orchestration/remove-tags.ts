@@ -2,7 +2,7 @@ import { getAdapters } from '../arr-adapter.js'
 import {
   getTagSettings,
   groupTagsByItem,
-  isAppUserTag,
+  isOwnedTag,
 } from '../tag-operations/tag-predicate.js'
 import {
   ARR_META,
@@ -38,7 +38,7 @@ export async function removeUserTags(
   // Removal runs even when tagging is off, since leftover tags block prefix changes.
   await ensureMigrationComplete(type, deps)
 
-  const { tagPrefix } = getTagSettings(deps.config)
+  const settings = getTagSettings(deps.config)
 
   return withProgress(
     {
@@ -58,7 +58,7 @@ export async function removeUserTags(
           adapters.map(async (adapter) => {
             try {
               const userTags = (await adapter.getTagDetails()).filter((tag) =>
-                isAppUserTag(tag.label, tagPrefix),
+                isOwnedTag(tag.label, settings),
               )
               return userTags.length > 0
                 ? [{ adapter, userTags, updates: groupTagsByItem(userTags) }]

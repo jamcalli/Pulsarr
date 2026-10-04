@@ -30,6 +30,7 @@ describe('getTagStatus', () => {
             { id: 1, label: 'pulsarr-user-alice', itemIds: [1, 2] },
             { id: 2, label: 'pulsarr-user-bob', itemIds: [2, 3] },
             { id: 3, label: 'unrelated', itemIds: [4] },
+            { id: 4, label: 'pulsarr-removed', itemIds: [5] },
           ]),
         }),
       ],
@@ -49,8 +50,8 @@ describe('getTagStatus', () => {
           name: 'Main',
           enabled: true,
           reachable: true,
-          tagCount: 2,
-          taggedItemCount: 3,
+          tagCount: 3,
+          taggedItemCount: 4,
         },
         {
           type: 'radarr',
@@ -131,6 +132,25 @@ describe('assertPrefixChangeAllowed', () => {
     await expect(
       assertPrefixChangeAllowed({ tagPrefix: 'other' }, createUserTagDeps()),
     ).resolves.toBeUndefined()
+  })
+
+  it('blocks a removed tag label change while the marker remains', async () => {
+    useAdapters({
+      sonarr: [
+        createFakeAdapter({
+          getTagDetails: vi.fn(async () => [
+            { id: 9, label: 'pulsarr-removed', itemIds: [1] },
+          ]),
+        }),
+      ],
+    })
+
+    await expect(
+      assertPrefixChangeAllowed(
+        { removedTagPrefix: 'gone' },
+        createUserTagDeps(),
+      ),
+    ).rejects.toMatchObject({ reason: 'tags-exist' })
   })
 
   it('fails closed when an instance cannot be read', async () => {

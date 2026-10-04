@@ -17,6 +17,7 @@ const TAG_DETAILS = [
   { id: 1, label: 'pulsarr-user-alice', seriesIds: [10, 11] },
   { id: 2, label: 'pulsarr-user-bob', seriesIds: [11] },
   { id: 3, label: 'unrelated', seriesIds: [12] },
+  { id: 4, label: 'pulsarr-removed', seriesIds: [12] },
 ]
 
 describe('user tag status and prefix lock', () => {
@@ -77,8 +78,8 @@ describe('user tag status and prefix lock', () => {
           name: 'Main',
           enabled: true,
           reachable: true,
-          tagCount: 2,
-          taggedItemCount: 2,
+          tagCount: 3,
+          taggedItemCount: 3,
         },
       ],
     })
@@ -121,7 +122,7 @@ describe('user tag status and prefix lock', () => {
       statusCode: 409,
       error: 'Conflict',
       message:
-        'Remove existing user tags before changing the tag prefix or naming source',
+        'Remove existing user tags before changing the tag prefix, removed tag label or naming source',
     })
     const row = await getTestDatabase()('configs').where({ id: 1 }).first()
     expect(row?.tagPrefix).toBe('pulsarr:user')
