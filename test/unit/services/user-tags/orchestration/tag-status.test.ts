@@ -1,5 +1,8 @@
 import type { ArrSource, ArrType } from '@services/user-tags/types.js'
-import { UserTagsExistError } from '@services/user-tags/types.js'
+import {
+  TagStatusUnavailableError,
+  UserTagsExistError,
+} from '@services/user-tags/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createFakeAdapter,
@@ -53,6 +56,8 @@ describe('getTagStatus', () => {
           type: 'sonarr',
           instanceId: 1,
           name: 'Main',
+          enabled: true,
+          reachable: true,
           tagCount: 2,
           taggedItemCount: 3,
         },
@@ -60,6 +65,8 @@ describe('getTagStatus', () => {
           type: 'radarr',
           instanceId: 5,
           name: 'Movies',
+          enabled: true,
+          reachable: true,
           tagCount: 0,
           taggedItemCount: 0,
         },
@@ -67,19 +74,28 @@ describe('getTagStatus', () => {
     })
   })
 
-  it('leaves out types whose tagging is off', async () => {
-    const radarr = createFakeSource('radarr', [createFakeAdapter()])
+  it('still reports instances of a type whose tagging is off', async () => {
+    const radarr = createFakeSource('radarr', [
+      createFakeAdapter({
+        type: 'radarr',
+        getTagDetails: vi.fn(async () => [
+          { id: 1, label: 'pulsarr-user-alice', itemIds: [1] },
+        ]),
+      }),
+    ])
     useSources({ radarr })
 
     const status = await getTagStatus(
       createUserTagDeps({ config: { tagUsersInRadarr: false } }),
     )
 
-    expect(radarr.getInstances).not.toHaveBeenCalled()
-    expect(status.instances.every((i) => i.type === 'sonarr')).toBe(true)
+    expect(status.tagsExist).toBe(true)
+    expect(status.instances).toEqual([
+      expect.objectContaining({ type: 'radarr', enabled: false, tagCount: 1 }),
+    ])
   })
 
-  it('reports a failing instance as zeros', async () => {
+  it('reports a failing instance as unreachable with zero counts', async () => {
     useSources({
       sonarr: createFakeSource('sonarr', [
         createFakeAdapter({
@@ -94,6 +110,7 @@ describe('getTagStatus', () => {
 
     expect(status.tagsExist).toBe(false)
     expect(status.instances[0]).toMatchObject({
+      reachable: false,
       tagCount: 0,
       taggedItemCount: 0,
     })
@@ -125,6 +142,43 @@ describe('assertPrefixChangeAllowed', () => {
     await expect(
       assertPrefixChangeAllowed({ tagPrefix: 'other' }, createUserTagDeps()),
     ).resolves.toBeUndefined()
+  })
+
+  it('fails closed when an instance cannot be read', async () => {
+    useSources({
+      sonarr: createFakeSource('sonarr', [
+        createFakeAdapter({
+          name: 'Main',
+          getTagDetails: vi.fn(async () => {
+            throw new Error('timeout')
+          }),
+        }),
+      ]),
+    })
+
+    await expect(
+      assertPrefixChangeAllowed({ tagPrefix: 'other' }, createUserTagDeps()),
+    ).rejects.toBeInstanceOf(TagStatusUnavailableError)
+  })
+
+  it('blocks a change while tags remain on a type whose tagging is off', async () => {
+    useSources({
+      radarr: createFakeSource('radarr', [
+        createFakeAdapter({
+          type: 'radarr',
+          getTagDetails: vi.fn(async () => [
+            { id: 1, label: 'pulsarr-user-alice', itemIds: [] },
+          ]),
+        }),
+      ]),
+    })
+
+    await expect(
+      assertPrefixChangeAllowed(
+        { tagPrefix: 'other' },
+        createUserTagDeps({ config: { tagUsersInRadarr: false } }),
+      ),
+    ).rejects.toBeInstanceOf(UserTagsExistError)
   })
 
   it('does not read tag status when neither value changes', async () => {

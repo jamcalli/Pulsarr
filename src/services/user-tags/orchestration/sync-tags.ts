@@ -287,10 +287,11 @@ export async function syncTags(
       })
     }
 
+    // The migration rewrites tag ids on arr items, so the library must be read after it.
+    await ensureMigrationComplete(type, deps)
+
     const library = await source.fetchLibrary()
     const watchlistItems = await source.watchlistItemsForType()
-
-    await ensureMigrationComplete(type, deps)
 
     const results = await tagContentWithData(
       { type, items: library, watchlistItems },

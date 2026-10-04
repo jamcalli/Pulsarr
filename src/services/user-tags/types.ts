@@ -134,6 +134,10 @@ export interface TagStatusInstance {
   type: ArrType
   instanceId: number
   name: string
+  /** Whether tagging is switched on for this instance type; tags can remain after it is switched off. */
+  enabled: boolean
+  /** False when the arr could not be read, in which case the counts are unknown and reported as 0. */
+  reachable: boolean
   tagCount: number
   taggedItemCount: number
 }
@@ -143,9 +147,22 @@ export interface TagStatus {
   instances: TagStatusInstance[]
 }
 
-export class UserTagsExistError extends Error {
+export class TagNamingBlockedError extends Error {}
+
+export class UserTagsExistError extends TagNamingBlockedError {
   constructor() {
-    super('User tags exist in at least one instance')
+    super(
+      'Remove existing user tags before changing the tag prefix or naming source',
+    )
     this.name = 'UserTagsExistError'
+  }
+}
+
+export class TagStatusUnavailableError extends TagNamingBlockedError {
+  constructor(instances: string[]) {
+    super(
+      `Could not verify user tags on ${instances.join(', ')}; fix the connection before changing the tag prefix or naming source`,
+    )
+    this.name = 'TagStatusUnavailableError'
   }
 }

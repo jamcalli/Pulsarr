@@ -3173,6 +3173,12 @@
           "name": {
             "type": "string"
           },
+          "enabled": {
+            "type": "boolean"
+          },
+          "reachable": {
+            "type": "boolean"
+          },
           "tagCount": {
             "type": "number"
           },
@@ -3184,11 +3190,13 @@
           "type",
           "instanceId",
           "name",
+          "enabled",
+          "reachable",
           "tagCount",
           "taggedItemCount"
         ],
         "additionalProperties": false,
-        "description": "User tag counts for one instance, zero when the instance could not be read"
+        "description": "User tag counts for one instance; counts are zero and reachable is false when the instance could not be read"
       },
       "TagSyncStats": {
         "type": "object",

@@ -9,6 +9,7 @@ import {
   type ArrType,
   type TagStatus,
   type TagStatusInstance,
+  TagStatusUnavailableError,
   type UserTagDeps,
   UserTagsExistError,
 } from '../types.js'
@@ -21,26 +22,30 @@ async function statusForType(
 ): Promise<TagStatusInstance[]> {
   const source = getArrSource(type, deps)
   const { tagPrefix } = getTagSettings(deps.config)
+  const enabled = isTaggingEnabled(deps.config, type)
   const instances = await source.getInstances()
 
   return Promise.all(
     instances.map(async (instance): Promise<TagStatusInstance> => {
-      const status = {
+      const unknown = {
         type,
         instanceId: instance.id,
         name: instance.name,
+        enabled,
+        reachable: false,
         tagCount: 0,
         taggedItemCount: 0,
       }
       try {
         const adapter = source.getAdapter(instance)
-        if (!adapter) return status
+        if (!adapter) return unknown
         const userTags = (await adapter.getTagDetails()).filter((tag) =>
           isAppUserTag(tag.label, tagPrefix),
         )
         const taggedItems = new Set(userTags.flatMap((tag) => tag.itemIds))
         return {
-          ...status,
+          ...unknown,
+          reachable: true,
           tagCount: userTags.length,
           taggedItemCount: taggedItems.size,
         }
@@ -49,19 +54,16 @@ async function statusForType(
           { error },
           `Error reading user tag status from ${source.displayName} instance ${instance.name}`,
         )
-        return status
+        return unknown
       }
     }),
   )
 }
 
-/** Instances of a type whose tagging is off are left out entirely. */
+/** Every configured instance is reported, including types whose tagging is off, since their tags outlive the switch. */
 export async function getTagStatus(deps: UserTagDeps): Promise<TagStatus> {
-  const enabledTypes = ARR_TYPES.filter((type) =>
-    isTaggingEnabled(deps.config, type),
-  )
   const instances = (
-    await Promise.all(enabledTypes.map((type) => statusForType(type, deps)))
+    await Promise.all(ARR_TYPES.map((type) => statusForType(type, deps)))
   ).flat()
 
   return {
@@ -87,6 +89,12 @@ export async function assertPrefixChangeAllowed(
       update.tagNamingSource !== tagNamingSource)
   if (!changed) return
 
-  const { tagsExist } = await getTagStatus(deps)
+  const { tagsExist, instances } = await getTagStatus(deps)
   if (tagsExist) throw new UserTagsExistError()
+  const unreachable = instances.filter((instance) => !instance.reachable)
+  if (unreachable.length > 0) {
+    throw new TagStatusUnavailableError(
+      unreachable.map((instance) => instance.name),
+    )
+  }
 }

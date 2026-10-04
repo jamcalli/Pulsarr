@@ -23,6 +23,7 @@ describe('user tag status and prefix lock', () => {
   let app: FastifyInstance
   let originalGetAllInstances: FastifyInstance['sonarrManager']['getAllInstances']
   let originalGetSonarrService: FastifyInstance['sonarrManager']['getSonarrService']
+  let originalGetRadarrInstances: FastifyInstance['radarrManager']['getAllInstances']
   let getTagDetails: ReturnType<typeof vi.fn>
 
   beforeAll(async () => {
@@ -30,6 +31,7 @@ describe('user tag status and prefix lock', () => {
     await app.ready()
     originalGetAllInstances = app.sonarrManager.getAllInstances
     originalGetSonarrService = app.sonarrManager.getSonarrService
+    originalGetRadarrInstances = app.radarrManager.getAllInstances
   })
 
   afterAll(async () => {
@@ -51,11 +53,14 @@ describe('user tag status and prefix lock', () => {
     app.sonarrManager.getSonarrService = vi
       .fn()
       .mockReturnValue({ getTagDetails })
+    // the seeded Radarr instance has no live service and would fail the guard closed
+    app.radarrManager.getAllInstances = vi.fn().mockResolvedValue([])
   })
 
   afterEach(() => {
     app.sonarrManager.getAllInstances = originalGetAllInstances
     app.sonarrManager.getSonarrService = originalGetSonarrService
+    app.radarrManager.getAllInstances = originalGetRadarrInstances
   })
 
   it('GET /v1/tags/status reports per-instance counts', async () => {
@@ -70,6 +75,8 @@ describe('user tag status and prefix lock', () => {
           type: 'sonarr',
           instanceId: 1,
           name: 'Main',
+          enabled: true,
+          reachable: true,
           tagCount: 2,
           taggedItemCount: 2,
         },
@@ -85,8 +92,21 @@ describe('user tag status and prefix lock', () => {
     expect(res.statusCode).toBe(200)
     expect(res.json()).toMatchObject({
       tagsExist: false,
-      instances: [{ tagCount: 0, taggedItemCount: 0 }],
+      instances: [{ reachable: false, tagCount: 0, taggedItemCount: 0 }],
     })
+  })
+
+  it('PUT /v1/config returns 409 when an instance cannot be checked', async () => {
+    getTagDetails.mockRejectedValue(new Error('timeout'))
+
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/v1/config',
+      payload: { tagPrefix: 'renamed' },
+    })
+
+    expect(res.statusCode).toBe(409)
+    expect(res.json().message).toContain('Main')
   })
 
   it('PUT /v1/config returns 409 when the tag prefix changes while tags exist', async () => {

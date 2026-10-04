@@ -3884,12 +3884,14 @@ export interface components {
             tagsExist: boolean;
             instances: components["schemas"]["TagStatusInstance"][];
         };
-        /** @description User tag counts for one instance, zero when the instance could not be read */
+        /** @description User tag counts for one instance; counts are zero and reachable is false when the instance could not be read */
         TagStatusInstance: {
             /** @enum {string} */
             type: "sonarr" | "radarr";
             instanceId: number;
             name: string;
+            enabled: boolean;
+            reachable: boolean;
             tagCount: number;
             taggedItemCount: number;
         };

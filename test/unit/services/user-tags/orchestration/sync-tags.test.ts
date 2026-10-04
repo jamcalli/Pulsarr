@@ -248,7 +248,10 @@ describe('syncTags', () => {
 
     const gateOrder = vi.mocked(ensureMigrationComplete).mock
       .invocationCallOrder[0]
+    const libraryOrder = vi.mocked(source.fetchLibrary).mock
+      .invocationCallOrder[0]
     const tagsOrder = vi.mocked(adapter.getTags).mock.invocationCallOrder[0]
+    expect(gateOrder).toBeLessThan(libraryOrder)
     expect(gateOrder).toBeLessThan(tagsOrder)
   })
 

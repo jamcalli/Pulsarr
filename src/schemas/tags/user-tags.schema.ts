@@ -159,13 +159,15 @@ const TagStatusInstanceSchema = z
     type: z.enum(['sonarr', 'radarr']),
     instanceId: z.number(),
     name: z.string(),
+    enabled: z.boolean(),
+    reachable: z.boolean(),
     tagCount: z.number(),
     taggedItemCount: z.number(),
   })
   .meta({
     id: 'TagStatusInstance',
     description:
-      'User tag counts for one instance, zero when the instance could not be read',
+      'User tag counts for one instance; counts are zero and reachable is false when the instance could not be read',
   })
 
 export const TagStatusResponseSchema = z
