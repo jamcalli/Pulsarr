@@ -1,6 +1,7 @@
 import { BookOpen, Maximize2, Minimize2 } from 'lucide-react'
 import { Fragment } from 'react'
 import { useLocation } from 'react-router-dom'
+import { ThemeToggle } from '@/components/theme-toggle'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -48,6 +49,7 @@ export function AppHeader() {
           ))}
         </BreadcrumbList>
       </Breadcrumb>
+      <ThemeToggle />
       <Button
         variant="ghost"
         size="icon"
