@@ -22,42 +22,54 @@ export const TaggingConfigSchema = z
     message: 'removedTagPrefix required when removedTagMode is "special-tag"',
   })
 
-// Status response schema - REMOVED: Configuration data is now available through main config system only
-
-// Base response schema with common fields
 const BaseResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
 })
 
-// Create operation schemas with discriminant
-const CreateOperationResultSchema = z.object({
-  created: z.number(),
-  skipped: z.number(),
-  failed: z.number(),
-  instances: z.number(),
-})
+const CreateOperationResultSchema = z
+  .object({
+    created: z.number(),
+    skipped: z.number(),
+    failed: z.number(),
+    instances: z.number(),
+  })
+  .meta({
+    id: 'TagCreateStats',
+    description: 'User tag creation counts for one arr type',
+  })
 
 export const CreateTaggingResponseSchema = BaseResponseSchema.extend({
   mode: z.literal('create'),
   sonarr: CreateOperationResultSchema,
   radarr: CreateOperationResultSchema,
+}).meta({
+  id: 'CreateTaggingResponse',
+  description: 'Result of creating user tags in Sonarr and Radarr',
 })
 
-// Sync operation schemas with discriminant
-const SyncOperationResultSchema = z.object({
-  tagged: z.number(),
-  skipped: z.number(),
-  failed: z.number(),
-})
+const SyncOperationResultSchema = z
+  .object({
+    tagged: z.number(),
+    skipped: z.number(),
+    failed: z.number(),
+  })
+  .meta({
+    id: 'TagSyncStats',
+    description: 'User tag sync counts for one arr type',
+  })
 
-// Shared schema for cleanup stats (used in both sync and standalone cleanup)
-const CleanupStatsSchema = z.object({
-  removed: z.number(),
-  skipped: z.number(),
-  failed: z.number(),
-  instances: z.number(),
-})
+const CleanupStatsSchema = z
+  .object({
+    removed: z.number(),
+    skipped: z.number(),
+    failed: z.number(),
+    instances: z.number(),
+  })
+  .meta({
+    id: 'TagCleanupStats',
+    description: 'Orphaned user tag cleanup counts for one arr type',
+  })
 
 export const SyncTaggingResponseSchema = BaseResponseSchema.extend({
   mode: z.literal('sync'),
@@ -69,60 +81,106 @@ export const SyncTaggingResponseSchema = BaseResponseSchema.extend({
       sonarr: CleanupStatsSchema,
     })
     .optional(),
+}).meta({
+  id: 'SyncTaggingResponse',
+  description: 'Result of syncing user tags onto Sonarr and Radarr content',
 })
 
-// Schema for the remove tags response
+const RemoveTagsStatsSchema = z
+  .object({
+    itemsProcessed: z.number(),
+    itemsUpdated: z.number(),
+    tagsRemoved: z.number(),
+    tagsDeleted: z.number(),
+    failed: z.number(),
+    instances: z.number(),
+  })
+  .meta({
+    id: 'RemoveTagsStats',
+    description: 'User tag removal counts for one arr type',
+  })
+
 export const RemoveTagsResponseSchema = BaseResponseSchema.extend({
   mode: z.literal('remove'),
-  sonarr: z.object({
-    itemsProcessed: z.number(),
-    itemsUpdated: z.number(),
-    tagsRemoved: z.number(),
-    tagsDeleted: z.number(),
-    failed: z.number(),
-    instances: z.number(),
-  }),
-  radarr: z.object({
-    itemsProcessed: z.number(),
-    itemsUpdated: z.number(),
-    tagsRemoved: z.number(),
-    tagsDeleted: z.number(),
-    failed: z.number(),
-    instances: z.number(),
-  }),
+  sonarr: RemoveTagsStatsSchema,
+  radarr: RemoveTagsStatsSchema,
+}).meta({
+  id: 'RemoveTagsResponse',
+  description: 'Result of removing user tags from Sonarr and Radarr content',
 })
 
-export const RemoveTagsRequestSchema = z.object({
-  deleteTagDefinitions: z.boolean().optional().default(false),
-})
+export const RemoveTagsRequestSchema = z
+  .object({
+    deleteTagDefinitions: z.boolean().optional().default(false),
+  })
+  .meta({
+    id: 'RemoveTagsPayload',
+    description: 'Options for removing user tags',
+  })
 
-// Union of the two operation types with proper discrimination
 export const TaggingOperationResponseSchema = z.discriminatedUnion('mode', [
   CreateTaggingResponseSchema,
   SyncTaggingResponseSchema,
   RemoveTagsResponseSchema,
 ])
 
-// Cleanup response schema
 export const CleanupResponseSchema = BaseResponseSchema.extend({
   radarr: CleanupStatsSchema,
   sonarr: CleanupStatsSchema,
+}).meta({
+  id: 'TagCleanupResponse',
+  description: 'Result of cleaning up orphaned user tags',
 })
 
-// Instance result for orphaned tag reference cleanup
-const OrphanedRefInstanceResultSchema = z.object({
-  instanceName: z.string(),
-  itemsScanned: z.number(),
-  orphanedTagsFound: z.number(),
-  itemsUpdated: z.number(),
-  error: z.string().optional(),
-})
+const OrphanedRefInstanceResultSchema = z
+  .object({
+    instanceName: z.string(),
+    itemsScanned: z.number(),
+    orphanedTagsFound: z.number(),
+    itemsUpdated: z.number(),
+    error: z.string().optional(),
+  })
+  .meta({
+    id: 'OrphanedTagRefInstanceResult',
+    description: 'Orphaned tag reference cleanup result for one instance',
+  })
 
-// Cleanup orphaned tag references response schema
 export const CleanupOrphanedRefsResponseSchema = BaseResponseSchema.extend({
   radarr: z.object({}).catchall(OrphanedRefInstanceResultSchema),
   sonarr: z.object({}).catchall(OrphanedRefInstanceResultSchema),
+}).meta({
+  id: 'CleanupOrphanedTagRefsResponse',
+  description:
+    'Result of removing references to deleted tags, keyed by instance',
 })
+
+const TagStatusInstanceSchema = z
+  .object({
+    type: z.enum(['sonarr', 'radarr']),
+    instanceId: z.number(),
+    name: z.string(),
+    enabled: z.boolean(),
+    reachable: z.boolean(),
+    tagCount: z.number(),
+    taggedItemCount: z.number(),
+  })
+  .meta({
+    id: 'TagStatusInstance',
+    description:
+      'Pulsarr-owned tag counts (user tags and the removed marker) for one instance; counts are zero and reachable is false when the instance could not be read',
+  })
+
+export const TagStatusResponseSchema = z
+  .object({
+    success: z.boolean(),
+    tagsExist: z.boolean(),
+    instances: z.array(TagStatusInstanceSchema),
+  })
+  .meta({
+    id: 'TagStatus',
+    description:
+      'Whether user tags exist on any instance with tagging enabled, with per-instance counts',
+  })
 
 // Re-export shared schemas
 export { ErrorSchema }
