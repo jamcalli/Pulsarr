@@ -43,10 +43,9 @@ interface CredenzaControlProps extends CredenzaPartProps {
 
 function Credenza(props: CredenzaProps) {
   const isMobile = useIsMobile()
-  const Root = isMobile ? Drawer : Dialog
   return (
     <CredenzaMobileContext.Provider value={isMobile}>
-      <Root {...props} />
+      {isMobile ? <Drawer showSwipeHandle {...props} /> : <Dialog {...props} />}
     </CredenzaMobileContext.Provider>
   )
 }
@@ -70,9 +69,10 @@ function CredenzaContent(props: CredenzaPartProps) {
   return <Content {...props} />
 }
 
-function CredenzaHeader(props: CredenzaPartProps) {
-  const Header = useContext(CredenzaMobileContext) ? DrawerHeader : DialogHeader
-  return <Header {...props} />
+function CredenzaHeader({ className, ...props }: CredenzaPartProps) {
+  const isMobile = useContext(CredenzaMobileContext)
+  const Header = isMobile ? DrawerHeader : DialogHeader
+  return <Header className={cn(isMobile && 'pb-2', className)} {...props} />
 }
 
 function CredenzaTitle(props: CredenzaPartProps) {
@@ -89,12 +89,18 @@ function CredenzaDescription(props: CredenzaPartProps) {
 
 function CredenzaBody({ className, ...props }: CredenzaPartProps) {
   const isMobile = useContext(CredenzaMobileContext)
-  return <div className={cn(isMobile && 'px-4', className)} {...props} />
+  return <div className={cn(isMobile && 'px-4 py-2', className)} {...props} />
 }
 
-function CredenzaFooter(props: CredenzaPartProps) {
-  const Footer = useContext(CredenzaMobileContext) ? DrawerFooter : DialogFooter
-  return <Footer {...props} />
+function CredenzaFooter({ className, ...props }: CredenzaPartProps) {
+  const isMobile = useContext(CredenzaMobileContext)
+  const Footer = isMobile ? DrawerFooter : DialogFooter
+  return (
+    <Footer
+      className={cn(isMobile && 'flex-col-reverse pt-2', className)}
+      {...props}
+    />
+  )
 }
 
 export {

@@ -14,13 +14,14 @@ import {
 } from '@/components/ui/popover'
 import { SidebarHeader } from '@/components/ui/sidebar'
 import { useAvailableUpdate } from '@/hooks/useAvailableUpdate'
+import { formatDate } from '@/lib/format'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import type { AvailableUpdate } from '@/lib/update-status'
 
 function UpdatePopover({ update }: { update: AvailableUpdate }) {
   const title = `v${update.latestVersion} available`
   const released = update.publishedAt
-    ? ` Released ${new Date(update.publishedAt).toLocaleDateString()}.`
+    ? ` Released ${formatDate(new Date(update.publishedAt))}.`
     : ''
 
   return (

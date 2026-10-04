@@ -1,32 +1,57 @@
-import type { ComponentProps } from 'react'
-import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import type { ComponentProps, ReactNode } from 'react'
+import { FieldRow } from '@/components/form/field-row'
+import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { useFieldContext } from '@/lib/form-context'
 
-type TextFieldProps = { label: string } & Pick<
+type TextFieldProps = {
+  label: string
+  description?: string
+  disabled?: boolean
+  preview?: (value: string) => ReactNode
+} & Pick<
   ComponentProps<typeof Input>,
   'type' | 'autoComplete' | 'autoFocus' | 'placeholder' | 'required'
 >
 
-export function TextField({ label, ...inputProps }: TextFieldProps) {
+export function TextField({
+  label,
+  description,
+  disabled,
+  preview,
+  ...inputProps
+}: TextFieldProps) {
   const field = useFieldContext<string>()
   const isInvalid = field.state.meta.errors.length > 0
   const errorId = `${field.name}-error`
 
   return (
-    <Field data-invalid={isInvalid}>
-      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-      <Input
-        {...inputProps}
-        id={field.name}
-        name={field.name}
-        value={field.state.value}
-        onBlur={field.handleBlur}
-        onChange={(event) => field.handleChange(event.target.value)}
-        aria-invalid={isInvalid}
-        aria-describedby={isInvalid ? errorId : undefined}
-      />
-      <FieldError id={errorId} errors={field.state.meta.errors} />
-    </Field>
+    <FieldRow
+      label={label}
+      description={description}
+      disabled={disabled}
+      htmlFor={field.name}
+      invalid={isInvalid}
+    >
+      <div className="flex flex-col gap-2 @md/field-group:basis-72">
+        <Input
+          {...inputProps}
+          id={field.name}
+          name={field.name}
+          value={field.state.value}
+          disabled={disabled}
+          onBlur={field.handleBlur}
+          onChange={(event) => field.handleChange(event.target.value)}
+          aria-invalid={isInvalid}
+          aria-describedby={isInvalid ? errorId : undefined}
+        />
+        {preview && (
+          <p className="text-sm text-muted-foreground">
+            {preview(field.state.value)}
+          </p>
+        )}
+        <FieldError id={errorId} errors={field.state.meta.errors} />
+      </div>
+    </FieldRow>
   )
 }
