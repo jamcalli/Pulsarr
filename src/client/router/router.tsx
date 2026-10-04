@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { PageSkeleton } from '@/components/page-header'
+import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
 import AuthenticatedLayout from '@/legacy/layouts/authenticated'
@@ -8,6 +9,7 @@ import { BASE_PATH } from '@/lib/basePath.js'
 
 const LoginPage = lazy(() => import('@/features/auth'))
 const HomePage = lazy(() => import('@/features/home'))
+const UserTagsPage = lazy(() => import('@/features/users/pages/user-tags'))
 const CreateUserPage = lazy(() => import('@/legacy/features/setup'))
 const PlexConfigurationPage = lazy(
   () => import('@/legacy/features/system/pages/plex-connection'),
@@ -32,7 +34,7 @@ const NewUserDefaultsPage = lazy(
 const PlexSessionMonitoringPage = lazy(
   () => import('@/legacy/features/library/pages/plex-session-monitoring'),
 )
-const UserTagsPage = lazy(
+const LegacyUserTagsPage = lazy(
   () => import('@/legacy/features/users/pages/user-tags'),
 )
 const PlexLabelsPage = lazy(
@@ -96,6 +98,14 @@ export const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<PageSkeleton />}>
                   <HomePage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'users/tags',
+              element: (
+                <Suspense fallback={<SettingsPageSkeleton sections={4} />}>
+                  <UserTagsPage />
                 </Suspense>
               ),
             },
@@ -274,7 +284,7 @@ export const router = createBrowserRouter(
               element: (
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
-                    <UserTagsPage />
+                    <LegacyUserTagsPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),

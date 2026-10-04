@@ -152,7 +152,7 @@ describe('AppSidebar', () => {
 
     expect(screen.getByRole('link', { name: 'User tags' })).toHaveAttribute(
       'href',
-      '/utilities/user-tags',
+      '/users/tags',
     )
   })
 

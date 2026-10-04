@@ -31,12 +31,18 @@ describe('pageHref', () => {
     expect(pageHref(rebuilt)).toBe('/library/content-router')
   })
 
-  it('points every page at a legacy URL today', () => {
+  it('points rebuilt pages at their new URL and the rest at a legacy URL', () => {
     for (const section of NAV_SECTIONS) {
       for (const navPage of section.pages) {
-        expect(pageHref(navPage)).toBe(navPage.legacy[0])
+        expect(pageHref(navPage)).toBe(
+          navPage.rebuilt ? navPage.to : navPage.legacy[0],
+        )
       }
     }
+  })
+
+  it('links User tags to its rebuilt page', () => {
+    expect(pageHref(NAV_PAGES.userTags)).toBe('/users/tags')
   })
 })
 

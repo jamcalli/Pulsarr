@@ -11,12 +11,11 @@ export const TaggingConfigSchema = z
     tagUsersInSonarr: z.boolean(),
     tagUsersInRadarr: z.boolean(),
     cleanupOrphanedTags: z.boolean(),
-    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
+    removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
     // Despite the name, this is the complete tag label, not just a prefix
-    removedTagPrefix:
-      RemovedTagPrefixSchema.optional().default('pulsarr-removed'),
+    removedTagPrefix: RemovedTagPrefixSchema,
     tagPrefix: TagPrefixSchema,
-    tagNamingSource: z.enum(['username', 'alias']).default('username'),
+    tagNamingSource: z.enum(['username', 'alias']),
   })
   .refine((v) => v.removedTagMode !== 'special-tag' || v.removedTagPrefix, {
     message: 'removedTagPrefix required when removedTagMode is "special-tag"',
