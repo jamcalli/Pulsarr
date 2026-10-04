@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/toast'
 import { useMinLoadingMutation } from '@/hooks/useMinLoading'
 import { $api, mutationErrorMessage } from '@/lib/tanstackApi'
 
@@ -8,7 +8,7 @@ export function useLogin() {
   const login = useMinLoadingMutation(
     $api.useMutation('post', '/v1/users/login', {
       onSuccess: ({ username, redirectTo }) => {
-        toast.success(`Welcome back, ${username}!`)
+        toast.add({ type: 'success', title: `Welcome back, ${username}!` })
         navigate(redirectTo || '/dashboard')
       },
     }),

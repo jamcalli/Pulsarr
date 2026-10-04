@@ -200,7 +200,7 @@ function trimTrailingSlash(path: string): string {
   return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path
 }
 
-function pathMatches(pattern: string, pathname: string): boolean {
+export function pathMatches(pattern: string, pathname: string): boolean {
   if (pattern === '/') return pathname === '/'
   return pathname === pattern || pathname.startsWith(`${pattern}/`)
 }

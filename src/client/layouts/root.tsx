@@ -7,7 +7,8 @@ import AsteroidsBackground from '@/components/backdrop/asteroids'
 import CRTOverlay from '@/components/backdrop/crt-overlay'
 import Pulsar from '@/components/backdrop/pulsar'
 import ParallaxStarfield from '@/components/backdrop/starfield'
-import { Toaster } from '@/components/ui/sonner'
+import { Toaster as LegacyToaster } from '@/components/ui/sonner'
+import { Toaster } from '@/components/ui/toast'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { usePageVisibility } from '@/hooks/usePageVisibility'
 import { useSettings } from '@/hooks/useSettings'
@@ -121,6 +122,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <main className="relative z-10 flex min-h-svh items-center justify-center">
         {children}
       </main>
+      <LegacyToaster />
       <Toaster />
     </div>
   )
