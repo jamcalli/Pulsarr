@@ -1,18 +1,18 @@
-import { getArrSource } from '../arr-adapter.js'
-import { groupTagsByItem } from '../tag-operations/tag-grouping.js'
+import { getAdapters } from '../arr-adapter.js'
 import {
   getTagSettings,
+  groupTagsByItem,
   isAppUserTag,
   isTaggingEnabled,
 } from '../tag-operations/tag-predicate.js'
-import type {
-  ArrAdapter,
-  ArrType,
-  RemoveResults,
-  TagDetail,
-  UserTagDeps,
+import {
+  ARR_META,
+  type ArrType,
+  type RemoveResults,
+  type UserTagDeps,
 } from '../types.js'
 import { ensureMigrationComplete } from './migration-gate.js'
+import { withProgress } from './progress.js'
 
 const emptyResults = (): RemoveResults => ({
   itemsProcessed: 0,
@@ -22,11 +22,6 @@ const emptyResults = (): RemoveResults => ({
   failed: 0,
   instances: 0,
 })
-
-interface InstanceUserTags {
-  adapter: ArrAdapter
-  userTags: TagDetail[]
-}
 
 export interface RemoveUserTagsParams {
   type: ArrType
@@ -38,8 +33,7 @@ export async function removeUserTags(
   deps: UserTagDeps,
 ): Promise<RemoveResults> {
   const { type, deleteTagDefinitions } = params
-  const source = getArrSource(type, deps)
-  const { displayName, itemNoun } = source
+  const { displayName, itemNoun } = ARR_META[type]
   const results = emptyResults()
 
   if (!isTaggingEnabled(deps.config, type)) {
@@ -52,153 +46,110 @@ export async function removeUserTags(
   await ensureMigrationComplete(type, deps)
 
   const { tagPrefix } = getTagSettings(deps.config)
-  const progressType = `${type}-tag-removal` as const
-  const operationId = `${progressType}-${Date.now()}`
-  const { progress } = deps.fastify
-  const emitProgress = progress.hasActiveConnections()
 
-  try {
-    if (emitProgress) {
-      progress.emit({
-        operationId,
-        type: progressType,
-        phase: 'start',
-        progress: 5,
-        message: `Starting ${displayName} user tag removal...`,
-      })
-    }
+  return withProgress(
+    {
+      type: `${type}-tag-removal`,
+      start: `Starting ${displayName} user tag removal...`,
+      complete: (removed) =>
+        `Completed ${displayName} tag removal: updated ${removed.itemsUpdated} ${itemNoun}, removed ${removed.tagsRemoved} tags, deleted ${removed.tagsDeleted} tag definitions`,
+      failure: `Error removing ${displayName} user tags`,
+      deps,
+    },
+    async (phase) => {
+      const { adapters, instanceCount } = await getAdapters(type, deps)
+      results.instances = instanceCount
 
-    const instances = await source.getInstances()
-    results.instances = instances.length
-
-    const collected = await Promise.all(
-      instances.map(async (instance): Promise<InstanceUserTags | null> => {
-        try {
-          const adapter = source.getAdapter(instance)
-          if (!adapter) return null
-          const userTags = (await adapter.getTagDetails()).filter((tag) =>
-            isAppUserTag(tag.label, tagPrefix),
-          )
-          return userTags.length > 0 ? { adapter, userTags } : null
-        } catch (error) {
-          deps.logger.error(
-            { error },
-            `Error collecting data from instance ${instance.name}:`,
-          )
-          return null
-        }
-      }),
-    )
-    const withUserTags = collected.filter(
-      (entry): entry is InstanceUserTags => entry !== null,
-    )
-
-    const updatesByInstance = withUserTags.map(({ adapter, userTags }) => ({
-      adapter,
-      userTags,
-      updates: groupTagsByItem(userTags),
-    }))
-    const totalItems = updatesByInstance.reduce(
-      (sum, entry) => sum + entry.updates.length,
-      0,
-    )
-    let processedItems = 0
-
-    for (const { adapter, userTags, updates } of updatesByInstance) {
-      results.itemsProcessed += updates.length
-      deps.logger.debug(
-        {
-          instance: adapter.name,
-          instanceId: adapter.instanceId,
-          taggedItems: updates.length,
-        },
-        `Processing ${itemNoun} for tag removal`,
-      )
-
-      let bulkSucceeded = true
-      try {
-        if (updates.length > 0) {
-          await adapter.bulkUpdateTags(updates, 'remove')
-          results.tagsRemoved += updates.reduce(
-            (sum, update) => sum + update.tagIds.length,
-            0,
-          )
-          results.itemsUpdated += updates.length
-        }
-      } catch (instanceError) {
-        bulkSucceeded = false
-        deps.logger.error(
-          { error: instanceError },
-          `Error processing instance ${adapter.name}:`,
+      const updatesByInstance = (
+        await Promise.all(
+          adapters.map(async (adapter) => {
+            try {
+              const userTags = (await adapter.getTagDetails()).filter((tag) =>
+                isAppUserTag(tag.label, tagPrefix),
+              )
+              return userTags.length > 0
+                ? [{ adapter, userTags, updates: groupTagsByItem(userTags) }]
+                : []
+            } catch (error) {
+              deps.logger.error(
+                { error },
+                `Error collecting data from instance ${adapter.name}:`,
+              )
+              return []
+            }
+          }),
         )
-        results.failed += updates.length
-      }
+      ).flat()
+      const totalItems = updatesByInstance.reduce(
+        (sum, entry) => sum + entry.updates.length,
+        0,
+      )
+      let processedItems = 0
 
-      processedItems += updates.length
-      if (emitProgress && totalItems > 0) {
-        progress.emit({
-          operationId,
-          type: progressType,
-          phase: `processing-${itemNoun}`,
-          progress: 5 + Math.floor((processedItems / totalItems) * 85),
-          message: `Processed ${updates.length} ${itemNoun} in ${adapter.name} (${processedItems}/${totalItems} total)`,
-        })
-      }
+      for (const { adapter, userTags, updates } of updatesByInstance) {
+        results.itemsProcessed += updates.length
+        deps.logger.debug(
+          {
+            instance: adapter.name,
+            instanceId: adapter.instanceId,
+            taggedItems: updates.length,
+          },
+          `Processing ${itemNoun} for tag removal`,
+        )
 
-      // Deleting a tag definition leaves dangling ids on items that still carry it.
-      if (deleteTagDefinitions && bulkSucceeded) {
-        if (emitProgress) {
-          progress.emit({
-            operationId,
-            type: progressType,
-            phase: 'deleting-tags',
-            progress: 90,
-            message: `Deleting ${userTags.length} tag definitions from ${displayName} instance ${adapter.name}`,
-          })
+        let bulkSucceeded = true
+        try {
+          if (updates.length > 0) {
+            await adapter.bulkUpdateTags(updates, 'remove')
+            results.tagsRemoved += updates.reduce(
+              (sum, update) => sum + update.tagIds.length,
+              0,
+            )
+            results.itemsUpdated += updates.length
+          }
+        } catch (instanceError) {
+          bulkSucceeded = false
+          deps.logger.error(
+            { error: instanceError },
+            `Error processing instance ${adapter.name}:`,
+          )
+          results.failed += updates.length
         }
 
-        for (const tag of userTags) {
-          try {
-            await adapter.deleteTag(tag.id)
-            results.tagsDeleted++
-          } catch (error) {
-            deps.logger.error(
-              { error },
-              `Error deleting tag ID ${tag.id} from ${displayName}:`,
-            )
+        processedItems += updates.length
+        if (totalItems > 0) {
+          phase(
+            `processing-${itemNoun}`,
+            5 + Math.floor((processedItems / totalItems) * 85),
+            `Processed ${updates.length} ${itemNoun} in ${adapter.name} (${processedItems}/${totalItems} total)`,
+          )
+        }
+
+        // Deleting a tag definition leaves dangling ids on items that still carry it.
+        if (deleteTagDefinitions && bulkSucceeded) {
+          phase(
+            'deleting-tags',
+            90,
+            `Deleting ${userTags.length} tag definitions from ${displayName} instance ${adapter.name}`,
+          )
+
+          for (const tag of userTags) {
+            try {
+              await adapter.deleteTag(tag.id)
+              results.tagsDeleted++
+            } catch (error) {
+              deps.logger.error(
+                { error },
+                `Error deleting tag ID ${tag.id} from ${displayName}:`,
+              )
+            }
           }
         }
       }
-    }
 
-    if (emitProgress) {
-      progress.emit({
-        operationId,
-        type: progressType,
-        phase: 'complete',
-        progress: 100,
-        message: `Completed ${displayName} tag removal: updated ${results.itemsUpdated} ${itemNoun}, removed ${results.tagsRemoved} tags, deleted ${results.tagsDeleted} tag definitions`,
-      })
-    }
-
-    return results
-  } catch (error) {
-    deps.logger.error({ error }, `Error removing ${displayName} user tags:`)
-
-    if (emitProgress) {
-      progress.emit({
-        operationId,
-        type: progressType,
-        phase: 'error',
-        progress: 100,
-        message: `Error removing ${displayName} user tags: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      })
-    }
-
-    throw error
-  }
+      return results
+    },
+  )
 }
 
 export async function removeAllUserTags(

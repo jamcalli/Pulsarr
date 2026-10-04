@@ -1,6 +1,10 @@
+import {
+  type ArrInstance,
+  getAdapters,
+  listInstances,
+} from '@services/user-tags/arr-adapter.js'
 import type {
   ArrAdapter,
-  ArrSource,
   ArrType,
   UserTagDeps,
 } from '@services/user-tags/types.js'
@@ -12,7 +16,7 @@ type ShallowPartial<T> = { [K in keyof T]?: Partial<T[K]> }
 export function createUserTagDeps(
   overrides: ShallowPartial<Omit<UserTagDeps, 'logger'>> = {},
 ): UserTagDeps {
-  const { config, fastify, migration, ...rest } = overrides
+  const { config, progress, migration, ...rest } = overrides
 
   // the only place tests widen partial fakes into the real dependency types
   return {
@@ -28,12 +32,10 @@ export function createUserTagDeps(
       ...config,
     },
     db: {},
-    fastify: {
-      progress: {
-        hasActiveConnections: vi.fn(() => false),
-        emit: vi.fn(),
-      },
-      ...fastify,
+    progress: {
+      hasActiveConnections: vi.fn(() => false),
+      emit: vi.fn(),
+      ...progress,
     },
     sonarrManager: {},
     radarrManager: {},
@@ -59,7 +61,6 @@ export function createFakeAdapter(
     createTag: vi.fn(async (label: string) => ({ id: 999, label })),
     deleteTag: vi.fn(async () => undefined),
     bulkUpdateTags: vi.fn(async () => undefined),
-    getAllItems: vi.fn(async () => []),
     extractItemId: vi.fn((guids: string[]) => {
       const arrGuid = guids.find((guid) => /^(sonarr|radarr):\d+$/.test(guid))
       return arrGuid ? Number(arrGuid.split(':')[1]) : 0
@@ -69,25 +70,26 @@ export function createFakeAdapter(
   }
 }
 
-export function createFakeSource(
-  type: ArrType,
-  adapters: Array<ArrAdapter | undefined>,
-  overrides: Partial<ArrSource> = {},
-): ArrSource {
-  const instances = adapters.map((adapter, index) => ({
-    id: adapter?.instanceId ?? 100 + index,
-    name: adapter?.name ?? `missing-${index}`,
-  }))
-  return {
-    type,
-    displayName: type === 'sonarr' ? 'Sonarr' : 'Radarr',
-    itemNoun: type === 'sonarr' ? 'series' : 'movies',
-    getInstances: vi.fn(async () => instances),
-    getAdapter: vi.fn((instance) =>
-      adapters.find((adapter) => adapter?.instanceId === instance.id),
-    ),
-    fetchLibrary: vi.fn(async () => []),
-    watchlistItemsForType: vi.fn(async () => []),
-    ...overrides,
-  }
+/** Requires the calling test file to `vi.mock('@services/user-tags/arr-adapter.js')`; undefined entries stand for instances without a live service. */
+export function useAdapters(
+  adapters: Partial<Record<ArrType, Array<ArrAdapter | undefined>>>,
+): void {
+  const instancesFor = (type: ArrType): ArrInstance[] =>
+    (adapters[type] ?? []).map((adapter, index) => ({
+      instance: {
+        id: adapter?.instanceId ?? 100 + index,
+        name: adapter?.name ?? `missing-${index}`,
+      },
+      adapter,
+    }))
+  vi.mocked(listInstances).mockImplementation(async (type) =>
+    instancesFor(type),
+  )
+  vi.mocked(getAdapters).mockImplementation(async (type) => {
+    const instances = instancesFor(type)
+    return {
+      adapters: instances.flatMap(({ adapter }) => (adapter ? [adapter] : [])),
+      instanceCount: instances.length,
+    }
+  })
 }

@@ -1,16 +1,16 @@
-import type { ArrSource, ArrType } from '@services/user-tags/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createFakeAdapter,
-  createFakeSource,
   createUserTagDeps,
+  useAdapters,
 } from '../../../../mocks/user-tag-deps.js'
 
 vi.mock('@services/user-tags/arr-adapter.js', () => ({
-  getArrSource: vi.fn(),
+  getAdapters: vi.fn(),
+  listInstances: vi.fn(),
 }))
 
-import { getArrSource } from '@services/user-tags/arr-adapter.js'
+import { getAdapters, listInstances } from '@services/user-tags/arr-adapter.js'
 import {
   removeAllUserTags,
   removeUserTags,
@@ -22,29 +22,23 @@ const USER_TAGS = [
   { id: 3, label: 'unrelated', itemIds: [10, 12] },
 ]
 
-function useSources(sources: Partial<Record<ArrType, ArrSource>>) {
-  vi.mocked(getArrSource).mockImplementation(
-    (type) => sources[type] ?? createFakeSource(type, []),
-  )
-}
-
 describe('removeUserTags', () => {
   beforeEach(() => {
-    vi.mocked(getArrSource).mockReset()
+    vi.mocked(getAdapters).mockReset()
+    vi.mocked(listInstances).mockReset()
   })
 
   it('builds bulk removes from tag details without reading the library', async () => {
     const adapter = createFakeAdapter({
       getTagDetails: vi.fn(async () => USER_TAGS),
     })
-    useSources({ sonarr: createFakeSource('sonarr', [adapter]) })
+    useAdapters({ sonarr: [adapter] })
 
     const results = await removeUserTags(
       { type: 'sonarr', deleteTagDefinitions: false },
       createUserTagDeps(),
     )
 
-    expect(adapter.getAllItems).not.toHaveBeenCalled()
     expect(adapter.bulkUpdateTags).toHaveBeenCalledWith(
       [
         { itemId: 10, tagIds: [1] },
@@ -67,7 +61,7 @@ describe('removeUserTags', () => {
     const adapter = createFakeAdapter({
       getTagDetails: vi.fn(async () => USER_TAGS),
     })
-    useSources({ sonarr: createFakeSource('sonarr', [adapter]) })
+    useAdapters({ sonarr: [adapter] })
 
     const results = await removeUserTags(
       { type: 'sonarr', deleteTagDefinitions: true },
@@ -89,7 +83,7 @@ describe('removeUserTags', () => {
         throw new Error('arr down')
       }),
     })
-    useSources({ sonarr: createFakeSource('sonarr', [adapter]) })
+    useAdapters({ sonarr: [adapter] })
 
     const results = await removeUserTags(
       { type: 'sonarr', deleteTagDefinitions: true },
@@ -114,7 +108,7 @@ describe('removeUserTags', () => {
       name: 'Healthy',
       getTagDetails: vi.fn(async () => USER_TAGS),
     })
-    useSources({ radarr: createFakeSource('radarr', [broken, healthy]) })
+    useAdapters({ radarr: [broken, healthy] })
 
     const results = await removeUserTags(
       { type: 'radarr', deleteTagDefinitions: false },
@@ -128,7 +122,7 @@ describe('removeUserTags', () => {
 
   it('does nothing when tagging is disabled for the type', async () => {
     const adapter = createFakeAdapter()
-    useSources({ sonarr: createFakeSource('sonarr', [adapter]) })
+    useAdapters({ sonarr: [adapter] })
 
     const results = await removeUserTags(
       { type: 'sonarr', deleteTagDefinitions: true },
@@ -146,9 +140,9 @@ describe('removeAllUserTags', () => {
       getTagDetails: vi.fn(async () => USER_TAGS),
     })
     const radarr = createFakeAdapter({ type: 'radarr' })
-    useSources({
-      sonarr: createFakeSource('sonarr', [sonarr]),
-      radarr: createFakeSource('radarr', [radarr]),
+    useAdapters({
+      sonarr: [sonarr],
+      radarr: [radarr],
     })
 
     const results = await removeAllUserTags(false, createUserTagDeps())

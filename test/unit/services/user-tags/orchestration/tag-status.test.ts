@@ -1,39 +1,30 @@
-import type { ArrSource, ArrType } from '@services/user-tags/types.js'
-import {
-  TagStatusUnavailableError,
-  UserTagsExistError,
-} from '@services/user-tags/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createFakeAdapter,
-  createFakeSource,
   createUserTagDeps,
+  useAdapters,
 } from '../../../../mocks/user-tag-deps.js'
 
 vi.mock('@services/user-tags/arr-adapter.js', () => ({
-  getArrSource: vi.fn(),
+  getAdapters: vi.fn(),
+  listInstances: vi.fn(),
 }))
 
-import { getArrSource } from '@services/user-tags/arr-adapter.js'
+import { getAdapters, listInstances } from '@services/user-tags/arr-adapter.js'
 import {
   assertPrefixChangeAllowed,
   getTagStatus,
 } from '@services/user-tags/orchestration/tag-status.js'
 
-function useSources(sources: Partial<Record<ArrType, ArrSource>>) {
-  vi.mocked(getArrSource).mockImplementation(
-    (type) => sources[type] ?? createFakeSource(type, []),
-  )
-}
-
 describe('getTagStatus', () => {
   beforeEach(() => {
-    vi.mocked(getArrSource).mockReset()
+    vi.mocked(getAdapters).mockReset()
+    vi.mocked(listInstances).mockReset()
   })
 
   it('counts user tags and distinct tagged items per instance', async () => {
-    useSources({
-      sonarr: createFakeSource('sonarr', [
+    useAdapters({
+      sonarr: [
         createFakeAdapter({
           getTagDetails: vi.fn(async () => [
             { id: 1, label: 'pulsarr-user-alice', itemIds: [1, 2] },
@@ -41,10 +32,10 @@ describe('getTagStatus', () => {
             { id: 3, label: 'unrelated', itemIds: [4] },
           ]),
         }),
-      ]),
-      radarr: createFakeSource('radarr', [
+      ],
+      radarr: [
         createFakeAdapter({ type: 'radarr', instanceId: 5, name: 'Movies' }),
-      ]),
+      ],
     })
 
     const status = await getTagStatus(createUserTagDeps())
@@ -75,15 +66,15 @@ describe('getTagStatus', () => {
   })
 
   it('still reports instances of a type whose tagging is off', async () => {
-    const radarr = createFakeSource('radarr', [
+    const radarr = [
       createFakeAdapter({
         type: 'radarr',
         getTagDetails: vi.fn(async () => [
           { id: 1, label: 'pulsarr-user-alice', itemIds: [1] },
         ]),
       }),
-    ])
-    useSources({ radarr })
+    ]
+    useAdapters({ radarr })
 
     const status = await getTagStatus(
       createUserTagDeps({ config: { tagUsersInRadarr: false } }),
@@ -96,14 +87,14 @@ describe('getTagStatus', () => {
   })
 
   it('reports a failing instance as unreachable with zero counts', async () => {
-    useSources({
-      sonarr: createFakeSource('sonarr', [
+    useAdapters({
+      sonarr: [
         createFakeAdapter({
           getTagDetails: vi.fn(async () => {
             throw new Error('timeout')
           }),
         }),
-      ]),
+      ],
     })
 
     const status = await getTagStatus(createUserTagDeps())
@@ -122,21 +113,19 @@ describe('assertPrefixChangeAllowed', () => {
     const getTagDetails = vi.fn(async () => [
       { id: 1, label: 'pulsarr-user-alice', itemIds: [1] },
     ])
-    useSources({
-      sonarr: createFakeSource('sonarr', [
-        createFakeAdapter({ getTagDetails }),
-      ]),
+    useAdapters({
+      sonarr: [createFakeAdapter({ getTagDetails })],
     })
 
     await expect(
       assertPrefixChangeAllowed({ tagPrefix: 'other' }, createUserTagDeps()),
-    ).rejects.toBeInstanceOf(UserTagsExistError)
+    ).rejects.toMatchObject({ reason: 'tags-exist' })
     await expect(
       assertPrefixChangeAllowed(
         { tagNamingSource: 'alias' },
         createUserTagDeps(),
       ),
-    ).rejects.toBeInstanceOf(UserTagsExistError)
+    ).rejects.toMatchObject({ reason: 'tags-exist' })
 
     getTagDetails.mockResolvedValue([])
     await expect(
@@ -145,32 +134,32 @@ describe('assertPrefixChangeAllowed', () => {
   })
 
   it('fails closed when an instance cannot be read', async () => {
-    useSources({
-      sonarr: createFakeSource('sonarr', [
+    useAdapters({
+      sonarr: [
         createFakeAdapter({
           name: 'Main',
           getTagDetails: vi.fn(async () => {
             throw new Error('timeout')
           }),
         }),
-      ]),
+      ],
     })
 
     await expect(
       assertPrefixChangeAllowed({ tagPrefix: 'other' }, createUserTagDeps()),
-    ).rejects.toBeInstanceOf(TagStatusUnavailableError)
+    ).rejects.toMatchObject({ reason: 'unreachable' })
   })
 
   it('blocks a change while tags remain on a type whose tagging is off', async () => {
-    useSources({
-      radarr: createFakeSource('radarr', [
+    useAdapters({
+      radarr: [
         createFakeAdapter({
           type: 'radarr',
           getTagDetails: vi.fn(async () => [
             { id: 1, label: 'pulsarr-user-alice', itemIds: [] },
           ]),
         }),
-      ]),
+      ],
     })
 
     await expect(
@@ -178,17 +167,15 @@ describe('assertPrefixChangeAllowed', () => {
         { tagPrefix: 'other' },
         createUserTagDeps({ config: { tagUsersInRadarr: false } }),
       ),
-    ).rejects.toBeInstanceOf(UserTagsExistError)
+    ).rejects.toMatchObject({ reason: 'tags-exist' })
   })
 
   it('does not read tag status when neither value changes', async () => {
     const getTagDetails = vi.fn(async () => [
       { id: 1, label: 'pulsarr-user-alice', itemIds: [1] },
     ])
-    useSources({
-      sonarr: createFakeSource('sonarr', [
-        createFakeAdapter({ getTagDetails }),
-      ]),
+    useAdapters({
+      sonarr: [createFakeAdapter({ getTagDetails })],
     })
 
     await expect(

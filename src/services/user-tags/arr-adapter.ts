@@ -1,55 +1,18 @@
-import type { RadarrItem, RadarrMovie } from '@root/types/radarr.types.js'
-import type { SonarrItem, SonarrSeries } from '@root/types/sonarr.types.js'
+import type { RadarrItem } from '@root/types/radarr.types.js'
+import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { RadarrService } from '@services/radarr.service.js'
-import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrService } from '@services/sonarr.service.js'
-import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
+import { extractRadarrId, extractSonarrId } from '@utils/guid-handler.js'
 import {
-  extractRadarrId,
-  extractSonarrId,
-  normalizeGuid,
-} from '@utils/guid-handler.js'
-import type {
-  ArrAdapter,
-  ArrInstanceRef,
-  ArrLibraryItem,
-  ArrSource,
-  ArrType,
-  LibraryItem,
-  UserTagDeps,
+  ARR_META,
+  type ArrAdapter,
+  type ArrInstanceRef,
+  type ArrType,
+  type LibraryItem,
+  type UserTagDeps,
+  type WatchlistGuidItem,
 } from './types.js'
-
-function providerGuids(
-  ids: Array<[provider: string, id: string | number | undefined]>,
-): string[] {
-  return ids
-    .filter(([, id]) => Boolean(id))
-    .map(([provider, id]) => normalizeGuid(`${provider}:${id}`))
-}
-
-function seriesToArrItem(series: SonarrSeries): ArrLibraryItem {
-  return {
-    id: series.id,
-    guids: providerGuids([
-      ['imdb', series.imdbId],
-      ['tmdb', series.tmdbId],
-      ['tvdb', series.tvdbId],
-    ]),
-    tags: series.tags ?? [],
-  }
-}
-
-function movieToArrItem(movie: RadarrMovie): ArrLibraryItem {
-  return {
-    id: movie.id,
-    guids: providerGuids([
-      ['imdb', movie.imdbId],
-      ['tmdb', movie.tmdbId],
-    ]),
-    tags: movie.tags ?? [],
-  }
-}
 
 export function sonarrLibraryItems(series: SonarrItem[]): LibraryItem[] {
   return series.map((item) => ({
@@ -97,8 +60,6 @@ function sonarrAdapter(
         })),
         mode,
       ),
-    getAllItems: async () =>
-      (await service.getAllSeries()).map(seriesToArrItem),
     extractItemId: extractSonarrId,
     usersWithItems: () => db.getUsersWithSonarrItems(instance.id),
   }
@@ -130,52 +91,81 @@ function radarrAdapter(
         })),
         mode,
       ),
-    getAllItems: async () => (await service.getAllMovies()).map(movieToArrItem),
     extractItemId: extractRadarrId,
     usersWithItems: () => db.getUsersWithRadarrItems(instance.id),
   }
 }
 
-function sonarrSource(
-  manager: SonarrManagerService,
-  db: DatabaseService,
-): ArrSource {
-  return {
-    type: 'sonarr',
-    displayName: 'Sonarr',
-    itemNoun: 'series',
-    getInstances: () => manager.getAllInstances(),
-    getAdapter: (instance) => {
+export interface ArrInstance {
+  instance: ArrInstanceRef
+  /** Undefined when the manager has the instance but no initialized service. */
+  adapter: ArrAdapter | undefined
+}
+
+export async function listInstances(
+  type: ArrType,
+  deps: UserTagDeps,
+): Promise<ArrInstance[]> {
+  if (type === 'sonarr') {
+    const manager = deps.sonarrManager
+    return (await manager.getAllInstances()).map((instance) => {
       const service = manager.getSonarrService(instance.id)
-      return service ? sonarrAdapter(instance, service, db) : undefined
-    },
-    fetchLibrary: async () =>
-      sonarrLibraryItems(await manager.fetchAllSeries(true)),
-    watchlistItemsForType: () => db.getAllShowWatchlistItems(),
+      return {
+        instance,
+        adapter: service && sonarrAdapter(instance, service, deps.db),
+      }
+    })
   }
+  const manager = deps.radarrManager
+  return (await manager.getAllInstances()).map((instance) => {
+    const service = manager.getRadarrService(instance.id)
+    return {
+      instance,
+      adapter: service && radarrAdapter(instance, service, deps.db),
+    }
+  })
 }
 
-function radarrSource(
-  manager: RadarrManagerService,
-  db: DatabaseService,
-): ArrSource {
-  return {
-    type: 'radarr',
-    displayName: 'Radarr',
-    itemNoun: 'movies',
-    getInstances: () => manager.getAllInstances(),
-    getAdapter: (instance) => {
-      const service = manager.getRadarrService(instance.id)
-      return service ? radarrAdapter(instance, service, db) : undefined
-    },
-    fetchLibrary: async () =>
-      radarrLibraryItems(await manager.fetchAllMovies(true)),
-    watchlistItemsForType: () => db.getAllMovieWatchlistItems(),
-  }
+export interface ArrAdapters {
+  adapters: ArrAdapter[]
+  /** Counts every configured instance, including those without a live service. */
+  instanceCount: number
 }
 
-export function getArrSource(type: ArrType, deps: UserTagDeps): ArrSource {
+/** Warns with the `skipping` suffix for each instance without a live service; omit it to drop them silently. */
+export async function getAdapters(
+  type: ArrType,
+  deps: UserTagDeps,
+  skipping?: string,
+): Promise<ArrAdapters> {
+  const instances = await listInstances(type, deps)
+  const adapters: ArrAdapter[] = []
+  for (const { instance, adapter } of instances) {
+    if (adapter) {
+      adapters.push(adapter)
+    } else if (skipping) {
+      deps.logger.warn(
+        `${ARR_META[type].displayName} service for instance ${instance.name} not found, ${skipping}`,
+      )
+    }
+  }
+  return { adapters, instanceCount: instances.length }
+}
+
+export async function fetchLibrary(
+  type: ArrType,
+  deps: UserTagDeps,
+): Promise<LibraryItem[]> {
   return type === 'sonarr'
-    ? sonarrSource(deps.sonarrManager, deps.db)
-    : radarrSource(deps.radarrManager, deps.db)
+    ? sonarrLibraryItems(await deps.sonarrManager.fetchAllSeries(true))
+    : radarrLibraryItems(await deps.radarrManager.fetchAllMovies(true))
+}
+
+export function watchlistItemsForType(
+  type: ArrType,
+  deps: UserTagDeps,
+): Promise<WatchlistGuidItem[]> {
+  return type === 'sonarr'
+    ? deps.db.getAllShowWatchlistItems()
+    : deps.db.getAllMovieWatchlistItems()
 }

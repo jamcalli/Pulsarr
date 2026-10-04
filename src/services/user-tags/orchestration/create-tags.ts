@@ -1,15 +1,16 @@
 import type { User } from '@root/types/config.types.js'
-import { getArrSource } from '../arr-adapter.js'
+import { getAdapters } from '../arr-adapter.js'
 import {
   getTagSettings,
   getUserTagLabel,
   isTaggingEnabled,
 } from '../tag-operations/tag-predicate.js'
-import type {
-  ArrAdapter,
-  ArrType,
-  CreateResults,
-  UserTagDeps,
+import {
+  ARR_META,
+  type ArrAdapter,
+  type ArrType,
+  type CreateResults,
+  type UserTagDeps,
 } from '../types.js'
 import { ensureMigrationComplete } from './migration-gate.js'
 
@@ -81,7 +82,7 @@ export async function createUserTags(
   type: ArrType,
   deps: UserTagDeps,
 ): Promise<CreateResults> {
-  const source = getArrSource(type, deps)
+  const { displayName } = ARR_META[type]
   const results: CreateResults = {
     created: 0,
     skipped: 0,
@@ -91,7 +92,7 @@ export async function createUserTags(
 
   if (!isTaggingEnabled(deps.config, type)) {
     deps.logger.debug(
-      `${source.displayName} user tagging disabled, skipping tag creation`,
+      `${displayName} user tagging disabled, skipping tag creation`,
     )
     return results
   }
@@ -99,19 +100,15 @@ export async function createUserTags(
   try {
     await ensureMigrationComplete(type, deps)
 
-    const instances = await source.getInstances()
-    results.instances = instances.length
+    const { adapters, instanceCount } = await getAdapters(
+      type,
+      deps,
+      'skipping tag creation',
+    )
+    results.instances = instanceCount
 
-    for (const instance of instances) {
+    for (const adapter of adapters) {
       try {
-        const adapter = source.getAdapter(instance)
-        if (!adapter) {
-          deps.logger.warn(
-            `${source.displayName} service for instance ${instance.name} not found, skipping tag creation`,
-          )
-          continue
-        }
-
         const users = await adapter.usersWithItems()
         const { failedCount, createdCount } = await ensureUserTags(
           adapter,
@@ -126,19 +123,19 @@ export async function createUserTags(
 
         deps.logger.debug(
           {
-            instance: instance.name,
-            instanceId: instance.id,
+            instance: adapter.name,
+            instanceId: adapter.instanceId,
             usersWithItems: users.length,
             created: createdCount,
             skipped: skippedCount,
             failed: failedCount,
           },
-          `Processed user tags for ${source.displayName} instance`,
+          `Processed user tags for ${displayName} instance`,
         )
       } catch (instanceError) {
         deps.logger.error(
           { error: instanceError },
-          `Error processing tags for ${source.displayName} instance ${instance.name}:`,
+          `Error processing tags for ${displayName} instance ${adapter.name}:`,
         )
       }
     }
@@ -146,10 +143,7 @@ export async function createUserTags(
     await deps.migration.cleanupMigrationFileIfComplete()
     return results
   } catch (error) {
-    deps.logger.error(
-      { error },
-      `Error creating ${source.displayName} user tags:`,
-    )
+    deps.logger.error({ error }, `Error creating ${displayName} user tags:`)
     throw error
   }
 }

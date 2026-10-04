@@ -1,4 +1,8 @@
-import { getArrSource } from '../arr-adapter.js'
+import {
+  fetchLibrary,
+  getAdapters,
+  watchlistItemsForType,
+} from '../arr-adapter.js'
 import {
   buildGuidIndex,
   type GuidIndex,
@@ -10,21 +14,23 @@ import {
   getUserTagLabel,
   isTaggingEnabled,
 } from '../tag-operations/tag-predicate.js'
-import type {
-  ArrAdapter,
-  ArrType,
-  ItemTagUpdate,
-  LibraryItem,
-  OrphanedTagCleanupResults,
-  SyncAllResults,
-  TaggingResults,
-  TagSettings,
-  UserTagDeps,
-  WatchlistGuidItem,
+import {
+  ARR_META,
+  type ArrAdapter,
+  type ArrType,
+  type ItemTagUpdate,
+  type LibraryItem,
+  type OrphanedTagCleanupResults,
+  type SyncAllResults,
+  type TaggingResults,
+  type TagSettings,
+  type UserTagDeps,
+  type WatchlistGuidItem,
 } from '../types.js'
 import { cleanupOrphanedUserTags } from './cleanup-orphans.js'
 import { ensureUserTags } from './create-tags.js'
 import { ensureMigrationComplete } from './migration-gate.js'
+import { withProgress } from './progress.js'
 
 const emptyResults = (): TaggingResults => ({
   tagged: 0,
@@ -86,20 +92,6 @@ async function tagInstance(
   const instanceItems = items.filter(
     (item) => item.instanceId === adapter.instanceId && !item.isExclusion,
   )
-  const hasTagsInData =
-    instanceItems.length > 0 && instanceItems[0].tags !== undefined
-
-  const tagsByItemId = new Map<number, number[]>()
-  if (hasTagsInData) {
-    for (const item of instanceItems) {
-      const itemId = adapter.extractItemId(item.guids)
-      if (itemId > 0) tagsByItemId.set(itemId, item.tags ?? [])
-    }
-  } else {
-    for (const item of await adapter.getAllItems()) {
-      tagsByItemId.set(item.id, item.tags)
-    }
-  }
 
   logger.debug(
     `Processing ${instanceItems.length} items in ${adapter.type} instance ${adapter.name} for bulk tagging`,
@@ -129,7 +121,7 @@ async function tagInstance(
         continue
       }
 
-      const existingTags = tagsByItemId.get(itemId)
+      const existingTags = item.tags
       if (!existingTags) {
         logger.debug(
           `Item details not found for "${item.title}" (ID: ${itemId}), skipping`,
@@ -207,29 +199,22 @@ export async function tagContentWithData(
   deps: UserTagDeps,
 ): Promise<TaggingResults> {
   const { type, items, watchlistItems } = params
-  const source = getArrSource(type, deps)
+  const { displayName } = ARR_META[type]
   if (!isTaggingEnabled(deps.config, type)) {
     deps.logger.debug(
-      `${source.displayName} user tagging disabled, skipping content tagging`,
+      `${displayName} user tagging disabled, skipping content tagging`,
     )
     return emptyResults()
   }
 
   try {
-    const instances = await source.getInstances()
+    const { adapters } = await getAdapters(type, deps, 'skipping tagging')
     const guidIndex = buildGuidIndex(watchlistItems)
     const settings = getTagSettings(deps.config)
 
     const instanceResults = await Promise.all(
-      instances.map(async (instance) => {
+      adapters.map(async (adapter) => {
         try {
-          const adapter = source.getAdapter(instance)
-          if (!adapter) {
-            deps.logger.warn(
-              `${source.displayName} service for instance ${instance.name} not found, skipping tagging`,
-            )
-            return emptyResults()
-          }
           return await tagInstance(
             { adapter, items, guidIndex, settings },
             deps,
@@ -237,7 +222,7 @@ export async function tagContentWithData(
         } catch (instanceError) {
           deps.logger.error(
             { error: instanceError },
-            `Error processing ${source.displayName} instance ${instance.name} for tagging:`,
+            `Error processing ${displayName} instance ${adapter.name} for tagging:`,
           )
           return emptyResults()
         }
@@ -253,7 +238,7 @@ export async function tagContentWithData(
       emptyResults(),
     )
   } catch (error) {
-    deps.logger.error({ error }, `Error tagging ${source.displayName} content:`)
+    deps.logger.error({ error }, `Error tagging ${displayName} content:`)
     throw error
   }
 }
@@ -262,86 +247,50 @@ export async function syncTags(
   type: ArrType,
   deps: UserTagDeps,
 ): Promise<TaggingResults> {
-  const source = getArrSource(type, deps)
+  const { displayName, itemNoun } = ARR_META[type]
   if (!isTaggingEnabled(deps.config, type)) {
     deps.logger.debug(
-      `${source.displayName} user tagging disabled, skipping content tagging`,
+      `${displayName} user tagging disabled, skipping content tagging`,
     )
     return emptyResults()
   }
 
-  const progressType = `${type}-tagging` as const
-  const operationId = `${progressType}-${Date.now()}`
-  const { progress } = deps.fastify
-  const emitProgress = progress.hasActiveConnections()
-  const { displayName, itemNoun } = source
-
-  try {
-    if (emitProgress) {
-      progress.emit({
-        operationId,
-        type: progressType,
-        phase: 'start',
-        progress: 5,
-        message: `Starting ${displayName} tag synchronization...`,
-      })
-    }
-
-    // The migration rewrites tag ids on arr items, so the library must be read after it.
-    await ensureMigrationComplete(type, deps)
-
-    const library = await source.fetchLibrary()
-    const watchlistItems = await source.watchlistItemsForType()
-
-    const results = await tagContentWithData(
-      { type, items: library, watchlistItems },
+  const results = await withProgress<TaggingResults>(
+    {
+      type: `${type}-tagging`,
+      start: `Starting ${displayName} tag synchronization...`,
+      complete: (results) =>
+        `Completed ${displayName} tag sync: tagged ${results.tagged} ${itemNoun}, skipped ${results.skipped}, failed ${results.failed}`,
+      failure: `Error syncing ${displayName} tags`,
       deps,
-    )
-    const total = library.length
+    },
+    async (phase) => {
+      // The migration rewrites tag ids on arr items, so the library must be read after it.
+      await ensureMigrationComplete(type, deps)
 
-    if (emitProgress && total > 0) {
-      progress.emit({
-        operationId,
-        type: progressType,
-        phase: `tagging-${itemNoun}`,
-        progress: 95,
-        message: `Tagged ${total}/${total} ${itemNoun}`,
-      })
-    }
+      const library = await fetchLibrary(type, deps)
+      const watchlistItems = await watchlistItemsForType(type, deps)
 
-    deps.logger.info(
-      `Completed tagging for ${displayName} instance. ${displayName}: Processed ${total} ${itemNoun} (tagged: ${results.tagged}, skipped: ${results.skipped}, failed: ${results.failed})`,
-    )
+      const results = await tagContentWithData(
+        { type, items: library, watchlistItems },
+        deps,
+      )
+      const total = library.length
 
-    if (emitProgress) {
-      progress.emit({
-        operationId,
-        type: progressType,
-        phase: 'complete',
-        progress: 100,
-        message: `Completed ${displayName} tag sync: tagged ${results.tagged} ${itemNoun}, skipped ${results.skipped}, failed ${results.failed}`,
-      })
-    }
+      if (total > 0) {
+        phase(`tagging-${itemNoun}`, 95, `Tagged ${total}/${total} ${itemNoun}`)
+      }
 
-    await deps.migration.cleanupMigrationFileIfComplete()
-    return results
-  } catch (error) {
-    deps.logger.error({ error }, `Error syncing ${displayName} tags:`)
+      deps.logger.info(
+        `Completed tagging for ${displayName} instance. ${displayName}: Processed ${total} ${itemNoun} (tagged: ${results.tagged}, skipped: ${results.skipped}, failed: ${results.failed})`,
+      )
 
-    if (emitProgress) {
-      progress.emit({
-        operationId,
-        type: progressType,
-        phase: 'error',
-        progress: 100,
-        message: `Error syncing ${displayName} tags: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      })
-    }
+      return results
+    },
+  )
 
-    throw error
-  }
+  await deps.migration.cleanupMigrationFileIfComplete()
+  return results
 }
 
 export async function syncAllTags(deps: UserTagDeps): Promise<SyncAllResults> {

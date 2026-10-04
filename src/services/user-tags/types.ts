@@ -8,6 +8,14 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export type ArrType = 'sonarr' | 'radarr'
 
+export const ARR_META: Record<
+  ArrType,
+  { displayName: string; itemNoun: string }
+> = {
+  sonarr: { displayName: 'Sonarr', itemNoun: 'series' },
+  radarr: { displayName: 'Radarr', itemNoun: 'movies' },
+}
+
 export interface Tag {
   id: number
   label: string
@@ -20,12 +28,6 @@ export interface TagDetail extends Tag {
 export interface ItemTagUpdate {
   itemId: number
   tagIds: number[]
-}
-
-export interface ArrLibraryItem {
-  id: number
-  guids: string[]
-  tags: number[]
 }
 
 /** A library item from the manager-wide fetch, before it is resolved to one instance's arr id. */
@@ -59,28 +61,16 @@ export interface ArrAdapter {
     updates: ItemTagUpdate[],
     mode: 'add' | 'remove',
   ): Promise<void>
-  getAllItems(): Promise<ArrLibraryItem[]>
   /** Returns 0 when the guids carry no arr id. */
   extractItemId(guids: string[]): number
   usersWithItems(): Promise<User[]>
-}
-
-export interface ArrSource {
-  type: ArrType
-  displayName: string
-  itemNoun: string
-  getInstances(): Promise<ArrInstanceRef[]>
-  /** Undefined when the manager has the instance but no initialized service. */
-  getAdapter(instance: ArrInstanceRef): ArrAdapter | undefined
-  fetchLibrary(): Promise<LibraryItem[]>
-  watchlistItemsForType(): Promise<WatchlistGuidItem[]>
 }
 
 export interface UserTagDeps {
   logger: FastifyBaseLogger
   config: Config
   db: DatabaseService
-  fastify: FastifyInstance
+  progress: FastifyInstance['progress']
   sonarrManager: SonarrManagerService
   radarrManager: RadarrManagerService
   migration: TagMigrationService
@@ -147,22 +137,12 @@ export interface TagStatus {
   instances: TagStatusInstance[]
 }
 
-export class TagNamingBlockedError extends Error {}
-
-export class UserTagsExistError extends TagNamingBlockedError {
-  constructor() {
-    super(
-      'Remove existing user tags before changing the tag prefix or naming source',
-    )
-    this.name = 'UserTagsExistError'
-  }
-}
-
-export class TagStatusUnavailableError extends TagNamingBlockedError {
-  constructor(instances: string[]) {
-    super(
-      `Could not verify user tags on ${instances.join(', ')}; fix the connection before changing the tag prefix or naming source`,
-    )
-    this.name = 'TagStatusUnavailableError'
+export class TagNamingBlockedError extends Error {
+  constructor(
+    readonly reason: 'tags-exist' | 'unreachable',
+    message: string,
+  ) {
+    super(message)
+    this.name = 'TagNamingBlockedError'
   }
 }

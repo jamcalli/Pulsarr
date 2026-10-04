@@ -1,26 +1,28 @@
 import type { RemovedTagMode } from '@root/types/config.types.js'
-import type {
-  ArrAdapter,
-  ArrSource,
-  ArrType,
-  LibraryItem,
-} from '@services/user-tags/types.js'
+import type { ArrAdapter, LibraryItem } from '@services/user-tags/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockUser } from '../../../../mocks/user.js'
 import {
   createFakeAdapter,
-  createFakeSource,
   createUserTagDeps,
+  useAdapters,
 } from '../../../../mocks/user-tag-deps.js'
 
 vi.mock('@services/user-tags/arr-adapter.js', () => ({
-  getArrSource: vi.fn(),
+  getAdapters: vi.fn(),
+  listInstances: vi.fn(),
+  fetchLibrary: vi.fn(async () => []),
+  watchlistItemsForType: vi.fn(async () => []),
 }))
 vi.mock('@services/user-tags/orchestration/migration-gate.js', () => ({
   ensureMigrationComplete: vi.fn(async () => undefined),
 }))
 
-import { getArrSource } from '@services/user-tags/arr-adapter.js'
+import {
+  fetchLibrary,
+  getAdapters,
+  listInstances,
+} from '@services/user-tags/arr-adapter.js'
 import { ensureMigrationComplete } from '@services/user-tags/orchestration/migration-gate.js'
 import {
   syncTags,
@@ -43,12 +45,6 @@ function libraryItem(arrId: number, tags: number[]): LibraryItem {
   }
 }
 
-function useSources(sources: Partial<Record<ArrType, ArrSource>>) {
-  vi.mocked(getArrSource).mockImplementation(
-    (type) => sources[type] ?? createFakeSource(type, []),
-  )
-}
-
 function adapterWithTags(): ArrAdapter {
   return createFakeAdapter({
     usersWithItems: vi.fn(async () => [ALICE, BOB]),
@@ -65,7 +61,7 @@ async function tag(
   items: LibraryItem[],
   removedTagMode: RemovedTagMode,
 ) {
-  useSources({ sonarr: createFakeSource('sonarr', [adapter]) })
+  useAdapters({ sonarr: [adapter] })
   return tagContentWithData(
     {
       type: 'sonarr',
@@ -78,7 +74,8 @@ async function tag(
 
 describe('tagContentWithData', () => {
   beforeEach(() => {
-    vi.mocked(getArrSource).mockReset()
+    vi.mocked(getAdapters).mockReset()
+    vi.mocked(listInstances).mockReset()
   })
 
   it('adds missing user tags and removes stale ones in remove mode', async () => {
@@ -117,7 +114,7 @@ describe('tagContentWithData', () => {
       usersWithItems: vi.fn(async () => [BOB]),
       getTags: vi.fn(async () => [{ id: 22, label: 'pulsarr-user-bob' }]),
     })
-    useSources({ sonarr: createFakeSource('sonarr', [main, anime]) })
+    useAdapters({ sonarr: [main, anime] })
 
     const results = await tagContentWithData(
       {
@@ -215,56 +212,39 @@ describe('tagContentWithData', () => {
     expect(adapter.bulkUpdateTags).not.toHaveBeenCalled()
     expect(results).toEqual({ tagged: 0, skipped: 1, failed: 0 })
   })
-
-  it('reads tags from the arr when the passed items carry none', async () => {
-    const adapter = adapterWithTags()
-    vi.mocked(adapter.getAllItems).mockResolvedValue([
-      { id: 1, guids: [], tags: [BOB_TAG] },
-    ])
-    const item = { ...libraryItem(1, []), tags: undefined }
-
-    await tag(adapter, [item], 'remove')
-
-    expect(adapter.getAllItems).toHaveBeenCalledTimes(1)
-    expect(adapter.bulkUpdateTags).toHaveBeenCalledWith(
-      [{ itemId: 1, tagIds: [BOB_TAG] }],
-      'remove',
-    )
-  })
 })
 
 describe('syncTags', () => {
   beforeEach(() => {
-    vi.mocked(getArrSource).mockReset()
+    vi.mocked(getAdapters).mockReset()
+    vi.mocked(listInstances).mockReset()
+    vi.mocked(fetchLibrary).mockClear()
     vi.mocked(ensureMigrationComplete).mockClear()
   })
 
   it('runs the migration gate before touching any instance', async () => {
     const adapter = adapterWithTags()
-    const source = createFakeSource('sonarr', [adapter])
-    useSources({ sonarr: source })
+    useAdapters({ sonarr: [adapter] })
 
     await syncTags('sonarr', createUserTagDeps())
 
     const gateOrder = vi.mocked(ensureMigrationComplete).mock
       .invocationCallOrder[0]
-    const libraryOrder = vi.mocked(source.fetchLibrary).mock
-      .invocationCallOrder[0]
+    const libraryOrder = vi.mocked(fetchLibrary).mock.invocationCallOrder[0]
     const tagsOrder = vi.mocked(adapter.getTags).mock.invocationCallOrder[0]
     expect(gateOrder).toBeLessThan(libraryOrder)
     expect(gateOrder).toBeLessThan(tagsOrder)
   })
 
   it('skips everything when tagging is disabled for the type', async () => {
-    const source = createFakeSource('radarr', [])
-    useSources({ radarr: source })
+    useAdapters({})
 
     const results = await syncTags(
       'radarr',
       createUserTagDeps({ config: { tagUsersInRadarr: false } }),
     )
 
-    expect(source.fetchLibrary).not.toHaveBeenCalled()
+    expect(fetchLibrary).not.toHaveBeenCalled()
     expect(ensureMigrationComplete).not.toHaveBeenCalled()
     expect(results).toEqual({ tagged: 0, skipped: 0, failed: 0 })
   })

@@ -56,7 +56,7 @@ export class UserTagService {
         return fastify.config
       },
       db: fastify.db,
-      fastify,
+      progress: fastify.progress,
       sonarrManager: fastify.sonarrManager,
       radarrManager: fastify.radarrManager,
       migration: this.migrationService,
@@ -129,7 +129,7 @@ export class UserTagService {
     return getTagStatus(this.deps)
   }
 
-  /** Throws UserTagsExistError when the update changes the prefix or naming source while user tags remain. */
+  /** Throws TagNamingBlockedError when the update changes the prefix or naming source while user tags remain or an instance cannot be read. */
   async assertPrefixChangeAllowed(update: TagNamingUpdate): Promise<void> {
     return assertPrefixChangeAllowed(update, this.deps)
   }

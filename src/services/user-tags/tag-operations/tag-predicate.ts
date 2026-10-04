@@ -4,7 +4,12 @@ import {
   normalizeTagLabel,
   resolveTagName,
 } from '@utils/tag-normalization.js'
-import type { ArrType, TagSettings } from '../types.js'
+import type {
+  ArrType,
+  ItemTagUpdate,
+  TagDetail,
+  TagSettings,
+} from '../types.js'
 
 /** Also true for a label equal to the bare prefix, which is what the migration leaves for names that sanitized to nothing. */
 export function isAppUserTag(label: string, prefix: string): boolean {
@@ -39,4 +44,22 @@ export function getTagSettings(config: Config): TagSettings {
     removedTagMode: config.removedTagMode || 'remove',
     removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
   }
+}
+
+/** Inverts per-tag item lists into one update per item carrying every listed tag found on it. */
+export function groupTagsByItem(
+  tags: Array<Pick<TagDetail, 'id' | 'itemIds'>>,
+): ItemTagUpdate[] {
+  const tagsByItem = new Map<number, number[]>()
+  for (const tag of tags) {
+    for (const itemId of tag.itemIds) {
+      const itemTags = tagsByItem.get(itemId)
+      if (itemTags) {
+        if (!itemTags.includes(tag.id)) itemTags.push(tag.id)
+      } else {
+        tagsByItem.set(itemId, [tag.id])
+      }
+    }
+  }
+  return Array.from(tagsByItem, ([itemId, tagIds]) => ({ itemId, tagIds }))
 }

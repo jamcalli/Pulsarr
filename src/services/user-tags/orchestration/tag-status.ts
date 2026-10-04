@@ -1,17 +1,17 @@
 import type { NamingSource } from '@utils/tag-normalization.js'
-import { getArrSource } from '../arr-adapter.js'
+import { listInstances } from '../arr-adapter.js'
 import {
   getTagSettings,
   isAppUserTag,
   isTaggingEnabled,
 } from '../tag-operations/tag-predicate.js'
 import {
+  ARR_META,
   type ArrType,
+  TagNamingBlockedError,
   type TagStatus,
   type TagStatusInstance,
-  TagStatusUnavailableError,
   type UserTagDeps,
-  UserTagsExistError,
 } from '../types.js'
 
 const ARR_TYPES: ArrType[] = ['sonarr', 'radarr']
@@ -20,13 +20,12 @@ async function statusForType(
   type: ArrType,
   deps: UserTagDeps,
 ): Promise<TagStatusInstance[]> {
-  const source = getArrSource(type, deps)
   const { tagPrefix } = getTagSettings(deps.config)
   const enabled = isTaggingEnabled(deps.config, type)
-  const instances = await source.getInstances()
+  const instances = await listInstances(type, deps)
 
   return Promise.all(
-    instances.map(async (instance): Promise<TagStatusInstance> => {
+    instances.map(async ({ instance, adapter }): Promise<TagStatusInstance> => {
       const unknown = {
         type,
         instanceId: instance.id,
@@ -37,7 +36,6 @@ async function statusForType(
         taggedItemCount: 0,
       }
       try {
-        const adapter = source.getAdapter(instance)
         if (!adapter) return unknown
         const userTags = (await adapter.getTagDetails()).filter((tag) =>
           isAppUserTag(tag.label, tagPrefix),
@@ -52,7 +50,7 @@ async function statusForType(
       } catch (error) {
         deps.logger.error(
           { error },
-          `Error reading user tag status from ${source.displayName} instance ${instance.name}`,
+          `Error reading user tag status from ${ARR_META[type].displayName} instance ${instance.name}`,
         )
         return unknown
       }
@@ -77,7 +75,7 @@ export interface TagNamingUpdate {
   tagNamingSource?: NamingSource
 }
 
-/** Throws UserTagsExistError when the update changes the prefix or naming source while user tags remain. */
+/** Throws TagNamingBlockedError when the update changes the prefix or naming source while user tags remain or an instance cannot be read. */
 export async function assertPrefixChangeAllowed(
   update: TagNamingUpdate,
   deps: UserTagDeps,
@@ -90,11 +88,18 @@ export async function assertPrefixChangeAllowed(
   if (!changed) return
 
   const { tagsExist, instances } = await getTagStatus(deps)
-  if (tagsExist) throw new UserTagsExistError()
+  if (tagsExist) {
+    throw new TagNamingBlockedError(
+      'tags-exist',
+      'Remove existing user tags before changing the tag prefix or naming source',
+    )
+  }
   const unreachable = instances.filter((instance) => !instance.reachable)
   if (unreachable.length > 0) {
-    throw new TagStatusUnavailableError(
-      unreachable.map((instance) => instance.name),
+    const names = unreachable.map((instance) => instance.name).join(', ')
+    throw new TagNamingBlockedError(
+      'unreachable',
+      `Could not verify user tags on ${names}; fix the connection before changing the tag prefix or naming source`,
     )
   }
 }

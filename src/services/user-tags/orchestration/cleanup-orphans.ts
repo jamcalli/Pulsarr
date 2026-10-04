@@ -1,15 +1,16 @@
-import { getArrSource } from '../arr-adapter.js'
-import { groupTagsByItem } from '../tag-operations/tag-grouping.js'
+import { getAdapters } from '../arr-adapter.js'
 import {
   getTagSettings,
   getUserTagLabel,
+  groupTagsByItem,
   isAppUserTag,
 } from '../tag-operations/tag-predicate.js'
-import type {
-  ArrType,
-  OrphanedTagCleanupResults,
-  TagCleanupResults,
-  UserTagDeps,
+import {
+  ARR_META,
+  type ArrType,
+  type OrphanedTagCleanupResults,
+  type TagCleanupResults,
+  type UserTagDeps,
 } from '../types.js'
 import { ensureMigrationComplete } from './migration-gate.js'
 
@@ -30,22 +31,17 @@ async function cleanupOrphanedTagsForType(
   deps: UserTagDeps,
 ): Promise<TagCleanupResults> {
   const { type, validUserTagLabels } = params
-  const source = getArrSource(type, deps)
-  const { displayName } = source
+  const { displayName } = ARR_META[type]
   const { tagPrefix } = getTagSettings(deps.config)
-  const instances = await source.getInstances()
-  const results = emptyResults(instances.length)
+  const { adapters, instanceCount } = await getAdapters(
+    type,
+    deps,
+    'skipping orphaned tag cleanup',
+  )
+  const results = emptyResults(instanceCount)
 
-  for (const instance of instances) {
+  for (const adapter of adapters) {
     try {
-      const adapter = source.getAdapter(instance)
-      if (!adapter) {
-        deps.logger.warn(
-          `${displayName} service for instance ${instance.name} not found, skipping orphaned tag cleanup`,
-        )
-        continue
-      }
-
       const orphanedTags = (await adapter.getTagDetails()).filter(
         (tag) =>
           isAppUserTag(tag.label, tagPrefix) &&
@@ -54,15 +50,15 @@ async function cleanupOrphanedTagsForType(
 
       if (orphanedTags.length === 0) {
         deps.logger.debug(
-          `No orphaned user tags found in ${displayName} instance ${instance.name}`,
+          `No orphaned user tags found in ${displayName} instance ${adapter.name}`,
         )
         continue
       }
 
       deps.logger.debug(
         {
-          instance: instance.name,
-          instanceId: instance.id,
+          instance: adapter.name,
+          instanceId: adapter.instanceId,
           orphanedTags: orphanedTags.length,
         },
         'Found orphaned user tags',
@@ -76,7 +72,7 @@ async function cleanupOrphanedTagsForType(
         } catch (error) {
           deps.logger.error(
             { error },
-            `Error removing orphaned tags in ${displayName} instance ${instance.name}:`,
+            `Error removing orphaned tags in ${displayName} instance ${adapter.name}:`,
           )
           results.failed += updates.length
         }
@@ -84,8 +80,8 @@ async function cleanupOrphanedTagsForType(
 
       deps.logger.debug(
         {
-          instance: instance.name,
-          instanceId: instance.id,
+          instance: adapter.name,
+          instanceId: adapter.instanceId,
           cleanedItems: updates.length,
         },
         `Completed orphaned tag cleanup for ${displayName}`,
@@ -93,7 +89,7 @@ async function cleanupOrphanedTagsForType(
     } catch (instanceError) {
       deps.logger.error(
         { error: instanceError },
-        `Error processing ${displayName} instance ${instance.name} for orphaned tag cleanup:`,
+        `Error processing ${displayName} instance ${adapter.name} for orphaned tag cleanup:`,
       )
     }
   }

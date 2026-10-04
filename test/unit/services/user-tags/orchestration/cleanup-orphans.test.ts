@@ -1,17 +1,17 @@
-import type { ArrSource, ArrType } from '@services/user-tags/types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockUser } from '../../../../mocks/user.js'
 import {
   createFakeAdapter,
-  createFakeSource,
   createUserTagDeps,
+  useAdapters,
 } from '../../../../mocks/user-tag-deps.js'
 
 vi.mock('@services/user-tags/arr-adapter.js', () => ({
-  getArrSource: vi.fn(),
+  getAdapters: vi.fn(),
+  listInstances: vi.fn(),
 }))
 
-import { getArrSource } from '@services/user-tags/arr-adapter.js'
+import { getAdapters, listInstances } from '@services/user-tags/arr-adapter.js'
 import { cleanupOrphanedUserTags } from '@services/user-tags/orchestration/cleanup-orphans.js'
 
 const TAG_DETAILS = [
@@ -20,12 +20,6 @@ const TAG_DETAILS = [
   { id: 3, label: 'pulsarr-user-nosync', itemIds: [12] },
   { id: 4, label: 'unrelated', itemIds: [13] },
 ]
-
-function useSources(sources: Partial<Record<ArrType, ArrSource>>) {
-  vi.mocked(getArrSource).mockImplementation(
-    (type) => sources[type] ?? createFakeSource(type, []),
-  )
-}
 
 function depsWithUsers() {
   return createUserTagDeps({
@@ -40,18 +34,18 @@ function depsWithUsers() {
 
 describe('cleanupOrphanedUserTags', () => {
   beforeEach(() => {
-    vi.mocked(getArrSource).mockReset()
+    vi.mocked(getAdapters).mockReset()
+    vi.mocked(listInstances).mockReset()
   })
 
   it('removes user tags that no sync-enabled user owns, using tag details', async () => {
     const adapter = createFakeAdapter({
       getTagDetails: vi.fn(async () => TAG_DETAILS),
     })
-    useSources({ sonarr: createFakeSource('sonarr', [adapter]) })
+    useAdapters({ sonarr: [adapter] })
 
     const results = await cleanupOrphanedUserTags(depsWithUsers())
 
-    expect(adapter.getAllItems).not.toHaveBeenCalled()
     expect(adapter.bulkUpdateTags).toHaveBeenCalledWith(
       [
         { itemId: 10, tagIds: [2] },
@@ -73,7 +67,7 @@ describe('cleanupOrphanedUserTags', () => {
     const adapter = createFakeAdapter({
       getTagDetails: vi.fn(async () => [TAG_DETAILS[0], TAG_DETAILS[3]]),
     })
-    useSources({ radarr: createFakeSource('radarr', [adapter]) })
+    useAdapters({ radarr: [adapter] })
 
     const results = await cleanupOrphanedUserTags(depsWithUsers())
 
@@ -85,7 +79,7 @@ describe('cleanupOrphanedUserTags', () => {
     const adapter = createFakeAdapter({
       getTagDetails: vi.fn(async () => TAG_DETAILS),
     })
-    useSources({ sonarr: createFakeSource('sonarr', [adapter]) })
+    useAdapters({ sonarr: [adapter] })
     const deps = createUserTagDeps({ config: { cleanupOrphanedTags: false } })
 
     const results = await cleanupOrphanedUserTags(deps)
