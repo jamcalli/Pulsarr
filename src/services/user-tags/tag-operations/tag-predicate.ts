@@ -22,14 +22,14 @@ export function isRemovedTag(label: string, removedPrefix: string): boolean {
   return label.toLowerCase().startsWith(removedPrefix.toLowerCase())
 }
 
-/** Every tag Pulsarr creates: user tags under the prefix plus the removed marker. */
+/** Every tag Pulsarr creates: user tags under the prefix plus the exact removed marker, never other labels that merely start with it. */
 export function isOwnedTag(
   label: string,
   settings: Pick<TagSettings, 'tagPrefix' | 'removedTagPrefix'>,
 ): boolean {
   return (
     isAppUserTag(label, settings.tagPrefix) ||
-    isRemovedTag(label, settings.removedTagPrefix)
+    label.toLowerCase() === settings.removedTagPrefix.toLowerCase()
   )
 }
 

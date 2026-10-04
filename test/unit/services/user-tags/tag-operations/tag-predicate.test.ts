@@ -2,6 +2,7 @@ import {
   getUserTagLabel,
   groupTagsByItem,
   isAppUserTag,
+  isOwnedTag,
   isRemovedTag,
 } from '@services/user-tags/tag-operations/tag-predicate.js'
 import { describe, expect, it } from 'vitest'
@@ -33,6 +34,23 @@ describe('tag-predicate', () => {
     it('matches the removed label case-insensitively', () => {
       expect(isRemovedTag('Pulsarr-Removed', 'pulsarr-removed')).toBe(true)
       expect(isRemovedTag('pulsarr-user-john', 'pulsarr-removed')).toBe(false)
+    })
+  })
+
+  describe('isOwnedTag', () => {
+    const settings = {
+      tagPrefix: 'pulsarr-user',
+      removedTagPrefix: 'pulsarr-removed',
+    }
+
+    it('owns user tags and the exact removed marker', () => {
+      expect(isOwnedTag('pulsarr-user-john', settings)).toBe(true)
+      expect(isOwnedTag('Pulsarr-Removed', settings)).toBe(true)
+    })
+
+    it('does not own labels that only start with the removed marker', () => {
+      expect(isOwnedTag('pulsarr-removed-backup', settings)).toBe(false)
+      expect(isOwnedTag('4k', settings)).toBe(false)
     })
   })
 
