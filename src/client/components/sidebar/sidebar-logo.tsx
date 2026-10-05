@@ -20,9 +20,11 @@ import type { AvailableUpdate } from '@/lib/update-status'
 
 function UpdatePopover({ update }: { update: AvailableUpdate }) {
   const title = `v${update.latestVersion} available`
-  const released = update.publishedAt
-    ? ` Released ${formatDate(new Date(update.publishedAt))}.`
-    : ''
+  const publishedAt = update.publishedAt ? new Date(update.publishedAt) : null
+  const released =
+    publishedAt && !Number.isNaN(publishedAt.getTime())
+      ? ` Released ${formatDate(publishedAt)}.`
+      : ''
 
   return (
     <Popover>

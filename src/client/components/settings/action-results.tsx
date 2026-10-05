@@ -61,18 +61,17 @@ export function ActionResults({ ranAt, rows }: ActionResultsProps) {
               <td className="py-1 font-medium">{target}</td>
               {columns.map((label) => {
                 const stat = stats.find((s) => s.label === label)
+                if (!stat) return <td key={label} />
                 return (
-                  stat && (
-                    <td
-                      key={label}
-                      className={cn(
-                        'py-1 text-right tabular-nums',
-                        cellClass(stat),
-                      )}
-                    >
-                      {stat.value}
-                    </td>
-                  )
+                  <td
+                    key={label}
+                    className={cn(
+                      'py-1 text-right tabular-nums',
+                      cellClass(stat),
+                    )}
+                  >
+                    {stat.value}
+                  </td>
                 )
               })}
             </tr>

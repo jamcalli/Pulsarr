@@ -4,7 +4,7 @@ import {
   useStore,
 } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
-import { updateConfig } from '@/hooks/useConfig'
+import { getConfigSnapshot, updateConfig } from '@/hooks/useConfig'
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { useTransientFlag } from '@/hooks/useTransientFlag'
 import { SAVE_FEEDBACK_DELAY } from '@/lib/constants'
@@ -45,7 +45,7 @@ export function useConfigForm<Values extends ConfigUpdate>({
     onSubmit: ({ value }) =>
       save
         .mutateAsync(value)
-        .then(() => form.reset(value))
+        .then(() => form.reset(toValues(getConfigSnapshot() ?? config)))
         .catch(() => undefined),
   })
 
