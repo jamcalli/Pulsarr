@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { WatchlistStatusSchema } from '@root/schemas/common/watchlist-status.schema.js'
 import { z } from 'zod'
 
 // Watchlist item schema for the response
@@ -9,7 +10,7 @@ const WatchlistItemSchema = z.object({
   thumb: z.string().nullable(),
   guids: z.array(z.string()),
   genres: z.array(z.string()),
-  status: z.enum(['pending', 'requested', 'grabbed', 'notified']),
+  status: WatchlistStatusSchema,
   added: z.string().nullable(),
 })
 

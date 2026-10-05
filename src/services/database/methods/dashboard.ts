@@ -1,3 +1,4 @@
+import type { WatchlistStatus } from '@root/schemas/common/watchlist-status.schema.js'
 import type { RecentRequestItem } from '@root/schemas/dashboard/recent-requests.schema.js'
 import type { DatabaseService } from '@services/database.service.js'
 
@@ -15,6 +16,19 @@ function mapJunctionStatus(
       return 'available'
     case 'requested':
       return 'requested'
+    default:
+      return 'pending'
+  }
+}
+
+function toJunctionStatus(status: string | null): WatchlistStatus {
+  switch (status) {
+    case 'requested':
+      return 'requested'
+    case 'grabbed':
+      return 'grabbed'
+    case 'notified':
+      return 'notified'
     default:
       return 'pending'
   }
@@ -268,6 +282,7 @@ export async function getRecentRequests(
           name: i.name,
           instanceType: item.instanceType,
           status: mapJunctionStatus(i.status),
+          junctionStatus: toJunctionStatus(i.status),
         }))
 
         // Determine the best status across all instances
@@ -295,6 +310,7 @@ export async function getRecentRequests(
                 name: primaryInstance.name,
                 instanceType: item.instanceType,
                 status: mapJunctionStatus(primaryInstance.status),
+                junctionStatus: toJunctionStatus(primaryInstance.status),
               }
             : null,
           allInstances,

@@ -1945,7 +1945,7 @@ export interface paths {
         };
         /**
          * Get instance content breakdown
-         * @description Retrieve content distribution across different instances
+         * @description Retrieve content distribution across instances, optionally limited to items routed within the given number of days
          */
         get: operations["getInstanceContentBreakdown"];
         put?: never;
@@ -3101,6 +3101,20 @@ export interface webhooks {
 }
 export interface components {
     schemas: {
+        /** @description Activity counts within the requested range */
+        ActivityStats: {
+            new_watchlist_items: number;
+            status_changes: number;
+            notifications_sent: number;
+        };
+        /** @description Days from watchlisted to available for a content type */
+        AvailabilityTime: {
+            content_type: string;
+            avg_days: number;
+            min_days: number;
+            max_days: number;
+            count: number;
+        };
         /** @description Shows to enroll in or switch between rolling monitoring types */
         BulkManageRollingPayload: {
             shows: {
@@ -3519,6 +3533,11 @@ export interface components {
          * @enum {string}
          */
         ContentType: "movie" | "show";
+        /** @description Watchlist item count for one content type */
+        ContentTypeDistribution: {
+            type: string;
+            count: number;
+        };
         /** @description Result of creating user tags in Sonarr and Radarr */
         CreateTaggingResponse: {
             success: boolean;
@@ -3527,6 +3546,23 @@ export interface components {
             mode: "create";
             sonarr: components["schemas"]["TagCreateStats"];
             radarr: components["schemas"]["TagCreateStats"];
+        };
+        /** @description Every dashboard statistic in one response */
+        DashboardStats: {
+            top_genres: components["schemas"]["GenreStat"][];
+            most_watched_shows: components["schemas"]["ContentStat"][];
+            most_watched_movies: components["schemas"]["ContentStat"][];
+            top_users: components["schemas"]["UserStat"][];
+            status_distribution: components["schemas"]["StatusDistribution"][];
+            content_type_distribution: components["schemas"]["ContentTypeDistribution"][];
+            recent_activity: components["schemas"]["ActivityStats"];
+            instance_activity: components["schemas"]["InstanceStat"][];
+            availability_times: components["schemas"]["AvailabilityTime"][];
+            grabbed_to_notified_times: components["schemas"]["GrabbedToNotifiedTime"][];
+            status_transitions?: components["schemas"]["StatusTransitionTime"][];
+            status_flow?: components["schemas"]["StatusFlowData"][];
+            notification_stats?: components["schemas"]["NotificationStats"];
+            instance_content_breakdown?: components["schemas"]["InstanceBreakdown"][];
         };
         /** @description Standard error response */
         Error: {
@@ -3560,6 +3596,56 @@ export interface components {
             /** @enum {string} */
             contentType?: "radarr" | "sonarr" | "both";
         };
+        /** @description A genre with the number of watchlist items tagged with it */
+        GenreStat: {
+            genre: string;
+            count: number;
+        };
+        /** @description Days from grabbed to notified for a content type */
+        GrabbedToNotifiedTime: {
+            content_type: string;
+            avg_days: number;
+            min_days: number;
+            max_days: number;
+            count: number;
+        };
+        /** @description Routed content on one arr instance by status and content type */
+        InstanceBreakdown: {
+            id: number;
+            name: string;
+            type: components["schemas"]["InstanceType"];
+            total_items: number;
+            primary_items: number;
+            by_status: components["schemas"]["InstanceContentItem"][];
+            by_content_type: components["schemas"]["InstanceContentType"][];
+        };
+        /** @description Routed content per arr instance */
+        InstanceContentBreakdown: {
+            success: boolean;
+            instances: components["schemas"]["InstanceBreakdown"][];
+        };
+        /** @description Routed item count for one status on an instance */
+        InstanceContentItem: {
+            status: string;
+            count: number;
+        };
+        /** @description Routed item count for one content type on an instance */
+        InstanceContentType: {
+            content_type: string;
+            count: number;
+        };
+        /** @description Watchlist item count routed to one arr instance */
+        InstanceStat: {
+            instance_id: number;
+            instance_type: components["schemas"]["InstanceType"];
+            name: string;
+            item_count: number;
+        };
+        /**
+         * @description Arr instance kind, radarr or sonarr
+         * @enum {string}
+         */
+        InstanceType: "radarr" | "sonarr";
         /** @description Result of the most recent Maintainerr reconcile */
         MaintainerrStatus: {
             /** @enum {string} */
@@ -3585,6 +3671,28 @@ export interface components {
          * @enum {string}
          */
         MonitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
+        /** @description Notifications sent through one channel */
+        NotificationChannelStat: {
+            channel: string;
+            count: number;
+        };
+        /** @description Notification totals broken down by type, channel and user */
+        NotificationStats: {
+            total_notifications: number;
+            by_type: components["schemas"]["NotificationTypeStat"][];
+            by_channel: components["schemas"]["NotificationChannelStat"][];
+            by_user: components["schemas"]["NotificationUserStat"][];
+        };
+        /** @description Notifications sent of one type */
+        NotificationTypeStat: {
+            type: string;
+            count: number;
+        };
+        /** @description Notifications sent to one user */
+        NotificationUserStat: {
+            user_name: string;
+            count: number;
+        };
         /** @description Orphaned tag reference cleanup result for one instance */
         OrphanedTagRefInstanceResult: {
             instanceName: string;
@@ -3635,6 +3743,45 @@ export interface components {
                 /** @enum {string} */
                 type: "user" | "critic";
             };
+        };
+        /** @description One arr instance a recent request was routed to, with its collapsed and raw status */
+        RecentRequestInstance: {
+            id: number;
+            name: string;
+            instanceType: components["schemas"]["InstanceType"];
+            status: components["schemas"]["RecentRequestInstanceStatus"];
+            junctionStatus: components["schemas"]["WatchlistStatus"];
+        };
+        /**
+         * @description Collapsed per-instance status, never pending_approval since approvals are not routed yet
+         * @enum {string}
+         */
+        RecentRequestInstanceStatus: "pending" | "requested" | "available";
+        /** @description A pending approval or routed watchlist item shown in recent requests */
+        RecentRequestItem: {
+            id: number;
+            /** @enum {string} */
+            source: "approval" | "watchlist";
+            title: string;
+            contentType: components["schemas"]["ContentType"];
+            guids: string[];
+            thumb: string | null;
+            status: components["schemas"]["RecentRequestStatus"];
+            userId: number;
+            userName: string;
+            createdAt: string;
+            primaryInstance: components["schemas"]["RecentRequestInstance"] | null;
+            allInstances: components["schemas"]["RecentRequestInstance"][];
+        };
+        /**
+         * @description Collapsed request status, where pending_approval comes from the approval queue
+         * @enum {string}
+         */
+        RecentRequestStatus: "pending_approval" | "pending" | "requested" | "available";
+        /** @description Recent requests for the dashboard, newest first */
+        RecentRequestsResponse: {
+            success: boolean;
+            items: components["schemas"]["RecentRequestItem"][];
         };
         /** @description Options for removing user tags */
         RemoveTagsPayload: {
@@ -3732,8 +3879,7 @@ export interface components {
         /** @description A stored content router rule */
         RouterRule: {
             name: string;
-            /** @enum {string} */
-            target_type: "sonarr" | "radarr";
+            target_type: components["schemas"]["InstanceType"];
             target_instance_id: number | null;
             condition?: components["schemas"]["RouterConditionOutput"] | components["schemas"]["RouterConditionGroupOutput"];
             root_folder?: string;
@@ -3765,8 +3911,7 @@ export interface components {
         /** @description Full router rule payload used to create or replace a rule */
         RouterRulePayload: {
             name: string;
-            /** @enum {string} */
-            target_type: "sonarr" | "radarr";
+            target_type: components["schemas"]["InstanceType"];
             target_instance_id: number | null;
             condition?: components["schemas"]["RouterCondition"] | components["schemas"]["RouterConditionGroup"];
             root_folder?: string;
@@ -3801,6 +3946,19 @@ export interface components {
             guids: string[];
             rollingShowId: number | null;
             monitoringType: components["schemas"]["MonitoringType"] | null;
+        };
+        /** @description Watchlist item count for one status */
+        StatusDistribution: {
+            status: string;
+            count: number;
+        };
+        /** @description Transition count and average days between two statuses for a content type */
+        StatusFlowData: {
+            from_status: string;
+            to_status: string;
+            content_type: string;
+            count: number;
+            avg_days: number;
         };
         /** @description Aggregate days spent moving between two watchlist statuses for a content type. */
         StatusTransitionTime: {
@@ -3886,8 +4044,7 @@ export interface components {
         };
         /** @description Pulsarr-owned tag counts (user tags and the removed marker) for one instance; counts are zero and reachable is false when the instance could not be read */
         TagStatusInstance: {
-            /** @enum {string} */
-            type: "sonarr" | "radarr";
+            type: components["schemas"]["InstanceType"];
             instanceId: number;
             name: string;
             enabled: boolean;
@@ -4119,6 +4276,16 @@ export interface components {
             /** @description New username to set */
             newUsername: string;
         };
+        /** @description A user with their watchlist item count in the range */
+        UserStat: {
+            name: string;
+            count: number;
+        };
+        /**
+         * @description Routing state of a watchlist item or one of its instance rows: pending (not routed), requested (sent to the arr, no file), grabbed (the arr has the file), notified (in Plex and the user was told)
+         * @enum {string}
+         */
+        WatchlistStatus: "pending" | "requested" | "grabbed" | "notified";
     };
     responses: never;
     parameters: never;
@@ -4376,8 +4543,7 @@ export interface operations {
                             id: number;
                             userId: number;
                             userName: string;
-                            /** @enum {string} */
-                            contentType: "movie" | "show";
+                            contentType: components["schemas"]["ContentType"];
                             contentTitle: string;
                             contentKey: string;
                             contentGuids: string[];
@@ -4386,8 +4552,7 @@ export interface operations {
                                 action: "route" | "require_approval" | "reject" | "continue";
                                 routing?: {
                                     instanceId: number;
-                                    /** @enum {string} */
-                                    instanceType: "radarr" | "sonarr";
+                                    instanceType: components["schemas"]["InstanceType"];
                                     qualityProfile?: number | string | null;
                                     rootFolder?: string | null;
                                     tags?: string[];
@@ -4416,8 +4581,7 @@ export interface operations {
                                     };
                                     proposedRouting?: {
                                         instanceId: number;
-                                        /** @enum {string} */
-                                        instanceType: "radarr" | "sonarr";
+                                        instanceType: components["schemas"]["InstanceType"];
                                         qualityProfile?: number | string | null;
                                         rootFolder?: string | null;
                                         tags?: string[];
@@ -4495,8 +4659,7 @@ export interface operations {
             content: {
                 "application/json": {
                     userId: number;
-                    /** @enum {string} */
-                    contentType: "movie" | "show";
+                    contentType: components["schemas"]["ContentType"];
                     contentTitle: string;
                     contentKey: string;
                     contentGuids?: string[];
@@ -4505,8 +4668,7 @@ export interface operations {
                         action: "route" | "require_approval" | "reject" | "continue";
                         routing?: {
                             instanceId: number;
-                            /** @enum {string} */
-                            instanceType: "radarr" | "sonarr";
+                            instanceType: components["schemas"]["InstanceType"];
                             qualityProfile?: number | string | null;
                             rootFolder?: string | null;
                             tags?: string[];
@@ -4535,8 +4697,7 @@ export interface operations {
                             };
                             proposedRouting?: {
                                 instanceId: number;
-                                /** @enum {string} */
-                                instanceType: "radarr" | "sonarr";
+                                instanceType: components["schemas"]["InstanceType"];
                                 qualityProfile?: number | string | null;
                                 rootFolder?: string | null;
                                 tags?: string[];
@@ -4573,8 +4734,7 @@ export interface operations {
                             id: number;
                             userId: number;
                             userName: string;
-                            /** @enum {string} */
-                            contentType: "movie" | "show";
+                            contentType: components["schemas"]["ContentType"];
                             contentTitle: string;
                             contentKey: string;
                             contentGuids: string[];
@@ -4583,8 +4743,7 @@ export interface operations {
                                 action: "route" | "require_approval" | "reject" | "continue";
                                 routing?: {
                                     instanceId: number;
-                                    /** @enum {string} */
-                                    instanceType: "radarr" | "sonarr";
+                                    instanceType: components["schemas"]["InstanceType"];
                                     qualityProfile?: number | string | null;
                                     rootFolder?: string | null;
                                     tags?: string[];
@@ -4613,8 +4772,7 @@ export interface operations {
                                     };
                                     proposedRouting?: {
                                         instanceId: number;
-                                        /** @enum {string} */
-                                        instanceType: "radarr" | "sonarr";
+                                        instanceType: components["schemas"]["InstanceType"];
                                         qualityProfile?: number | string | null;
                                         rootFolder?: string | null;
                                         tags?: string[];
@@ -4926,8 +5084,7 @@ export interface operations {
                             id: number;
                             userId: number;
                             userName: string;
-                            /** @enum {string} */
-                            contentType: "movie" | "show";
+                            contentType: components["schemas"]["ContentType"];
                             contentTitle: string;
                             contentKey: string;
                             contentGuids: string[];
@@ -4936,8 +5093,7 @@ export interface operations {
                                 action: "route" | "require_approval" | "reject" | "continue";
                                 routing?: {
                                     instanceId: number;
-                                    /** @enum {string} */
-                                    instanceType: "radarr" | "sonarr";
+                                    instanceType: components["schemas"]["InstanceType"];
                                     qualityProfile?: number | string | null;
                                     rootFolder?: string | null;
                                     tags?: string[];
@@ -4966,8 +5122,7 @@ export interface operations {
                                     };
                                     proposedRouting?: {
                                         instanceId: number;
-                                        /** @enum {string} */
-                                        instanceType: "radarr" | "sonarr";
+                                        instanceType: components["schemas"]["InstanceType"];
                                         qualityProfile?: number | string | null;
                                         rootFolder?: string | null;
                                         tags?: string[];
@@ -5121,8 +5276,7 @@ export interface operations {
                         action: "route" | "require_approval" | "reject" | "continue";
                         routing?: {
                             instanceId: number;
-                            /** @enum {string} */
-                            instanceType: "radarr" | "sonarr";
+                            instanceType: components["schemas"]["InstanceType"];
                             qualityProfile?: number | string | null;
                             rootFolder?: string | null;
                             tags?: string[];
@@ -5151,8 +5305,7 @@ export interface operations {
                             };
                             proposedRouting?: {
                                 instanceId: number;
-                                /** @enum {string} */
-                                instanceType: "radarr" | "sonarr";
+                                instanceType: components["schemas"]["InstanceType"];
                                 qualityProfile?: number | string | null;
                                 rootFolder?: string | null;
                                 tags?: string[];
@@ -5184,8 +5337,7 @@ export interface operations {
                             id: number;
                             userId: number;
                             userName: string;
-                            /** @enum {string} */
-                            contentType: "movie" | "show";
+                            contentType: components["schemas"]["ContentType"];
                             contentTitle: string;
                             contentKey: string;
                             contentGuids: string[];
@@ -5194,8 +5346,7 @@ export interface operations {
                                 action: "route" | "require_approval" | "reject" | "continue";
                                 routing?: {
                                     instanceId: number;
-                                    /** @enum {string} */
-                                    instanceType: "radarr" | "sonarr";
+                                    instanceType: components["schemas"]["InstanceType"];
                                     qualityProfile?: number | string | null;
                                     rootFolder?: string | null;
                                     tags?: string[];
@@ -5224,8 +5375,7 @@ export interface operations {
                                     };
                                     proposedRouting?: {
                                         instanceId: number;
-                                        /** @enum {string} */
-                                        instanceType: "radarr" | "sonarr";
+                                        instanceType: components["schemas"]["InstanceType"];
                                         qualityProfile?: number | string | null;
                                         rootFolder?: string | null;
                                         tags?: string[];
@@ -5892,7 +6042,8 @@ export interface operations {
     getRouterRulesByTarget: {
         parameters: {
             query: {
-                targetType: "sonarr" | "radarr";
+                /** @description Arr instance kind, radarr or sonarr */
+                targetType: components["schemas"]["InstanceType"];
                 instanceId: number;
             };
             header?: never;
@@ -5935,7 +6086,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                targetType: "sonarr" | "radarr";
+                /** @description Arr instance kind, radarr or sonarr */
+                targetType: components["schemas"]["InstanceType"];
             };
             cookie?: never;
         };
@@ -7961,7 +8113,7 @@ export interface operations {
                 userId: number;
                 startDate?: string;
                 endDate?: string;
-                contentType?: "movie" | "show";
+                contentType?: components["schemas"]["ContentType"];
                 limit?: number;
                 offset?: number;
             };
@@ -7982,8 +8134,7 @@ export interface operations {
                         message: string;
                         quotaUsage: {
                             userId: number;
-                            /** @enum {string} */
-                            contentType: "movie" | "show";
+                            contentType: components["schemas"]["ContentType"];
                             requestDate: string;
                         }[];
                         total: number;
@@ -8075,8 +8226,7 @@ export interface operations {
                         message: string;
                         userQuotas: {
                             userId: number;
-                            /** @enum {string} */
-                            contentType: "movie" | "show";
+                            contentType: components["schemas"]["ContentType"];
                             /** @enum {string} */
                             quotaType: "daily" | "weekly_rolling" | "monthly";
                             quotaLimit: number;
@@ -8140,8 +8290,7 @@ export interface operations {
                             userId: number;
                             movieQuota?: {
                                 userId: number;
-                                /** @enum {string} */
-                                contentType: "movie" | "show";
+                                contentType: components["schemas"]["ContentType"];
                                 /** @enum {string} */
                                 quotaType: "daily" | "weekly_rolling" | "monthly";
                                 quotaLimit: number;
@@ -8150,8 +8299,7 @@ export interface operations {
                             };
                             showQuota?: {
                                 userId: number;
-                                /** @enum {string} */
-                                contentType: "movie" | "show";
+                                contentType: components["schemas"]["ContentType"];
                                 /** @enum {string} */
                                 quotaType: "daily" | "weekly_rolling" | "monthly";
                                 quotaLimit: number;
@@ -8278,8 +8426,7 @@ export interface operations {
             content: {
                 "application/json": {
                     userIds: number[];
-                    /** @enum {string} */
-                    contentType?: "movie" | "show";
+                    contentType?: components["schemas"]["ContentType"];
                 };
             };
         };
@@ -8364,8 +8511,7 @@ export interface operations {
                             userId: number;
                             movieQuota?: {
                                 userId: number;
-                                /** @enum {string} */
-                                contentType: "movie" | "show";
+                                contentType: components["schemas"]["ContentType"];
                                 /** @enum {string} */
                                 quotaType: "daily" | "weekly_rolling" | "monthly";
                                 quotaLimit: number;
@@ -8374,8 +8520,7 @@ export interface operations {
                             };
                             showQuota?: {
                                 userId: number;
-                                /** @enum {string} */
-                                contentType: "movie" | "show";
+                                contentType: components["schemas"]["ContentType"];
                                 /** @enum {string} */
                                 quotaType: "daily" | "weekly_rolling" | "monthly";
                                 quotaLimit: number;
@@ -8485,8 +8630,7 @@ export interface operations {
                             userId: number;
                             movieQuota?: {
                                 userId: number;
-                                /** @enum {string} */
-                                contentType: "movie" | "show";
+                                contentType: components["schemas"]["ContentType"];
                                 /** @enum {string} */
                                 quotaType: "daily" | "weekly_rolling" | "monthly";
                                 quotaLimit: number;
@@ -8495,8 +8639,7 @@ export interface operations {
                             };
                             showQuota?: {
                                 userId: number;
-                                /** @enum {string} */
-                                contentType: "movie" | "show";
+                                contentType: components["schemas"]["ContentType"];
                                 /** @enum {string} */
                                 quotaType: "daily" | "weekly_rolling" | "monthly";
                                 quotaLimit: number;
@@ -8618,8 +8761,7 @@ export interface operations {
                             userId: number;
                             movieQuota?: {
                                 userId: number;
-                                /** @enum {string} */
-                                contentType: "movie" | "show";
+                                contentType: components["schemas"]["ContentType"];
                                 /** @enum {string} */
                                 quotaType: "daily" | "weekly_rolling" | "monthly";
                                 quotaLimit: number;
@@ -8628,8 +8770,7 @@ export interface operations {
                             };
                             showQuota?: {
                                 userId: number;
-                                /** @enum {string} */
-                                contentType: "movie" | "show";
+                                contentType: components["schemas"]["ContentType"];
                                 /** @enum {string} */
                                 quotaType: "daily" | "weekly_rolling" | "monthly";
                                 quotaLimit: number;
@@ -8663,7 +8804,7 @@ export interface operations {
     getUserQuotaStatus: {
         parameters: {
             query?: {
-                contentType?: "movie" | "show";
+                contentType?: components["schemas"]["ContentType"];
             };
             header?: never;
             path: {
@@ -8729,8 +8870,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    contentType: "movie" | "show";
+                    contentType: components["schemas"]["ContentType"];
                     /** Format: date-time */
                     requestDate?: string;
                 };
@@ -10969,11 +11109,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        new_watchlist_items: number;
-                        status_changes: number;
-                        notifications_sent: number;
-                    };
+                    "application/json": components["schemas"]["ActivityStats"];
                 };
             };
             /** @description Default Response */
@@ -11023,91 +11159,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        top_genres: {
-                            genre: string;
-                            count: number;
-                        }[];
-                        most_watched_shows: components["schemas"]["ContentStat"][];
-                        most_watched_movies: components["schemas"]["ContentStat"][];
-                        top_users: {
-                            name: string;
-                            count: number;
-                        }[];
-                        status_distribution: {
-                            status: string;
-                            count: number;
-                        }[];
-                        content_type_distribution: {
-                            type: string;
-                            count: number;
-                        }[];
-                        recent_activity: {
-                            new_watchlist_items: number;
-                            status_changes: number;
-                            notifications_sent: number;
-                        };
-                        instance_activity: {
-                            instance_id: number;
-                            /** @enum {string} */
-                            instance_type: "sonarr" | "radarr";
-                            name: string;
-                            item_count: number;
-                        }[];
-                        availability_times: {
-                            content_type: string;
-                            avg_days: number;
-                            min_days: number;
-                            max_days: number;
-                            count: number;
-                        }[];
-                        grabbed_to_notified_times: {
-                            content_type: string;
-                            avg_days: number;
-                            min_days: number;
-                            max_days: number;
-                            count: number;
-                        }[];
-                        status_transitions?: components["schemas"]["StatusTransitionTime"][];
-                        status_flow?: {
-                            from_status: string;
-                            to_status: string;
-                            content_type: string;
-                            count: number;
-                            avg_days: number;
-                        }[];
-                        notification_stats?: {
-                            total_notifications: number;
-                            by_type: {
-                                type: string;
-                                count: number;
-                            }[];
-                            by_channel: {
-                                channel: string;
-                                count: number;
-                            }[];
-                            by_user: {
-                                user_name: string;
-                                count: number;
-                            }[];
-                        };
-                        instance_content_breakdown?: {
-                            id: number;
-                            name: string;
-                            /** @enum {string} */
-                            type: "sonarr" | "radarr";
-                            total_items: number;
-                            primary_items: number;
-                            by_status: {
-                                status: string;
-                                count: number;
-                            }[];
-                            by_content_type: {
-                                content_type: string;
-                                count: number;
-                            }[];
-                        }[];
-                    };
+                    "application/json": components["schemas"]["DashboardStats"];
                 };
             };
             /** @description Default Response */
@@ -11156,13 +11208,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        content_type: string;
-                        avg_days: number;
-                        min_days: number;
-                        max_days: number;
-                        count: number;
-                    }[];
+                    "application/json": components["schemas"]["AvailabilityTime"][];
                 };
             };
             /** @description Default Response */
@@ -11211,10 +11257,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        genre: string;
-                        count: number;
-                    }[];
+                    "application/json": components["schemas"]["GenreStat"][];
                 };
             };
             /** @description Default Response */
@@ -11263,13 +11306,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        content_type: string;
-                        avg_days: number;
-                        min_days: number;
-                        max_days: number;
-                        count: number;
-                    }[];
+                    "application/json": components["schemas"]["GrabbedToNotifiedTime"][];
                 };
             };
             /** @description Default Response */
@@ -11303,7 +11340,9 @@ export interface operations {
     };
     getInstanceContentBreakdown: {
         parameters: {
-            query?: never;
+            query?: {
+                days?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -11316,25 +11355,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        instances: {
-                            id: number;
-                            name: string;
-                            /** @enum {string} */
-                            type: "sonarr" | "radarr";
-                            total_items: number;
-                            primary_items: number;
-                            by_status: {
-                                status: string;
-                                count: number;
-                            }[];
-                            by_content_type: {
-                                content_type: string;
-                                count: number;
-                            }[];
-                        }[];
-                    };
+                    "application/json": components["schemas"]["InstanceContentBreakdown"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -11425,21 +11446,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        total_notifications: number;
-                        by_type: {
-                            type: string;
-                            count: number;
-                        }[];
-                        by_channel: {
-                            channel: string;
-                            count: number;
-                        }[];
-                        by_user: {
-                            user_name: string;
-                            count: number;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["NotificationStats"];
                 };
             };
             /** @description Default Response */
@@ -11475,7 +11482,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
-                status?: "pending_approval" | "pending" | "requested" | "available";
+                status?: components["schemas"]["RecentRequestStatus"];
             };
             header?: never;
             path?: never;
@@ -11489,40 +11496,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        items: {
-                            id: number;
-                            /** @enum {string} */
-                            source: "approval" | "watchlist";
-                            title: string;
-                            /** @enum {string} */
-                            contentType: "movie" | "show";
-                            guids: string[];
-                            thumb: string | null;
-                            /** @enum {string} */
-                            status: "pending_approval" | "pending" | "requested" | "available";
-                            userId: number;
-                            userName: string;
-                            createdAt: string;
-                            primaryInstance: {
-                                id: number;
-                                name: string;
-                                /** @enum {string} */
-                                instanceType: "radarr" | "sonarr";
-                                /** @enum {string} */
-                                status: "pending" | "requested" | "available";
-                            } | null;
-                            allInstances: {
-                                id: number;
-                                name: string;
-                                /** @enum {string} */
-                                instanceType: "radarr" | "sonarr";
-                                /** @enum {string} */
-                                status: "pending" | "requested" | "available";
-                            }[];
-                        }[];
-                    };
+                    "application/json": components["schemas"]["RecentRequestsResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -11613,13 +11587,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        from_status: string;
-                        to_status: string;
-                        content_type: string;
-                        count: number;
-                        avg_days: number;
-                    }[];
+                    "application/json": components["schemas"]["StatusFlowData"][];
                 };
             };
             /** @description Default Response */
@@ -11717,10 +11685,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        name: string;
-                        count: number;
-                    }[];
+                    "application/json": components["schemas"]["UserStat"][];
                 };
             };
             /** @description Default Response */
@@ -11805,7 +11770,8 @@ export interface operations {
     syncInstance: {
         parameters: {
             query: {
-                type: "radarr" | "sonarr";
+                /** @description Arr instance kind, radarr or sonarr */
+                type: components["schemas"]["InstanceType"];
             };
             header?: never;
             path: {
@@ -13432,8 +13398,7 @@ export interface operations {
                                 thumb: string | null;
                                 guids: string[];
                                 genres: string[];
-                                /** @enum {string} */
-                                status: "pending" | "requested" | "grabbed" | "notified";
+                                status: components["schemas"]["WatchlistStatus"];
                                 added: string | null;
                             }[];
                             total: number;
@@ -14335,8 +14300,7 @@ export interface operations {
                  *     }
                  */
                 "application/json": {
-                    /** @enum {string} */
-                    mediaType: "movie" | "show";
+                    mediaType: components["schemas"]["ContentType"];
                     title: string;
                     guids: string[];
                     posterUrl?: string;
@@ -14348,8 +14312,7 @@ export interface operations {
                         airDateUtc?: string;
                     };
                     isBulkRelease: boolean;
-                    /** @enum {string} */
-                    instanceType?: "radarr" | "sonarr";
+                    instanceType?: components["schemas"]["InstanceType"];
                     instanceId?: number;
                     watchlistedBy: {
                         userId: number;
@@ -14417,8 +14380,7 @@ export interface operations {
                     };
                     content: {
                         title: string;
-                        /** @enum {string} */
-                        type: "movie" | "show";
+                        type: components["schemas"]["ContentType"];
                         thumb?: string;
                         key: string;
                         guids: string[];
@@ -14494,8 +14456,7 @@ export interface operations {
                     watchlistItemId: number;
                     content: {
                         title: string;
-                        /** @enum {string} */
-                        type: "movie" | "show";
+                        type: components["schemas"]["ContentType"];
                         key: string;
                         guids: string[];
                     };
@@ -14559,8 +14520,7 @@ export interface operations {
                     approvalId: number;
                     content: {
                         title: string;
-                        /** @enum {string} */
-                        type: "movie" | "show";
+                        type: components["schemas"]["ContentType"];
                         key: string;
                         posterUrl?: string;
                     };
@@ -14661,8 +14621,7 @@ export interface operations {
                     status: "approved" | "rejected";
                     content: {
                         title: string;
-                        /** @enum {string} */
-                        type: "movie" | "show";
+                        type: components["schemas"]["ContentType"];
                         key: string;
                         guids: string[];
                     };
@@ -14759,8 +14718,7 @@ export interface operations {
                     approvalId: number;
                     content: {
                         title: string;
-                        /** @enum {string} */
-                        type: "movie" | "show";
+                        type: components["schemas"]["ContentType"];
                         key: string;
                         guids: string[];
                     };
@@ -14966,8 +14924,7 @@ export interface operations {
                         userId: number;
                         username: string | null;
                     };
-                    /** @enum {string} */
-                    contentType: "movie" | "show";
+                    contentType: components["schemas"]["ContentType"];
                     currentCount: number;
                     cap: number;
                 };

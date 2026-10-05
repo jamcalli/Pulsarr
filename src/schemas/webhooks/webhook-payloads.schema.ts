@@ -1,3 +1,5 @@
+import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
+import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 /**
  * Webhook Payload Schemas
  *
@@ -25,7 +27,7 @@ const UserInfoSchema = z.object({
 /** Basic content information */
 const ContentInfoSchema = z.object({
   title: z.string(),
-  type: z.enum(['movie', 'show']),
+  type: ContentTypeSchema,
   key: z.string(),
   guids: z.array(z.string()),
 })
@@ -233,7 +235,7 @@ export function buildRoutedToItem(
 
 /** media.available - Fired when content becomes available to watch */
 export const MediaAvailablePayloadSchema = z.object({
-  mediaType: z.enum(['movie', 'show']),
+  mediaType: ContentTypeSchema,
   title: z.string(),
   guids: z.array(z.string()),
   posterUrl: z.string().optional(),
@@ -247,7 +249,7 @@ export const MediaAvailablePayloadSchema = z.object({
     })
     .optional(),
   isBulkRelease: z.boolean(),
-  instanceType: z.enum(['radarr', 'sonarr']).optional(),
+  instanceType: InstanceTypeSchema.optional(),
   instanceId: z.number().optional(),
   watchlistedBy: z.array(
     z.object({
@@ -263,7 +265,7 @@ export const WatchlistAddedPayloadSchema = z.object({
   addedBy: UserInfoSchema,
   content: z.object({
     title: z.string(),
-    type: z.enum(['movie', 'show']),
+    type: ContentTypeSchema,
     thumb: z.string().optional(),
     key: z.string(),
     guids: z.array(z.string()),
@@ -276,7 +278,7 @@ export const WatchlistRemovedPayloadSchema = z.object({
   watchlistItemId: z.number(),
   content: z.object({
     title: z.string(),
-    type: z.enum(['movie', 'show']),
+    type: ContentTypeSchema,
     key: z.string(),
     guids: z.array(z.string()),
   }),
@@ -291,7 +293,7 @@ export const ApprovalCreatedPayloadSchema = z.object({
   approvalId: z.number(),
   content: z.object({
     title: z.string(),
-    type: z.enum(['movie', 'show']),
+    type: ContentTypeSchema,
     key: z.string(),
     posterUrl: z.string().optional(),
   }),
@@ -373,7 +375,7 @@ export const QuotaCapReachedPayloadSchema = z.object({
     userId: z.number(),
     username: z.string().nullable(),
   }),
-  contentType: z.enum(['movie', 'show']),
+  contentType: ContentTypeSchema,
   currentCount: z.number(),
   cap: z.number(),
 })

@@ -1,3 +1,4 @@
+import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { z } from 'zod'
@@ -31,7 +32,7 @@ export const UpdateUserQuotaSchema = QuotaFieldsSchema
 
 // Schema for updating specific content type quota
 export const UpdateSpecificQuotaSchema = QuotaFieldsSchema.extend({
-  contentType: z.enum(['movie', 'show']),
+  contentType: ContentTypeSchema,
 })
 
 // Schema for updating separate movie and show quotas
@@ -43,7 +44,7 @@ export const UpdateSeparateQuotasSchema = z.object({
 
 export const UserQuotaResponseSchema = z.object({
   userId: z.number(),
-  contentType: z.enum(['movie', 'show']),
+  contentType: ContentTypeSchema,
   quotaType: QuotaTypeSchema,
   quotaLimit: z.number(),
   bypassApproval: z.boolean(),
@@ -70,7 +71,7 @@ export const QuotaStatusResponseSchema = z.object({
 
 export const QuotaUsageResponseSchema = z.object({
   userId: z.number(),
-  contentType: z.enum(['movie', 'show']),
+  contentType: ContentTypeSchema,
   requestDate: z.string(), // YYYY-MM-DD format
 })
 
@@ -88,7 +89,7 @@ export const GetQuotaUsageQuerySchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
-  contentType: z.enum(['movie', 'show']).optional(),
+  contentType: ContentTypeSchema.optional(),
   limit: z.coerce.number().min(1).max(100).default(50),
   offset: z.coerce.number().min(0).default(0),
 })

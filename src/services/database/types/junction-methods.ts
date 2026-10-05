@@ -280,7 +280,7 @@ declare module '@services/database.service.js' {
      * Gets content breakdown by instance
      * @returns Promise resolving to object with Sonarr and Radarr instance content counts
      */
-    getInstanceContentBreakdown(): Promise<{
+    getInstanceContentBreakdown(options?: { days?: number }): Promise<{
       success: boolean
       instances: Array<{
         id: number
