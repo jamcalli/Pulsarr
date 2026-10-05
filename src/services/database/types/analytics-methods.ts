@@ -53,9 +53,10 @@ declare module '@services/database.service.js' {
      * @param limit - Maximum number of users to return (default: 10)
      * @returns Promise resolving to array of users with name and item count
      */
-    getUsersWithMostWatchlistItems(
-      limit?: number,
-    ): Promise<{ name: string; count: number }[]>
+    getUsersWithMostWatchlistItems(options?: {
+      limit?: number
+      days?: number
+    }): Promise<{ name: string; count: number }[]>
 
     /**
      * Gets the distribution of watchlist item statuses

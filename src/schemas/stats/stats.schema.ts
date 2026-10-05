@@ -1,12 +1,17 @@
 import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import { z } from 'zod'
 
-// Common schemas for statistics
-export const GenreStatSchema = z.object({
-  genre: z.string(),
-  count: z.number(),
-})
+export const GenreStatSchema = z
+  .object({
+    genre: z.string(),
+    count: z.number(),
+  })
+  .meta({
+    id: 'GenreStat',
+    description: 'A genre with the number of watchlist items tagged with it',
+  })
 
 export const ContentStatSchema = z
   .object({
@@ -23,41 +28,71 @@ export const ContentStatSchema = z
       'A watchlisted title with its watchlist count and identifiers.',
   })
 
-export const UserStatSchema = z.object({
-  name: z.string(),
-  count: z.number(),
-})
+export const UserStatSchema = z
+  .object({
+    name: z.string(),
+    count: z.number(),
+  })
+  .meta({
+    id: 'UserStat',
+    description: 'A user with their watchlist item count in the range',
+  })
 
-export const StatusDistributionSchema = z.object({
-  status: z.string(),
-  count: z.number(),
-})
+export const StatusDistributionSchema = z
+  .object({
+    status: z.string(),
+    count: z.number(),
+  })
+  .meta({
+    id: 'StatusDistribution',
+    description: 'Watchlist item count for one status',
+  })
 
-export const ContentTypeDistributionSchema = z.object({
-  type: z.string(),
-  count: z.number(),
-})
+export const ContentTypeDistributionSchema = z
+  .object({
+    type: z.string(),
+    count: z.number(),
+  })
+  .meta({
+    id: 'ContentTypeDistribution',
+    description: 'Watchlist item count for one content type',
+  })
 
-export const ActivityStatsSchema = z.object({
-  new_watchlist_items: z.number(),
-  status_changes: z.number(),
-  notifications_sent: z.number(),
-})
+export const ActivityStatsSchema = z
+  .object({
+    new_watchlist_items: z.number(),
+    status_changes: z.number(),
+    notifications_sent: z.number(),
+  })
+  .meta({
+    id: 'ActivityStats',
+    description: 'Activity counts within the requested range',
+  })
 
-export const InstanceStatSchema = z.object({
-  instance_id: z.number(),
-  instance_type: z.enum(['sonarr', 'radarr']),
-  name: z.string(),
-  item_count: z.number(),
-})
+export const InstanceStatSchema = z
+  .object({
+    instance_id: z.number(),
+    instance_type: InstanceTypeSchema,
+    name: z.string(),
+    item_count: z.number(),
+  })
+  .meta({
+    id: 'InstanceStat',
+    description: 'Watchlist item count routed to one arr instance',
+  })
 
-export const AvailabilityTimeSchema = z.object({
-  content_type: z.string(),
-  avg_days: z.number(),
-  min_days: z.number(),
-  max_days: z.number(),
-  count: z.number(),
-})
+export const AvailabilityTimeSchema = z
+  .object({
+    content_type: z.string(),
+    avg_days: z.number(),
+    min_days: z.number(),
+    max_days: z.number(),
+    count: z.number(),
+  })
+  .meta({
+    id: 'AvailabilityTime',
+    description: 'Days from watchlisted to available for a content type',
+  })
 
 export const StatusTransitionTimeSchema = z
   .object({
@@ -75,43 +110,74 @@ export const StatusTransitionTimeSchema = z
       'Aggregate days spent moving between two watchlist statuses for a content type.',
   })
 
-export const StatusFlowDataSchema = z.object({
-  from_status: z.string(),
-  to_status: z.string(),
-  content_type: z.string(),
-  count: z.number(),
-  avg_days: z.number(),
-})
+export const StatusFlowDataSchema = z
+  .object({
+    from_status: z.string(),
+    to_status: z.string(),
+    content_type: z.string(),
+    count: z.number(),
+    avg_days: z.number(),
+  })
+  .meta({
+    id: 'StatusFlowData',
+    description:
+      'Transition count and average days between two statuses for a content type',
+  })
 
-export const GrabbedToNotifiedTimeSchema = z.object({
-  content_type: z.string(),
-  avg_days: z.number(),
-  min_days: z.number(),
-  max_days: z.number(),
-  count: z.number(),
-})
+export const GrabbedToNotifiedTimeSchema = z
+  .object({
+    content_type: z.string(),
+    avg_days: z.number(),
+    min_days: z.number(),
+    max_days: z.number(),
+    count: z.number(),
+  })
+  .meta({
+    id: 'GrabbedToNotifiedTime',
+    description: 'Days from grabbed to notified for a content type',
+  })
 
-export const NotificationChannelStatSchema = z.object({
-  channel: z.string(),
-  count: z.number(),
-})
+export const NotificationChannelStatSchema = z
+  .object({
+    channel: z.string(),
+    count: z.number(),
+  })
+  .meta({
+    id: 'NotificationChannelStat',
+    description: 'Notifications sent through one channel',
+  })
 
-export const NotificationTypeStatSchema = z.object({
-  type: z.string(),
-  count: z.number(),
-})
+export const NotificationTypeStatSchema = z
+  .object({
+    type: z.string(),
+    count: z.number(),
+  })
+  .meta({
+    id: 'NotificationTypeStat',
+    description: 'Notifications sent of one type',
+  })
 
-export const NotificationUserStatSchema = z.object({
-  user_name: z.string(),
-  count: z.number(),
-})
+export const NotificationUserStatSchema = z
+  .object({
+    user_name: z.string(),
+    count: z.number(),
+  })
+  .meta({
+    id: 'NotificationUserStat',
+    description: 'Notifications sent to one user',
+  })
 
-export const NotificationStatsSchema = z.object({
-  total_notifications: z.number(),
-  by_type: z.array(NotificationTypeStatSchema),
-  by_channel: z.array(NotificationChannelStatSchema),
-  by_user: z.array(NotificationUserStatSchema),
-})
+export const NotificationStatsSchema = z
+  .object({
+    total_notifications: z.number(),
+    by_type: z.array(NotificationTypeStatSchema),
+    by_channel: z.array(NotificationChannelStatSchema),
+    by_user: z.array(NotificationUserStatSchema),
+  })
+  .meta({
+    id: 'NotificationStats',
+    description: 'Notification totals broken down by type, channel and user',
+  })
 
 export const LimitQuerySchema = z.object({
   limit: z.coerce.number().int().positive().default(10),
@@ -121,54 +187,83 @@ export const ActivityQuerySchema = z.object({
   days: z.coerce.number().int().nonnegative().default(30), // 0 = all time
 })
 
+export const InstanceContentQuerySchema = z.object({
+  days: z.coerce.number().int().nonnegative().default(0), // 0 = all time
+})
+
 export const ContentStatsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().default(10),
   offset: z.coerce.number().int().nonnegative().default(0),
   days: z.coerce.number().int().nonnegative().default(0), // 0 = all time
 })
 
-export const InstanceContentItemSchema = z.object({
-  status: z.string(),
-  count: z.number(),
-})
+export const InstanceContentItemSchema = z
+  .object({
+    status: z.string(),
+    count: z.number(),
+  })
+  .meta({
+    id: 'InstanceContentItem',
+    description: 'Routed item count for one status on an instance',
+  })
 
-export const InstanceContentTypeSchema = z.object({
-  content_type: z.string(),
-  count: z.number(),
-})
+export const InstanceContentTypeSchema = z
+  .object({
+    content_type: z.string(),
+    count: z.number(),
+  })
+  .meta({
+    id: 'InstanceContentType',
+    description: 'Routed item count for one content type on an instance',
+  })
 
-export const InstanceBreakdownSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  type: z.enum(['sonarr', 'radarr']),
-  total_items: z.number(),
-  primary_items: z.number(),
-  by_status: z.array(InstanceContentItemSchema),
-  by_content_type: z.array(InstanceContentTypeSchema),
-})
+export const InstanceBreakdownSchema = z
+  .object({
+    id: z.number(),
+    name: z.string(),
+    type: InstanceTypeSchema,
+    total_items: z.number(),
+    primary_items: z.number(),
+    by_status: z.array(InstanceContentItemSchema),
+    by_content_type: z.array(InstanceContentTypeSchema),
+  })
+  .meta({
+    id: 'InstanceBreakdown',
+    description:
+      'Routed content on one arr instance by status and content type',
+  })
 
-export const InstanceContentBreakdownSchema = z.object({
-  success: z.boolean(),
-  instances: z.array(InstanceBreakdownSchema),
-})
+export const InstanceContentBreakdownSchema = z
+  .object({
+    success: z.boolean(),
+    instances: z.array(InstanceBreakdownSchema),
+  })
+  .meta({
+    id: 'InstanceContentBreakdown',
+    description: 'Routed content per arr instance',
+  })
 
-// Combined dashboard stats response schema
-export const DashboardStatsSchema = z.object({
-  top_genres: z.array(GenreStatSchema),
-  most_watched_shows: z.array(ContentStatSchema),
-  most_watched_movies: z.array(ContentStatSchema),
-  top_users: z.array(UserStatSchema),
-  status_distribution: z.array(StatusDistributionSchema),
-  content_type_distribution: z.array(ContentTypeDistributionSchema),
-  recent_activity: ActivityStatsSchema,
-  instance_activity: z.array(InstanceStatSchema),
-  availability_times: z.array(AvailabilityTimeSchema),
-  grabbed_to_notified_times: z.array(GrabbedToNotifiedTimeSchema),
-  status_transitions: z.array(StatusTransitionTimeSchema).optional(),
-  status_flow: z.array(StatusFlowDataSchema).optional(),
-  notification_stats: NotificationStatsSchema.optional(),
-  instance_content_breakdown: z.array(InstanceBreakdownSchema).optional(),
-})
+export const DashboardStatsSchema = z
+  .object({
+    top_genres: z.array(GenreStatSchema),
+    most_watched_shows: z.array(ContentStatSchema),
+    most_watched_movies: z.array(ContentStatSchema),
+    top_users: z.array(UserStatSchema),
+    status_distribution: z.array(StatusDistributionSchema),
+    content_type_distribution: z.array(ContentTypeDistributionSchema),
+    recent_activity: ActivityStatsSchema,
+    instance_activity: z.array(InstanceStatSchema),
+    availability_times: z.array(AvailabilityTimeSchema),
+    grabbed_to_notified_times: z.array(GrabbedToNotifiedTimeSchema),
+    status_transitions: z.array(StatusTransitionTimeSchema).optional(),
+    status_flow: z.array(StatusFlowDataSchema).optional(),
+    notification_stats: NotificationStatsSchema.optional(),
+    instance_content_breakdown: z.array(InstanceBreakdownSchema).optional(),
+  })
+  .meta({
+    id: 'DashboardStats',
+    description: 'Every dashboard statistic in one response',
+  })
 
 // Type exports
 export type GenreStat = z.infer<typeof GenreStatSchema>

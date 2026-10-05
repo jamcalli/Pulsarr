@@ -1,4 +1,6 @@
+import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { z } from 'zod'
 
@@ -20,7 +22,7 @@ export const ApprovalTriggerSchema = z.enum([
 // Shared routing configuration schema
 const RoutingConfigSchema = z.object({
   instanceId: z.number(),
-  instanceType: z.enum(['radarr', 'sonarr']),
+  instanceType: InstanceTypeSchema,
   qualityProfile: z.union([z.number(), z.string(), z.null()]).optional(),
   rootFolder: z.string().nullable().optional(),
   tags: z.array(z.string()).optional(),
@@ -70,7 +72,7 @@ export const ApprovalIdParamsSchema = z.object({
 
 export const CreateApprovalRequestSchema = z.object({
   userId: z.number(),
-  contentType: z.enum(['movie', 'show']),
+  contentType: ContentTypeSchema,
   contentTitle: z.string().min(1).max(255),
   contentKey: z.string().min(1).max(255),
   contentGuids: z.array(z.string()).optional(),
@@ -91,7 +93,7 @@ export const ApprovalRequestResponseSchema = z.object({
   id: z.number(),
   userId: z.number(),
   userName: z.string(),
-  contentType: z.enum(['movie', 'show']),
+  contentType: ContentTypeSchema,
   contentTitle: z.string(),
   contentKey: z.string(),
   contentGuids: z.array(z.string()),
@@ -147,11 +149,7 @@ export const GetApprovalRequestsQuerySchema = z.object({
       const types = val.split(',').filter(Boolean)
       return types.length === 1 ? types[0] : types
     })
-    .pipe(
-      z
-        .union([z.enum(['movie', 'show']), z.array(z.enum(['movie', 'show']))])
-        .optional(),
-    ),
+    .pipe(z.union([ContentTypeSchema, z.array(ContentTypeSchema)]).optional()),
   triggeredBy: z
     .string()
     .optional()
