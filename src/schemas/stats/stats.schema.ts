@@ -32,10 +32,13 @@ export const UserStatSchema = z
   .object({
     name: z.string(),
     count: z.number(),
+    movies: z.number(),
+    shows: z.number(),
   })
   .meta({
     id: 'UserStat',
-    description: 'A user with their watchlist item count in the range',
+    description:
+      'A user with their total watchlist item count in the range and its movie and show split',
   })
 
 export const StatusDistributionSchema = z
@@ -179,6 +182,8 @@ export const NotificationStatsSchema = z
     description: 'Notification totals broken down by type, channel and user',
   })
 
+const AllTimeDaysSchema = z.coerce.number().int().nonnegative().default(0) // 0 = all time
+
 export const LimitQuerySchema = z.object({
   limit: z.coerce.number().int().positive().default(10),
 })
@@ -188,13 +193,17 @@ export const ActivityQuerySchema = z.object({
 })
 
 export const InstanceContentQuerySchema = z.object({
-  days: z.coerce.number().int().nonnegative().default(0), // 0 = all time
+  days: AllTimeDaysSchema,
+})
+
+export const RankedStatsQuerySchema = LimitQuerySchema.extend({
+  days: AllTimeDaysSchema,
 })
 
 export const ContentStatsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().default(10),
   offset: z.coerce.number().int().nonnegative().default(0),
-  days: z.coerce.number().int().nonnegative().default(0), // 0 = all time
+  days: AllTimeDaysSchema,
 })
 
 export const InstanceContentItemSchema = z

@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
-import { seedAll } from '../../helpers/seeds/index.js'
+import { SEED_WATCHLIST_ITEMS, seedAll } from '../../helpers/seeds/index.js'
 
 describe('recent requests junction status', () => {
   let app: FastifyInstance
@@ -81,5 +81,44 @@ describe('recent requests junction status', () => {
         primaryJunctionStatus: 'notified',
       },
     ])
+  })
+
+  it('GET /v1/stats/recent-requests returns the watchlist thumb for a pending approval', async () => {
+    const watchlistItem = SEED_WATCHLIST_ITEMS[0]
+    const approvalBase = {
+      user_id: watchlistItem.user_id,
+      content_type: 'movie',
+      content_guids: watchlistItem.guids,
+      router_decision: JSON.stringify({ action: 'require_approval' }),
+      triggered_by: 'router_rule',
+      status: 'pending',
+    }
+    const [matched] = await getTestDatabase()('approval_requests')
+      .insert({
+        ...approvalBase,
+        content_title: watchlistItem.title,
+        content_key: watchlistItem.key,
+      })
+      .returning('id')
+    const [unmatched] = await getTestDatabase()('approval_requests')
+      .insert({
+        ...approvalBase,
+        content_title: 'Not On Any Watchlist',
+        content_key: 'no-watchlist-row',
+      })
+      .returning('id')
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/stats/recent-requests?status=pending_approval',
+    })
+
+    expect(res.statusCode).toBe(200)
+    const items: Array<{ id: number; thumb: string | null }> = res.json().items
+    expect(items).toHaveLength(2)
+    expect(items.find((item) => item.id === matched.id)?.thumb).toBe(
+      watchlistItem.thumb,
+    )
+    expect(items.find((item) => item.id === unmatched.id)?.thumb).toBeNull()
   })
 })

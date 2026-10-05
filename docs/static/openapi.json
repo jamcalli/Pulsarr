@@ -4847,14 +4847,22 @@
           },
           "count": {
             "type": "number"
+          },
+          "movies": {
+            "type": "number"
+          },
+          "shows": {
+            "type": "number"
           }
         },
         "required": [
           "name",
-          "count"
+          "count",
+          "movies",
+          "shows"
         ],
         "additionalProperties": false,
-        "description": "A user with their watchlist item count in the range"
+        "description": "A user with their total watchlist item count in the range and its movie and show split"
       },
       "WatchlistStatus": {
         "type": "string",
@@ -18900,7 +18908,7 @@
         "tags": [
           "Statistics"
         ],
-        "description": "Retrieve the most popular genres from watchlists",
+        "description": "Retrieve the most popular genres from watchlists, optionally limited to items added within the given number of days",
         "parameters": [
           {
             "schema": {
@@ -18911,6 +18919,16 @@
             },
             "in": "query",
             "name": "limit"
+          },
+          {
+            "schema": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "query",
+            "name": "days"
           }
         ],
         "responses": {
@@ -19521,7 +19539,7 @@
         "tags": [
           "Statistics"
         ],
-        "description": "Retrieve users with the most watchlist items",
+        "description": "Retrieve users with the most watchlist items, optionally limited to items added within the given number of days",
         "parameters": [
           {
             "schema": {
@@ -19532,6 +19550,16 @@
             },
             "in": "query",
             "name": "limit"
+          },
+          {
+            "schema": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "query",
+            "name": "days"
           }
         ],
         "responses": {

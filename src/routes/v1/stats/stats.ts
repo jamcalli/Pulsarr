@@ -12,6 +12,7 @@ import {
   InstanceContentQuerySchema,
   LimitQuerySchema,
   NotificationStatsSchema,
+  RankedStatsQuerySchema,
   StatusFlowDataSchema,
   StatusTransitionTimeSchema,
   UserStatSchema,
@@ -56,7 +57,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           notificationStats,
           instanceContentBreakdown,
         ] = await Promise.all([
-          fastify.db.getTopGenres(limit),
+          fastify.db.getTopGenres(limit, days),
           fastify.db.getMostWatchlistedShows({ limit, days }),
           fastify.db.getMostWatchlistedMovies({ limit, days }),
           fastify.db.getUsersWithMostWatchlistItems({ limit, days }),
@@ -149,8 +150,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       schema: {
         summary: 'Get top genres',
         operationId: 'getTopGenres',
-        description: 'Retrieve the most popular genres from watchlists',
-        querystring: LimitQuerySchema,
+        description:
+          'Retrieve the most popular genres from watchlists, optionally limited to items added within the given number of days',
+        querystring: RankedStatsQuerySchema,
         response: {
           200: z.array(GenreStatSchema),
           400: ErrorSchema,
@@ -161,8 +163,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { limit } = request.query
-        const topGenres = await fastify.db.getTopGenres(limit)
+        const { limit, days } = request.query
+        const topGenres = await fastify.db.getTopGenres(limit, days)
         return topGenres
       } catch (error) {
         logRouteError(fastify.log, request, error, {
@@ -252,8 +254,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       schema: {
         summary: 'Get top users',
         operationId: 'getTopUsers',
-        description: 'Retrieve users with the most watchlist items',
-        querystring: LimitQuerySchema,
+        description:
+          'Retrieve users with the most watchlist items, optionally limited to items added within the given number of days',
+        querystring: RankedStatsQuerySchema,
         response: {
           200: z.array(UserStatSchema),
           400: ErrorSchema,
@@ -264,9 +267,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { limit } = request.query
+        const { limit, days } = request.query
         const topUsers = await fastify.db.getUsersWithMostWatchlistItems({
           limit,
+          days,
         })
         return topUsers
       } catch (error) {

@@ -100,8 +100,15 @@ export async function getRecentRequests(
           'approval_requests.user_id',
           'approval_requests.created_at',
           'users.name as user_name',
+          'watchlist_items.thumb as thumb',
         )
         .leftJoin('users', 'approval_requests.user_id', 'users.id')
+        .leftJoin('watchlist_items', function () {
+          this.on('watchlist_items.user_id', 'approval_requests.user_id').andOn(
+            'watchlist_items.key',
+            'approval_requests.content_key',
+          )
+        })
         .where('approval_requests.status', 'pending')
         .orderBy('approval_requests.created_at', 'desc')
         .limit(limit)
@@ -113,7 +120,7 @@ export async function getRecentRequests(
           title: row.title,
           contentType: row.content_type as 'movie' | 'show',
           guids: this.safeJsonParse(row.guids, [], 'approval.guids'),
-          thumb: null, // Approvals don't store thumb
+          thumb: row.thumb || null,
           status: 'pending_approval',
           userId: row.user_id,
           userName: row.user_name || 'Unknown',
