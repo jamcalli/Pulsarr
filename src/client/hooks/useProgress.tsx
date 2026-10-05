@@ -19,33 +19,22 @@ export const useProgress = (type: ProgressType): ProgressState => {
     isConnected: false,
   })
 
-  const mountedRef = useRef(true)
-
   const subscribeToType = useProgressStore((state) => state.subscribeToType)
   const isStoreConnected = useProgressStore((state) => state.isConnected)
 
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined
-
-    if (mountedRef.current) {
-      unsubscribe = subscribeToType(type, (event: ProgressEvent) => {
-        if (mountedRef.current) {
-          setState({
-            progress: event.progress || 0,
-            message: event.message || '',
-            phase: event.phase || '',
-            isConnected: true,
-          })
-        }
+    const unsubscribe = subscribeToType(type, (event: ProgressEvent) => {
+      setState({
+        progress: event.progress || 0,
+        message: event.message || '',
+        phase: event.phase || '',
+        isConnected: true,
       })
+    })
 
-      setState((prev) => ({ ...prev, isConnected: isStoreConnected }))
-    }
+    setState((prev) => ({ ...prev, isConnected: isStoreConnected }))
 
-    return () => {
-      mountedRef.current = false
-      if (unsubscribe) unsubscribe()
-    }
+    return unsubscribe
   }, [type, subscribeToType, isStoreConnected])
 
   return state

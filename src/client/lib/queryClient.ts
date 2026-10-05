@@ -1,5 +1,11 @@
-import { type Query, QueryCache, QueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import {
+  MutationCache,
+  type Query,
+  QueryCache,
+  QueryClient,
+} from '@tanstack/react-query'
+import { toast } from '@/components/ui/toast'
+import { notifyOperationSettled } from '@/lib/operation-toasts'
 import { apiErrorMessage } from '@/lib/tanstackApi'
 
 const BACKGROUND_REFRESH_TOAST_ID = 'background-refresh-error'
@@ -10,14 +16,22 @@ export function notifyBackgroundRefreshError(
   query: Pick<Query<unknown, unknown>, 'state'>,
 ): void {
   if (query.state.data === undefined) return
-  toast.error('Could not refresh. Showing the last loaded data.', {
+  toast.add({
     id: BACKGROUND_REFRESH_TOAST_ID,
+    type: 'error',
+    title: 'Could not refresh. Showing the last loaded data.',
     description: apiErrorMessage(error) ?? undefined,
   })
 }
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({ onError: notifyBackgroundRefreshError }),
+  mutationCache: new MutationCache({
+    onSuccess: (data, _variables, _context, mutation) =>
+      notifyOperationSettled({ ok: true, data }, mutation.meta),
+    onError: (error, _variables, _context, mutation) =>
+      notifyOperationSettled({ ok: false, error }, mutation.meta),
+  }),
   defaultOptions: {
     queries: {
       staleTime: 30_000,

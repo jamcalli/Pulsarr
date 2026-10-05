@@ -1,6 +1,7 @@
 import { BookOpen, Maximize2, Minimize2 } from 'lucide-react'
 import { Fragment } from 'react'
 import { useLocation } from 'react-router-dom'
+import { ThemeToggle } from '@/components/theme-toggle'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,7 +21,7 @@ export function AppHeader() {
   const frameLabel = fullscreenEnabled ? 'Windowed' : 'Full screen'
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b-2 border-border bg-card px-4 md:pr-6 md:pl-8">
+    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b-2 border-border bg-card px-4 md:pr-6 md:pl-8">
       <SidebarTrigger className="md:hidden" />
       <Breadcrumb className="min-w-0 flex-1">
         <BreadcrumbList className="text-base">
@@ -48,6 +49,7 @@ export function AppHeader() {
           ))}
         </BreadcrumbList>
       </Breadcrumb>
+      <ThemeToggle />
       <Button
         variant="ghost"
         size="icon"

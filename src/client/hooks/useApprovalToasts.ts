@@ -1,7 +1,7 @@
 import type { ApprovalMetadata } from '@root/types/progress.types.js'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/toast'
 import {
   approvalToast,
   isApprovalMetadata,
@@ -31,12 +31,13 @@ export function useApprovalToasts(): void {
       timers.delete(action)
       if (!first) return
       const { title, description } = approvalToast(action, [first, ...rest])
-      toast(title, {
+      toast.add({
+        title,
         description,
-        action:
+        actionProps:
           action === 'created'
             ? {
-                label: 'View',
+                children: 'View',
                 onClick: () => navigate(pageHref(NAV_PAGES.approvalQueue)),
               }
             : undefined,

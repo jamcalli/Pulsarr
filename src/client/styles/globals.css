@@ -217,7 +217,7 @@
   --primary: #48a9a6;
   --overlay: rgba(0, 0, 0, 0.8);
   --backdrop-title: #c1666b;
-  --destructive: #c1666b;
+  --destructive: #d4777b;
   --gold: #d4b483;
   --orange: #f6723a;
   --blue: #4a94b5;
@@ -234,7 +234,7 @@
   --divider: #ddd3c0;
   --muted-foreground: #5a5750;
   --accent: #ebe2d1;
-  --ok: #2d7a4f;
+  --ok: #4aae70;
   --info: #7fb8d6;
   --border: #1a1a1a;
   --text: #1a1a1a;
@@ -280,7 +280,7 @@
   --divider: #3a3d46;
   --muted-foreground: #a8a8a8;
   --accent: #33363f;
-  --ok: #5fbf8a;
+  --ok: #66cf8f;
   --info: #7fb8d6;
   --border: #0b0b0d;
   --text: #ececec;
@@ -310,6 +310,7 @@
 
 html {
   color-scheme: light;
+  overscroll-behavior-y: none;
 }
 
 html.dark {
@@ -319,19 +320,11 @@ html.dark {
 body {
   background-color: var(--bg);
   color: var(--text);
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
-  height: 100%;
   touch-action: pan-y pinch-zoom;
 }
 
 #app {
   isolation: isolate;
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
 }
 
 /* Font heading utility - only applies to direct heading elements */

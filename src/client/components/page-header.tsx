@@ -12,7 +12,7 @@ export function Page({
   return (
     <div
       className={cn(
-        'mx-auto flex w-full max-w-220 flex-col gap-5 px-4 pt-7 pb-24 md:px-8',
+        'mx-auto flex w-full max-w-220 flex-col gap-5 px-4 pt-7 pb-8 md:px-8',
         className,
       )}
     >

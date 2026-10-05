@@ -152,7 +152,7 @@ describe('AppSidebar', () => {
 
     expect(screen.getByRole('link', { name: 'User tags' })).toHaveAttribute(
       'href',
-      '/utilities/user-tags',
+      '/users/tags',
     )
   })
 
@@ -234,7 +234,7 @@ describe('AppSidebar', () => {
 
     await user.click(await screen.findByText('admin'))
     await user.click(await screen.findByRole('menuitem', { name: 'Log out' }))
-    const dialog = await screen.findByRole('alertdialog')
+    const dialog = await screen.findByRole('dialog', { name: 'Log out?' })
     await user.click(within(dialog).getByRole('button', { name: 'Log out' }))
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'))

@@ -1,15 +1,4 @@
-import { Loader2 } from 'lucide-react'
-import { ErrorAlert } from '@/components/error-alert'
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
+import { ConfirmCredenza } from '@/components/confirm-credenza'
 import { useLogout } from '@/hooks/useLogout'
 
 interface LogOutDialogProps {
@@ -26,33 +15,16 @@ export function LogOutDialog({ open, onOpenChange }: LogOutDialogProps) {
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Log out?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Sync keeps running on the server. You'll need to sign in again to
-            manage it.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <ErrorAlert message={logout.errorMessage} />
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <Button
-            disabled={logout.isPending}
-            onClick={() => logout.mutate({ body: {} })}
-          >
-            {logout.isPending ? (
-              <>
-                <Loader2 className="animate-spin" data-icon="inline-start" />
-                Logging out...
-              </>
-            ) : (
-              'Log out'
-            )}
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmCredenza
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="Log out?"
+      description="Sync keeps running on the server. You'll need to sign in again to manage it."
+      confirmLabel="Log out"
+      onConfirm={() => logout.mutate({ body: {} })}
+      pending={logout.isPending}
+      pendingLabel="Logging out..."
+      errorMessage={logout.errorMessage}
+    />
   )
 }

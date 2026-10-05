@@ -54,7 +54,10 @@ export const NAV_PAGES = {
   newUserDefaults: page('New user defaults', '/users/new-user-defaults', [
     '/utilities/new-user-defaults',
   ]),
-  userTags: page('User tags', '/users/tags', ['/utilities/user-tags']),
+  userTags: {
+    ...page('User tags', '/users/tags', ['/utilities/user-tags']),
+    rebuilt: true,
+  },
   plexLabels: page('Plex labels', '/users/plex-labels', [
     '/utilities/plex-labels',
   ]),
@@ -200,7 +203,7 @@ function trimTrailingSlash(path: string): string {
   return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path
 }
 
-function pathMatches(pattern: string, pathname: string): boolean {
+export function pathMatches(pattern: string, pathname: string): boolean {
   if (pattern === '/') return pathname === '/'
   return pathname === pattern || pathname.startsWith(`${pattern}/`)
 }

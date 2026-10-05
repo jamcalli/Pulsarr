@@ -3,11 +3,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/toast'
 import { LoginForm } from '@/features/auth/components/login-form'
 import { server } from '../../../setup.js'
 
-vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
+vi.mock('@/components/ui/toast', () => ({ toast: { add: vi.fn() } }))
 
 const LOGIN_URL = '/v1/users/login'
 
@@ -43,7 +43,7 @@ async function fillCredentials() {
 
 describe('LoginForm', () => {
   beforeEach(() => {
-    vi.mocked(toast.success).mockClear()
+    vi.mocked(toast.add).mockClear()
   })
 
   it('shows both schema messages and sends no request on empty submit', async () => {
@@ -113,7 +113,10 @@ describe('LoginForm', () => {
     await waitFor(() =>
       expect(router.state.location.pathname).toBe('/app/settings'),
     )
-    expect(toast.success).toHaveBeenCalledWith('Welcome back, admin!')
+    expect(toast.add).toHaveBeenCalledWith({
+      type: 'success',
+      title: 'Welcome back, admin!',
+    })
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
@@ -134,7 +137,7 @@ describe('LoginForm', () => {
     fireEvent.submit(form)
     fireEvent.submit(form)
 
-    await waitFor(() => expect(toast.success).toHaveBeenCalled())
+    await waitFor(() => expect(toast.add).toHaveBeenCalled())
     expect(calls.count).toBe(1)
   })
 })

@@ -4,7 +4,7 @@ import {
   Maximize2,
   Minimize2,
   Moon,
-  Sparkles,
+  Orbit,
   Sun,
   UserCog,
 } from 'lucide-react'
@@ -119,7 +119,7 @@ export function SidebarUser() {
                 checked={asteroidsEnabled}
                 onCheckedChange={setAsteroidsEnabled}
               >
-                <Sparkles />
+                <Orbit />
                 Asteroids
               </DropdownMenuCheckboxItem>
             )}

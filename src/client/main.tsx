@@ -6,6 +6,7 @@ import { RouterProvider } from 'react-router-dom'
 import { SettingsProvider } from '@/components/settings-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 import { TooltipProvider } from '@/legacy/components/ui/tooltip'
+import { configureOperationToasts } from '@/lib/operation-toasts'
 import { queryClient } from '@/lib/queryClient'
 import { router } from '@/router/router'
 
@@ -32,6 +33,11 @@ function RootLayout() {
     </QueryClientProvider>
   )
 }
+
+configureOperationToasts({
+  pathname: () => router.state.location.pathname,
+  navigate: (to) => router.navigate(to),
+})
 
 const rootElement = document.getElementById('app')
 if (rootElement === null) throw new Error('Root element not found')
