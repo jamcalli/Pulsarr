@@ -1,11 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ConfigUpdateSchema } from '@root/schemas/config/config.schema'
 import type {
   CleanupResponse,
   CreateTaggingResponse,
   RemoveTagsResponse,
   SyncTaggingResponse,
 } from '@root/schemas/tags/user-tags.schema'
-import { TaggingConfigSchema } from '@root/schemas/tags/user-tags.schema'
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -14,6 +14,16 @@ import type { z } from 'zod'
 import { invalidateConfig, updateConfig, useConfig } from '@/hooks/useConfig'
 import { useMinLoadingMutation, withMinDuration } from '@/hooks/useMinLoading'
 import { apiErrorMessage, apiFetch } from '@/lib/tanstackApi'
+
+const TaggingConfigSchema = ConfigUpdateSchema.pick({
+  tagUsersInSonarr: true,
+  tagUsersInRadarr: true,
+  cleanupOrphanedTags: true,
+  removedTagMode: true,
+  removedTagPrefix: true,
+  tagPrefix: true,
+  tagNamingSource: true,
+}).required()
 
 // Union type for action results
 type ActionResult =

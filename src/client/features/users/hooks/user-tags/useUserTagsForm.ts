@@ -1,4 +1,4 @@
-import { TaggingConfigSchema } from '@root/schemas/tags/user-tags.schema'
+import { UserTagsFormSchema } from '@/features/users/lib/user-tags-form.schema'
 import { useConfigForm } from '@/hooks/useConfigForm'
 import type { components } from '@/types/api.js'
 
@@ -31,6 +31,6 @@ export function useUserTagsForm(config: Config) {
   return useConfigForm({
     config,
     toValues: toFormValues,
-    schema: TaggingConfigSchema,
+    schema: UserTagsFormSchema,
   })
 }
