@@ -187,6 +187,10 @@ export const ActivityQuerySchema = z.object({
   days: z.coerce.number().int().nonnegative().default(30), // 0 = all time
 })
 
+export const InstanceContentQuerySchema = z.object({
+  days: z.coerce.number().int().nonnegative().default(0), // 0 = all time
+})
+
 export const ContentStatsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().default(10),
   offset: z.coerce.number().int().nonnegative().default(0),

@@ -1945,7 +1945,7 @@ export interface paths {
         };
         /**
          * Get instance content breakdown
-         * @description Retrieve content distribution across instances for items routed within the given number of days
+         * @description Retrieve content distribution across instances, optionally limited to items routed within the given number of days
          */
         get: operations["getInstanceContentBreakdown"];
         put?: never;

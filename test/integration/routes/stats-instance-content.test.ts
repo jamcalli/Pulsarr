@@ -66,6 +66,16 @@ describe('instance content breakdown range', () => {
     expect(radarrTotal(res.json().instances)).toBe(3)
   })
 
+  it('GET /v1/stats/instance-content without days counts all time', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/stats/instance-content',
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(radarrTotal(res.json().instances)).toBe(3)
+  })
+
   it('GET /v1/stats/all applies days to instance_content_breakdown', async () => {
     const res = await app.inject({ method: 'GET', url: '/v1/stats/all?days=7' })
 

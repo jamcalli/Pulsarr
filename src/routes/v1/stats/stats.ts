@@ -9,6 +9,7 @@ import {
   GenreStatSchema,
   GrabbedToNotifiedTimeSchema,
   InstanceContentBreakdownSchema,
+  InstanceContentQuerySchema,
   LimitQuerySchema,
   NotificationStatsSchema,
   StatusFlowDataSchema,
@@ -115,8 +116,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Get instance content breakdown',
         operationId: 'getInstanceContentBreakdown',
         description:
-          'Retrieve content distribution across instances for items routed within the given number of days',
-        querystring: ActivityQuerySchema,
+          'Retrieve content distribution across instances, optionally limited to items routed within the given number of days',
+        querystring: InstanceContentQuerySchema,
         response: {
           200: InstanceContentBreakdownSchema,
           500: ErrorSchema,
