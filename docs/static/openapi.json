@@ -33,6 +33,56 @@
       }
     },
     "schemas": {
+      "ActivityStats": {
+        "type": "object",
+        "properties": {
+          "new_watchlist_items": {
+            "type": "number"
+          },
+          "status_changes": {
+            "type": "number"
+          },
+          "notifications_sent": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "new_watchlist_items",
+          "status_changes",
+          "notifications_sent"
+        ],
+        "additionalProperties": false,
+        "description": "Activity counts within the requested range"
+      },
+      "AvailabilityTime": {
+        "type": "object",
+        "properties": {
+          "content_type": {
+            "type": "string"
+          },
+          "avg_days": {
+            "type": "number"
+          },
+          "min_days": {
+            "type": "number"
+          },
+          "max_days": {
+            "type": "number"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "content_type",
+          "avg_days",
+          "min_days",
+          "max_days",
+          "count"
+        ],
+        "additionalProperties": false,
+        "description": "Days from watchlisted to available for a content type"
+      },
       "BulkManageRollingPayload": {
         "type": "object",
         "properties": {
@@ -1766,6 +1816,23 @@
         ],
         "description": "Media kind, movie or show"
       },
+      "ContentTypeDistribution": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "type",
+          "count"
+        ],
+        "additionalProperties": false,
+        "description": "Watchlist item count for one content type"
+      },
       "CreateTaggingResponse": {
         "type": "object",
         "properties": {
@@ -1795,6 +1862,103 @@
         ],
         "additionalProperties": false,
         "description": "Result of creating user tags in Sonarr and Radarr"
+      },
+      "DashboardStats": {
+        "type": "object",
+        "properties": {
+          "top_genres": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenreStat"
+            }
+          },
+          "most_watched_shows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentStat"
+            }
+          },
+          "most_watched_movies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentStat"
+            }
+          },
+          "top_users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserStat"
+            }
+          },
+          "status_distribution": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusDistribution"
+            }
+          },
+          "content_type_distribution": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentTypeDistribution"
+            }
+          },
+          "recent_activity": {
+            "$ref": "#/components/schemas/ActivityStats"
+          },
+          "instance_activity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstanceStat"
+            }
+          },
+          "availability_times": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityTime"
+            }
+          },
+          "grabbed_to_notified_times": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GrabbedToNotifiedTime"
+            }
+          },
+          "status_transitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusTransitionTime"
+            }
+          },
+          "status_flow": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusFlowData"
+            }
+          },
+          "notification_stats": {
+            "$ref": "#/components/schemas/NotificationStats"
+          },
+          "instance_content_breakdown": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstanceBreakdown"
+            }
+          }
+        },
+        "required": [
+          "top_genres",
+          "most_watched_shows",
+          "most_watched_movies",
+          "top_users",
+          "status_distribution",
+          "content_type_distribution",
+          "recent_activity",
+          "instance_activity",
+          "availability_times",
+          "grabbed_to_notified_times"
+        ],
+        "additionalProperties": false,
+        "description": "Every dashboard statistic in one response"
       },
       "Error": {
         "type": "object",
@@ -1915,6 +2079,182 @@
         "additionalProperties": false,
         "description": "Field and operator metadata an evaluator contributes to the rule builder"
       },
+      "GenreStat": {
+        "type": "object",
+        "properties": {
+          "genre": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "genre",
+          "count"
+        ],
+        "additionalProperties": false,
+        "description": "A genre with the number of watchlist items tagged with it"
+      },
+      "GrabbedToNotifiedTime": {
+        "type": "object",
+        "properties": {
+          "content_type": {
+            "type": "string"
+          },
+          "avg_days": {
+            "type": "number"
+          },
+          "min_days": {
+            "type": "number"
+          },
+          "max_days": {
+            "type": "number"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "content_type",
+          "avg_days",
+          "min_days",
+          "max_days",
+          "count"
+        ],
+        "additionalProperties": false,
+        "description": "Days from grabbed to notified for a content type"
+      },
+      "InstanceBreakdown": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/InstanceType"
+          },
+          "total_items": {
+            "type": "number"
+          },
+          "primary_items": {
+            "type": "number"
+          },
+          "by_status": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstanceContentItem"
+            }
+          },
+          "by_content_type": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstanceContentType"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "total_items",
+          "primary_items",
+          "by_status",
+          "by_content_type"
+        ],
+        "additionalProperties": false,
+        "description": "Routed content on one arr instance by status and content type"
+      },
+      "InstanceContentBreakdown": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "instances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstanceBreakdown"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "instances"
+        ],
+        "additionalProperties": false,
+        "description": "Routed content per arr instance"
+      },
+      "InstanceContentItem": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "count"
+        ],
+        "additionalProperties": false,
+        "description": "Routed item count for one status on an instance"
+      },
+      "InstanceContentType": {
+        "type": "object",
+        "properties": {
+          "content_type": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "content_type",
+          "count"
+        ],
+        "additionalProperties": false,
+        "description": "Routed item count for one content type on an instance"
+      },
+      "InstanceStat": {
+        "type": "object",
+        "properties": {
+          "instance_id": {
+            "type": "number"
+          },
+          "instance_type": {
+            "$ref": "#/components/schemas/InstanceType"
+          },
+          "name": {
+            "type": "string"
+          },
+          "item_count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "instance_id",
+          "instance_type",
+          "name",
+          "item_count"
+        ],
+        "additionalProperties": false,
+        "description": "Watchlist item count routed to one arr instance"
+      },
+      "InstanceType": {
+        "type": "string",
+        "enum": [
+          "radarr",
+          "sonarr"
+        ],
+        "description": "Arr instance kind, radarr or sonarr"
+      },
       "MaintainerrStatus": {
         "type": "object",
         "properties": {
@@ -1988,6 +2328,91 @@
           "allSeasonPilotRolling"
         ],
         "description": "Rolling monitoring strategy for a show"
+      },
+      "NotificationChannelStat": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "channel",
+          "count"
+        ],
+        "additionalProperties": false,
+        "description": "Notifications sent through one channel"
+      },
+      "NotificationStats": {
+        "type": "object",
+        "properties": {
+          "total_notifications": {
+            "type": "number"
+          },
+          "by_type": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationTypeStat"
+            }
+          },
+          "by_channel": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationChannelStat"
+            }
+          },
+          "by_user": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationUserStat"
+            }
+          }
+        },
+        "required": [
+          "total_notifications",
+          "by_type",
+          "by_channel",
+          "by_user"
+        ],
+        "additionalProperties": false,
+        "description": "Notification totals broken down by type, channel and user"
+      },
+      "NotificationTypeStat": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "type",
+          "count"
+        ],
+        "additionalProperties": false,
+        "description": "Notifications sent of one type"
+      },
+      "NotificationUserStat": {
+        "type": "object",
+        "properties": {
+          "user_name": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "user_name",
+          "count"
+        ],
+        "additionalProperties": false,
+        "description": "Notifications sent to one user"
       },
       "OrphanedTagRefInstanceResult": {
         "type": "object",
@@ -2178,6 +2603,151 @@
         },
         "additionalProperties": false,
         "description": "Ratings for a movie as reported by Radarr."
+      },
+      "RecentRequestInstance": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "instanceType": {
+            "$ref": "#/components/schemas/InstanceType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RecentRequestInstanceStatus"
+          },
+          "junctionStatus": {
+            "$ref": "#/components/schemas/WatchlistStatus"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "instanceType",
+          "status",
+          "junctionStatus"
+        ],
+        "additionalProperties": false,
+        "description": "One arr instance a recent request was routed to, with its collapsed and raw status"
+      },
+      "RecentRequestInstanceStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "requested",
+          "available"
+        ],
+        "description": "Collapsed per-instance status, never pending_approval since approvals are not routed yet"
+      },
+      "RecentRequestItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "approval",
+              "watchlist"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "contentType": {
+            "$ref": "#/components/schemas/ContentType"
+          },
+          "guids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/RecentRequestStatus"
+          },
+          "userId": {
+            "type": "number"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "primaryInstance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecentRequestInstance"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "allInstances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentRequestInstance"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "title",
+          "contentType",
+          "guids",
+          "thumb",
+          "status",
+          "userId",
+          "userName",
+          "createdAt",
+          "primaryInstance",
+          "allInstances"
+        ],
+        "additionalProperties": false,
+        "description": "A pending approval or routed watchlist item shown in recent requests"
+      },
+      "RecentRequestStatus": {
+        "type": "string",
+        "enum": [
+          "pending_approval",
+          "pending",
+          "requested",
+          "available"
+        ],
+        "description": "Collapsed request status, where pending_approval comes from the approval queue"
+      },
+      "RecentRequestsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentRequestItem"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "items"
+        ],
+        "additionalProperties": false,
+        "description": "Recent requests for the dashboard, newest first"
       },
       "RemoveTagsPayload": {
         "type": "object",
@@ -2535,11 +3105,7 @@
             "minLength": 1
           },
           "target_type": {
-            "type": "string",
-            "enum": [
-              "sonarr",
-              "radarr"
-            ]
+            "$ref": "#/components/schemas/InstanceType"
           },
           "target_instance_id": {
             "anyOf": [
@@ -2693,11 +3259,7 @@
             "minLength": 1
           },
           "target_type": {
-            "type": "string",
-            "enum": [
-              "sonarr",
-              "radarr"
-            ]
+            "$ref": "#/components/schemas/InstanceType"
           },
           "target_instance_id": {
             "anyOf": [
@@ -2876,6 +3438,52 @@
         ],
         "additionalProperties": false,
         "description": "Pulsarr-tracked Sonarr show with its rolling monitoring enrollment status"
+      },
+      "StatusDistribution": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "count"
+        ],
+        "additionalProperties": false,
+        "description": "Watchlist item count for one status"
+      },
+      "StatusFlowData": {
+        "type": "object",
+        "properties": {
+          "from_status": {
+            "type": "string"
+          },
+          "to_status": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          },
+          "avg_days": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "from_status",
+          "to_status",
+          "content_type",
+          "count",
+          "avg_days"
+        ],
+        "additionalProperties": false,
+        "description": "Transition count and average days between two statuses for a content type"
       },
       "StatusTransitionTime": {
         "type": "object",
@@ -3161,11 +3769,7 @@
         "type": "object",
         "properties": {
           "type": {
-            "type": "string",
-            "enum": [
-              "sonarr",
-              "radarr"
-            ]
+            "$ref": "#/components/schemas/InstanceType"
           },
           "instanceId": {
             "type": "number"
@@ -4234,6 +4838,33 @@
           "newUsername"
         ],
         "description": "Change the current admin username"
+      },
+      "UserStat": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "count"
+        ],
+        "additionalProperties": false,
+        "description": "A user with their watchlist item count in the range"
+      },
+      "WatchlistStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "requested",
+          "grabbed",
+          "notified"
+        ],
+        "description": "Routing state of a watchlist item or one of its instance rows: pending (not routed), requested (sent to the arr, no file), grabbed (the arr has the file), notified (in Plex and the user was told)"
       }
     }
   },
@@ -4634,11 +5265,7 @@
                     "type": "number"
                   },
                   "contentType": {
-                    "type": "string",
-                    "enum": [
-                      "movie",
-                      "show"
-                    ]
+                    "$ref": "#/components/schemas/ContentType"
                   },
                   "contentTitle": {
                     "type": "string",
@@ -4675,11 +5302,7 @@
                             "type": "number"
                           },
                           "instanceType": {
-                            "type": "string",
-                            "enum": [
-                              "radarr",
-                              "sonarr"
-                            ]
+                            "$ref": "#/components/schemas/InstanceType"
                           },
                           "qualityProfile": {
                             "type": [
@@ -4819,11 +5442,7 @@
                                 "type": "number"
                               },
                               "instanceType": {
-                                "type": "string",
-                                "enum": [
-                                  "radarr",
-                                  "sonarr"
-                                ]
+                                "$ref": "#/components/schemas/InstanceType"
                               },
                               "qualityProfile": {
                                 "type": [
@@ -4980,11 +5599,7 @@
                           "type": "string"
                         },
                         "contentType": {
-                          "type": "string",
-                          "enum": [
-                            "movie",
-                            "show"
-                          ]
+                          "$ref": "#/components/schemas/ContentType"
                         },
                         "contentTitle": {
                           "type": "string"
@@ -5017,11 +5632,7 @@
                                   "type": "number"
                                 },
                                 "instanceType": {
-                                  "type": "string",
-                                  "enum": [
-                                    "radarr",
-                                    "sonarr"
-                                  ]
+                                  "$ref": "#/components/schemas/InstanceType"
                                 },
                                 "qualityProfile": {
                                   "type": [
@@ -5163,11 +5774,7 @@
                                       "type": "number"
                                     },
                                     "instanceType": {
-                                      "type": "string",
-                                      "enum": [
-                                        "radarr",
-                                        "sonarr"
-                                      ]
+                                      "$ref": "#/components/schemas/InstanceType"
                                     },
                                     "qualityProfile": {
                                       "type": [
@@ -5539,11 +6146,7 @@
                             "type": "string"
                           },
                           "contentType": {
-                            "type": "string",
-                            "enum": [
-                              "movie",
-                              "show"
-                            ]
+                            "$ref": "#/components/schemas/ContentType"
                           },
                           "contentTitle": {
                             "type": "string"
@@ -5576,11 +6179,7 @@
                                     "type": "number"
                                   },
                                   "instanceType": {
-                                    "type": "string",
-                                    "enum": [
-                                      "radarr",
-                                      "sonarr"
-                                    ]
+                                    "$ref": "#/components/schemas/InstanceType"
                                   },
                                   "qualityProfile": {
                                     "type": [
@@ -5722,11 +6321,7 @@
                                         "type": "number"
                                       },
                                       "instanceType": {
-                                        "type": "string",
-                                        "enum": [
-                                          "radarr",
-                                          "sonarr"
-                                        ]
+                                        "$ref": "#/components/schemas/InstanceType"
                                       },
                                       "qualityProfile": {
                                         "type": [
@@ -6417,11 +7012,7 @@
                           "type": "string"
                         },
                         "contentType": {
-                          "type": "string",
-                          "enum": [
-                            "movie",
-                            "show"
-                          ]
+                          "$ref": "#/components/schemas/ContentType"
                         },
                         "contentTitle": {
                           "type": "string"
@@ -6454,11 +7045,7 @@
                                   "type": "number"
                                 },
                                 "instanceType": {
-                                  "type": "string",
-                                  "enum": [
-                                    "radarr",
-                                    "sonarr"
-                                  ]
+                                  "$ref": "#/components/schemas/InstanceType"
                                 },
                                 "qualityProfile": {
                                   "type": [
@@ -6600,11 +7187,7 @@
                                       "type": "number"
                                     },
                                     "instanceType": {
-                                      "type": "string",
-                                      "enum": [
-                                        "radarr",
-                                        "sonarr"
-                                      ]
+                                      "$ref": "#/components/schemas/InstanceType"
                                     },
                                     "qualityProfile": {
                                       "type": [
@@ -6902,11 +7485,7 @@
                             "type": "number"
                           },
                           "instanceType": {
-                            "type": "string",
-                            "enum": [
-                              "radarr",
-                              "sonarr"
-                            ]
+                            "$ref": "#/components/schemas/InstanceType"
                           },
                           "qualityProfile": {
                             "type": [
@@ -7046,11 +7625,7 @@
                                 "type": "number"
                               },
                               "instanceType": {
-                                "type": "string",
-                                "enum": [
-                                  "radarr",
-                                  "sonarr"
-                                ]
+                                "$ref": "#/components/schemas/InstanceType"
                               },
                               "qualityProfile": {
                                 "type": [
@@ -7191,11 +7766,7 @@
                           "type": "string"
                         },
                         "contentType": {
-                          "type": "string",
-                          "enum": [
-                            "movie",
-                            "show"
-                          ]
+                          "$ref": "#/components/schemas/ContentType"
                         },
                         "contentTitle": {
                           "type": "string"
@@ -7228,11 +7799,7 @@
                                   "type": "number"
                                 },
                                 "instanceType": {
-                                  "type": "string",
-                                  "enum": [
-                                    "radarr",
-                                    "sonarr"
-                                  ]
+                                  "$ref": "#/components/schemas/InstanceType"
                                 },
                                 "qualityProfile": {
                                   "type": [
@@ -7374,11 +7941,7 @@
                                       "type": "number"
                                     },
                                     "instanceType": {
-                                      "type": "string",
-                                      "enum": [
-                                        "radarr",
-                                        "sonarr"
-                                      ]
+                                      "$ref": "#/components/schemas/InstanceType"
                                     },
                                     "qualityProfile": {
                                       "type": [
@@ -8559,15 +9122,12 @@
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "enum": [
-                "sonarr",
-                "radarr"
-              ]
+              "$ref": "#/components/schemas/InstanceType"
             },
             "in": "query",
             "name": "targetType",
-            "required": true
+            "required": true,
+            "description": "Arr instance kind, radarr or sonarr"
           },
           {
             "schema": {
@@ -8623,15 +9183,12 @@
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "enum": [
-                "sonarr",
-                "radarr"
-              ]
+              "$ref": "#/components/schemas/InstanceType"
             },
             "in": "path",
             "name": "targetType",
-            "required": true
+            "required": true,
+            "description": "Arr instance kind, radarr or sonarr"
           }
         ],
         "responses": {
@@ -12240,11 +12797,7 @@
           },
           {
             "schema": {
-              "type": "string",
-              "enum": [
-                "movie",
-                "show"
-              ]
+              "$ref": "#/components/schemas/ContentType"
             },
             "in": "query",
             "name": "contentType"
@@ -12292,11 +12845,7 @@
                             "type": "number"
                           },
                           "contentType": {
-                            "type": "string",
-                            "enum": [
-                              "movie",
-                              "show"
-                            ]
+                            "$ref": "#/components/schemas/ContentType"
                           },
                           "requestDate": {
                             "type": "string"
@@ -12504,11 +13053,7 @@
                               "type": "number"
                             },
                             "contentType": {
-                              "type": "string",
-                              "enum": [
-                                "movie",
-                                "show"
-                              ]
+                              "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
                               "type": "string",
@@ -12548,11 +13093,7 @@
                               "type": "number"
                             },
                             "contentType": {
-                              "type": "string",
-                              "enum": [
-                                "movie",
-                                "show"
-                              ]
+                              "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
                               "type": "string",
@@ -12664,11 +13205,7 @@
                             "type": "number"
                           },
                           "contentType": {
-                            "type": "string",
-                            "enum": [
-                              "movie",
-                              "show"
-                            ]
+                            "$ref": "#/components/schemas/ContentType"
                           },
                           "quotaType": {
                             "type": "string",
@@ -12940,11 +13477,7 @@
                     }
                   },
                   "contentType": {
-                    "type": "string",
-                    "enum": [
-                      "movie",
-                      "show"
-                    ]
+                    "$ref": "#/components/schemas/ContentType"
                   }
                 },
                 "required": [
@@ -13144,11 +13677,7 @@
                               "type": "number"
                             },
                             "contentType": {
-                              "type": "string",
-                              "enum": [
-                                "movie",
-                                "show"
-                              ]
+                              "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
                               "type": "string",
@@ -13188,11 +13717,7 @@
                               "type": "number"
                             },
                             "contentType": {
-                              "type": "string",
-                              "enum": [
-                                "movie",
-                                "show"
-                              ]
+                              "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
                               "type": "string",
@@ -13346,11 +13871,7 @@
                               "type": "number"
                             },
                             "contentType": {
-                              "type": "string",
-                              "enum": [
-                                "movie",
-                                "show"
-                              ]
+                              "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
                               "type": "string",
@@ -13390,11 +13911,7 @@
                               "type": "number"
                             },
                             "contentType": {
-                              "type": "string",
-                              "enum": [
-                                "movie",
-                                "show"
-                              ]
+                              "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
                               "type": "string",
@@ -13744,11 +14261,7 @@
                               "type": "number"
                             },
                             "contentType": {
-                              "type": "string",
-                              "enum": [
-                                "movie",
-                                "show"
-                              ]
+                              "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
                               "type": "string",
@@ -13788,11 +14301,7 @@
                               "type": "number"
                             },
                             "contentType": {
-                              "type": "string",
-                              "enum": [
-                                "movie",
-                                "show"
-                              ]
+                              "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
                               "type": "string",
@@ -13876,11 +14385,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "enum": [
-                "movie",
-                "show"
-              ]
+              "$ref": "#/components/schemas/ContentType"
             },
             "in": "query",
             "name": "contentType"
@@ -14029,11 +14534,7 @@
                 "type": "object",
                 "properties": {
                   "contentType": {
-                    "type": "string",
-                    "enum": [
-                      "movie",
-                      "show"
-                    ]
+                    "$ref": "#/components/schemas/ContentType"
                   },
                   "requestDate": {
                     "type": "string",
@@ -18213,24 +18714,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "new_watchlist_items": {
-                      "type": "number"
-                    },
-                    "status_changes": {
-                      "type": "number"
-                    },
-                    "notifications_sent": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "new_watchlist_items",
-                    "status_changes",
-                    "notifications_sent"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ActivityStats"
                 }
               }
             }
@@ -18304,407 +18788,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "top_genres": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "genre": {
-                            "type": "string"
-                          },
-                          "count": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "genre",
-                          "count"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "most_watched_shows": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ContentStat"
-                      }
-                    },
-                    "most_watched_movies": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ContentStat"
-                      }
-                    },
-                    "top_users": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string"
-                          },
-                          "count": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "name",
-                          "count"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "status_distribution": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          },
-                          "count": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "status",
-                          "count"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "content_type_distribution": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string"
-                          },
-                          "count": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "count"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "recent_activity": {
-                      "type": "object",
-                      "properties": {
-                        "new_watchlist_items": {
-                          "type": "number"
-                        },
-                        "status_changes": {
-                          "type": "number"
-                        },
-                        "notifications_sent": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "new_watchlist_items",
-                        "status_changes",
-                        "notifications_sent"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "instance_activity": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "instance_id": {
-                            "type": "number"
-                          },
-                          "instance_type": {
-                            "type": "string",
-                            "enum": [
-                              "sonarr",
-                              "radarr"
-                            ]
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "item_count": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "instance_id",
-                          "instance_type",
-                          "name",
-                          "item_count"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "availability_times": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "content_type": {
-                            "type": "string"
-                          },
-                          "avg_days": {
-                            "type": "number"
-                          },
-                          "min_days": {
-                            "type": "number"
-                          },
-                          "max_days": {
-                            "type": "number"
-                          },
-                          "count": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "content_type",
-                          "avg_days",
-                          "min_days",
-                          "max_days",
-                          "count"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "grabbed_to_notified_times": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "content_type": {
-                            "type": "string"
-                          },
-                          "avg_days": {
-                            "type": "number"
-                          },
-                          "min_days": {
-                            "type": "number"
-                          },
-                          "max_days": {
-                            "type": "number"
-                          },
-                          "count": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "content_type",
-                          "avg_days",
-                          "min_days",
-                          "max_days",
-                          "count"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "status_transitions": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/StatusTransitionTime"
-                      }
-                    },
-                    "status_flow": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "from_status": {
-                            "type": "string"
-                          },
-                          "to_status": {
-                            "type": "string"
-                          },
-                          "content_type": {
-                            "type": "string"
-                          },
-                          "count": {
-                            "type": "number"
-                          },
-                          "avg_days": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "from_status",
-                          "to_status",
-                          "content_type",
-                          "count",
-                          "avg_days"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "notification_stats": {
-                      "type": "object",
-                      "properties": {
-                        "total_notifications": {
-                          "type": "number"
-                        },
-                        "by_type": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string"
-                              },
-                              "count": {
-                                "type": "number"
-                              }
-                            },
-                            "required": [
-                              "type",
-                              "count"
-                            ],
-                            "additionalProperties": false
-                          }
-                        },
-                        "by_channel": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "channel": {
-                                "type": "string"
-                              },
-                              "count": {
-                                "type": "number"
-                              }
-                            },
-                            "required": [
-                              "channel",
-                              "count"
-                            ],
-                            "additionalProperties": false
-                          }
-                        },
-                        "by_user": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "user_name": {
-                                "type": "string"
-                              },
-                              "count": {
-                                "type": "number"
-                              }
-                            },
-                            "required": [
-                              "user_name",
-                              "count"
-                            ],
-                            "additionalProperties": false
-                          }
-                        }
-                      },
-                      "required": [
-                        "total_notifications",
-                        "by_type",
-                        "by_channel",
-                        "by_user"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "instance_content_breakdown": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string",
-                            "enum": [
-                              "sonarr",
-                              "radarr"
-                            ]
-                          },
-                          "total_items": {
-                            "type": "number"
-                          },
-                          "primary_items": {
-                            "type": "number"
-                          },
-                          "by_status": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "status": {
-                                  "type": "string"
-                                },
-                                "count": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "status",
-                                "count"
-                              ],
-                              "additionalProperties": false
-                            }
-                          },
-                          "by_content_type": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "content_type": {
-                                  "type": "string"
-                                },
-                                "count": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "content_type",
-                                "count"
-                              ],
-                              "additionalProperties": false
-                            }
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "type",
-                          "total_items",
-                          "primary_items",
-                          "by_status",
-                          "by_content_type"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "top_genres",
-                    "most_watched_shows",
-                    "most_watched_movies",
-                    "top_users",
-                    "status_distribution",
-                    "content_type_distribution",
-                    "recent_activity",
-                    "instance_activity",
-                    "availability_times",
-                    "grabbed_to_notified_times"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/DashboardStats"
                 }
               }
             }
@@ -18770,32 +18854,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "content_type": {
-                        "type": "string"
-                      },
-                      "avg_days": {
-                        "type": "number"
-                      },
-                      "min_days": {
-                        "type": "number"
-                      },
-                      "max_days": {
-                        "type": "number"
-                      },
-                      "count": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "content_type",
-                      "avg_days",
-                      "min_days",
-                      "max_days",
-                      "count"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/AvailabilityTime"
                   }
                 }
               }
@@ -18862,20 +18921,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "genre": {
-                        "type": "string"
-                      },
-                      "count": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "genre",
-                      "count"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/GenreStat"
                   }
                 }
               }
@@ -18942,32 +18988,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "content_type": {
-                        "type": "string"
-                      },
-                      "avg_days": {
-                        "type": "number"
-                      },
-                      "min_days": {
-                        "type": "number"
-                      },
-                      "max_days": {
-                        "type": "number"
-                      },
-                      "count": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "content_type",
-                      "avg_days",
-                      "min_days",
-                      "max_days",
-                      "count"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/GrabbedToNotifiedTime"
                   }
                 }
               }
@@ -19013,99 +19034,26 @@
         "tags": [
           "Statistics"
         ],
-        "description": "Retrieve content distribution across different instances",
+        "description": "Retrieve content distribution across instances for items routed within the given number of days",
+        "parameters": [
+          {
+            "schema": {
+              "default": 30,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "query",
+            "name": "days"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "instances": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string",
-                            "enum": [
-                              "sonarr",
-                              "radarr"
-                            ]
-                          },
-                          "total_items": {
-                            "type": "number"
-                          },
-                          "primary_items": {
-                            "type": "number"
-                          },
-                          "by_status": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "status": {
-                                  "type": "string"
-                                },
-                                "count": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "status",
-                                "count"
-                              ],
-                              "additionalProperties": false
-                            }
-                          },
-                          "by_content_type": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "content_type": {
-                                  "type": "string"
-                                },
-                                "count": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "content_type",
-                                "count"
-                              ],
-                              "additionalProperties": false
-                            }
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "type",
-                          "total_items",
-                          "primary_items",
-                          "by_status",
-                          "by_content_type"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "instances"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/InstanceContentBreakdown"
                 }
               }
             }
@@ -19246,76 +19194,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "total_notifications": {
-                      "type": "number"
-                    },
-                    "by_type": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string"
-                          },
-                          "count": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "count"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "by_channel": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "channel": {
-                            "type": "string"
-                          },
-                          "count": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "channel",
-                          "count"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "by_user": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "user_name": {
-                            "type": "string"
-                          },
-                          "count": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "user_name",
-                          "count"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "total_notifications",
-                    "by_type",
-                    "by_channel",
-                    "by_user"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/NotificationStats"
                 }
               }
             }
@@ -19374,13 +19253,7 @@
           },
           {
             "schema": {
-              "type": "string",
-              "enum": [
-                "pending_approval",
-                "pending",
-                "requested",
-                "available"
-              ]
+              "$ref": "#/components/schemas/RecentRequestStatus"
             },
             "in": "query",
             "name": "status"
@@ -19392,166 +19265,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "source": {
-                            "type": "string",
-                            "enum": [
-                              "approval",
-                              "watchlist"
-                            ]
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "contentType": {
-                            "type": "string",
-                            "enum": [
-                              "movie",
-                              "show"
-                            ]
-                          },
-                          "guids": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          },
-                          "thumb": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "pending_approval",
-                              "pending",
-                              "requested",
-                              "available"
-                            ]
-                          },
-                          "userId": {
-                            "type": "number"
-                          },
-                          "userName": {
-                            "type": "string"
-                          },
-                          "createdAt": {
-                            "type": "string"
-                          },
-                          "primaryInstance": {
-                            "anyOf": [
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "number"
-                                  },
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "instanceType": {
-                                    "type": "string",
-                                    "enum": [
-                                      "radarr",
-                                      "sonarr"
-                                    ]
-                                  },
-                                  "status": {
-                                    "type": "string",
-                                    "enum": [
-                                      "pending",
-                                      "requested",
-                                      "available"
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "name",
-                                  "instanceType",
-                                  "status"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "allInstances": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "id": {
-                                  "type": "number"
-                                },
-                                "name": {
-                                  "type": "string"
-                                },
-                                "instanceType": {
-                                  "type": "string",
-                                  "enum": [
-                                    "radarr",
-                                    "sonarr"
-                                  ]
-                                },
-                                "status": {
-                                  "type": "string",
-                                  "enum": [
-                                    "pending",
-                                    "requested",
-                                    "available"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "id",
-                                "name",
-                                "instanceType",
-                                "status"
-                              ],
-                              "additionalProperties": false
-                            }
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "source",
-                          "title",
-                          "contentType",
-                          "guids",
-                          "thumb",
-                          "status",
-                          "userId",
-                          "userName",
-                          "createdAt",
-                          "primaryInstance",
-                          "allInstances"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "items"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RecentRequestsResponse"
                 }
               }
             }
@@ -19694,32 +19408,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "from_status": {
-                        "type": "string"
-                      },
-                      "to_status": {
-                        "type": "string"
-                      },
-                      "content_type": {
-                        "type": "string"
-                      },
-                      "count": {
-                        "type": "number"
-                      },
-                      "avg_days": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "from_status",
-                      "to_status",
-                      "content_type",
-                      "count",
-                      "avg_days"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/StatusFlowData"
                   }
                 }
               }
@@ -19853,20 +19542,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "count": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "name",
-                      "count"
-                    ],
-                    "additionalProperties": false
+                    "$ref": "#/components/schemas/UserStat"
                   }
                 }
               }
@@ -20015,15 +19691,12 @@
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "enum": [
-                "radarr",
-                "sonarr"
-              ]
+              "$ref": "#/components/schemas/InstanceType"
             },
             "in": "query",
             "name": "type",
-            "required": true
+            "required": true,
+            "description": "Arr instance kind, radarr or sonarr"
           },
           {
             "schema": {
@@ -22809,13 +22482,7 @@
                                 }
                               },
                               "status": {
-                                "type": "string",
-                                "enum": [
-                                  "pending",
-                                  "requested",
-                                  "grabbed",
-                                  "notified"
-                                ]
+                                "$ref": "#/components/schemas/WatchlistStatus"
                               },
                               "added": {
                                 "type": [
@@ -24509,11 +24176,7 @@
                 "type": "object",
                 "properties": {
                   "mediaType": {
-                    "type": "string",
-                    "enum": [
-                      "movie",
-                      "show"
-                    ]
+                    "$ref": "#/components/schemas/ContentType"
                   },
                   "title": {
                     "type": "string"
@@ -24555,11 +24218,7 @@
                     "type": "boolean"
                   },
                   "instanceType": {
-                    "type": "string",
-                    "enum": [
-                      "radarr",
-                      "sonarr"
-                    ]
+                    "$ref": "#/components/schemas/InstanceType"
                   },
                   "instanceId": {
                     "type": "number"
@@ -24667,11 +24326,7 @@
                         "type": "string"
                       },
                       "type": {
-                        "type": "string",
-                        "enum": [
-                          "movie",
-                          "show"
-                        ]
+                        "$ref": "#/components/schemas/ContentType"
                       },
                       "thumb": {
                         "type": "string"
@@ -24879,11 +24534,7 @@
                         "type": "string"
                       },
                       "type": {
-                        "type": "string",
-                        "enum": [
-                          "movie",
-                          "show"
-                        ]
+                        "$ref": "#/components/schemas/ContentType"
                       },
                       "key": {
                         "type": "string"
@@ -24978,11 +24629,7 @@
                         "type": "string"
                       },
                       "type": {
-                        "type": "string",
-                        "enum": [
-                          "movie",
-                          "show"
-                        ]
+                        "$ref": "#/components/schemas/ContentType"
                       },
                       "key": {
                         "type": "string"
@@ -25271,11 +24918,7 @@
                         "type": "string"
                       },
                       "type": {
-                        "type": "string",
-                        "enum": [
-                          "movie",
-                          "show"
-                        ]
+                        "$ref": "#/components/schemas/ContentType"
                       },
                       "key": {
                         "type": "string"
@@ -25583,11 +25226,7 @@
                         "type": "string"
                       },
                       "type": {
-                        "type": "string",
-                        "enum": [
-                          "movie",
-                          "show"
-                        ]
+                        "$ref": "#/components/schemas/ContentType"
                       },
                       "key": {
                         "type": "string"
@@ -26133,11 +25772,7 @@
                     "additionalProperties": false
                   },
                   "contentType": {
-                    "type": "string",
-                    "enum": [
-                      "movie",
-                      "show"
-                    ]
+                    "$ref": "#/components/schemas/ContentType"
                   },
                   "currentCount": {
                     "type": "number"

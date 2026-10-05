@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import {
   RemovedTagPrefixSchema,
   TagPrefixSchema,
@@ -156,7 +157,7 @@ export const CleanupOrphanedRefsResponseSchema = BaseResponseSchema.extend({
 
 const TagStatusInstanceSchema = z
   .object({
-    type: z.enum(['sonarr', 'radarr']),
+    type: InstanceTypeSchema,
     instanceId: z.number(),
     name: z.string(),
     enabled: z.boolean(),

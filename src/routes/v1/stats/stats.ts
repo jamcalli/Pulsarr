@@ -58,7 +58,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           fastify.db.getTopGenres(limit),
           fastify.db.getMostWatchlistedShows({ limit, days }),
           fastify.db.getMostWatchlistedMovies({ limit, days }),
-          fastify.db.getUsersWithMostWatchlistItems(limit),
+          fastify.db.getUsersWithMostWatchlistItems({ limit, days }),
           fastify.db.getWatchlistStatusDistribution(),
           fastify.db.getContentTypeDistribution(),
           fastify.db.getRecentActivityStats(days),
@@ -66,7 +66,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           fastify.db.getAverageTimeToAvailability(days),
           fastify.db.getAverageTimeFromGrabbedToNotified(days),
           fastify.db.getNotificationStats(days),
-          fastify.db.getInstanceContentBreakdown(),
+          fastify.db.getInstanceContentBreakdown({ days }),
         ])
 
         let statusTransitions: z.infer<typeof StatusTransitionTimeSchema>[] = []
@@ -114,7 +114,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       schema: {
         summary: 'Get instance content breakdown',
         operationId: 'getInstanceContentBreakdown',
-        description: 'Retrieve content distribution across different instances',
+        description:
+          'Retrieve content distribution across instances for items routed within the given number of days',
+        querystring: ActivityQuerySchema,
         response: {
           200: InstanceContentBreakdownSchema,
           500: ErrorSchema,
@@ -124,7 +126,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const breakdown = await fastify.db.getInstanceContentBreakdown()
+        const breakdown = await fastify.db.getInstanceContentBreakdown({
+          days: request.query.days,
+        })
         return breakdown
       } catch (error) {
         logRouteError(fastify.log, request, error, {
@@ -260,7 +264,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     async (request, reply) => {
       try {
         const { limit } = request.query
-        const topUsers = await fastify.db.getUsersWithMostWatchlistItems(limit)
+        const topUsers = await fastify.db.getUsersWithMostWatchlistItems({
+          limit,
+        })
         return topUsers
       } catch (error) {
         logRouteError(fastify.log, request, error, {

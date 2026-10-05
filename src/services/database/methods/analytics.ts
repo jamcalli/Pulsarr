@@ -124,7 +124,7 @@ export async function getMostWatchlistedShows(
   if (!isAllTime) {
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
-    query = query.where('added', '>=', cutoffDate)
+    query = query.where('added', '>=', cutoffDate.toISOString())
   }
 
   // Use JSON aggregation to collect unique user names as a proper array
@@ -191,7 +191,7 @@ export async function getMostWatchlistedMovies(
   if (!isAllTime) {
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
-    query = query.where('added', '>=', cutoffDate)
+    query = query.where('added', '>=', cutoffDate.toISOString())
   }
 
   // Use JSON aggregation to collect unique user names as a proper array
@@ -236,15 +236,24 @@ export async function getMostWatchlistedMovies(
  */
 export async function getUsersWithMostWatchlistItems(
   this: DatabaseService,
-  limit = 10,
+  options: { limit?: number; days?: number } = {},
 ): Promise<{ name: string; count: number }[]> {
-  const results = await this.knex('watchlist_items')
+  const { limit = 10, days = 0 } = options
+  let query = this.knex('watchlist_items')
     .join('users', 'watchlist_items.user_id', '=', 'users.id')
     .select('users.name')
     .count('watchlist_items.id as count')
     .groupBy('users.id', 'users.name')
     .orderBy('count', 'desc')
     .limit(limit)
+
+  if (days > 0) {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - days)
+    query = query.where('watchlist_items.added', '>=', cutoffDate.toISOString())
+  }
+
+  const results = await query
 
   return results.map((row) => ({
     name: String(row.name),
@@ -376,8 +385,12 @@ export async function getRecentActivityStats(
   if (!isAllTime) {
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
-    newItemsQuery = newItemsQuery.where('added', '>=', cutoffDate)
-    statusChangesQuery = statusChangesQuery.where('timestamp', '>=', cutoffDate)
+    newItemsQuery = newItemsQuery.where('added', '>=', cutoffDate.toISOString())
+    statusChangesQuery = statusChangesQuery.where(
+      'timestamp',
+      '>=',
+      cutoffDate.toISOString(),
+    )
     notificationsQuery = notificationsQuery.where(
       'created_at',
       '>=',
@@ -508,7 +521,7 @@ export async function getAverageTimeFromGrabbedToNotified(
       .min('timestamp as first_notified')
       .where('status', 'notified')
     if (!isAllTime && cutoffDate) {
-      notifiedSubquery.where('timestamp', '>=', cutoffDate)
+      notifiedSubquery.where('timestamp', '>=', cutoffDate.toISOString())
     }
 
     // Include both grabbed->notified AND requested->notified transitions
@@ -544,7 +557,7 @@ export async function getAverageTimeFromGrabbedToNotified(
       .min('timestamp as first_notified')
       .where('status', 'notified')
     if (!isAllTime && cutoffDate) {
-      notifiedSubquery2.where('timestamp', '>=', cutoffDate)
+      notifiedSubquery2.where('timestamp', '>=', cutoffDate.toISOString())
     }
 
     // Also get requested->notified transitions where no grabbed status exists
@@ -707,7 +720,7 @@ export async function getDetailedStatusTransitionMetrics(
       transitionsQuery = transitionsQuery.where(
         'h2.timestamp',
         '>=',
-        cutoffDate,
+        cutoffDate.toISOString(),
       )
     }
     transitionsQuery = transitionsQuery

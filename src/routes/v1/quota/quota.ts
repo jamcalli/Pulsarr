@@ -1,3 +1,4 @@
+import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import {
   BulkQuotaOperationResponseSchema,
   BulkQuotaOperationSchema,
@@ -449,7 +450,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Get current quota status for a user',
         params: QuotaUserIdParamsSchema,
         querystring: z.object({
-          contentType: z.enum(['movie', 'show']).optional(),
+          contentType: ContentTypeSchema.optional(),
         }),
         response: {
           200: QuotaStatusGetResponseSchema,
@@ -493,7 +494,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           'Get current quota status for multiple users in a single request',
         body: z.object({
           userIds: z.array(z.number()),
-          contentType: z.enum(['movie', 'show']).optional(),
+          contentType: ContentTypeSchema.optional(),
         }),
         response: {
           200: BulkQuotaStatusResponseSchema,
@@ -541,7 +542,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Record quota usage for a user',
         params: QuotaUserIdParamsSchema,
         body: z.object({
-          contentType: z.enum(['movie', 'show']),
+          contentType: ContentTypeSchema,
           requestDate: z.iso.datetime().optional(),
         }),
         response: {

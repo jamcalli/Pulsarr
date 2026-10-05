@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import { SERIES_TYPES } from '@root/schemas/content-router/constants.js'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
 import { z } from 'zod'
@@ -272,7 +273,7 @@ export const ConditionGroupSchema = z
 // Base router rule schema
 export const BaseRouterRuleSchema = z.object({
   name: z.string().min(1, { error: 'Name is required' }),
-  target_type: z.enum(['sonarr', 'radarr']),
+  target_type: InstanceTypeSchema,
   target_instance_id: z.number().min(1).nullable(),
   condition: z.union([ConditionSchema, ConditionGroupSchema]).optional(),
   root_folder: z.string().optional(),

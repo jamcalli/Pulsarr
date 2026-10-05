@@ -1,3 +1,4 @@
+import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import type { RouterRule } from '@root/types/router.types.js'
 import type { ContentRouterRuleUpdate } from '@schemas/content-router/content-router.schema.js'
 import {
@@ -156,7 +157,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description:
           'Retrieve content router rules for a specific target instance',
         querystring: z.object({
-          targetType: z.enum(['sonarr', 'radarr']),
+          targetType: InstanceTypeSchema,
           instanceId: z.coerce.number(),
         }),
         response: {
@@ -251,7 +252,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description:
           'Retrieve content router rules filtered by target application type',
         params: z.object({
-          targetType: z.enum(['sonarr', 'radarr']),
+          targetType: InstanceTypeSchema,
         }),
         response: {
           200: ContentRouterRuleListResponseSchema,
