@@ -1905,7 +1905,7 @@ export interface paths {
         };
         /**
          * Get top genres
-         * @description Retrieve the most popular genres from watchlists
+         * @description Retrieve the most popular genres from watchlists, optionally limited to items added within the given number of days
          */
         get: operations["getTopGenres"];
         put?: never;
@@ -2085,7 +2085,7 @@ export interface paths {
         };
         /**
          * Get top users
-         * @description Retrieve users with the most watchlist items
+         * @description Retrieve users with the most watchlist items, optionally limited to items added within the given number of days
          */
         get: operations["getTopUsers"];
         put?: never;
@@ -4276,10 +4276,12 @@ export interface components {
             /** @description New username to set */
             newUsername: string;
         };
-        /** @description A user with their watchlist item count in the range */
+        /** @description A user with their total watchlist item count in the range and its movie and show split */
         UserStat: {
             name: string;
             count: number;
+            movies: number;
+            shows: number;
         };
         /**
          * @description Routing state of a watchlist item or one of its instance rows: pending (not routed), requested (sent to the arr, no file), grabbed (the arr has the file), notified (in Plex and the user was told)
@@ -11244,6 +11246,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                days?: number;
             };
             header?: never;
             path?: never;
@@ -11672,6 +11675,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                days?: number;
             };
             header?: never;
             path?: never;
