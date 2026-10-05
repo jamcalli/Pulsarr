@@ -11,9 +11,17 @@ import type { DatabaseService } from '@services/database.service.js'
 export async function getTopGenres(
   this: DatabaseService,
   limit = 10,
+  days = 0,
 ): Promise<{ genre: string; count: number }[]> {
   try {
     this.log.debug('Processing genres with streaming approach')
+
+    let cutoff: string | null = null
+    if (days > 0) {
+      const cutoffDate = new Date()
+      cutoffDate.setDate(cutoffDate.getDate() - days)
+      cutoff = cutoffDate.toISOString()
+    }
 
     // Use streaming to process genres in batches to reduce memory usage
     const genreCounts: Record<string, number> = {}
@@ -24,13 +32,19 @@ export async function getTopGenres(
 
     // Process in batches using cursor-based pagination
     while (true) {
-      const batch = await this.knex('watchlist_items')
+      let batchQuery = this.knex('watchlist_items')
         .whereNotNull('genres')
         .where('genres', '!=', '[]')
         .andWhere('id', '>', lastId)
         .select('id', 'genres')
         .orderBy('id')
         .limit(batchSize)
+
+      if (cutoff) {
+        batchQuery = batchQuery.where('added', '>=', cutoff)
+      }
+
+      const batch = await batchQuery
 
       if (batch.length === 0) break
 
@@ -237,27 +251,58 @@ export async function getMostWatchlistedMovies(
 export async function getUsersWithMostWatchlistItems(
   this: DatabaseService,
   options: { limit?: number; days?: number } = {},
-): Promise<{ name: string; count: number }[]> {
+): Promise<{ name: string; count: number; movies: number; shows: number }[]> {
   const { limit = 10, days = 0 } = options
+  let cutoff: string | null = null
+  if (days > 0) {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - days)
+    cutoff = cutoffDate.toISOString()
+  }
+
   let query = this.knex('watchlist_items')
     .join('users', 'watchlist_items.user_id', '=', 'users.id')
-    .select('users.name')
+    .select('users.id', 'users.name')
     .count('watchlist_items.id as count')
     .groupBy('users.id', 'users.name')
     .orderBy('count', 'desc')
     .limit(limit)
 
-  if (days > 0) {
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - days)
-    query = query.where('watchlist_items.added', '>=', cutoffDate.toISOString())
+  if (cutoff) {
+    query = query.where('watchlist_items.added', '>=', cutoff)
   }
 
   const results = await query
+  if (results.length === 0) {
+    return []
+  }
+
+  let typeQuery = this.knex('watchlist_items')
+    .whereIn(
+      'watchlist_items.user_id',
+      results.map((row) => Number(row.id)),
+    )
+    .select('watchlist_items.user_id', 'watchlist_items.type')
+    .count('watchlist_items.id as count')
+    .groupBy('watchlist_items.user_id', 'watchlist_items.type')
+
+  if (cutoff) {
+    typeQuery = typeQuery.where('watchlist_items.added', '>=', cutoff)
+  }
+
+  const typeCounts = new Map<number, { movies: number; shows: number }>()
+  for (const row of await typeQuery) {
+    const userId = Number(row.user_id)
+    const split = typeCounts.get(userId) ?? { movies: 0, shows: 0 }
+    if (row.type === 'movie') split.movies += Number(row.count)
+    if (row.type === 'show') split.shows += Number(row.count)
+    typeCounts.set(userId, split)
+  }
 
   return results.map((row) => ({
     name: String(row.name),
     count: Number(row.count),
+    ...(typeCounts.get(Number(row.id)) ?? { movies: 0, shows: 0 }),
   }))
 }
 
