@@ -12,7 +12,7 @@ export interface StackedBarSegment {
 
 interface StackedBarProps {
   segments: StackedBarSegment[]
-  /** Sets the full bar length so unfilled track shows past the segments. Defaults to their sum. */
+  /** Sets the bar length (default the segments' sum), while percents stay each segment's share of that sum. */
   total?: number
   showLabels?: boolean
   showLegend?: boolean

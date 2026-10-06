@@ -2,15 +2,19 @@ import type { ReactNode } from 'react'
 import { PosterFrame } from '@/components/poster-frame'
 import { useIntent } from '@/hooks/useIntent'
 
-interface PosterCardProps {
+interface PosterCardBaseProps {
   title: string
   subtitle?: ReactNode
   thumb: string | null
   type: 'movie' | 'show'
   status?: ReactNode
-  onSelect?: () => void
-  onIntent?: () => void
 }
+
+type PosterCardProps = PosterCardBaseProps &
+  (
+    | { onSelect: () => void; onIntent?: () => void }
+    | { onSelect?: undefined; onIntent?: undefined }
+  )
 
 export function PosterCard({
   title,

@@ -1,10 +1,11 @@
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
 import { Film, Tv } from 'lucide-react'
+import { useState } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { posterCardUrl } from '@/lib/poster-url'
 
-const posterSizes = cva('aspect-[2/3] shrink-0', {
+const posterSizes = cva('aspect-2/3 shrink-0', {
   variants: {
     size: {
       thumb: 'w-10 rounded-sm',
@@ -35,6 +36,8 @@ interface PosterFrameProps {
 
 export function PosterFrame({ thumb, type, size = 'fill' }: PosterFrameProps) {
   const src = posterCardUrl(thumb)
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  const showImage = src !== null && src !== failedSrc
   const PlaceholderIcon = type === 'movie' ? Film : Tv
   return (
     <div
@@ -43,11 +46,12 @@ export function PosterFrame({ thumb, type, size = 'fill' }: PosterFrameProps) {
         'relative overflow-hidden border-2 border-border bg-accent',
       )}
     >
-      {src ? (
+      {showImage ? (
         <img
           src={src}
           alt=""
           loading="lazy"
+          onError={() => setFailedSrc(src)}
           className="size-full object-cover"
         />
       ) : (
