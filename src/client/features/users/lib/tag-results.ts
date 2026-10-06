@@ -2,6 +2,7 @@ import type {
   ActionResultRow,
   ActionResultStat,
 } from '@/components/settings/action-results'
+import { ARR_TYPE_LABELS } from '@/lib/arr-labels'
 import type { components } from '@/types/api.js'
 
 type Schemas = components['schemas']
@@ -11,8 +12,14 @@ function perTarget<T>(
   toStats: (stats: T, target: 'sonarr' | 'radarr') => ActionResultStat[],
 ): ActionResultRow[] {
   return [
-    { target: 'Sonarr', stats: toStats(response.sonarr, 'sonarr') },
-    { target: 'Radarr', stats: toStats(response.radarr, 'radarr') },
+    {
+      target: ARR_TYPE_LABELS.sonarr,
+      stats: toStats(response.sonarr, 'sonarr'),
+    },
+    {
+      target: ARR_TYPE_LABELS.radarr,
+      stats: toStats(response.radarr, 'radarr'),
+    },
   ]
 }
 

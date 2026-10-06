@@ -10,6 +10,7 @@ import {
 import { withMinDuration } from '@/hooks/useMinLoading'
 import { useOperation } from '@/hooks/useOperation'
 import { useProgress } from '@/hooks/useProgress'
+import { ARR_TYPE_LABELS } from '@/lib/arr-labels'
 import { NAV_PAGES } from '@/lib/navigation'
 import type { OperationMeta } from '@/lib/operation-toasts'
 import { apiFetch } from '@/lib/tanstackApi'
@@ -109,13 +110,13 @@ export function useTagActions(saved: SavedTagging) {
 
   const targets = [
     {
-      name: 'Sonarr',
+      name: ARR_TYPE_LABELS.sonarr,
       enabled: saved.tagUsersInSonarr,
       tagging: sonarrTagging,
       removal: sonarrRemoval,
     },
     {
-      name: 'Radarr',
+      name: ARR_TYPE_LABELS.radarr,
       enabled: saved.tagUsersInRadarr,
       tagging: radarrTagging,
       removal: radarrRemoval,

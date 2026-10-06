@@ -11,7 +11,6 @@ import {
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogOutDialog } from '@/components/sidebar/log-out-dialog'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -28,6 +27,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { UserAvatar } from '@/components/user-avatar'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useSettings } from '@/hooks/useSettings'
 import { useTheme } from '@/hooks/useTheme'
@@ -61,7 +61,6 @@ export function SidebarUser() {
 
   const user = data?.user
   const name = user?.username ?? 'Unknown user'
-  const initial = name.charAt(0).toUpperCase()
   const nextTheme = theme === 'dark' ? 'light' : 'dark'
 
   return (
@@ -75,10 +74,7 @@ export function SidebarUser() {
             />
           }
         >
-          <Avatar>
-            {user?.avatar && <AvatarImage src={user.avatar} alt="" />}
-            <AvatarFallback>{initial}</AvatarFallback>
-          </Avatar>
+          <UserAvatar name={name} avatar={user?.avatar} />
           <div className="grid flex-1 text-left text-sm leading-tight">
             <span className="truncate font-medium">{name}</span>
             {user?.email && (

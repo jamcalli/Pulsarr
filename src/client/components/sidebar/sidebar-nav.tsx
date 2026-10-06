@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { Badge } from '@/components/ui/badge'
 import {
   Collapsible,
   CollapsibleContent,
@@ -28,9 +29,9 @@ const sectionRowClass = 'h-10 gap-3 px-2.5 text-base [&_svg]:size-4.5'
 function PendingBadge({ count }: { count: number }) {
   if (count === 0) return null
   return (
-    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-md border-2 border-border bg-gold px-1.5 text-xs font-bold text-primary-foreground tabular-nums">
+    <Badge variant="warn" className="ml-auto min-w-5 px-1.5 tabular-nums">
       {count}
-    </span>
+    </Badge>
   )
 }
 

@@ -1,5 +1,5 @@
 import { Lock } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { Children, type ReactNode } from 'react'
 import {
   Card,
   CardAction,
@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { FieldGroup } from '@/components/ui/field'
+import { FieldGroup, FieldSeparator } from '@/components/ui/field'
 
 export interface SettingsLock {
   reason: string
@@ -29,6 +29,17 @@ export function SettingsSection({
   lock,
   children,
 }: SettingsSectionProps) {
+  const rows = Children.toArray(children)
+  if (lock) {
+    rows.unshift(
+      <div key="lock" className="flex items-center gap-2 text-muted-foreground">
+        <Lock className="size-4 shrink-0" />
+        <span className="flex-1">{lock.reason}</span>
+        {lock.action}
+      </div>,
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -36,15 +47,12 @@ export function SettingsSection({
         {description && <CardDescription>{description}</CardDescription>}
         {action && <CardAction>{action}</CardAction>}
       </CardHeader>
-      <FieldGroup className="gap-0 divide-y divide-divider *:px-(--card-spacing) *:py-4 *:first:pt-0 *:last:pb-0">
-        {lock && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Lock className="size-4 shrink-0" />
-            <span className="flex-1">{lock.reason}</span>
-            {lock.action}
-          </div>
+      <FieldGroup className="gap-3.5 *:px-(--card-spacing)">
+        {rows.flatMap((row, index) =>
+          index === 0
+            ? [row]
+            : [<FieldSeparator key={`separator-${index}`} />, row],
         )}
-        {children}
       </FieldGroup>
     </Card>
   )

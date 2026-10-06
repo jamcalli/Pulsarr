@@ -1,11 +1,13 @@
+import type { ComponentProps } from 'react'
 import { FieldRow } from '@/components/form/field-row'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { SegmentedControl } from '@/components/segmented-control'
 import { useFieldContext } from '@/lib/form-context'
 
 interface SegmentedFieldProps<T extends string> {
   label: string
   description?: string
   disabled?: boolean
+  orientation?: ComponentProps<typeof FieldRow>['orientation']
   options: Array<{ value: T; label: string }>
   /** Return false to cancel the change. */
   onBeforeChange?: (next: T) => boolean
@@ -15,6 +17,7 @@ export function SegmentedField<T extends string>({
   label,
   description,
   disabled,
+  orientation,
   options,
   onBeforeChange,
 }: SegmentedFieldProps<T>) {
@@ -26,28 +29,19 @@ export function SegmentedField<T extends string>({
       label={label}
       description={description}
       disabled={disabled}
+      orientation={orientation}
       labelId={labelId}
     >
-      <ToggleGroup
+      <SegmentedControl
         aria-labelledby={labelId}
-        variant="outline"
-        size="sm"
-        spacing={0}
-        value={[field.state.value]}
+        value={field.state.value}
+        options={options}
         disabled={disabled}
-        onValueChange={(groupValue) => {
-          const next = options.find((option) => option.value === groupValue[0])
-          if (!next || next.value === field.state.value) return
-          if (onBeforeChange && !onBeforeChange(next.value)) return
-          field.handleChange(next.value)
+        onValueChange={(next) => {
+          if (onBeforeChange && !onBeforeChange(next)) return
+          field.handleChange(next)
         }}
-      >
-        {options.map((option) => (
-          <ToggleGroupItem key={option.value} value={option.value}>
-            {option.label}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
+      />
     </FieldRow>
   )
 }

@@ -13,8 +13,63 @@ export function formatDate(value: Date | number): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(value)
 }
 
-export function formatNumber(value: number): string {
-  return new Intl.NumberFormat(locale).format(value)
+/** `fractionDigits` fixes the decimals shown, otherwise the locale default applies. */
+export function formatNumber(value: number, fractionDigits?: number): string {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value)
+}
+
+export function formatCurrency(value: number, currency: string): string {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+/** Falls back to the upper-cased code when the runtime cannot name it. */
+export function formatLanguage(code: string): string {
+  try {
+    return (
+      new Intl.DisplayNames(locale, { type: 'language' }).of(code) ??
+      code.toUpperCase()
+    )
+  } catch {
+    return code.toUpperCase()
+  }
+}
+
+export function formatYear(value: Date | number): string {
+  return new Intl.DateTimeFormat(locale, { year: 'numeric' }).format(value)
+}
+
+/** Hours and minutes from a length in minutes, hours left out under one hour. */
+export function formatRuntime(minutes: number): string {
+  const unit = (value: number, name: 'hour' | 'minute') =>
+    new Intl.NumberFormat(locale, {
+      style: 'unit',
+      unit: name,
+      unitDisplay: 'short',
+    }).format(value)
+  const total = Math.round(minutes)
+  const hours = Math.floor(total / 60)
+  const rest = total % 60
+  if (hours === 0) return unit(rest, 'minute')
+  if (rest === 0) return unit(hours, 'hour')
+  return `${unit(hours, 'hour')} ${unit(rest, 'minute')}`
+}
+
+/** Pass `plural` when it is not `singular` plus "s". */
+export function pluralize(
+  value: number,
+  singular: string,
+  plural = `${singular}s`,
+): string {
+  return new Intl.PluralRules(locale).select(value) === 'one'
+    ? singular
+    : plural
 }
 
 /** Pass `plural` when it is not `singular` plus "s". */
@@ -23,6 +78,36 @@ export function formatCount(
   singular: string,
   plural = `${singular}s`,
 ): string {
-  const rule = new Intl.PluralRules(locale).select(value)
-  return `${formatNumber(value)} ${rule === 'one' ? singular : plural}`
+  return `${formatNumber(value)} ${pluralize(value, singular, plural)}`
+}
+
+const RELATIVE_UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+  ['year', 365 * 24 * 60 * 60],
+  ['month', 30 * 24 * 60 * 60],
+  ['week', 7 * 24 * 60 * 60],
+  ['day', 24 * 60 * 60],
+  ['hour', 60 * 60],
+  ['minute', 60],
+]
+
+export function formatRelative(
+  value: Date | number,
+  now: number = Date.now(),
+): string {
+  const seconds = (new Date(value).getTime() - now) / 1000
+  if (Math.abs(seconds) < 45) return 'just now'
+  const [unit, size] = RELATIVE_UNITS.find(
+    ([, size]) => Math.abs(seconds) >= size,
+  ) ?? ['minute', 60]
+  return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(
+    Math.round(seconds / size),
+    unit,
+  )
+}
+
+export function formatPercent(ratio: number, digits = 0): string {
+  return new Intl.NumberFormat(locale, {
+    style: 'percent',
+    maximumFractionDigits: digits,
+  }).format(ratio)
 }

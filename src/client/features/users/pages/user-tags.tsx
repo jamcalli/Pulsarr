@@ -2,10 +2,10 @@ import { useStore } from '@tanstack/react-form'
 import { useState } from 'react'
 import { ErrorAlert } from '@/components/error-alert'
 import { InlineCode } from '@/components/inline-code'
+import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
 import { ActionResults } from '@/components/settings/action-results'
 import { ActionRow } from '@/components/settings/action-row'
-import { LeaveDialog } from '@/components/settings/leave-dialog'
 import { SaveBar } from '@/components/settings/save-bar'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
@@ -151,7 +151,7 @@ function UserTagsSettings({
         description={DESCRIPTION}
         action={
           <StatusPill
-            state={taggingOn ? 'on' : 'off'}
+            tone={taggingOn ? 'on' : 'off'}
             label={taggingOn ? 'Enabled' : 'Disabled'}
             detail={statusDetail}
           />

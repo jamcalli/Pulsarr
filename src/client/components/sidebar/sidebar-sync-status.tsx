@@ -1,15 +1,8 @@
 import { cn } from 'cn'
-import {
-  ArrowRight,
-  ChevronsUpDown,
-  Loader2,
-  Play,
-  Power,
-  ScrollText,
-  Square,
-} from 'lucide-react'
+import { ArrowRight, Power, ScrollText } from 'lucide-react'
 import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { BusyLabel } from '@/components/busy-label'
 import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -81,7 +74,6 @@ function SyncPanel({
   const control = syncControlFor(state)
   const busy = Boolean(control?.busy) || controls.isToggling
   const labels = control && SYNC_ACTION_LABELS[control.action]
-  const IdleIcon = control?.action === 'stop' ? Square : Play
 
   return (
     <>
@@ -92,18 +84,12 @@ function SyncPanel({
           </PopoverTitle>
           <ItemDescription className="flex items-center gap-1.5">
             <SyncDot state={state} />
-            <span className="text-foreground capitalize">
-              {syncStateLabel(state)}
+            <span className="truncate">
+              <span className="text-foreground capitalize">
+                {syncStateLabel(state)}
+              </span>
+              {mode && `, ${SYNC_MODE_LABELS[mode]}`}
             </span>
-            {mode && (
-              <>
-                <span
-                  aria-hidden="true"
-                  className="size-1 shrink-0 rounded-full bg-muted-foreground"
-                />
-                <span className="truncate">{SYNC_MODE_LABELS[mode]}</span>
-              </>
-            )}
           </ItemDescription>
         </ItemContent>
         {control && labels && (
@@ -115,12 +101,11 @@ function SyncPanel({
               disabled={busy}
               onClick={() => controls.run(control.action)}
             >
-              {busy ? (
-                <Loader2 className="animate-spin" data-icon="inline-start" />
-              ) : (
-                <IdleIcon data-icon="inline-start" />
-              )}
-              {busy ? labels.busy : labels.idle}
+              <BusyLabel
+                busy={busy}
+                label={labels.idle}
+                busyLabel={labels.busy}
+              />
             </Button>
           </ItemActions>
         )}
@@ -207,7 +192,6 @@ export function SidebarSyncStatus() {
               {SYNC_MODE_LABELS[status.mode]}
             </span>
           )}
-          <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
         </PopoverTrigger>
         <PopoverContent
           side="top"

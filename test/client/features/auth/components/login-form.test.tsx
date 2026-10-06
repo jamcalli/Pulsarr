@@ -3,11 +3,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
-import { toast } from '@/components/ui/toast'
 import { LoginForm } from '@/features/auth/components/login-form'
+import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import { server } from '../../../setup.js'
-
-vi.mock('@/components/ui/toast', () => ({ toast: { add: vi.fn() } }))
 
 const LOGIN_URL = '/v1/users/login'
 
@@ -42,10 +40,6 @@ async function fillCredentials() {
 }
 
 describe('LoginForm', () => {
-  beforeEach(() => {
-    vi.mocked(toast.add).mockClear()
-  })
-
   it('shows both schema messages and sends no request on empty submit', async () => {
     const calls = countLoginRequests(() =>
       HttpResponse.json({ success: true, username: 'admin' }),
@@ -97,7 +91,7 @@ describe('LoginForm', () => {
     ).toHaveTextContent('An unexpected error occurred. Please try again.')
   })
 
-  it('welcomes the user and navigates to redirectTo on success', async () => {
+  it('navigates to redirectTo on success', async () => {
     countLoginRequests(() =>
       HttpResponse.json({
         success: true,
@@ -113,10 +107,6 @@ describe('LoginForm', () => {
     await waitFor(() =>
       expect(router.state.location.pathname).toBe('/app/settings'),
     )
-    expect(toast.add).toHaveBeenCalledWith({
-      type: 'success',
-      title: 'Welcome back, admin!',
-    })
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
@@ -129,7 +119,7 @@ describe('LoginForm', () => {
         return HttpResponse.json({ success: true, username: 'admin' })
       }),
     )
-    renderLoginForm()
+    const router = renderLoginForm()
     await fillCredentials()
     const form = screen.getByRole('button', { name: 'Sign in' }).closest('form')
     if (!form) throw new Error('login form not rendered')
@@ -137,7 +127,11 @@ describe('LoginForm', () => {
     fireEvent.submit(form)
     fireEvent.submit(form)
 
-    await waitFor(() => expect(toast.add).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(
+        pageHref(NAV_PAGES.dashboard),
+      ),
+    )
     expect(calls.count).toBe(1)
   })
 })

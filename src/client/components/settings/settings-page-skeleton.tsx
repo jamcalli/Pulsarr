@@ -1,5 +1,7 @@
+import { Fragment } from 'react'
 import { Page } from '@/components/page-header'
 import { Card, CardHeader } from '@/components/ui/card'
+import { FieldGroup, FieldSeparator } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 
 function SectionSkeleton({ rows }: { rows: number }) {
@@ -9,17 +11,20 @@ function SectionSkeleton({ rows }: { rows: number }) {
         <Skeleton className="h-5 w-32" />
         <Skeleton className="h-4 w-64 max-w-full" />
       </CardHeader>
-      <div className="flex flex-col divide-y divide-divider *:px-(--card-spacing) *:py-4 *:first:pt-0 *:last:pb-0">
-        {Array.from({ length: rows }, (_, row) => `row-${row}`).map((key) => (
-          <div key={key} className="flex items-center justify-between gap-4">
-            <div className="flex flex-1 flex-col gap-2">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-4 w-72 max-w-full" />
+      <FieldGroup className="gap-3.5 *:px-(--card-spacing)">
+        {Array.from({ length: rows }, (_, row) => row).map((row) => (
+          <Fragment key={`row-${row}`}>
+            {row > 0 && <FieldSeparator />}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-1 flex-col gap-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-72 max-w-full" />
+              </div>
+              <Skeleton className="h-8 w-20" />
             </div>
-            <Skeleton className="h-8 w-20" />
-          </div>
+          </Fragment>
         ))}
-      </div>
+      </FieldGroup>
     </Card>
   )
 }

@@ -1,5 +1,13 @@
 import { cn } from 'cn'
 import { CircleCheck } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { formatTime } from '@/lib/format'
 
 export interface ActionResultStat {
@@ -17,6 +25,8 @@ interface ActionResultsProps {
   ranAt: number
   rows: ActionResultRow[]
 }
+
+const HEAD_CLASS = 'font-normal text-muted-foreground'
 
 function visibleColumns(rows: ActionResultRow[]): string[] {
   const stats = rows.flatMap((row) => row.stats)
@@ -44,40 +54,37 @@ export function ActionResults({ ranAt, rows }: ActionResultsProps) {
           Ran at {formatTime(ranAt)}
         </span>
       </div>
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="border-b border-divider text-muted-foreground">
-            <th className="pb-1 text-left font-normal">Target</th>
+      <Table className="text-xs">
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className={HEAD_CLASS}>Target</TableHead>
             {columns.map((label) => (
-              <th key={label} className="pb-1 text-right font-normal">
+              <TableHead key={label} className={cn(HEAD_CLASS, 'text-right')}>
                 {label}
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map(({ target, stats }) => (
-            <tr key={target}>
-              <td className="py-1 font-medium">{target}</td>
+            <TableRow key={target}>
+              <TableCell className="font-medium">{target}</TableCell>
               {columns.map((label) => {
                 const stat = stats.find((s) => s.label === label)
-                if (!stat) return <td key={label} />
+                if (!stat) return <TableCell key={label} />
                 return (
-                  <td
+                  <TableCell
                     key={label}
-                    className={cn(
-                      'py-1 text-right tabular-nums',
-                      cellClass(stat),
-                    )}
+                    className={cn('text-right tabular-nums', cellClass(stat))}
                   >
                     {stat.value}
-                  </td>
+                  </TableCell>
                 )
               })}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   )
 }

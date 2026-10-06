@@ -1,23 +1,38 @@
 import { cn } from 'cn'
+import { Badge } from '@/components/ui/badge'
+
+export type StatusTone =
+  | 'pending'
+  | 'requested'
+  | 'available'
+  | 'failed'
+  | 'on'
+  | 'off'
+
+const TONE_FILL: Record<StatusTone, string> = {
+  pending: 'bg-status-pending text-primary-foreground',
+  requested: 'bg-status-requested text-primary-foreground',
+  available: 'bg-status-available text-primary-foreground',
+  failed: 'bg-status-failed text-primary-foreground',
+  on: 'bg-ok text-primary-foreground',
+  off: 'bg-inset',
+}
 
 interface StatusPillProps {
-  state: 'on' | 'off'
+  tone: StatusTone
   label: string
   detail?: string
 }
 
-export function StatusPill({ state, label, detail }: StatusPillProps) {
+export function StatusPill({ tone, label, detail }: StatusPillProps) {
+  const pill = (
+    <Badge className={cn('border-border', TONE_FILL[tone])}>{label}</Badge>
+  )
+  if (!detail) return pill
   return (
     <span className="inline-flex shrink-0 items-center gap-2 text-xs">
-      <span
-        className={cn(
-          'inline-flex h-7 items-center rounded-md border-2 border-border px-2.5 font-bold whitespace-nowrap',
-          state === 'on' ? 'bg-ok text-primary-foreground' : 'bg-inset',
-        )}
-      >
-        {label}
-      </span>
-      {detail && <span className="text-muted-foreground">{detail}</span>}
+      {pill}
+      <span className="text-muted-foreground">{detail}</span>
     </span>
   )
 }
