@@ -47,7 +47,7 @@ import { DeleteSyncConfirmationModal } from '@/legacy/features/library/component
 import { DeleteSyncDryRunModal } from '@/legacy/features/library/components/delete-sync/delete-sync-dry-run-modal'
 import { DeleteSyncPageSkeleton } from '@/legacy/features/library/components/delete-sync/delete-sync-page-skeleton'
 import { useDeleteSync } from '@/legacy/features/library/hooks/delete-sync/useDeleteSync'
-import { formatScheduleDisplay } from '@/lib/utils'
+import { formatScheduleDisplay } from '@/legacy/lib/schedule-display'
 
 /**
  * Renders the Delete Sync page, providing a user interface to configure, schedule, and manage automated deletion of media content based on watchlist or tag criteria.

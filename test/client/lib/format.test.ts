@@ -40,7 +40,7 @@ describe('format', () => {
     const now = new Date(2026, 9, 4, 14, 0, 0).getTime()
     const minute = 60 * 1000
     const day = 24 * 60 * minute
-    expect(formatRelative(now - 20 * 1000, now)).toBe('just now')
+    expect(formatRelative(now - 20 * 1000, now)).toBe('now')
     expect(formatRelative(now - 5 * minute, now)).toBe('5 minutes ago')
     expect(formatRelative(now - day, now)).toBe('yesterday')
     expect(formatRelative(new Date(now - 2 * day), now)).toBe('2 days ago')

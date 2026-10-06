@@ -95,14 +95,12 @@ export function formatRelative(
   now: number = Date.now(),
 ): string {
   const seconds = (new Date(value).getTime() - now) / 1000
-  if (Math.abs(seconds) < 45) return 'just now'
+  const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+  if (Math.abs(seconds) < 45) return relative.format(0, 'second')
   const [unit, size] = RELATIVE_UNITS.find(
     ([, size]) => Math.abs(seconds) >= size,
   ) ?? ['minute', 60]
-  return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(
-    Math.round(seconds / size),
-    unit,
-  )
+  return relative.format(Math.round(seconds / size), unit)
 }
 
 export function formatPercent(ratio: number, digits = 0): string {
