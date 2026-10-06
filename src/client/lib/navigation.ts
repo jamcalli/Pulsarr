@@ -44,7 +44,7 @@ function page(
 }
 
 export const NAV_PAGES = {
-  dashboard: page('Dashboard', '/', ['/dashboard']),
+  dashboard: { ...page('Dashboard', '/', ['/dashboard']), rebuilt: true },
   approvalQueue: page('Approval queue', '/requests', ['/approvals']),
   approvalSettings: page('Approval settings', '/requests/settings', [
     '/approvals/settings',

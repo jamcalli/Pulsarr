@@ -1,5 +1,5 @@
-import { Loader2 } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { BusyLabel } from '@/components/busy-label'
 import {
   Credenza,
   CredenzaBody,
@@ -70,14 +70,11 @@ export function ConfirmCredenza({
             disabled={confirmDisabled || pending}
             onClick={onConfirm}
           >
-            {pending ? (
-              <>
-                <Loader2 className="animate-spin" data-icon="inline-start" />
-                {pendingLabel ?? confirmLabel}
-              </>
-            ) : (
-              confirmLabel
-            )}
+            <BusyLabel
+              busy={pending}
+              label={confirmLabel}
+              busyLabel={pendingLabel}
+            />
           </Button>
         </CredenzaFooter>
       </CredenzaContent>

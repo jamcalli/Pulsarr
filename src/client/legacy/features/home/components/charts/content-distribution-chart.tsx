@@ -34,23 +34,23 @@ export function ContentDistributionChart() {
           .trim() || '#f47b30',
       chart1:
         getComputedStyle(document.documentElement)
-          .getPropertyValue('--chart-1')
+          .getPropertyValue('--legacy-chart-1')
           .trim() || '196 39% 33%',
       chart2:
         getComputedStyle(document.documentElement)
-          .getPropertyValue('--chart-2')
+          .getPropertyValue('--legacy-chart-2')
           .trim() || '183 37% 49%',
       chart3:
         getComputedStyle(document.documentElement)
-          .getPropertyValue('--chart-3')
+          .getPropertyValue('--legacy-chart-3')
           .trim() || '29 85% 87%',
       chart4:
         getComputedStyle(document.documentElement)
-          .getPropertyValue('--chart-4')
+          .getPropertyValue('--legacy-chart-4')
           .trim() || '19 91% 59%',
       chart5:
         getComputedStyle(document.documentElement)
-          .getPropertyValue('--chart-5')
+          .getPropertyValue('--legacy-chart-5')
           .trim() || '1 54% 50%',
     }),
     [],
@@ -70,7 +70,7 @@ export function ContentDistributionChart() {
       const key = item.type
       config[key] = {
         label: item.type.charAt(0).toUpperCase() + item.type.slice(1),
-        color: `hsl(var(--chart-${(index % 5) + 1}))`,
+        color: `hsl(var(--legacy-chart-${(index % 5) + 1}))`,
       }
     })
 

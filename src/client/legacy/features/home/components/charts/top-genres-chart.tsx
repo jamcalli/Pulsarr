@@ -40,7 +40,7 @@ export function TopGenresChart() {
   const topGenresConfig = {
     count: {
       label: 'Count',
-      color: 'hsl(var(--chart-1))',
+      color: 'hsl(var(--legacy-chart-1))',
     },
   }
 

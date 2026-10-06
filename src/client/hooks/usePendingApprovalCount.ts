@@ -1,9 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
+import { approvalStatsKeys } from '@/lib/query-keys'
 import { $api } from '@/lib/tanstackApi'
 import { useProgressStore } from '@/stores/progressStore'
-
-const approvalStatsKey = $api.queryOptions('get', '/v1/approval/stats').queryKey
 
 export function usePendingApprovalCount(): number {
   const queryClient = useQueryClient()
@@ -13,7 +12,7 @@ export function usePendingApprovalCount(): number {
   useEffect(
     () =>
       subscribeToType('approval', () => {
-        queryClient.invalidateQueries({ queryKey: approvalStatsKey })
+        queryClient.invalidateQueries({ queryKey: approvalStatsKeys.all })
       }),
     [subscribeToType, queryClient],
   )

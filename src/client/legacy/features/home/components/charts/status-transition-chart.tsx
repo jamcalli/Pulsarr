@@ -174,7 +174,7 @@ export function StatusTransitionsChart() {
         config={{
           avgMinutes: {
             label: 'Average Minutes',
-            color: 'hsl(var(--chart-1))',
+            color: 'hsl(var(--legacy-chart-1))',
           },
         }}
         className="aspect-auto h-[350px] w-full"

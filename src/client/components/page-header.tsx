@@ -4,15 +4,18 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export function Page({
   className,
+  wide = false,
   children,
 }: {
   className?: string
+  wide?: boolean
   children: ReactNode
 }) {
   return (
     <div
       className={cn(
-        'mx-auto flex w-full max-w-220 flex-col gap-5 px-4 pt-7 pb-8 md:px-8',
+        'mx-auto flex w-full flex-col gap-5 px-4 pt-7 pb-8 md:px-8',
+        wide ? 'max-w-310' : 'max-w-220',
         className,
       )}
     >
@@ -54,9 +57,9 @@ export function PageHeader({
   )
 }
 
-export function PageSkeleton() {
+export function PageSkeleton({ wide = false }: { wide?: boolean }) {
   return (
-    <Page>
+    <Page wide={wide}>
       <div className="flex flex-col gap-2">
         <Skeleton className="h-4 w-20" />
         <Skeleton className="h-9 w-56" />

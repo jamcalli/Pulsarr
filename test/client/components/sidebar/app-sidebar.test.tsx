@@ -156,6 +156,16 @@ describe('AppSidebar', () => {
     )
   })
 
+  it('links Home to the rebuilt dashboard', () => {
+    mockApi()
+    renderSidebar('/users/tags')
+
+    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute(
+      'href',
+      '/',
+    )
+  })
+
   it('keeps one section open at a time', async () => {
     mockApi()
     const user = userEvent.setup()

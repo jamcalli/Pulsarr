@@ -2,6 +2,7 @@ import { Loader2, TriangleAlert } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { ConfirmCredenza } from '@/components/confirm-credenza'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { useMinLoading } from '@/hooks/useMinLoading'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import { $api, apiErrorMessage } from '@/lib/tanstackApi'
@@ -35,12 +36,14 @@ export function AliasReadinessCredenza({
     data.missingAliasCount === 0 &&
     data.duplicateAliasCount === 0
   const usersLink = (
-    <Link
-      to={pageHref(NAV_PAGES.plexUsers)}
-      className="text-foreground underline underline-offset-3 hover:no-underline"
+    <Button
+      variant="link"
+      size="sm"
+      nativeButton={false}
+      render={<Link to={pageHref(NAV_PAGES.plexUsers)} />}
     >
       {data?.missingAliasCount ? 'Set aliases' : 'Review users'}
-    </Link>
+    </Button>
   )
 
   return (

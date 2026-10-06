@@ -1,5 +1,6 @@
 import { cn } from 'cn'
-import { CircleCheck, Loader2 } from 'lucide-react'
+import { CircleCheck } from 'lucide-react'
+import { BusyLabel } from '@/components/busy-label'
 import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
 
@@ -50,17 +51,11 @@ export function SaveBar({
                 Discard
               </Button>
               <Button type="submit" size="sm" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2
-                      className="animate-spin"
-                      data-icon="inline-start"
-                    />
-                    Saving...
-                  </>
-                ) : (
-                  'Save changes'
-                )}
+                <BusyLabel
+                  busy={isSubmitting}
+                  label="Save changes"
+                  busyLabel="Saving..."
+                />
               </Button>
             </div>
           </>

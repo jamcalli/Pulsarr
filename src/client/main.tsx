@@ -5,7 +5,8 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import { SettingsProvider } from '@/components/settings-provider'
 import { ThemeProvider } from '@/components/theme-provider'
-import { TooltipProvider } from '@/legacy/components/ui/tooltip'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { TooltipProvider as LegacyTooltipProvider } from '@/legacy/components/ui/tooltip'
 import { configureOperationToasts } from '@/lib/operation-toasts'
 import { queryClient } from '@/lib/queryClient'
 import { router } from '@/router/router'
@@ -25,9 +26,11 @@ function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <SettingsProvider>
-          <TooltipProvider>
-            <RootLayoutContent />
-          </TooltipProvider>
+          <LegacyTooltipProvider>
+            <TooltipProvider delay={600}>
+              <RootLayoutContent />
+            </TooltipProvider>
+          </LegacyTooltipProvider>
         </SettingsProvider>
       </ThemeProvider>
     </QueryClientProvider>

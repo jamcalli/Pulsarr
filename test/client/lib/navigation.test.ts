@@ -44,6 +44,10 @@ describe('pageHref', () => {
   it('links User tags to its rebuilt page', () => {
     expect(pageHref(NAV_PAGES.userTags)).toBe('/users/tags')
   })
+
+  it('links the dashboard to the rebuilt home page', () => {
+    expect(pageHref(NAV_PAGES.dashboard)).toBe('/')
+  })
 })
 
 describe('findActiveNav', () => {

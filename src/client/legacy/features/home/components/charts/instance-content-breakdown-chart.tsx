@@ -17,15 +17,15 @@ export default function InstanceContentBreakdownChart() {
     () => ({
       grabbed:
         getComputedStyle(document.documentElement)
-          .getPropertyValue('--chart-1')
+          .getPropertyValue('--legacy-chart-1')
           .trim() || '196 39% 33%',
       notified:
         getComputedStyle(document.documentElement)
-          .getPropertyValue('--chart-3')
+          .getPropertyValue('--legacy-chart-3')
           .trim() || '29 85% 87%',
       requested:
         getComputedStyle(document.documentElement)
-          .getPropertyValue('--chart-5')
+          .getPropertyValue('--legacy-chart-5')
           .trim() || '1 54% 50%',
     }),
     [],
@@ -63,15 +63,15 @@ export default function InstanceContentBreakdownChart() {
     return {
       grabbed: {
         label: 'Grabbed',
-        color: 'hsl(var(--chart-1))',
+        color: 'hsl(var(--legacy-chart-1))',
       },
       notified: {
         label: 'Notified',
-        color: 'hsl(var(--chart-3))',
+        color: 'hsl(var(--legacy-chart-3))',
       },
       requested: {
         label: 'Requested',
-        color: 'hsl(var(--chart-5))',
+        color: 'hsl(var(--legacy-chart-5))',
       },
     }
   }, [])
