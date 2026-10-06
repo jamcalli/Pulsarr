@@ -41,6 +41,20 @@ export function formatLanguage(code: string): string {
   }
 }
 
+export function formatDateTime(value: Date | number): string {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'medium',
+  }).format(value)
+}
+
+/** A plain list of names or values, without "and" before the last one. */
+export function formatList(items: readonly string[]): string {
+  return new Intl.ListFormat(locale, { style: 'short', type: 'unit' }).format(
+    items,
+  )
+}
+
 export function formatYear(value: Date | number): string {
   return new Intl.DateTimeFormat(locale, { year: 'numeric' }).format(value)
 }

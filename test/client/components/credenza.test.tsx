@@ -9,10 +9,10 @@ import {
 } from '@/components/credenza'
 import { stubViewport } from '../viewport.js'
 
-function renderCredenza() {
+function renderCredenza({ fullHeight = false } = {}) {
   render(
     <Credenza open>
-      <CredenzaContent>
+      <CredenzaContent fullHeight={fullHeight}>
         <CredenzaHeader>
           <CredenzaTitle>Edit instance</CredenzaTitle>
           <CredenzaDescription>
@@ -48,5 +48,21 @@ describe('Credenza', () => {
     expect(drawer).toHaveAttribute('data-slot', 'drawer-popup')
     expect(drawer).toHaveAttribute('data-swipe-direction', 'down')
     expect(screen.getByText('Form goes here')).toBeInTheDocument()
+  })
+
+  it('opens the drawer at its height cap only when asked', async () => {
+    stubViewport({ mobile: true })
+    renderCredenza({ fullHeight: true })
+
+    const drawer = await screen.findByRole('dialog', { name: 'Edit instance' })
+    expect(drawer.className).toContain('[--drawer-content-height:100dvh]')
+  })
+
+  it('leaves the desktop dialog alone when full height is asked', async () => {
+    stubViewport({ mobile: false })
+    renderCredenza({ fullHeight: true })
+
+    const dialog = await screen.findByRole('dialog', { name: 'Edit instance' })
+    expect(dialog.className).not.toContain('--drawer-content-height')
   })
 })

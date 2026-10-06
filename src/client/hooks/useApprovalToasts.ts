@@ -1,7 +1,8 @@
 import type { ApprovalMetadata } from '@root/types/progress.types.js'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/components/ui/toast'
+import { useUserDirectory } from '@/hooks/useUserDirectory'
 import {
   approvalToast,
   isApprovalMetadata,
@@ -17,6 +18,12 @@ const BATCH_WINDOW_MS = 500
 export function useApprovalToasts(): void {
   const subscribeToType = useProgressStore((state) => state.subscribeToType)
   const navigate = useNavigate()
+  const lookup = useUserDirectory()
+  const lookupRef = useRef(lookup)
+
+  useEffect(() => {
+    lookupRef.current = lookup
+  }, [lookup])
 
   useEffect(() => {
     const queues = new Map<ToastedApprovalAction, ApprovalMetadata[]>()
@@ -30,7 +37,10 @@ export function useApprovalToasts(): void {
       queues.delete(action)
       timers.delete(action)
       if (!first) return
-      const { title, description } = approvalToast(action, [first, ...rest])
+      const { title, description } = approvalToast(action, [
+        { ...first, userName: lookupRef.current(first.userName).name },
+        ...rest,
+      ])
       toast.add({
         title,
         description,

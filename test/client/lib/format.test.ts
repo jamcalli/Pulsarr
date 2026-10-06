@@ -1,7 +1,9 @@
 import {
   formatCount,
   formatCurrency,
+  formatDateTime,
   formatLanguage,
+  formatList,
   formatNumber,
   formatPercent,
   formatRelative,
@@ -33,6 +35,20 @@ describe('format', () => {
     setFormatLocale('de-DE')
     expect(formatNumber(2686)).toBe('2.686')
     expect(formatTime(new Date(2026, 9, 4, 14, 5, 9))).toBe('14:05:09')
+  })
+
+  it('formats a date with its time and a list in the locale order', () => {
+    setFormatLocale('de-DE')
+    expect(formatDateTime(new Date(2026, 9, 4, 14, 5, 9))).toBe(
+      '04.10.2026, 14:05:09',
+    )
+    expect(formatList(['Action', 'Drama', 'Sci-Fi'])).toBe(
+      'Action, Drama und Sci-Fi',
+    )
+    setFormatLocale('en-US')
+    expect(formatList(['Action', 'Drama', 'Sci-Fi'])).toBe(
+      'Action, Drama, Sci-Fi',
+    )
   })
 
   it('describes a past moment relative to now', () => {

@@ -17,9 +17,9 @@ const request: ApprovalMetadata = {
 
 describe('approvalToast', () => {
   it.each([
-    ['created', 'New approval request', 'sam requested Alien (movie)'],
+    ['created', 'New approval request', 'sam requested Alien (Movie)'],
     ['approved', 'Request approved', 'Alien has been approved for sam'],
-    ['rejected', 'Request rejected', "sam's request for Alien was rejected"],
+    ['rejected', 'Request denied', "sam's request for Alien was denied"],
     ['deleted', 'Request deleted', 'Request for Alien by sam was deleted'],
   ] as const)('names one %s request', (action, title, description) => {
     expect(approvalToast(action, [request])).toEqual({ title, description })
