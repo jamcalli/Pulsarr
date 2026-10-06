@@ -6,6 +6,7 @@ import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
 import AuthenticatedLayout from '@/legacy/layouts/authenticated'
 import { BASE_PATH } from '@/lib/basePath.js'
+import { NAV_PAGES, pageHref } from '@/lib/navigation'
 
 const LoginPage = lazy(() => import('@/features/auth'))
 const HomePage = lazy(() => import('@/features/home'))
@@ -96,7 +97,7 @@ export const router = createBrowserRouter(
             {
               index: true,
               element: (
-                <Suspense fallback={<PageSkeleton />}>
+                <Suspense fallback={<PageSkeleton wide />}>
                   <HomePage />
                 </Suspense>
               ),
@@ -132,7 +133,9 @@ export const router = createBrowserRouter(
           children: [
             {
               index: true,
-              element: <Navigate to="/plex/configuration" replace />,
+              element: (
+                <Navigate to={pageHref(NAV_PAGES.plexConnection)} replace />
+              ),
             },
             {
               path: 'configuration',

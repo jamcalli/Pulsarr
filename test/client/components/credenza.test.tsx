@@ -9,10 +9,10 @@ import {
 } from '@/components/credenza'
 import { stubViewport } from '../viewport.js'
 
-function renderCredenza({ fullHeight = false } = {}) {
+function renderCredenza({ fullHeight = false, floatingHandle = false } = {}) {
   render(
     <Credenza open>
-      <CredenzaContent fullHeight={fullHeight}>
+      <CredenzaContent fullHeight={fullHeight} floatingHandle={floatingHandle}>
         <CredenzaHeader>
           <CredenzaTitle>Edit instance</CredenzaTitle>
           <CredenzaDescription>
@@ -56,6 +56,16 @@ describe('Credenza', () => {
 
     const drawer = await screen.findByRole('dialog', { name: 'Edit instance' })
     expect(drawer.className).toContain('[--drawer-content-height:100dvh]')
+  })
+
+  it('floats the swipe handle over the content only when asked', async () => {
+    stubViewport({ mobile: true })
+    renderCredenza({ floatingHandle: true })
+
+    const drawer = await screen.findByRole('dialog', { name: 'Edit instance' })
+    expect(drawer.className).toContain(
+      '*:data-[slot=drawer-swipe-handle]:absolute',
+    )
   })
 
   it('leaves the desktop dialog alone when full height is asked', async () => {
