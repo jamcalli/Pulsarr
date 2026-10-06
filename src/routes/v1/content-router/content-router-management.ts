@@ -12,6 +12,10 @@ import {
 } from '@schemas/content-router/content-router.schema.js'
 import { formatRule } from '@utils/content-router-formatter.js'
 import { logRouteError } from '@utils/route-errors.js'
+import {
+  invalidSeasonMonitoringMessage,
+  rejectedSeasonMonitoring,
+} from '@utils/season-monitoring.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
@@ -306,6 +310,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       },
     },
     async (request, reply) => {
+      const rejected = rejectedSeasonMonitoring(
+        request.body.season_monitoring,
+        [],
+      )
+      if (rejected !== undefined) {
+        return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
+      }
       try {
         const createdRule = await fastify.db.createRouterRule({
           ...normalizeRulePayload(request.body),
@@ -361,6 +372,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const existingRule = await fastify.db.getRouterRuleById(id)
         if (!existingRule) {
           return reply.notFound(`Router rule with ID ${id} not found`)
+        }
+
+        const rejected = rejectedSeasonMonitoring(
+          request.body.season_monitoring,
+          [existingRule.season_monitoring],
+        )
+        if (rejected !== undefined) {
+          return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
         }
 
         const updated = await fastify.db.updateRouterRule(

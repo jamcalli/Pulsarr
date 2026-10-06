@@ -1,3 +1,4 @@
+import type { RadarrMonitorType } from '@root/schemas/radarr/add-options.schema.js'
 import type { RadarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { RadarrInstance } from '@root/types/radarr.types.js'
 import type { DatabaseService } from '@services/database.service.js'
@@ -25,7 +26,7 @@ function mapRowToRadarrInstance(
     minimumAvailability: this.normaliseMinimumAvailability(
       row.minimum_availability,
     ),
-    monitor: row.monitor as 'movieOnly' | 'movieAndCollection' | 'none',
+    monitor: row.monitor as RadarrMonitorType,
     tags: this.safeJsonParse(row.tags, [], 'radarr.tags'),
     isDefault: Boolean(row.is_default),
     syncedInstances: this.safeJsonParse(

@@ -1,5 +1,12 @@
 import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
+import {
+  type MinimumAvailability,
+  RadarrMinimumAvailabilitySchema,
+  RadarrMonitorSchema,
+  type RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
+import { SonarrSeasonMonitoringValueSchema } from '@root/schemas/sonarr/season-monitoring.schema.js'
 /**
  * Webhook Payload Schemas
  *
@@ -57,14 +64,14 @@ const BaseRoutingFieldsSchema = z.object({
 /** Radarr-specific routing - includes minimumAvailability and monitor, excludes Sonarr fields */
 export const RadarrRoutingPayloadSchema = BaseRoutingFieldsSchema.extend({
   instanceType: z.literal('radarr'),
-  minimumAvailability: z.string().nullable(),
-  monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).nullable(),
+  minimumAvailability: RadarrMinimumAvailabilitySchema.nullable(),
+  monitor: RadarrMonitorSchema.nullable(),
 })
 
 /** Sonarr-specific routing - includes seasonMonitoring/seriesType, excludes Radarr fields */
 export const SonarrRoutingPayloadSchema = BaseRoutingFieldsSchema.extend({
   instanceType: z.literal('sonarr'),
-  seasonMonitoring: z.string().nullable(),
+  seasonMonitoring: SonarrSeasonMonitoringValueSchema.nullable(),
   seriesType: z.enum(['standard', 'anime', 'daily']).nullable(),
 })
 
@@ -82,8 +89,8 @@ interface RoutingInput {
   rootFolder?: string | null
   tags?: string[]
   searchOnAdd?: boolean | null
-  minimumAvailability?: string | null
-  monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
+  minimumAvailability?: MinimumAvailability | null
+  monitor?: RadarrMonitorType | null
   seasonMonitoring?: string | null
   seriesType?: 'standard' | 'anime' | 'daily' | null
   syncedInstances?: number[]
@@ -132,8 +139,8 @@ export const RadarrRoutedToItemSchema = z.object({
   searchOnAdd: z.boolean().optional(),
   ruleId: z.number().optional(),
   ruleName: z.string().optional(),
-  minimumAvailability: z.string().optional(),
-  monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).optional(),
+  minimumAvailability: RadarrMinimumAvailabilitySchema.optional(),
+  monitor: RadarrMonitorSchema.optional(),
 })
 
 /** Sonarr routing for routedTo arrays (with optional rule info) */
@@ -146,7 +153,7 @@ export const SonarrRoutedToItemSchema = z.object({
   searchOnAdd: z.boolean().optional(),
   ruleId: z.number().optional(),
   ruleName: z.string().optional(),
-  seasonMonitoring: z.string().optional(),
+  seasonMonitoring: SonarrSeasonMonitoringValueSchema.optional(),
   seriesType: z.enum(['standard', 'anime', 'daily']).optional(),
 })
 
@@ -166,8 +173,8 @@ interface RoutedToInput {
   searchOnAdd?: boolean | null
   ruleId?: number
   ruleName?: string
-  minimumAvailability?: string | null
-  monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
+  minimumAvailability?: MinimumAvailability | null
+  monitor?: RadarrMonitorType | null
   seasonMonitoring?: string | null
   seriesType?: string | null
 }

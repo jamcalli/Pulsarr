@@ -1,23 +1,8 @@
 import type { SonarrInstanceResponse } from '@root/schemas/sonarr/sonarr-instance.schema'
+import type { components } from '@/types/api.js'
 
 export type SonarrMonitoringType =
-  | 'unknown'
-  | 'all'
-  | 'future'
-  | 'missing'
-  | 'existing'
-  | 'firstSeason'
-  | 'lastSeason'
-  | 'latestSeason'
-  | 'pilot'
-  | 'pilotRolling'
-  | 'firstSeasonRolling'
-  | 'allSeasonPilotRolling'
-  | 'recent'
-  | 'monitorSpecials'
-  | 'unmonitorSpecials'
-  | 'none'
-  | 'skip'
+  components['schemas']['SonarrSeasonMonitoring']
 
 export interface UseSonarrInstanceFormProps {
   instance: SonarrInstanceResponse

@@ -1,6 +1,8 @@
+import type {
+  MinimumAvailability,
+  RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
 import type { ContentItem } from '@root/types/router.types.js'
-
-export type RadarrMonitorType = 'movieOnly' | 'movieAndCollection' | 'none'
 
 export interface RadarrAddOptions {
   searchForMovie: boolean | null
@@ -153,8 +155,6 @@ export interface RadarrPost {
   minimumAvailability?: MinimumAvailability
   monitored: boolean
 }
-
-export type MinimumAvailability = 'announced' | 'inCinemas' | 'released'
 
 export interface RadarrConfiguration {
   radarrApiKey: string

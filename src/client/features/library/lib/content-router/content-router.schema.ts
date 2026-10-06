@@ -2,6 +2,7 @@ import {
   ComparisonOperatorSchema,
   ConditionValueSchema,
 } from '@root/schemas/content-router/content-router.schema'
+import { RadarrMonitorSchema } from '@root/schemas/radarr/add-options.schema'
 import { z } from 'zod'
 import { ROUTER_SERIES_TYPES } from '@/features/library/lib/content-router/constants'
 
@@ -134,7 +135,7 @@ export const ConditionalRouteFormSchema = z
     enabled: z.boolean().default(true),
     order: z.number().int().min(1).max(100).default(50),
     search_on_add: z.boolean().default(true),
-    monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).optional(),
+    monitor: RadarrMonitorSchema.optional(),
     season_monitoring: z.string().optional(),
     series_type: z.enum([...ROUTER_SERIES_TYPES, 'none'] as const).optional(),
     // Actions section - approval behavior

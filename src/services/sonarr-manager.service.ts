@@ -1,9 +1,9 @@
 import type { WebhookResyncInstanceResult } from '@root/schemas/config/resync-arr-webhooks.schema.js'
+import { isRollingMonitoringOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import type {
   ExistenceCheckResult,
   InstanceHealthResult,
 } from '@root/types/service-result.types.js'
-import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type {
   ConnectionTestResult,
   SonarrInstance,
@@ -12,6 +12,10 @@ import type {
 import { SonarrService } from '@services/sonarr.service.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
+import {
+  InvalidSeasonMonitoringError,
+  rejectedSeasonMonitoring,
+} from '@utils/season-monitoring.js'
 import {
   delayWithBackoffAndJitter,
   isSameServerEndpoint,
@@ -323,10 +327,7 @@ export class SonarrManagerService {
               targetInstanceId,
               tvdbId || '',
               sonarrItem.title,
-              targetSeasonMonitoring as
-                | 'pilotRolling'
-                | 'firstSeasonRolling'
-                | 'allSeasonPilotRolling',
+              targetSeasonMonitoring,
             )
 
             // For allSeasonPilotRolling, seed E01 of every season after add
@@ -511,6 +512,8 @@ export class SonarrManagerService {
   }
 
   async addInstance(instance: Omit<SonarrInstance, 'id'>): Promise<number> {
+    const rejected = rejectedSeasonMonitoring(instance.seasonMonitoring, [])
+    if (rejected !== undefined) throw new InvalidSeasonMonitoringError(rejected)
     const id = await this.fastify.db.createSonarrInstance(instance)
     let sonarrService: SonarrService | undefined
     try {
@@ -577,6 +580,10 @@ export class SonarrManagerService {
     updates: Partial<SonarrInstance>,
   ): Promise<void> {
     const current = await this.fastify.db.getSonarrInstance(id)
+    const rejected = rejectedSeasonMonitoring(updates.seasonMonitoring, [
+      current?.seasonMonitoring,
+    ])
+    if (rejected !== undefined) throw new InvalidSeasonMonitoringError(rejected)
     if (current) {
       const candidate = { ...current, ...updates }
       const oldService = this.sonarrServices.get(id)
