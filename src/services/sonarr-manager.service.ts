@@ -580,11 +580,12 @@ export class SonarrManagerService {
     updates: Partial<SonarrInstance>,
   ): Promise<void> {
     const current = await this.fastify.db.getSonarrInstance(id)
-    const rejected = rejectedSeasonMonitoring(updates.seasonMonitoring, [
-      current?.seasonMonitoring,
-    ])
-    if (rejected !== undefined) throw new InvalidSeasonMonitoringError(rejected)
     if (current) {
+      const rejected = rejectedSeasonMonitoring(updates.seasonMonitoring, [
+        current.seasonMonitoring,
+      ])
+      if (rejected !== undefined)
+        throw new InvalidSeasonMonitoringError(rejected)
       const candidate = { ...current, ...updates }
       const oldService = this.sonarrServices.get(id)
 

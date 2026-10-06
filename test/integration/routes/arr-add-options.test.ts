@@ -280,6 +280,15 @@ describe('arr add options on write and read paths', () => {
       expect(row.season_monitoring).toBe('monitorSpecials')
     })
 
+    it('returns 404 for an unknown instance before checking the value', async () => {
+      const res = await app.inject({
+        method: 'PUT',
+        url: '/v1/sonarr/instances/999',
+        payload: { seasonMonitoring: 'everything' },
+      })
+      expect(res.statusCode).toBe(404)
+    })
+
     it('rejects an unknown value on create', async () => {
       const res = await app.inject({
         method: 'POST',
