@@ -4,6 +4,7 @@ import { ConfirmCredenza } from '@/components/confirm-credenza'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useMinLoading } from '@/hooks/useMinLoading'
+import { formatCount } from '@/lib/format'
 import { NAV_PAGES, pageHref } from '@/lib/navigation'
 import { $api, apiErrorMessage } from '@/lib/tanstackApi'
 
@@ -11,10 +12,6 @@ interface AliasReadinessCredenzaProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
-}
-
-function users(count: number) {
-  return count === 1 ? '1 user' : `${count} users`
 }
 
 export function AliasReadinessCredenza({
@@ -68,7 +65,7 @@ export function AliasReadinessCredenza({
           {data.missingAliasCount > 0 && (
             <p>
               <span className="font-bold">
-                {users(data.missingAliasCount)} missing an alias.
+                {formatCount(data.missingAliasCount, 'user')} missing an alias.
               </span>{' '}
               They fall back to their Plex username, so naming will be mixed.
             </p>
@@ -76,7 +73,7 @@ export function AliasReadinessCredenza({
           {data.duplicateAliasCount > 0 && (
             <p>
               <span className="font-bold">
-                {users(data.duplicateAliasCount)} share an alias.
+                {formatCount(data.duplicateAliasCount, 'user')} share an alias.
               </span>{' '}
               They will share tags and labels, so you can't tell who asked for
               what.

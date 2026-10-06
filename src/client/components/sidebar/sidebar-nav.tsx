@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sidebar'
 import { useNavAccordion } from '@/hooks/useNavAccordion'
 import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount'
+import { formatNumber } from '@/lib/format'
 import {
   findActiveNav,
   isSingleLink,
@@ -30,7 +31,7 @@ function PendingBadge({ count }: { count: number }) {
   if (count === 0) return null
   return (
     <Badge variant="warn" className="ml-auto min-w-5 px-1.5 tabular-nums">
-      {count}
+      {formatNumber(count)}
     </Badge>
   )
 }

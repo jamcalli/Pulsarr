@@ -54,7 +54,7 @@ import {
   isSyncLabelsResponse,
   usePlexLabels,
 } from '@/legacy/features/users/hooks/plex-labels/usePlexLabels'
-import { formatScheduleDisplay } from '@/lib/utils'
+import { formatScheduleDisplay } from '@/legacy/lib/schedule-display'
 import { useProgressStore } from '@/stores/progressStore'
 
 /**

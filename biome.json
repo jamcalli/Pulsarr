@@ -178,6 +178,27 @@
     },
     {
       "includes": [
+        "**/src/client/**",
+        "!**/src/client/lib/format.ts",
+        "!**/src/client/legacy/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "Intl": "Format dates, numbers, counts and relative times through @/lib/format so one locale setting reaches every page."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
         "**/src/client/components/**",
         "**/src/client/hooks/**",
         "**/src/client/lib/**",
