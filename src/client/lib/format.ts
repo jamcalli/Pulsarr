@@ -53,8 +53,9 @@ export function formatRuntime(minutes: number): string {
       unit: name,
       unitDisplay: 'short',
     }).format(value)
-  const hours = Math.floor(minutes / 60)
-  const rest = Math.round(minutes % 60)
+  const total = Math.round(minutes)
+  const hours = Math.floor(total / 60)
+  const rest = total % 60
   if (hours === 0) return unit(rest, 'minute')
   if (rest === 0) return unit(hours, 'hour')
   return `${unit(hours, 'hour')} ${unit(rest, 'minute')}`

@@ -88,5 +88,6 @@ describe('format', () => {
     expect(formatRuntime(45)).toBe('45 min')
     expect(formatRuntime(120)).toBe('2 hr')
     expect(formatRuntime(135)).toBe('2 hr 15 min')
+    expect(formatRuntime(59.6)).toBe('1 hr')
   })
 })
