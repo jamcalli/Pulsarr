@@ -2,6 +2,8 @@ import type {
   ApprovalMetadata,
   ProgressMetadata,
 } from '@root/types/progress.types.js'
+import { CONTENT_TYPE_LABELS } from '@/lib/content-type'
+import { formatCount } from '@/lib/format'
 
 export type ToastedApprovalAction =
   | 'created'
@@ -36,7 +38,7 @@ function singleToast(
     case 'created':
       return {
         title: 'New approval request',
-        description: `${userName} requested ${contentTitle} (${contentType})`,
+        description: `${userName} requested ${contentTitle} (${CONTENT_TYPE_LABELS[contentType]})`,
       }
     case 'approved':
       return {
@@ -45,8 +47,8 @@ function singleToast(
       }
     case 'rejected':
       return {
-        title: 'Request rejected',
-        description: `${userName}'s request for ${contentTitle} was rejected`,
+        title: 'Request denied',
+        description: `${userName}'s request for ${contentTitle} was denied`,
       }
     case 'deleted':
       return {
@@ -64,22 +66,22 @@ function batchToast(
     case 'created':
       return {
         title: 'New approval requests',
-        description: `${count} new approval requests have been received`,
+        description: `${formatCount(count, 'new approval request')} have been received`,
       }
     case 'approved':
       return {
         title: 'Requests approved',
-        description: `${count} approval requests have been approved`,
+        description: `${formatCount(count, 'approval request')} have been approved`,
       }
     case 'rejected':
       return {
-        title: 'Requests rejected',
-        description: `${count} approval requests have been rejected`,
+        title: 'Requests denied',
+        description: `${formatCount(count, 'approval request')} have been denied`,
       }
     case 'deleted':
       return {
         title: 'Requests deleted',
-        description: `${count} approval requests have been deleted`,
+        description: `${formatCount(count, 'approval request')} have been deleted`,
       }
   }
 }

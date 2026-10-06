@@ -4,7 +4,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UserAvatar } from '@/components/user-avatar'
-import { formatNumber } from '@/lib/format'
+import { formatList, formatNumber } from '@/lib/format'
 
 interface AvatarStackProps {
   people: Array<{ username: string; name: string; avatar?: string | null }>
@@ -15,7 +15,7 @@ export function AvatarStack({ people, max = 3 }: AvatarStackProps) {
   if (people.length === 0) return null
   const shown = people.slice(0, max)
   const overflow = people.length - shown.length
-  const names = people.map((person) => person.name).join(', ')
+  const names = formatList(people.map((person) => person.name))
 
   return (
     <Tooltip>
