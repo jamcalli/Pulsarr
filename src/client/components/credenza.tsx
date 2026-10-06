@@ -62,11 +62,27 @@ function CredenzaClose(props: CredenzaControlProps) {
   return <Close {...props} />
 }
 
-function CredenzaContent(props: CredenzaPartProps) {
-  const Content = useContext(CredenzaMobileContext)
-    ? DrawerContent
-    : DialogContent
-  return <Content {...props} />
+interface CredenzaContentProps extends CredenzaPartProps {
+  /** Opens the mobile drawer at its height cap instead of sizing it to the content. */
+  fullHeight?: boolean
+}
+
+function CredenzaContent({
+  fullHeight,
+  className,
+  ...props
+}: CredenzaContentProps) {
+  const isMobile = useContext(CredenzaMobileContext)
+  const Content = isMobile ? DrawerContent : DialogContent
+  return (
+    <Content
+      className={cn(
+        isMobile && fullHeight && '[--drawer-content-height:100dvh]',
+        className,
+      )}
+      {...props}
+    />
+  )
 }
 
 function CredenzaHeader({ className, ...props }: CredenzaPartProps) {

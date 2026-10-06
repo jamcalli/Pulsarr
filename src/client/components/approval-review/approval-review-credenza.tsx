@@ -97,7 +97,10 @@ export function ApprovalReviewCredenza({
   return (
     <>
       <Credenza open={open} onOpenChange={guard.onOpenChange}>
-        <CredenzaContent className="flex flex-col gap-0 p-0 md:max-w-2xl [--drawer-content-height:100dvh]">
+        <CredenzaContent
+          fullHeight
+          className="flex flex-col gap-0 p-0 md:max-w-2xl"
+        >
           {content}
         </CredenzaContent>
       </Credenza>
