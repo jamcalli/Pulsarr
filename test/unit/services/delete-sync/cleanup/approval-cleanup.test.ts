@@ -33,6 +33,7 @@ function makeApproval(
     userName: 'Test User',
     contentTitle: `Content ${overrides.id}`,
     contentKey: `key-${overrides.id}`,
+    thumb: null,
     proposedRouterDecision: { action: 'continue' as const },
     routerRuleId: null,
     triggeredBy: 'quota_exceeded',

@@ -1,3 +1,7 @@
+import type {
+  MinimumAvailability,
+  RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
 import {
   buildRoutingPayload,
   type WebhookPayloadMap,
@@ -201,10 +205,10 @@ export class NotificationService {
       rootFolder?: string | null
       tags?: string[]
       searchOnAdd?: boolean | null
-      minimumAvailability?: string | null
+      minimumAvailability?: MinimumAvailability | null
       seasonMonitoring?: string | null
       seriesType?: string | null
-      monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
+      monitor?: RadarrMonitorType | null
       ruleId?: number
       ruleName?: string
     }>,
@@ -384,10 +388,10 @@ export class NotificationService {
       rootFolder: string | null
       tags: string[]
       searchOnAdd?: boolean | null
-      minimumAvailability?: string | null
+      minimumAvailability?: MinimumAvailability | null
       seasonMonitoring?: string | null
       seriesType?: 'standard' | 'anime' | 'daily' | null
-      monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
+      monitor?: RadarrMonitorType | null
       syncedInstances?: number[]
     },
     reason: string,

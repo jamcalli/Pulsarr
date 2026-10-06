@@ -1,3 +1,4 @@
+import type { SonarrRollingMonitorOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 /**
  * Plex Session Monitor Service
  *
@@ -814,10 +815,7 @@ export class PlexSessionMonitorService {
     sonarrInstanceId: number,
     tvdbId: string,
     showTitle: string,
-    monitoringType:
-      | 'pilotRolling'
-      | 'firstSeasonRolling'
-      | 'allSeasonPilotRolling',
+    monitoringType: SonarrRollingMonitorOption,
   ): Promise<number> {
     try {
       // allSeasonPilotRolling uses 0 to track full-season expansion (not pilot seeding)

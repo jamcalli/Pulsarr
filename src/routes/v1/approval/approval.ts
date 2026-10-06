@@ -15,6 +15,10 @@ import {
   UpdateApprovalRequestSchema,
 } from '@schemas/approval/approval.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import {
+  invalidSeasonMonitoringMessage,
+  rejectedDecisionSeasonMonitoring,
+} from '@utils/season-monitoring.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
@@ -102,6 +106,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       },
     },
     async (request, reply) => {
+      const rejected = rejectedDecisionSeasonMonitoring(
+        request.body.routerDecision,
+      )
+      if (rejected !== undefined) {
+        return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
+      }
       try {
         const existingRequest = await fastify.db.getApprovalRequestByContent(
           request.body.userId,
@@ -324,6 +334,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const existingRequest = await fastify.db.getApprovalRequest(requestId)
         if (!existingRequest) {
           return reply.notFound('Approval request not found')
+        }
+
+        const rejected = rejectedDecisionSeasonMonitoring(
+          request.body.proposedRouterDecision,
+          existingRequest.proposedRouterDecision,
+        )
+        if (rejected !== undefined) {
+          return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
         }
 
         // Validate state transitions only if status is being changed

@@ -1,3 +1,4 @@
+import type { SonarrRollingMonitorOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 /**
  * Shared status type for watchlist items
  */
@@ -53,11 +54,7 @@ export interface SonarrShowWithEnrollmentStatus {
   title: string
   guids: string[]
   rolling_show_id: number | null
-  monitoring_type:
-    | 'pilotRolling'
-    | 'firstSeasonRolling'
-    | 'allSeasonPilotRolling'
-    | null
+  monitoring_type: SonarrRollingMonitorOption | null
 }
 
 export type WatchlistItemUpdate = Partial<

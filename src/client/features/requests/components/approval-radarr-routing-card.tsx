@@ -1,5 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ProposedRouting } from '@root/schemas/approval/approval.schema.js'
+import {
+  RadarrMinimumAvailabilitySchema,
+  RadarrMonitorSchema,
+} from '@root/schemas/radarr/add-options.schema'
 import { Check, HelpCircle, Loader2 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
@@ -45,8 +49,8 @@ const approvalRoutingSchema = z.object({
   qualityProfile: z.string().min(1, { error: 'Quality profile is required' }),
   rootFolder: z.string().min(1, { error: 'Root folder is required' }),
   searchOnAdd: z.boolean(),
-  minimumAvailability: z.enum(['announced', 'inCinemas', 'released']),
-  monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']),
+  minimumAvailability: RadarrMinimumAvailabilitySchema,
+  monitor: RadarrMonitorSchema,
   tags: z.array(z.string()),
   syncedInstances: z.array(z.number()),
   priority: z.number().min(0).max(100),

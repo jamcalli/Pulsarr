@@ -1,10 +1,12 @@
 import type { WebhookResyncInstanceResult } from '@root/schemas/config/resync-arr-webhooks.schema.js'
 import type {
-  ConnectionTestResult,
   MinimumAvailability,
+  RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
+import type {
+  ConnectionTestResult,
   RadarrInstance,
   Item as RadarrItem,
-  RadarrMonitorType,
 } from '@root/types/radarr.types.js'
 import type {
   ExistenceCheckResult,

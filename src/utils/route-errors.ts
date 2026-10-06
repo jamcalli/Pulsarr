@@ -1,3 +1,4 @@
+import { InvalidSeasonMonitoringError } from '@utils/season-monitoring.js'
 import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify'
 
 interface RouteErrorContext {
@@ -136,6 +137,10 @@ export function handleArrInstanceError(
   options: ArrInstanceErrorOptions,
 ): ReturnType<FastifyReply['send']> {
   const { service, defaultMessage } = options
+
+  if (error instanceof InvalidSeasonMonitoringError) {
+    return reply.badRequest(error.message)
+  }
 
   if (error instanceof Error) {
     // Clean up error message for user display

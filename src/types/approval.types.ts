@@ -1,3 +1,7 @@
+import type {
+  MinimumAvailability,
+  RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
 /**
  * Approval System Types
  *
@@ -77,8 +81,8 @@ export interface RouterDecision {
     searchOnAdd?: boolean | null
     seasonMonitoring?: string | null
     seriesType?: 'standard' | 'anime' | 'daily' | null
-    minimumAvailability?: 'announced' | 'inCinemas' | 'released'
-    monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null // For Radarr: monitor type
+    minimumAvailability?: MinimumAvailability
+    monitor?: RadarrMonitorType | null
     syncedInstances?: number[]
   }
 
@@ -130,6 +134,7 @@ export interface ApprovalRequest {
   contentTitle: string
   contentKey: string
   contentGuids: string[]
+  thumb: string | null
 
   // What the router would have decided
   proposedRouterDecision: RouterDecision

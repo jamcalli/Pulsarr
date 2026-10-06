@@ -1,3 +1,4 @@
+import type { SonarrRollingMonitorOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 
 declare module '@services/database.service.js' {
@@ -14,10 +15,7 @@ declare module '@services/database.service.js' {
       tvdb_id?: string
       imdb_id?: string
       show_title: string
-      monitoring_type:
-        | 'pilotRolling'
-        | 'firstSeasonRolling'
-        | 'allSeasonPilotRolling'
+      monitoring_type: SonarrRollingMonitorOption
       current_monitored_season: number
       plex_user_id?: string
       plex_username?: string
@@ -155,10 +153,7 @@ declare module '@services/database.service.js' {
      */
     updateRollingShowMonitoringType(
       id: number,
-      monitoringType:
-        | 'pilotRolling'
-        | 'firstSeasonRolling'
-        | 'allSeasonPilotRolling',
+      monitoringType: SonarrRollingMonitorOption,
       currentMonitoredSeason: number,
     ): Promise<boolean>
   }

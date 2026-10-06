@@ -15,6 +15,14 @@ import { getGuidMatchScore } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
+function routingFor(decision: RouterDecision): RouterDecision['routing'] {
+  if (decision.action === 'route') return decision.routing
+  if (decision.action === 'require_approval') {
+    return decision.approval?.proposedRouting
+  }
+  return undefined
+}
+
 export class ApprovalService {
   private notificationQueue: Set<number> = new Set()
   private notificationTimer: NodeJS.Timeout | null = null
@@ -341,18 +349,7 @@ export class ApprovalService {
 
     try {
       const routerDecision = request.proposedRouterDecision
-
-      // Handle both action types: 'route' and 'require_approval'
-      let proposedRouting = null
-
-      if (routerDecision.action === 'route' && routerDecision.routing) {
-        proposedRouting = routerDecision.routing
-      } else if (
-        routerDecision.action === 'require_approval' &&
-        routerDecision.approval?.proposedRouting
-      ) {
-        proposedRouting = routerDecision.approval.proposedRouting
-      }
+      const proposedRouting = routingFor(routerDecision)
 
       if (proposedRouting) {
         // Route the content using the stored decision
@@ -820,6 +817,11 @@ export class ApprovalService {
     notes?: string,
   ): Promise<ApproveAndRouteResult> {
     try {
+      const pending = await this.fastify.db.getApprovalRequest(requestId)
+      if (pending && !routingFor(pending.proposedRouterDecision)) {
+        return { success: false, error: 'Set routing before approving.' }
+      }
+
       // Step 1: Update DB to "approved" WITHOUT emitting events yet
       const approvedRequest = await this.fastify.db.approveRequest(
         requestId,
