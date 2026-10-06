@@ -65,10 +65,13 @@ function CredenzaClose(props: CredenzaControlProps) {
 interface CredenzaContentProps extends CredenzaPartProps {
   /** Opens the mobile drawer at its height cap instead of sizing it to the content. */
   fullHeight?: boolean
+  /** Lays the mobile swipe handle over the top of the content instead of above it. */
+  floatingHandle?: boolean
 }
 
 function CredenzaContent({
   fullHeight,
+  floatingHandle,
   className,
   ...props
 }: CredenzaContentProps) {
@@ -78,6 +81,9 @@ function CredenzaContent({
     <Content
       className={cn(
         isMobile && fullHeight && '[--drawer-content-height:100dvh]',
+        isMobile &&
+          floatingHandle &&
+          '*:data-[slot=drawer-swipe-handle]:absolute *:data-[slot=drawer-swipe-handle]:inset-x-0 *:data-[slot=drawer-swipe-handle]:top-0 *:data-[slot=drawer-swipe-handle]:z-20',
         className,
       )}
       {...props}
