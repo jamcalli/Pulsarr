@@ -1,5 +1,5 @@
+import { isRollingMonitoringOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import type { SonarrInstanceResponse } from '@root/schemas/sonarr/sonarr-instance.schema'
-import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import { HelpCircle, RefreshCw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'

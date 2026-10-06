@@ -23,7 +23,7 @@ import {
 import { useBulkManageMutation } from '@/legacy/features/library/hooks/session-monitoring/useSessionMonitoringQueries'
 import type { components } from '@/types/api.js'
 
-type MonitoringType = components['schemas']['MonitoringType']
+type MonitoringType = components['schemas']['SonarrRollingMonitoring']
 
 type SonarrShow = components['schemas']['SonarrShowWithEnrollment']
 

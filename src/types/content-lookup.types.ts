@@ -1,3 +1,5 @@
+import type { RadarrMonitorType } from '@root/schemas/radarr/add-options.schema.js'
+import type { SonarrMonitorType } from '@root/schemas/sonarr/season-monitoring.schema.js'
 /**
  * Content Lookup Types for Router Plugins
  *
@@ -40,7 +42,7 @@ export interface RadarrAlternateTitle {
 export interface RadarrAddOptions {
   ignoreEpisodesWithFiles?: boolean
   ignoreEpisodesWithoutFiles?: boolean
-  monitor?: 'movieOnly' | 'movieAndCollection' | 'none'
+  monitor?: RadarrMonitorType
   searchForMovie: boolean
   addMethod?: 'manual' | 'automatic'
 }
@@ -157,15 +159,7 @@ export interface SonarrSeason {
 export interface SonarrAddOptions {
   ignoreEpisodesWithFiles?: boolean
   ignoreEpisodesWithoutFiles?: boolean
-  monitor?:
-    | 'all'
-    | 'future'
-    | 'missing'
-    | 'existing'
-    | 'pilot'
-    | 'firstSeason'
-    | 'latestSeason'
-    | 'none'
+  monitor?: SonarrMonitorType
   searchForMissingEpisodes?: boolean
   searchForCutoffUnmetEpisodes?: boolean
 }

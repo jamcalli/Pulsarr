@@ -54,6 +54,383 @@
         "additionalProperties": false,
         "description": "Activity counts within the requested range"
       },
+      "ApprovalQuotaData": {
+        "type": "object",
+        "properties": {
+          "quotaType": {
+            "$ref": "#/components/schemas/QuotaType"
+          },
+          "quotaUsage": {
+            "type": "number"
+          },
+          "quotaLimit": {
+            "type": "number"
+          },
+          "criteriaType": {
+            "type": "string"
+          },
+          "criteriaValue": {
+            "type": "string"
+          },
+          "ruleId": {
+            "type": "number"
+          },
+          "autoApprove": {
+            "type": "boolean"
+          }
+        },
+        "description": "Trigger details captured when the request needed approval"
+      },
+      "ApprovalQuotaDataOutput": {
+        "type": "object",
+        "properties": {
+          "quotaType": {
+            "$ref": "#/components/schemas/QuotaType"
+          },
+          "quotaUsage": {
+            "type": "number"
+          },
+          "quotaLimit": {
+            "type": "number"
+          },
+          "criteriaType": {
+            "type": "string"
+          },
+          "criteriaValue": {
+            "type": "string"
+          },
+          "ruleId": {
+            "type": "number"
+          },
+          "autoApprove": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Trigger details captured when the request needed approval"
+      },
+      "ApprovalRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "userId": {
+            "type": "number"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "contentType": {
+            "$ref": "#/components/schemas/ContentType"
+          },
+          "contentTitle": {
+            "type": "string"
+          },
+          "contentKey": {
+            "type": "string"
+          },
+          "contentGuids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "thumb": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "proposedRouterDecision": {
+            "$ref": "#/components/schemas/RouterDecisionOutput"
+          },
+          "routerRuleId": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "triggeredBy": {
+            "$ref": "#/components/schemas/ApprovalTrigger"
+          },
+          "approvalReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApprovalStatus"
+          },
+          "approvedBy": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "approvalNotes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "isExpired": {
+            "type": "boolean"
+          },
+          "expirationStatus": {
+            "type": "string",
+            "enum": [
+              "active",
+              "expiring_soon",
+              "expired"
+            ]
+          },
+          "expirationDisplayText": {
+            "type": "string"
+          },
+          "timeUntilExpiration": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "userName",
+          "contentType",
+          "contentTitle",
+          "contentKey",
+          "contentGuids",
+          "thumb",
+          "proposedRouterDecision",
+          "routerRuleId",
+          "triggeredBy",
+          "approvalReason",
+          "status",
+          "approvedBy",
+          "approvalNotes",
+          "expiresAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "description": "An approval request with its proposed routing and expiry"
+      },
+      "ApprovalRouting": {
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "number"
+          },
+          "instanceType": {
+            "$ref": "#/components/schemas/InstanceType"
+          },
+          "qualityProfile": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "rootFolder": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "priority": {
+            "type": "number"
+          },
+          "searchOnAdd": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "seasonMonitoring": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "seriesType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "standard",
+                  "anime",
+                  "daily"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minimumAvailability": {
+            "$ref": "#/components/schemas/RadarrMinimumAvailability"
+          },
+          "monitor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RadarrMonitor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "syncedInstances": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "instanceId",
+          "instanceType",
+          "priority"
+        ],
+        "description": "Target instance and arr settings used to add the content"
+      },
+      "ApprovalRoutingOutput": {
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "number"
+          },
+          "instanceType": {
+            "$ref": "#/components/schemas/InstanceType"
+          },
+          "qualityProfile": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "rootFolder": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "priority": {
+            "type": "number"
+          },
+          "searchOnAdd": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "seasonMonitoring": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "seriesType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "standard",
+                  "anime",
+                  "daily"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minimumAvailability": {
+            "$ref": "#/components/schemas/RadarrMinimumAvailability"
+          },
+          "monitor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RadarrMonitor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "syncedInstances": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "instanceId",
+          "instanceType",
+          "priority"
+        ],
+        "additionalProperties": false,
+        "description": "Target instance and arr settings used to add the content"
+      },
+      "ApprovalStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "approved",
+          "rejected",
+          "expired",
+          "auto_approved"
+        ],
+        "description": "Lifecycle state of an approval request"
+      },
+      "ApprovalTrigger": {
+        "type": "string",
+        "enum": [
+          "quota_exceeded",
+          "router_rule",
+          "manual_flag",
+          "content_criteria"
+        ],
+        "description": "What caused a request to need approval"
+      },
       "AvailabilityTime": {
         "type": "object",
         "properties": {
@@ -127,7 +504,7 @@
             }
           },
           "monitoringType": {
-            "$ref": "#/components/schemas/MonitoringType"
+            "$ref": "#/components/schemas/SonarrRollingMonitoring"
           },
           "resetMonitoring": {
             "type": "boolean"
@@ -2320,15 +2697,6 @@
         "additionalProperties": false,
         "description": "The metadata refresh was started in the background."
       },
-      "MonitoringType": {
-        "type": "string",
-        "enum": [
-          "pilotRolling",
-          "firstSeasonRolling",
-          "allSeasonPilotRolling"
-        ],
-        "description": "Rolling monitoring strategy for a show"
-      },
       "NotificationChannelStat": {
         "type": "object",
         "properties": {
@@ -2476,6 +2844,33 @@
         },
         "additionalProperties": false,
         "description": "Ratings captured from stored Plex watchlist metadata."
+      },
+      "QuotaType": {
+        "type": "string",
+        "enum": [
+          "daily",
+          "weekly_rolling",
+          "monthly"
+        ],
+        "description": "Quota window, a calendar day, rolling 7 days, or calendar month"
+      },
+      "RadarrMinimumAvailability": {
+        "type": "string",
+        "enum": [
+          "announced",
+          "inCinemas",
+          "released"
+        ],
+        "description": "Release stage at which Radarr considers a movie available"
+      },
+      "RadarrMonitor": {
+        "type": "string",
+        "enum": [
+          "movieOnly",
+          "movieAndCollection",
+          "none"
+        ],
+        "description": "What Radarr monitors when adding a movie"
       },
       "RadarrRatings": {
         "type": "object",
@@ -2847,7 +3242,7 @@
             "type": "string"
           },
           "monitoring_type": {
-            "$ref": "#/components/schemas/MonitoringType"
+            "$ref": "#/components/schemas/SonarrRollingMonitoring"
           },
           "current_monitored_season": {
             "type": "number"
@@ -3097,6 +3492,94 @@
         "additionalProperties": false,
         "description": "A single field comparison in a router rule"
       },
+      "RouterDecision": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "route",
+              "require_approval",
+              "reject",
+              "continue"
+            ]
+          },
+          "routing": {
+            "$ref": "#/components/schemas/ApprovalRouting"
+          },
+          "approval": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "type": "string"
+              },
+              "triggeredBy": {
+                "$ref": "#/components/schemas/ApprovalTrigger"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ApprovalQuotaData"
+              },
+              "proposedRouting": {
+                "$ref": "#/components/schemas/ApprovalRouting"
+              }
+            },
+            "required": [
+              "reason",
+              "triggeredBy",
+              "data"
+            ]
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "description": "Router outcome for a request, holding the routing used on approval"
+      },
+      "RouterDecisionOutput": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "route",
+              "require_approval",
+              "reject",
+              "continue"
+            ]
+          },
+          "routing": {
+            "$ref": "#/components/schemas/ApprovalRoutingOutput"
+          },
+          "approval": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "type": "string"
+              },
+              "triggeredBy": {
+                "$ref": "#/components/schemas/ApprovalTrigger"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ApprovalQuotaDataOutput"
+              },
+              "proposedRouting": {
+                "$ref": "#/components/schemas/ApprovalRoutingOutput"
+              }
+            },
+            "required": [
+              "reason",
+              "triggeredBy",
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false,
+        "description": "Router outcome for a request, holding the routing used on approval"
+      },
       "RouterRule": {
         "type": "object",
         "properties": {
@@ -3157,9 +3640,13 @@
           },
           "season_monitoring": {
             "description": "Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.",
-            "type": [
-              "string",
-              "null"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "series_type": {
@@ -3182,12 +3669,7 @@
             "description": "Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.",
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "movieOnly",
-                  "movieAndCollection",
-                  "none"
-                ]
+                "$ref": "#/components/schemas/RadarrMonitor"
               },
               {
                 "type": "null"
@@ -3311,9 +3793,13 @@
           },
           "season_monitoring": {
             "description": "Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.",
-            "type": [
-              "string",
-              "null"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "series_type": {
@@ -3336,12 +3822,7 @@
             "description": "Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.",
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "movieOnly",
-                  "movieAndCollection",
-                  "none"
-                ]
+                "$ref": "#/components/schemas/RadarrMonitor"
               },
               {
                 "type": "null"
@@ -3389,6 +3870,49 @@
         "additionalProperties": false,
         "description": "Response carrying a single router rule"
       },
+      "SonarrRollingMonitoring": {
+        "type": "string",
+        "enum": [
+          "pilotRolling",
+          "firstSeasonRolling",
+          "allSeasonPilotRolling"
+        ],
+        "description": "Rolling monitoring strategy for a show"
+      },
+      "SonarrSeasonMonitoring": {
+        "type": "string",
+        "enum": [
+          "all",
+          "future",
+          "missing",
+          "existing",
+          "recent",
+          "pilot",
+          "firstSeason",
+          "lastSeason",
+          "monitorSpecials",
+          "unmonitorSpecials",
+          "none",
+          "pilotRolling",
+          "firstSeasonRolling",
+          "allSeasonPilotRolling",
+          "unknown",
+          "latestSeason",
+          "skip"
+        ],
+        "description": "Season monitoring applied when adding a series, any Sonarr monitor type or a Pulsarr rolling mode"
+      },
+      "SonarrSeasonMonitoringValue": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SonarrSeasonMonitoring"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "description": "A SonarrSeasonMonitoring option, or a legacy value already stored on the record"
+      },
       "SonarrShowWithEnrollment": {
         "type": "object",
         "properties": {
@@ -3419,7 +3943,7 @@
           "monitoringType": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/MonitoringType"
+                "$ref": "#/components/schemas/SonarrRollingMonitoring"
               },
               {
                 "type": "null"
@@ -5292,262 +5816,7 @@
                     }
                   },
                   "routerDecision": {
-                    "type": "object",
-                    "properties": {
-                      "action": {
-                        "type": "string",
-                        "enum": [
-                          "route",
-                          "require_approval",
-                          "reject",
-                          "continue"
-                        ]
-                      },
-                      "routing": {
-                        "type": "object",
-                        "properties": {
-                          "instanceId": {
-                            "type": "number"
-                          },
-                          "instanceType": {
-                            "$ref": "#/components/schemas/InstanceType"
-                          },
-                          "qualityProfile": {
-                            "type": [
-                              "number",
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "rootFolder": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "tags": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          },
-                          "priority": {
-                            "type": "number"
-                          },
-                          "searchOnAdd": {
-                            "type": [
-                              "boolean",
-                              "null"
-                            ]
-                          },
-                          "seasonMonitoring": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "seriesType": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "standard",
-                                  "anime",
-                                  "daily"
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "minimumAvailability": {
-                            "type": "string",
-                            "enum": [
-                              "announced",
-                              "inCinemas",
-                              "released"
-                            ]
-                          },
-                          "monitor": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "movieOnly",
-                                  "movieAndCollection",
-                                  "none"
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "syncedInstances": {
-                            "type": "array",
-                            "items": {
-                              "type": "number"
-                            }
-                          }
-                        },
-                        "required": [
-                          "instanceId",
-                          "instanceType",
-                          "priority"
-                        ]
-                      },
-                      "approval": {
-                        "type": "object",
-                        "properties": {
-                          "reason": {
-                            "type": "string"
-                          },
-                          "triggeredBy": {
-                            "type": "string",
-                            "enum": [
-                              "quota_exceeded",
-                              "router_rule",
-                              "manual_flag",
-                              "content_criteria"
-                            ]
-                          },
-                          "data": {
-                            "type": "object",
-                            "properties": {
-                              "quotaType": {
-                                "type": "string",
-                                "enum": [
-                                  "daily",
-                                  "weekly_rolling",
-                                  "monthly"
-                                ]
-                              },
-                              "quotaUsage": {
-                                "type": "number"
-                              },
-                              "quotaLimit": {
-                                "type": "number"
-                              },
-                              "criteriaType": {
-                                "type": "string"
-                              },
-                              "criteriaValue": {
-                                "type": "string"
-                              },
-                              "ruleId": {
-                                "type": "number"
-                              },
-                              "autoApprove": {
-                                "type": "boolean"
-                              }
-                            }
-                          },
-                          "proposedRouting": {
-                            "type": "object",
-                            "properties": {
-                              "instanceId": {
-                                "type": "number"
-                              },
-                              "instanceType": {
-                                "$ref": "#/components/schemas/InstanceType"
-                              },
-                              "qualityProfile": {
-                                "type": [
-                                  "number",
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "rootFolder": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "tags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              },
-                              "priority": {
-                                "type": "number"
-                              },
-                              "searchOnAdd": {
-                                "type": [
-                                  "boolean",
-                                  "null"
-                                ]
-                              },
-                              "seasonMonitoring": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "seriesType": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "standard",
-                                      "anime",
-                                      "daily"
-                                    ]
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "minimumAvailability": {
-                                "type": "string",
-                                "enum": [
-                                  "announced",
-                                  "inCinemas",
-                                  "released"
-                                ]
-                              },
-                              "monitor": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "movieOnly",
-                                      "movieAndCollection",
-                                      "none"
-                                    ]
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "syncedInstances": {
-                                "type": "array",
-                                "items": {
-                                  "type": "number"
-                                }
-                              }
-                            },
-                            "required": [
-                              "instanceId",
-                              "instanceType",
-                              "priority"
-                            ]
-                          }
-                        },
-                        "required": [
-                          "reason",
-                          "triggeredBy",
-                          "data"
-                        ]
-                      }
-                    },
-                    "required": [
-                      "action"
-                    ]
+                    "$ref": "#/components/schemas/RouterDecision"
                   },
                   "routerRuleId": {
                     "type": "number"
@@ -5556,13 +5825,7 @@
                     "type": "string"
                   },
                   "triggeredBy": {
-                    "type": "string",
-                    "enum": [
-                      "quota_exceeded",
-                      "router_rule",
-                      "manual_flag",
-                      "content_criteria"
-                    ]
+                    "$ref": "#/components/schemas/ApprovalTrigger"
                   },
                   "expiresAt": {
                     "type": "string"
@@ -5595,391 +5858,7 @@
                       "type": "string"
                     },
                     "approvalRequest": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "number"
-                        },
-                        "userId": {
-                          "type": "number"
-                        },
-                        "userName": {
-                          "type": "string"
-                        },
-                        "contentType": {
-                          "$ref": "#/components/schemas/ContentType"
-                        },
-                        "contentTitle": {
-                          "type": "string"
-                        },
-                        "contentKey": {
-                          "type": "string"
-                        },
-                        "contentGuids": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "proposedRouterDecision": {
-                          "type": "object",
-                          "properties": {
-                            "action": {
-                              "type": "string",
-                              "enum": [
-                                "route",
-                                "require_approval",
-                                "reject",
-                                "continue"
-                              ]
-                            },
-                            "routing": {
-                              "type": "object",
-                              "properties": {
-                                "instanceId": {
-                                  "type": "number"
-                                },
-                                "instanceType": {
-                                  "$ref": "#/components/schemas/InstanceType"
-                                },
-                                "qualityProfile": {
-                                  "type": [
-                                    "number",
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "rootFolder": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "tags": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string"
-                                  }
-                                },
-                                "priority": {
-                                  "type": "number"
-                                },
-                                "searchOnAdd": {
-                                  "type": [
-                                    "boolean",
-                                    "null"
-                                  ]
-                                },
-                                "seasonMonitoring": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "seriesType": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "standard",
-                                        "anime",
-                                        "daily"
-                                      ]
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "minimumAvailability": {
-                                  "type": "string",
-                                  "enum": [
-                                    "announced",
-                                    "inCinemas",
-                                    "released"
-                                  ]
-                                },
-                                "monitor": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "movieOnly",
-                                        "movieAndCollection",
-                                        "none"
-                                      ]
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "syncedInstances": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "number"
-                                  }
-                                }
-                              },
-                              "required": [
-                                "instanceId",
-                                "instanceType",
-                                "priority"
-                              ],
-                              "additionalProperties": false
-                            },
-                            "approval": {
-                              "type": "object",
-                              "properties": {
-                                "reason": {
-                                  "type": "string"
-                                },
-                                "triggeredBy": {
-                                  "type": "string",
-                                  "enum": [
-                                    "quota_exceeded",
-                                    "router_rule",
-                                    "manual_flag",
-                                    "content_criteria"
-                                  ]
-                                },
-                                "data": {
-                                  "type": "object",
-                                  "properties": {
-                                    "quotaType": {
-                                      "type": "string",
-                                      "enum": [
-                                        "daily",
-                                        "weekly_rolling",
-                                        "monthly"
-                                      ]
-                                    },
-                                    "quotaUsage": {
-                                      "type": "number"
-                                    },
-                                    "quotaLimit": {
-                                      "type": "number"
-                                    },
-                                    "criteriaType": {
-                                      "type": "string"
-                                    },
-                                    "criteriaValue": {
-                                      "type": "string"
-                                    },
-                                    "ruleId": {
-                                      "type": "number"
-                                    },
-                                    "autoApprove": {
-                                      "type": "boolean"
-                                    }
-                                  },
-                                  "additionalProperties": false
-                                },
-                                "proposedRouting": {
-                                  "type": "object",
-                                  "properties": {
-                                    "instanceId": {
-                                      "type": "number"
-                                    },
-                                    "instanceType": {
-                                      "$ref": "#/components/schemas/InstanceType"
-                                    },
-                                    "qualityProfile": {
-                                      "type": [
-                                        "number",
-                                        "string",
-                                        "null"
-                                      ]
-                                    },
-                                    "rootFolder": {
-                                      "type": [
-                                        "string",
-                                        "null"
-                                      ]
-                                    },
-                                    "tags": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    "priority": {
-                                      "type": "number"
-                                    },
-                                    "searchOnAdd": {
-                                      "type": [
-                                        "boolean",
-                                        "null"
-                                      ]
-                                    },
-                                    "seasonMonitoring": {
-                                      "type": [
-                                        "string",
-                                        "null"
-                                      ]
-                                    },
-                                    "seriesType": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "enum": [
-                                            "standard",
-                                            "anime",
-                                            "daily"
-                                          ]
-                                        },
-                                        {
-                                          "type": "null"
-                                        }
-                                      ]
-                                    },
-                                    "minimumAvailability": {
-                                      "type": "string",
-                                      "enum": [
-                                        "announced",
-                                        "inCinemas",
-                                        "released"
-                                      ]
-                                    },
-                                    "monitor": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "enum": [
-                                            "movieOnly",
-                                            "movieAndCollection",
-                                            "none"
-                                          ]
-                                        },
-                                        {
-                                          "type": "null"
-                                        }
-                                      ]
-                                    },
-                                    "syncedInstances": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "number"
-                                      }
-                                    }
-                                  },
-                                  "required": [
-                                    "instanceId",
-                                    "instanceType",
-                                    "priority"
-                                  ],
-                                  "additionalProperties": false
-                                }
-                              },
-                              "required": [
-                                "reason",
-                                "triggeredBy",
-                                "data"
-                              ],
-                              "additionalProperties": false
-                            }
-                          },
-                          "required": [
-                            "action"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "routerRuleId": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
-                        },
-                        "triggeredBy": {
-                          "type": "string",
-                          "enum": [
-                            "quota_exceeded",
-                            "router_rule",
-                            "manual_flag",
-                            "content_criteria"
-                          ]
-                        },
-                        "approvalReason": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "pending",
-                            "approved",
-                            "rejected",
-                            "expired",
-                            "auto_approved"
-                          ]
-                        },
-                        "approvedBy": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
-                        },
-                        "approvalNotes": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "expiresAt": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "isExpired": {
-                          "type": "boolean"
-                        },
-                        "expirationStatus": {
-                          "type": "string",
-                          "enum": [
-                            "active",
-                            "expiring_soon",
-                            "expired"
-                          ]
-                        },
-                        "expirationDisplayText": {
-                          "type": "string"
-                        },
-                        "timeUntilExpiration": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
-                        },
-                        "createdAt": {
-                          "type": "string"
-                        },
-                        "updatedAt": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "userId",
-                        "userName",
-                        "contentType",
-                        "contentTitle",
-                        "contentKey",
-                        "contentGuids",
-                        "proposedRouterDecision",
-                        "routerRuleId",
-                        "triggeredBy",
-                        "approvalReason",
-                        "status",
-                        "approvedBy",
-                        "approvalNotes",
-                        "expiresAt",
-                        "createdAt",
-                        "updatedAt"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/ApprovalRequest"
                     }
                   },
                   "required": [
@@ -6142,391 +6021,7 @@
                     "approvalRequests": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "number"
-                          },
-                          "userId": {
-                            "type": "number"
-                          },
-                          "userName": {
-                            "type": "string"
-                          },
-                          "contentType": {
-                            "$ref": "#/components/schemas/ContentType"
-                          },
-                          "contentTitle": {
-                            "type": "string"
-                          },
-                          "contentKey": {
-                            "type": "string"
-                          },
-                          "contentGuids": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          },
-                          "proposedRouterDecision": {
-                            "type": "object",
-                            "properties": {
-                              "action": {
-                                "type": "string",
-                                "enum": [
-                                  "route",
-                                  "require_approval",
-                                  "reject",
-                                  "continue"
-                                ]
-                              },
-                              "routing": {
-                                "type": "object",
-                                "properties": {
-                                  "instanceId": {
-                                    "type": "number"
-                                  },
-                                  "instanceType": {
-                                    "$ref": "#/components/schemas/InstanceType"
-                                  },
-                                  "qualityProfile": {
-                                    "type": [
-                                      "number",
-                                      "string",
-                                      "null"
-                                    ]
-                                  },
-                                  "rootFolder": {
-                                    "type": [
-                                      "string",
-                                      "null"
-                                    ]
-                                  },
-                                  "tags": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "priority": {
-                                    "type": "number"
-                                  },
-                                  "searchOnAdd": {
-                                    "type": [
-                                      "boolean",
-                                      "null"
-                                    ]
-                                  },
-                                  "seasonMonitoring": {
-                                    "type": [
-                                      "string",
-                                      "null"
-                                    ]
-                                  },
-                                  "seriesType": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "standard",
-                                          "anime",
-                                          "daily"
-                                        ]
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "minimumAvailability": {
-                                    "type": "string",
-                                    "enum": [
-                                      "announced",
-                                      "inCinemas",
-                                      "released"
-                                    ]
-                                  },
-                                  "monitor": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "movieOnly",
-                                          "movieAndCollection",
-                                          "none"
-                                        ]
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "syncedInstances": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "number"
-                                    }
-                                  }
-                                },
-                                "required": [
-                                  "instanceId",
-                                  "instanceType",
-                                  "priority"
-                                ],
-                                "additionalProperties": false
-                              },
-                              "approval": {
-                                "type": "object",
-                                "properties": {
-                                  "reason": {
-                                    "type": "string"
-                                  },
-                                  "triggeredBy": {
-                                    "type": "string",
-                                    "enum": [
-                                      "quota_exceeded",
-                                      "router_rule",
-                                      "manual_flag",
-                                      "content_criteria"
-                                    ]
-                                  },
-                                  "data": {
-                                    "type": "object",
-                                    "properties": {
-                                      "quotaType": {
-                                        "type": "string",
-                                        "enum": [
-                                          "daily",
-                                          "weekly_rolling",
-                                          "monthly"
-                                        ]
-                                      },
-                                      "quotaUsage": {
-                                        "type": "number"
-                                      },
-                                      "quotaLimit": {
-                                        "type": "number"
-                                      },
-                                      "criteriaType": {
-                                        "type": "string"
-                                      },
-                                      "criteriaValue": {
-                                        "type": "string"
-                                      },
-                                      "ruleId": {
-                                        "type": "number"
-                                      },
-                                      "autoApprove": {
-                                        "type": "boolean"
-                                      }
-                                    },
-                                    "additionalProperties": false
-                                  },
-                                  "proposedRouting": {
-                                    "type": "object",
-                                    "properties": {
-                                      "instanceId": {
-                                        "type": "number"
-                                      },
-                                      "instanceType": {
-                                        "$ref": "#/components/schemas/InstanceType"
-                                      },
-                                      "qualityProfile": {
-                                        "type": [
-                                          "number",
-                                          "string",
-                                          "null"
-                                        ]
-                                      },
-                                      "rootFolder": {
-                                        "type": [
-                                          "string",
-                                          "null"
-                                        ]
-                                      },
-                                      "tags": {
-                                        "type": "array",
-                                        "items": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "priority": {
-                                        "type": "number"
-                                      },
-                                      "searchOnAdd": {
-                                        "type": [
-                                          "boolean",
-                                          "null"
-                                        ]
-                                      },
-                                      "seasonMonitoring": {
-                                        "type": [
-                                          "string",
-                                          "null"
-                                        ]
-                                      },
-                                      "seriesType": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string",
-                                            "enum": [
-                                              "standard",
-                                              "anime",
-                                              "daily"
-                                            ]
-                                          },
-                                          {
-                                            "type": "null"
-                                          }
-                                        ]
-                                      },
-                                      "minimumAvailability": {
-                                        "type": "string",
-                                        "enum": [
-                                          "announced",
-                                          "inCinemas",
-                                          "released"
-                                        ]
-                                      },
-                                      "monitor": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string",
-                                            "enum": [
-                                              "movieOnly",
-                                              "movieAndCollection",
-                                              "none"
-                                            ]
-                                          },
-                                          {
-                                            "type": "null"
-                                          }
-                                        ]
-                                      },
-                                      "syncedInstances": {
-                                        "type": "array",
-                                        "items": {
-                                          "type": "number"
-                                        }
-                                      }
-                                    },
-                                    "required": [
-                                      "instanceId",
-                                      "instanceType",
-                                      "priority"
-                                    ],
-                                    "additionalProperties": false
-                                  }
-                                },
-                                "required": [
-                                  "reason",
-                                  "triggeredBy",
-                                  "data"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "required": [
-                              "action"
-                            ],
-                            "additionalProperties": false
-                          },
-                          "routerRuleId": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
-                          },
-                          "triggeredBy": {
-                            "type": "string",
-                            "enum": [
-                              "quota_exceeded",
-                              "router_rule",
-                              "manual_flag",
-                              "content_criteria"
-                            ]
-                          },
-                          "approvalReason": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "pending",
-                              "approved",
-                              "rejected",
-                              "expired",
-                              "auto_approved"
-                            ]
-                          },
-                          "approvedBy": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
-                          },
-                          "approvalNotes": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "expiresAt": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "isExpired": {
-                            "type": "boolean"
-                          },
-                          "expirationStatus": {
-                            "type": "string",
-                            "enum": [
-                              "active",
-                              "expiring_soon",
-                              "expired"
-                            ]
-                          },
-                          "expirationDisplayText": {
-                            "type": "string"
-                          },
-                          "timeUntilExpiration": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
-                          },
-                          "createdAt": {
-                            "type": "string"
-                          },
-                          "updatedAt": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "userId",
-                          "userName",
-                          "contentType",
-                          "contentTitle",
-                          "contentKey",
-                          "contentGuids",
-                          "proposedRouterDecision",
-                          "routerRuleId",
-                          "triggeredBy",
-                          "approvalReason",
-                          "status",
-                          "approvedBy",
-                          "approvalNotes",
-                          "expiresAt",
-                          "createdAt",
-                          "updatedAt"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/ApprovalRequest"
                       }
                     },
                     "total": {
@@ -7008,391 +6503,7 @@
                       "type": "string"
                     },
                     "approvalRequest": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "number"
-                        },
-                        "userId": {
-                          "type": "number"
-                        },
-                        "userName": {
-                          "type": "string"
-                        },
-                        "contentType": {
-                          "$ref": "#/components/schemas/ContentType"
-                        },
-                        "contentTitle": {
-                          "type": "string"
-                        },
-                        "contentKey": {
-                          "type": "string"
-                        },
-                        "contentGuids": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "proposedRouterDecision": {
-                          "type": "object",
-                          "properties": {
-                            "action": {
-                              "type": "string",
-                              "enum": [
-                                "route",
-                                "require_approval",
-                                "reject",
-                                "continue"
-                              ]
-                            },
-                            "routing": {
-                              "type": "object",
-                              "properties": {
-                                "instanceId": {
-                                  "type": "number"
-                                },
-                                "instanceType": {
-                                  "$ref": "#/components/schemas/InstanceType"
-                                },
-                                "qualityProfile": {
-                                  "type": [
-                                    "number",
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "rootFolder": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "tags": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string"
-                                  }
-                                },
-                                "priority": {
-                                  "type": "number"
-                                },
-                                "searchOnAdd": {
-                                  "type": [
-                                    "boolean",
-                                    "null"
-                                  ]
-                                },
-                                "seasonMonitoring": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "seriesType": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "standard",
-                                        "anime",
-                                        "daily"
-                                      ]
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "minimumAvailability": {
-                                  "type": "string",
-                                  "enum": [
-                                    "announced",
-                                    "inCinemas",
-                                    "released"
-                                  ]
-                                },
-                                "monitor": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "movieOnly",
-                                        "movieAndCollection",
-                                        "none"
-                                      ]
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "syncedInstances": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "number"
-                                  }
-                                }
-                              },
-                              "required": [
-                                "instanceId",
-                                "instanceType",
-                                "priority"
-                              ],
-                              "additionalProperties": false
-                            },
-                            "approval": {
-                              "type": "object",
-                              "properties": {
-                                "reason": {
-                                  "type": "string"
-                                },
-                                "triggeredBy": {
-                                  "type": "string",
-                                  "enum": [
-                                    "quota_exceeded",
-                                    "router_rule",
-                                    "manual_flag",
-                                    "content_criteria"
-                                  ]
-                                },
-                                "data": {
-                                  "type": "object",
-                                  "properties": {
-                                    "quotaType": {
-                                      "type": "string",
-                                      "enum": [
-                                        "daily",
-                                        "weekly_rolling",
-                                        "monthly"
-                                      ]
-                                    },
-                                    "quotaUsage": {
-                                      "type": "number"
-                                    },
-                                    "quotaLimit": {
-                                      "type": "number"
-                                    },
-                                    "criteriaType": {
-                                      "type": "string"
-                                    },
-                                    "criteriaValue": {
-                                      "type": "string"
-                                    },
-                                    "ruleId": {
-                                      "type": "number"
-                                    },
-                                    "autoApprove": {
-                                      "type": "boolean"
-                                    }
-                                  },
-                                  "additionalProperties": false
-                                },
-                                "proposedRouting": {
-                                  "type": "object",
-                                  "properties": {
-                                    "instanceId": {
-                                      "type": "number"
-                                    },
-                                    "instanceType": {
-                                      "$ref": "#/components/schemas/InstanceType"
-                                    },
-                                    "qualityProfile": {
-                                      "type": [
-                                        "number",
-                                        "string",
-                                        "null"
-                                      ]
-                                    },
-                                    "rootFolder": {
-                                      "type": [
-                                        "string",
-                                        "null"
-                                      ]
-                                    },
-                                    "tags": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    "priority": {
-                                      "type": "number"
-                                    },
-                                    "searchOnAdd": {
-                                      "type": [
-                                        "boolean",
-                                        "null"
-                                      ]
-                                    },
-                                    "seasonMonitoring": {
-                                      "type": [
-                                        "string",
-                                        "null"
-                                      ]
-                                    },
-                                    "seriesType": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "enum": [
-                                            "standard",
-                                            "anime",
-                                            "daily"
-                                          ]
-                                        },
-                                        {
-                                          "type": "null"
-                                        }
-                                      ]
-                                    },
-                                    "minimumAvailability": {
-                                      "type": "string",
-                                      "enum": [
-                                        "announced",
-                                        "inCinemas",
-                                        "released"
-                                      ]
-                                    },
-                                    "monitor": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "enum": [
-                                            "movieOnly",
-                                            "movieAndCollection",
-                                            "none"
-                                          ]
-                                        },
-                                        {
-                                          "type": "null"
-                                        }
-                                      ]
-                                    },
-                                    "syncedInstances": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "number"
-                                      }
-                                    }
-                                  },
-                                  "required": [
-                                    "instanceId",
-                                    "instanceType",
-                                    "priority"
-                                  ],
-                                  "additionalProperties": false
-                                }
-                              },
-                              "required": [
-                                "reason",
-                                "triggeredBy",
-                                "data"
-                              ],
-                              "additionalProperties": false
-                            }
-                          },
-                          "required": [
-                            "action"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "routerRuleId": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
-                        },
-                        "triggeredBy": {
-                          "type": "string",
-                          "enum": [
-                            "quota_exceeded",
-                            "router_rule",
-                            "manual_flag",
-                            "content_criteria"
-                          ]
-                        },
-                        "approvalReason": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "pending",
-                            "approved",
-                            "rejected",
-                            "expired",
-                            "auto_approved"
-                          ]
-                        },
-                        "approvedBy": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
-                        },
-                        "approvalNotes": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "expiresAt": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "isExpired": {
-                          "type": "boolean"
-                        },
-                        "expirationStatus": {
-                          "type": "string",
-                          "enum": [
-                            "active",
-                            "expiring_soon",
-                            "expired"
-                          ]
-                        },
-                        "expirationDisplayText": {
-                          "type": "string"
-                        },
-                        "timeUntilExpiration": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
-                        },
-                        "createdAt": {
-                          "type": "string"
-                        },
-                        "updatedAt": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "userId",
-                        "userName",
-                        "contentType",
-                        "contentTitle",
-                        "contentKey",
-                        "contentGuids",
-                        "proposedRouterDecision",
-                        "routerRuleId",
-                        "triggeredBy",
-                        "approvalReason",
-                        "status",
-                        "approvedBy",
-                        "approvalNotes",
-                        "expiresAt",
-                        "createdAt",
-                        "updatedAt"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/ApprovalRequest"
                     }
                   },
                   "required": [
@@ -7462,275 +6573,13 @@
                 "type": "object",
                 "properties": {
                   "status": {
-                    "type": "string",
-                    "enum": [
-                      "pending",
-                      "approved",
-                      "rejected",
-                      "expired",
-                      "auto_approved"
-                    ]
+                    "$ref": "#/components/schemas/ApprovalStatus"
                   },
                   "approvalNotes": {
                     "type": "string"
                   },
                   "proposedRouterDecision": {
-                    "type": "object",
-                    "properties": {
-                      "action": {
-                        "type": "string",
-                        "enum": [
-                          "route",
-                          "require_approval",
-                          "reject",
-                          "continue"
-                        ]
-                      },
-                      "routing": {
-                        "type": "object",
-                        "properties": {
-                          "instanceId": {
-                            "type": "number"
-                          },
-                          "instanceType": {
-                            "$ref": "#/components/schemas/InstanceType"
-                          },
-                          "qualityProfile": {
-                            "type": [
-                              "number",
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "rootFolder": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "tags": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          },
-                          "priority": {
-                            "type": "number"
-                          },
-                          "searchOnAdd": {
-                            "type": [
-                              "boolean",
-                              "null"
-                            ]
-                          },
-                          "seasonMonitoring": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
-                          },
-                          "seriesType": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "standard",
-                                  "anime",
-                                  "daily"
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "minimumAvailability": {
-                            "type": "string",
-                            "enum": [
-                              "announced",
-                              "inCinemas",
-                              "released"
-                            ]
-                          },
-                          "monitor": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "movieOnly",
-                                  "movieAndCollection",
-                                  "none"
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "syncedInstances": {
-                            "type": "array",
-                            "items": {
-                              "type": "number"
-                            }
-                          }
-                        },
-                        "required": [
-                          "instanceId",
-                          "instanceType",
-                          "priority"
-                        ]
-                      },
-                      "approval": {
-                        "type": "object",
-                        "properties": {
-                          "reason": {
-                            "type": "string"
-                          },
-                          "triggeredBy": {
-                            "type": "string",
-                            "enum": [
-                              "quota_exceeded",
-                              "router_rule",
-                              "manual_flag",
-                              "content_criteria"
-                            ]
-                          },
-                          "data": {
-                            "type": "object",
-                            "properties": {
-                              "quotaType": {
-                                "type": "string",
-                                "enum": [
-                                  "daily",
-                                  "weekly_rolling",
-                                  "monthly"
-                                ]
-                              },
-                              "quotaUsage": {
-                                "type": "number"
-                              },
-                              "quotaLimit": {
-                                "type": "number"
-                              },
-                              "criteriaType": {
-                                "type": "string"
-                              },
-                              "criteriaValue": {
-                                "type": "string"
-                              },
-                              "ruleId": {
-                                "type": "number"
-                              },
-                              "autoApprove": {
-                                "type": "boolean"
-                              }
-                            }
-                          },
-                          "proposedRouting": {
-                            "type": "object",
-                            "properties": {
-                              "instanceId": {
-                                "type": "number"
-                              },
-                              "instanceType": {
-                                "$ref": "#/components/schemas/InstanceType"
-                              },
-                              "qualityProfile": {
-                                "type": [
-                                  "number",
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "rootFolder": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "tags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              },
-                              "priority": {
-                                "type": "number"
-                              },
-                              "searchOnAdd": {
-                                "type": [
-                                  "boolean",
-                                  "null"
-                                ]
-                              },
-                              "seasonMonitoring": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "seriesType": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "standard",
-                                      "anime",
-                                      "daily"
-                                    ]
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "minimumAvailability": {
-                                "type": "string",
-                                "enum": [
-                                  "announced",
-                                  "inCinemas",
-                                  "released"
-                                ]
-                              },
-                              "monitor": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "movieOnly",
-                                      "movieAndCollection",
-                                      "none"
-                                    ]
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "syncedInstances": {
-                                "type": "array",
-                                "items": {
-                                  "type": "number"
-                                }
-                              }
-                            },
-                            "required": [
-                              "instanceId",
-                              "instanceType",
-                              "priority"
-                            ]
-                          }
-                        },
-                        "required": [
-                          "reason",
-                          "triggeredBy",
-                          "data"
-                        ]
-                      }
-                    },
-                    "required": [
-                      "action"
-                    ]
+                    "$ref": "#/components/schemas/RouterDecision"
                   }
                 }
               }
@@ -7762,391 +6611,7 @@
                       "type": "string"
                     },
                     "approvalRequest": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "number"
-                        },
-                        "userId": {
-                          "type": "number"
-                        },
-                        "userName": {
-                          "type": "string"
-                        },
-                        "contentType": {
-                          "$ref": "#/components/schemas/ContentType"
-                        },
-                        "contentTitle": {
-                          "type": "string"
-                        },
-                        "contentKey": {
-                          "type": "string"
-                        },
-                        "contentGuids": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "proposedRouterDecision": {
-                          "type": "object",
-                          "properties": {
-                            "action": {
-                              "type": "string",
-                              "enum": [
-                                "route",
-                                "require_approval",
-                                "reject",
-                                "continue"
-                              ]
-                            },
-                            "routing": {
-                              "type": "object",
-                              "properties": {
-                                "instanceId": {
-                                  "type": "number"
-                                },
-                                "instanceType": {
-                                  "$ref": "#/components/schemas/InstanceType"
-                                },
-                                "qualityProfile": {
-                                  "type": [
-                                    "number",
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "rootFolder": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "tags": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string"
-                                  }
-                                },
-                                "priority": {
-                                  "type": "number"
-                                },
-                                "searchOnAdd": {
-                                  "type": [
-                                    "boolean",
-                                    "null"
-                                  ]
-                                },
-                                "seasonMonitoring": {
-                                  "type": [
-                                    "string",
-                                    "null"
-                                  ]
-                                },
-                                "seriesType": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "standard",
-                                        "anime",
-                                        "daily"
-                                      ]
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "minimumAvailability": {
-                                  "type": "string",
-                                  "enum": [
-                                    "announced",
-                                    "inCinemas",
-                                    "released"
-                                  ]
-                                },
-                                "monitor": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "movieOnly",
-                                        "movieAndCollection",
-                                        "none"
-                                      ]
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "syncedInstances": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "number"
-                                  }
-                                }
-                              },
-                              "required": [
-                                "instanceId",
-                                "instanceType",
-                                "priority"
-                              ],
-                              "additionalProperties": false
-                            },
-                            "approval": {
-                              "type": "object",
-                              "properties": {
-                                "reason": {
-                                  "type": "string"
-                                },
-                                "triggeredBy": {
-                                  "type": "string",
-                                  "enum": [
-                                    "quota_exceeded",
-                                    "router_rule",
-                                    "manual_flag",
-                                    "content_criteria"
-                                  ]
-                                },
-                                "data": {
-                                  "type": "object",
-                                  "properties": {
-                                    "quotaType": {
-                                      "type": "string",
-                                      "enum": [
-                                        "daily",
-                                        "weekly_rolling",
-                                        "monthly"
-                                      ]
-                                    },
-                                    "quotaUsage": {
-                                      "type": "number"
-                                    },
-                                    "quotaLimit": {
-                                      "type": "number"
-                                    },
-                                    "criteriaType": {
-                                      "type": "string"
-                                    },
-                                    "criteriaValue": {
-                                      "type": "string"
-                                    },
-                                    "ruleId": {
-                                      "type": "number"
-                                    },
-                                    "autoApprove": {
-                                      "type": "boolean"
-                                    }
-                                  },
-                                  "additionalProperties": false
-                                },
-                                "proposedRouting": {
-                                  "type": "object",
-                                  "properties": {
-                                    "instanceId": {
-                                      "type": "number"
-                                    },
-                                    "instanceType": {
-                                      "$ref": "#/components/schemas/InstanceType"
-                                    },
-                                    "qualityProfile": {
-                                      "type": [
-                                        "number",
-                                        "string",
-                                        "null"
-                                      ]
-                                    },
-                                    "rootFolder": {
-                                      "type": [
-                                        "string",
-                                        "null"
-                                      ]
-                                    },
-                                    "tags": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    "priority": {
-                                      "type": "number"
-                                    },
-                                    "searchOnAdd": {
-                                      "type": [
-                                        "boolean",
-                                        "null"
-                                      ]
-                                    },
-                                    "seasonMonitoring": {
-                                      "type": [
-                                        "string",
-                                        "null"
-                                      ]
-                                    },
-                                    "seriesType": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "enum": [
-                                            "standard",
-                                            "anime",
-                                            "daily"
-                                          ]
-                                        },
-                                        {
-                                          "type": "null"
-                                        }
-                                      ]
-                                    },
-                                    "minimumAvailability": {
-                                      "type": "string",
-                                      "enum": [
-                                        "announced",
-                                        "inCinemas",
-                                        "released"
-                                      ]
-                                    },
-                                    "monitor": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "enum": [
-                                            "movieOnly",
-                                            "movieAndCollection",
-                                            "none"
-                                          ]
-                                        },
-                                        {
-                                          "type": "null"
-                                        }
-                                      ]
-                                    },
-                                    "syncedInstances": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "number"
-                                      }
-                                    }
-                                  },
-                                  "required": [
-                                    "instanceId",
-                                    "instanceType",
-                                    "priority"
-                                  ],
-                                  "additionalProperties": false
-                                }
-                              },
-                              "required": [
-                                "reason",
-                                "triggeredBy",
-                                "data"
-                              ],
-                              "additionalProperties": false
-                            }
-                          },
-                          "required": [
-                            "action"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "routerRuleId": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
-                        },
-                        "triggeredBy": {
-                          "type": "string",
-                          "enum": [
-                            "quota_exceeded",
-                            "router_rule",
-                            "manual_flag",
-                            "content_criteria"
-                          ]
-                        },
-                        "approvalReason": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "pending",
-                            "approved",
-                            "rejected",
-                            "expired",
-                            "auto_approved"
-                          ]
-                        },
-                        "approvedBy": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
-                        },
-                        "approvalNotes": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "expiresAt": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "isExpired": {
-                          "type": "boolean"
-                        },
-                        "expirationStatus": {
-                          "type": "string",
-                          "enum": [
-                            "active",
-                            "expiring_soon",
-                            "expired"
-                          ]
-                        },
-                        "expirationDisplayText": {
-                          "type": "string"
-                        },
-                        "timeUntilExpiration": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
-                        },
-                        "createdAt": {
-                          "type": "string"
-                        },
-                        "updatedAt": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "userId",
-                        "userName",
-                        "contentType",
-                        "contentTitle",
-                        "contentKey",
-                        "contentGuids",
-                        "proposedRouterDecision",
-                        "routerRuleId",
-                        "triggeredBy",
-                        "approvalReason",
-                        "status",
-                        "approvedBy",
-                        "approvalNotes",
-                        "expiresAt",
-                        "createdAt",
-                        "updatedAt"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/ApprovalRequest"
                     }
                   },
                   "required": [
@@ -12998,12 +11463,7 @@
                     "type": "number"
                   },
                   "quotaType": {
-                    "type": "string",
-                    "enum": [
-                      "daily",
-                      "weekly_rolling",
-                      "monthly"
-                    ]
+                    "$ref": "#/components/schemas/QuotaType"
                   },
                   "quotaLimit": {
                     "type": "number",
@@ -13064,12 +11524,7 @@
                               "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
-                              "type": "string",
-                              "enum": [
-                                "daily",
-                                "weekly_rolling",
-                                "monthly"
-                              ]
+                              "$ref": "#/components/schemas/QuotaType"
                             },
                             "quotaLimit": {
                               "type": "number"
@@ -13104,12 +11559,7 @@
                               "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
-                              "type": "string",
-                              "enum": [
-                                "daily",
-                                "weekly_rolling",
-                                "monthly"
-                              ]
+                              "$ref": "#/components/schemas/QuotaType"
                             },
                             "quotaLimit": {
                               "type": "number"
@@ -13216,12 +11666,7 @@
                             "$ref": "#/components/schemas/ContentType"
                           },
                           "quotaType": {
-                            "type": "string",
-                            "enum": [
-                              "daily",
-                              "weekly_rolling",
-                              "monthly"
-                            ]
+                            "$ref": "#/components/schemas/QuotaType"
                           },
                           "quotaLimit": {
                             "type": "number"
@@ -13315,12 +11760,7 @@
                     "type": "object",
                     "properties": {
                       "quotaType": {
-                        "type": "string",
-                        "enum": [
-                          "daily",
-                          "weekly_rolling",
-                          "monthly"
-                        ]
+                        "$ref": "#/components/schemas/QuotaType"
                       },
                       "quotaLimit": {
                         "type": "number",
@@ -13353,12 +11793,7 @@
                     "type": "object",
                     "properties": {
                       "quotaType": {
-                        "type": "string",
-                        "enum": [
-                          "daily",
-                          "weekly_rolling",
-                          "monthly"
-                        ]
+                        "$ref": "#/components/schemas/QuotaType"
                       },
                       "quotaLimit": {
                         "type": "number",
@@ -13523,12 +11958,7 @@
                                 "type": "object",
                                 "properties": {
                                   "quotaType": {
-                                    "type": "string",
-                                    "enum": [
-                                      "daily",
-                                      "weekly_rolling",
-                                      "monthly"
-                                    ]
+                                    "$ref": "#/components/schemas/QuotaType"
                                   },
                                   "quotaLimit": {
                                     "type": "number"
@@ -13688,12 +12118,7 @@
                               "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
-                              "type": "string",
-                              "enum": [
-                                "daily",
-                                "weekly_rolling",
-                                "monthly"
-                              ]
+                              "$ref": "#/components/schemas/QuotaType"
                             },
                             "quotaLimit": {
                               "type": "number"
@@ -13728,12 +12153,7 @@
                               "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
-                              "type": "string",
-                              "enum": [
-                                "daily",
-                                "weekly_rolling",
-                                "monthly"
-                              ]
+                              "$ref": "#/components/schemas/QuotaType"
                             },
                             "quotaLimit": {
                               "type": "number"
@@ -13812,12 +12232,7 @@
                 "type": "object",
                 "properties": {
                   "quotaType": {
-                    "type": "string",
-                    "enum": [
-                      "daily",
-                      "weekly_rolling",
-                      "monthly"
-                    ]
+                    "$ref": "#/components/schemas/QuotaType"
                   },
                   "quotaLimit": {
                     "type": "number",
@@ -13882,12 +12297,7 @@
                               "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
-                              "type": "string",
-                              "enum": [
-                                "daily",
-                                "weekly_rolling",
-                                "monthly"
-                              ]
+                              "$ref": "#/components/schemas/QuotaType"
                             },
                             "quotaLimit": {
                               "type": "number"
@@ -13922,12 +12332,7 @@
                               "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
-                              "type": "string",
-                              "enum": [
-                                "daily",
-                                "weekly_rolling",
-                                "monthly"
-                              ]
+                              "$ref": "#/components/schemas/QuotaType"
                             },
                             "quotaLimit": {
                               "type": "number"
@@ -14154,12 +12559,7 @@
                     "type": "object",
                     "properties": {
                       "quotaType": {
-                        "type": "string",
-                        "enum": [
-                          "daily",
-                          "weekly_rolling",
-                          "monthly"
-                        ]
+                        "$ref": "#/components/schemas/QuotaType"
                       },
                       "quotaLimit": {
                         "type": "number",
@@ -14191,12 +12591,7 @@
                     "type": "object",
                     "properties": {
                       "quotaType": {
-                        "type": "string",
-                        "enum": [
-                          "daily",
-                          "weekly_rolling",
-                          "monthly"
-                        ]
+                        "$ref": "#/components/schemas/QuotaType"
                       },
                       "quotaLimit": {
                         "type": "number",
@@ -14272,12 +12667,7 @@
                               "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
-                              "type": "string",
-                              "enum": [
-                                "daily",
-                                "weekly_rolling",
-                                "monthly"
-                              ]
+                              "$ref": "#/components/schemas/QuotaType"
                             },
                             "quotaLimit": {
                               "type": "number"
@@ -14312,12 +12702,7 @@
                               "$ref": "#/components/schemas/ContentType"
                             },
                             "quotaType": {
-                              "type": "string",
-                              "enum": [
-                                "daily",
-                                "weekly_rolling",
-                                "monthly"
-                              ]
+                              "$ref": "#/components/schemas/QuotaType"
                             },
                             "quotaLimit": {
                               "type": "number"
@@ -14427,12 +12812,7 @@
                           "type": "object",
                           "properties": {
                             "quotaType": {
-                              "type": "string",
-                              "enum": [
-                                "daily",
-                                "weekly_rolling",
-                                "monthly"
-                              ]
+                              "$ref": "#/components/schemas/QuotaType"
                             },
                             "quotaLimit": {
                               "type": "number"
@@ -14771,21 +13151,11 @@
                       },
                       "minimumAvailability": {
                         "default": "released",
-                        "type": "string",
-                        "enum": [
-                          "announced",
-                          "inCinemas",
-                          "released"
-                        ]
+                        "$ref": "#/components/schemas/RadarrMinimumAvailability"
                       },
                       "monitor": {
                         "default": "movieOnly",
-                        "type": "string",
-                        "enum": [
-                          "movieOnly",
-                          "movieAndCollection",
-                          "none"
-                        ]
+                        "$ref": "#/components/schemas/RadarrMonitor"
                       },
                       "tags": {
                         "default": [],
@@ -14892,21 +13262,11 @@
                   },
                   "minimumAvailability": {
                     "default": "released",
-                    "type": "string",
-                    "enum": [
-                      "announced",
-                      "inCinemas",
-                      "released"
-                    ]
+                    "$ref": "#/components/schemas/RadarrMinimumAvailability"
                   },
                   "monitor": {
                     "default": "movieOnly",
-                    "type": "string",
-                    "enum": [
-                      "movieOnly",
-                      "movieAndCollection",
-                      "none"
-                    ]
+                    "$ref": "#/components/schemas/RadarrMonitor"
                   },
                   "tags": {
                     "default": [],
@@ -15051,20 +13411,10 @@
                     "type": "boolean"
                   },
                   "minimumAvailability": {
-                    "type": "string",
-                    "enum": [
-                      "announced",
-                      "inCinemas",
-                      "released"
-                    ]
+                    "$ref": "#/components/schemas/RadarrMinimumAvailability"
                   },
                   "monitor": {
-                    "type": "string",
-                    "enum": [
-                      "movieOnly",
-                      "movieAndCollection",
-                      "none"
-                    ]
+                    "$ref": "#/components/schemas/RadarrMonitor"
                   },
                   "tags": {
                     "type": "array",
@@ -17781,7 +16131,7 @@
                       },
                       "seasonMonitoring": {
                         "default": "all",
-                        "type": "string"
+                        "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
                       },
                       "monitorNewItems": {
                         "default": "all",
@@ -17911,7 +16261,7 @@
                   },
                   "seasonMonitoring": {
                     "default": "all",
-                    "type": "string"
+                    "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
                   },
                   "monitorNewItems": {
                     "default": "all",
@@ -18078,7 +16428,7 @@
                     "type": "boolean"
                   },
                   "seasonMonitoring": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
                   },
                   "monitorNewItems": {
                     "type": "string",
@@ -24416,15 +22766,10 @@
                               "type": "string"
                             },
                             "minimumAvailability": {
-                              "type": "string"
+                              "$ref": "#/components/schemas/RadarrMinimumAvailability"
                             },
                             "monitor": {
-                              "type": "string",
-                              "enum": [
-                                "movieOnly",
-                                "movieAndCollection",
-                                "none"
-                              ]
+                              "$ref": "#/components/schemas/RadarrMonitor"
                             }
                           },
                           "required": [
@@ -24468,7 +22813,7 @@
                               "type": "string"
                             },
                             "seasonMonitoring": {
-                              "type": "string"
+                              "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
                             },
                             "seriesType": {
                               "type": "string",
@@ -24754,20 +23099,19 @@
                             "const": "radarr"
                           },
                           "minimumAvailability": {
-                            "type": [
-                              "string",
-                              "null"
+                            "anyOf": [
+                              {
+                                "$ref": "#/components/schemas/RadarrMinimumAvailability"
+                              },
+                              {
+                                "type": "null"
+                              }
                             ]
                           },
                           "monitor": {
                             "anyOf": [
                               {
-                                "type": "string",
-                                "enum": [
-                                  "movieOnly",
-                                  "movieAndCollection",
-                                  "none"
-                                ]
+                                "$ref": "#/components/schemas/RadarrMonitor"
                               },
                               {
                                 "type": "null"
@@ -24829,9 +23173,13 @@
                             "const": "sonarr"
                           },
                           "seasonMonitoring": {
-                            "type": [
-                              "string",
-                              "null"
+                            "anyOf": [
+                              {
+                                "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+                              },
+                              {
+                                "type": "null"
+                              }
                             ]
                           },
                           "seriesType": {
@@ -25059,20 +23407,19 @@
                             "const": "radarr"
                           },
                           "minimumAvailability": {
-                            "type": [
-                              "string",
-                              "null"
+                            "anyOf": [
+                              {
+                                "$ref": "#/components/schemas/RadarrMinimumAvailability"
+                              },
+                              {
+                                "type": "null"
+                              }
                             ]
                           },
                           "monitor": {
                             "anyOf": [
                               {
-                                "type": "string",
-                                "enum": [
-                                  "movieOnly",
-                                  "movieAndCollection",
-                                  "none"
-                                ]
+                                "$ref": "#/components/schemas/RadarrMonitor"
                               },
                               {
                                 "type": "null"
@@ -25134,9 +23481,13 @@
                             "const": "sonarr"
                           },
                           "seasonMonitoring": {
-                            "type": [
-                              "string",
-                              "null"
+                            "anyOf": [
+                              {
+                                "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+                              },
+                              {
+                                "type": "null"
+                              }
                             ]
                           },
                           "seriesType": {
@@ -25334,20 +23685,19 @@
                             "const": "radarr"
                           },
                           "minimumAvailability": {
-                            "type": [
-                              "string",
-                              "null"
+                            "anyOf": [
+                              {
+                                "$ref": "#/components/schemas/RadarrMinimumAvailability"
+                              },
+                              {
+                                "type": "null"
+                              }
                             ]
                           },
                           "monitor": {
                             "anyOf": [
                               {
-                                "type": "string",
-                                "enum": [
-                                  "movieOnly",
-                                  "movieAndCollection",
-                                  "none"
-                                ]
+                                "$ref": "#/components/schemas/RadarrMonitor"
                               },
                               {
                                 "type": "null"
@@ -25409,9 +23759,13 @@
                             "const": "sonarr"
                           },
                           "seasonMonitoring": {
-                            "type": [
-                              "string",
-                              "null"
+                            "anyOf": [
+                              {
+                                "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+                              },
+                              {
+                                "type": "null"
+                              }
                             ]
                           },
                           "seriesType": {

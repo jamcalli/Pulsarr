@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ProposedRouting } from '@root/schemas/approval/approval.schema.js'
-import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
+import { isRollingMonitoringOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import { Check, HelpCircle, Loader2 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'

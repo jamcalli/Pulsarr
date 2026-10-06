@@ -5,8 +5,8 @@ import type {
   IConditionGroup,
 } from '@root/schemas/content-router/content-router.schema'
 import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
+import { isRollingMonitoringOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import type { RadarrInstance } from '@root/types/radarr.types'
-import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type { SonarrInstance } from '@root/types/sonarr.types'
 import {
   AlertCircle,

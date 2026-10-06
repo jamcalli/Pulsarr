@@ -1,7 +1,9 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import { SERIES_TYPES } from '@root/schemas/content-router/constants.js'
+import { RadarrMonitorSchema } from '@root/schemas/radarr/add-options.schema.js'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
+import { SonarrSeasonMonitoringValueSchema } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import { z } from 'zod'
 
 export { SERIES_TYPES }
@@ -39,26 +41,6 @@ function isNonEmptyValue(value: unknown): boolean {
 
   return true
 }
-
-// Valid season monitoring options (hoisted to avoid per-call allocation)
-const VALID_SEASON_MONITORING = new Set([
-  'unknown',
-  'all',
-  'future',
-  'missing',
-  'existing',
-  'firstseason',
-  'lastseason',
-  'latestseason',
-  'pilot',
-  'pilotrolling',
-  'firstseasonrolling',
-  'recent',
-  'monitorspecials',
-  'unmonitorspecials',
-  'none',
-  'skip',
-])
 
 // Base schemas for conditions
 export const ComparisonOperatorSchema = z
@@ -282,13 +264,12 @@ export const BaseRouterRuleSchema = z.object({
   order: z.number().optional(),
   enabled: z.boolean().optional(),
   search_on_add: z.boolean().nullable().optional(),
-  season_monitoring: z
-    .string()
-    .nullable()
+  season_monitoring: SonarrSeasonMonitoringValueSchema.nullable()
     .optional()
-    .describe(
-      'Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.',
-    ),
+    .meta({
+      description:
+        'Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.',
+    }),
   series_type: z
     .enum(SERIES_TYPES)
     .nullable()
@@ -296,13 +277,10 @@ export const BaseRouterRuleSchema = z.object({
     .describe(
       'Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.',
     ),
-  monitor: z
-    .enum(['movieOnly', 'movieAndCollection', 'none'])
-    .nullable()
-    .optional()
-    .describe(
+  monitor: RadarrMonitorSchema.nullable().optional().meta({
+    description:
       'Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.',
-    ),
+  }),
   always_require_approval: z.boolean().optional(),
   bypass_user_quotas: z.boolean().optional(),
   approval_reason: z.string().optional(),
@@ -438,23 +416,6 @@ export function normalizeSearchOnAdd(value: unknown): boolean | undefined {
   return Boolean(value)
 }
 
-/**
- * Normalizes the input to a valid season monitoring option in lowercase.
- *
- * Converts the input to a lowercase string and returns it if it matches a valid season monitoring option; returns 'all' if the input is invalid, or undefined if the input is null or undefined.
- *
- * @param value - The value to normalize as a season monitoring option.
- * @returns The normalized season monitoring value, or undefined if the input is null or undefined.
- */
-export function normalizeSeasonMonitoring(value: unknown): string | undefined {
-  if (value === undefined || value === null) {
-    return undefined
-  }
-
-  const strValue = String(value).toLowerCase()
-
-  return VALID_SEASON_MONITORING.has(strValue) ? strValue : 'all'
-}
 export type ContentRouterRuleToggle = z.infer<
   typeof ContentRouterRuleToggleSchema
 >

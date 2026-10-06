@@ -1,13 +1,15 @@
 import type {
+  MinimumAvailability,
+  RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
+import type {
   ConnectionTestResult,
   Item,
-  MinimumAvailability,
   PagedResult,
   QualityProfile,
   RadarrAddOptions,
   RadarrConfiguration,
   RadarrInstance,
-  RadarrMonitorType,
   RadarrMovie,
   RadarrPost,
   RadarrTagDetail,

@@ -3107,6 +3107,92 @@ export interface components {
             status_changes: number;
             notifications_sent: number;
         };
+        /** @description Trigger details captured when the request needed approval */
+        ApprovalQuotaData: {
+            quotaType?: components["schemas"]["QuotaType"];
+            quotaUsage?: number;
+            quotaLimit?: number;
+            criteriaType?: string;
+            criteriaValue?: string;
+            ruleId?: number;
+            autoApprove?: boolean;
+        };
+        /** @description Trigger details captured when the request needed approval */
+        ApprovalQuotaDataOutput: {
+            quotaType?: components["schemas"]["QuotaType"];
+            quotaUsage?: number;
+            quotaLimit?: number;
+            criteriaType?: string;
+            criteriaValue?: string;
+            ruleId?: number;
+            autoApprove?: boolean;
+        };
+        /** @description An approval request with its proposed routing and expiry */
+        ApprovalRequest: {
+            id: number;
+            userId: number;
+            userName: string;
+            contentType: components["schemas"]["ContentType"];
+            contentTitle: string;
+            contentKey: string;
+            contentGuids: string[];
+            thumb: string | null;
+            proposedRouterDecision: components["schemas"]["RouterDecisionOutput"];
+            routerRuleId: number | null;
+            triggeredBy: components["schemas"]["ApprovalTrigger"];
+            approvalReason: string | null;
+            status: components["schemas"]["ApprovalStatus"];
+            approvedBy: number | null;
+            approvalNotes: string | null;
+            expiresAt: string | null;
+            isExpired?: boolean;
+            /** @enum {string} */
+            expirationStatus?: "active" | "expiring_soon" | "expired";
+            expirationDisplayText?: string;
+            timeUntilExpiration?: number | null;
+            createdAt: string;
+            updatedAt: string;
+        };
+        /** @description Target instance and arr settings used to add the content */
+        ApprovalRouting: {
+            instanceId: number;
+            instanceType: components["schemas"]["InstanceType"];
+            qualityProfile?: number | string | null;
+            rootFolder?: string | null;
+            tags?: string[];
+            priority: number;
+            searchOnAdd?: boolean | null;
+            seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
+            seriesType?: ("standard" | "anime" | "daily") | null;
+            minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
+            monitor?: components["schemas"]["RadarrMonitor"] | null;
+            syncedInstances?: number[];
+        };
+        /** @description Target instance and arr settings used to add the content */
+        ApprovalRoutingOutput: {
+            instanceId: number;
+            instanceType: components["schemas"]["InstanceType"];
+            qualityProfile?: number | string | null;
+            rootFolder?: string | null;
+            tags?: string[];
+            priority: number;
+            searchOnAdd?: boolean | null;
+            seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
+            seriesType?: ("standard" | "anime" | "daily") | null;
+            minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
+            monitor?: components["schemas"]["RadarrMonitor"] | null;
+            syncedInstances?: number[];
+        };
+        /**
+         * @description Lifecycle state of an approval request
+         * @enum {string}
+         */
+        ApprovalStatus: "pending" | "approved" | "rejected" | "expired" | "auto_approved";
+        /**
+         * @description What caused a request to need approval
+         * @enum {string}
+         */
+        ApprovalTrigger: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
         /** @description Days from watchlisted to available for a content type */
         AvailabilityTime: {
             content_type: string;
@@ -3124,7 +3210,7 @@ export interface components {
                 guids: string[];
                 rollingShowId: number | null;
             }[];
-            monitoringType: components["schemas"]["MonitoringType"];
+            monitoringType: components["schemas"]["SonarrRollingMonitoring"];
             resetMonitoring?: boolean;
         };
         /** @description Result of removing references to deleted tags, keyed by instance */
@@ -3666,11 +3752,6 @@ export interface components {
             success: boolean;
             message: string;
         };
-        /**
-         * @description Rolling monitoring strategy for a show
-         * @enum {string}
-         */
-        MonitoringType: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
         /** @description Notifications sent through one channel */
         NotificationChannelStat: {
             channel: string;
@@ -3711,6 +3792,21 @@ export interface components {
             rtAudience?: number;
             tmdb?: number;
         };
+        /**
+         * @description Quota window, a calendar day, rolling 7 days, or calendar month
+         * @enum {string}
+         */
+        QuotaType: "daily" | "weekly_rolling" | "monthly";
+        /**
+         * @description Release stage at which Radarr considers a movie available
+         * @enum {string}
+         */
+        RadarrMinimumAvailability: "announced" | "inCinemas" | "released";
+        /**
+         * @description What Radarr monitors when adding a movie
+         * @enum {string}
+         */
+        RadarrMonitor: "movieOnly" | "movieAndCollection" | "none";
         /** @description Ratings for a movie as reported by Radarr. */
         RadarrRatings: {
             imdb?: {
@@ -3813,7 +3909,7 @@ export interface components {
             tvdb_id?: string | null;
             imdb_id?: string | null;
             show_title: string;
-            monitoring_type: components["schemas"]["MonitoringType"];
+            monitoring_type: components["schemas"]["SonarrRollingMonitoring"];
             current_monitored_season: number;
             last_watched_season: number;
             last_watched_episode: number;
@@ -3876,6 +3972,30 @@ export interface components {
             negate: boolean;
             _cid?: string;
         };
+        /** @description Router outcome for a request, holding the routing used on approval */
+        RouterDecision: {
+            /** @enum {string} */
+            action: "route" | "require_approval" | "reject" | "continue";
+            routing?: components["schemas"]["ApprovalRouting"];
+            approval?: {
+                reason: string;
+                triggeredBy: components["schemas"]["ApprovalTrigger"];
+                data: components["schemas"]["ApprovalQuotaData"];
+                proposedRouting?: components["schemas"]["ApprovalRouting"];
+            };
+        };
+        /** @description Router outcome for a request, holding the routing used on approval */
+        RouterDecisionOutput: {
+            /** @enum {string} */
+            action: "route" | "require_approval" | "reject" | "continue";
+            routing?: components["schemas"]["ApprovalRoutingOutput"];
+            approval?: {
+                reason: string;
+                triggeredBy: components["schemas"]["ApprovalTrigger"];
+                data: components["schemas"]["ApprovalQuotaDataOutput"];
+                proposedRouting?: components["schemas"]["ApprovalRoutingOutput"];
+            };
+        };
         /** @description A stored content router rule */
         RouterRule: {
             name: string;
@@ -3889,11 +4009,11 @@ export interface components {
             enabled?: boolean;
             search_on_add?: boolean | null;
             /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-            season_monitoring?: string | null;
+            season_monitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
             /** @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error. */
             series_type?: ("standard" | "anime" | "daily") | null;
             /** @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error. */
-            monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
+            monitor?: components["schemas"]["RadarrMonitor"] | null;
             always_require_approval?: boolean;
             bypass_user_quotas?: boolean;
             approval_reason?: string;
@@ -3921,11 +4041,11 @@ export interface components {
             enabled?: boolean;
             search_on_add?: boolean | null;
             /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
-            season_monitoring?: string | null;
+            season_monitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
             /** @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error. */
             series_type?: ("standard" | "anime" | "daily") | null;
             /** @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error. */
-            monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
+            monitor?: components["schemas"]["RadarrMonitor"] | null;
             always_require_approval?: boolean;
             bypass_user_quotas?: boolean;
             approval_reason?: string;
@@ -3937,6 +4057,18 @@ export interface components {
             message: string;
             rule: components["schemas"]["RouterRule"];
         };
+        /**
+         * @description Rolling monitoring strategy for a show
+         * @enum {string}
+         */
+        SonarrRollingMonitoring: "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling";
+        /**
+         * @description Season monitoring applied when adding a series, any Sonarr monitor type or a Pulsarr rolling mode
+         * @enum {string}
+         */
+        SonarrSeasonMonitoring: "all" | "future" | "missing" | "existing" | "recent" | "pilot" | "firstSeason" | "lastSeason" | "monitorSpecials" | "unmonitorSpecials" | "none" | "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling" | "unknown" | "latestSeason" | "skip";
+        /** @description A SonarrSeasonMonitoring option, or a legacy value already stored on the record */
+        SonarrSeasonMonitoringValue: components["schemas"]["SonarrSeasonMonitoring"] | string;
         /** @description Pulsarr-tracked Sonarr show with its rolling monitoring enrollment status */
         SonarrShowWithEnrollment: {
             watchlistId: number;
@@ -3945,7 +4077,7 @@ export interface components {
             title: string;
             guids: string[];
             rollingShowId: number | null;
-            monitoringType: components["schemas"]["MonitoringType"] | null;
+            monitoringType: components["schemas"]["SonarrRollingMonitoring"] | null;
         };
         /** @description Watchlist item count for one status */
         StatusDistribution: {
@@ -4541,80 +4673,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        approvalRequests: {
-                            id: number;
-                            userId: number;
-                            userName: string;
-                            contentType: components["schemas"]["ContentType"];
-                            contentTitle: string;
-                            contentKey: string;
-                            contentGuids: string[];
-                            proposedRouterDecision: {
-                                /** @enum {string} */
-                                action: "route" | "require_approval" | "reject" | "continue";
-                                routing?: {
-                                    instanceId: number;
-                                    instanceType: components["schemas"]["InstanceType"];
-                                    qualityProfile?: number | string | null;
-                                    rootFolder?: string | null;
-                                    tags?: string[];
-                                    priority: number;
-                                    searchOnAdd?: boolean | null;
-                                    seasonMonitoring?: string | null;
-                                    seriesType?: ("standard" | "anime" | "daily") | null;
-                                    /** @enum {string} */
-                                    minimumAvailability?: "announced" | "inCinemas" | "released";
-                                    monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
-                                    syncedInstances?: number[];
-                                };
-                                approval?: {
-                                    reason: string;
-                                    /** @enum {string} */
-                                    triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
-                                    data: {
-                                        /** @enum {string} */
-                                        quotaType?: "daily" | "weekly_rolling" | "monthly";
-                                        quotaUsage?: number;
-                                        quotaLimit?: number;
-                                        criteriaType?: string;
-                                        criteriaValue?: string;
-                                        ruleId?: number;
-                                        autoApprove?: boolean;
-                                    };
-                                    proposedRouting?: {
-                                        instanceId: number;
-                                        instanceType: components["schemas"]["InstanceType"];
-                                        qualityProfile?: number | string | null;
-                                        rootFolder?: string | null;
-                                        tags?: string[];
-                                        priority: number;
-                                        searchOnAdd?: boolean | null;
-                                        seasonMonitoring?: string | null;
-                                        seriesType?: ("standard" | "anime" | "daily") | null;
-                                        /** @enum {string} */
-                                        minimumAvailability?: "announced" | "inCinemas" | "released";
-                                        monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
-                                        syncedInstances?: number[];
-                                    };
-                                };
-                            };
-                            routerRuleId: number | null;
-                            /** @enum {string} */
-                            triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
-                            approvalReason: string | null;
-                            /** @enum {string} */
-                            status: "pending" | "approved" | "rejected" | "expired" | "auto_approved";
-                            approvedBy: number | null;
-                            approvalNotes: string | null;
-                            expiresAt: string | null;
-                            isExpired?: boolean;
-                            /** @enum {string} */
-                            expirationStatus?: "active" | "expiring_soon" | "expired";
-                            expirationDisplayText?: string;
-                            timeUntilExpiration?: number | null;
-                            createdAt: string;
-                            updatedAt: string;
-                        }[];
+                        approvalRequests: components["schemas"]["ApprovalRequest"][];
                         total: number;
                         limit: number;
                         offset: number;
@@ -4665,59 +4724,10 @@ export interface operations {
                     contentTitle: string;
                     contentKey: string;
                     contentGuids?: string[];
-                    routerDecision: {
-                        /** @enum {string} */
-                        action: "route" | "require_approval" | "reject" | "continue";
-                        routing?: {
-                            instanceId: number;
-                            instanceType: components["schemas"]["InstanceType"];
-                            qualityProfile?: number | string | null;
-                            rootFolder?: string | null;
-                            tags?: string[];
-                            priority: number;
-                            searchOnAdd?: boolean | null;
-                            seasonMonitoring?: string | null;
-                            seriesType?: ("standard" | "anime" | "daily") | null;
-                            /** @enum {string} */
-                            minimumAvailability?: "announced" | "inCinemas" | "released";
-                            monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
-                            syncedInstances?: number[];
-                        };
-                        approval?: {
-                            reason: string;
-                            /** @enum {string} */
-                            triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
-                            data: {
-                                /** @enum {string} */
-                                quotaType?: "daily" | "weekly_rolling" | "monthly";
-                                quotaUsage?: number;
-                                quotaLimit?: number;
-                                criteriaType?: string;
-                                criteriaValue?: string;
-                                ruleId?: number;
-                                autoApprove?: boolean;
-                            };
-                            proposedRouting?: {
-                                instanceId: number;
-                                instanceType: components["schemas"]["InstanceType"];
-                                qualityProfile?: number | string | null;
-                                rootFolder?: string | null;
-                                tags?: string[];
-                                priority: number;
-                                searchOnAdd?: boolean | null;
-                                seasonMonitoring?: string | null;
-                                seriesType?: ("standard" | "anime" | "daily") | null;
-                                /** @enum {string} */
-                                minimumAvailability?: "announced" | "inCinemas" | "released";
-                                monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
-                                syncedInstances?: number[];
-                            };
-                        };
-                    };
+                    routerDecision: components["schemas"]["RouterDecision"];
                     routerRuleId?: number;
                     approvalReason?: string;
-                    /** @enum {string} */
-                    triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
+                    triggeredBy: components["schemas"]["ApprovalTrigger"];
                     expiresAt?: string;
                 };
             };
@@ -4732,80 +4742,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        approvalRequest: {
-                            id: number;
-                            userId: number;
-                            userName: string;
-                            contentType: components["schemas"]["ContentType"];
-                            contentTitle: string;
-                            contentKey: string;
-                            contentGuids: string[];
-                            proposedRouterDecision: {
-                                /** @enum {string} */
-                                action: "route" | "require_approval" | "reject" | "continue";
-                                routing?: {
-                                    instanceId: number;
-                                    instanceType: components["schemas"]["InstanceType"];
-                                    qualityProfile?: number | string | null;
-                                    rootFolder?: string | null;
-                                    tags?: string[];
-                                    priority: number;
-                                    searchOnAdd?: boolean | null;
-                                    seasonMonitoring?: string | null;
-                                    seriesType?: ("standard" | "anime" | "daily") | null;
-                                    /** @enum {string} */
-                                    minimumAvailability?: "announced" | "inCinemas" | "released";
-                                    monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
-                                    syncedInstances?: number[];
-                                };
-                                approval?: {
-                                    reason: string;
-                                    /** @enum {string} */
-                                    triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
-                                    data: {
-                                        /** @enum {string} */
-                                        quotaType?: "daily" | "weekly_rolling" | "monthly";
-                                        quotaUsage?: number;
-                                        quotaLimit?: number;
-                                        criteriaType?: string;
-                                        criteriaValue?: string;
-                                        ruleId?: number;
-                                        autoApprove?: boolean;
-                                    };
-                                    proposedRouting?: {
-                                        instanceId: number;
-                                        instanceType: components["schemas"]["InstanceType"];
-                                        qualityProfile?: number | string | null;
-                                        rootFolder?: string | null;
-                                        tags?: string[];
-                                        priority: number;
-                                        searchOnAdd?: boolean | null;
-                                        seasonMonitoring?: string | null;
-                                        seriesType?: ("standard" | "anime" | "daily") | null;
-                                        /** @enum {string} */
-                                        minimumAvailability?: "announced" | "inCinemas" | "released";
-                                        monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
-                                        syncedInstances?: number[];
-                                    };
-                                };
-                            };
-                            routerRuleId: number | null;
-                            /** @enum {string} */
-                            triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
-                            approvalReason: string | null;
-                            /** @enum {string} */
-                            status: "pending" | "approved" | "rejected" | "expired" | "auto_approved";
-                            approvedBy: number | null;
-                            approvalNotes: string | null;
-                            expiresAt: string | null;
-                            isExpired?: boolean;
-                            /** @enum {string} */
-                            expirationStatus?: "active" | "expiring_soon" | "expired";
-                            expirationDisplayText?: string;
-                            timeUntilExpiration?: number | null;
-                            createdAt: string;
-                            updatedAt: string;
-                        };
+                        approvalRequest: components["schemas"]["ApprovalRequest"];
                     };
                 };
             };
@@ -5082,80 +5019,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        approvalRequest: {
-                            id: number;
-                            userId: number;
-                            userName: string;
-                            contentType: components["schemas"]["ContentType"];
-                            contentTitle: string;
-                            contentKey: string;
-                            contentGuids: string[];
-                            proposedRouterDecision: {
-                                /** @enum {string} */
-                                action: "route" | "require_approval" | "reject" | "continue";
-                                routing?: {
-                                    instanceId: number;
-                                    instanceType: components["schemas"]["InstanceType"];
-                                    qualityProfile?: number | string | null;
-                                    rootFolder?: string | null;
-                                    tags?: string[];
-                                    priority: number;
-                                    searchOnAdd?: boolean | null;
-                                    seasonMonitoring?: string | null;
-                                    seriesType?: ("standard" | "anime" | "daily") | null;
-                                    /** @enum {string} */
-                                    minimumAvailability?: "announced" | "inCinemas" | "released";
-                                    monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
-                                    syncedInstances?: number[];
-                                };
-                                approval?: {
-                                    reason: string;
-                                    /** @enum {string} */
-                                    triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
-                                    data: {
-                                        /** @enum {string} */
-                                        quotaType?: "daily" | "weekly_rolling" | "monthly";
-                                        quotaUsage?: number;
-                                        quotaLimit?: number;
-                                        criteriaType?: string;
-                                        criteriaValue?: string;
-                                        ruleId?: number;
-                                        autoApprove?: boolean;
-                                    };
-                                    proposedRouting?: {
-                                        instanceId: number;
-                                        instanceType: components["schemas"]["InstanceType"];
-                                        qualityProfile?: number | string | null;
-                                        rootFolder?: string | null;
-                                        tags?: string[];
-                                        priority: number;
-                                        searchOnAdd?: boolean | null;
-                                        seasonMonitoring?: string | null;
-                                        seriesType?: ("standard" | "anime" | "daily") | null;
-                                        /** @enum {string} */
-                                        minimumAvailability?: "announced" | "inCinemas" | "released";
-                                        monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
-                                        syncedInstances?: number[];
-                                    };
-                                };
-                            };
-                            routerRuleId: number | null;
-                            /** @enum {string} */
-                            triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
-                            approvalReason: string | null;
-                            /** @enum {string} */
-                            status: "pending" | "approved" | "rejected" | "expired" | "auto_approved";
-                            approvedBy: number | null;
-                            approvalNotes: string | null;
-                            expiresAt: string | null;
-                            isExpired?: boolean;
-                            /** @enum {string} */
-                            expirationStatus?: "active" | "expiring_soon" | "expired";
-                            expirationDisplayText?: string;
-                            timeUntilExpiration?: number | null;
-                            createdAt: string;
-                            updatedAt: string;
-                        };
+                        approvalRequest: components["schemas"]["ApprovalRequest"];
                     };
                 };
             };
@@ -5270,58 +5134,9 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    status?: "pending" | "approved" | "rejected" | "expired" | "auto_approved";
+                    status?: components["schemas"]["ApprovalStatus"];
                     approvalNotes?: string;
-                    proposedRouterDecision?: {
-                        /** @enum {string} */
-                        action: "route" | "require_approval" | "reject" | "continue";
-                        routing?: {
-                            instanceId: number;
-                            instanceType: components["schemas"]["InstanceType"];
-                            qualityProfile?: number | string | null;
-                            rootFolder?: string | null;
-                            tags?: string[];
-                            priority: number;
-                            searchOnAdd?: boolean | null;
-                            seasonMonitoring?: string | null;
-                            seriesType?: ("standard" | "anime" | "daily") | null;
-                            /** @enum {string} */
-                            minimumAvailability?: "announced" | "inCinemas" | "released";
-                            monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
-                            syncedInstances?: number[];
-                        };
-                        approval?: {
-                            reason: string;
-                            /** @enum {string} */
-                            triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
-                            data: {
-                                /** @enum {string} */
-                                quotaType?: "daily" | "weekly_rolling" | "monthly";
-                                quotaUsage?: number;
-                                quotaLimit?: number;
-                                criteriaType?: string;
-                                criteriaValue?: string;
-                                ruleId?: number;
-                                autoApprove?: boolean;
-                            };
-                            proposedRouting?: {
-                                instanceId: number;
-                                instanceType: components["schemas"]["InstanceType"];
-                                qualityProfile?: number | string | null;
-                                rootFolder?: string | null;
-                                tags?: string[];
-                                priority: number;
-                                searchOnAdd?: boolean | null;
-                                seasonMonitoring?: string | null;
-                                seriesType?: ("standard" | "anime" | "daily") | null;
-                                /** @enum {string} */
-                                minimumAvailability?: "announced" | "inCinemas" | "released";
-                                monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
-                                syncedInstances?: number[];
-                            };
-                        };
-                    };
+                    proposedRouterDecision?: components["schemas"]["RouterDecision"];
                 };
             };
         };
@@ -5335,80 +5150,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        approvalRequest: {
-                            id: number;
-                            userId: number;
-                            userName: string;
-                            contentType: components["schemas"]["ContentType"];
-                            contentTitle: string;
-                            contentKey: string;
-                            contentGuids: string[];
-                            proposedRouterDecision: {
-                                /** @enum {string} */
-                                action: "route" | "require_approval" | "reject" | "continue";
-                                routing?: {
-                                    instanceId: number;
-                                    instanceType: components["schemas"]["InstanceType"];
-                                    qualityProfile?: number | string | null;
-                                    rootFolder?: string | null;
-                                    tags?: string[];
-                                    priority: number;
-                                    searchOnAdd?: boolean | null;
-                                    seasonMonitoring?: string | null;
-                                    seriesType?: ("standard" | "anime" | "daily") | null;
-                                    /** @enum {string} */
-                                    minimumAvailability?: "announced" | "inCinemas" | "released";
-                                    monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
-                                    syncedInstances?: number[];
-                                };
-                                approval?: {
-                                    reason: string;
-                                    /** @enum {string} */
-                                    triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
-                                    data: {
-                                        /** @enum {string} */
-                                        quotaType?: "daily" | "weekly_rolling" | "monthly";
-                                        quotaUsage?: number;
-                                        quotaLimit?: number;
-                                        criteriaType?: string;
-                                        criteriaValue?: string;
-                                        ruleId?: number;
-                                        autoApprove?: boolean;
-                                    };
-                                    proposedRouting?: {
-                                        instanceId: number;
-                                        instanceType: components["schemas"]["InstanceType"];
-                                        qualityProfile?: number | string | null;
-                                        rootFolder?: string | null;
-                                        tags?: string[];
-                                        priority: number;
-                                        searchOnAdd?: boolean | null;
-                                        seasonMonitoring?: string | null;
-                                        seriesType?: ("standard" | "anime" | "daily") | null;
-                                        /** @enum {string} */
-                                        minimumAvailability?: "announced" | "inCinemas" | "released";
-                                        monitor?: ("movieOnly" | "movieAndCollection" | "none") | null;
-                                        syncedInstances?: number[];
-                                    };
-                                };
-                            };
-                            routerRuleId: number | null;
-                            /** @enum {string} */
-                            triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
-                            approvalReason: string | null;
-                            /** @enum {string} */
-                            status: "pending" | "approved" | "rejected" | "expired" | "auto_approved";
-                            approvedBy: number | null;
-                            approvalNotes: string | null;
-                            expiresAt: string | null;
-                            isExpired?: boolean;
-                            /** @enum {string} */
-                            expirationStatus?: "active" | "expiring_soon" | "expired";
-                            expirationDisplayText?: string;
-                            timeUntilExpiration?: number | null;
-                            createdAt: string;
-                            updatedAt: string;
-                        };
+                        approvalRequest: components["schemas"]["ApprovalRequest"];
                     };
                 };
             };
@@ -8229,8 +7971,7 @@ export interface operations {
                         userQuotas: {
                             userId: number;
                             contentType: components["schemas"]["ContentType"];
-                            /** @enum {string} */
-                            quotaType: "daily" | "weekly_rolling" | "monthly";
+                            quotaType: components["schemas"]["QuotaType"];
                             quotaLimit: number;
                             bypassApproval: boolean;
                             watchlistCap: number | null;
@@ -8269,8 +8010,7 @@ export interface operations {
             content: {
                 "application/json": {
                     userId: number;
-                    /** @enum {string} */
-                    quotaType: "daily" | "weekly_rolling" | "monthly";
+                    quotaType: components["schemas"]["QuotaType"];
                     quotaLimit: number;
                     /** @default false */
                     bypassApproval?: boolean;
@@ -8293,8 +8033,7 @@ export interface operations {
                             movieQuota?: {
                                 userId: number;
                                 contentType: components["schemas"]["ContentType"];
-                                /** @enum {string} */
-                                quotaType: "daily" | "weekly_rolling" | "monthly";
+                                quotaType: components["schemas"]["QuotaType"];
                                 quotaLimit: number;
                                 bypassApproval: boolean;
                                 watchlistCap: number | null;
@@ -8302,8 +8041,7 @@ export interface operations {
                             showQuota?: {
                                 userId: number;
                                 contentType: components["schemas"]["ContentType"];
-                                /** @enum {string} */
-                                quotaType: "daily" | "weekly_rolling" | "monthly";
+                                quotaType: components["schemas"]["QuotaType"];
                                 quotaLimit: number;
                                 bypassApproval: boolean;
                                 watchlistCap: number | null;
@@ -8355,16 +8093,14 @@ export interface operations {
                     /** @enum {string} */
                     operation: "update" | "delete";
                     movieQuota?: {
-                        /** @enum {string} */
-                        quotaType?: "daily" | "weekly_rolling" | "monthly";
+                        quotaType?: components["schemas"]["QuotaType"];
                         quotaLimit?: number;
                         bypassApproval?: boolean;
                         watchlistCap?: number | null;
                         enabled: boolean;
                     };
                     showQuota?: {
-                        /** @enum {string} */
-                        quotaType?: "daily" | "weekly_rolling" | "monthly";
+                        quotaType?: components["schemas"]["QuotaType"];
                         quotaLimit?: number;
                         bypassApproval?: boolean;
                         watchlistCap?: number | null;
@@ -8445,8 +8181,7 @@ export interface operations {
                         quotaStatuses: {
                             userId: number;
                             quotaStatus: {
-                                /** @enum {string} */
-                                quotaType: "daily" | "weekly_rolling" | "monthly";
+                                quotaType: components["schemas"]["QuotaType"];
                                 quotaLimit: number;
                                 currentUsage: number;
                                 exceeded: boolean;
@@ -8514,8 +8249,7 @@ export interface operations {
                             movieQuota?: {
                                 userId: number;
                                 contentType: components["schemas"]["ContentType"];
-                                /** @enum {string} */
-                                quotaType: "daily" | "weekly_rolling" | "monthly";
+                                quotaType: components["schemas"]["QuotaType"];
                                 quotaLimit: number;
                                 bypassApproval: boolean;
                                 watchlistCap: number | null;
@@ -8523,8 +8257,7 @@ export interface operations {
                             showQuota?: {
                                 userId: number;
                                 contentType: components["schemas"]["ContentType"];
-                                /** @enum {string} */
-                                quotaType: "daily" | "weekly_rolling" | "monthly";
+                                quotaType: components["schemas"]["QuotaType"];
                                 quotaLimit: number;
                                 bypassApproval: boolean;
                                 watchlistCap: number | null;
@@ -8610,8 +8343,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    quotaType?: "daily" | "weekly_rolling" | "monthly";
+                    quotaType?: components["schemas"]["QuotaType"];
                     quotaLimit?: number;
                     bypassApproval?: boolean;
                     watchlistCap?: number | null;
@@ -8633,8 +8365,7 @@ export interface operations {
                             movieQuota?: {
                                 userId: number;
                                 contentType: components["schemas"]["ContentType"];
-                                /** @enum {string} */
-                                quotaType: "daily" | "weekly_rolling" | "monthly";
+                                quotaType: components["schemas"]["QuotaType"];
                                 quotaLimit: number;
                                 bypassApproval: boolean;
                                 watchlistCap: number | null;
@@ -8642,8 +8373,7 @@ export interface operations {
                             showQuota?: {
                                 userId: number;
                                 contentType: components["schemas"]["ContentType"];
-                                /** @enum {string} */
-                                quotaType: "daily" | "weekly_rolling" | "monthly";
+                                quotaType: components["schemas"]["QuotaType"];
                                 quotaLimit: number;
                                 bypassApproval: boolean;
                                 watchlistCap: number | null;
@@ -8730,16 +8460,14 @@ export interface operations {
             content: {
                 "application/json": {
                     movieQuota?: {
-                        /** @enum {string} */
-                        quotaType?: "daily" | "weekly_rolling" | "monthly";
+                        quotaType?: components["schemas"]["QuotaType"];
                         quotaLimit?: number;
                         bypassApproval?: boolean;
                         watchlistCap?: number | null;
                         enabled: boolean;
                     };
                     showQuota?: {
-                        /** @enum {string} */
-                        quotaType?: "daily" | "weekly_rolling" | "monthly";
+                        quotaType?: components["schemas"]["QuotaType"];
                         quotaLimit?: number;
                         bypassApproval?: boolean;
                         watchlistCap?: number | null;
@@ -8764,8 +8492,7 @@ export interface operations {
                             movieQuota?: {
                                 userId: number;
                                 contentType: components["schemas"]["ContentType"];
-                                /** @enum {string} */
-                                quotaType: "daily" | "weekly_rolling" | "monthly";
+                                quotaType: components["schemas"]["QuotaType"];
                                 quotaLimit: number;
                                 bypassApproval: boolean;
                                 watchlistCap: number | null;
@@ -8773,8 +8500,7 @@ export interface operations {
                             showQuota?: {
                                 userId: number;
                                 contentType: components["schemas"]["ContentType"];
-                                /** @enum {string} */
-                                quotaType: "daily" | "weekly_rolling" | "monthly";
+                                quotaType: components["schemas"]["QuotaType"];
                                 quotaLimit: number;
                                 bypassApproval: boolean;
                                 watchlistCap: number | null;
@@ -8826,8 +8552,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         quotaStatus: {
-                            /** @enum {string} */
-                            quotaType: "daily" | "weekly_rolling" | "monthly";
+                            quotaType: components["schemas"]["QuotaType"];
                             quotaLimit: number;
                             currentUsage: number;
                             exceeded: boolean;
@@ -9003,16 +8728,10 @@ export interface operations {
                         bypassIgnored: boolean;
                         /** @default true */
                         searchOnAdd: boolean;
-                        /**
-                         * @default released
-                         * @enum {string}
-                         */
-                        minimumAvailability: "announced" | "inCinemas" | "released";
-                        /**
-                         * @default movieOnly
-                         * @enum {string}
-                         */
-                        monitor: "movieOnly" | "movieAndCollection" | "none";
+                        /** @default released */
+                        minimumAvailability: components["schemas"]["RadarrMinimumAvailability"];
+                        /** @default movieOnly */
+                        monitor: components["schemas"]["RadarrMonitor"];
                         /** @default [] */
                         tags: string[];
                         /** @default false */
@@ -9055,16 +8774,10 @@ export interface operations {
                     bypassIgnored?: boolean;
                     /** @default true */
                     searchOnAdd?: boolean;
-                    /**
-                     * @default released
-                     * @enum {string}
-                     */
-                    minimumAvailability?: "announced" | "inCinemas" | "released";
-                    /**
-                     * @default movieOnly
-                     * @enum {string}
-                     */
-                    monitor?: "movieOnly" | "movieAndCollection" | "none";
+                    /** @default released */
+                    minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
+                    /** @default movieOnly */
+                    monitor?: components["schemas"]["RadarrMonitor"];
                     /** @default [] */
                     tags?: string[];
                     /** @default false */
@@ -9145,10 +8858,8 @@ export interface operations {
                     rootFolder?: string | null;
                     bypassIgnored?: boolean;
                     searchOnAdd?: boolean;
-                    /** @enum {string} */
-                    minimumAvailability?: "announced" | "inCinemas" | "released";
-                    /** @enum {string} */
-                    monitor?: "movieOnly" | "movieAndCollection" | "none";
+                    minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
+                    monitor?: components["schemas"]["RadarrMonitor"];
                     tags?: string[];
                     isDefault?: boolean;
                     syncedInstances?: number[];
@@ -10569,7 +10280,7 @@ export interface operations {
                         /** @default false */
                         bypassIgnored: boolean;
                         /** @default all */
-                        seasonMonitoring: string;
+                        seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"];
                         /**
                          * @default all
                          * @enum {string}
@@ -10625,7 +10336,7 @@ export interface operations {
                     /** @default false */
                     bypassIgnored?: boolean;
                     /** @default all */
-                    seasonMonitoring?: string;
+                    seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
                     /**
                      * @default all
                      * @enum {string}
@@ -10719,7 +10430,7 @@ export interface operations {
                     qualityProfile?: string | number | null;
                     rootFolder?: string | null;
                     bypassIgnored?: boolean;
-                    seasonMonitoring?: string;
+                    seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
                     /** @enum {string} */
                     monitorNewItems?: "all" | "none";
                     searchOnAdd?: boolean;
@@ -14399,9 +14110,8 @@ export interface operations {
                         searchOnAdd?: boolean;
                         ruleId?: number;
                         ruleName?: string;
-                        minimumAvailability?: string;
-                        /** @enum {string} */
-                        monitor?: "movieOnly" | "movieAndCollection" | "none";
+                        minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
+                        monitor?: components["schemas"]["RadarrMonitor"];
                     } | {
                         instanceId: number;
                         /** @constant */
@@ -14412,7 +14122,7 @@ export interface operations {
                         searchOnAdd?: boolean;
                         ruleId?: number;
                         ruleName?: string;
-                        seasonMonitoring?: string;
+                        seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
                         /** @enum {string} */
                         seriesType?: "standard" | "anime" | "daily";
                     })[];
@@ -14545,8 +14255,8 @@ export interface operations {
                         syncedInstances?: number[];
                         /** @constant */
                         instanceType: "radarr";
-                        minimumAvailability: string | null;
-                        monitor: ("movieOnly" | "movieAndCollection" | "none") | null;
+                        minimumAvailability: components["schemas"]["RadarrMinimumAvailability"] | null;
+                        monitor: components["schemas"]["RadarrMonitor"] | null;
                     } | {
                         instanceId: number;
                         qualityProfile: number | string | null;
@@ -14556,7 +14266,7 @@ export interface operations {
                         syncedInstances?: number[];
                         /** @constant */
                         instanceType: "sonarr";
-                        seasonMonitoring: string | null;
+                        seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
                         seriesType: ("standard" | "anime" | "daily") | null;
                     };
                 };
@@ -14650,8 +14360,8 @@ export interface operations {
                         syncedInstances?: number[];
                         /** @constant */
                         instanceType: "radarr";
-                        minimumAvailability: string | null;
-                        monitor: ("movieOnly" | "movieAndCollection" | "none") | null;
+                        minimumAvailability: components["schemas"]["RadarrMinimumAvailability"] | null;
+                        monitor: components["schemas"]["RadarrMonitor"] | null;
                     } | {
                         instanceId: number;
                         qualityProfile: number | string | null;
@@ -14661,7 +14371,7 @@ export interface operations {
                         syncedInstances?: number[];
                         /** @constant */
                         instanceType: "sonarr";
-                        seasonMonitoring: string | null;
+                        seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
                         seriesType: ("standard" | "anime" | "daily") | null;
                     };
                 };
@@ -14739,8 +14449,8 @@ export interface operations {
                         syncedInstances?: number[];
                         /** @constant */
                         instanceType: "radarr";
-                        minimumAvailability: string | null;
-                        monitor: ("movieOnly" | "movieAndCollection" | "none") | null;
+                        minimumAvailability: components["schemas"]["RadarrMinimumAvailability"] | null;
+                        monitor: components["schemas"]["RadarrMonitor"] | null;
                     } | {
                         instanceId: number;
                         qualityProfile: number | string | null;
@@ -14750,7 +14460,7 @@ export interface operations {
                         syncedInstances?: number[];
                         /** @constant */
                         instanceType: "sonarr";
-                        seasonMonitoring: string | null;
+                        seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
                         seriesType: ("standard" | "anime" | "daily") | null;
                     };
                     reason: string;

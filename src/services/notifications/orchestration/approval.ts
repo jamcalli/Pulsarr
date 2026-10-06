@@ -1,3 +1,7 @@
+import type {
+  MinimumAvailability,
+  RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
 /**
  * Approval Notification Orchestration
  *
@@ -62,8 +66,8 @@ export interface ApprovalRequest {
         rootFolder?: string | null
         tags?: string[]
         searchOnAdd?: boolean | null
-        minimumAvailability?: string | null
-        monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
+        minimumAvailability?: MinimumAvailability | null
+        monitor?: RadarrMonitorType | null
         seasonMonitoring?: string | null
         seriesType?: 'standard' | 'anime' | 'daily' | null
         syncedInstances?: number[]

@@ -1,3 +1,4 @@
+import type { SonarrRollingMonitorOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 /**
  * Plex Session Types
  *
@@ -250,10 +251,7 @@ export interface RollingMonitoredShow {
   tvdb_id?: string
   imdb_id?: string
   show_title: string
-  monitoring_type:
-    | 'pilotRolling'
-    | 'firstSeasonRolling'
-    | 'allSeasonPilotRolling'
+  monitoring_type: SonarrRollingMonitorOption
   current_monitored_season: number
   last_watched_season: number
   last_watched_episode: number

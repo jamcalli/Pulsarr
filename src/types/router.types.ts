@@ -1,4 +1,8 @@
 import type {
+  MinimumAvailability,
+  RadarrMonitorType,
+} from '@root/schemas/radarr/add-options.schema.js'
+import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
 } from '@root/types/content-lookup.types.js'
@@ -43,7 +47,7 @@ export interface RouterRule {
   search_on_add?: boolean | null
   season_monitoring?: string | null
   series_type?: 'standard' | 'anime' | 'daily' | null
-  monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null // For Radarr: monitor type
+  monitor?: RadarrMonitorType | null
   // Actions - approval behavior
   always_require_approval?: boolean
   bypass_user_quotas?: boolean
@@ -85,8 +89,8 @@ export interface RoutingDecision {
   searchOnAdd?: boolean | null // Whether to automatically search when added
   seasonMonitoring?: string | null // For Sonarr: which seasons to monitor
   seriesType?: 'standard' | 'anime' | 'daily' | null // For Sonarr: series type
-  minimumAvailability?: 'announced' | 'inCinemas' | 'released' // For Radarr: minimum availability setting
-  monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null // For Radarr: monitor type when adding
+  minimumAvailability?: MinimumAvailability
+  monitor?: RadarrMonitorType | null
   /**
    * ID of the router rule that produced this decision
    */
@@ -108,8 +112,8 @@ export interface RoutingDetails {
   rootFolder?: string | null
   tags?: string[]
   searchOnAdd?: boolean | null
-  minimumAvailability?: string | null
-  monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
+  minimumAvailability?: MinimumAvailability | null
+  monitor?: RadarrMonitorType | null
   seasonMonitoring?: string | null
   seriesType?: string | null
   ruleId?: number

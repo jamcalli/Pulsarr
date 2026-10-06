@@ -1,6 +1,5 @@
+import { SonarrSeasonMonitoringSchema } from '@root/schemas/sonarr/season-monitoring.schema'
 import { z } from 'zod'
-import { SONARR_MONITORING_OPTIONS } from '@/legacy/lib/arr/sonarr-constants'
-import type { SonarrMonitoringType } from '@/legacy/lib/arr/sonarr-types'
 
 const urlWithoutTrailingSlash = z
   .string()
@@ -14,9 +13,7 @@ const baseObjectSchema = z.object({
   baseUrl: urlWithoutTrailingSlash,
   apiKey: z.string().min(1, { error: 'API Key is required' }),
   bypassIgnored: z.boolean(),
-  seasonMonitoring: z.custom<SonarrMonitoringType>((val) =>
-    Object.keys(SONARR_MONITORING_OPTIONS).includes(val as string),
-  ),
+  seasonMonitoring: SonarrSeasonMonitoringSchema,
   monitorNewItems: z.enum(['all', 'none']).default('all'),
   searchOnAdd: z.boolean().default(true),
   createSeasonFolders: z.boolean().default(false),
