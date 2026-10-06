@@ -53,9 +53,9 @@ const SHELVES = [
 
 type ShelfKey = (typeof SHELVES)[number]['key']
 
-// Rankings carry no id, so a title is only unique within its shelf and type.
+// Rankings carry no id and the server groups them by title and guids, so same-named titles stay apart.
 function rankingKey(shelfKey: ShelfKey, item: RankedContent) {
-  return `${shelfKey}:${item.content_type}:${item.title}`
+  return `${shelfKey}:${item.title}:${(item.guids ?? []).join(',')}`
 }
 
 const SHELF_HEADING = 'font-heading font-bold'
@@ -69,6 +69,7 @@ function RankChip({ rank }: { rank: number }) {
 }
 
 interface ShelfProps {
+  shelfKey: ShelfKey
   title: string
   empty: string
   items: RankedContent[]
@@ -77,7 +78,15 @@ interface ShelfProps {
   onIntent: (item: RankedContent) => void
 }
 
-function Shelf({ title, empty, items, view, onSelect, onIntent }: ShelfProps) {
+function Shelf({
+  shelfKey,
+  title,
+  empty,
+  items,
+  view,
+  onSelect,
+  onIntent,
+}: ShelfProps) {
   const lookup = useUserDirectory()
   const heading = <h3 className={SHELF_HEADING}>{title}</h3>
   const watchers = (item: RankedContent) =>
@@ -98,7 +107,7 @@ function Shelf({ title, empty, items, view, onSelect, onIntent }: ShelfProps) {
         <PosterRow heading={heading}>
           {items.map((item, index) => (
             <PosterCard
-              key={`${index}-${item.title}`}
+              key={rankingKey(shelfKey, item)}
               title={item.title}
               subtitle={
                 <span className="flex items-center justify-between gap-2">
@@ -123,7 +132,7 @@ function Shelf({ title, empty, items, view, onSelect, onIntent }: ShelfProps) {
       {heading}
       <RankedList
         items={items.map((item, index) => ({
-          key: `${index}-${item.title}`,
+          key: rankingKey(shelfKey, item),
           rank: index + 1,
           media: (
             <PosterFrame
@@ -201,6 +210,7 @@ export function PopularityRankings({
     SHELVES.map((shelf) => (
       <Shelf
         key={shelf.key}
+        shelfKey={shelf.key}
         title={shelf.title}
         empty={shelf.empty}
         items={data[shelf.key]}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-/** Returns null once `src` fails to load, and tries again when `src` changes. */
+/** Returns null for a src that already failed, so only a different src loads. */
 export function useImageFallback(src: string | null) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
   return {

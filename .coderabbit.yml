@@ -44,7 +44,7 @@ reviews:
     - path: "src/client/**/*.{ts,tsx}"
       instructions: |
         - No z.infer API types from @root/schemas; use api.d.ts.
-        - No hardcoded colors or arbitrary Tailwind values outside legacy/.
+        - No hardcoded colors or arbitrary type sizes outside legacy/. Sizing math (grid templates, calc) may stay inline when one component owns it, and components/ui/ keeps shadcn's values.
   finishing_touches:
     docstrings:
       enabled: false
