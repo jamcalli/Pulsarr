@@ -59,6 +59,9 @@ const LogLevelEnum = z.enum([
   'silent',
 ])
 
+export const APPROVAL_EXPIRATION_HOURS = { min: 1, max: 8760 } as const
+export const EXPIRED_APPROVAL_CLEANUP_DAYS = { min: 1, max: 365 } as const
+
 const NotifyOptionEnum = z.enum([
   'none', // No notifications
   'all', // All available notification channels
@@ -140,6 +143,75 @@ const TagMigrationSchema = z
 const PlexTokensSchema = z
   .array(z.string())
   .meta({ description: 'Plex authentication tokens' })
+
+const ApprovalExpirationActionSchema = z.enum(['expire', 'auto_approve']).meta({
+  id: 'ApprovalExpirationAction',
+  description: 'What happens to a pending approval request when it expires',
+})
+
+const ExpirationOverrideHoursSchema = z
+  .number()
+  .min(APPROVAL_EXPIRATION_HOURS.min)
+  .max(APPROVAL_EXPIRATION_HOURS.max)
+
+const ApprovalExpirationSchema = z
+  .object({
+    enabled: z.boolean(),
+    defaultExpirationHours: z.number(),
+    expirationAction: ApprovalExpirationActionSchema,
+    autoApproveOnQuotaAvailable: z.boolean().meta({
+      description:
+        'Approve quota-exceeded requests once the user has quota again',
+    }),
+    quotaExceededExpirationHours: z
+      .number()
+      .meta({ description: 'Override for requests held by a quota' })
+      .optional(),
+    routerRuleExpirationHours: z
+      .number()
+      .meta({ description: 'Override for requests held by a router rule' })
+      .optional(),
+    manualFlagExpirationHours: z
+      .number()
+      .meta({ description: 'Override for users who always need approval' })
+      .optional(),
+    contentCriteriaExpirationHours: z
+      .number()
+      .meta({ description: 'Override for requests held by content criteria' })
+      .optional(),
+    cleanupExpiredDays: z.number(),
+  })
+  .meta({
+    id: 'ApprovalExpiration',
+    description:
+      'Approval expiry and cleanup settings, always returned with defaults filled in. Per-trigger overrides are present only when set.',
+  })
+
+const ApprovalExpirationPayloadSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    defaultExpirationHours: z
+      .number({ error: 'Enter a number of hours.' })
+      .min(APPROVAL_EXPIRATION_HOURS.min)
+      .max(APPROVAL_EXPIRATION_HOURS.max)
+      .optional(),
+    expirationAction: ApprovalExpirationActionSchema.optional(),
+    autoApproveOnQuotaAvailable: z.boolean().optional(),
+    quotaExceededExpirationHours: ExpirationOverrideHoursSchema.optional(),
+    routerRuleExpirationHours: ExpirationOverrideHoursSchema.optional(),
+    manualFlagExpirationHours: ExpirationOverrideHoursSchema.optional(),
+    contentCriteriaExpirationHours: ExpirationOverrideHoursSchema.optional(),
+    cleanupExpiredDays: z
+      .number({ error: 'Enter a number of days.' })
+      .min(EXPIRED_APPROVAL_CLEANUP_DAYS.min)
+      .max(EXPIRED_APPROVAL_CLEANUP_DAYS.max)
+      .optional(),
+  })
+  .meta({
+    id: 'ApprovalExpirationPayload',
+    description:
+      'Writable approval expiry and cleanup settings. Send the whole object, it replaces the stored one.',
+  })
 
 // Schema for complete config (GET responses) - matches exactly what getConfig() returns
 export const ConfigFullSchema = z
@@ -294,20 +366,7 @@ export const ConfigFullSchema = z
         handleMonthEnd: z.enum(['last-day', 'skip-month', 'next-month']),
       }),
     }),
-    // Approval System Configuration - getConfig() always returns this with defaults
-    approvalExpiration: z.object({
-      enabled: z.boolean(),
-      defaultExpirationHours: z.number(),
-      expirationAction: z.enum(['expire', 'auto_approve']),
-      // Auto-approve quota_exceeded requests when quota becomes available
-      autoApproveOnQuotaAvailable: z.boolean(),
-      // Per-trigger expiration overrides (optional - only present if explicitly set)
-      quotaExceededExpirationHours: z.number().optional(),
-      routerRuleExpirationHours: z.number().optional(),
-      manualFlagExpirationHours: z.number().optional(),
-      contentCriteriaExpirationHours: z.number().optional(),
-      cleanupExpiredDays: z.number(),
-    }),
+    approvalExpiration: ApprovalExpirationSchema,
     // Ready state
     _isReady: z.boolean().meta({
       description:
@@ -491,25 +550,7 @@ export const ConfigUpdateSchema = z
           .optional(),
       })
       .optional(),
-    // Approval System Configuration
-    approvalExpiration: z
-      .object({
-        enabled: z.boolean().optional(),
-        // Default expiration time in hours for approval requests
-        defaultExpirationHours: z.number().min(1).max(8760).optional(), // 1 hour to 1 year
-        // What happens when approvals expire
-        expirationAction: z.enum(['expire', 'auto_approve']).optional(),
-        // Auto-approve quota_exceeded requests when quota becomes available
-        autoApproveOnQuotaAvailable: z.boolean().optional(),
-        // Per-trigger expiration overrides
-        quotaExceededExpirationHours: z.number().min(1).max(8760).optional(),
-        routerRuleExpirationHours: z.number().min(1).max(8760).optional(),
-        manualFlagExpirationHours: z.number().min(1).max(8760).optional(),
-        contentCriteriaExpirationHours: z.number().min(1).max(8760).optional(),
-        // Maintenance settings
-        cleanupExpiredDays: z.number().min(1).max(365).optional(),
-      })
-      .optional(),
+    approvalExpiration: ApprovalExpirationPayloadSchema.optional(),
     // TMDB Configuration
     tmdbRegion: z
       .string()

@@ -1,6 +1,6 @@
+import { APPROVAL_REQUESTS_MAX_LIMIT } from '@root/schemas/approval/approval.schema'
 import { keepPreviousData } from '@tanstack/react-query'
 import { approvalsSortPref } from '@/features/home/lib/home-prefs'
-import { ALL_ROWS } from '@/features/home/lib/ranked-rows'
 import { useMinLoading } from '@/hooks/useMinLoading'
 import { usePref } from '@/lib/prefs'
 import { $api, apiErrorMessage } from '@/lib/tanstackApi'
@@ -21,7 +21,7 @@ export function usePendingApprovals() {
         params: {
           query: {
             status: 'pending',
-            limit: ALL_ROWS,
+            limit: APPROVAL_REQUESTS_MAX_LIMIT,
             sortBy: 'createdAt',
             sortOrder: sort === 'oldest' ? 'asc' : 'desc',
           },

@@ -45,6 +45,10 @@ describe('pageHref', () => {
     expect(pageHref(NAV_PAGES.userTags)).toBe('/users/tags')
   })
 
+  it('links Approval settings to its rebuilt page', () => {
+    expect(pageHref(NAV_PAGES.approvalSettings)).toBe('/requests/settings')
+  })
+
   it('links the dashboard to the rebuilt home page', () => {
     expect(pageHref(NAV_PAGES.dashboard)).toBe('/')
   })
@@ -57,6 +61,7 @@ describe('findActiveNav', () => {
     ['/requests', 'requests', NAV_PAGES.approvalQueue],
     ['/approvals', 'requests', NAV_PAGES.approvalQueue],
     ['/requests/settings', 'requests', NAV_PAGES.approvalSettings],
+    ['/approvals/settings', 'requests', NAV_PAGES.approvalSettings],
     ['/approvals/quota-settings', 'requests', NAV_PAGES.quotas],
     ['/users', 'users', NAV_PAGES.plexUsers],
     ['/users/tags', 'users', NAV_PAGES.userTags],

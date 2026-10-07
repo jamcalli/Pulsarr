@@ -35,3 +35,10 @@ export const approvalRequestKeys = {
       params: { path: { id } },
     }).queryKey,
 }
+
+export const scheduleKeys = {
+  byName: (name: string) =>
+    $api.queryOptions('get', '/v1/scheduler/schedules/{name}', {
+      params: { path: { name } },
+    }).queryKey,
+}

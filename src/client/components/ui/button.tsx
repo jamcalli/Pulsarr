@@ -8,18 +8,18 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'border-border bg-primary text-primary-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none',
-        warn: 'border-border bg-gold text-primary-foreground',
+          'border-border bg-clip-border bg-primary text-primary-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none',
+        warn: 'border-border bg-clip-border bg-gold text-primary-foreground',
         neutral:
-          'border-border bg-inset text-foreground hover:bg-accent aria-expanded:bg-accent',
+          'border-border bg-clip-border bg-inset text-foreground hover:bg-accent aria-expanded:bg-accent',
         ghost:
           'text-muted-foreground hover:bg-accent hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground',
         outline:
-          'border-border bg-inset text-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none aria-expanded:bg-accent',
+          'border-border bg-clip-border bg-inset text-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none aria-expanded:bg-accent',
         secondary:
           'bg-surface text-foreground hover:bg-accent aria-expanded:bg-accent',
         destructive:
-          'border-border bg-destructive text-primary-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none',
+          'border-border bg-clip-border bg-destructive text-primary-foreground shadow-shadow active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none',
         link: 'text-foreground underline underline-offset-4 hover:no-underline',
       },
       size: {

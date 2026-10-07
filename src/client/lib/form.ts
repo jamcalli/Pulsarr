@@ -1,5 +1,6 @@
 import { createFormHook, revalidateLogic } from '@tanstack/react-form'
 import { Form } from '@/components/form/form'
+import { NumberField } from '@/components/form/number-field'
 import { RadioField } from '@/components/form/radio-field'
 import { SegmentedField } from '@/components/form/segmented-field'
 import { SelectField } from '@/components/form/select-field'
@@ -19,6 +20,7 @@ export const { useAppForm, withForm, withFieldGroup } = createFormHook({
     RadioField,
     SegmentedField,
     SelectField,
+    NumberField,
     TagsField,
   },
   formComponents: { Form },
