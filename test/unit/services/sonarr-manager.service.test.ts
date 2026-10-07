@@ -1,4 +1,4 @@
-import type { SonarrInstance } from '@root/types/sonarr.types.js'
+import type { SonarrInstance, SonarrItem } from '@root/types/sonarr.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import { SonarrManagerService } from '@services/sonarr-manager.service.js'
@@ -114,5 +114,97 @@ describe('SonarrManagerService.seriesExistsByTvdbId', () => {
 
     expect(result).toMatchObject({ found: false, checked: false })
     expect(getSonarrInstance).not.toHaveBeenCalled()
+  })
+})
+
+describe('SonarrManagerService.routeItemToSonarr', () => {
+  const item: SonarrItem = { title: 'Show', type: 'show', guids: ['tvdb:1'] }
+  let service: SonarrService
+  let manager: SonarrManagerService
+  let addToSonarr: Mock<SonarrService['addToSonarr']>
+
+  beforeEach(() => {
+    const db: Partial<DatabaseService> = {
+      getSonarrInstance: vi.fn<DatabaseService['getSonarrInstance']>(
+        async () => ({
+          ...INSTANCE,
+          qualityProfile: 4,
+          rootFolder: '/tv',
+          tags: ['a'],
+          searchOnAdd: false,
+          seasonMonitoring: 'pilot',
+          seriesType: 'anime',
+        }),
+      ),
+      updateWatchlistItem: vi.fn<DatabaseService['updateWatchlistItem']>(
+        async () => undefined,
+      ),
+    }
+    const fastify: Partial<FastifyInstance> = { db: db as DatabaseService }
+    service = new SonarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify as FastifyInstance,
+    )
+    addToSonarr = vi.spyOn(service, 'addToSonarr').mockResolvedValue(7)
+    manager = new SonarrManagerService(
+      createMockLogger(),
+      fastify as FastifyInstance,
+    )
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    manager['sonarrServices'].set(1, service)
+  })
+
+  it('returns the instance values when the settings inherit', async () => {
+    const applied = await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+      rootFolder: null,
+      qualityProfile: null,
+      searchOnAdd: null,
+      seasonMonitoring: null,
+      seriesType: null,
+    })
+
+    expect(applied).toEqual({
+      instanceId: 1,
+      instanceType: 'sonarr',
+      qualityProfile: 4,
+      rootFolder: '/tv',
+      tags: ['a'],
+      searchOnAdd: false,
+      seasonMonitoring: 'pilot',
+      seriesType: 'anime',
+    })
+  })
+
+  it('returns the settings it was given in place of the instance values', async () => {
+    const applied = await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+      rootFolder: '/rule',
+      qualityProfile: '9',
+      tags: [],
+      searchOnAdd: true,
+      seasonMonitoring: 'all',
+      seriesType: 'daily',
+    })
+
+    expect(applied).toEqual({
+      instanceId: 1,
+      instanceType: 'sonarr',
+      qualityProfile: 9,
+      rootFolder: '/rule',
+      tags: [],
+      searchOnAdd: true,
+      seasonMonitoring: 'all',
+      seriesType: 'daily',
+    })
+    expect(addToSonarr).toHaveBeenCalledWith(
+      expect.anything(),
+      '/rule',
+      9,
+      [],
+      true,
+      'all',
+      'daily',
+    )
   })
 })

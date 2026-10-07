@@ -121,6 +121,50 @@ export interface RoutingDetails {
   ruleName?: string
 }
 
+/** Null or absent means use the instance's value at routing time. */
+export interface RadarrRouteSettings {
+  rootFolder?: string | null
+  qualityProfile?: number | string | null
+  tags?: string[]
+  searchOnAdd?: boolean | null
+  minimumAvailability?: MinimumAvailability | null
+  monitor?: RadarrMonitorType | null
+}
+
+/** Null or absent means use the instance's value at routing time. */
+export interface SonarrRouteSettings {
+  rootFolder?: string | null
+  qualityProfile?: number | string | null
+  tags?: string[]
+  searchOnAdd?: boolean | null
+  seasonMonitoring?: string | null
+  seriesType?: 'standard' | 'anime' | 'daily' | null
+}
+
+export type RouteSettings = RadarrRouteSettings & SonarrRouteSettings
+
+export interface AppliedRadarrRouting {
+  instanceId: number
+  instanceType: 'radarr'
+  qualityProfile: number | undefined
+  rootFolder: string | undefined
+  tags: string[]
+  searchOnAdd: boolean
+  minimumAvailability: MinimumAvailability
+  monitor: RadarrMonitorType
+}
+
+export interface AppliedSonarrRouting {
+  instanceId: number
+  instanceType: 'sonarr'
+  qualityProfile: number | undefined
+  rootFolder: string | undefined
+  tags: string[]
+  searchOnAdd: boolean
+  seasonMonitoring: string
+  seriesType: 'standard' | 'anime' | 'daily'
+}
+
 // Condition system types
 export type LogicalOperator = 'AND' | 'OR'
 

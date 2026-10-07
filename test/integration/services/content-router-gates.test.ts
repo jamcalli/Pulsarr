@@ -18,7 +18,9 @@ import {
   seedRouterRules,
   seedUserQuota,
   seedUsers,
+  seedWatchlist,
 } from '../../helpers/seeds/index.js'
+import { echoAppliedRadarr } from '../../mocks/applied-routing.js'
 
 describe('routeContent gates', () => {
   let fastify: FastifyInstance
@@ -131,7 +133,7 @@ describe('routeContent gates', () => {
     await seedRouterRules(knex)
     fastify.contentRouter.clearRouterRulesCache()
 
-    routeItemToRadarr = vi.fn().mockResolvedValue(undefined)
+    routeItemToRadarr = vi.fn(echoAppliedRadarr())
     fastify.radarrManager.routeItemToRadarr =
       routeItemToRadarr as unknown as RadarrManagerService['routeItemToRadarr']
     fastify.notifications.sendWatchlistCapReached = vi.fn()
@@ -383,6 +385,71 @@ describe('routeContent gates', () => {
     })
   })
 
+  describe('rules fetch failure', () => {
+    const watchlistMovie: ContentItem = {
+      title: 'Night of the Living Dead',
+      type: 'movie',
+      guids: ['imdb:tt0063350', 'tmdb:10331'],
+      genres: ['Horror'],
+    }
+    const watchlistKey = '5d77683585719b001f3a3946'
+
+    const getWatchlistRow = () =>
+      getTestDatabase()('watchlist_items')
+        .where({ user_id: 1, key: watchlistKey })
+        .first()
+
+    beforeEach(async () => {
+      await seedWatchlist(getTestDatabase())
+      fastify.contentRouter.clearRouterRulesCache()
+    })
+
+    it('leaves the item unrouted and unmarked, then routes it on the next pass', async () => {
+      const before = await getWatchlistRow()
+      const getAllRouterRules = vi
+        .spyOn(fastify.db, 'getAllRouterRules')
+        .mockRejectedValueOnce(new Error('rules read failed'))
+
+      await expect(
+        fastify.contentRouter.routeContent(watchlistMovie, watchlistKey, {
+          userId: 1,
+          userName: 'Test User',
+        }),
+      ).rejects.toThrow('rules read failed')
+
+      expect(routeItemToRadarr).not.toHaveBeenCalled()
+      expect(await getApprovalRequests()).toHaveLength(0)
+      expect(await getQuotaUsageCount()).toBe(0)
+      const after = await getWatchlistRow()
+      expect(after.radarr_instance_id).toBeNull()
+      expect(after.status).toBe(before.status)
+
+      getAllRouterRules.mockRestore()
+      const retry = await fastify.contentRouter.routeContent(
+        watchlistMovie,
+        watchlistKey,
+        { userId: 1, userName: 'Test User' },
+      )
+      expect(retry.routedInstances).toEqual([1])
+    })
+
+    it('fails the target lookup instead of falling back to the default instance', async () => {
+      const getAllRouterRules = vi
+        .spyOn(fastify.db, 'getAllRouterRules')
+        .mockRejectedValueOnce(new Error('rules read failed'))
+
+      await expect(
+        fastify.contentRouter.getTargetInstances(watchlistMovie, {
+          userId: 1,
+          contentType: 'movie',
+          itemKey: watchlistKey,
+        }),
+      ).rejects.toThrow('rules read failed')
+
+      getAllRouterRules.mockRestore()
+    })
+  })
+
   describe('synced-instance default routing', () => {
     const seedSyncedInstance = async (
       syncedInstances: number[],
@@ -405,14 +472,12 @@ describe('routeContent gates', () => {
       expect(result.routedInstances).toEqual([1, 2])
       expect(routeItemToRadarr).toHaveBeenCalledTimes(2)
       const [primaryArgs, syncedArgs] = routeItemToRadarr.mock.calls
-      // Each instance is routed with its OWN defaults, not the primary's
+      // empty settings make the manager resolve each instance's own defaults
       expect(primaryArgs[3]).toBe(1)
-      expect(primaryArgs[5]).toBe('/data/movies')
-      expect(primaryArgs[9]).toBe('announced')
-      expect(primaryArgs[10]).toBe('movieOnly')
+      expect(primaryArgs[5]).toEqual({})
       expect(syncedArgs[3]).toBe(2)
-      expect(syncedArgs[5]).toBe('/data/movies2')
-      expect(syncedArgs[10]).toBe('none')
+      expect(syncedArgs[5]).toEqual({})
+      expect(result.routingDetails.map((d) => d.instanceId)).toEqual([1, 2])
 
       // The auto-approval record must label the tail as sync expansion
       const requests = await getApprovalRequests()
@@ -469,19 +534,23 @@ describe('routeContent gates', () => {
       expect(result.routedInstances).toEqual([1])
       expect(routeItemToRadarr).toHaveBeenCalledTimes(1)
       const args = routeItemToRadarr.mock.calls[0]
-      // (item, key, userId, instanceId, syncing, rootFolder, profile, tags, searchOnAdd, minAvailability, monitor)
       expect(args[3]).toBe(1)
-      expect(args[5]).toBe('/data/comedy')
-      expect(args[6]).toBe(2)
-      expect(args[7]).toEqual([])
-      expect(Boolean(args[8])).toBe(true)
-      // Rules carry no minimumAvailability - the manager falls through to
-      // the instance default
-      expect(args[9]).toBeUndefined()
-      expect(args[10]).toBe('movieAndCollection')
+      expect(args[5]).toMatchObject({
+        rootFolder: '/data/comedy',
+        qualityProfile: 2,
+        tags: [],
+        minimumAvailability: undefined,
+        monitor: 'movieAndCollection',
+      })
+      expect(Boolean(args[5].searchOnAdd)).toBe(true)
 
       expect(result.routingDetails).toHaveLength(1)
       expect(result.routingDetails[0].instanceId).toBe(1)
+
+      const requests = await getApprovalRequests()
+      expect(requests).toHaveLength(1)
+      expect(requests[0].status).toBe('auto_approved')
+      expect(requests[0].router_rule_id).toBe(50)
     })
 
     it('creates a router_rule approval request without syncedInstances fan-out', async () => {
@@ -645,8 +714,10 @@ describe('routeContent gates', () => {
       const args = routeItemToRadarr.mock.calls[0]
       expect(args[3]).toBe(2)
       expect(args[4]).toBe(true)
-      expect(args[5]).toBe('/data/comedy')
-      expect(args[10]).toBe('movieAndCollection')
+      expect(args[5]).toMatchObject({
+        rootFolder: '/data/comedy',
+        monitor: 'movieAndCollection',
+      })
 
       // Sync is internal data movement - no approval records, no quota
       expect(await getApprovalRequests()).toHaveLength(0)
@@ -699,8 +770,7 @@ describe('routeContent gates', () => {
       const args = routeItemToRadarr.mock.calls[0]
       expect(args[3]).toBe(2)
       expect(args[4]).toBe(true)
-      // No settings passed - the manager resolves the instance's own defaults
-      expect(args[5]).toBeUndefined()
+      expect(args[5]).toEqual({})
       expect(await getQuotaUsageCount()).toBe(0)
     })
 
@@ -798,9 +868,10 @@ describe('routeContent gates', () => {
       expect(result.routedInstances).toEqual([1])
       expect(routeItemToRadarr).toHaveBeenCalledTimes(1)
       const args = routeItemToRadarr.mock.calls[0]
-      expect(args[5]).toBe('/data/approved')
-      // The approved monitor value must reach the add call
-      expect(args[10]).toBe('none')
+      expect(args[5]).toMatchObject({
+        rootFolder: '/data/approved',
+        monitor: 'none',
+      })
     })
   })
 })

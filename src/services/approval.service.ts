@@ -386,12 +386,16 @@ export class ApprovalService {
                 request.userId,
                 targetInstanceId,
                 !isPrimary, // Mark as sync operation if not primary
-                isPrimary ? proposedRouting.rootFolder || undefined : undefined,
-                isPrimary ? proposedRouting.qualityProfile : undefined,
-                isPrimary ? proposedRouting.tags || [] : undefined,
-                isPrimary ? proposedRouting.searchOnAdd : undefined,
-                isPrimary ? proposedRouting.minimumAvailability : undefined,
-                isPrimary ? proposedRouting.monitor : undefined,
+                isPrimary
+                  ? {
+                      rootFolder: proposedRouting.rootFolder,
+                      qualityProfile: proposedRouting.qualityProfile,
+                      tags: proposedRouting.tags || [],
+                      searchOnAdd: proposedRouting.searchOnAdd,
+                      minimumAvailability: proposedRouting.minimumAvailability,
+                      monitor: proposedRouting.monitor,
+                    }
+                  : {},
               )
               routingResults.succeeded.push(targetInstanceId)
             } catch (error) {
@@ -434,12 +438,16 @@ export class ApprovalService {
                 request.userId,
                 targetInstanceId,
                 !isPrimary, // Mark as sync operation if not primary
-                isPrimary ? proposedRouting.rootFolder || undefined : undefined,
-                isPrimary ? proposedRouting.qualityProfile : undefined,
-                isPrimary ? proposedRouting.tags || [] : undefined,
-                isPrimary ? proposedRouting.searchOnAdd : undefined,
-                isPrimary ? proposedRouting.seasonMonitoring : undefined,
-                isPrimary ? proposedRouting.seriesType : undefined,
+                isPrimary
+                  ? {
+                      rootFolder: proposedRouting.rootFolder,
+                      qualityProfile: proposedRouting.qualityProfile,
+                      tags: proposedRouting.tags || [],
+                      searchOnAdd: proposedRouting.searchOnAdd,
+                      seasonMonitoring: proposedRouting.seasonMonitoring,
+                      seriesType: proposedRouting.seriesType,
+                    }
+                  : {},
               )
               routingResults.succeeded.push(targetInstanceId)
             } catch (error) {

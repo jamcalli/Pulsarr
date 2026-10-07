@@ -1,6 +1,10 @@
 import type { WebhookResyncInstanceResult } from '@root/schemas/config/resync-arr-webhooks.schema.js'
 import { isRollingMonitoringOption } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import type {
+  AppliedSonarrRouting,
+  SonarrRouteSettings,
+} from '@root/types/router.types.js'
+import type {
   ExistenceCheckResult,
   InstanceHealthResult,
 } from '@root/types/service-result.types.js'
@@ -230,13 +234,16 @@ export class SonarrManagerService {
     userId: number,
     instanceId?: number,
     syncing = false,
-    rootFolder?: string,
-    qualityProfile?: number | string | null,
-    tags?: string[],
-    searchOnAdd?: boolean | null,
-    seasonMonitoring?: string | null,
-    seriesType?: 'standard' | 'anime' | 'daily' | null,
-  ): Promise<void> {
+    settings: SonarrRouteSettings = {},
+  ): Promise<AppliedSonarrRouting> {
+    const {
+      rootFolder,
+      qualityProfile,
+      tags,
+      searchOnAdd,
+      seasonMonitoring,
+      seriesType,
+    } = settings
     // If no specific instance is provided, try to get the default instance
     let targetInstanceId = instanceId
     if (targetInstanceId === undefined) {
@@ -375,6 +382,17 @@ export class SonarrManagerService {
         },
         'Successfully routed item to Sonarr',
       )
+
+      return {
+        instanceId: targetInstanceId,
+        instanceType: 'sonarr',
+        qualityProfile: targetQualityProfileId,
+        rootFolder: targetRootFolder,
+        tags: targetTags,
+        searchOnAdd: targetSearchOnAdd,
+        seasonMonitoring: targetSeasonMonitoring,
+        seriesType: targetSeriesType,
+      }
     } catch (error) {
       this.log.error(
         {

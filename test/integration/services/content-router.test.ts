@@ -1,4 +1,6 @@
 import type { ContentItem, RoutingContext } from '@root/types/router.types.js'
+import { checkApprovalRequirements } from '@services/content-router/approval-checks.js'
+import { RuleCache } from '@services/content-router/rule-cache.js'
 import type { FastifyInstance } from 'fastify'
 import {
   afterAll,
@@ -24,17 +26,12 @@ import {
 describe('ContentRouterService Integration', () => {
   let fastify: FastifyInstance
 
-  // Helper to access private checkApprovalRequirements method
-  const getCheckApproval = () =>
-    (
-      fastify.contentRouter as unknown as {
-        checkApprovalRequirements: (
-          item: ContentItem,
-          context: RoutingContext,
-          decisions: unknown[],
-        ) => Promise<{ required: boolean; reason?: string }>
-      }
-    ).checkApprovalRequirements.bind(fastify.contentRouter)
+  const getCheckApproval = () => (item: ContentItem, context: RoutingContext) =>
+    checkApprovalRequirements(item, context, {
+      logger: fastify.log,
+      db: fastify.db,
+      rules: new RuleCache(() => fastify.db.getAllRouterRules(), fastify.log),
+    })
 
   beforeAll(async () => {
     fastify = await build()
@@ -97,12 +94,12 @@ describe('ContentRouterService Integration', () => {
       const checkApproval = getCheckApproval()
 
       // Drama show should trigger Sonarr approval rule
-      const showResult = await checkApproval(dramaShow, showContext, [])
+      const showResult = await checkApproval(dramaShow, showContext)
       expect(showResult.required).toBe(true)
       expect(showResult.reason).toContain('Drama shows require approval')
 
       // Drama movie should NOT trigger Sonarr approval rule (wrong target_type)
-      const movieResult = await checkApproval(dramaMovie, movieContext, [])
+      const movieResult = await checkApproval(dramaMovie, movieContext)
       // Should trigger Radarr rule instead
       expect(movieResult.required).toBe(true)
       expect(movieResult.reason).toContain('Drama movies require approval')
@@ -126,13 +123,13 @@ describe('ContentRouterService Integration', () => {
       const checkApproval = getCheckApproval()
 
       // Drama movie should trigger Radarr approval rule
-      const movieResult = await checkApproval(dramaMovie, movieContext, [])
+      const movieResult = await checkApproval(dramaMovie, movieContext)
       expect(movieResult.required).toBe(true)
       expect(movieResult.reason).toContain('Drama movies require approval')
 
       // Drama show should NOT trigger Radarr approval rule (wrong target_type)
       // Should trigger Sonarr rule instead
-      const showResult = await checkApproval(dramaShow, showContext, [])
+      const showResult = await checkApproval(dramaShow, showContext)
       expect(showResult.required).toBe(true)
       expect(showResult.reason).toContain('Drama shows require approval')
     })
@@ -148,7 +145,7 @@ describe('ContentRouterService Integration', () => {
       const checkApproval = getCheckApproval()
 
       // Comedy movie should not trigger Drama approval rules
-      const result = await checkApproval(comedyMovie, movieContext, [])
+      const result = await checkApproval(comedyMovie, movieContext)
       expect(result.required).toBe(false)
     })
 
@@ -170,7 +167,7 @@ describe('ContentRouterService Integration', () => {
       const checkApproval = getCheckApproval()
 
       // No enabled rules should match
-      const result = await checkApproval(dramaMovie, movieContext, [])
+      const result = await checkApproval(dramaMovie, movieContext)
       expect(result.required).toBe(false)
     })
 
@@ -202,16 +199,12 @@ describe('ContentRouterService Integration', () => {
       })
       fastify.contentRouter.clearRouterRulesCache()
 
-      const result = await getCheckApproval()(
-        dramaMovie,
-        {
-          userId: 1,
-          userName: 'Test User',
-          contentType: 'movie',
-          itemKey: 'test-movie-key',
-        },
-        [],
-      )
+      const result = await getCheckApproval()(dramaMovie, {
+        userId: 1,
+        userName: 'Test User',
+        contentType: 'movie',
+        itemKey: 'test-movie-key',
+      })
       expect(result.required).toBe(true)
       expect(result.reason).toContain('Drama movies require approval')
     })

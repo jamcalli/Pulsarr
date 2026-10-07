@@ -9,6 +9,10 @@ import type {
   Item as RadarrItem,
 } from '@root/types/radarr.types.js'
 import type {
+  AppliedRadarrRouting,
+  RadarrRouteSettings,
+} from '@root/types/router.types.js'
+import type {
   ExistenceCheckResult,
   InstanceHealthResult,
 } from '@root/types/service-result.types.js'
@@ -204,13 +208,16 @@ export class RadarrManagerService {
     userId: number,
     instanceId?: number,
     syncing = false,
-    rootFolder?: string,
-    qualityProfile?: number | string | null,
-    tags?: string[],
-    searchOnAdd?: boolean | null,
-    minimumAvailability?: MinimumAvailability,
-    monitor?: RadarrMonitorType | null,
-  ): Promise<void> {
+    settings: RadarrRouteSettings = {},
+  ): Promise<AppliedRadarrRouting> {
+    const {
+      rootFolder,
+      qualityProfile,
+      tags,
+      searchOnAdd,
+      minimumAvailability,
+      monitor,
+    } = settings
     // If no specific instance is provided, try to get the default instance
     let targetInstanceId = instanceId
     if (targetInstanceId === undefined) {
@@ -288,6 +295,17 @@ export class RadarrManagerService {
         },
         'Successfully routed item to Radarr',
       )
+
+      return {
+        instanceId: targetInstanceId,
+        instanceType: 'radarr',
+        qualityProfile: targetQualityProfileId,
+        rootFolder: targetRootFolder,
+        tags: targetTags,
+        searchOnAdd: targetSearchOnAdd,
+        minimumAvailability: targetMinimumAvailability,
+        monitor: targetMonitor,
+      }
     } catch (error) {
       this.log.error(
         {

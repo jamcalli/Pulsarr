@@ -1,4 +1,7 @@
-import type { RadarrInstance } from '@root/types/radarr.types.js'
+import type {
+  RadarrInstance,
+  Item as RadarrItem,
+} from '@root/types/radarr.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { RadarrService } from '@services/radarr.service.js'
 import { RadarrManagerService } from '@services/radarr-manager.service.js'
@@ -112,5 +115,97 @@ describe('RadarrManagerService.movieExistsByTmdbId', () => {
 
     expect(result).toMatchObject({ found: false, checked: false })
     expect(getRadarrInstance).not.toHaveBeenCalled()
+  })
+})
+
+describe('RadarrManagerService.routeItemToRadarr', () => {
+  const item: RadarrItem = { title: 'Movie', type: 'movie', guids: ['tmdb:1'] }
+  let service: RadarrService
+  let manager: RadarrManagerService
+  let addToRadarr: Mock<RadarrService['addToRadarr']>
+
+  beforeEach(() => {
+    const db: Partial<DatabaseService> = {
+      getRadarrInstance: vi.fn<DatabaseService['getRadarrInstance']>(
+        async () => ({
+          ...INSTANCE,
+          qualityProfile: '4',
+          rootFolder: '/movies',
+          tags: ['a', 'a'],
+          searchOnAdd: false,
+          minimumAvailability: 'announced',
+          monitor: 'none',
+        }),
+      ),
+      updateWatchlistItem: vi.fn<DatabaseService['updateWatchlistItem']>(
+        async () => undefined,
+      ),
+    }
+    const fastify: Partial<FastifyInstance> = { db: db as DatabaseService }
+    service = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify as FastifyInstance,
+    )
+    addToRadarr = vi.spyOn(service, 'addToRadarr').mockResolvedValue(undefined)
+    manager = new RadarrManagerService(
+      createMockLogger(),
+      fastify as FastifyInstance,
+    )
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    manager['radarrServices'].set(1, service)
+  })
+
+  it('returns the instance values when the settings inherit', async () => {
+    const applied = await manager.routeItemToRadarr(item, 'key', 2, 1, false, {
+      rootFolder: null,
+      qualityProfile: null,
+      searchOnAdd: null,
+      minimumAvailability: null,
+      monitor: null,
+    })
+
+    expect(applied).toEqual({
+      instanceId: 1,
+      instanceType: 'radarr',
+      qualityProfile: 4,
+      rootFolder: '/movies',
+      tags: ['a'],
+      searchOnAdd: false,
+      minimumAvailability: 'announced',
+      monitor: 'none',
+    })
+  })
+
+  it('returns the settings it was given in place of the instance values', async () => {
+    const applied = await manager.routeItemToRadarr(item, 'key', 2, 1, false, {
+      rootFolder: '/rule',
+      qualityProfile: 9,
+      tags: ['b'],
+      searchOnAdd: true,
+      minimumAvailability: 'released',
+      monitor: 'movieOnly',
+    })
+
+    expect(applied).toEqual({
+      instanceId: 1,
+      instanceType: 'radarr',
+      qualityProfile: 9,
+      rootFolder: '/rule',
+      tags: ['b'],
+      searchOnAdd: true,
+      minimumAvailability: 'released',
+      monitor: 'movieOnly',
+    })
+    expect(addToRadarr).toHaveBeenCalledWith(
+      expect.anything(),
+      '/rule',
+      9,
+      ['b'],
+      true,
+      'released',
+      'movieOnly',
+    )
   })
 })

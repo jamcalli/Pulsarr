@@ -17,6 +17,7 @@ import {
   seedInstances,
   seedUsers,
 } from '../../helpers/seeds/index.js'
+import { echoAppliedRadarr } from '../../mocks/applied-routing.js'
 
 describe('routeContent condition evaluation', () => {
   let fastify: FastifyInstance
@@ -93,7 +94,7 @@ describe('routeContent condition evaluation', () => {
     fastify.contentRouter.clearRouterRulesCache()
     fastify.config.authenticationMethod = 'disabled'
 
-    routeItemToRadarr = vi.fn().mockResolvedValue(undefined)
+    routeItemToRadarr = vi.fn(echoAppliedRadarr())
     fastify.radarrManager.routeItemToRadarr =
       routeItemToRadarr as unknown as RadarrManagerService['routeItemToRadarr']
   })
