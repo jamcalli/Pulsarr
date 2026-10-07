@@ -3240,6 +3240,11 @@ export interface components {
             min?: number;
             max?: number;
         } | null;
+        /**
+         * @description Value shape a condition field or operator accepts
+         * @enum {string}
+         */
+        ConditionValueType: "number" | "number[]" | "string" | "string[]" | "object";
         /** @description Complete application configuration; server-internal secrets are never included */
         Config: {
             id: number;
@@ -3639,14 +3644,14 @@ export interface components {
             supportedFields: {
                 name: string;
                 description: string;
-                valueTypes: string[];
+                valueTypes: components["schemas"]["ConditionValueType"][];
             }[];
             /** @default {} */
             supportedOperators: {
                 [key: string]: {
-                    name: string;
+                    name: components["schemas"]["ConditionOperator"];
                     description: string;
-                    valueTypes: string[];
+                    valueTypes: components["schemas"]["ConditionValueType"][];
                     valueFormat?: string;
                 }[];
             };

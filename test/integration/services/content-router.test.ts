@@ -9,6 +9,9 @@ import {
   expect,
   it,
 } from 'vitest'
+import pluginsFixture from '../../fixtures/content-router-plugins.json' with {
+  type: 'json',
+}
 import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import {
@@ -490,38 +493,10 @@ describe('ContentRouterService Integration', () => {
   })
 
   describe('evaluator loading', () => {
-    it('should load evaluators with correct methods', async () => {
-      // The service should have loaded evaluators during initialization
-      // Access the evaluators array to verify they loaded
-      const evaluators = (
-        fastify.contentRouter as unknown as { evaluators: unknown[] }
-      ).evaluators
-
-      expect(evaluators.length).toBeGreaterThan(0)
-
-      // Verify conditional evaluator is loaded (metadata-only, no evaluate())
-      const conditionalEvaluator = evaluators.find(
-        (e: unknown) =>
-          typeof e === 'object' &&
-          e !== null &&
-          'name' in e &&
-          (e as { name: string }).name === 'Conditional Router',
-      ) as { name: string; supportedFields?: unknown[] } | undefined
-
-      expect(conditionalEvaluator).toBeDefined()
-      expect(conditionalEvaluator?.supportedFields).toBeDefined()
-
-      // Verify field evaluators are loaded with evaluateCondition() method
-      const genreEvaluator = evaluators.find(
-        (e: unknown) =>
-          typeof e === 'object' &&
-          e !== null &&
-          'name' in e &&
-          (e as { name: string }).name === 'Genre Router',
-      ) as { name: string; evaluateCondition?: unknown } | undefined
-
-      expect(genreEvaluator).toBeDefined()
-      expect(typeof genreEvaluator?.evaluateCondition).toBe('function')
+    it('loads every evaluator in priority order', () => {
+      expect(fastify.contentRouter.getLoadedEvaluators()).toEqual(
+        pluginsFixture.plugins.plugins,
+      )
     })
   })
 })

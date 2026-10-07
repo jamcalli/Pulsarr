@@ -1,6 +1,14 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
-import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
+import {
+  type InstanceType,
+  InstanceTypeSchema,
+} from '@root/schemas/common/instance-type.schema.js'
 import { SERIES_TYPES } from '@root/schemas/content-router/constants.js'
+import {
+  fieldAllowsOperator,
+  isRouterField,
+  ROUTER_FIELDS,
+} from '@root/schemas/content-router/router-fields.js'
 import { RadarrMonitorSchema } from '@root/schemas/radarr/add-options.schema.js'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
 import { SonarrSeasonMonitoringValueSchema } from '@root/schemas/sonarr/season-monitoring.schema.js'
@@ -150,6 +158,21 @@ export const ConditionSchema = z
       message: 'Condition must have field, operator, and value',
     },
   )
+  .superRefine((cond, ctx) => {
+    if (!isRouterField(cond.field)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['field'],
+        message: `Unknown condition field "${cond.field}"`,
+      })
+    } else if (!fieldAllowsOperator(cond.field, cond.operator)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['operator'],
+        message: `Operator "${cond.operator}" is not supported for field "${cond.field}"`,
+      })
+    }
+  })
   .refine(
     (cond) => {
       if (cond.operator !== 'regex') return true
@@ -184,44 +207,68 @@ function isConditionGroupObject(value: unknown): value is IConditionGroup {
   )
 }
 
-// Helper function to validate group recursion safely, preventing stack overflow and circular references
-const isValidConditionGroup = (
+const MAX_CONDITION_DEPTH = 20
+
+const GROUP_SHAPE_MESSAGE =
+  'Condition groups must use AND or OR, hold at most 20 conditions, and cannot contain circular references or exceed maximum nesting depth (20)'
+
+const conditionGroupIssue = (
   group: IConditionGroup,
   depth = 0,
   visited = new WeakSet(),
-): boolean => {
-  // Guard against excessive nesting (prevent stack overflow)
-  if (depth > 20) {
-    return false
-  }
-
-  // Guard against circular references (prevent infinite loops)
-  if (visited.has(group)) {
-    return false
+): string | undefined => {
+  if (depth > MAX_CONDITION_DEPTH || visited.has(group)) {
+    return GROUP_SHAPE_MESSAGE
   }
   visited.add(group)
 
   if (group.operator !== 'AND' && group.operator !== 'OR') {
-    return false
+    return GROUP_SHAPE_MESSAGE
   }
 
   if (!group.conditions || group.conditions.length === 0) {
-    return true // Allow empty conditions in base schema
+    return undefined
   }
 
   if (group.conditions.length > 20) {
-    return false
+    return GROUP_SHAPE_MESSAGE
   }
 
-  return group.conditions.every((cond) => {
-    // Check if this is a nested condition group
+  for (const cond of group.conditions) {
     if (isConditionGroupObject(cond)) {
-      // Recursive check for nested groups with increased depth counter
-      return isValidConditionGroup(cond, depth + 1, visited)
+      const issue = conditionGroupIssue(cond, depth + 1, visited)
+      if (issue) return issue
+      continue
     }
-    // Validate individual conditions explicitly since nested groups may accept any values in OpenAPI shape
-    return ConditionSchema.safeParse(cond).success
-  })
+    const result = ConditionSchema.safeParse(cond)
+    if (!result.success) {
+      return result.error.issues[0]?.message ?? 'Invalid condition'
+    }
+  }
+  return undefined
+}
+
+function conditionLeaves(
+  node: ICondition | IConditionGroup,
+  depth = 0,
+): ICondition[] {
+  if (!isConditionGroupObject(node)) return [node]
+  if (depth > MAX_CONDITION_DEPTH) return []
+  return node.conditions.flatMap((child) => conditionLeaves(child, depth + 1))
+}
+
+function fieldsOutsideTarget(
+  condition: ICondition | IConditionGroup,
+  targetType: InstanceType,
+): string[] {
+  return conditionLeaves(condition)
+    .map((leaf) => leaf.field)
+    .filter((field) => {
+      // an unknown field is reported by the condition check
+      if (!isRouterField(field)) return false
+      const { appliesTo } = ROUTER_FIELDS[field]
+      return appliesTo !== 'both' && appliesTo !== targetType
+    })
 }
 
 // For OpenAPI compatibility, define a simplified condition group that avoids infinite recursion
@@ -246,9 +293,9 @@ export const ConditionGroupSchema = z
     negate: z.boolean().optional().default(false),
     _cid: z.string().optional(),
   })
-  .refine((group) => isValidConditionGroup(group), {
-    message:
-      'Condition groups must use AND or OR, hold at most 20 conditions, and cannot contain circular references or exceed maximum nesting depth (20)',
+  .superRefine((group, ctx) => {
+    const issue = conditionGroupIssue(group)
+    if (issue) ctx.addIssue({ code: 'custom', message: issue })
   })
   .meta({
     id: 'RouterConditionGroup',
@@ -341,6 +388,16 @@ export const ContentRouterRuleSchema = BaseRouterRuleSchema.extend({
         'target_instance_id must be null when exclude_from_routing is true',
     },
   )
+  .superRefine((v, ctx) => {
+    if (!v.condition) return
+    for (const field of fieldsOutsideTarget(v.condition, v.target_type)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['condition'],
+        message: `Field "${field}" is not supported for ${v.target_type} rules`,
+      })
+    }
+  })
   .meta({
     id: 'RouterRulePayload',
     description: 'Full router rule payload used to create or replace a rule',

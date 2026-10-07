@@ -650,6 +650,17 @@
         ],
         "description": "Value shapes accepted by router conditions"
       },
+      "ConditionValueType": {
+        "type": "string",
+        "enum": [
+          "number",
+          "number[]",
+          "string",
+          "string[]",
+          "object"
+        ],
+        "description": "Value shape a condition field or operator accepts"
+      },
       "Config": {
         "type": "object",
         "properties": {
@@ -2188,7 +2199,7 @@
                 "valueTypes": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/ConditionValueType"
                   }
                 }
               },
@@ -2212,7 +2223,7 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/ConditionOperator"
                   },
                   "description": {
                     "type": "string"
@@ -2220,7 +2231,7 @@
                   "valueTypes": {
                     "type": "array",
                     "items": {
-                      "type": "string"
+                      "$ref": "#/components/schemas/ConditionValueType"
                     }
                   },
                   "valueFormat": {

@@ -1,3 +1,4 @@
+import type { ComparisonOperator } from '@root/schemas/content-router/content-router.schema.js'
 import type {
   MinimumAvailability,
   RadarrMonitorType,
@@ -122,17 +123,6 @@ export interface RoutingDetails {
 
 // Condition system types
 export type LogicalOperator = 'AND' | 'OR'
-export type ComparisonOperator =
-  | 'equals'
-  | 'notEquals'
-  | 'contains'
-  | 'notContains'
-  | 'greaterThan'
-  | 'lessThan'
-  | 'in'
-  | 'notIn'
-  | 'regex'
-  | 'between'
 
 // Base condition interface
 export interface Condition {
@@ -149,59 +139,4 @@ export interface ConditionGroup {
   conditions: Array<Condition | ConditionGroup>
   negate?: boolean
   _cid?: string
-}
-
-/**
- * Information about a supported field in a router evaluator
- */
-export interface FieldInfo {
-  name: string
-  description: string
-  valueTypes: string[]
-}
-
-/**
- * Information about a supported operator in a router evaluator
- */
-export interface OperatorInfo {
-  name: ComparisonOperator
-  description: string
-  valueTypes: string[]
-  valueFormat?: string // Additional hints about expected format
-}
-
-// Then extend the RoutingEvaluator interface with these properties:
-
-export interface RoutingEvaluator {
-  name: string
-  description: string
-  priority: number
-
-  // Rule type this evaluator handles (e.g., 'genre', 'imdb', 'streaming')
-  // Used by content-router to filter rules before passing to evaluator
-  ruleType: string
-
-  // Whether this evaluator can handle this content
-  canEvaluate(item: ContentItem, context: RoutingContext): Promise<boolean>
-
-  // For conditional evaluator support
-  evaluateCondition?(
-    condition: Condition | ConditionGroup,
-    item: ContentItem,
-    context: RoutingContext,
-  ): boolean
-
-  // Helps ContentRouterService determine which fields this evaluator handles
-  canEvaluateConditionField?(field: string): boolean
-
-  // New metadata properties for self-describing evaluators
-  supportedFields?: FieldInfo[]
-  supportedOperators?: Record<string, OperatorInfo[]>
-
-  // Content type this evaluator applies to ('radarr', 'sonarr', or 'both')
-  contentType?: 'radarr' | 'sonarr' | 'both'
-
-  // Optional helper methods can be defined in individual evaluators
-  // but they won't be called directly by the ContentRouterService
-  [key: string]: unknown
 }

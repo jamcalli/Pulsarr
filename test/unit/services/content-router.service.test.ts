@@ -148,6 +148,39 @@ describe('ContentRouterService.evaluateCondition', () => {
     ).toBe(true)
   })
 
+  it('agrees on both spellings of not-equals for an item with no year', () => {
+    const bare: ContentItem = { title: 'Bare', type: 'movie', guids: [] }
+    expect(
+      router.evaluateCondition({ ...matchesYear, negate: true }, bare, context),
+    ).toBe(false)
+    expect(
+      router.evaluateCondition(
+        { ...matchesYear, operator: 'notEquals' },
+        bare,
+        context,
+      ),
+    ).toBe(false)
+  })
+
+  it('returns false for a negated operator the field does not allow', () => {
+    const result = router.evaluateCondition(
+      { field: 'year', operator: 'contains', value: 2020, negate: true },
+      item,
+      context,
+    )
+    expect(result).toBe(false)
+  })
+
+  it('returns false for a negated unsafe regex', () => {
+    const result = router.evaluateCondition(
+      // codeql[js/polynomial-redos] - Intentionally unsafe pattern for testing
+      { field: 'genres', operator: 'regex', value: '(a+)+$', negate: true },
+      item,
+      context,
+    )
+    expect(result).toBe(false)
+  })
+
   it.each([
     ['AND(true, unknown)', 'AND', [matchesYear, unknown], false, false],
     ['OR(false, unknown)', 'OR', [missesYear, unknown], false, false],

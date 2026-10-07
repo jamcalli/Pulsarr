@@ -1,5 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import pluginsFixture from '../../fixtures/content-router-plugins.json' with {
+  type: 'json',
+}
 import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import { seedConfig } from '../../helpers/seeds/config.js'
@@ -39,6 +42,28 @@ describe('Content Router Rules API', () => {
     target_instance_id: 1,
     condition: { operator: 'AND', conditions: [], negate: false },
   }
+
+  describe('evaluator plugin routes', () => {
+    it('lists the loaded evaluators', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/content-router/plugins',
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(response.json()).toEqual(pluginsFixture.plugins)
+    })
+
+    it('describes every evaluator field and operator', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/content-router/plugins/metadata',
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(response.json()).toEqual(pluginsFixture.metadata)
+    })
+  })
 
   describe('monitor field persistence', () => {
     it('persists monitor on create and returns it on subsequent GET', async () => {
@@ -815,6 +840,121 @@ describe('Content Router Rules API', () => {
       )
       expect(res.statusCode).toBe(201)
     })
+  })
+
+  describe('condition field validation', () => {
+    const postRule = (
+      rule: typeof radarrRule | typeof sonarrRule,
+      condition: Record<string, unknown>,
+    ) =>
+      app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...rule, condition },
+      })
+
+    it('rejects an unknown field', async () => {
+      const res = await postRule(radarrRule, {
+        field: 'genrez',
+        operator: 'contains',
+        value: 'Action',
+      })
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toContain('Unknown condition field "genrez"')
+    })
+
+    it('rejects an operator the field does not list', async () => {
+      const res = await postRule(radarrRule, {
+        field: 'year',
+        operator: 'regex',
+        value: '^19',
+      })
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toContain(
+        'Operator "regex" is not supported for field "year"',
+      )
+    })
+
+    it('rejects a field limited to the other instance type', async () => {
+      const res = await postRule(sonarrRule, {
+        operator: 'AND',
+        negate: false,
+        conditions: [
+          { field: 'movieStatus', operator: 'equals', value: 'released' },
+        ],
+      })
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toContain(
+        'Field "movieStatus" is not supported for sonarr rules',
+      )
+    })
+
+    it('rejects a bad operator on a leaf at depth 2', async () => {
+      const res = await postRule(radarrRule, {
+        operator: 'AND',
+        negate: false,
+        conditions: [
+          {
+            operator: 'OR',
+            negate: false,
+            conditions: [
+              {
+                operator: 'AND',
+                negate: false,
+                conditions: [
+                  { field: 'genres', operator: 'between', value: 'Action' },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toContain(
+        'Operator "between" is not supported for field "genres"',
+      )
+    })
+
+    it.each([
+      ['an unknown field', { field: 'genrez', operator: 'contains' }],
+      ['a disallowed operator', { field: 'year', operator: 'contains' }],
+    ])(
+      'lists and leaves unevaluated a stored rule with %s',
+      async (_label, pair) => {
+        const leaf = { ...pair, value: 'Action', negate: true }
+        await getTestDatabase()('router_rules').insert({
+          name: 'Stored Rule',
+          type: 'conditional',
+          target_type: 'radarr',
+          target_instance_id: 1,
+          tags: JSON.stringify([]),
+          order: 50,
+          enabled: true,
+          criteria: JSON.stringify({ condition: leaf }),
+        })
+
+        const res = await app.inject({
+          method: 'GET',
+          url: '/v1/content-router/rules',
+        })
+
+        expect(res.statusCode).toBe(200)
+        const [rule] = res.json().rules
+        expect(rule.condition).toEqual(leaf)
+        expect(
+          app.contentRouter.evaluateCondition(
+            rule.condition,
+            {
+              title: 'Movie',
+              type: 'movie',
+              guids: ['tmdb:1'],
+              genres: ['Drama'],
+            },
+            { userId: 1, contentType: 'movie', itemKey: 'stored-rule-key' },
+          ),
+        ).toBe(false)
+      },
+    )
   })
 
   describe('order validation', () => {

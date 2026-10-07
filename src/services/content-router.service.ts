@@ -1,6 +1,8 @@
-import { readdir } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema.js'
+import {
+  evaluatorMetadata,
+  ROUTER_EVALUATORS,
+} from '@root/schemas/content-router/router-fields.js'
 import type {
   ApprovalData,
   ApprovalRequest,
@@ -12,12 +14,9 @@ import type {
   Condition,
   ConditionGroup,
   ContentItem,
-  FieldInfo,
-  OperatorInfo,
   RoutingContext,
   RoutingDecision,
   RoutingDetails,
-  RoutingEvaluator,
   TargetInstancesResult,
 } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
@@ -25,20 +24,18 @@ import { isArrAlreadyAddedError } from '@utils/arr-error.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import { evaluateLeaf } from './content-router/conditions.js'
 import { enrichItemMetadata } from './content-router/enrichment.js'
 import { evaluateRules } from './content-router/rule-resolver.js'
 
 /**
  * ContentRouterService is responsible for routing content items to Radarr or Sonarr instances
- * based on configurable rule evaluators. It implements a flexible, pluggable routing system
- * where multiple evaluators can be loaded dynamically.
+ * based on configurable rule evaluators.
  *
  * The service loads routing evaluators, applies them to content items, and determines
  * which instances should receive the content based on priority-weighted decisions.
  */
 export class ContentRouterService {
-  private evaluators: RoutingEvaluator[] = []
-
   private rulesCache: Awaited<
     ReturnType<FastifyInstance['db']['getAllRouterRules']>
   > | null = null
@@ -89,57 +86,9 @@ export class ContentRouterService {
   }
 
   async initialize(): Promise<void> {
-    try {
-      const __filename = fileURLToPath(import.meta.url)
-      const __dirname = dirname(__filename)
-      const projectRoot = resolve(__dirname, '..')
-      const evaluatorsDir = join(projectRoot, 'router-evaluators')
-
-      this.log.debug({ evaluatorsDir }, 'Loading router evaluators')
-
-      const files = await readdir(evaluatorsDir)
-
-      for (const file of files) {
-        // Support both .ts (dev mode with Bun) and .js (production build)
-        if (file.endsWith('.js') || file.endsWith('.ts')) {
-          try {
-            // Import each evaluator file dynamically
-            const evaluatorPath = join(evaluatorsDir, file)
-            const evaluatorModule = await import(`file://${evaluatorPath}`)
-
-            // Each evaluator module should export a factory function that takes fastify as a parameter
-            if (typeof evaluatorModule.default === 'function') {
-              const evaluator = evaluatorModule.default(this.fastify)
-
-              // Validate the evaluator has all required methods and properties
-              if (this.isValidEvaluator(evaluator)) {
-                this.evaluators.push(evaluator)
-                this.log.debug(
-                  { evaluator: evaluator.name },
-                  'Loaded router evaluator',
-                )
-              } else {
-                this.log.warn(
-                  `Invalid evaluator found: ${file}, missing required methods or properties`,
-                )
-              }
-            }
-          } catch (err) {
-            this.log.error({ error: err }, `Error loading evaluator ${file}:`)
-          }
-        }
-      }
-
-      // Sort evaluators by priority (highest first) so they execute in priority order
-      this.evaluators.sort((a, b) => b.priority - a.priority)
-
-      this.log.info(
-        `Successfully loaded ${this.evaluators.length} router evaluators`,
-      )
-    } catch (error) {
-      this.log.error({ error }, 'Error initializing content router')
-      throw error
-    }
+    this.log.info(
+      `Successfully loaded ${ROUTER_EVALUATORS.length} router evaluators`,
+    )
   }
 
   /**
@@ -186,28 +135,6 @@ export class ContentRouterService {
     this.rulesCache = null
     this.rulesCachePromise = null
     this.log.debug('Router rules cache cleared')
-  }
-
-  /**
-   * Validates that an evaluator has all the required methods and properties.
-   * This type guard ensures we only load properly structured evaluators.
-   *
-   * @param evaluator - The potential evaluator to validate
-   * @returns true if the evaluator is valid, false otherwise
-   */
-  private isValidEvaluator(evaluator: unknown): evaluator is RoutingEvaluator {
-    return (
-      evaluator !== null &&
-      typeof evaluator === 'object' &&
-      'name' in evaluator &&
-      'description' in evaluator &&
-      'priority' in evaluator &&
-      'canEvaluate' in evaluator &&
-      typeof (evaluator as RoutingEvaluator).name === 'string' &&
-      typeof (evaluator as RoutingEvaluator).description === 'string' &&
-      typeof (evaluator as RoutingEvaluator).priority === 'number' &&
-      typeof (evaluator as RoutingEvaluator).canEvaluate === 'function'
-    )
   }
 
   /**
@@ -1034,40 +961,7 @@ export class ContentRouterService {
       return this.evaluateGroupCondition(condition, item, context)
     }
 
-    // For single conditions, find an evaluator that can handle this field
-    const { field } = condition as Condition
-
-    // First try to find an evaluator that explicitly handles this field
-    for (const evaluator of this.evaluators) {
-      if (
-        evaluator.evaluateCondition &&
-        evaluator.canEvaluateConditionField?.(field)
-      ) {
-        try {
-          const result = evaluator.evaluateCondition(condition, item, context)
-          return result
-        } catch (error) {
-          this.log.error(
-            {
-              error,
-              evaluator: evaluator.name,
-              field: condition.field,
-              itemGuids: item.guids,
-            },
-            'Evaluator condition evaluation failed (field-specific path)',
-          )
-          // Continue to next evaluator instead of failing routing
-        }
-      }
-    }
-
-    // No evaluator claims this field - most likely a typo'd field name in a
-    // saved rule, which would otherwise stop matching with no trace in the logs
-    this.log.warn(
-      { field },
-      `No evaluator can handle condition field "${field}" - condition evaluates to false`,
-    )
-    return null
+    return evaluateLeaf(condition, item, context, this.log)
   }
 
   /**
@@ -1277,36 +1171,15 @@ export class ContentRouterService {
     description: string
     priority: number
   }> {
-    return this.evaluators.map((e) => ({
-      name: e.name,
-      description: e.description,
-      priority: e.priority,
+    return ROUTER_EVALUATORS.map(({ name, description, priority }) => ({
+      name,
+      description,
+      priority,
     }))
   }
 
-  /**
-   * Returns detailed metadata about all loaded evaluators, including their supported
-   * fields and operators. This information is valuable for UIs that need to present
-   * rule creation options dynamically based on available evaluators.
-   *
-   * @returns Array of detailed evaluator metadata
-   */
-  getEvaluatorsMetadata(): Array<{
-    name: string
-    description: string
-    priority: number
-    supportedFields?: FieldInfo[]
-    supportedOperators?: Record<string, OperatorInfo[]>
-    contentType?: 'radarr' | 'sonarr' | 'both'
-  }> {
-    return this.evaluators.map((evaluator) => ({
-      name: evaluator.name,
-      description: evaluator.description,
-      priority: evaluator.priority,
-      supportedFields: evaluator.supportedFields || [],
-      supportedOperators: evaluator.supportedOperators || {},
-      contentType: evaluator.contentType || 'both',
-    }))
+  getEvaluatorsMetadata(): EvaluatorMetadata[] {
+    return evaluatorMetadata()
   }
 
   /**
