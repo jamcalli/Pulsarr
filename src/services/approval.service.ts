@@ -220,6 +220,7 @@ export class ApprovalService {
     reason?: string,
     expiresAt?: Date,
     plexKey?: string,
+    routerRuleId?: number,
   ): Promise<ApprovalRequest> {
     this.log.debug(
       `ApprovalService.createApprovalRequest called with content.title="${content.title}", content.guids=${JSON.stringify(content.guids)}, plexKey="${plexKey}"`,
@@ -239,6 +240,7 @@ export class ApprovalService {
       contentKey: contentKey,
       contentGuids: content.guids,
       routerDecision,
+      routerRuleId,
       triggeredBy: trigger,
       approvalReason: reason,
       expiresAt: calculatedExpiresAt?.toISOString() || null,

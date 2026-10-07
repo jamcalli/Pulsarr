@@ -105,20 +105,20 @@ function convertToInternalScale(
     return value
   }
 
-  const scaleFactor = 10 / userScale
+  const scale = (v: number) => Math.round(v * (10 / userScale) * 10) / 10
 
   if (isNumber(value)) {
-    return value * scaleFactor
+    return scale(value)
   }
 
   if (isNumberArray(value)) {
-    return value.map((v) => v * scaleFactor)
+    return value.map(scale)
   }
 
   if (isNumericRange(value)) {
     return {
-      min: value.min !== undefined ? value.min * scaleFactor : undefined,
-      max: value.max !== undefined ? value.max * scaleFactor : undefined,
+      min: value.min !== undefined ? scale(value.min) : undefined,
+      max: value.max !== undefined ? scale(value.max) : undefined,
     }
   }
 
@@ -264,8 +264,7 @@ export default function createRatingsEvaluator(
         if (compound.votes !== undefined) {
           const votes = item.imdb?.votes
           if (votes === null || votes === undefined) return false
-          if (!isValidRatingValue(compound.votes)) return false
-          if (!evaluateRatingCondition(votes, operator, compound.votes)) {
+          if (!isNumber(compound.votes) || votes < compound.votes) {
             return false
           }
         }

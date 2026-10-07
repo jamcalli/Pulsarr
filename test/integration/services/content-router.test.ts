@@ -170,6 +170,48 @@ describe('ContentRouterService Integration', () => {
       const result = await checkApproval(dramaMovie, movieContext, [])
       expect(result.required).toBe(false)
     })
+
+    it('ignores a higher matching rule with no target instance', async () => {
+      await getTestDatabase()('router_rules').insert({
+        name: 'Targetless Drama',
+        type: 'conditional',
+        target_type: 'radarr',
+        target_instance_id: null,
+        tags: JSON.stringify([]),
+        order: 90,
+        enabled: true,
+        always_require_approval: false,
+        exclude_from_routing: false,
+        criteria: JSON.stringify({
+          condition: {
+            negate: false,
+            operator: 'AND',
+            conditions: [
+              {
+                field: 'genres',
+                value: 'Drama',
+                negate: false,
+                operator: 'contains',
+              },
+            ],
+          },
+        }),
+      })
+      fastify.contentRouter.clearRouterRulesCache()
+
+      const result = await getCheckApproval()(
+        dramaMovie,
+        {
+          userId: 1,
+          userName: 'Test User',
+          contentType: 'movie',
+          itemKey: 'test-movie-key',
+        },
+        [],
+      )
+      expect(result.required).toBe(true)
+      expect(result.reason).toContain('Drama movies require approval')
+    })
   })
 
   describe('skipDefaultRoutingWhenNoMatch guard (per-instance)', () => {

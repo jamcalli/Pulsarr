@@ -73,51 +73,46 @@ export const GenreCriteriaSchema = z.object({
 })
 
 // Then define the value types
+const ConditionRangeSchema = z
+  .object({ min: z.number().optional(), max: z.number().optional() })
+  .strict()
+
+const BoundedConditionRangeSchema = ConditionRangeSchema.refine(
+  (v) => v.min !== undefined || v.max !== undefined,
+  { message: 'Range comparison requires at least min or max to be specified' },
+)
+
+const RatingComparisonValueSchema = z.union([
+  z.number(),
+  z.array(z.number()).min(1),
+  BoundedConditionRangeSchema,
+])
+
 // Schema for compound IMDB values (rating with optional votes)
 const ImdbCompoundValueSchema = z
   .object({
-    rating: z
-      .union([
-        z.number(),
-        z.array(z.number()).min(1),
-        z
-          .object({ min: z.number().optional(), max: z.number().optional() })
-          .refine((v) => v.min !== undefined || v.max !== undefined, {
-            message:
-              'Range comparison requires at least min or max to be specified',
-          }),
-      ])
-      .optional(),
-    votes: z
-      .union([
-        z.number(),
-        z.array(z.number()).min(1),
-        z
-          .object({ min: z.number().optional(), max: z.number().optional() })
-          .refine((v) => v.min !== undefined || v.max !== undefined, {
-            message:
-              'Range comparison requires at least min or max to be specified',
-          }),
-      ])
-      .optional(),
+    rating: RatingComparisonValueSchema.optional(),
+    votes: z.number().optional(),
   })
+  .strict()
   .refine((val) => val.rating !== undefined || val.votes !== undefined, {
     message: 'At least one of rating or votes must be provided',
   })
 
+const ScalarConditionValueSchemas = [
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.array(z.string()),
+  z.array(z.number()),
+  z.array(z.union([z.string(), z.number()])),
+] as const
+
 export const ConditionValueSchema = z
   .union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.array(z.string()),
-    z.array(z.number()),
-    UserCriteriaSchema,
-    GenreCriteriaSchema,
-    z.array(z.union([z.string(), z.number()])),
-    // Range object for "between" operator - validation handled by isNonEmptyValue in ConditionSchema
-    z.object({ min: z.number().optional(), max: z.number().optional() }),
+    ...ScalarConditionValueSchemas,
     ImdbCompoundValueSchema,
+    BoundedConditionRangeSchema,
     z.null(),
   ])
   .meta({
@@ -206,8 +201,16 @@ const isValidConditionGroup = (
   }
   visited.add(group)
 
+  if (group.operator !== 'AND' && group.operator !== 'OR') {
+    return false
+  }
+
   if (!group.conditions || group.conditions.length === 0) {
     return true // Allow empty conditions in base schema
+  }
+
+  if (group.conditions.length > 20) {
+    return false
   }
 
   return group.conditions.every((cond) => {
@@ -245,7 +248,7 @@ export const ConditionGroupSchema = z
   })
   .refine((group) => isValidConditionGroup(group), {
     message:
-      'Condition groups cannot contain circular references or exceed maximum nesting depth (20)',
+      'Condition groups must use AND or OR, hold at most 20 conditions, and cannot contain circular references or exceed maximum nesting depth (20)',
   })
   .meta({
     id: 'RouterConditionGroup',
@@ -261,7 +264,7 @@ export const BaseRouterRuleSchema = z.object({
   root_folder: z.string().optional(),
   quality_profile: z.union([z.number(), z.string()]).optional(),
   tags: z.array(z.string()).optional(),
-  order: z.number().optional(),
+  order: z.number().int().optional(),
   enabled: z.boolean().optional(),
   search_on_add: z.boolean().nullable().optional(),
   season_monitoring: SonarrSeasonMonitoringValueSchema.nullable()
@@ -350,8 +353,57 @@ export const ContentRouterRuleToggleSchema = z.object({
   enabled: z.boolean(),
 })
 
-// Response schemas
+const StoredRatingValueSchema = z.union([
+  z.number(),
+  z.array(z.number()),
+  ConditionRangeSchema,
+])
+
+const StoredConditionValueSchema = z.union([
+  ...ScalarConditionValueSchemas,
+  UserCriteriaSchema,
+  GenreCriteriaSchema,
+  z
+    .object({
+      rating: StoredRatingValueSchema.optional(),
+      votes: StoredRatingValueSchema.optional(),
+    })
+    .strict(),
+  ConditionRangeSchema,
+  z.null(),
+])
+
+const StoredConditionSchema = z.object({
+  field: z.string(),
+  operator: ComparisonOperatorSchema,
+  value: StoredConditionValueSchema,
+  negate: z.boolean().optional().default(false),
+  _cid: z.string().optional(),
+})
+
+const StoredConditionGroupSchema = z.object({
+  operator: z.enum(['AND', 'OR']),
+  conditions: z.array(
+    z.union([
+      StoredConditionSchema,
+      z.object({
+        operator: z.enum(['AND', 'OR']),
+        conditions: z.array(z.any()),
+        negate: z.boolean().optional().default(false),
+        _cid: z.string().optional(),
+      }),
+    ]),
+  ),
+  negate: z.boolean().optional().default(false),
+  _cid: z.string().optional(),
+})
+
+// Response schemas skip the request refinements so one stale stored row cannot fail the whole list
 export const RouterRuleSchema = BaseRouterRuleSchema.extend({
+  condition: z
+    .union([StoredConditionSchema, StoredConditionGroupSchema])
+    .optional(),
+  order: z.number().nullable(),
   id: z.number(),
   created_at: z.string(),
   updated_at: z.string(),

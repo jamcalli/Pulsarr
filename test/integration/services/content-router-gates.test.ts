@@ -517,6 +517,20 @@ describe('routeContent gates', () => {
       expect(decision.approval.proposedRouting.syncedInstances).toBeUndefined()
     })
 
+    it('stores the matched rule id on a router_rule approval request', async () => {
+      await seedComedyRule({ always_require_approval: true })
+
+      await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'decisions-rule-id-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      const requests = await getApprovalRequests()
+      expect(requests).toHaveLength(1)
+      expect(requests[0].router_rule_id).toBe(50)
+    })
+
     it('creates a quota_exceeded approval request instead of routing when over quota', async () => {
       await seedComedyRule()
       await seedUserQuota(getTestDatabase(), {
@@ -585,6 +599,25 @@ describe('routeContent gates', () => {
       // Higher order value wins; instance 2 matched twice but routes once
       expect(result.routedInstances).toEqual([2, 1])
       expect(routeItemToRadarr).toHaveBeenCalledTimes(2)
+    })
+
+    it('ranks an order 0 rule below an order 10 rule', async () => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({ id: 50, order: 0, target_instance_id: 1 })
+      await seedComedyRule({
+        id: 51,
+        name: 'Comedy Route Ten',
+        order: 10,
+        target_instance_id: 2,
+      })
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'decisions-order-zero-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([2, 1])
     })
   })
 

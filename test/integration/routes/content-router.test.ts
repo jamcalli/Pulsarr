@@ -569,4 +569,303 @@ describe('Content Router Rules API', () => {
       )
     })
   })
+
+  describe('IMDb compound condition values', () => {
+    const compound = { rating: 7, votes: 1000 }
+    const votesOnly = { votes: 1000 }
+
+    it('keeps rating and votes on a root-level condition', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...radarrRule,
+          condition: {
+            field: 'imdbRating',
+            operator: 'greaterThan',
+            value: compound,
+          },
+        },
+      })
+      expect(createRes.statusCode).toBe(201)
+      expect(createRes.json().rule.condition.value).toEqual(compound)
+    })
+
+    it('keeps rating and votes on a direct child of the root group', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...radarrRule,
+          condition: {
+            operator: 'AND',
+            negate: false,
+            conditions: [
+              {
+                field: 'imdbRating',
+                operator: 'greaterThan',
+                value: compound,
+              },
+              {
+                field: 'imdbRating',
+                operator: 'greaterThan',
+                value: votesOnly,
+              },
+            ],
+          },
+        },
+      })
+      expect(createRes.statusCode).toBe(201)
+      const [first, second] = createRes.json().rule.condition.conditions
+      expect(first.value).toEqual(compound)
+      expect(second.value).toEqual(votesOnly)
+    })
+
+    it.each([
+      ['an array', 400, [1000, 2000]],
+      ['a range', 400, { min: 1000 }],
+      ['a number', 201, 1000],
+    ])('answers votes as %s with %i', async (_label, status, votes) => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...radarrRule,
+          condition: {
+            field: 'imdbRating',
+            operator: 'greaterThan',
+            value: { rating: 7, votes },
+          },
+        },
+      })
+      expect(res.statusCode).toBe(status)
+    })
+  })
+
+  describe('criteria object values', () => {
+    it.each([
+      ['user', 'equals'],
+      ['genres', 'contains'],
+    ])('rejects an id and name object on %s', async (field, operator) => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...radarrRule,
+          condition: { field, operator, value: { id: 1, name: 'Action' } },
+        },
+      })
+      expect(res.statusCode).toBe(400)
+    })
+  })
+
+  describe('stored rules the request schema would reject', () => {
+    const insertStoredRule = (overrides: Record<string, unknown>) =>
+      getTestDatabase()('router_rules').insert({
+        name: 'Stored Rule',
+        type: 'conditional',
+        target_type: 'sonarr',
+        target_instance_id: 1,
+        root_folder: '/data/shows',
+        quality_profile: 1,
+        tags: JSON.stringify([]),
+        order: 50,
+        enabled: true,
+        ...overrides,
+      })
+
+    const storedCondition = (condition: Record<string, unknown>) =>
+      JSON.stringify({
+        condition: { operator: 'AND', negate: false, conditions: [condition] },
+      })
+
+    it('lists a rule whose regex fails the safety check', async () => {
+      await insertStoredRule({
+        criteria: storedCondition({
+          field: 'title',
+          operator: 'regex',
+          value: '(a+)+$',
+          negate: false,
+        }),
+      })
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/content-router/rules',
+      })
+
+      expect(res.statusCode).toBe(200)
+      const [rule] = res.json().rules
+      expect(rule.condition.conditions[0].value).toBe('(a+)+$')
+    })
+
+    it('lists a rule with an empty condition value and a NULL order', async () => {
+      await insertStoredRule({
+        order: null,
+        criteria: storedCondition({
+          field: 'imdbRating',
+          operator: 'greaterThan',
+          value: {},
+          negate: false,
+        }),
+      })
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/content-router/rules',
+      })
+
+      expect(res.statusCode).toBe(200)
+      const [rule] = res.json().rules
+      expect(rule.order).toBeNull()
+      expect(rule.condition.conditions[0].value).toEqual({})
+    })
+
+    it('lists a rule whose value is an id and name object', async () => {
+      const value = { id: 1, name: 'admin' }
+      await insertStoredRule({
+        criteria: storedCondition({
+          field: 'user',
+          operator: 'equals',
+          value,
+          negate: false,
+        }),
+      })
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/content-router/rules',
+      })
+
+      expect(res.statusCode).toBe(200)
+      const [rule] = res.json().rules
+      expect(rule.condition.conditions[0].value).toEqual(value)
+    })
+
+    it('lists a rule whose compound votes is a range', async () => {
+      const value = { rating: 7, votes: { min: 1000 } }
+      await insertStoredRule({
+        criteria: storedCondition({
+          field: 'imdbRating',
+          operator: 'greaterThan',
+          value,
+          negate: false,
+        }),
+      })
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/content-router/rules',
+      })
+
+      expect(res.statusCode).toBe(200)
+      const [rule] = res.json().rules
+      expect(rule.condition.conditions[0].value).toEqual(value)
+    })
+  })
+
+  describe('nested condition groups', () => {
+    const leaf = {
+      field: 'genres',
+      operator: 'contains',
+      value: 'Action',
+      negate: false,
+    }
+
+    const atDepthTwo = (group: Record<string, unknown>) => ({
+      operator: 'AND',
+      negate: false,
+      conditions: [{ operator: 'AND', negate: false, conditions: [group] }],
+    })
+
+    const postRule = (condition: Record<string, unknown>) =>
+      app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...radarrRule, condition },
+      })
+
+    it('rejects an unknown operator at depth 2', async () => {
+      const res = await postRule(
+        atDepthTwo({ operator: 'XOR', negate: false, conditions: [leaf] }),
+      )
+      expect(res.statusCode).toBe(400)
+    })
+
+    it('rejects more than 20 conditions at depth 2', async () => {
+      const res = await postRule(
+        atDepthTwo({
+          operator: 'AND',
+          negate: false,
+          conditions: Array.from({ length: 21 }, () => leaf),
+        }),
+      )
+      expect(res.statusCode).toBe(400)
+    })
+
+    it('accepts a valid group at depth 3', async () => {
+      const res = await postRule(
+        atDepthTwo({
+          operator: 'OR',
+          negate: false,
+          conditions: [
+            { operator: 'AND', negate: false, conditions: [leaf, leaf] },
+          ],
+        }),
+      )
+      expect(res.statusCode).toBe(201)
+    })
+  })
+
+  describe('order validation', () => {
+    it('rejects a fractional order on create', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...radarrRule, order: 50.5 },
+      })
+      expect(res.statusCode).toBe(400)
+    })
+
+    it('rejects a fractional order on update', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: radarrRule,
+      })
+      const res = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${createRes.json().rule.id}`,
+        payload: { ...radarrRule, order: 50.5 },
+      })
+      expect(res.statusCode).toBe(400)
+    })
+  })
+
+  describe('target instance existence', () => {
+    it('rejects a create that targets a missing instance', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...sonarrRule, target_instance_id: 999 },
+      })
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toBe('Target instance does not exist')
+    })
+
+    it('rejects an update that targets a missing instance', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: radarrRule,
+      })
+      const res = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${createRes.json().rule.id}`,
+        payload: { ...radarrRule, target_instance_id: 999 },
+      })
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toBe('Target instance does not exist')
+    })
+  })
 })

@@ -3230,44 +3230,15 @@ export interface components {
          */
         ConditionOperator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
         /** @description Value shapes accepted by router conditions */
-        ConditionValue: string | number | boolean | string[] | number[] | {
-            id: string | number;
-            name: string;
-        } | {
-            id: string | number;
-            name: string;
-        } | (string | number)[] | {
-            min?: number;
-            max?: number;
-        } | {
+        ConditionValue: string | number | boolean | string[] | number[] | (string | number)[] | {
             rating?: number | number[] | {
                 min?: number;
                 max?: number;
             };
-            votes?: number | number[] | {
-                min?: number;
-                max?: number;
-            };
-        } | null;
-        /** @description Value shapes accepted by router conditions */
-        ConditionValueOutput: string | number | boolean | string[] | number[] | {
-            id: string | number;
-            name: string;
+            votes?: number;
         } | {
-            id: string | number;
-            name: string;
-        } | (string | number)[] | {
             min?: number;
             max?: number;
-        } | {
-            rating?: number | number[] | {
-                min?: number;
-                max?: number;
-            };
-            votes?: number | number[] | {
-                min?: number;
-                max?: number;
-            };
         } | null;
         /** @description Complete application configuration; server-internal secrets are never included */
         Config: {
@@ -3947,31 +3918,6 @@ export interface components {
             negate?: boolean;
             _cid?: string;
         };
-        /** @description Boolean grouping of router conditions, nestable to 20 levels */
-        RouterConditionGroupOutput: {
-            /** @enum {string} */
-            operator: "AND" | "OR";
-            conditions: (components["schemas"]["RouterConditionOutput"] | {
-                /** @enum {string} */
-                operator: "AND" | "OR";
-                conditions: unknown[];
-                /** @default false */
-                negate: boolean;
-                _cid?: string;
-            })[];
-            /** @default false */
-            negate: boolean;
-            _cid?: string;
-        };
-        /** @description A single field comparison in a router rule */
-        RouterConditionOutput: {
-            field: string;
-            operator: components["schemas"]["ConditionOperator"];
-            value: components["schemas"]["ConditionValueOutput"];
-            /** @default false */
-            negate: boolean;
-            _cid?: string;
-        };
         /** @description Router outcome for a request, holding the routing used on approval */
         RouterDecision: {
             /** @enum {string} */
@@ -4001,11 +3947,75 @@ export interface components {
             name: string;
             target_type: components["schemas"]["InstanceType"];
             target_instance_id: number | null;
-            condition?: components["schemas"]["RouterConditionOutput"] | components["schemas"]["RouterConditionGroupOutput"];
+            condition?: {
+                field: string;
+                operator: components["schemas"]["ConditionOperator"];
+                value: string | number | boolean | string[] | number[] | (string | number)[] | {
+                    id: string | number;
+                    name: string;
+                } | {
+                    id: string | number;
+                    name: string;
+                } | {
+                    rating?: number | number[] | {
+                        min?: number;
+                        max?: number;
+                    };
+                    votes?: number | number[] | {
+                        min?: number;
+                        max?: number;
+                    };
+                } | {
+                    min?: number;
+                    max?: number;
+                } | null;
+                /** @default false */
+                negate: boolean;
+                _cid?: string;
+            } | {
+                /** @enum {string} */
+                operator: "AND" | "OR";
+                conditions: ({
+                    field: string;
+                    operator: components["schemas"]["ConditionOperator"];
+                    value: string | number | boolean | string[] | number[] | (string | number)[] | {
+                        id: string | number;
+                        name: string;
+                    } | {
+                        id: string | number;
+                        name: string;
+                    } | {
+                        rating?: number | number[] | {
+                            min?: number;
+                            max?: number;
+                        };
+                        votes?: number | number[] | {
+                            min?: number;
+                            max?: number;
+                        };
+                    } | {
+                        min?: number;
+                        max?: number;
+                    } | null;
+                    /** @default false */
+                    negate: boolean;
+                    _cid?: string;
+                } | {
+                    /** @enum {string} */
+                    operator: "AND" | "OR";
+                    conditions: unknown[];
+                    /** @default false */
+                    negate: boolean;
+                    _cid?: string;
+                })[];
+                /** @default false */
+                negate: boolean;
+                _cid?: string;
+            };
             root_folder?: string;
             quality_profile?: number | string;
             tags?: string[];
-            order?: number;
+            order: number | null;
             enabled?: boolean;
             search_on_add?: boolean | null;
             /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */

@@ -26,8 +26,8 @@ export function evaluateRegexSafely(
     return false
   }
 
-  // Pattern is safe, construct and test (with 'u' flag for consistency with validation)
-  const regex = new RegExp(pattern, 'u')
+  // u matches the validator's flags and i keeps every router match case-insensitive
+  const regex = new RegExp(pattern, 'iu')
   return regex.test(input)
 }
 
@@ -52,7 +52,7 @@ export function evaluateRegexSafelyMultiple(
     return false
   }
 
-  // Pattern is safe, construct and test (with 'u' flag for consistency with validation)
-  const regex = new RegExp(pattern, 'u')
+  // u matches the validator's flags and i keeps every router match case-insensitive
+  const regex = new RegExp(pattern, 'iu')
   return inputs.some((input) => regex.test(input))
 }

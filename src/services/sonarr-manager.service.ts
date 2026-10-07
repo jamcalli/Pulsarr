@@ -573,6 +573,7 @@ export class SonarrManagerService {
       this.log.warn(`No Sonarr service found for instance ${id}`)
       await this.fastify.db.deleteSonarrInstance(id)
     }
+    this.fastify.contentRouter.clearRouterRulesCache()
   }
 
   async updateInstance(
