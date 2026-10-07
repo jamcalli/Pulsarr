@@ -1,12 +1,23 @@
 import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import {
-  type MinimumAvailability,
-  RadarrMinimumAvailabilitySchema,
-  RadarrMonitorSchema,
-  type RadarrMonitorType,
+  RoutingMinimumAvailabilitySchema,
+  RoutingMonitorSchema,
+  RoutingQualityProfileSchema,
+  RoutingRootFolderSchema,
+  RoutingSearchOnAddSchema,
+  RoutingSeasonMonitoringSchema,
+  RoutingSeriesTypeSchema,
+  RoutingTagsSchema,
+} from '@root/schemas/common/routing-target.schema.js'
+import type {
+  MinimumAvailability,
+  RadarrMonitorType,
 } from '@root/schemas/radarr/add-options.schema.js'
-import { SonarrSeasonMonitoringValueSchema } from '@root/schemas/sonarr/season-monitoring.schema.js'
+import {
+  SONARR_SERIES_TYPES,
+  type SonarrSeriesType,
+} from '@root/schemas/sonarr/series-type.schema.js'
 /**
  * Webhook Payload Schemas
  *
@@ -54,25 +65,25 @@ const ApprovalTriggerSchema = z.enum([
 /** Base routing fields shared by both Radarr and Sonarr */
 const BaseRoutingFieldsSchema = z.object({
   instanceId: z.number(),
-  qualityProfile: z.union([z.number(), z.string()]).nullable(),
-  rootFolder: z.string().nullable(),
-  tags: z.array(z.string()),
-  searchOnAdd: z.boolean().nullable(),
+  qualityProfile: RoutingQualityProfileSchema,
+  rootFolder: RoutingRootFolderSchema,
+  tags: RoutingTagsSchema,
+  searchOnAdd: RoutingSearchOnAddSchema,
   syncedInstances: z.array(z.number()).optional(),
 })
 
 /** Radarr-specific routing - includes minimumAvailability and monitor, excludes Sonarr fields */
 export const RadarrRoutingPayloadSchema = BaseRoutingFieldsSchema.extend({
   instanceType: z.literal('radarr'),
-  minimumAvailability: RadarrMinimumAvailabilitySchema.nullable(),
-  monitor: RadarrMonitorSchema.nullable(),
+  minimumAvailability: RoutingMinimumAvailabilitySchema,
+  monitor: RoutingMonitorSchema,
 })
 
 /** Sonarr-specific routing - includes seasonMonitoring/seriesType, excludes Radarr fields */
 export const SonarrRoutingPayloadSchema = BaseRoutingFieldsSchema.extend({
   instanceType: z.literal('sonarr'),
-  seasonMonitoring: SonarrSeasonMonitoringValueSchema.nullable(),
-  seriesType: z.enum(['standard', 'anime', 'daily']).nullable(),
+  seasonMonitoring: RoutingSeasonMonitoringSchema,
+  seriesType: RoutingSeriesTypeSchema,
 })
 
 /** Discriminated union for routing - picks schema based on instanceType */
@@ -92,7 +103,7 @@ interface RoutingInput {
   minimumAvailability?: MinimumAvailability | null
   monitor?: RadarrMonitorType | null
   seasonMonitoring?: string | null
-  seriesType?: 'standard' | 'anime' | 'daily' | null
+  seriesType?: SonarrSeriesType | null
   syncedInstances?: number[]
 }
 
@@ -133,28 +144,28 @@ export function buildRoutingPayload(
 export const RadarrRoutedToItemSchema = z.object({
   instanceId: z.number(),
   instanceType: z.literal('radarr'),
-  qualityProfile: z.union([z.number(), z.string()]).optional(),
-  rootFolder: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  searchOnAdd: z.boolean().optional(),
+  qualityProfile: RoutingQualityProfileSchema.unwrap().optional(),
+  rootFolder: RoutingRootFolderSchema.unwrap().optional(),
+  tags: RoutingTagsSchema.optional(),
+  searchOnAdd: RoutingSearchOnAddSchema.unwrap().optional(),
   ruleId: z.number().optional(),
   ruleName: z.string().optional(),
-  minimumAvailability: RadarrMinimumAvailabilitySchema.optional(),
-  monitor: RadarrMonitorSchema.optional(),
+  minimumAvailability: RoutingMinimumAvailabilitySchema.unwrap().optional(),
+  monitor: RoutingMonitorSchema.unwrap().optional(),
 })
 
 /** Sonarr routing for routedTo arrays (with optional rule info) */
 export const SonarrRoutedToItemSchema = z.object({
   instanceId: z.number(),
   instanceType: z.literal('sonarr'),
-  qualityProfile: z.union([z.number(), z.string()]).optional(),
-  rootFolder: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  searchOnAdd: z.boolean().optional(),
+  qualityProfile: RoutingQualityProfileSchema.unwrap().optional(),
+  rootFolder: RoutingRootFolderSchema.unwrap().optional(),
+  tags: RoutingTagsSchema.optional(),
+  searchOnAdd: RoutingSearchOnAddSchema.unwrap().optional(),
   ruleId: z.number().optional(),
   ruleName: z.string().optional(),
-  seasonMonitoring: SonarrSeasonMonitoringValueSchema.optional(),
-  seriesType: z.enum(['standard', 'anime', 'daily']).optional(),
+  seasonMonitoring: RoutingSeasonMonitoringSchema.unwrap().optional(),
+  seriesType: RoutingSeriesTypeSchema.unwrap().optional(),
 })
 
 /** Discriminated union for routedTo items */
@@ -177,26 +188,6 @@ interface RoutedToInput {
   monitor?: RadarrMonitorType | null
   seasonMonitoring?: string | null
   seriesType?: string | null
-}
-
-/** Valid series type values */
-type SeriesType = 'standard' | 'anime' | 'daily'
-
-/**
- * Type guard for valid series type values.
- */
-function isValidSeriesType(value: string): value is SeriesType {
-  return value === 'standard' || value === 'anime' || value === 'daily'
-}
-
-/**
- * Normalizes seriesType to valid enum value or undefined.
- */
-function normalizeSeriesType(
-  value: string | null | undefined,
-): SeriesType | undefined {
-  if (value === null || value === undefined) return undefined
-  return isValidSeriesType(value) ? value : undefined
 }
 
 /**
@@ -232,7 +223,7 @@ export function buildRoutedToItem(
     ruleId: detail.ruleId,
     ruleName: detail.ruleName,
     seasonMonitoring: detail.seasonMonitoring ?? undefined,
-    seriesType: normalizeSeriesType(detail.seriesType),
+    seriesType: SONARR_SERIES_TYPES.find((type) => type === detail.seriesType),
   }
 }
 

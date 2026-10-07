@@ -1,3 +1,4 @@
+import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 import type {
   ExistenceCheckResult,
   HealthCheckResult,
@@ -949,7 +950,7 @@ export class SonarrService {
     overrideTags?: string[],
     overrideSearchOnAdd?: boolean | null,
     overrideSeasonMonitoring?: string | null,
-    overrideSeriesType?: 'standard' | 'anime' | 'daily' | null,
+    overrideSeriesType?: SonarrSeriesType | null,
     overrideCreateSeasonFolders?: boolean | null,
   ): Promise<number> {
     const config = this.sonarrConfig

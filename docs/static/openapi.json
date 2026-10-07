@@ -281,12 +281,7 @@
           "seriesType": {
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "standard",
-                  "anime",
-                  "daily"
-                ]
+                "$ref": "#/components/schemas/SonarrSeriesType"
               },
               {
                 "type": "null"
@@ -370,12 +365,7 @@
           "seriesType": {
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "standard",
-                  "anime",
-                  "daily"
-                ]
+                "$ref": "#/components/schemas/SonarrSeriesType"
               },
               {
                 "type": "null"
@@ -3717,12 +3707,16 @@
             ]
           },
           "root_folder": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "quality_profile": {
             "type": [
               "number",
-              "string"
+              "string",
+              "null"
             ]
           },
           "tags": {
@@ -3761,12 +3755,7 @@
             "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "standard",
-                  "anime",
-                  "daily"
-                ]
+                "$ref": "#/components/schemas/SonarrSeriesType"
               },
               {
                 "type": "null"
@@ -3874,12 +3863,32 @@
             ]
           },
           "root_folder": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "quality_profile": {
-            "type": [
-              "number",
-              "string"
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\d+$"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "tags": {
@@ -3917,12 +3926,7 @@
             "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "standard",
-                  "anime",
-                  "daily"
-                ]
+                "$ref": "#/components/schemas/SonarrSeriesType"
               },
               {
                 "type": "null"
@@ -4023,6 +4027,15 @@
           }
         ],
         "description": "A SonarrSeasonMonitoring option, or a legacy value already stored on the record"
+      },
+      "SonarrSeriesType": {
+        "type": "string",
+        "enum": [
+          "standard",
+          "anime",
+          "daily"
+        ],
+        "description": "How Sonarr numbers episodes when adding a series"
       },
       "SonarrShowWithEnrollment": {
         "type": "object",
@@ -16279,12 +16292,7 @@
                       },
                       "seriesType": {
                         "default": "standard",
-                        "type": "string",
-                        "enum": [
-                          "standard",
-                          "anime",
-                          "daily"
-                        ]
+                        "$ref": "#/components/schemas/SonarrSeriesType"
                       },
                       "skipDefaultRoutingWhenNoMatch": {
                         "default": false,
@@ -16409,12 +16417,7 @@
                   },
                   "seriesType": {
                     "default": "standard",
-                    "type": "string",
-                    "enum": [
-                      "standard",
-                      "anime",
-                      "daily"
-                    ]
+                    "$ref": "#/components/schemas/SonarrSeriesType"
                   },
                   "skipDefaultRoutingWhenNoMatch": {
                     "default": false,
@@ -16570,12 +16573,7 @@
                     }
                   },
                   "seriesType": {
-                    "type": "string",
-                    "enum": [
-                      "standard",
-                      "anime",
-                      "daily"
-                    ]
+                    "$ref": "#/components/schemas/SonarrSeriesType"
                   },
                   "skipDefaultRoutingWhenNoMatch": {
                     "type": "boolean"
@@ -22927,12 +22925,7 @@
                               "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
                             },
                             "seriesType": {
-                              "type": "string",
-                              "enum": [
-                                "standard",
-                                "anime",
-                                "daily"
-                              ]
+                              "$ref": "#/components/schemas/SonarrSeriesType"
                             }
                           },
                           "required": [
@@ -23296,12 +23289,7 @@
                           "seriesType": {
                             "anyOf": [
                               {
-                                "type": "string",
-                                "enum": [
-                                  "standard",
-                                  "anime",
-                                  "daily"
-                                ]
+                                "$ref": "#/components/schemas/SonarrSeriesType"
                               },
                               {
                                 "type": "null"
@@ -23604,12 +23592,7 @@
                           "seriesType": {
                             "anyOf": [
                               {
-                                "type": "string",
-                                "enum": [
-                                  "standard",
-                                  "anime",
-                                  "daily"
-                                ]
+                                "$ref": "#/components/schemas/SonarrSeriesType"
                               },
                               {
                                 "type": "null"
@@ -23882,12 +23865,7 @@
                           "seriesType": {
                             "anyOf": [
                               {
-                                "type": "string",
-                                "enum": [
-                                  "standard",
-                                  "anime",
-                                  "daily"
-                                ]
+                                "$ref": "#/components/schemas/SonarrSeriesType"
                               },
                               {
                                 "type": "null"

@@ -3,18 +3,24 @@ import {
   type InstanceType,
   InstanceTypeSchema,
 } from '@root/schemas/common/instance-type.schema.js'
-import { SERIES_TYPES } from '@root/schemas/content-router/constants.js'
+import {
+  RoutingMonitorSchema,
+  RoutingQualityProfileInputSchema,
+  RoutingQualityProfileSchema,
+  RoutingRootFolderInputSchema,
+  RoutingRootFolderSchema,
+  RoutingSearchOnAddSchema,
+  RoutingSeasonMonitoringSchema,
+  RoutingSeriesTypeSchema,
+  RoutingTagsSchema,
+} from '@root/schemas/common/routing-target.schema.js'
 import {
   fieldAllowsOperator,
   isRouterField,
   ROUTER_FIELDS,
 } from '@root/schemas/content-router/router-fields.js'
-import { RadarrMonitorSchema } from '@root/schemas/radarr/add-options.schema.js'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
-import { SonarrSeasonMonitoringValueSchema } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import { z } from 'zod'
-
-export { SERIES_TYPES }
 
 /**
  * Determines whether a value should be treated as "non-empty" for validation.
@@ -308,26 +314,21 @@ export const BaseRouterRuleSchema = z.object({
   target_type: InstanceTypeSchema,
   target_instance_id: z.number().min(1).nullable(),
   condition: z.union([ConditionSchema, ConditionGroupSchema]).optional(),
-  root_folder: z.string().optional(),
-  quality_profile: z.union([z.number(), z.string()]).optional(),
-  tags: z.array(z.string()).optional(),
+  root_folder: RoutingRootFolderInputSchema.optional(),
+  quality_profile: RoutingQualityProfileSchema.optional(),
+  tags: RoutingTagsSchema.optional(),
   order: z.number().int().optional(),
   enabled: z.boolean().optional(),
-  search_on_add: z.boolean().nullable().optional(),
-  season_monitoring: SonarrSeasonMonitoringValueSchema.nullable()
-    .optional()
-    .meta({
-      description:
-        'Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.',
-    }),
-  series_type: z
-    .enum(SERIES_TYPES)
-    .nullable()
-    .optional()
-    .describe(
+  search_on_add: RoutingSearchOnAddSchema.optional(),
+  season_monitoring: RoutingSeasonMonitoringSchema.optional().meta({
+    description:
+      'Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.',
+  }),
+  series_type: RoutingSeriesTypeSchema.optional().meta({
+    description:
       'Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.',
-    ),
-  monitor: RadarrMonitorSchema.nullable().optional().meta({
+  }),
+  monitor: RoutingMonitorSchema.optional().meta({
     description:
       'Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.',
   }),
@@ -349,21 +350,10 @@ export const ContentRouterPluginsResponseSchema = z.object({
   ),
 })
 
-// Accepts numeric strings from API clients; unparseable strings become null
-const QualityProfileInputSchema = z
-  .union([z.number(), z.string()])
-  .optional()
-  .transform((val) => {
-    if (val === undefined || typeof val === 'number') return val
-    const parsed = Number.parseInt(val, 10)
-    return Number.isFinite(parsed) ? parsed : null
-  })
-  .pipe(z.number().nullable().optional())
-
 // Schema for creating or replacing a rule. PUT is a full replace, so one
 // schema owns every cross-field invariant for both verbs
 export const ContentRouterRuleSchema = BaseRouterRuleSchema.extend({
-  quality_profile: QualityProfileInputSchema,
+  quality_profile: RoutingQualityProfileInputSchema.optional(),
 })
   .refine((v) => v.target_type !== 'radarr' || v.season_monitoring == null, {
     message: 'season_monitoring field is not supported for Radarr rules',
@@ -457,6 +447,7 @@ const StoredConditionGroupSchema = z.object({
 
 // Response schemas skip the request refinements so one stale stored row cannot fail the whole list
 export const RouterRuleSchema = BaseRouterRuleSchema.extend({
+  root_folder: RoutingRootFolderSchema.optional(),
   condition: z
     .union([StoredConditionSchema, StoredConditionGroupSchema])
     .optional(),

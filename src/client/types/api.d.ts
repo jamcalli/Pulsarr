@@ -3163,7 +3163,7 @@ export interface components {
             priority: number;
             searchOnAdd?: boolean | null;
             seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
-            seriesType?: ("standard" | "anime" | "daily") | null;
+            seriesType?: components["schemas"]["SonarrSeriesType"] | null;
             minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
             monitor?: components["schemas"]["RadarrMonitor"] | null;
             syncedInstances?: number[];
@@ -3178,7 +3178,7 @@ export interface components {
             priority: number;
             searchOnAdd?: boolean | null;
             seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
-            seriesType?: ("standard" | "anime" | "daily") | null;
+            seriesType?: components["schemas"]["SonarrSeriesType"] | null;
             minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
             monitor?: components["schemas"]["RadarrMonitor"] | null;
             syncedInstances?: number[];
@@ -4017,8 +4017,8 @@ export interface components {
                 negate: boolean;
                 _cid?: string;
             };
-            root_folder?: string;
-            quality_profile?: number | string;
+            root_folder?: string | null;
+            quality_profile?: number | string | null;
             tags?: string[];
             order: number | null;
             enabled?: boolean;
@@ -4026,7 +4026,7 @@ export interface components {
             /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
             season_monitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
             /** @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error. */
-            series_type?: ("standard" | "anime" | "daily") | null;
+            series_type?: components["schemas"]["SonarrSeriesType"] | null;
             /** @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error. */
             monitor?: components["schemas"]["RadarrMonitor"] | null;
             always_require_approval?: boolean;
@@ -4049,8 +4049,8 @@ export interface components {
             target_type: components["schemas"]["InstanceType"];
             target_instance_id: number | null;
             condition?: components["schemas"]["RouterCondition"] | components["schemas"]["RouterConditionGroup"];
-            root_folder?: string;
-            quality_profile?: number | string;
+            root_folder?: string | null;
+            quality_profile?: (number | string) | null;
             tags?: string[];
             order?: number;
             enabled?: boolean;
@@ -4058,7 +4058,7 @@ export interface components {
             /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
             season_monitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
             /** @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error. */
-            series_type?: ("standard" | "anime" | "daily") | null;
+            series_type?: components["schemas"]["SonarrSeriesType"] | null;
             /** @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error. */
             monitor?: components["schemas"]["RadarrMonitor"] | null;
             always_require_approval?: boolean;
@@ -4084,6 +4084,11 @@ export interface components {
         SonarrSeasonMonitoring: "all" | "future" | "missing" | "existing" | "recent" | "pilot" | "firstSeason" | "lastSeason" | "monitorSpecials" | "unmonitorSpecials" | "none" | "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling" | "unknown" | "latestSeason" | "skip";
         /** @description A SonarrSeasonMonitoring option, or a legacy value already stored on the record */
         SonarrSeasonMonitoringValue: components["schemas"]["SonarrSeasonMonitoring"] | string;
+        /**
+         * @description How Sonarr numbers episodes when adding a series
+         * @enum {string}
+         */
+        SonarrSeriesType: "standard" | "anime" | "daily";
         /** @description Pulsarr-tracked Sonarr show with its rolling monitoring enrollment status */
         SonarrShowWithEnrollment: {
             watchlistId: number;
@@ -10310,11 +10315,8 @@ export interface operations {
                         /** @default false */
                         isDefault: boolean;
                         syncedInstances?: number[];
-                        /**
-                         * @default standard
-                         * @enum {string}
-                         */
-                        seriesType: "standard" | "anime" | "daily";
+                        /** @default standard */
+                        seriesType: components["schemas"]["SonarrSeriesType"];
                         /** @default false */
                         skipDefaultRoutingWhenNoMatch: boolean;
                         id: number;
@@ -10366,11 +10368,8 @@ export interface operations {
                     /** @default false */
                     isDefault?: boolean;
                     syncedInstances?: number[];
-                    /**
-                     * @default standard
-                     * @enum {string}
-                     */
-                    seriesType?: "standard" | "anime" | "daily";
+                    /** @default standard */
+                    seriesType?: components["schemas"]["SonarrSeriesType"];
                     /** @default false */
                     skipDefaultRoutingWhenNoMatch?: boolean;
                 };
@@ -10453,8 +10452,7 @@ export interface operations {
                     tags?: string[];
                     isDefault?: boolean;
                     syncedInstances?: number[];
-                    /** @enum {string} */
-                    seriesType?: "standard" | "anime" | "daily";
+                    seriesType?: components["schemas"]["SonarrSeriesType"];
                     skipDefaultRoutingWhenNoMatch?: boolean;
                 };
             };
@@ -14138,8 +14136,7 @@ export interface operations {
                         ruleId?: number;
                         ruleName?: string;
                         seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
-                        /** @enum {string} */
-                        seriesType?: "standard" | "anime" | "daily";
+                        seriesType?: components["schemas"]["SonarrSeriesType"];
                     })[];
                 };
             };
@@ -14282,7 +14279,7 @@ export interface operations {
                         /** @constant */
                         instanceType: "sonarr";
                         seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
-                        seriesType: ("standard" | "anime" | "daily") | null;
+                        seriesType: components["schemas"]["SonarrSeriesType"] | null;
                     };
                 };
             };
@@ -14387,7 +14384,7 @@ export interface operations {
                         /** @constant */
                         instanceType: "sonarr";
                         seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
-                        seriesType: ("standard" | "anime" | "daily") | null;
+                        seriesType: components["schemas"]["SonarrSeriesType"] | null;
                     };
                 };
             };
@@ -14476,7 +14473,7 @@ export interface operations {
                         /** @constant */
                         instanceType: "sonarr";
                         seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
-                        seriesType: ("standard" | "anime" | "daily") | null;
+                        seriesType: components["schemas"]["SonarrSeriesType"] | null;
                     };
                     reason: string;
                 };

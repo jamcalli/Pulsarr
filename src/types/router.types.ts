@@ -3,6 +3,7 @@ import type {
   MinimumAvailability,
   RadarrMonitorType,
 } from '@root/schemas/radarr/add-options.schema.js'
+import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
@@ -47,7 +48,7 @@ export interface RouterRule {
   metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
   search_on_add?: boolean | null
   season_monitoring?: string | null
-  series_type?: 'standard' | 'anime' | 'daily' | null
+  series_type?: SonarrSeriesType | null
   monitor?: RadarrMonitorType | null
   // Actions - approval behavior
   always_require_approval?: boolean
@@ -89,7 +90,7 @@ export interface RoutingDecision {
   priority: number // Higher number = higher priority
   searchOnAdd?: boolean | null // Whether to automatically search when added
   seasonMonitoring?: string | null // For Sonarr: which seasons to monitor
-  seriesType?: 'standard' | 'anime' | 'daily' | null // For Sonarr: series type
+  seriesType?: SonarrSeriesType | null
   minimumAvailability?: MinimumAvailability
   monitor?: RadarrMonitorType | null
   /**
@@ -116,7 +117,7 @@ export interface RoutingDetails {
   minimumAvailability?: MinimumAvailability | null
   monitor?: RadarrMonitorType | null
   seasonMonitoring?: string | null
-  seriesType?: string | null
+  seriesType?: SonarrSeriesType | null
   ruleId?: number
   ruleName?: string
 }
@@ -138,7 +139,7 @@ export interface SonarrRouteSettings {
   tags?: string[]
   searchOnAdd?: boolean | null
   seasonMonitoring?: string | null
-  seriesType?: 'standard' | 'anime' | 'daily' | null
+  seriesType?: SonarrSeriesType | null
 }
 
 export type RouteSettings = RadarrRouteSettings & SonarrRouteSettings
@@ -162,7 +163,7 @@ export interface AppliedSonarrRouting {
   tags: string[]
   searchOnAdd: boolean
   seasonMonitoring: string
-  seriesType: 'standard' | 'anime' | 'daily'
+  seriesType: SonarrSeriesType
 }
 
 // Condition system types

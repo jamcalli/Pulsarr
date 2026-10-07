@@ -1,5 +1,6 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { SonarrSeasonMonitoringValueSchema } from '@root/schemas/sonarr/season-monitoring.schema.js'
+import { SonarrSeriesTypeSchema } from '@root/schemas/sonarr/series-type.schema.js'
 import { z } from 'zod'
 
 // Base Sonarr instance schema for creation (with defaults)
@@ -17,10 +18,7 @@ export const SonarrInstanceSchema = z.object({
   tags: z.array(z.string()).optional().default([]),
   isDefault: z.boolean().optional().default(false),
   syncedInstances: z.array(z.number()).optional(),
-  seriesType: z
-    .enum(['standard', 'anime', 'daily'])
-    .optional()
-    .default('standard'),
+  seriesType: SonarrSeriesTypeSchema.optional().default('standard'),
   skipDefaultRoutingWhenNoMatch: z.boolean().optional().default(false),
 })
 
@@ -39,7 +37,7 @@ export const SonarrInstanceUpdateSchema = z.object({
   tags: z.array(z.string()).optional(),
   isDefault: z.boolean().optional(),
   syncedInstances: z.array(z.number()).optional(),
-  seriesType: z.enum(['standard', 'anime', 'daily']).optional(),
+  seriesType: SonarrSeriesTypeSchema.optional(),
   skipDefaultRoutingWhenNoMatch: z.boolean().optional(),
 })
 

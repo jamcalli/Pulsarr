@@ -248,35 +248,32 @@ describe('Content Router Rules API', () => {
       expect(res.statusCode).toBe(201)
     })
 
-    it('coerces string quality_profile to a number', async () => {
+    it('coerces a numeric quality_profile string to a number', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/v1/content-router/rules',
-        payload: { ...radarrRule, quality_profile: '5' },
+        payload: { ...radarrRule, quality_profile: '3' },
       })
       expect(res.statusCode).toBe(201)
-      expect(res.json().rule.quality_profile).toBe(5)
+      expect(res.json().rule.quality_profile).toBe(3)
 
       const knex = getTestDatabase()
       const row = await knex('router_rules')
         .where({ id: res.json().rule.id })
         .first()
-      expect(row.quality_profile).toBe(5)
+      expect(row.quality_profile).toBe(3)
     })
 
-    it('stores null for unparseable quality_profile strings', async () => {
+    it('rejects a non-numeric quality_profile string', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/v1/content-router/rules',
-        payload: { ...radarrRule, quality_profile: 'not-a-number' },
+        payload: { ...radarrRule, quality_profile: 'abc' },
       })
-      expect(res.statusCode).toBe(201)
-
-      const knex = getTestDatabase()
-      const row = await knex('router_rules')
-        .where({ id: res.json().rule.id })
-        .first()
-      expect(row.quality_profile).toBeNull()
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toContain(
+        'Quality profile must be a positive whole number.',
+      )
     })
 
     it('clears sonarr fields when a rule switches to radarr', async () => {
@@ -521,29 +518,6 @@ describe('Content Router Rules API', () => {
       expect(row.root_folder).toBeNull()
     })
 
-    it('rejects null quality_profile and root_folder in update payloads', async () => {
-      const createRes = await app.inject({
-        method: 'POST',
-        url: '/v1/content-router/rules',
-        payload: { ...sonarrRule },
-      })
-      const id = createRes.json().rule.id
-
-      const putRes = await app.inject({
-        method: 'PUT',
-        url: `/v1/content-router/rules/${id}`,
-        payload: {
-          ...sonarrRule,
-          exclude_from_routing: true,
-          target_instance_id: null,
-          quality_profile: null,
-          root_folder: null,
-        },
-      })
-      expect(putRes.statusCode).toBe(400)
-      expect(putRes.json().message).toMatch(/quality_profile|root_folder/)
-    })
-
     it('rejects an exclude update that keeps a target instance', async () => {
       const createRes = await app.inject({
         method: 'POST',
@@ -592,6 +566,115 @@ describe('Content Router Rules API', () => {
       expect(putRes.json().message).toContain(
         'target_instance_id is required unless exclude_from_routing is true',
       )
+    })
+  })
+
+  describe('inherit on quality profile and root folder', () => {
+    const pinned = {
+      ...radarrRule,
+      quality_profile: 5,
+      root_folder: '/data/movies',
+      tags: ['10'],
+      search_on_add: false,
+      monitor: 'movieAndCollection',
+    }
+
+    it.each(['quality_profile', 'root_folder'] as const)(
+      'stores and returns a null %s as null',
+      async (field) => {
+        const createRes = await app.inject({
+          method: 'POST',
+          url: '/v1/content-router/rules',
+          payload: { ...radarrRule, [field]: null },
+        })
+        expect(createRes.statusCode).toBe(201)
+        const id = createRes.json().rule.id
+        expect(createRes.json().rule[field]).toBeNull()
+
+        const knex = getTestDatabase()
+        const row = await knex('router_rules').where({ id }).first()
+        expect(row[field]).toBeNull()
+
+        const getRes = await app.inject({
+          method: 'GET',
+          url: `/v1/content-router/rules/${id}`,
+        })
+        expect(getRes.json().rule[field]).toBeNull()
+      },
+    )
+
+    it('rejects an empty root_folder', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...radarrRule, root_folder: '' },
+      })
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toContain('Root folder cannot be empty.')
+    })
+
+    it('round-trips a pinned payload unchanged', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: pinned,
+      })
+      expect(createRes.statusCode).toBe(201)
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: pinned,
+      })
+      expect(putRes.statusCode).toBe(200)
+
+      const getRes = await app.inject({
+        method: 'GET',
+        url: `/v1/content-router/rules/${id}`,
+      })
+      expect(getRes.json().rule).toMatchObject({
+        quality_profile: 5,
+        root_folder: '/data/movies',
+        tags: ['10'],
+        search_on_add: false,
+        monitor: 'movieAndCollection',
+      })
+    })
+
+    it('keeps inherit values sent on a PUT', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: pinned,
+      })
+      const id = createRes.json().rule.id
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: {
+          ...pinned,
+          quality_profile: null,
+          root_folder: null,
+          search_on_add: null,
+          monitor: null,
+        },
+      })
+      expect(putRes.statusCode).toBe(200)
+      expect(putRes.json().rule).toMatchObject({
+        quality_profile: null,
+        root_folder: null,
+        search_on_add: null,
+        monitor: null,
+      })
+
+      const knex = getTestDatabase()
+      const row = await knex('router_rules').where({ id }).first()
+      expect(row.quality_profile).toBeNull()
+      expect(row.root_folder).toBeNull()
+      expect(row.search_on_add).toBeNull()
+      expect(row.monitor).toBeNull()
     })
   })
 

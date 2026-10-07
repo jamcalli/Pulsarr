@@ -55,12 +55,7 @@ export async function createAutoApprovalRecord(
       priority: 50,
       searchOnAdd: applied.searchOnAdd,
       seasonMonitoring: applied.seasonMonitoring,
-      seriesType: applied.seriesType as
-        | 'standard'
-        | 'anime'
-        | 'daily'
-        | null
-        | undefined,
+      seriesType: applied.seriesType,
       minimumAvailability: applied.minimumAvailability ?? undefined,
       monitor: applied.monitor,
       syncedInstances:
