@@ -95,4 +95,28 @@ describe('user-evaluator', () => {
       ).toBe(false)
     })
   })
+
+  describe('regex', () => {
+    it('matches a lowercase pattern against a mixed-case name', () => {
+      expect(
+        evaluate(
+          { field: 'user', operator: 'regex', value: '^admin$' },
+          9,
+          'AdMin',
+        ),
+      ).toBe(true)
+    })
+
+    it('does not match an unsafe pattern', () => {
+      // codeql[js/polynomial-redos] - Intentionally unsafe pattern for testing
+      const unsafePattern = '(a+)+$'
+      expect(
+        evaluate(
+          { field: 'user', operator: 'regex', value: unsafePattern },
+          9,
+          'aaaa',
+        ),
+      ).toBe(false)
+    })
+  })
 })

@@ -41,10 +41,10 @@ describe('genre-evaluator', () => {
       ).toBe(true)
     })
 
-    it('does not match a lowercased pattern', () => {
+    it('matches a lowercased pattern', () => {
       expect(
         evaluate({ field: 'genres', operator: 'regex', value: '^action$' }),
-      ).toBe(false)
+      ).toBe(true)
     })
   })
 

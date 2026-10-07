@@ -182,10 +182,15 @@ describe('evaluateRegexSafely', () => {
       expect(evaluateRegexSafely('test', 'another', logger, 'test')).toBe(false)
     })
 
-    it('should match case-sensitive patterns', () => {
+    it('should match regardless of case', () => {
       const logger = createMockLogger()
-      expect(evaluateRegexSafely('Test', 'test', logger, 'test')).toBe(false)
-      expect(evaluateRegexSafely('Test', 'Test', logger, 'test')).toBe(true)
+      expect(evaluateRegexSafely('Test', 'test', logger, 'test')).toBe(true)
+      expect(evaluateRegexSafely('^action$', 'Action', logger, 'test')).toBe(
+        true,
+      )
+      expect(evaluateRegexSafely('^ACTION$', 'action', logger, 'test')).toBe(
+        true,
+      )
     })
 
     it('should match with regex flags in pattern', () => {
@@ -449,6 +454,26 @@ describe('evaluateRegexSafelyMultiple', () => {
         evaluateRegexSafelyMultiple(
           'test',
           ['foo', 'bar', 'test'],
+          logger,
+          'test',
+        ),
+      ).toBe(true)
+    })
+
+    it('should match regardless of case', () => {
+      const logger = createMockLogger()
+      expect(
+        evaluateRegexSafelyMultiple(
+          '^action$',
+          ['Drama', 'Action'],
+          logger,
+          'test',
+        ),
+      ).toBe(true)
+      expect(
+        evaluateRegexSafelyMultiple(
+          '^ACTION$',
+          ['drama', 'action'],
           logger,
           'test',
         ),

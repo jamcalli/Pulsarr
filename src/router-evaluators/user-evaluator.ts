@@ -6,6 +6,7 @@ import type {
   RoutingContext,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
+import { evaluateRegexSafely } from '@utils/regex-safety.js'
 import type { FastifyInstance } from 'fastify'
 
 /**
@@ -133,7 +134,7 @@ export default function createUserEvaluator(
    * @param pattern - The regular expression pattern to match against.
    * @returns `true` if the username matches the pattern; otherwise, `false`.
    *
-   * @remark Returns `false` if the username is undefined, the pattern is not a string, or the pattern is an invalid regular expression.
+   * @remark Returns `false` if the username is undefined, the pattern is not a string, or the pattern is unsafe or invalid.
    */
   function userMatchesRegex(
     userName: string | undefined,
@@ -143,13 +144,7 @@ export default function createUserEvaluator(
       return false
     }
 
-    try {
-      const regex = new RegExp(pattern)
-      return regex.test(userName)
-    } catch (error) {
-      fastify.log.error({ error }, `Invalid regex pattern: ${pattern}`)
-      return false
-    }
+    return evaluateRegexSafely(pattern, userName, fastify.log, 'user condition')
   }
 
   return {
