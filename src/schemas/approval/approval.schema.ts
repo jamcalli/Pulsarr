@@ -42,6 +42,7 @@ export const ApprovalRoutingSchema = z
     minimumAvailability: RadarrMinimumAvailabilitySchema.optional(),
     monitor: RoutingMonitorSchema.optional(),
     syncedInstances: z.array(z.number()).optional(),
+    ruleId: z.number().optional(),
   })
   .meta({
     id: 'ApprovalRouting',
@@ -73,6 +74,7 @@ export const RouterDecisionSchema = z
         triggeredBy: ApprovalTriggerSchema,
         data: ApprovalQuotaDataSchema,
         proposedRouting: ApprovalRoutingSchema.optional(),
+        additionalRouting: z.array(ApprovalRoutingSchema).optional(),
       })
       .optional(),
   })

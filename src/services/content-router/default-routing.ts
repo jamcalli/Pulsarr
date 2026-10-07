@@ -1,3 +1,4 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type {
   ContentItem,
   RoutingDecision,
@@ -87,6 +88,13 @@ export async function getDefaultInstanceIds(
   const defaultInstance = await db[source.getDefault]()
   if (!defaultInstance) {
     logger.warn(`No default ${source.label} instance found`)
+    return { instanceIds: [] }
+  }
+
+  if (defaultInstance.apiKey === ARR_API_KEY_PLACEHOLDER) {
+    logger.warn(
+      `Default ${source.label} instance "${defaultInstance.name}" is not set up, skipping default routing`,
+    )
     return { instanceIds: [] }
   }
 

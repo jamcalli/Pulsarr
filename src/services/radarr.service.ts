@@ -1,3 +1,4 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type {
   MinimumAvailability,
   RadarrMonitorType,
@@ -455,7 +456,7 @@ export class RadarrService {
     this.instanceId = instance.id
 
     // Skip webhook setup for placeholder credentials
-    if (instance.apiKey === 'placeholder') {
+    if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {
       this.log.info(
         `Basic initialization only for ${instance.name} (placeholder credentials)`,
       )

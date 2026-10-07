@@ -1,14 +1,13 @@
 import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type {
   ContentItem,
-  RouterRule,
   RoutingContext,
   RoutingDecision,
 } from '@root/types/router.types.js'
 import {
+  approvalRoutingFor,
   checkApprovalRequirements,
   checkExistingApprovalRequest,
-  proposedRoutingFor,
 } from '@services/content-router/approval-checks.js'
 import { describe, expect, it, vi } from 'vitest'
 import { echoAppliedRadarr } from '../../../mocks/applied-routing.js'
@@ -28,23 +27,17 @@ const context: RoutingContext = {
   itemKey: 'key',
 }
 
-const rule = (overrides: Partial<RouterRule>): RouterRule => ({
-  id: 1,
-  name: 'Drama',
-  type: 'conditional',
-  criteria: {
-    condition: { field: 'genres', operator: 'contains', value: 'Drama' },
-  },
-  target_type: 'radarr',
-  target_instance_id: 1,
-  order: 50,
-  enabled: true,
-  created_at: '2026-01-01T00:00:00Z',
-  updated_at: '2026-01-01T00:00:00Z',
+const ruleDecision = (
+  overrides: Partial<RoutingDecision>,
+): RoutingDecision => ({
+  instanceId: 1,
+  priority: 50,
+  ruleId: 1,
+  ruleName: 'Drama',
   ...overrides,
 })
 
-const approvalDeps = (rules: RouterRule[], user: object | null = {}) =>
+const approvalDeps = (user: object | null = {}) =>
   createContentRouterDeps({
     db: {
       getUser: vi
@@ -53,21 +46,22 @@ const approvalDeps = (rules: RouterRule[], user: object | null = {}) =>
           user && { id: 1, name: 'User 1', requires_approval: false, ...user },
         ),
     },
-    rules: { get: vi.fn().mockResolvedValue(rules) },
   })
 
 describe('checkApprovalRequirements', () => {
-  it('requires approval when the first matching rule demands it', async () => {
-    const deps = approvalDeps([
-      rule({
-        id: 7,
-        always_require_approval: true,
-        bypass_user_quotas: true,
-        approval_reason: 'Drama needs review',
+  it('requires approval when the first decision demands it', async () => {
+    const decisions = [
+      ruleDecision({
+        ruleId: 7,
+        alwaysRequireApproval: true,
+        bypassUserQuotas: true,
+        approvalReason: 'Drama needs review',
       }),
-    ])
+    ]
 
-    expect(await checkApprovalRequirements(item, context, deps)).toEqual({
+    expect(
+      await checkApprovalRequirements(context, decisions, approvalDeps()),
+    ).toEqual({
       required: true,
       reason: 'Drama needs review',
       trigger: 'router_rule',
@@ -80,73 +74,108 @@ describe('checkApprovalRequirements', () => {
     })
   })
 
-  it('stops at the first matching rule that does not require approval', async () => {
-    const deps = approvalDeps([
-      rule({ id: 1 }),
-      rule({ id: 2, always_require_approval: true }),
-    ])
+  it('requires approval when a lower decision demands it', async () => {
+    const decisions = [
+      ruleDecision({ ruleId: 1 }),
+      ruleDecision({
+        ruleId: 2,
+        ruleName: 'Lower',
+        alwaysRequireApproval: true,
+      }),
+      ruleDecision({
+        ruleId: 3,
+        ruleName: 'Lowest',
+        alwaysRequireApproval: true,
+      }),
+    ]
 
-    expect(await checkApprovalRequirements(item, context, deps)).toEqual({
-      required: false,
-      data: { quotasBypassedByRule: false },
+    expect(
+      await checkApprovalRequirements(context, decisions, approvalDeps()),
+    ).toEqual({
+      required: true,
+      reason: 'Approval required by router rule: Lower',
+      trigger: 'router_rule',
+      data: {
+        ruleId: 2,
+        criteriaType: 'router_rule',
+        criteriaValue: 'Lower',
+        quotasBypassedByRule: false,
+      },
     })
   })
 
-  it('skips disabled, exclude and targetless rules', async () => {
-    const deps = approvalDeps([
-      rule({ enabled: false, always_require_approval: true }),
-      rule({ exclude_from_routing: true, always_require_approval: true }),
-      rule({ target_instance_id: null, always_require_approval: true }),
-      rule({ target_type: 'sonarr', always_require_approval: true }),
-    ])
+  it('records a quota bypass from any decision', async () => {
+    const decisions = [
+      ruleDecision({ ruleId: 1 }),
+      ruleDecision({ ruleId: 2, bypassUserQuotas: true }),
+    ]
 
-    expect(await checkApprovalRequirements(item, context, deps)).toEqual({
+    expect(
+      await checkApprovalRequirements(context, decisions, approvalDeps()),
+    ).toEqual({
+      required: false,
+      data: { quotasBypassedByRule: true },
+    })
+  })
+
+  it('needs neither approval nor a bypass from plain decisions', async () => {
+    expect(
+      await checkApprovalRequirements(
+        context,
+        [ruleDecision({})],
+        approvalDeps(),
+      ),
+    ).toEqual({
       required: false,
       data: { quotasBypassedByRule: false },
     })
   })
 
   it('falls back to the user approval flag', async () => {
-    const deps = approvalDeps([], { requires_approval: true })
-
-    expect(await checkApprovalRequirements(item, context, deps)).toMatchObject({
+    expect(
+      await checkApprovalRequirements(
+        context,
+        [],
+        approvalDeps({ requires_approval: true }),
+      ),
+    ).toMatchObject({
       required: true,
       trigger: 'manual_flag',
     })
   })
 
-  it('never requires approval while syncing', async () => {
-    const deps = approvalDeps([rule({ always_require_approval: true })])
-
+  it('carries a decision quota bypass on the user approval flag', async () => {
     expect(
       await checkApprovalRequirements(
-        item,
-        { ...context, syncing: true },
-        deps,
+        context,
+        [ruleDecision({ bypassUserQuotas: true })],
+        approvalDeps({ requires_approval: true }),
       ),
-    ).toEqual({ required: false })
+    ).toMatchObject({
+      required: true,
+      trigger: 'manual_flag',
+      data: { quotasBypassedByRule: true },
+    })
   })
 
-  it('propagates a failed rules read', async () => {
-    const deps = createContentRouterDeps({
-      db: { getUser: vi.fn().mockResolvedValue({ id: 1, name: 'User 1' }) },
-      rules: { get: vi.fn().mockRejectedValue(new Error('db')) },
-    })
-
-    await expect(
-      checkApprovalRequirements(item, context, deps),
-    ).rejects.toThrow('db')
+  it('never requires approval while syncing', async () => {
+    expect(
+      await checkApprovalRequirements(
+        { ...context, syncing: true },
+        [ruleDecision({ alwaysRequireApproval: true })],
+        approvalDeps(),
+      ),
+    ).toEqual({ required: false })
   })
 
   it('propagates a failed user read', async () => {
     const deps = createContentRouterDeps({
       db: { getUser: vi.fn().mockRejectedValue(new Error('db')) },
-      rules: { get: vi.fn().mockResolvedValue([]) },
     })
 
-    await expect(
-      checkApprovalRequirements(item, context, deps),
-    ).rejects.toThrow('db')
+    await expect(checkApprovalRequirements(context, [], deps)).rejects.toThrow(
+      'db',
+    )
   })
 })
 
@@ -231,7 +260,7 @@ describe('checkExistingApprovalRequest', () => {
   })
 })
 
-describe('proposedRoutingFor', () => {
+describe('approvalRoutingFor', () => {
   const decision: RoutingDecision = {
     instanceId: 3,
     qualityProfile: '5',
@@ -242,30 +271,72 @@ describe('proposedRoutingFor', () => {
     seriesType: 'anime',
   }
 
-  it('is undefined without a primary decision', () => {
-    expect(proposedRoutingFor(undefined, 'show', [2])).toBeUndefined()
+  it('is empty without a primary decision', () => {
+    expect(approvalRoutingFor([], 'show', [2])).toEqual({})
   })
 
   it('maps the primary decision and drops an empty synced list', () => {
-    expect(proposedRoutingFor(decision, 'show', [])).toEqual({
-      instanceId: 3,
-      instanceType: 'sonarr',
-      qualityProfile: '5',
-      rootFolder: '/tv',
-      tags: ['a'],
-      priority: 60,
-      searchOnAdd: undefined,
-      seasonMonitoring: 'all',
-      seriesType: 'anime',
-      minimumAvailability: undefined,
-      monitor: undefined,
-      syncedInstances: undefined,
+    expect(
+      approvalRoutingFor([{ ...decision, ruleId: 6 }], 'show', []),
+    ).toEqual({
+      proposedRouting: {
+        instanceId: 3,
+        instanceType: 'sonarr',
+        qualityProfile: '5',
+        rootFolder: '/tv',
+        tags: ['a'],
+        priority: 60,
+        searchOnAdd: undefined,
+        seasonMonitoring: 'all',
+        seriesType: 'anime',
+        minimumAvailability: undefined,
+        monitor: undefined,
+        ruleId: 6,
+        syncedInstances: undefined,
+      },
     })
   })
 
-  it('carries the synced tail', () => {
+  it('carries the synced tail and never treats it as additional routing', () => {
+    const result = approvalRoutingFor(
+      [decision, { ...decision, instanceId: 4 }],
+      'show',
+      [4],
+    )
+    expect(result.proposedRouting?.syncedInstances).toEqual([4])
+    expect(result.additionalRouting).toBeUndefined()
+  })
+
+  it('stores the rule tail as additional routing, first decision per instance', () => {
+    const result = approvalRoutingFor(
+      [
+        decision,
+        {
+          ...decision,
+          instanceId: 4,
+          rootFolder: '/four',
+          priority: 40,
+          ruleId: 8,
+        },
+        { ...decision, instanceId: 3, rootFolder: '/dup', priority: 30 },
+        { ...decision, instanceId: 4, rootFolder: '/four-dup', priority: 20 },
+      ],
+      'show',
+      undefined,
+    )
+    expect(result.proposedRouting?.syncedInstances).toBeUndefined()
+    expect(result.additionalRouting).toEqual([
+      expect.objectContaining({
+        instanceId: 4,
+        rootFolder: '/four',
+        ruleId: 8,
+      }),
+    ])
+  })
+
+  it('stores no additional routing for a single rule decision', () => {
     expect(
-      proposedRoutingFor(decision, 'show', [4, 5])?.syncedInstances,
-    ).toEqual([4, 5])
+      approvalRoutingFor([decision], 'show', undefined).additionalRouting,
+    ).toBeUndefined()
   })
 })

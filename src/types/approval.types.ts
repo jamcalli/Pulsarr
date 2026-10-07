@@ -85,6 +85,7 @@ export interface RouterDecision {
     minimumAvailability?: MinimumAvailability
     monitor?: RadarrMonitorType | null
     syncedInstances?: number[]
+    ruleId?: number
   }
 
   // Approval-specific fields (when action === 'require_approval')
@@ -94,6 +95,8 @@ export interface RouterDecision {
     data: ApprovalData
     // What routing WOULD have been applied
     proposedRouting?: RouterDecision['routing']
+    /** Independently matched rule targets beyond the primary, each routed with its own settings. */
+    additionalRouting?: NonNullable<RouterDecision['routing']>[]
   }
 }
 

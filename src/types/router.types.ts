@@ -101,6 +101,9 @@ export interface RoutingDecision {
    * Name of the router rule that produced this decision (for logging)
    */
   ruleName?: string
+  alwaysRequireApproval?: boolean
+  bypassUserQuotas?: boolean
+  approvalReason?: string | null
 }
 
 /**

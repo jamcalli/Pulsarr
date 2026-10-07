@@ -10,7 +10,27 @@ export interface AutoApprovalParams {
   item: ContentItem
   context: RoutingContext
   applied: RoutingDetails
+  additionalApplied: RoutingDetails[]
   syncedInstances: number[] | undefined
+}
+
+function toApprovalRouting(
+  applied: RoutingDetails,
+): NonNullable<RouterDecision['routing']> {
+  return {
+    instanceId: applied.instanceId,
+    instanceType: applied.instanceType,
+    qualityProfile: applied.qualityProfile,
+    rootFolder: applied.rootFolder,
+    tags: applied.tags,
+    priority: 50,
+    searchOnAdd: applied.searchOnAdd,
+    seasonMonitoring: applied.seasonMonitoring,
+    seriesType: applied.seriesType,
+    minimumAvailability: applied.minimumAvailability ?? undefined,
+    monitor: applied.monitor,
+    ruleId: applied.ruleId,
+  }
 }
 
 /** Never throws, because an audit row must not undo a completed add. */
@@ -18,7 +38,7 @@ export async function createAutoApprovalRecord(
   params: AutoApprovalParams,
   deps: Pick<ContentRouterDeps, 'logger' | 'db' | 'progress' | 'notifications'>,
 ): Promise<void> {
-  const { item, context, applied, syncedInstances } = params
+  const { item, context, applied, additionalApplied, syncedInstances } = params
   const { logger } = deps
   try {
     if (context.syncing) {
@@ -46,23 +66,17 @@ export async function createAutoApprovalRecord(
 
     const userId = context.userId || 0
 
-    const proposedRouting: NonNullable<RouterDecision['routing']> = {
-      instanceId: applied.instanceId,
-      instanceType: applied.instanceType,
-      qualityProfile: applied.qualityProfile,
-      rootFolder: applied.rootFolder,
-      tags: applied.tags,
-      priority: 50,
-      searchOnAdd: applied.searchOnAdd,
-      seasonMonitoring: applied.seasonMonitoring,
-      seriesType: applied.seriesType,
-      minimumAvailability: applied.minimumAvailability ?? undefined,
-      monitor: applied.monitor,
+    const proposedRouting = {
+      ...toApprovalRouting(applied),
       syncedInstances:
         syncedInstances && syncedInstances.length > 0
           ? syncedInstances
           : undefined,
     }
+    const additionalRouting =
+      additionalApplied.length > 0
+        ? additionalApplied.map(toApprovalRouting)
+        : undefined
 
     const approvalRequest = await deps.db.createApprovalRequest({
       userId,
@@ -76,7 +90,8 @@ export async function createAutoApprovalRecord(
           data: {},
           reason: 'Auto-added (no approval required)',
           triggeredBy: 'content_criteria',
-          proposedRouting: proposedRouting,
+          proposedRouting,
+          additionalRouting,
         },
       },
       triggeredBy: 'content_criteria',

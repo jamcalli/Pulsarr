@@ -9,7 +9,6 @@ import type {
   RoutingDecision,
 } from '@root/types/router.types.js'
 import { routeUsingApprovedDecision } from './approved-routing.js'
-import { evaluateCondition } from './conditions.js'
 import {
   type ContentRouterDeps,
   notRouted,
@@ -82,12 +81,12 @@ export async function checkExistingApprovalRequest(
   }
 }
 
+/** Decisions must be the resolved rule matches in priority order, highest first. */
 export async function checkApprovalRequirements(
-  item: ContentItem,
   context: RoutingContext,
-  deps: Pick<ContentRouterDeps, 'logger' | 'db' | 'rules'>,
+  decisions: RoutingDecision[],
+  deps: Pick<ContentRouterDeps, 'db'>,
 ): Promise<ApprovalRequirement> {
-  const { logger } = deps
   if (context.syncing) {
     return { required: false }
   }
@@ -101,61 +100,27 @@ export async function checkApprovalRequirements(
     return { required: false }
   }
 
-  const allRouterRules = await deps.rules.get()
-  const expectedTargetType =
-    context.contentType === 'movie' ? 'radarr' : 'sonarr'
-  let quotasBypassedByRule = false
+  const quotasBypassedByRule = decisions.some(
+    (decision) => decision.bypassUserQuotas,
+  )
+  const approvalDecision = decisions.find(
+    (decision) => decision.alwaysRequireApproval,
+  )
 
-  for (const rule of allRouterRules) {
-    if (!rule.enabled) continue
-    if (rule.target_type !== expectedTargetType) continue
-    if (rule.exclude_from_routing) continue
-    if (rule.target_instance_id == null) continue
-
-    if (rule.criteria && typeof rule.criteria === 'object') {
-      if (!rule.criteria.condition) {
-        logger.error(
-          `Router rule ${rule.id} ("${rule.name}") has no condition in criteria - skipping`,
-        )
-        continue
-      }
-      const condition = rule.criteria.condition
-      const matches = evaluateCondition(condition, item, context, logger)
-
-      if (matches) {
-        if (rule.bypass_user_quotas) {
-          quotasBypassedByRule = true
-        }
-
-        if (rule.always_require_approval) {
-          return {
-            required: true,
-            reason:
-              rule.approval_reason ||
-              `Approval required by router rule: ${rule.name}`,
-            trigger: 'router_rule',
-            data: {
-              ruleId: rule.id,
-              criteriaType: 'router_rule',
-              criteriaValue: rule.name,
-              // processApprovedRequest reads this to skip quota recording
-              quotasBypassedByRule,
-            },
-          }
-        } else {
-          logger.debug(
-            {
-              scope: 'checkApprovalRequirements',
-              ruleName: rule.name,
-              ruleWeight: rule.order,
-              ruleId: rule.id,
-              itemTitle: item.title,
-            },
-            'Router rule bypassing approval for item',
-          )
-          break
-        }
-      }
+  if (approvalDecision) {
+    return {
+      required: true,
+      reason:
+        approvalDecision.approvalReason ||
+        `Approval required by router rule: ${approvalDecision.ruleName}`,
+      trigger: 'router_rule',
+      data: {
+        ruleId: approvalDecision.ruleId,
+        criteriaType: 'router_rule',
+        criteriaValue: approvalDecision.ruleName,
+        // processApprovedRequest reads this to skip quota recording
+        quotasBypassedByRule,
+      },
     }
   }
 
@@ -167,6 +132,7 @@ export async function checkApprovalRequirements(
       data: {
         criteriaType: 'user_requires_approval',
         criteriaValue: user.name,
+        quotasBypassedByRule,
       },
     }
   }
@@ -177,31 +143,64 @@ export async function checkApprovalRequirements(
   }
 }
 
-/** Pass syncedInstances only when the tail is sync expansion from default, never independent rule decisions. */
-export function proposedRoutingFor(
-  primary: RoutingDecision | undefined,
+function toApprovalRouting(
+  decision: RoutingDecision,
+  contentType: 'movie' | 'show',
+): NonNullable<RouterDecision['routing']> {
+  return {
+    instanceId: decision.instanceId,
+    instanceType: contentType === 'movie' ? 'radarr' : 'sonarr',
+    qualityProfile: decision.qualityProfile,
+    rootFolder: decision.rootFolder,
+    tags: decision.tags,
+    priority: decision.priority,
+    searchOnAdd: decision.searchOnAdd,
+    seasonMonitoring: decision.seasonMonitoring,
+    seriesType: decision.seriesType,
+    minimumAvailability: decision.minimumAvailability,
+    monitor: decision.monitor,
+    ruleId: decision.ruleId,
+  }
+}
+
+type ApprovalRoutingProposal = Pick<
+  NonNullable<RouterDecision['approval']>,
+  'proposedRouting' | 'additionalRouting'
+>
+
+/** Pass syncedInstances only when the tail is sync expansion from default, otherwise the tail becomes additionalRouting. */
+export function approvalRoutingFor(
+  decisions: RoutingDecision[],
   contentType: 'movie' | 'show',
   syncedInstances: number[] | undefined,
-): RouterDecision['routing'] {
+): ApprovalRoutingProposal {
+  const [primary, ...rest] = decisions
   if (!primary) {
-    return undefined
+    return {}
   }
 
-  return {
-    instanceId: primary.instanceId,
-    instanceType: contentType === 'movie' ? 'radarr' : 'sonarr',
-    qualityProfile: primary.qualityProfile,
-    rootFolder: primary.rootFolder,
-    tags: primary.tags,
-    priority: primary.priority,
-    searchOnAdd: primary.searchOnAdd,
-    seasonMonitoring: primary.seasonMonitoring,
-    seriesType: primary.seriesType,
-    minimumAvailability: primary.minimumAvailability,
-    monitor: primary.monitor,
+  const proposedRouting = {
+    ...toApprovalRouting(primary, contentType),
     syncedInstances:
       syncedInstances && syncedInstances.length > 0
         ? syncedInstances
         : undefined,
+  }
+  if (syncedInstances !== undefined) {
+    return { proposedRouting }
+  }
+
+  // first decision per instance wins, matching execution order
+  const seen = new Set([primary.instanceId])
+  const additionalRouting = rest.flatMap((decision) => {
+    if (seen.has(decision.instanceId)) return []
+    seen.add(decision.instanceId)
+    return [toApprovalRouting(decision, contentType)]
+  })
+
+  return {
+    proposedRouting,
+    additionalRouting:
+      additionalRouting.length > 0 ? additionalRouting : undefined,
   }
 }

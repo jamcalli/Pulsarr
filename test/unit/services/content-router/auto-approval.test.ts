@@ -42,6 +42,7 @@ const params = (
   item,
   context,
   applied,
+  additionalApplied: [],
   syncedInstances: undefined,
   ...overrides,
 })
@@ -114,6 +115,40 @@ describe('createAutoApprovalRecord', () => {
     expect(createApprovalRequest).toHaveBeenCalledWith(
       expect.objectContaining({ routerRuleId: 7 }),
     )
+    expect(
+      createApprovalRequest.mock.calls[0][0].routerDecision.approval
+        .proposedRouting.ruleId,
+    ).toBe(7)
+  })
+
+  it('stores every applied routing after the first as additional routing', async () => {
+    const { deps, createApprovalRequest } = autoDeps()
+
+    await createAutoApprovalRecord(
+      params({
+        additionalApplied: [
+          { ...applied, instanceId: 5, rootFolder: '/b', ruleId: 9 },
+        ],
+      }),
+      deps,
+    )
+
+    const decision =
+      createApprovalRequest.mock.calls[0][0].routerDecision.approval
+    expect(decision.proposedRouting.instanceId).toBe(2)
+    expect(decision.additionalRouting).toEqual([
+      expect.objectContaining({ instanceId: 5, rootFolder: '/b', ruleId: 9 }),
+    ])
+  })
+
+  it('stores no additional routing for a single instance', async () => {
+    const { deps, createApprovalRequest } = autoDeps()
+
+    await createAutoApprovalRecord(params(), deps)
+
+    const decision =
+      createApprovalRequest.mock.calls[0][0].routerDecision.approval
+    expect(decision.additionalRouting).toBeUndefined()
   })
 
   it('stores no rule for default routing', async () => {

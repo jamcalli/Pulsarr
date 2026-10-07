@@ -1,3 +1,4 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type { WebhookResyncInstanceResult } from '@root/schemas/config/resync-arr-webhooks.schema.js'
 import type {
   MinimumAvailability,
@@ -241,6 +242,9 @@ export class RadarrManagerService {
       const instance = await this.fastify.db.getRadarrInstance(targetInstanceId)
       if (!instance) {
         throw new Error(`Radarr instance ${targetInstanceId} not found`)
+      }
+      if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {
+        throw new Error(`Radarr instance "${instance.name}" is not set up`)
       }
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
@@ -507,7 +511,8 @@ export class RadarrManagerService {
 
       // API key transitions
       const isPlaceholderToReal =
-        current.apiKey === 'placeholder' && candidate.apiKey !== 'placeholder'
+        current.apiKey === ARR_API_KEY_PLACEHOLDER &&
+        candidate.apiKey !== ARR_API_KEY_PLACEHOLDER
       const apiKeyChanged = current.apiKey !== candidate.apiKey
       const needsNewService =
         baseUrlChanged || isPlaceholderToReal || apiKeyChanged
@@ -542,9 +547,14 @@ export class RadarrManagerService {
         // Clean up old webhook only when server actually changed
         // Skip cleanup when transitioning from placeholder credentials (no real webhook existed)
         const toPlaceholder =
-          current.apiKey !== 'placeholder' && candidate.apiKey === 'placeholder'
+          current.apiKey !== ARR_API_KEY_PLACEHOLDER &&
+          candidate.apiKey === ARR_API_KEY_PLACEHOLDER
 
-        if (serverChanged && oldService && current.apiKey !== 'placeholder') {
+        if (
+          serverChanged &&
+          oldService &&
+          current.apiKey !== ARR_API_KEY_PLACEHOLDER
+        ) {
           try {
             await oldService.removeWebhook()
           } catch (cleanupErr) {
@@ -630,7 +640,7 @@ export class RadarrManagerService {
 
     return Promise.all(
       instances
-        .filter((instance) => instance.apiKey !== 'placeholder')
+        .filter((instance) => instance.apiKey !== ARR_API_KEY_PLACEHOLDER)
         .map((instance) =>
           limit(async (): Promise<WebhookResyncInstanceResult> => {
             // old service still holds the prior baseUrl/port, so this deletes the stale webhook name

@@ -1,3 +1,4 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type {
   RadarrInstance,
   Item as RadarrItem,
@@ -13,7 +14,7 @@ const INSTANCE: RadarrInstance = {
   id: 1,
   name: 'Test Radarr',
   baseUrl: 'http://radarr.test',
-  apiKey: 'placeholder',
+  apiKey: 'test-api-key',
   bypassIgnored: false,
   tags: [],
   isDefault: true,
@@ -123,9 +124,10 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
   let service: RadarrService
   let manager: RadarrManagerService
   let addToRadarr: Mock<RadarrService['addToRadarr']>
+  let db: Partial<DatabaseService>
 
   beforeEach(() => {
-    const db: Partial<DatabaseService> = {
+    db = {
       getRadarrInstance: vi.fn<DatabaseService['getRadarrInstance']>(
         async () => ({
           ...INSTANCE,
@@ -207,5 +209,16 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
       'released',
       'movieOnly',
     )
+  })
+
+  it('refuses an instance that is not set up without calling it', async () => {
+    db.getRadarrInstance = vi.fn<DatabaseService['getRadarrInstance']>(
+      async () => ({ ...INSTANCE, apiKey: ARR_API_KEY_PLACEHOLDER }),
+    )
+
+    await expect(manager.routeItemToRadarr(item, 'key', 2, 1)).rejects.toThrow(
+      'is not set up',
+    )
+    expect(addToRadarr).not.toHaveBeenCalled()
   })
 })

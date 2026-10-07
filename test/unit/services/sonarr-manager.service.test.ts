@@ -1,3 +1,4 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type { SonarrInstance, SonarrItem } from '@root/types/sonarr.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { SonarrService } from '@services/sonarr.service.js'
@@ -10,7 +11,7 @@ const INSTANCE: SonarrInstance = {
   id: 1,
   name: 'Test Sonarr',
   baseUrl: 'http://sonarr.test',
-  apiKey: 'placeholder',
+  apiKey: 'test-api-key',
   bypassIgnored: false,
   seasonMonitoring: 'all',
   monitorNewItems: 'all',
@@ -122,9 +123,10 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
   let service: SonarrService
   let manager: SonarrManagerService
   let addToSonarr: Mock<SonarrService['addToSonarr']>
+  let db: Partial<DatabaseService>
 
   beforeEach(() => {
-    const db: Partial<DatabaseService> = {
+    db = {
       getSonarrInstance: vi.fn<DatabaseService['getSonarrInstance']>(
         async () => ({
           ...INSTANCE,
@@ -206,5 +208,16 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
       'all',
       'daily',
     )
+  })
+
+  it('refuses an instance that is not set up without calling it', async () => {
+    db.getSonarrInstance = vi.fn<DatabaseService['getSonarrInstance']>(
+      async () => ({ ...INSTANCE, apiKey: ARR_API_KEY_PLACEHOLDER }),
+    )
+
+    await expect(manager.routeItemToSonarr(item, 'key', 2, 1)).rejects.toThrow(
+      'is not set up',
+    )
+    expect(addToSonarr).not.toHaveBeenCalled()
   })
 })

@@ -115,8 +115,14 @@ export function evaluateRules(
       monitor: rule.monitor,
       ruleId: rule.id,
       ruleName: rule.name,
+      alwaysRequireApproval: rule.always_require_approval,
+      bypassUserQuotas: rule.bypass_user_quotas,
+      approvalReason: rule.approval_reason,
     })
   }
+
+  // highest priority first, the order both the gate and execution use
+  decisions.sort((a, b) => b.priority - a.priority)
 
   return { decisions }
 }

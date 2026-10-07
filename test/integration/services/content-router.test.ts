@@ -1,6 +1,6 @@
 import type { ContentItem, RoutingContext } from '@root/types/router.types.js'
 import { checkApprovalRequirements } from '@services/content-router/approval-checks.js'
-import { RuleCache } from '@services/content-router/rule-cache.js'
+import { evaluateRules } from '@services/content-router/rule-resolver.js'
 import type { FastifyInstance } from 'fastify'
 import {
   afterAll,
@@ -26,12 +26,16 @@ import {
 describe('ContentRouterService Integration', () => {
   let fastify: FastifyInstance
 
-  const getCheckApproval = () => (item: ContentItem, context: RoutingContext) =>
-    checkApprovalRequirements(item, context, {
-      logger: fastify.log,
-      db: fastify.db,
-      rules: new RuleCache(() => fastify.db.getAllRouterRules(), fastify.log),
-    })
+  const getCheckApproval =
+    () => async (item: ContentItem, context: RoutingContext) => {
+      const { decisions } = evaluateRules(
+        fastify.log,
+        await fastify.db.getAllRouterRules(),
+        item,
+        context,
+      )
+      return checkApprovalRequirements(context, decisions, { db: fastify.db })
+    }
 
   beforeAll(async () => {
     fastify = await build()

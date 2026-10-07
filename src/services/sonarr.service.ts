@@ -1,3 +1,4 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 import type {
   ExistenceCheckResult,
@@ -385,7 +386,7 @@ export class SonarrService {
     this.instanceId = instance.id
 
     // Skip webhook setup for placeholder credentials
-    if (instance.apiKey === 'placeholder') {
+    if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {
       this.log.info(
         `Basic initialization only for ${instance.name} (placeholder credentials)`,
       )

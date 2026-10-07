@@ -3167,6 +3167,7 @@ export interface components {
             minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
             monitor?: components["schemas"]["RadarrMonitor"] | null;
             syncedInstances?: number[];
+            ruleId?: number;
         };
         /** @description Target instance and arr settings used to add the content */
         ApprovalRoutingOutput: {
@@ -3182,6 +3183,7 @@ export interface components {
             minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
             monitor?: components["schemas"]["RadarrMonitor"] | null;
             syncedInstances?: number[];
+            ruleId?: number;
         };
         /**
          * @description Lifecycle state of an approval request
@@ -3933,6 +3935,7 @@ export interface components {
                 triggeredBy: components["schemas"]["ApprovalTrigger"];
                 data: components["schemas"]["ApprovalQuotaData"];
                 proposedRouting?: components["schemas"]["ApprovalRouting"];
+                additionalRouting?: components["schemas"]["ApprovalRouting"][];
             };
         };
         /** @description Router outcome for a request, holding the routing used on approval */
@@ -3945,6 +3948,7 @@ export interface components {
                 triggeredBy: components["schemas"]["ApprovalTrigger"];
                 data: components["schemas"]["ApprovalQuotaDataOutput"];
                 proposedRouting?: components["schemas"]["ApprovalRoutingOutput"];
+                additionalRouting?: components["schemas"]["ApprovalRoutingOutput"][];
             };
         };
         /** @description A stored content router rule */

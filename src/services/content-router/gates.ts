@@ -4,9 +4,9 @@ import type {
   RoutingDecision,
 } from '@root/types/router.types.js'
 import {
+  approvalRoutingFor,
   checkApprovalRequirements,
   checkExistingApprovalRequest,
-  proposedRoutingFor,
 } from './approval-checks.js'
 import type { ContentRouterDeps, GateOutcome } from './types.js'
 
@@ -56,7 +56,6 @@ export async function applyPreRoutingGates(
     ContentRouterDeps,
     | 'logger'
     | 'db'
-    | 'rules'
     | 'approvalService'
     | 'quotaService'
     | 'notifications'
@@ -96,7 +95,11 @@ export async function applyPreRoutingGates(
     return { action: 'proceed' }
   }
 
-  const approvalResult = await checkApprovalRequirements(item, context, deps)
+  const approvalResult = await checkApprovalRequirements(
+    context,
+    decisions,
+    deps,
+  )
 
   if (approvalResult.required) {
     logger.info(
@@ -115,8 +118,8 @@ export async function applyPreRoutingGates(
           reason: approvalResult.reason || 'Approval required',
           triggeredBy: approvalResult.trigger || 'manual_flag',
           data: approvalResult.data || {},
-          proposedRouting: proposedRoutingFor(
-            decisions[0],
+          ...approvalRoutingFor(
+            decisions,
             context.contentType,
             syncedInstances,
           ),
@@ -184,8 +187,8 @@ export async function applyPreRoutingGates(
               quotaUsage: wouldBeUsage,
               quotaLimit: quotaResult.quotaLimit,
             },
-            proposedRouting: proposedRoutingFor(
-              decisions[0],
+            ...approvalRoutingFor(
+              decisions,
               context.contentType,
               syncedInstances,
             ),

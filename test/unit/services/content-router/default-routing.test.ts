@@ -1,3 +1,4 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type { ContentItem } from '@root/types/router.types.js'
 import {
   getDefaultInstanceIds,
@@ -35,6 +36,26 @@ describe('getDefaultInstanceIds', () => {
     expect(await getDefaultInstanceIds('movie', deps)).toEqual({
       instanceIds: [],
     })
+  })
+
+  it('skips a default instance that is not set up', async () => {
+    const getAllRadarrInstances = vi.fn()
+    const deps = createContentRouterDeps({
+      db: {
+        getDefaultRadarrInstance: vi.fn().mockResolvedValue({
+          id: 1,
+          name: 'Main',
+          apiKey: ARR_API_KEY_PLACEHOLDER,
+          syncedInstances: [2],
+        }),
+        getAllRadarrInstances,
+      },
+    })
+
+    expect(await getDefaultInstanceIds('movie', deps)).toEqual({
+      instanceIds: [],
+    })
+    expect(getAllRadarrInstances).not.toHaveBeenCalled()
   })
 
   it('reports the skip flag on the default instance', async () => {

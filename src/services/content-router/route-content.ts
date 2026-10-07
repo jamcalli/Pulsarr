@@ -86,8 +86,6 @@ export async function routeContent(
     }
 
     allDecisions.push(...resolution.decisions)
-    // highest priority first, the order both the gate and execution use
-    allDecisions.sort((a, b) => (b.priority ?? 50) - (a.priority ?? 50))
   }
 
   // sync is internal data movement, so it bypasses the gates
@@ -150,6 +148,7 @@ export async function routeContent(
           item,
           context,
           applied: defaultRoutings[0],
+          additionalApplied: [],
           syncedInstances: defaultRoutings
             .slice(1)
             .map((routing) => routing.instanceId),
@@ -243,6 +242,7 @@ export async function routeContent(
         item: enrichedItem,
         context,
         applied: routingDetails[0],
+        additionalApplied: routingDetails.slice(1),
         syncedInstances: undefined,
       },
       deps,
