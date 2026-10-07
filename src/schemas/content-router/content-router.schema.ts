@@ -92,7 +92,7 @@ const RatingComparisonValueSchema = z.union([
 const ImdbCompoundValueSchema = z
   .object({
     rating: RatingComparisonValueSchema.optional(),
-    votes: RatingComparisonValueSchema.optional(),
+    votes: z.number().optional(),
   })
   .strict()
   .refine((val) => val.rating !== undefined || val.votes !== undefined, {
@@ -105,8 +105,6 @@ const ScalarConditionValueSchemas = [
   z.boolean(),
   z.array(z.string()),
   z.array(z.number()),
-  UserCriteriaSchema,
-  GenreCriteriaSchema,
   z.array(z.union([z.string(), z.number()])),
 ] as const
 
@@ -363,6 +361,8 @@ const StoredRatingValueSchema = z.union([
 
 const StoredConditionValueSchema = z.union([
   ...ScalarConditionValueSchemas,
+  UserCriteriaSchema,
+  GenreCriteriaSchema,
   z
     .object({
       rating: StoredRatingValueSchema.optional(),

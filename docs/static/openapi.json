@@ -589,42 +589,6 @@
             }
           },
           {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": [
-                  "string",
-                  "number"
-                ]
-              },
-              "name": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name"
-            ]
-          },
-          {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": [
-                  "string",
-                  "number"
-                ]
-              },
-              "name": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name"
-            ]
-          },
-          {
             "type": "array",
             "items": {
               "type": [
@@ -663,30 +627,7 @@
                 ]
               },
               "votes": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "min": {
-                        "type": "number"
-                      },
-                      "max": {
-                        "type": "number"
-                      }
-                    },
-                    "additionalProperties": false
-                  }
-                ]
+                "type": "number"
               }
             },
             "additionalProperties": false
@@ -3398,44 +3339,6 @@
                         }
                       },
                       {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": [
-                              "string",
-                              "number"
-                            ]
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": [
-                              "string",
-                              "number"
-                            ]
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
                         "type": "array",
                         "items": {
                           "type": [
@@ -3443,6 +3346,44 @@
                             "number"
                           ]
                         }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
                       },
                       {
                         "type": "object",
@@ -3580,44 +3521,6 @@
                                   }
                                 },
                                 {
-                                  "type": "object",
-                                  "properties": {
-                                    "id": {
-                                      "type": [
-                                        "string",
-                                        "number"
-                                      ]
-                                    },
-                                    "name": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "id",
-                                    "name"
-                                  ],
-                                  "additionalProperties": false
-                                },
-                                {
-                                  "type": "object",
-                                  "properties": {
-                                    "id": {
-                                      "type": [
-                                        "string",
-                                        "number"
-                                      ]
-                                    },
-                                    "name": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "id",
-                                    "name"
-                                  ],
-                                  "additionalProperties": false
-                                },
-                                {
                                   "type": "array",
                                   "items": {
                                     "type": [
@@ -3625,6 +3528,44 @@
                                       "number"
                                     ]
                                   }
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": [
+                                        "string",
+                                        "number"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": [
+                                        "string",
+                                        "number"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "additionalProperties": false
                                 },
                                 {
                                   "type": "object",

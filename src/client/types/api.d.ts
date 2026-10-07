@@ -3230,21 +3230,12 @@ export interface components {
          */
         ConditionOperator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
         /** @description Value shapes accepted by router conditions */
-        ConditionValue: string | number | boolean | string[] | number[] | {
-            id: string | number;
-            name: string;
-        } | {
-            id: string | number;
-            name: string;
-        } | (string | number)[] | {
+        ConditionValue: string | number | boolean | string[] | number[] | (string | number)[] | {
             rating?: number | number[] | {
                 min?: number;
                 max?: number;
             };
-            votes?: number | number[] | {
-                min?: number;
-                max?: number;
-            };
+            votes?: number;
         } | {
             min?: number;
             max?: number;
@@ -3959,13 +3950,13 @@ export interface components {
             condition?: {
                 field: string;
                 operator: components["schemas"]["ConditionOperator"];
-                value: string | number | boolean | string[] | number[] | {
+                value: string | number | boolean | string[] | number[] | (string | number)[] | {
                     id: string | number;
                     name: string;
                 } | {
                     id: string | number;
                     name: string;
-                } | (string | number)[] | {
+                } | {
                     rating?: number | number[] | {
                         min?: number;
                         max?: number;
@@ -3987,13 +3978,13 @@ export interface components {
                 conditions: ({
                     field: string;
                     operator: components["schemas"]["ConditionOperator"];
-                    value: string | number | boolean | string[] | number[] | {
+                    value: string | number | boolean | string[] | number[] | (string | number)[] | {
                         id: string | number;
                         name: string;
                     } | {
                         id: string | number;
                         name: string;
-                    } | (string | number)[] | {
+                    } | {
                         rating?: number | number[] | {
                             min?: number;
                             max?: number;

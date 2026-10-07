@@ -620,6 +620,43 @@ describe('Content Router Rules API', () => {
       expect(first.value).toEqual(compound)
       expect(second.value).toEqual(votesOnly)
     })
+
+    it.each([
+      ['an array', 400, [1000, 2000]],
+      ['a range', 400, { min: 1000 }],
+      ['a number', 201, 1000],
+    ])('answers votes as %s with %i', async (_label, status, votes) => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...radarrRule,
+          condition: {
+            field: 'imdbRating',
+            operator: 'greaterThan',
+            value: { rating: 7, votes },
+          },
+        },
+      })
+      expect(res.statusCode).toBe(status)
+    })
+  })
+
+  describe('criteria object values', () => {
+    it.each([
+      ['user', 'equals'],
+      ['genres', 'contains'],
+    ])('rejects an id and name object on %s', async (field, operator) => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: {
+          ...radarrRule,
+          condition: { field, operator, value: { id: 1, name: 'Action' } },
+        },
+      })
+      expect(res.statusCode).toBe(400)
+    })
   })
 
   describe('stored rules the request schema would reject', () => {
@@ -682,6 +719,48 @@ describe('Content Router Rules API', () => {
       const [rule] = res.json().rules
       expect(rule.order).toBeNull()
       expect(rule.condition.conditions[0].value).toEqual({})
+    })
+
+    it('lists a rule whose value is an id and name object', async () => {
+      const value = { id: 1, name: 'admin' }
+      await insertStoredRule({
+        criteria: storedCondition({
+          field: 'user',
+          operator: 'equals',
+          value,
+          negate: false,
+        }),
+      })
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/content-router/rules',
+      })
+
+      expect(res.statusCode).toBe(200)
+      const [rule] = res.json().rules
+      expect(rule.condition.conditions[0].value).toEqual(value)
+    })
+
+    it('lists a rule whose compound votes is a range', async () => {
+      const value = { rating: 7, votes: { min: 1000 } }
+      await insertStoredRule({
+        criteria: storedCondition({
+          field: 'imdbRating',
+          operator: 'greaterThan',
+          value,
+          negate: false,
+        }),
+      })
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/content-router/rules',
+      })
+
+      expect(res.statusCode).toBe(200)
+      const [rule] = res.json().rules
+      expect(rule.condition.conditions[0].value).toEqual(value)
     })
   })
 
