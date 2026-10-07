@@ -3107,6 +3107,73 @@ export interface components {
             status_changes: number;
             notifications_sent: number;
         };
+        /** @description Approval requests to approve, with optional notes */
+        ApprovalBulkApprovePayload: {
+            requestIds: number[];
+            notes?: string;
+        };
+        /** @description Approval requests to delete */
+        ApprovalBulkDeletePayload: {
+            requestIds: number[];
+        };
+        /** @description Result of a bulk approve, reject or delete */
+        ApprovalBulkOperationResponse: {
+            success: boolean;
+            message: string;
+            result: components["schemas"]["ApprovalBulkResult"];
+        };
+        /** @description Approval requests to reject, with an optional reason */
+        ApprovalBulkRejectPayload: {
+            requestIds: number[];
+            reason?: string;
+        };
+        /** @description Per-request outcome counts of a bulk approval operation */
+        ApprovalBulkResult: {
+            successful: number;
+            /** @description Request ids that could not be processed */
+            failed: number[];
+            errors: string[];
+            total: number;
+        };
+        /** @description Approval expiry and cleanup settings, always returned with defaults filled in. Per-trigger overrides are present only when set. */
+        ApprovalExpiration: {
+            enabled: boolean;
+            defaultExpirationHours: number;
+            expirationAction: components["schemas"]["ApprovalExpirationAction"];
+            /** @description Approve quota-exceeded requests once the user has quota again */
+            autoApproveOnQuotaAvailable: boolean;
+            /** @description Override for requests held by a quota */
+            quotaExceededExpirationHours?: number;
+            /** @description Override for requests held by a router rule */
+            routerRuleExpirationHours?: number;
+            /** @description Override for users who always need approval */
+            manualFlagExpirationHours?: number;
+            /** @description Override for requests held by content criteria */
+            contentCriteriaExpirationHours?: number;
+            cleanupExpiredDays: number;
+        };
+        /**
+         * @description What happens to a pending approval request when it expires
+         * @enum {string}
+         */
+        ApprovalExpirationAction: "expire" | "auto_approve";
+        /** @description Writable approval expiry and cleanup settings. Send the whole object, it replaces the stored one. */
+        ApprovalExpirationPayload: {
+            enabled?: boolean;
+            defaultExpirationHours?: number;
+            expirationAction?: components["schemas"]["ApprovalExpirationAction"];
+            autoApproveOnQuotaAvailable?: boolean;
+            quotaExceededExpirationHours?: number;
+            routerRuleExpirationHours?: number;
+            manualFlagExpirationHours?: number;
+            contentCriteriaExpirationHours?: number;
+            cleanupExpiredDays?: number;
+        };
+        /**
+         * @description Expiry state computed from the current expiration config
+         * @enum {string}
+         */
+        ApprovalExpirationStatus: "active" | "expiring_soon" | "expired";
         /** @description Trigger details captured when the request needed approval */
         ApprovalQuotaData: {
             quotaType?: components["schemas"]["QuotaType"];
@@ -3146,12 +3213,46 @@ export interface components {
             approvalNotes: string | null;
             expiresAt: string | null;
             isExpired?: boolean;
-            /** @enum {string} */
-            expirationStatus?: "active" | "expiring_soon" | "expired";
+            expirationStatus?: components["schemas"]["ApprovalExpirationStatus"];
             expirationDisplayText?: string;
+            /** @description Milliseconds until expiry, negative once expired */
             timeUntilExpiration?: number | null;
             createdAt: string;
             updatedAt: string;
+        };
+        /** @description Fields for creating an approval request */
+        ApprovalRequestCreatePayload: {
+            userId: number;
+            contentType: components["schemas"]["ContentType"];
+            contentTitle: string;
+            contentKey: string;
+            contentGuids?: string[];
+            routerDecision: components["schemas"]["RouterDecision"];
+            routerRuleId?: number;
+            approvalReason?: string;
+            triggeredBy: components["schemas"]["ApprovalTrigger"];
+            expiresAt?: string;
+        };
+        /** @description One page of approval requests with the total match count */
+        ApprovalRequestListResponse: {
+            success: boolean;
+            message: string;
+            approvalRequests: components["schemas"]["ApprovalRequest"][];
+            total: number;
+            limit: number;
+            offset: number;
+        };
+        /** @description A single approval request returned by a read or write */
+        ApprovalRequestResult: {
+            success: boolean;
+            message: string;
+            approvalRequest: components["schemas"]["ApprovalRequest"];
+        };
+        /** @description Fields to change on an approval request */
+        ApprovalRequestUpdatePayload: {
+            status?: components["schemas"]["ApprovalStatus"];
+            approvalNotes?: string;
+            proposedRouterDecision?: components["schemas"]["RouterDecision"];
         };
         /** @description Target instance and arr settings used to add the content */
         ApprovalRouting: {
@@ -3183,11 +3284,31 @@ export interface components {
             monitor?: components["schemas"]["RadarrMonitor"] | null;
             syncedInstances?: number[];
         };
+        /** @description Approval request counts by status */
+        ApprovalStats: {
+            pending: number;
+            approved: number;
+            rejected: number;
+            expired: number;
+            auto_approved: number;
+            totalRequests: number;
+        };
+        /** @description Approval request counts by status */
+        ApprovalStatsResponse: {
+            success: boolean;
+            message: string;
+            stats: components["schemas"]["ApprovalStats"];
+        };
         /**
          * @description Lifecycle state of an approval request
          * @enum {string}
          */
         ApprovalStatus: "pending" | "approved" | "rejected" | "expired" | "auto_approved";
+        /** @description Outcome of an approval action */
+        ApprovalSuccessResponse: {
+            success: boolean;
+            message: string;
+        };
         /**
          * @description What caused a request to need approval
          * @enum {string}
@@ -3425,18 +3546,7 @@ export interface components {
                     handleMonthEnd: "last-day" | "skip-month" | "next-month";
                 };
             };
-            approvalExpiration: {
-                enabled: boolean;
-                defaultExpirationHours: number;
-                /** @enum {string} */
-                expirationAction: "expire" | "auto_approve";
-                autoApproveOnQuotaAvailable: boolean;
-                quotaExceededExpirationHours?: number;
-                routerRuleExpirationHours?: number;
-                manualFlagExpirationHours?: number;
-                contentCriteriaExpirationHours?: number;
-                cleanupExpiredDays: number;
-            };
+            approvalExpiration: components["schemas"]["ApprovalExpiration"];
             /** @description Auto-start the watchlist workflow on next boot; surfaced as the Auto-Start toggle */
             _isReady: boolean;
         };
@@ -3584,18 +3694,7 @@ export interface components {
                     handleMonthEnd?: "last-day" | "skip-month" | "next-month";
                 };
             };
-            approvalExpiration?: {
-                enabled?: boolean;
-                defaultExpirationHours?: number;
-                /** @enum {string} */
-                expirationAction?: "expire" | "auto_approve";
-                autoApproveOnQuotaAvailable?: boolean;
-                quotaExceededExpirationHours?: number;
-                routerRuleExpirationHours?: number;
-                manualFlagExpirationHours?: number;
-                contentCriteriaExpirationHours?: number;
-                cleanupExpiredDays?: number;
-            };
+            approvalExpiration?: components["schemas"]["ApprovalExpirationPayload"];
             tmdbRegion?: string;
             tagUsersInSonarr?: boolean;
             tagUsersInRadarr?: boolean;
@@ -4648,7 +4747,9 @@ export interface operations {
     getApprovalRequests: {
         parameters: {
             query?: {
+                /** @description One status or a comma-separated list */
                 status?: string;
+                /** @description One user id or a comma-separated list */
                 userId?: string;
                 contentType?: string;
                 triggeredBy?: string;
@@ -4670,14 +4771,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        approvalRequests: components["schemas"]["ApprovalRequest"][];
-                        total: number;
-                        limit: number;
-                        offset: number;
-                    };
+                    "application/json": components["schemas"]["ApprovalRequestListResponse"];
                 };
             };
             /** @description Default Response */
@@ -4716,20 +4810,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Fields for creating an approval request */
         requestBody: {
             content: {
-                "application/json": {
-                    userId: number;
-                    contentType: components["schemas"]["ContentType"];
-                    contentTitle: string;
-                    contentKey: string;
-                    contentGuids?: string[];
-                    routerDecision: components["schemas"]["RouterDecision"];
-                    routerRuleId?: number;
-                    approvalReason?: string;
-                    triggeredBy: components["schemas"]["ApprovalTrigger"];
-                    expiresAt?: string;
-                };
+                "application/json": components["schemas"]["ApprovalRequestCreatePayload"];
             };
         };
         responses: {
@@ -4739,11 +4823,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        approvalRequest: components["schemas"]["ApprovalRequest"];
-                    };
+                    "application/json": components["schemas"]["ApprovalRequestResult"];
                 };
             };
             /** @description Default Response */
@@ -4791,12 +4871,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Approval requests to approve, with optional notes */
         requestBody: {
             content: {
-                "application/json": {
-                    requestIds: number[];
-                    notes?: string;
-                };
+                "application/json": components["schemas"]["ApprovalBulkApprovePayload"];
             };
         };
         responses: {
@@ -4806,16 +4884,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        result: {
-                            successful: number;
-                            failed: number[];
-                            errors: string[];
-                            total: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["ApprovalBulkOperationResponse"];
                 };
             };
             /** @description Default Response */
@@ -4872,11 +4941,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Approval requests to delete */
         requestBody: {
             content: {
-                "application/json": {
-                    requestIds: number[];
-                };
+                "application/json": components["schemas"]["ApprovalBulkDeletePayload"];
             };
         };
         responses: {
@@ -4886,16 +4954,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        result: {
-                            successful: number;
-                            failed: number[];
-                            errors: string[];
-                            total: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["ApprovalBulkOperationResponse"];
                 };
             };
             /** @description Default Response */
@@ -4934,12 +4993,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Approval requests to reject, with an optional reason */
         requestBody: {
             content: {
-                "application/json": {
-                    requestIds: number[];
-                    reason?: string;
-                };
+                "application/json": components["schemas"]["ApprovalBulkRejectPayload"];
             };
         };
         responses: {
@@ -4949,16 +5006,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        result: {
-                            successful: number;
-                            failed: number[];
-                            errors: string[];
-                            total: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["ApprovalBulkOperationResponse"];
                 };
             };
             /** @description Default Response */
@@ -5016,11 +5064,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        approvalRequest: components["schemas"]["ApprovalRequest"];
-                    };
+                    "application/json": components["schemas"]["ApprovalRequestResult"];
                 };
             };
             /** @description Default Response */
@@ -5078,10 +5122,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["ApprovalSuccessResponse"];
                 };
             };
             /** @description Default Response */
@@ -5131,13 +5172,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Fields to change on an approval request */
         requestBody: {
             content: {
-                "application/json": {
-                    status?: components["schemas"]["ApprovalStatus"];
-                    approvalNotes?: string;
-                    proposedRouterDecision?: components["schemas"]["RouterDecision"];
-                };
+                "application/json": components["schemas"]["ApprovalRequestUpdatePayload"];
             };
         };
         responses: {
@@ -5147,11 +5185,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        approvalRequest: components["schemas"]["ApprovalRequest"];
-                    };
+                    "application/json": components["schemas"]["ApprovalRequestResult"];
                 };
             };
             /** @description Default Response */
@@ -5242,10 +5276,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["ApprovalSuccessResponse"];
                 };
             };
             /** @description Default Response */
@@ -5327,10 +5358,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["ApprovalSuccessResponse"];
                 };
             };
             /** @description Default Response */
@@ -5395,18 +5423,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        stats: {
-                            pending: number;
-                            approved: number;
-                            rejected: number;
-                            expired: number;
-                            auto_approved: number;
-                            totalRequests: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["ApprovalStatsResponse"];
                 };
             };
             /** @description Rate limit exceeded */

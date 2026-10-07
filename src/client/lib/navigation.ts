@@ -46,9 +46,10 @@ function page(
 export const NAV_PAGES = {
   dashboard: { ...page('Dashboard', '/', ['/dashboard']), rebuilt: true },
   approvalQueue: page('Approval queue', '/requests', ['/approvals']),
-  approvalSettings: page('Approval settings', '/requests/settings', [
-    '/approvals/settings',
-  ]),
+  approvalSettings: {
+    ...page('Approval settings', '/requests/settings', ['/approvals/settings']),
+    rebuilt: true,
+  },
   quotas: page('Quotas', '/requests/quotas', ['/approvals/quota-settings']),
   plexUsers: page('Plex users', '/users', ['/plex/users']),
   newUserDefaults: page('New user defaults', '/users/new-user-defaults', [

@@ -54,6 +54,221 @@
         "additionalProperties": false,
         "description": "Activity counts within the requested range"
       },
+      "ApprovalBulkApprovePayload": {
+        "type": "object",
+        "properties": {
+          "requestIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestIds"
+        ],
+        "description": "Approval requests to approve, with optional notes"
+      },
+      "ApprovalBulkDeletePayload": {
+        "type": "object",
+        "properties": {
+          "requestIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "requestIds"
+        ],
+        "description": "Approval requests to delete"
+      },
+      "ApprovalBulkOperationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ApprovalBulkResult"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "result"
+        ],
+        "additionalProperties": false,
+        "description": "Result of a bulk approve, reject or delete"
+      },
+      "ApprovalBulkRejectPayload": {
+        "type": "object",
+        "properties": {
+          "requestIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestIds"
+        ],
+        "description": "Approval requests to reject, with an optional reason"
+      },
+      "ApprovalBulkResult": {
+        "type": "object",
+        "properties": {
+          "successful": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Request ids that could not be processed"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "successful",
+          "failed",
+          "errors",
+          "total"
+        ],
+        "additionalProperties": false,
+        "description": "Per-request outcome counts of a bulk approval operation"
+      },
+      "ApprovalExpiration": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "defaultExpirationHours": {
+            "type": "number"
+          },
+          "expirationAction": {
+            "$ref": "#/components/schemas/ApprovalExpirationAction"
+          },
+          "autoApproveOnQuotaAvailable": {
+            "type": "boolean",
+            "description": "Approve quota-exceeded requests once the user has quota again"
+          },
+          "quotaExceededExpirationHours": {
+            "type": "number",
+            "description": "Override for requests held by a quota"
+          },
+          "routerRuleExpirationHours": {
+            "type": "number",
+            "description": "Override for requests held by a router rule"
+          },
+          "manualFlagExpirationHours": {
+            "type": "number",
+            "description": "Override for users who always need approval"
+          },
+          "contentCriteriaExpirationHours": {
+            "type": "number",
+            "description": "Override for requests held by content criteria"
+          },
+          "cleanupExpiredDays": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "enabled",
+          "defaultExpirationHours",
+          "expirationAction",
+          "autoApproveOnQuotaAvailable",
+          "cleanupExpiredDays"
+        ],
+        "additionalProperties": false,
+        "description": "Approval expiry and cleanup settings, always returned with defaults filled in. Per-trigger overrides are present only when set."
+      },
+      "ApprovalExpirationAction": {
+        "type": "string",
+        "enum": [
+          "expire",
+          "auto_approve"
+        ],
+        "description": "What happens to a pending approval request when it expires"
+      },
+      "ApprovalExpirationPayload": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "defaultExpirationHours": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 8760
+          },
+          "expirationAction": {
+            "$ref": "#/components/schemas/ApprovalExpirationAction"
+          },
+          "autoApproveOnQuotaAvailable": {
+            "type": "boolean"
+          },
+          "quotaExceededExpirationHours": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 8760
+          },
+          "routerRuleExpirationHours": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 8760
+          },
+          "manualFlagExpirationHours": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 8760
+          },
+          "contentCriteriaExpirationHours": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 8760
+          },
+          "cleanupExpiredDays": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 365
+          }
+        },
+        "description": "Writable approval expiry and cleanup settings. Send the whole object, it replaces the stored one."
+      },
+      "ApprovalExpirationStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "expiring_soon",
+          "expired"
+        ],
+        "description": "Expiry state computed from the current expiration config"
+      },
       "ApprovalQuotaData": {
         "type": "object",
         "properties": {
@@ -185,17 +400,13 @@
             "type": "boolean"
           },
           "expirationStatus": {
-            "type": "string",
-            "enum": [
-              "active",
-              "expiring_soon",
-              "expired"
-            ]
+            "$ref": "#/components/schemas/ApprovalExpirationStatus"
           },
           "expirationDisplayText": {
             "type": "string"
           },
           "timeUntilExpiration": {
+            "description": "Milliseconds until expiry, negative once expired",
             "type": [
               "number",
               "null"
@@ -230,6 +441,129 @@
         ],
         "additionalProperties": false,
         "description": "An approval request with its proposed routing and expiry"
+      },
+      "ApprovalRequestCreatePayload": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number"
+          },
+          "contentType": {
+            "$ref": "#/components/schemas/ContentType"
+          },
+          "contentTitle": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "contentKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "contentGuids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "routerDecision": {
+            "$ref": "#/components/schemas/RouterDecision"
+          },
+          "routerRuleId": {
+            "type": "number"
+          },
+          "approvalReason": {
+            "type": "string"
+          },
+          "triggeredBy": {
+            "$ref": "#/components/schemas/ApprovalTrigger"
+          },
+          "expiresAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "contentType",
+          "contentTitle",
+          "contentKey",
+          "routerDecision",
+          "triggeredBy"
+        ],
+        "description": "Fields for creating an approval request"
+      },
+      "ApprovalRequestListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "approvalRequests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalRequest"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "approvalRequests",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "additionalProperties": false,
+        "description": "One page of approval requests with the total match count"
+      },
+      "ApprovalRequestResult": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "approvalRequest": {
+            "$ref": "#/components/schemas/ApprovalRequest"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "approvalRequest"
+        ],
+        "additionalProperties": false,
+        "description": "A single approval request returned by a read or write"
+      },
+      "ApprovalRequestUpdatePayload": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ApprovalStatus"
+          },
+          "approvalNotes": {
+            "type": "string"
+          },
+          "proposedRouterDecision": {
+            "$ref": "#/components/schemas/RouterDecision"
+          }
+        },
+        "description": "Fields to change on an approval request"
       },
       "ApprovalRouting": {
         "type": "object",
@@ -410,6 +744,60 @@
         "additionalProperties": false,
         "description": "Target instance and arr settings used to add the content"
       },
+      "ApprovalStats": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "number"
+          },
+          "approved": {
+            "type": "number"
+          },
+          "rejected": {
+            "type": "number"
+          },
+          "expired": {
+            "type": "number"
+          },
+          "auto_approved": {
+            "type": "number"
+          },
+          "totalRequests": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "pending",
+          "approved",
+          "rejected",
+          "expired",
+          "auto_approved",
+          "totalRequests"
+        ],
+        "additionalProperties": false,
+        "description": "Approval request counts by status"
+      },
+      "ApprovalStatsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ApprovalStats"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "stats"
+        ],
+        "additionalProperties": false,
+        "description": "Approval request counts by status"
+      },
       "ApprovalStatus": {
         "type": "string",
         "enum": [
@@ -420,6 +808,23 @@
           "auto_approved"
         ],
         "description": "Lifecycle state of an approval request"
+      },
+      "ApprovalSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ],
+        "additionalProperties": false,
+        "description": "Outcome of an approval action"
       },
       "ApprovalTrigger": {
         "type": "string",
@@ -1400,48 +1805,7 @@
             "additionalProperties": false
           },
           "approvalExpiration": {
-            "type": "object",
-            "properties": {
-              "enabled": {
-                "type": "boolean"
-              },
-              "defaultExpirationHours": {
-                "type": "number"
-              },
-              "expirationAction": {
-                "type": "string",
-                "enum": [
-                  "expire",
-                  "auto_approve"
-                ]
-              },
-              "autoApproveOnQuotaAvailable": {
-                "type": "boolean"
-              },
-              "quotaExceededExpirationHours": {
-                "type": "number"
-              },
-              "routerRuleExpirationHours": {
-                "type": "number"
-              },
-              "manualFlagExpirationHours": {
-                "type": "number"
-              },
-              "contentCriteriaExpirationHours": {
-                "type": "number"
-              },
-              "cleanupExpiredDays": {
-                "type": "number"
-              }
-            },
-            "required": [
-              "enabled",
-              "defaultExpirationHours",
-              "expirationAction",
-              "autoApproveOnQuotaAvailable",
-              "cleanupExpiredDays"
-            ],
-            "additionalProperties": false
+            "$ref": "#/components/schemas/ApprovalExpiration"
           },
           "_isReady": {
             "type": "boolean",
@@ -2066,52 +2430,7 @@
             }
           },
           "approvalExpiration": {
-            "type": "object",
-            "properties": {
-              "enabled": {
-                "type": "boolean"
-              },
-              "defaultExpirationHours": {
-                "type": "number",
-                "minimum": 1,
-                "maximum": 8760
-              },
-              "expirationAction": {
-                "type": "string",
-                "enum": [
-                  "expire",
-                  "auto_approve"
-                ]
-              },
-              "autoApproveOnQuotaAvailable": {
-                "type": "boolean"
-              },
-              "quotaExceededExpirationHours": {
-                "type": "number",
-                "minimum": 1,
-                "maximum": 8760
-              },
-              "routerRuleExpirationHours": {
-                "type": "number",
-                "minimum": 1,
-                "maximum": 8760
-              },
-              "manualFlagExpirationHours": {
-                "type": "number",
-                "minimum": 1,
-                "maximum": 8760
-              },
-              "contentCriteriaExpirationHours": {
-                "type": "number",
-                "minimum": 1,
-                "maximum": 8760
-              },
-              "cleanupExpiredDays": {
-                "type": "number",
-                "minimum": 1,
-                "maximum": 365
-              }
-            }
+            "$ref": "#/components/schemas/ApprovalExpirationPayload"
           },
           "tmdbRegion": {
             "type": "string",
@@ -5791,57 +6110,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "userId": {
-                    "type": "number"
-                  },
-                  "contentType": {
-                    "$ref": "#/components/schemas/ContentType"
-                  },
-                  "contentTitle": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 255
-                  },
-                  "contentKey": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 255
-                  },
-                  "contentGuids": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "routerDecision": {
-                    "$ref": "#/components/schemas/RouterDecision"
-                  },
-                  "routerRuleId": {
-                    "type": "number"
-                  },
-                  "approvalReason": {
-                    "type": "string"
-                  },
-                  "triggeredBy": {
-                    "$ref": "#/components/schemas/ApprovalTrigger"
-                  },
-                  "expiresAt": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "userId",
-                  "contentType",
-                  "contentTitle",
-                  "contentKey",
-                  "routerDecision",
-                  "triggeredBy"
-                ]
+                "$ref": "#/components/schemas/ApprovalRequestCreatePayload"
               }
             }
-          }
+          },
+          "description": "Fields for creating an approval request"
         },
         "responses": {
           "201": {
@@ -5849,24 +6122,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "approvalRequest": {
-                      "$ref": "#/components/schemas/ApprovalRequest"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "approvalRequest"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ApprovalRequestResult"
                 }
               }
             }
@@ -5923,17 +6179,21 @@
         "parameters": [
           {
             "schema": {
+              "description": "One status or a comma-separated list",
               "type": "string"
             },
             "in": "query",
-            "name": "status"
+            "name": "status",
+            "description": "One status or a comma-separated list"
           },
           {
             "schema": {
+              "description": "One user id or a comma-separated list",
               "type": "string"
             },
             "in": "query",
-            "name": "userId"
+            "name": "userId",
+            "description": "One user id or a comma-separated list"
           },
           {
             "schema": {
@@ -5951,7 +6211,8 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Case-insensitive partial match on content title"
             },
             "in": "query",
             "name": "search"
@@ -6010,39 +6271,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "approvalRequests": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ApprovalRequest"
-                      }
-                    },
-                    "total": {
-                      "type": "number"
-                    },
-                    "limit": {
-                      "type": "number"
-                    },
-                    "offset": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "approvalRequests",
-                    "total",
-                    "limit",
-                    "offset"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ApprovalRequestListResponse"
                 }
               }
             }
@@ -6093,25 +6322,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "requestIds": {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  "notes": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "requestIds"
-                ]
+                "$ref": "#/components/schemas/ApprovalBulkApprovePayload"
               }
             }
-          }
+          },
+          "description": "Approval requests to approve, with optional notes"
         },
         "responses": {
           "200": {
@@ -6119,51 +6334,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "result": {
-                      "type": "object",
-                      "properties": {
-                        "successful": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "array",
-                          "items": {
-                            "type": "number"
-                          }
-                        },
-                        "errors": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "successful",
-                        "failed",
-                        "errors",
-                        "total"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "result"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ApprovalBulkOperationResponse"
                 }
               }
             }
@@ -6234,22 +6405,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "requestIds": {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  }
-                },
-                "required": [
-                  "requestIds"
-                ]
+                "$ref": "#/components/schemas/ApprovalBulkDeletePayload"
               }
             }
-          }
+          },
+          "description": "Approval requests to delete"
         },
         "responses": {
           "200": {
@@ -6257,51 +6417,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "result": {
-                      "type": "object",
-                      "properties": {
-                        "successful": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "array",
-                          "items": {
-                            "type": "number"
-                          }
-                        },
-                        "errors": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "successful",
-                        "failed",
-                        "errors",
-                        "total"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "result"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ApprovalBulkOperationResponse"
                 }
               }
             }
@@ -6352,25 +6468,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "requestIds": {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  "reason": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "requestIds"
-                ]
+                "$ref": "#/components/schemas/ApprovalBulkRejectPayload"
               }
             }
-          }
+          },
+          "description": "Approval requests to reject, with an optional reason"
         },
         "responses": {
           "200": {
@@ -6378,51 +6480,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "result": {
-                      "type": "object",
-                      "properties": {
-                        "successful": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "array",
-                          "items": {
-                            "type": "number"
-                          }
-                        },
-                        "errors": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "total": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "successful",
-                        "failed",
-                        "errors",
-                        "total"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "result"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ApprovalBulkOperationResponse"
                 }
               }
             }
@@ -6494,24 +6552,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "approvalRequest": {
-                      "$ref": "#/components/schemas/ApprovalRequest"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "approvalRequest"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ApprovalRequestResult"
                 }
               }
             }
@@ -6570,21 +6611,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "status": {
-                    "$ref": "#/components/schemas/ApprovalStatus"
-                  },
-                  "approvalNotes": {
-                    "type": "string"
-                  },
-                  "proposedRouterDecision": {
-                    "$ref": "#/components/schemas/RouterDecision"
-                  }
-                }
+                "$ref": "#/components/schemas/ApprovalRequestUpdatePayload"
               }
             }
-          }
+          },
+          "description": "Fields to change on an approval request"
         },
         "parameters": [
           {
@@ -6602,24 +6633,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "approvalRequest": {
-                      "$ref": "#/components/schemas/ApprovalRequest"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "approvalRequest"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ApprovalRequestResult"
                 }
               }
             }
@@ -6719,20 +6733,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ApprovalSuccessResponse"
                 }
               }
             }
@@ -6819,20 +6820,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ApprovalSuccessResponse"
                 }
               }
             }
@@ -6939,20 +6927,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ApprovalSuccessResponse"
                 }
               }
             }
@@ -7024,53 +6999,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "stats": {
-                      "type": "object",
-                      "properties": {
-                        "pending": {
-                          "type": "number"
-                        },
-                        "approved": {
-                          "type": "number"
-                        },
-                        "rejected": {
-                          "type": "number"
-                        },
-                        "expired": {
-                          "type": "number"
-                        },
-                        "auto_approved": {
-                          "type": "number"
-                        },
-                        "totalRequests": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "pending",
-                        "approved",
-                        "rejected",
-                        "expired",
-                        "auto_approved",
-                        "totalRequests"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "stats"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ApprovalStatsResponse"
                 }
               }
             }

@@ -77,29 +77,47 @@ export const RouterDecisionSchema = z
       'Router outcome for a request, holding the routing used on approval',
   })
 
-// Approval request schemas
+export const APPROVAL_REQUESTS_MAX_LIMIT = 1000
+
 export const ApprovalIdParamsSchema = z.object({
   id: z.coerce.number(),
 })
 
-export const CreateApprovalRequestSchema = z.object({
-  userId: z.number(),
-  contentType: ContentTypeSchema,
-  contentTitle: z.string().min(1).max(255),
-  contentKey: z.string().min(1).max(255),
-  contentGuids: z.array(z.string()).optional(),
-  routerDecision: RouterDecisionSchema,
-  routerRuleId: z.number().optional(),
-  approvalReason: z.string().optional(),
-  triggeredBy: ApprovalTriggerSchema,
-  expiresAt: z.string().optional(),
-})
+export const CreateApprovalRequestSchema = z
+  .object({
+    userId: z.number(),
+    contentType: ContentTypeSchema,
+    contentTitle: z.string().min(1).max(255),
+    contentKey: z.string().min(1).max(255),
+    contentGuids: z.array(z.string()).optional(),
+    routerDecision: RouterDecisionSchema,
+    routerRuleId: z.number().optional(),
+    approvalReason: z.string().optional(),
+    triggeredBy: ApprovalTriggerSchema,
+    expiresAt: z.string().optional(),
+  })
+  .meta({
+    id: 'ApprovalRequestCreatePayload',
+    description: 'Fields for creating an approval request',
+  })
 
-export const UpdateApprovalRequestSchema = z.object({
-  status: ApprovalStatusSchema.optional(),
-  approvalNotes: z.string().optional(),
-  proposedRouterDecision: RouterDecisionSchema.optional(),
-})
+export const UpdateApprovalRequestSchema = z
+  .object({
+    status: ApprovalStatusSchema.optional(),
+    approvalNotes: z.string().optional(),
+    proposedRouterDecision: RouterDecisionSchema.optional(),
+  })
+  .meta({
+    id: 'ApprovalRequestUpdatePayload',
+    description: 'Fields to change on an approval request',
+  })
+
+export const ApprovalExpirationStatusSchema = z
+  .enum(['active', 'expiring_soon', 'expired'])
+  .meta({
+    id: 'ApprovalExpirationStatus',
+    description: 'Expiry state computed from the current expiration config',
+  })
 
 export const ApprovalRequestResponseSchema = z
   .object({
@@ -119,11 +137,14 @@ export const ApprovalRequestResponseSchema = z
     approvedBy: z.number().nullable(),
     approvalNotes: z.string().nullable(),
     expiresAt: z.string().nullable(),
-    // Dynamic expiration fields based on current config
     isExpired: z.boolean().optional(),
-    expirationStatus: z.enum(['active', 'expiring_soon', 'expired']).optional(),
+    expirationStatus: ApprovalExpirationStatusSchema.optional(),
     expirationDisplayText: z.string().optional(),
-    timeUntilExpiration: z.number().nullable().optional(),
+    timeUntilExpiration: z
+      .number()
+      .nullable()
+      .meta({ description: 'Milliseconds until expiry, negative once expired' })
+      .optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
@@ -133,7 +154,6 @@ export const ApprovalRequestResponseSchema = z
   })
 
 export const GetApprovalRequestsQuerySchema = z.object({
-  // Status filter - accepts single value or comma-separated list for multi-select
   status: z
     .string()
     .optional()
@@ -144,8 +164,8 @@ export const GetApprovalRequestsQuerySchema = z.object({
     })
     .pipe(
       z.union([ApprovalStatusSchema, z.array(ApprovalStatusSchema)]).optional(),
-    ),
-  // User ID filter - accepts single value or comma-separated list for multi-select
+    )
+    .meta({ description: 'One status or a comma-separated list' }),
   userId: z
     .string()
     .optional()
@@ -158,7 +178,8 @@ export const GetApprovalRequestsQuerySchema = z.object({
         .filter((id) => !Number.isNaN(id))
       return ids.length === 0 ? undefined : ids.length === 1 ? ids[0] : ids
     })
-    .pipe(z.union([z.number(), z.array(z.number())]).optional()),
+    .pipe(z.union([z.number(), z.array(z.number())]).optional())
+    .meta({ description: 'One user id or a comma-separated list' }),
   contentType: z
     .string()
     .optional()
@@ -181,12 +202,12 @@ export const GetApprovalRequestsQuerySchema = z.object({
         .union([ApprovalTriggerSchema, z.array(ApprovalTriggerSchema)])
         .optional(),
     ),
-  // Content title search (case-insensitive partial match)
-  search: z.string().optional(),
-  // Server-side pagination
-  limit: z.coerce.number().min(1).max(1000).default(20),
+  search: z
+    .string()
+    .meta({ description: 'Case-insensitive partial match on content title' })
+    .optional(),
+  limit: z.coerce.number().min(1).max(APPROVAL_REQUESTS_MAX_LIMIT).default(20),
   offset: z.coerce.number().min(0).default(0),
-  // Server-side sorting
   sortBy: z
     .enum([
       'contentTitle',
@@ -201,82 +222,128 @@ export const GetApprovalRequestsQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
 })
 
-export const ApprovalRequestsListResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  approvalRequests: z.array(ApprovalRequestResponseSchema),
-  total: z.number(),
-  limit: z.number(),
-  offset: z.number(),
-})
+export const ApprovalRequestsListResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    approvalRequests: z.array(ApprovalRequestResponseSchema),
+    total: z.number(),
+    limit: z.number(),
+    offset: z.number(),
+  })
+  .meta({
+    id: 'ApprovalRequestListResponse',
+    description: 'One page of approval requests with the total match count',
+  })
 
-export const ApprovalRequestCreateResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  approvalRequest: ApprovalRequestResponseSchema,
-})
+export const ApprovalRequestResultSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    approvalRequest: ApprovalRequestResponseSchema,
+  })
+  .meta({
+    id: 'ApprovalRequestResult',
+    description: 'A single approval request returned by a read or write',
+  })
 
-export const ApprovalRequestUpdateResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  approvalRequest: ApprovalRequestResponseSchema,
-})
-
-export const ApprovalStatsResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  stats: z.object({
+const ApprovalStatsSchema = z
+  .object({
     pending: z.number(),
     approved: z.number(),
     rejected: z.number(),
     expired: z.number(),
     auto_approved: z.number(),
     totalRequests: z.number(),
-  }),
-})
+  })
+  .meta({
+    id: 'ApprovalStats',
+    description: 'Approval request counts by status',
+  })
 
-export const ApprovalSuccessResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-})
+export const ApprovalStatsResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    stats: ApprovalStatsSchema,
+  })
+  .meta({
+    id: 'ApprovalStatsResponse',
+    description: 'Approval request counts by status',
+  })
+
+export const ApprovalSuccessResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+  })
+  .meta({
+    id: 'ApprovalSuccessResponse',
+    description: 'Outcome of an approval action',
+  })
 
 export type ApprovalSuccessResponse = z.infer<
   typeof ApprovalSuccessResponseSchema
 >
 
-// Bulk operation schemas
-export const BulkApprovalRequestSchema = z.object({
-  requestIds: z
-    .array(z.number())
-    .min(1, { error: 'At least one request ID is required' }),
-  notes: z.string().optional(),
-})
+const BulkRequestIdsSchema = z
+  .array(z.number())
+  .min(1, { error: 'At least one request ID is required' })
 
-export const BulkRejectRequestSchema = z.object({
-  requestIds: z
-    .array(z.number())
-    .min(1, { error: 'At least one request ID is required' }),
-  reason: z.string().optional(),
-})
+export const BulkApprovalRequestSchema = z
+  .object({
+    requestIds: BulkRequestIdsSchema,
+    notes: z.string().optional(),
+  })
+  .meta({
+    id: 'ApprovalBulkApprovePayload',
+    description: 'Approval requests to approve, with optional notes',
+  })
 
-export const BulkDeleteRequestSchema = z.object({
-  requestIds: z
-    .array(z.number())
-    .min(1, { error: 'At least one request ID is required' }),
-})
+export const BulkRejectRequestSchema = z
+  .object({
+    requestIds: BulkRequestIdsSchema,
+    reason: z.string().optional(),
+  })
+  .meta({
+    id: 'ApprovalBulkRejectPayload',
+    description: 'Approval requests to reject, with an optional reason',
+  })
 
-export const BulkOperationResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  result: z.object({
+export const BulkDeleteRequestSchema = z
+  .object({
+    requestIds: BulkRequestIdsSchema,
+  })
+  .meta({
+    id: 'ApprovalBulkDeletePayload',
+    description: 'Approval requests to delete',
+  })
+
+const ApprovalBulkResultSchema = z
+  .object({
     successful: z.number(),
-    failed: z.array(z.number()),
+    failed: z
+      .array(z.number())
+      .meta({ description: 'Request ids that could not be processed' }),
     errors: z.array(z.string()),
     total: z.number(),
-  }),
-})
+  })
+  .meta({
+    id: 'ApprovalBulkResult',
+    description: 'Per-request outcome counts of a bulk approval operation',
+  })
 
-// Type exports
+export const BulkOperationResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    result: ApprovalBulkResultSchema,
+  })
+  .meta({
+    id: 'ApprovalBulkOperationResponse',
+    description: 'Result of a bulk approve, reject or delete',
+  })
+
 export type RouterDecision = z.infer<typeof RouterDecisionSchema>
 export type ProposedRouting = NonNullable<
   NonNullable<RouterDecision['approval']>['proposedRouting']
@@ -293,20 +360,13 @@ export type GetApprovalRequestsQuery = z.infer<
 export type ApprovalRequestsListResponse = z.infer<
   typeof ApprovalRequestsListResponseSchema
 >
-export type ApprovalRequestCreateResponse = z.infer<
-  typeof ApprovalRequestCreateResponseSchema
->
-export type ApprovalRequestUpdateResponse = z.infer<
-  typeof ApprovalRequestUpdateResponseSchema
->
+export type ApprovalRequestResult = z.infer<typeof ApprovalRequestResultSchema>
 export type ApprovalStatsResponse = z.infer<typeof ApprovalStatsResponseSchema>
 
-// Bulk operation types
 export type BulkApprovalRequest = z.infer<typeof BulkApprovalRequestSchema>
 export type BulkRejectRequest = z.infer<typeof BulkRejectRequestSchema>
 export type BulkDeleteRequest = z.infer<typeof BulkDeleteRequestSchema>
 export type BulkOperationResponse = z.infer<typeof BulkOperationResponseSchema>
 
-// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as ApprovalErrorSchema }
 export type ApprovalError = z.infer<typeof ErrorSchema>

@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { PageSkeleton } from '@/components/page-header'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
+import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
 import AuthenticatedLayout from '@/legacy/layouts/authenticated'
@@ -11,6 +12,9 @@ import { NAV_PAGES, pageHref } from '@/lib/navigation'
 const LoginPage = lazy(() => import('@/features/auth'))
 const HomePage = lazy(() => import('@/features/home'))
 const UserTagsPage = lazy(() => import('@/features/users/pages/user-tags'))
+const ApprovalSettingsPage = lazy(
+  () => import('@/features/requests/pages/approval-settings'),
+)
 const CreateUserPage = lazy(() => import('@/legacy/features/setup'))
 const PlexConfigurationPage = lazy(
   () => import('@/legacy/features/system/pages/plex-connection'),
@@ -50,7 +54,7 @@ const WatchlistExclusionsPage = lazy(
 const LogViewerPage = lazy(
   () => import('@/legacy/features/system/pages/log-viewer'),
 )
-const ApprovalSettingsPage = lazy(
+const LegacyApprovalSettingsPage = lazy(
   () => import('@/legacy/features/requests/pages/approval-settings'),
 )
 const QuotaSettingsPage = lazy(
@@ -107,6 +111,18 @@ export const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<SettingsPageSkeleton sections={4} />}>
                   <UserTagsPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'requests/settings',
+              element: (
+                <Suspense
+                  fallback={
+                    <SettingsPageSkeleton {...APPROVAL_SETTINGS_SKELETON} />
+                  }
+                >
+                  <ApprovalSettingsPage />
                 </Suspense>
               ),
             },
@@ -352,7 +368,7 @@ export const router = createBrowserRouter(
               element: (
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
-                    <ApprovalSettingsPage />
+                    <LegacyApprovalSettingsPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),

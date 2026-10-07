@@ -1,15 +1,25 @@
 import { Fragment } from 'react'
 import { Page } from '@/components/page-header'
-import { Card, CardHeader } from '@/components/ui/card'
+import { Card, CardAction, CardHeader } from '@/components/ui/card'
 import { FieldGroup, FieldSeparator } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 
-function SectionSkeleton({ rows }: { rows: number }) {
+interface SectionShape {
+  rows: number
+  pill?: boolean
+}
+
+function SectionSkeleton({ rows, pill = false }: SectionShape) {
   return (
     <Card>
       <CardHeader>
         <Skeleton className="h-5 w-32" />
         <Skeleton className="h-4 w-64 max-w-full" />
+        {pill && (
+          <CardAction>
+            <Skeleton className="h-6 w-20" />
+          </CardAction>
+        )}
       </CardHeader>
       <FieldGroup className="gap-3.5 *:px-(--card-spacing)">
         {Array.from({ length: rows }, (_, row) => row).map((row) => (
@@ -29,24 +39,43 @@ function SectionSkeleton({ rows }: { rows: number }) {
   )
 }
 
-export function SettingsPageSkeleton({ sections = 3 }: { sections?: number }) {
+interface SettingsPageSkeletonProps {
+  /** A count alternates three and two rows, shapes are drawn as given. */
+  sections?: number | readonly SectionShape[]
+  pill?: boolean
+  /** Draws the section label line above the title, for pages whose header names their section. */
+  sectionLabel?: boolean
+}
+
+export function SettingsPageSkeleton({
+  sections = 3,
+  pill = true,
+  sectionLabel = false,
+}: SettingsPageSkeletonProps) {
+  const shapes: readonly SectionShape[] =
+    typeof sections === 'number'
+      ? Array.from({ length: sections }, (_, section) => ({
+          rows: section % 2 === 0 ? 3 : 2,
+        }))
+      : sections
+
   return (
     <Page>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
+          {sectionLabel && <Skeleton className="h-5 w-20" />}
           <Skeleton className="h-9 w-56" />
           <Skeleton className="h-5 w-80 max-w-full" />
         </div>
-        <Skeleton className="h-7 w-28" />
+        {pill && <Skeleton className="h-7 w-28" />}
       </div>
-      {Array.from({ length: sections }, (_, section) => section).map(
-        (section) => (
-          <SectionSkeleton
-            key={`section-${section}`}
-            rows={section % 2 === 0 ? 3 : 2}
-          />
-        ),
-      )}
+      {shapes.map((shape, section) => (
+        <SectionSkeleton
+          key={`section-${section}`}
+          rows={shape.rows}
+          pill={shape.pill}
+        />
+      ))}
     </Page>
   )
 }

@@ -3,6 +3,7 @@ import {
   SONARR_ROLLING_MONITOR_OPTIONS,
   SONARR_UI_MONITOR_OPTIONS,
 } from '@root/schemas/sonarr/season-monitoring.schema'
+import { withStoredOption } from '@/lib/select-options'
 import type { components } from '@/types/api.js'
 
 type ApprovalRouting = components['schemas']['ApprovalRouting']
@@ -42,19 +43,18 @@ export function seasonMonitoringOptions(
   stored: string | null,
   rollingEnabled: boolean,
 ): Array<{ value: string; label: string; disabled?: boolean }> {
-  const options = [
-    ...SONARR_UI_MONITOR_OPTIONS.map((value) => ({
-      value,
-      label: SEASON_MONITORING_LABELS[value],
-    })),
-    ...SONARR_ROLLING_MONITOR_OPTIONS.map((value) => ({
-      value,
-      label: SEASON_MONITORING_LABELS[value],
-      disabled: !rollingEnabled,
-    })),
-  ]
-  if (stored === null || options.some((option) => option.value === stored)) {
-    return options
-  }
-  return [...options, { value: stored, label: stored }]
+  return withStoredOption(
+    [
+      ...SONARR_UI_MONITOR_OPTIONS.map((value) => ({
+        value,
+        label: SEASON_MONITORING_LABELS[value],
+      })),
+      ...SONARR_ROLLING_MONITOR_OPTIONS.map((value) => ({
+        value,
+        label: SEASON_MONITORING_LABELS[value],
+        disabled: !rollingEnabled,
+      })),
+    ],
+    stored,
+  )
 }

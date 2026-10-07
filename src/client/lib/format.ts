@@ -5,6 +5,10 @@ export function setFormatLocale(next: string | undefined): void {
   locale = next
 }
 
+export function formatLocale(): string | undefined {
+  return locale
+}
+
 export function formatTime(value: Date | number): string {
   return new Intl.DateTimeFormat(locale, { timeStyle: 'medium' }).format(value)
 }

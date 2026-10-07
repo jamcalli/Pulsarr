@@ -17,13 +17,13 @@ type UserTagsFormValues = Pick<
 
 function toFormValues(config: Config): UserTagsFormValues {
   return {
-    tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
-    tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
-    cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
-    removedTagMode: config.removedTagMode || 'remove',
-    removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
-    tagPrefix: config.tagPrefix || 'pulsarr-user',
-    tagNamingSource: config.tagNamingSource || 'username',
+    tagUsersInSonarr: config.tagUsersInSonarr,
+    tagUsersInRadarr: config.tagUsersInRadarr,
+    cleanupOrphanedTags: config.cleanupOrphanedTags,
+    removedTagMode: config.removedTagMode,
+    removedTagPrefix: config.removedTagPrefix,
+    tagPrefix: config.tagPrefix,
+    tagNamingSource: config.tagNamingSource,
   }
 }
 

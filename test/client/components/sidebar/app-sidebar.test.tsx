@@ -136,7 +136,7 @@ describe('AppSidebar', () => {
 
     expect(
       screen.getByRole('link', { name: 'Approval settings' }),
-    ).toHaveAttribute('href', '/approvals/settings')
+    ).toHaveAttribute('href', '/requests/settings')
     expect(screen.getByRole('link', { name: 'Quotas' })).toBeInTheDocument()
     expect(
       screen.queryByRole('link', { name: 'Plex users' }),
