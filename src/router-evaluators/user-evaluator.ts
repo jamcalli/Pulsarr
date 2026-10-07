@@ -191,11 +191,15 @@ export default function createUserEvaluator(
 
       switch (operator) {
         case 'equals':
-          result = userMatchesExact(context.userId, context.userName, value)
+          result = Array.isArray(value)
+            ? userInList(context.userId, context.userName, value)
+            : userMatchesExact(context.userId, context.userName, value)
           break
 
         case 'notEquals':
-          result = !userMatchesExact(context.userId, context.userName, value)
+          result = Array.isArray(value)
+            ? !userInList(context.userId, context.userName, value)
+            : !userMatchesExact(context.userId, context.userName, value)
           break
 
         case 'in': {

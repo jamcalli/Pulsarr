@@ -150,7 +150,7 @@ export default function createGenreEvaluator(
           if (isString(value)) {
             matched = evaluateRegexSafelyMultiple(
               value,
-              Array.from(itemGenres),
+              item.genres,
               fastify.log,
               'genre condition',
             )

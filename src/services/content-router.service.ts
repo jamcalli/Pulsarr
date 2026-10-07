@@ -46,6 +46,8 @@ export class ContentRouterService {
   private rulesCachePromise: Promise<
     Awaited<ReturnType<FastifyInstance['db']['getAllRouterRules']>>
   > | null = null
+
+  private rulesCacheGeneration = 0
   private readonly log: FastifyBaseLogger
 
   constructor(
@@ -158,12 +160,15 @@ export class ContentRouterService {
     }
 
     this.log.debug('Fetching router rules from database')
+    const generation = this.rulesCacheGeneration
     const fetchPromise = this.fastify.db.getAllRouterRules()
     this.rulesCachePromise = fetchPromise
 
     try {
       const rules = await fetchPromise
-      this.rulesCache = rules
+      if (generation === this.rulesCacheGeneration) {
+        this.rulesCache = rules
+      }
       return rules
     } finally {
       if (this.rulesCachePromise === fetchPromise) {
@@ -177,6 +182,7 @@ export class ContentRouterService {
    * Should be called whenever rules are created, updated, or deleted via API.
    */
   clearRouterRulesCache(): void {
+    this.rulesCacheGeneration++
     this.rulesCache = null
     this.rulesCachePromise = null
     this.log.debug('Router rules cache cleared')
@@ -326,7 +332,7 @@ export class ContentRouterService {
 
       allDecisions.push(...resolution.decisions)
       // Highest priority first - the order both the gate and execution use
-      allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
+      allDecisions.sort((a, b) => (b.priority ?? 50) - (a.priority ?? 50))
     }
 
     // Sync operations bypass the gates - internal data movement, not a new
@@ -445,7 +451,7 @@ export class ContentRouterService {
           instanceId: decision.instanceId,
           ruleId: decision.ruleId,
           ruleName: decision.ruleName,
-          priority: decision.priority || 50,
+          priority: decision.priority ?? 50,
         },
         `Routing "${item.title}" to instance ID ${decision.instanceId}${ruleInfo}`,
       )
@@ -692,6 +698,7 @@ export class ContentRouterService {
           approvalResult.reason,
           undefined,
           context.itemKey,
+          approvalResult.data?.ruleId,
         )
 
         return { action: 'blocked' }
@@ -993,8 +1000,17 @@ export class ContentRouterService {
     item: ContentItem,
     context: RoutingContext,
   ): boolean {
-    // Handle negation wrapper by inverting the result if condition.negate is true
+    return this.resolveCondition(condition, item, context) ?? false
+  }
+
+  /** Null means the condition could not be evaluated, so negate does not apply. */
+  private resolveCondition(
+    condition: Condition | ConditionGroup,
+    item: ContentItem,
+    context: RoutingContext,
+  ): boolean | null {
     const result = this._evaluateCondition(condition, item, context)
+    if (result === null) return null
     return condition.negate ? !result : result
   }
 
@@ -1006,13 +1022,13 @@ export class ContentRouterService {
    * @param condition - The condition or condition group to evaluate
    * @param item - The content item to evaluate against
    * @param context - Routing context for additional information
-   * @returns boolean indicating whether the condition is satisfied
+   * @returns boolean indicating whether the condition is satisfied, or null when it could not be evaluated
    */
   private _evaluateCondition(
     condition: Condition | ConditionGroup,
     item: ContentItem,
     context: RoutingContext,
-  ): boolean {
+  ): boolean | null {
     // Handle group condition (contains nested conditions with AND/OR operator)
     if ('conditions' in condition) {
       return this.evaluateGroupCondition(condition, item, context)
@@ -1051,7 +1067,7 @@ export class ContentRouterService {
       { field },
       `No evaluator can handle condition field "${field}" - condition evaluates to false`,
     )
-    return false
+    return null
   }
 
   /**
@@ -1061,39 +1077,25 @@ export class ContentRouterService {
    * @param group - The condition group to evaluate
    * @param item - The content item to evaluate against
    * @param context - Routing context for additional information
-   * @returns boolean indicating whether the condition group is satisfied
+   * @returns boolean indicating whether the condition group is satisfied, or null when an unevaluable child leaves it undecided
    */
   private evaluateGroupCondition(
     group: ConditionGroup,
     item: ContentItem,
     context: RoutingContext,
-  ): boolean {
-    // Empty condition group is always false
+  ): boolean | null {
     if (!group.conditions || group.conditions.length === 0) {
-      return false
+      return null
     }
 
-    // For AND operator, all conditions must be true
-    if (group.operator === 'AND') {
-      // Short-circuit by returning false as soon as any condition is false
-      for (const condition of group.conditions) {
-        if (!this.evaluateCondition(condition, item, context)) {
-          return false
-        }
-      }
-      // If we reached here, all conditions were true
-      return true
-    }
-
-    // For OR operator, at least one condition must be true
-    // Short-circuit by returning true as soon as any condition is true
+    const deciding = group.operator !== 'AND'
+    let sawNull = false
     for (const condition of group.conditions) {
-      if (this.evaluateCondition(condition, item, context)) {
-        return true
-      }
+      const result = this.resolveCondition(condition, item, context)
+      if (result === deciding) return deciding
+      if (result === null) sawNull = true
     }
-    // If we reached here, no conditions were true
-    return false
+    return sawNull ? null : !deciding
   }
 
   /**
@@ -1356,6 +1358,7 @@ export class ContentRouterService {
         // apply - they're vetoed upstream in routeContent() before approval
         // checks would even run for genuinely excluded content.
         if (rule.exclude_from_routing) continue
+        if (rule.target_instance_id == null) continue
 
         // Check if this rule matches the current context
         if (rule.criteria && typeof rule.criteria === 'object') {

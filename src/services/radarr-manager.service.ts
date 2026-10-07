@@ -463,6 +463,7 @@ export class RadarrManagerService {
       this.log.warn(`No Radarr service found for instance ${id}`)
       await this.fastify.db.deleteRadarrInstance(id)
     }
+    this.fastify.contentRouter.clearRouterRulesCache()
   }
 
   async updateInstance(

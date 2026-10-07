@@ -636,160 +636,6 @@
           {
             "type": "object",
             "properties": {
-              "min": {
-                "type": "number"
-              },
-              "max": {
-                "type": "number"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "properties": {
-              "rating": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "min": {
-                        "type": "number"
-                      },
-                      "max": {
-                        "type": "number"
-                      }
-                    }
-                  }
-                ]
-              },
-              "votes": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "min": {
-                        "type": "number"
-                      },
-                      "max": {
-                        "type": "number"
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "description": "Value shapes accepted by router conditions"
-      },
-      "ConditionValueOutput": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "number"
-          },
-          {
-            "type": "boolean"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
-          },
-          {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": [
-                  "string",
-                  "number"
-                ]
-              },
-              "name": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name"
-            ],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": [
-                  "string",
-                  "number"
-                ]
-              },
-              "name": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name"
-            ],
-            "additionalProperties": false
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": [
-                "string",
-                "number"
-              ]
-            }
-          },
-          {
-            "type": "object",
-            "properties": {
-              "min": {
-                "type": "number"
-              },
-              "max": {
-                "type": "number"
-              }
-            },
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
               "rating": {
                 "anyOf": [
                   {
@@ -841,6 +687,18 @@
                     "additionalProperties": false
                   }
                 ]
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
               }
             },
             "additionalProperties": false
@@ -3396,102 +3254,6 @@
         ],
         "description": "Boolean grouping of router conditions, nestable to 20 levels"
       },
-      "RouterConditionGroupOutput": {
-        "type": "object",
-        "properties": {
-          "operator": {
-            "type": "string",
-            "enum": [
-              "AND",
-              "OR"
-            ]
-          },
-          "conditions": {
-            "maxItems": 20,
-            "type": "array",
-            "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/RouterConditionOutput"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "operator": {
-                      "type": "string",
-                      "enum": [
-                        "AND",
-                        "OR"
-                      ]
-                    },
-                    "conditions": {
-                      "maxItems": 20,
-                      "type": "array",
-                      "items": {}
-                    },
-                    "negate": {
-                      "default": false,
-                      "type": "boolean"
-                    },
-                    "_cid": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "operator",
-                    "conditions",
-                    "negate"
-                  ],
-                  "additionalProperties": false
-                }
-              ]
-            }
-          },
-          "negate": {
-            "default": false,
-            "type": "boolean"
-          },
-          "_cid": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "operator",
-          "conditions",
-          "negate"
-        ],
-        "additionalProperties": false,
-        "description": "Boolean grouping of router conditions, nestable to 20 levels"
-      },
-      "RouterConditionOutput": {
-        "type": "object",
-        "properties": {
-          "field": {
-            "type": "string"
-          },
-          "operator": {
-            "$ref": "#/components/schemas/ConditionOperator"
-          },
-          "value": {
-            "$ref": "#/components/schemas/ConditionValueOutput"
-          },
-          "negate": {
-            "default": false,
-            "type": "boolean"
-          },
-          "_cid": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "field",
-          "operator",
-          "value",
-          "negate"
-        ],
-        "additionalProperties": false,
-        "description": "A single field comparison in a router rule"
-      },
       "RouterDecision": {
         "type": "object",
         "properties": {
@@ -3604,10 +3366,401 @@
           "condition": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/RouterConditionOutput"
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "operator": {
+                    "$ref": "#/components/schemas/ConditionOperator"
+                  },
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": [
+                            "string",
+                            "number"
+                          ]
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "rating": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "number"
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          "votes": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "number"
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            ]
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "min": {
+                            "type": "number"
+                          },
+                          "max": {
+                            "type": "number"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "negate": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "_cid": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "field",
+                  "operator",
+                  "value",
+                  "negate"
+                ],
+                "additionalProperties": false
               },
               {
-                "$ref": "#/components/schemas/RouterConditionGroupOutput"
+                "type": "object",
+                "properties": {
+                  "operator": {
+                    "type": "string",
+                    "enum": [
+                      "AND",
+                      "OR"
+                    ]
+                  },
+                  "conditions": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "field": {
+                              "type": "string"
+                            },
+                            "operator": {
+                              "$ref": "#/components/schemas/ConditionOperator"
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": [
+                                        "string",
+                                        "number"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": [
+                                        "string",
+                                        "number"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": [
+                                      "string",
+                                      "number"
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "rating": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "min": {
+                                              "type": "number"
+                                            },
+                                            "max": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    },
+                                    "votes": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "min": {
+                                              "type": "number"
+                                            },
+                                            "max": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "number"
+                                    },
+                                    "max": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "negate": {
+                              "default": false,
+                              "type": "boolean"
+                            },
+                            "_cid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "field",
+                            "operator",
+                            "value",
+                            "negate"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "operator": {
+                              "type": "string",
+                              "enum": [
+                                "AND",
+                                "OR"
+                              ]
+                            },
+                            "conditions": {
+                              "type": "array",
+                              "items": {}
+                            },
+                            "negate": {
+                              "default": false,
+                              "type": "boolean"
+                            },
+                            "_cid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "operator",
+                            "conditions",
+                            "negate"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "negate": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "_cid": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "operator",
+                  "conditions",
+                  "negate"
+                ],
+                "additionalProperties": false
               }
             ]
           },
@@ -3627,7 +3780,10 @@
             }
           },
           "order": {
-            "type": "number"
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "enabled": {
             "type": "boolean"
@@ -3702,6 +3858,7 @@
           "name",
           "target_type",
           "target_instance_id",
+          "order",
           "id",
           "created_at",
           "updated_at"
@@ -3780,7 +3937,9 @@
             }
           },
           "order": {
-            "type": "number"
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           },
           "enabled": {
             "type": "boolean"

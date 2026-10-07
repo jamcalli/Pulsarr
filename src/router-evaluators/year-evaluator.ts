@@ -15,6 +15,22 @@ import {
 } from '@utils/type-guards.js'
 import type { FastifyInstance } from 'fastify'
 
+function toYear(value: unknown): unknown {
+  if (typeof value !== 'string' || value.trim() === '') return value
+  const year = Number(value)
+  return Number.isInteger(year) ? year : value
+}
+
+function coerceYearValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(toYear)
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, bound]) => [key, toYear(bound)]),
+    )
+  }
+  return toYear(value)
+}
+
 function isValidYearValue(
   value: unknown,
 ): value is number | number[] | NumericRange {
@@ -123,7 +139,8 @@ export default function createYearEvaluator(
         return false
       }
 
-      const { operator, value } = condition
+      const { operator } = condition
+      const value = coerceYearValue(condition.value)
       if (!isValidYearValue(value)) return false
 
       let result = false
