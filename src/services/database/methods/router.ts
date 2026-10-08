@@ -347,9 +347,7 @@ export async function hasAnyRouterRules(
   try {
     // Perform a fast count query to check if any enabled rules exist
     const result = await this.knex('router_rules')
-      .where(function () {
-        this.where('enabled', true).orWhereNull('enabled')
-      })
+      .where('enabled', true)
       .count('* as count')
       .first()
 

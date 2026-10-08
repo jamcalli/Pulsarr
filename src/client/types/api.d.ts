@@ -3264,10 +3264,11 @@ export interface components {
             priority: number;
             searchOnAdd?: boolean | null;
             seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
-            seriesType?: ("standard" | "anime" | "daily") | null;
+            seriesType?: components["schemas"]["SonarrSeriesType"] | null;
             minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
             monitor?: components["schemas"]["RadarrMonitor"] | null;
             syncedInstances?: number[];
+            ruleId?: number;
         };
         /** @description Target instance and arr settings used to add the content */
         ApprovalRoutingOutput: {
@@ -3279,10 +3280,11 @@ export interface components {
             priority: number;
             searchOnAdd?: boolean | null;
             seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
-            seriesType?: ("standard" | "anime" | "daily") | null;
+            seriesType?: components["schemas"]["SonarrSeriesType"] | null;
             minimumAvailability?: components["schemas"]["RadarrMinimumAvailability"];
             monitor?: components["schemas"]["RadarrMonitor"] | null;
             syncedInstances?: number[];
+            ruleId?: number;
         };
         /** @description Approval request counts by status */
         ApprovalStats: {
@@ -3351,45 +3353,21 @@ export interface components {
          */
         ConditionOperator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
         /** @description Value shapes accepted by router conditions */
-        ConditionValue: string | number | boolean | string[] | number[] | {
-            id: string | number;
-            name: string;
-        } | {
-            id: string | number;
-            name: string;
-        } | (string | number)[] | {
-            min?: number;
-            max?: number;
-        } | {
+        ConditionValue: string | number | boolean | string[] | number[] | (string | number)[] | {
             rating?: number | number[] | {
                 min?: number;
                 max?: number;
             };
-            votes?: number | number[] | {
-                min?: number;
-                max?: number;
-            };
-        } | null;
-        /** @description Value shapes accepted by router conditions */
-        ConditionValueOutput: string | number | boolean | string[] | number[] | {
-            id: string | number;
-            name: string;
+            votes?: number;
         } | {
-            id: string | number;
-            name: string;
-        } | (string | number)[] | {
             min?: number;
             max?: number;
-        } | {
-            rating?: number | number[] | {
-                min?: number;
-                max?: number;
-            };
-            votes?: number | number[] | {
-                min?: number;
-                max?: number;
-            };
         } | null;
+        /**
+         * @description Value shape a condition field or operator accepts
+         * @enum {string}
+         */
+        ConditionValueType: "number" | "number[]" | "string" | "string[]" | "object";
         /** @description Complete application configuration; server-internal secrets are never included */
         Config: {
             id: number;
@@ -3767,14 +3745,14 @@ export interface components {
             supportedFields: {
                 name: string;
                 description: string;
-                valueTypes: string[];
+                valueTypes: components["schemas"]["ConditionValueType"][];
             }[];
             /** @default {} */
             supportedOperators: {
                 [key: string]: {
-                    name: string;
+                    name: components["schemas"]["ConditionOperator"];
                     description: string;
-                    valueTypes: string[];
+                    valueTypes: components["schemas"]["ConditionValueType"][];
                     valueFormat?: string;
                 }[];
             };
@@ -4046,31 +4024,6 @@ export interface components {
             negate?: boolean;
             _cid?: string;
         };
-        /** @description Boolean grouping of router conditions, nestable to 20 levels */
-        RouterConditionGroupOutput: {
-            /** @enum {string} */
-            operator: "AND" | "OR";
-            conditions: (components["schemas"]["RouterConditionOutput"] | {
-                /** @enum {string} */
-                operator: "AND" | "OR";
-                conditions: unknown[];
-                /** @default false */
-                negate: boolean;
-                _cid?: string;
-            })[];
-            /** @default false */
-            negate: boolean;
-            _cid?: string;
-        };
-        /** @description A single field comparison in a router rule */
-        RouterConditionOutput: {
-            field: string;
-            operator: components["schemas"]["ConditionOperator"];
-            value: components["schemas"]["ConditionValueOutput"];
-            /** @default false */
-            negate: boolean;
-            _cid?: string;
-        };
         /** @description Router outcome for a request, holding the routing used on approval */
         RouterDecision: {
             /** @enum {string} */
@@ -4081,6 +4034,7 @@ export interface components {
                 triggeredBy: components["schemas"]["ApprovalTrigger"];
                 data: components["schemas"]["ApprovalQuotaData"];
                 proposedRouting?: components["schemas"]["ApprovalRouting"];
+                additionalRouting?: components["schemas"]["ApprovalRouting"][];
             };
         };
         /** @description Router outcome for a request, holding the routing used on approval */
@@ -4093,6 +4047,7 @@ export interface components {
                 triggeredBy: components["schemas"]["ApprovalTrigger"];
                 data: components["schemas"]["ApprovalQuotaDataOutput"];
                 proposedRouting?: components["schemas"]["ApprovalRoutingOutput"];
+                additionalRouting?: components["schemas"]["ApprovalRoutingOutput"][];
             };
         };
         /** @description A stored content router rule */
@@ -4100,17 +4055,81 @@ export interface components {
             name: string;
             target_type: components["schemas"]["InstanceType"];
             target_instance_id: number | null;
-            condition?: components["schemas"]["RouterConditionOutput"] | components["schemas"]["RouterConditionGroupOutput"];
-            root_folder?: string;
-            quality_profile?: number | string;
+            condition?: {
+                field: string;
+                operator: components["schemas"]["ConditionOperator"];
+                value: string | number | boolean | string[] | number[] | (string | number)[] | {
+                    id: string | number;
+                    name: string;
+                } | {
+                    id: string | number;
+                    name: string;
+                } | {
+                    rating?: number | number[] | {
+                        min?: number;
+                        max?: number;
+                    };
+                    votes?: number | number[] | {
+                        min?: number;
+                        max?: number;
+                    };
+                } | {
+                    min?: number;
+                    max?: number;
+                } | null;
+                /** @default false */
+                negate: boolean;
+                _cid?: string;
+            } | {
+                /** @enum {string} */
+                operator: "AND" | "OR";
+                conditions: ({
+                    field: string;
+                    operator: components["schemas"]["ConditionOperator"];
+                    value: string | number | boolean | string[] | number[] | (string | number)[] | {
+                        id: string | number;
+                        name: string;
+                    } | {
+                        id: string | number;
+                        name: string;
+                    } | {
+                        rating?: number | number[] | {
+                            min?: number;
+                            max?: number;
+                        };
+                        votes?: number | number[] | {
+                            min?: number;
+                            max?: number;
+                        };
+                    } | {
+                        min?: number;
+                        max?: number;
+                    } | null;
+                    /** @default false */
+                    negate: boolean;
+                    _cid?: string;
+                } | {
+                    /** @enum {string} */
+                    operator: "AND" | "OR";
+                    conditions: unknown[];
+                    /** @default false */
+                    negate: boolean;
+                    _cid?: string;
+                })[];
+                /** @default false */
+                negate: boolean;
+                _cid?: string;
+            };
+            root_folder?: string | null;
+            quality_profile?: number | string | null;
             tags?: string[];
-            order?: number;
+            order: number | null;
             enabled?: boolean;
             search_on_add?: boolean | null;
             /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
             season_monitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
             /** @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error. */
-            series_type?: ("standard" | "anime" | "daily") | null;
+            series_type?: components["schemas"]["SonarrSeriesType"] | null;
             /** @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error. */
             monitor?: components["schemas"]["RadarrMonitor"] | null;
             always_require_approval?: boolean;
@@ -4133,8 +4152,8 @@ export interface components {
             target_type: components["schemas"]["InstanceType"];
             target_instance_id: number | null;
             condition?: components["schemas"]["RouterCondition"] | components["schemas"]["RouterConditionGroup"];
-            root_folder?: string;
-            quality_profile?: number | string;
+            root_folder?: string | null;
+            quality_profile?: (number | string) | null;
             tags?: string[];
             order?: number;
             enabled?: boolean;
@@ -4142,7 +4161,7 @@ export interface components {
             /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
             season_monitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
             /** @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error. */
-            series_type?: ("standard" | "anime" | "daily") | null;
+            series_type?: components["schemas"]["SonarrSeriesType"] | null;
             /** @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error. */
             monitor?: components["schemas"]["RadarrMonitor"] | null;
             always_require_approval?: boolean;
@@ -4168,6 +4187,11 @@ export interface components {
         SonarrSeasonMonitoring: "all" | "future" | "missing" | "existing" | "recent" | "pilot" | "firstSeason" | "lastSeason" | "monitorSpecials" | "unmonitorSpecials" | "none" | "pilotRolling" | "firstSeasonRolling" | "allSeasonPilotRolling" | "unknown" | "latestSeason" | "skip";
         /** @description A SonarrSeasonMonitoring option, or a legacy value already stored on the record */
         SonarrSeasonMonitoringValue: components["schemas"]["SonarrSeasonMonitoring"] | string;
+        /**
+         * @description How Sonarr numbers episodes when adding a series
+         * @enum {string}
+         */
+        SonarrSeriesType: "standard" | "anime" | "daily";
         /** @description Pulsarr-tracked Sonarr show with its rolling monitoring enrollment status */
         SonarrShowWithEnrollment: {
             watchlistId: number;
@@ -10312,11 +10336,8 @@ export interface operations {
                         /** @default false */
                         isDefault: boolean;
                         syncedInstances?: number[];
-                        /**
-                         * @default standard
-                         * @enum {string}
-                         */
-                        seriesType: "standard" | "anime" | "daily";
+                        /** @default standard */
+                        seriesType: components["schemas"]["SonarrSeriesType"];
                         /** @default false */
                         skipDefaultRoutingWhenNoMatch: boolean;
                         id: number;
@@ -10368,11 +10389,8 @@ export interface operations {
                     /** @default false */
                     isDefault?: boolean;
                     syncedInstances?: number[];
-                    /**
-                     * @default standard
-                     * @enum {string}
-                     */
-                    seriesType?: "standard" | "anime" | "daily";
+                    /** @default standard */
+                    seriesType?: components["schemas"]["SonarrSeriesType"];
                     /** @default false */
                     skipDefaultRoutingWhenNoMatch?: boolean;
                 };
@@ -10455,8 +10473,7 @@ export interface operations {
                     tags?: string[];
                     isDefault?: boolean;
                     syncedInstances?: number[];
-                    /** @enum {string} */
-                    seriesType?: "standard" | "anime" | "daily";
+                    seriesType?: components["schemas"]["SonarrSeriesType"];
                     skipDefaultRoutingWhenNoMatch?: boolean;
                 };
             };
@@ -14140,8 +14157,7 @@ export interface operations {
                         ruleId?: number;
                         ruleName?: string;
                         seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
-                        /** @enum {string} */
-                        seriesType?: "standard" | "anime" | "daily";
+                        seriesType?: components["schemas"]["SonarrSeriesType"];
                     })[];
                 };
             };
@@ -14284,7 +14300,7 @@ export interface operations {
                         /** @constant */
                         instanceType: "sonarr";
                         seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
-                        seriesType: ("standard" | "anime" | "daily") | null;
+                        seriesType: components["schemas"]["SonarrSeriesType"] | null;
                     };
                 };
             };
@@ -14389,7 +14405,7 @@ export interface operations {
                         /** @constant */
                         instanceType: "sonarr";
                         seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
-                        seriesType: ("standard" | "anime" | "daily") | null;
+                        seriesType: components["schemas"]["SonarrSeriesType"] | null;
                     };
                 };
             };
@@ -14478,7 +14494,7 @@ export interface operations {
                         /** @constant */
                         instanceType: "sonarr";
                         seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
-                        seriesType: ("standard" | "anime" | "daily") | null;
+                        seriesType: components["schemas"]["SonarrSeriesType"] | null;
                     };
                     reason: string;
                 };

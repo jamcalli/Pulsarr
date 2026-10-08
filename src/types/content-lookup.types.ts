@@ -1,5 +1,6 @@
 import type { RadarrMonitorType } from '@root/schemas/radarr/add-options.schema.js'
 import type { SonarrMonitorType } from '@root/schemas/sonarr/season-monitoring.schema.js'
+import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 /**
  * Content Lookup Types for Router Plugins
  *
@@ -214,7 +215,7 @@ export interface SonarrSeriesLookupResponse {
   tmdbId?: number
   firstAired?: string
   lastAired?: string
-  seriesType?: 'standard' | 'anime' | 'daily'
+  seriesType?: SonarrSeriesType
   cleanTitle?: string
   imdbId?: string
   titleSlug?: string

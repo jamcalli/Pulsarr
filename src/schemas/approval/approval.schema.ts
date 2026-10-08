@@ -2,11 +2,16 @@ import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { InstanceTypeSchema } from '@root/schemas/common/instance-type.schema.js'
 import {
-  RadarrMinimumAvailabilitySchema,
-  RadarrMonitorSchema,
-} from '@root/schemas/radarr/add-options.schema.js'
+  RoutingMonitorSchema,
+  RoutingQualityProfileSchema,
+  RoutingRootFolderSchema,
+  RoutingSearchOnAddSchema,
+  RoutingSeasonMonitoringSchema,
+  RoutingSeriesTypeSchema,
+  RoutingTagsSchema,
+} from '@root/schemas/common/routing-target.schema.js'
+import { RadarrMinimumAvailabilitySchema } from '@root/schemas/radarr/add-options.schema.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
-import { SonarrSeasonMonitoringValueSchema } from '@root/schemas/sonarr/season-monitoring.schema.js'
 import { z } from 'zod'
 
 export const ApprovalStatusSchema = z
@@ -27,16 +32,17 @@ export const ApprovalRoutingSchema = z
   .object({
     instanceId: z.number(),
     instanceType: InstanceTypeSchema,
-    qualityProfile: z.union([z.number(), z.string(), z.null()]).optional(),
-    rootFolder: z.string().nullable().optional(),
-    tags: z.array(z.string()).optional(),
+    qualityProfile: RoutingQualityProfileSchema.optional(),
+    rootFolder: RoutingRootFolderSchema.optional(),
+    tags: RoutingTagsSchema.optional(),
     priority: z.number(),
-    searchOnAdd: z.boolean().nullable().optional(),
-    seasonMonitoring: SonarrSeasonMonitoringValueSchema.nullable().optional(),
-    seriesType: z.enum(['standard', 'anime', 'daily']).nullable().optional(),
+    searchOnAdd: RoutingSearchOnAddSchema.optional(),
+    seasonMonitoring: RoutingSeasonMonitoringSchema.optional(),
+    seriesType: RoutingSeriesTypeSchema.optional(),
     minimumAvailability: RadarrMinimumAvailabilitySchema.optional(),
-    monitor: RadarrMonitorSchema.nullable().optional(),
+    monitor: RoutingMonitorSchema.optional(),
     syncedInstances: z.array(z.number()).optional(),
+    ruleId: z.number().optional(),
   })
   .meta({
     id: 'ApprovalRouting',
@@ -68,6 +74,7 @@ export const RouterDecisionSchema = z
         triggeredBy: ApprovalTriggerSchema,
         data: ApprovalQuotaDataSchema,
         proposedRouting: ApprovalRoutingSchema.optional(),
+        additionalRouting: z.array(ApprovalRoutingSchema).optional(),
       })
       .optional(),
   })

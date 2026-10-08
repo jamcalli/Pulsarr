@@ -615,12 +615,7 @@
           "seriesType": {
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "standard",
-                  "anime",
-                  "daily"
-                ]
+                "$ref": "#/components/schemas/SonarrSeriesType"
               },
               {
                 "type": "null"
@@ -645,6 +640,9 @@
             "items": {
               "type": "number"
             }
+          },
+          "ruleId": {
+            "type": "number"
           }
         },
         "required": [
@@ -704,12 +702,7 @@
           "seriesType": {
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "standard",
-                  "anime",
-                  "daily"
-                ]
+                "$ref": "#/components/schemas/SonarrSeriesType"
               },
               {
                 "type": "null"
@@ -734,6 +727,9 @@
             "items": {
               "type": "number"
             }
+          },
+          "ruleId": {
+            "type": "number"
           }
         },
         "required": [
@@ -994,42 +990,6 @@
             }
           },
           {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": [
-                  "string",
-                  "number"
-                ]
-              },
-              "name": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name"
-            ]
-          },
-          {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": [
-                  "string",
-                  "number"
-                ]
-              },
-              "name": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name"
-            ]
-          },
-          {
             "type": "array",
             "items": {
               "type": [
@@ -1037,160 +997,6 @@
                 "number"
               ]
             }
-          },
-          {
-            "type": "object",
-            "properties": {
-              "min": {
-                "type": "number"
-              },
-              "max": {
-                "type": "number"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "properties": {
-              "rating": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "min": {
-                        "type": "number"
-                      },
-                      "max": {
-                        "type": "number"
-                      }
-                    }
-                  }
-                ]
-              },
-              "votes": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "min": {
-                        "type": "number"
-                      },
-                      "max": {
-                        "type": "number"
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "description": "Value shapes accepted by router conditions"
-      },
-      "ConditionValueOutput": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "number"
-          },
-          {
-            "type": "boolean"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
-          },
-          {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": [
-                  "string",
-                  "number"
-                ]
-              },
-              "name": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name"
-            ],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": [
-                  "string",
-                  "number"
-                ]
-              },
-              "name": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name"
-            ],
-            "additionalProperties": false
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": [
-                "string",
-                "number"
-              ]
-            }
-          },
-          {
-            "type": "object",
-            "properties": {
-              "min": {
-                "type": "number"
-              },
-              "max": {
-                "type": "number"
-              }
-            },
-            "additionalProperties": false
           },
           {
             "type": "object",
@@ -1222,30 +1028,19 @@
                 ]
               },
               "votes": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "min": {
-                        "type": "number"
-                      },
-                      "max": {
-                        "type": "number"
-                      }
-                    },
-                    "additionalProperties": false
-                  }
-                ]
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
               }
             },
             "additionalProperties": false
@@ -1255,6 +1050,17 @@
           }
         ],
         "description": "Value shapes accepted by router conditions"
+      },
+      "ConditionValueType": {
+        "type": "string",
+        "enum": [
+          "number",
+          "number[]",
+          "string",
+          "string[]",
+          "object"
+        ],
+        "description": "Value shape a condition field or operator accepts"
       },
       "Config": {
         "type": "object",
@@ -2708,7 +2514,7 @@
                 "valueTypes": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/ConditionValueType"
                   }
                 }
               },
@@ -2732,7 +2538,7 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/ConditionOperator"
                   },
                   "description": {
                     "type": "string"
@@ -2740,7 +2546,7 @@
                   "valueTypes": {
                     "type": "array",
                     "items": {
-                      "type": "string"
+                      "$ref": "#/components/schemas/ConditionValueType"
                     }
                   },
                   "valueFormat": {
@@ -3715,102 +3521,6 @@
         ],
         "description": "Boolean grouping of router conditions, nestable to 20 levels"
       },
-      "RouterConditionGroupOutput": {
-        "type": "object",
-        "properties": {
-          "operator": {
-            "type": "string",
-            "enum": [
-              "AND",
-              "OR"
-            ]
-          },
-          "conditions": {
-            "maxItems": 20,
-            "type": "array",
-            "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/RouterConditionOutput"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "operator": {
-                      "type": "string",
-                      "enum": [
-                        "AND",
-                        "OR"
-                      ]
-                    },
-                    "conditions": {
-                      "maxItems": 20,
-                      "type": "array",
-                      "items": {}
-                    },
-                    "negate": {
-                      "default": false,
-                      "type": "boolean"
-                    },
-                    "_cid": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "operator",
-                    "conditions",
-                    "negate"
-                  ],
-                  "additionalProperties": false
-                }
-              ]
-            }
-          },
-          "negate": {
-            "default": false,
-            "type": "boolean"
-          },
-          "_cid": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "operator",
-          "conditions",
-          "negate"
-        ],
-        "additionalProperties": false,
-        "description": "Boolean grouping of router conditions, nestable to 20 levels"
-      },
-      "RouterConditionOutput": {
-        "type": "object",
-        "properties": {
-          "field": {
-            "type": "string"
-          },
-          "operator": {
-            "$ref": "#/components/schemas/ConditionOperator"
-          },
-          "value": {
-            "$ref": "#/components/schemas/ConditionValueOutput"
-          },
-          "negate": {
-            "default": false,
-            "type": "boolean"
-          },
-          "_cid": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "field",
-          "operator",
-          "value",
-          "negate"
-        ],
-        "additionalProperties": false,
-        "description": "A single field comparison in a router rule"
-      },
       "RouterDecision": {
         "type": "object",
         "properties": {
@@ -3840,6 +3550,12 @@
               },
               "proposedRouting": {
                 "$ref": "#/components/schemas/ApprovalRouting"
+              },
+              "additionalRouting": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ApprovalRouting"
+                }
               }
             },
             "required": [
@@ -3883,6 +3599,12 @@
               },
               "proposedRouting": {
                 "$ref": "#/components/schemas/ApprovalRoutingOutput"
+              },
+              "additionalRouting": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ApprovalRoutingOutput"
+                }
               }
             },
             "required": [
@@ -3923,20 +3645,415 @@
           "condition": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/RouterConditionOutput"
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "operator": {
+                    "$ref": "#/components/schemas/ConditionOperator"
+                  },
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        }
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": [
+                            "string",
+                            "number"
+                          ]
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "rating": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "number"
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          "votes": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "number"
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            ]
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "min": {
+                            "type": "number"
+                          },
+                          "max": {
+                            "type": "number"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "negate": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "_cid": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "field",
+                  "operator",
+                  "value",
+                  "negate"
+                ],
+                "additionalProperties": false
               },
               {
-                "$ref": "#/components/schemas/RouterConditionGroupOutput"
+                "type": "object",
+                "properties": {
+                  "operator": {
+                    "type": "string",
+                    "enum": [
+                      "AND",
+                      "OR"
+                    ]
+                  },
+                  "conditions": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "field": {
+                              "type": "string"
+                            },
+                            "operator": {
+                              "$ref": "#/components/schemas/ConditionOperator"
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  }
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": [
+                                      "string",
+                                      "number"
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": [
+                                        "string",
+                                        "number"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": [
+                                        "string",
+                                        "number"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "rating": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "min": {
+                                              "type": "number"
+                                            },
+                                            "max": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    },
+                                    "votes": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "min": {
+                                              "type": "number"
+                                            },
+                                            "max": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "number"
+                                    },
+                                    "max": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "negate": {
+                              "default": false,
+                              "type": "boolean"
+                            },
+                            "_cid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "field",
+                            "operator",
+                            "value",
+                            "negate"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "operator": {
+                              "type": "string",
+                              "enum": [
+                                "AND",
+                                "OR"
+                              ]
+                            },
+                            "conditions": {
+                              "type": "array",
+                              "items": {}
+                            },
+                            "negate": {
+                              "default": false,
+                              "type": "boolean"
+                            },
+                            "_cid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "operator",
+                            "conditions",
+                            "negate"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "negate": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "_cid": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "operator",
+                  "conditions",
+                  "negate"
+                ],
+                "additionalProperties": false
               }
             ]
           },
           "root_folder": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "quality_profile": {
             "type": [
               "number",
-              "string"
+              "string",
+              "null"
             ]
           },
           "tags": {
@@ -3946,7 +4063,10 @@
             }
           },
           "order": {
-            "type": "number"
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "enabled": {
             "type": "boolean"
@@ -3972,12 +4092,7 @@
             "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "standard",
-                  "anime",
-                  "daily"
-                ]
+                "$ref": "#/components/schemas/SonarrSeriesType"
               },
               {
                 "type": "null"
@@ -4021,6 +4136,7 @@
           "name",
           "target_type",
           "target_instance_id",
+          "order",
           "id",
           "created_at",
           "updated_at"
@@ -4084,12 +4200,32 @@
             ]
           },
           "root_folder": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "quality_profile": {
-            "type": [
-              "number",
-              "string"
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\d+$"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "tags": {
@@ -4099,7 +4235,9 @@
             }
           },
           "order": {
-            "type": "number"
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           },
           "enabled": {
             "type": "boolean"
@@ -4125,12 +4263,7 @@
             "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "standard",
-                  "anime",
-                  "daily"
-                ]
+                "$ref": "#/components/schemas/SonarrSeriesType"
               },
               {
                 "type": "null"
@@ -4231,6 +4364,15 @@
           }
         ],
         "description": "A SonarrSeasonMonitoring option, or a legacy value already stored on the record"
+      },
+      "SonarrSeriesType": {
+        "type": "string",
+        "enum": [
+          "standard",
+          "anime",
+          "daily"
+        ],
+        "description": "How Sonarr numbers episodes when adding a series"
       },
       "SonarrShowWithEnrollment": {
         "type": "object",
@@ -16097,12 +16239,7 @@
                       },
                       "seriesType": {
                         "default": "standard",
-                        "type": "string",
-                        "enum": [
-                          "standard",
-                          "anime",
-                          "daily"
-                        ]
+                        "$ref": "#/components/schemas/SonarrSeriesType"
                       },
                       "skipDefaultRoutingWhenNoMatch": {
                         "default": false,
@@ -16227,12 +16364,7 @@
                   },
                   "seriesType": {
                     "default": "standard",
-                    "type": "string",
-                    "enum": [
-                      "standard",
-                      "anime",
-                      "daily"
-                    ]
+                    "$ref": "#/components/schemas/SonarrSeriesType"
                   },
                   "skipDefaultRoutingWhenNoMatch": {
                     "default": false,
@@ -16388,12 +16520,7 @@
                     }
                   },
                   "seriesType": {
-                    "type": "string",
-                    "enum": [
-                      "standard",
-                      "anime",
-                      "daily"
-                    ]
+                    "$ref": "#/components/schemas/SonarrSeriesType"
                   },
                   "skipDefaultRoutingWhenNoMatch": {
                     "type": "boolean"
@@ -22745,12 +22872,7 @@
                               "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
                             },
                             "seriesType": {
-                              "type": "string",
-                              "enum": [
-                                "standard",
-                                "anime",
-                                "daily"
-                              ]
+                              "$ref": "#/components/schemas/SonarrSeriesType"
                             }
                           },
                           "required": [
@@ -23114,12 +23236,7 @@
                           "seriesType": {
                             "anyOf": [
                               {
-                                "type": "string",
-                                "enum": [
-                                  "standard",
-                                  "anime",
-                                  "daily"
-                                ]
+                                "$ref": "#/components/schemas/SonarrSeriesType"
                               },
                               {
                                 "type": "null"
@@ -23422,12 +23539,7 @@
                           "seriesType": {
                             "anyOf": [
                               {
-                                "type": "string",
-                                "enum": [
-                                  "standard",
-                                  "anime",
-                                  "daily"
-                                ]
+                                "$ref": "#/components/schemas/SonarrSeriesType"
                               },
                               {
                                 "type": "null"
@@ -23700,12 +23812,7 @@
                           "seriesType": {
                             "anyOf": [
                               {
-                                "type": "string",
-                                "enum": [
-                                  "standard",
-                                  "anime",
-                                  "daily"
-                                ]
+                                "$ref": "#/components/schemas/SonarrSeriesType"
                               },
                               {
                                 "type": "null"

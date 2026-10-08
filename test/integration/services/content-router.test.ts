@@ -1,4 +1,6 @@
 import type { ContentItem, RoutingContext } from '@root/types/router.types.js'
+import { checkApprovalRequirements } from '@services/content-router/approval-checks.js'
+import { evaluateRules } from '@services/content-router/rule-resolver.js'
 import type { FastifyInstance } from 'fastify'
 import {
   afterAll,
@@ -9,6 +11,9 @@ import {
   expect,
   it,
 } from 'vitest'
+import pluginsFixture from '../../fixtures/content-router-plugins.json' with {
+  type: 'json',
+}
 import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import {
@@ -21,17 +26,16 @@ import {
 describe('ContentRouterService Integration', () => {
   let fastify: FastifyInstance
 
-  // Helper to access private checkApprovalRequirements method
-  const getCheckApproval = () =>
-    (
-      fastify.contentRouter as unknown as {
-        checkApprovalRequirements: (
-          item: ContentItem,
-          context: RoutingContext,
-          decisions: unknown[],
-        ) => Promise<{ required: boolean; reason?: string }>
-      }
-    ).checkApprovalRequirements.bind(fastify.contentRouter)
+  const getCheckApproval =
+    () => async (item: ContentItem, context: RoutingContext) => {
+      const { decisions } = evaluateRules(
+        fastify.log,
+        await fastify.db.getAllRouterRules(),
+        item,
+        context,
+      )
+      return checkApprovalRequirements(context, decisions, { db: fastify.db })
+    }
 
   beforeAll(async () => {
     fastify = await build()
@@ -94,12 +98,12 @@ describe('ContentRouterService Integration', () => {
       const checkApproval = getCheckApproval()
 
       // Drama show should trigger Sonarr approval rule
-      const showResult = await checkApproval(dramaShow, showContext, [])
+      const showResult = await checkApproval(dramaShow, showContext)
       expect(showResult.required).toBe(true)
       expect(showResult.reason).toContain('Drama shows require approval')
 
       // Drama movie should NOT trigger Sonarr approval rule (wrong target_type)
-      const movieResult = await checkApproval(dramaMovie, movieContext, [])
+      const movieResult = await checkApproval(dramaMovie, movieContext)
       // Should trigger Radarr rule instead
       expect(movieResult.required).toBe(true)
       expect(movieResult.reason).toContain('Drama movies require approval')
@@ -123,13 +127,13 @@ describe('ContentRouterService Integration', () => {
       const checkApproval = getCheckApproval()
 
       // Drama movie should trigger Radarr approval rule
-      const movieResult = await checkApproval(dramaMovie, movieContext, [])
+      const movieResult = await checkApproval(dramaMovie, movieContext)
       expect(movieResult.required).toBe(true)
       expect(movieResult.reason).toContain('Drama movies require approval')
 
       // Drama show should NOT trigger Radarr approval rule (wrong target_type)
       // Should trigger Sonarr rule instead
-      const showResult = await checkApproval(dramaShow, showContext, [])
+      const showResult = await checkApproval(dramaShow, showContext)
       expect(showResult.required).toBe(true)
       expect(showResult.reason).toContain('Drama shows require approval')
     })
@@ -145,7 +149,7 @@ describe('ContentRouterService Integration', () => {
       const checkApproval = getCheckApproval()
 
       // Comedy movie should not trigger Drama approval rules
-      const result = await checkApproval(comedyMovie, movieContext, [])
+      const result = await checkApproval(comedyMovie, movieContext)
       expect(result.required).toBe(false)
     })
 
@@ -167,8 +171,46 @@ describe('ContentRouterService Integration', () => {
       const checkApproval = getCheckApproval()
 
       // No enabled rules should match
-      const result = await checkApproval(dramaMovie, movieContext, [])
+      const result = await checkApproval(dramaMovie, movieContext)
       expect(result.required).toBe(false)
+    })
+
+    it('ignores a higher matching rule with no target instance', async () => {
+      await getTestDatabase()('router_rules').insert({
+        name: 'Targetless Drama',
+        type: 'conditional',
+        target_type: 'radarr',
+        target_instance_id: null,
+        tags: JSON.stringify([]),
+        order: 90,
+        enabled: true,
+        always_require_approval: false,
+        exclude_from_routing: false,
+        criteria: JSON.stringify({
+          condition: {
+            negate: false,
+            operator: 'AND',
+            conditions: [
+              {
+                field: 'genres',
+                value: 'Drama',
+                negate: false,
+                operator: 'contains',
+              },
+            ],
+          },
+        }),
+      })
+      fastify.contentRouter.clearRouterRulesCache()
+
+      const result = await getCheckApproval()(dramaMovie, {
+        userId: 1,
+        userName: 'Test User',
+        contentType: 'movie',
+        itemKey: 'test-movie-key',
+      })
+      expect(result.required).toBe(true)
+      expect(result.reason).toContain('Drama movies require approval')
     })
   })
 
@@ -448,38 +490,10 @@ describe('ContentRouterService Integration', () => {
   })
 
   describe('evaluator loading', () => {
-    it('should load evaluators with correct methods', async () => {
-      // The service should have loaded evaluators during initialization
-      // Access the evaluators array to verify they loaded
-      const evaluators = (
-        fastify.contentRouter as unknown as { evaluators: unknown[] }
-      ).evaluators
-
-      expect(evaluators.length).toBeGreaterThan(0)
-
-      // Verify conditional evaluator is loaded (metadata-only, no evaluate())
-      const conditionalEvaluator = evaluators.find(
-        (e: unknown) =>
-          typeof e === 'object' &&
-          e !== null &&
-          'name' in e &&
-          (e as { name: string }).name === 'Conditional Router',
-      ) as { name: string; supportedFields?: unknown[] } | undefined
-
-      expect(conditionalEvaluator).toBeDefined()
-      expect(conditionalEvaluator?.supportedFields).toBeDefined()
-
-      // Verify field evaluators are loaded with evaluateCondition() method
-      const genreEvaluator = evaluators.find(
-        (e: unknown) =>
-          typeof e === 'object' &&
-          e !== null &&
-          'name' in e &&
-          (e as { name: string }).name === 'Genre Router',
-      ) as { name: string; evaluateCondition?: unknown } | undefined
-
-      expect(genreEvaluator).toBeDefined()
-      expect(typeof genreEvaluator?.evaluateCondition).toBe('function')
+    it('loads every evaluator in priority order', () => {
+      expect(fastify.contentRouter.getLoadedEvaluators()).toEqual(
+        pluginsFixture.plugins.plugins,
+      )
     })
   })
 })

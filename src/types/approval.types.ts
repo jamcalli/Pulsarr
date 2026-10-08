@@ -2,6 +2,7 @@ import type {
   MinimumAvailability,
   RadarrMonitorType,
 } from '@root/schemas/radarr/add-options.schema.js'
+import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 /**
  * Approval System Types
  *
@@ -80,10 +81,11 @@ export interface RouterDecision {
     priority: number
     searchOnAdd?: boolean | null
     seasonMonitoring?: string | null
-    seriesType?: 'standard' | 'anime' | 'daily' | null
+    seriesType?: SonarrSeriesType | null
     minimumAvailability?: MinimumAvailability
     monitor?: RadarrMonitorType | null
     syncedInstances?: number[]
+    ruleId?: number
   }
 
   // Approval-specific fields (when action === 'require_approval')
@@ -93,6 +95,8 @@ export interface RouterDecision {
     data: ApprovalData
     // What routing WOULD have been applied
     proposedRouting?: RouterDecision['routing']
+    /** Independently matched rule targets beyond the primary, each routed with its own settings. */
+    additionalRouting?: NonNullable<RouterDecision['routing']>[]
   }
 }
 

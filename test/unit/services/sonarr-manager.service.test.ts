@@ -1,4 +1,5 @@
-import type { SonarrInstance } from '@root/types/sonarr.types.js'
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import type { SonarrInstance, SonarrItem } from '@root/types/sonarr.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import { SonarrManagerService } from '@services/sonarr-manager.service.js'
@@ -10,12 +11,19 @@ const INSTANCE: SonarrInstance = {
   id: 1,
   name: 'Test Sonarr',
   baseUrl: 'http://sonarr.test',
-  apiKey: 'placeholder',
+  apiKey: 'test-api-key',
   bypassIgnored: false,
   seasonMonitoring: 'all',
   monitorNewItems: 'all',
   tags: [],
   isDefault: true,
+}
+
+const ADDED = {
+  seriesId: 7,
+  rootFolder: '/sent',
+  qualityProfileId: 6,
+  tags: ['3'],
 }
 
 describe('SonarrManagerService.seriesExistsByTvdbId', () => {
@@ -114,5 +122,143 @@ describe('SonarrManagerService.seriesExistsByTvdbId', () => {
 
     expect(result).toMatchObject({ found: false, checked: false })
     expect(getSonarrInstance).not.toHaveBeenCalled()
+  })
+})
+
+describe('SonarrManagerService.routeItemToSonarr', () => {
+  const item: SonarrItem = { title: 'Show', type: 'show', guids: ['tvdb:1'] }
+  let service: SonarrService
+  let manager: SonarrManagerService
+  let addToSonarr: Mock<SonarrService['addToSonarr']>
+  let db: Partial<DatabaseService>
+
+  beforeEach(() => {
+    db = {
+      getSonarrInstance: vi.fn<DatabaseService['getSonarrInstance']>(
+        async () => ({
+          ...INSTANCE,
+          qualityProfile: 4,
+          rootFolder: '/tv',
+          tags: ['a'],
+          searchOnAdd: false,
+          seasonMonitoring: 'pilot',
+          seriesType: 'anime',
+        }),
+      ),
+      updateWatchlistItem: vi.fn<DatabaseService['updateWatchlistItem']>(
+        async () => undefined,
+      ),
+    }
+    const fastify: Partial<FastifyInstance> = { db: db as DatabaseService }
+    service = new SonarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify as FastifyInstance,
+    )
+    addToSonarr = vi.spyOn(service, 'addToSonarr').mockResolvedValue(ADDED)
+    manager = new SonarrManagerService(
+      createMockLogger(),
+      fastify as FastifyInstance,
+    )
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    manager['sonarrServices'].set(1, service)
+  })
+
+  it('sends the instance values when the settings inherit', async () => {
+    const applied = await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+      rootFolder: null,
+      qualityProfile: null,
+      searchOnAdd: null,
+      seasonMonitoring: null,
+      seriesType: null,
+    })
+
+    expect(applied).toEqual({
+      instanceId: 1,
+      instanceType: 'sonarr',
+      qualityProfile: 6,
+      rootFolder: '/sent',
+      tags: ['3'],
+      searchOnAdd: false,
+      seasonMonitoring: 'pilot',
+      seriesType: 'anime',
+    })
+    expect(addToSonarr).toHaveBeenCalledWith(
+      expect.anything(),
+      '/tv',
+      4,
+      ['a'],
+      false,
+      'pilot',
+      'anime',
+    )
+  })
+
+  it('reports what the add service resolved for an instance with no folder, profile or tags', async () => {
+    db.getSonarrInstance = vi.fn<DatabaseService['getSonarrInstance']>(
+      async () => ({ ...INSTANCE, qualityProfile: null, rootFolder: null }),
+    )
+
+    const applied = await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+      tags: [],
+    })
+
+    expect(addToSonarr).toHaveBeenCalledWith(
+      expect.anything(),
+      undefined,
+      undefined,
+      [],
+      true,
+      'all',
+      'standard',
+    )
+    expect(applied).toMatchObject({
+      qualityProfile: 6,
+      rootFolder: '/sent',
+      tags: ['3'],
+    })
+  })
+
+  it('sends the settings it was given in place of the instance values', async () => {
+    const applied = await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+      rootFolder: '/rule',
+      qualityProfile: '9',
+      tags: [],
+      searchOnAdd: true,
+      seasonMonitoring: 'all',
+      seriesType: 'daily',
+    })
+
+    expect(applied).toEqual({
+      instanceId: 1,
+      instanceType: 'sonarr',
+      qualityProfile: 6,
+      rootFolder: '/sent',
+      tags: ['3'],
+      searchOnAdd: true,
+      seasonMonitoring: 'all',
+      seriesType: 'daily',
+    })
+    expect(addToSonarr).toHaveBeenCalledWith(
+      expect.anything(),
+      '/rule',
+      9,
+      [],
+      true,
+      'all',
+      'daily',
+    )
+  })
+
+  it('refuses an instance that is not set up without calling it', async () => {
+    db.getSonarrInstance = vi.fn<DatabaseService['getSonarrInstance']>(
+      async () => ({ ...INSTANCE, apiKey: ARR_API_KEY_PLACEHOLDER }),
+    )
+
+    await expect(manager.routeItemToSonarr(item, 'key', 2, 1)).rejects.toThrow(
+      'is not set up',
+    )
+    expect(addToSonarr).not.toHaveBeenCalled()
   })
 })

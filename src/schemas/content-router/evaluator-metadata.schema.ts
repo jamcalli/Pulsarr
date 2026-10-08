@@ -1,18 +1,25 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { ComparisonOperatorSchema } from '@root/schemas/content-router/content-router.schema.js'
+import { CONDITION_VALUE_TYPES } from '@root/schemas/content-router/router-fields.js'
 import { z } from 'zod'
+
+export const ConditionValueTypeSchema = z.enum(CONDITION_VALUE_TYPES).meta({
+  id: 'ConditionValueType',
+  description: 'Value shape a condition field or operator accepts',
+})
 
 // Schema for field information
 export const FieldInfoSchema = z.object({
   name: z.string(),
   description: z.string(),
-  valueTypes: z.array(z.string()),
+  valueTypes: z.array(ConditionValueTypeSchema),
 })
 
 // Schema for operator information
 export const OperatorInfoSchema = z.object({
-  name: z.string(),
+  name: ComparisonOperatorSchema,
   description: z.string(),
-  valueTypes: z.array(z.string()),
+  valueTypes: z.array(ConditionValueTypeSchema),
   valueFormat: z.string().optional(),
 })
 
@@ -44,8 +51,6 @@ export const EvaluatorMetadataResponseSchema = z.object({
 export { ErrorSchema as EvaluatorMetadataErrorSchema }
 
 // Export types
-export type FieldInfo = z.infer<typeof FieldInfoSchema>
-export type OperatorInfo = z.infer<typeof OperatorInfoSchema>
 export type EvaluatorMetadata = z.infer<typeof EvaluatorMetadataSchema>
 export type EvaluatorMetadataResponse = z.infer<
   typeof EvaluatorMetadataResponseSchema
