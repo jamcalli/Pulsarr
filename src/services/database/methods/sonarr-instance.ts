@@ -94,6 +94,52 @@ export async function getSonarrInstance(
   return mapRowToSonarrInstance.call(this, instance)
 }
 
+async function insertSonarrInstanceRow(
+  this: DatabaseService,
+  trx: Knex.Transaction,
+  instance: Omit<SonarrInstance, 'id'>,
+): Promise<number> {
+  if (instance.isDefault) {
+    await trx('sonarr_instances')
+      .where('is_default', true)
+      .update('is_default', false)
+  }
+
+  const result = await trx('sonarr_instances')
+    .insert({
+      name: instance.name || 'Default Sonarr Instance',
+      base_url: instance.baseUrl,
+      api_key: instance.apiKey,
+      quality_profile: instance.qualityProfile,
+      root_folder: instance.rootFolder,
+      bypass_ignored: instance.bypassIgnored,
+      season_monitoring: instance.seasonMonitoring,
+      monitor_new_items: this.normaliseMonitorNewItems(
+        instance.monitorNewItems || 'all',
+      ),
+      search_on_add: instance.searchOnAdd ?? true,
+      create_season_folders: instance.createSeasonFolders ?? false,
+      tags: Array.isArray(instance.tags)
+        ? JSON.stringify(instance.tags)
+        : instance.tags || JSON.stringify([]),
+      is_default: instance.isDefault ?? false,
+      is_enabled: true,
+      synced_instances: Array.isArray(instance.syncedInstances)
+        ? JSON.stringify(instance.syncedInstances)
+        : instance.syncedInstances || JSON.stringify([]),
+      series_type: instance.seriesType || 'standard',
+      skip_default_routing_when_no_match:
+        instance.skipDefaultRoutingWhenNoMatch ?? false,
+      created_at: this.timestamp,
+      updated_at: this.timestamp,
+    })
+    .returning('id')
+
+  const id = this.extractId(result)
+  this.log.info(`Sonarr instance created with ID: ${id}`)
+  return id
+}
+
 /**
  * Creates a new Sonarr instance in the database and returns its ID.
  *
@@ -106,47 +152,9 @@ export async function createSonarrInstance(
   this: DatabaseService,
   instance: Omit<SonarrInstance, 'id'>,
 ): Promise<number> {
-  return await this.knex.transaction(async (trx) => {
-    if (instance.isDefault) {
-      await trx('sonarr_instances')
-        .where('is_default', true)
-        .update('is_default', false)
-    }
-
-    const result = await trx('sonarr_instances')
-      .insert({
-        name: instance.name || 'Default Sonarr Instance',
-        base_url: instance.baseUrl,
-        api_key: instance.apiKey,
-        quality_profile: instance.qualityProfile,
-        root_folder: instance.rootFolder,
-        bypass_ignored: instance.bypassIgnored,
-        season_monitoring: instance.seasonMonitoring,
-        monitor_new_items: this.normaliseMonitorNewItems(
-          instance.monitorNewItems || 'all',
-        ),
-        search_on_add: instance.searchOnAdd ?? true,
-        create_season_folders: instance.createSeasonFolders ?? false,
-        tags: Array.isArray(instance.tags)
-          ? JSON.stringify(instance.tags)
-          : instance.tags || JSON.stringify([]),
-        is_default: instance.isDefault ?? false,
-        is_enabled: true,
-        synced_instances: Array.isArray(instance.syncedInstances)
-          ? JSON.stringify(instance.syncedInstances)
-          : instance.syncedInstances || JSON.stringify([]),
-        series_type: instance.seriesType || 'standard',
-        skip_default_routing_when_no_match:
-          instance.skipDefaultRoutingWhenNoMatch ?? false,
-        created_at: this.timestamp,
-        updated_at: this.timestamp,
-      })
-      .returning('id')
-
-    const id = this.extractId(result)
-    this.log.info(`Sonarr instance created with ID: ${id}`)
-    return id
-  })
+  return await this.knex.transaction((trx) =>
+    insertSonarrInstanceRow.call(this, trx, instance),
+  )
 }
 
 /**
@@ -376,6 +384,24 @@ export async function deleteSonarrInstance(
     this.log.error({ error }, `Error deleting Sonarr instance ${id}`)
     throw error
   }
+}
+
+/** Deletes the instance with every reference to it and inserts the replacement as default in one transaction, returning the new id. */
+export async function replaceSonarrInstance(
+  this: DatabaseService,
+  id: number,
+  replacement: Omit<SonarrInstance, 'id'>,
+): Promise<number> {
+  const newId = await this.knex.transaction(async (trx) => {
+    await this.cleanupDeletedSonarrInstanceReferences(id, trx)
+    await trx('sonarr_instances').where('id', id).delete()
+    return insertSonarrInstanceRow.call(this, trx, {
+      ...replacement,
+      isDefault: true,
+    })
+  })
+  this.log.info(`Replaced Sonarr instance ${id} with instance ${newId}`)
+  return newId
 }
 
 /**
