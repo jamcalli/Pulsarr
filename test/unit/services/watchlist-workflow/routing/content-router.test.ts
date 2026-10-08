@@ -274,7 +274,11 @@ const ROUTERS = [
     contentType: 'show',
     added: (deps: ContentRoutingDeps) =>
       vi.mocked(deps.sonarrManager.routeItemToSonarr).mock.calls,
-    route: (deps: ContentRoutingDeps, presentIn?: number[]) =>
+    route: (
+      deps: ContentRoutingDeps,
+      presentIn?: number[],
+      excludedIn: number[] = [],
+    ) =>
       routeShow(
         {
           tempItem: {
@@ -286,10 +290,17 @@ const ROUTERS = [
           userId: 1,
           userName: undefined,
           sonarrItem: SONARR_ITEM,
-          existingSeries: presentIn?.map((sonarr_instance_id) => ({
-            ...SONARR_ITEM,
-            sonarr_instance_id,
-          })),
+          existingSeries: presentIn && [
+            ...presentIn.map((sonarr_instance_id) => ({
+              ...SONARR_ITEM,
+              sonarr_instance_id,
+            })),
+            ...excludedIn.map((sonarr_instance_id) => ({
+              ...SONARR_ITEM,
+              sonarr_instance_id,
+              isExclusion: true,
+            })),
+          ],
           primaryUser: null,
         },
         deps,
@@ -299,7 +310,11 @@ const ROUTERS = [
     contentType: 'movie',
     added: (deps: ContentRoutingDeps) =>
       vi.mocked(deps.radarrManager.routeItemToRadarr).mock.calls,
-    route: (deps: ContentRoutingDeps, presentIn?: number[]) =>
+    route: (
+      deps: ContentRoutingDeps,
+      presentIn?: number[],
+      excludedIn: number[] = [],
+    ) =>
       routeMovie(
         {
           tempItem: {
@@ -311,10 +326,17 @@ const ROUTERS = [
           userId: 1,
           userName: undefined,
           radarrItem: RADARR_ITEM,
-          existingMovies: presentIn?.map((radarr_instance_id) => ({
-            ...RADARR_ITEM,
-            radarr_instance_id,
-          })),
+          existingMovies: presentIn && [
+            ...presentIn.map((radarr_instance_id) => ({
+              ...RADARR_ITEM,
+              radarr_instance_id,
+            })),
+            ...excludedIn.map((radarr_instance_id) => ({
+              ...RADARR_ITEM,
+              radarr_instance_id,
+              isExclusion: true,
+            })),
+          ],
           primaryUser: null,
         },
         deps,
@@ -427,6 +449,22 @@ describe.each(ROUTERS)('$contentType partial presence', ({ route, added }) => {
         syncing: false,
       },
     )
+  })
+
+  it('skips when the bulk data holds a record destination only as an import list exclusion', async () => {
+    const deps = buildDeps([MISSING, MISSING], recordNaming('approved', 1, 2))
+
+    expect(await route(deps, [], [1])).toEqual(exists)
+    expect(added(deps)).toEqual([])
+    expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
+  })
+
+  it('skips when the bulk data holds a real copy and an import list exclusion', async () => {
+    const deps = buildDeps([MISSING, MISSING], recordNaming('approved', 1, 2))
+
+    expect(await route(deps, [1], [2])).toEqual(exists)
+    expect(added(deps)).toEqual([])
+    expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
   })
 
   it('skips when one target lists it as an import list exclusion', async () => {

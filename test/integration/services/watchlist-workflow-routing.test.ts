@@ -244,6 +244,19 @@ describe('routeMovie with an approval record as the truth', () => {
     expect(await getApprovalRequests()).toHaveLength(1)
   })
 
+  it('skips when the only copy is an import list exclusion', async () => {
+    await seedRecord(radarrRouting(1, '/stored-1'), [
+      radarrRouting(2, '/stored-2'),
+    ])
+
+    const result = await route([
+      { ...radarrItem, radarr_instance_id: 1, isExclusion: true },
+    ])
+
+    expect(result).toEqual({ routed: false, skippedReason: 'exists-in-target' })
+    expect(routeItemToRadarr).not.toHaveBeenCalled()
+  })
+
   it('replays the stored root folder after the instance default changed', async () => {
     await getTestDatabase()('router_rules').del()
     fastify.contentRouter.clearRouterRulesCache()

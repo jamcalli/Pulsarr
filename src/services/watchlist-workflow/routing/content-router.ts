@@ -140,9 +140,12 @@ async function resolveDestinations(
   return { record, destinationIds, checkIds }
 }
 
-interface ApiPresence {
+interface Presence {
   presentInstanceIds: number[]
   excluded: boolean
+}
+
+interface ApiPresence extends Presence {
   allChecked: boolean
 }
 
@@ -150,30 +153,40 @@ function findShowInBulkData(
   tempItem: TemptRssWatchlistItem,
   existingSeries: SonarrItem[],
   instanceIds: number[],
-): number[] {
+): Presence {
   const tempGuids = parseGuids(tempItem.guids)
-  return instanceIds.filter((instanceId) =>
-    existingSeries.some(
-      (series) =>
-        series.sonarr_instance_id === instanceId &&
-        hasMatchingParsedGuids(parseGuids(series.guids), tempGuids),
-    ),
+  const matches = existingSeries.filter(
+    (series) =>
+      instanceIds.some(
+        (instanceId) => instanceId === series.sonarr_instance_id,
+      ) && hasMatchingParsedGuids(parseGuids(series.guids), tempGuids),
   )
+  return {
+    presentInstanceIds: instanceIds.filter((instanceId) =>
+      matches.some((series) => series.sonarr_instance_id === instanceId),
+    ),
+    excluded: matches.some((series) => series.isExclusion === true),
+  }
 }
 
 function findMovieInBulkData(
   tempItem: TemptRssWatchlistItem,
   existingMovies: RadarrItem[],
   instanceIds: number[],
-): number[] {
+): Presence {
   const tempGuids = parseGuids(tempItem.guids)
-  return instanceIds.filter((instanceId) =>
-    existingMovies.some(
-      (movie) =>
-        movie.radarr_instance_id === instanceId &&
-        hasMatchingParsedGuids(parseGuids(movie.guids), tempGuids),
-    ),
+  const matches = existingMovies.filter(
+    (movie) =>
+      instanceIds.some(
+        (instanceId) => instanceId === movie.radarr_instance_id,
+      ) && hasMatchingParsedGuids(parseGuids(movie.guids), tempGuids),
   )
+  return {
+    presentInstanceIds: instanceIds.filter((instanceId) =>
+      matches.some((movie) => movie.radarr_instance_id === instanceId),
+    ),
+    excluded: matches.some((movie) => movie.isExclusion === true),
+  }
 }
 
 // Caller must validate the TVDB ID before calling this
@@ -370,17 +383,21 @@ export async function routeShow(
     deps,
   )
 
-  let presentInstanceIds: number[]
+  let presence: Presence
   if (existingSeries) {
-    presentInstanceIds = findShowInBulkData(
+    presence = findShowInBulkData(
       tempItem,
       existingSeries,
       destinations.checkIds,
     )
   } else {
-    const presence = await findShowViaApi(tempItem, destinations.checkIds, deps)
+    const apiPresence = await findShowViaApi(
+      tempItem,
+      destinations.checkIds,
+      deps,
+    )
 
-    if (!presence.allChecked) {
+    if (!apiPresence.allChecked) {
       deps.logger.warn(
         { title: tempItem.title, instanceIds: destinations.checkIds },
         'Not every Sonarr instance could be checked, skipping item',
@@ -388,14 +405,16 @@ export async function routeShow(
       return { routed: false, skippedReason: 'no-instances-available' }
     }
 
-    if (presence.excluded) {
-      deps.logger.info(
-        `Show ${tempItem.title} is an import list exclusion in Sonarr instance(s) ${presence.presentInstanceIds.join(', ')}, skipping addition`,
-      )
-      return { routed: false, skippedReason: 'exists-in-target' }
-    }
-    presentInstanceIds = presence.presentInstanceIds
+    presence = apiPresence
   }
+
+  if (presence.excluded) {
+    deps.logger.info(
+      `Show ${tempItem.title} is an import list exclusion in Sonarr instance(s) ${presence.presentInstanceIds.join(', ')}, skipping addition`,
+    )
+    return { routed: false, skippedReason: 'exists-in-target' }
+  }
+  const { presentInstanceIds } = presence
 
   if (presentInstanceIds.length > 0) {
     const completion = await completeFromApproval(
@@ -505,21 +524,21 @@ export async function routeMovie(
     deps,
   )
 
-  let presentInstanceIds: number[]
+  let presence: Presence
   if (existingMovies) {
-    presentInstanceIds = findMovieInBulkData(
+    presence = findMovieInBulkData(
       tempItem,
       existingMovies,
       destinations.checkIds,
     )
   } else {
-    const presence = await findMovieViaApi(
+    const apiPresence = await findMovieViaApi(
       tempItem,
       destinations.checkIds,
       deps,
     )
 
-    if (!presence.allChecked) {
+    if (!apiPresence.allChecked) {
       deps.logger.warn(
         { title: tempItem.title, instanceIds: destinations.checkIds },
         'Not every Radarr instance could be checked, skipping item',
@@ -527,14 +546,16 @@ export async function routeMovie(
       return { routed: false, skippedReason: 'no-instances-available' }
     }
 
-    if (presence.excluded) {
-      deps.logger.info(
-        `Movie ${tempItem.title} is an import list exclusion in Radarr instance(s) ${presence.presentInstanceIds.join(', ')}, skipping addition`,
-      )
-      return { routed: false, skippedReason: 'exists-in-target' }
-    }
-    presentInstanceIds = presence.presentInstanceIds
+    presence = apiPresence
   }
+
+  if (presence.excluded) {
+    deps.logger.info(
+      `Movie ${tempItem.title} is an import list exclusion in Radarr instance(s) ${presence.presentInstanceIds.join(', ')}, skipping addition`,
+    )
+    return { routed: false, skippedReason: 'exists-in-target' }
+  }
+  const { presentInstanceIds } = presence
 
   if (presentInstanceIds.length > 0) {
     const completion = await completeFromApproval(
