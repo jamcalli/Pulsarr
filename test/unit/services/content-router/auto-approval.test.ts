@@ -25,7 +25,7 @@ const context: RoutingContext = {
   itemKey: 'key',
 }
 
-const applied: RoutingDetails = {
+const proposed: RoutingDetails = {
   instanceId: 2,
   instanceType: 'radarr',
   qualityProfile: '4',
@@ -41,8 +41,8 @@ const params = (
 ): AutoApprovalParams => ({
   item,
   context,
-  applied,
-  additionalApplied: [],
+  proposed,
+  additional: [],
   syncedInstances: undefined,
   ...overrides,
 })
@@ -73,7 +73,7 @@ function autoDeps(overrides: ContentRouterDepsOverrides = {}) {
 }
 
 describe('createAutoApprovalRecord', () => {
-  it('records the applied routing and announces it', async () => {
+  it('records the proposed routing and announces it', async () => {
     const { deps, createApprovalRequest, sendApprovalAuto, emit } = autoDeps()
 
     await createAutoApprovalRecord(params({ syncedInstances: [3] }), deps)
@@ -108,7 +108,7 @@ describe('createAutoApprovalRecord', () => {
     const { deps, createApprovalRequest } = autoDeps()
 
     await createAutoApprovalRecord(
-      params({ applied: { ...applied, ruleId: 7, ruleName: 'Comedy' } }),
+      params({ proposed: { ...proposed, ruleId: 7, ruleName: 'Comedy' } }),
       deps,
     )
 
@@ -121,13 +121,13 @@ describe('createAutoApprovalRecord', () => {
     ).toBe(7)
   })
 
-  it('stores every applied routing after the first as additional routing', async () => {
+  it('stores every routing after the first as additional routing', async () => {
     const { deps, createApprovalRequest } = autoDeps()
 
     await createAutoApprovalRecord(
       params({
-        additionalApplied: [
-          { ...applied, instanceId: 5, rootFolder: '/b', ruleId: 9 },
+        additional: [
+          { ...proposed, instanceId: 5, rootFolder: '/b', ruleId: 9 },
         ],
       }),
       deps,

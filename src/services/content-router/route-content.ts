@@ -11,7 +11,11 @@ import {
 } from './default-routing.js'
 import { enrichItemMetadata } from './enrichment.js'
 import { applyPreRoutingGates } from './gates.js'
-import { routeToArr, settingsFromDecision } from './routing-capture.js'
+import {
+  decidedRouting,
+  routeToArr,
+  settingsFromDecision,
+} from './routing-capture.js'
 import { evaluateRules } from './rule-resolver.js'
 import { routeSyncTarget } from './sync-targets.js'
 import {
@@ -142,16 +146,18 @@ export async function routeContent(
       deps,
     )
 
-    if (defaultRoutings.length > 0) {
+    const [primaryDecision, ...syncedDecisions] = defaultRoutingDecisions
+    if (defaultRoutings.length > 0 && primaryDecision) {
       await createAutoApprovalRecord(
         {
           item,
           context,
-          applied: defaultRoutings[0],
-          additionalApplied: [],
-          syncedInstances: defaultRoutings
-            .slice(1)
-            .map((routing) => routing.instanceId),
+          proposed:
+            defaultRoutings.find(
+              (routing) => routing.instanceId === primaryDecision.instanceId,
+            ) ?? decidedRouting(primaryDecision, targetType),
+          additional: [],
+          syncedInstances: syncedDecisions.map((d) => d.instanceId),
         },
         deps,
       )
@@ -181,18 +187,21 @@ export async function routeContent(
   }
 
   const routingDetails: RoutingDetails[] = []
-  const processedInstanceIds = new Set<number>()
+  const decidedByInstance = new Map<number, RoutingDetails>()
 
   for (const decision of allDecisions) {
     // only the highest priority decision per instance is routed
-    if (processedInstanceIds.has(decision.instanceId)) {
+    if (decidedByInstance.has(decision.instanceId)) {
       logger.debug(
         `Skipping duplicate routing to instance ${decision.instanceId} for "${item.title}"`,
       )
       continue
     }
 
-    processedInstanceIds.add(decision.instanceId)
+    decidedByInstance.set(
+      decision.instanceId,
+      decidedRouting(decision, targetType),
+    )
 
     const ruleInfo = decision.ruleName ? ` via rule "${decision.ruleName}"` : ''
 
@@ -219,11 +228,13 @@ export async function routeContent(
         settingsFromDecision(decision),
         deps,
       )
-      routingDetails.push({
+      const appliedRouting = {
         ...applied,
         ruleId: decision.ruleId,
         ruleName: decision.ruleName,
-      })
+      }
+      routingDetails.push(appliedRouting)
+      decidedByInstance.set(decision.instanceId, appliedRouting)
     } catch (routeError) {
       logger.error(
         { error: routeError },
@@ -236,13 +247,14 @@ export async function routeContent(
     `Successfully routed "${item.title}" to ${routingDetails.length} instances`,
   )
 
-  if (routingDetails.length > 0) {
+  const [proposed, ...additional] = decidedByInstance.values()
+  if (routingDetails.length > 0 && proposed) {
     await createAutoApprovalRecord(
       {
         item: enrichedItem,
         context,
-        applied: routingDetails[0],
-        additionalApplied: routingDetails.slice(1),
+        proposed,
+        additional,
         syncedInstances: undefined,
       },
       deps,

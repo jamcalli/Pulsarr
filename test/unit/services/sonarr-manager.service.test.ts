@@ -19,6 +19,13 @@ const INSTANCE: SonarrInstance = {
   isDefault: true,
 }
 
+const ADDED = {
+  seriesId: 7,
+  rootFolder: '/sent',
+  qualityProfileId: 6,
+  tags: ['3'],
+}
+
 describe('SonarrManagerService.seriesExistsByTvdbId', () => {
   let getSonarrInstance: Mock<DatabaseService['getSonarrInstance']>
   let service: SonarrService
@@ -149,7 +156,7 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
       3003,
       fastify as FastifyInstance,
     )
-    addToSonarr = vi.spyOn(service, 'addToSonarr').mockResolvedValue(7)
+    addToSonarr = vi.spyOn(service, 'addToSonarr').mockResolvedValue(ADDED)
     manager = new SonarrManagerService(
       createMockLogger(),
       fastify as FastifyInstance,
@@ -158,7 +165,7 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
     manager['sonarrServices'].set(1, service)
   })
 
-  it('returns the instance values when the settings inherit', async () => {
+  it('sends the instance values when the settings inherit', async () => {
     const applied = await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
       rootFolder: null,
       qualityProfile: null,
@@ -170,16 +177,50 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
     expect(applied).toEqual({
       instanceId: 1,
       instanceType: 'sonarr',
-      qualityProfile: 4,
-      rootFolder: '/tv',
-      tags: ['a'],
+      qualityProfile: 6,
+      rootFolder: '/sent',
+      tags: ['3'],
       searchOnAdd: false,
       seasonMonitoring: 'pilot',
       seriesType: 'anime',
     })
+    expect(addToSonarr).toHaveBeenCalledWith(
+      expect.anything(),
+      '/tv',
+      4,
+      ['a'],
+      false,
+      'pilot',
+      'anime',
+    )
   })
 
-  it('returns the settings it was given in place of the instance values', async () => {
+  it('reports what the add service resolved for an instance with no folder, profile or tags', async () => {
+    db.getSonarrInstance = vi.fn<DatabaseService['getSonarrInstance']>(
+      async () => ({ ...INSTANCE, qualityProfile: null, rootFolder: null }),
+    )
+
+    const applied = await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
+      tags: [],
+    })
+
+    expect(addToSonarr).toHaveBeenCalledWith(
+      expect.anything(),
+      undefined,
+      undefined,
+      [],
+      true,
+      'all',
+      'standard',
+    )
+    expect(applied).toMatchObject({
+      qualityProfile: 6,
+      rootFolder: '/sent',
+      tags: ['3'],
+    })
+  })
+
+  it('sends the settings it was given in place of the instance values', async () => {
     const applied = await manager.routeItemToSonarr(item, 'key', 2, 1, false, {
       rootFolder: '/rule',
       qualityProfile: '9',
@@ -192,9 +233,9 @@ describe('SonarrManagerService.routeItemToSonarr', () => {
     expect(applied).toEqual({
       instanceId: 1,
       instanceType: 'sonarr',
-      qualityProfile: 9,
-      rootFolder: '/rule',
-      tags: [],
+      qualityProfile: 6,
+      rootFolder: '/sent',
+      tags: ['3'],
       searchOnAdd: true,
       seasonMonitoring: 'all',
       seriesType: 'daily',

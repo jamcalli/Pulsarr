@@ -107,6 +107,18 @@ describe('content-router-formatter', () => {
       expect(result.exclude_from_routing).toBe(false)
     })
 
+    it('should handle null criteria as empty object', () => {
+      const result = formatRule(
+        createRule({ criteria: null as unknown as RouterRule['criteria'] }),
+      )
+
+      expect(result.condition).toBeUndefined()
+      expect(result.id).toBe(1)
+      expect(result.name).toBe('Test Rule')
+      expect(result.target_type).toBe('radarr')
+      expect(result.enabled).toBe(true)
+    })
+
     it.each([null, ''])(
       'should report approval_reason %j as undefined',
       (approvalReason) => {

@@ -20,6 +20,12 @@ const INSTANCE: RadarrInstance = {
   isDefault: true,
 }
 
+const ADDED = {
+  rootFolder: '/sent',
+  qualityProfileId: 6,
+  tags: ['3'],
+}
+
 describe('RadarrManagerService.movieExistsByTmdbId', () => {
   let getRadarrInstance: Mock<DatabaseService['getRadarrInstance']>
   let service: RadarrService
@@ -150,7 +156,7 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
       3003,
       fastify as FastifyInstance,
     )
-    addToRadarr = vi.spyOn(service, 'addToRadarr').mockResolvedValue(undefined)
+    addToRadarr = vi.spyOn(service, 'addToRadarr').mockResolvedValue(ADDED)
     manager = new RadarrManagerService(
       createMockLogger(),
       fastify as FastifyInstance,
@@ -159,7 +165,7 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
     manager['radarrServices'].set(1, service)
   })
 
-  it('returns the instance values when the settings inherit', async () => {
+  it('sends the instance values when the settings inherit', async () => {
     const applied = await manager.routeItemToRadarr(item, 'key', 2, 1, false, {
       rootFolder: null,
       qualityProfile: null,
@@ -171,16 +177,50 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
     expect(applied).toEqual({
       instanceId: 1,
       instanceType: 'radarr',
-      qualityProfile: 4,
-      rootFolder: '/movies',
-      tags: ['a'],
+      qualityProfile: 6,
+      rootFolder: '/sent',
+      tags: ['3'],
       searchOnAdd: false,
       minimumAvailability: 'announced',
       monitor: 'none',
     })
+    expect(addToRadarr).toHaveBeenCalledWith(
+      expect.anything(),
+      '/movies',
+      4,
+      ['a'],
+      false,
+      'announced',
+      'none',
+    )
   })
 
-  it('returns the settings it was given in place of the instance values', async () => {
+  it('reports what the add service resolved for an instance with no folder, profile or tags', async () => {
+    db.getRadarrInstance = vi.fn<DatabaseService['getRadarrInstance']>(
+      async () => ({ ...INSTANCE, qualityProfile: null, rootFolder: null }),
+    )
+
+    const applied = await manager.routeItemToRadarr(item, 'key', 2, 1, false, {
+      tags: [],
+    })
+
+    expect(addToRadarr).toHaveBeenCalledWith(
+      expect.anything(),
+      undefined,
+      undefined,
+      [],
+      true,
+      'released',
+      'movieOnly',
+    )
+    expect(applied).toMatchObject({
+      qualityProfile: 6,
+      rootFolder: '/sent',
+      tags: ['3'],
+    })
+  })
+
+  it('sends the settings it was given in place of the instance values', async () => {
     const applied = await manager.routeItemToRadarr(item, 'key', 2, 1, false, {
       rootFolder: '/rule',
       qualityProfile: 9,
@@ -193,9 +233,9 @@ describe('RadarrManagerService.routeItemToRadarr', () => {
     expect(applied).toEqual({
       instanceId: 1,
       instanceType: 'radarr',
-      qualityProfile: 9,
-      rootFolder: '/rule',
-      tags: ['b'],
+      qualityProfile: 6,
+      rootFolder: '/sent',
+      tags: ['3'],
       searchOnAdd: true,
       minimumAvailability: 'released',
       monitor: 'movieOnly',

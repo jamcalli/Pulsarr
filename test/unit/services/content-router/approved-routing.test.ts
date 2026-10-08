@@ -248,6 +248,28 @@ describe('routeUsingApprovedDecision', () => {
     expect(result.routingDetails).toHaveLength(1)
   })
 
+  it('reports no details for a failed primary and keeps the additional target', async () => {
+    const routeItemToSonarr = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('down'))
+      .mockImplementationOnce(echoAppliedSonarr())
+    const deps = createContentRouterDeps({
+      sonarrManager: { routeItemToSonarr },
+    })
+
+    const result = await routeUsingApprovedDecision(
+      approved({ instanceId: 2, instanceType: 'sonarr', priority: 60 }, [
+        { instanceId: 5, instanceType: 'sonarr', priority: 40 },
+      ]),
+      show,
+      context,
+      deps,
+    )
+
+    expect(result.routedInstances).toEqual([5])
+    expect(result.routingDetails.map((d) => d.instanceId)).toEqual([5])
+  })
+
   it('counts an already added instance as routed and skips a failed one', async () => {
     const routeItemToSonarr = vi
       .fn()

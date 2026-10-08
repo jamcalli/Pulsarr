@@ -310,8 +310,7 @@ export class SonarrManagerService {
         }
       }
 
-      // Add to Sonarr and get the series ID directly
-      const sonarrSeriesId = await sonarrService.addToSonarr(
+      const added = await sonarrService.addToSonarr(
         sonarrItem,
         targetRootFolder,
         targetQualityProfileId,
@@ -320,6 +319,7 @@ export class SonarrManagerService {
         sonarrMonitoringOption,
         targetSeriesType,
       )
+      const sonarrSeriesId = added.seriesId
 
       // If rolling monitoring was used, create tracking entry
       if (isRollingMonitoring) {
@@ -390,9 +390,9 @@ export class SonarrManagerService {
       return {
         instanceId: targetInstanceId,
         instanceType: 'sonarr',
-        qualityProfile: targetQualityProfileId,
-        rootFolder: targetRootFolder,
-        tags: targetTags,
+        qualityProfile: parseQualityProfileId(added.qualityProfileId),
+        rootFolder: added.rootFolder,
+        tags: added.tags,
         searchOnAdd: targetSearchOnAdd,
         seasonMonitoring: targetSeasonMonitoring,
         seriesType: targetSeriesType,

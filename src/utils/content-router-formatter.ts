@@ -12,7 +12,7 @@ export function formatRule(rule: RouterRule): ContentRouterRule {
     quality_profile: rule.quality_profile ?? null,
     order: rule.order,
     enabled: Boolean(rule.enabled),
-    condition: rule.criteria.condition as ContentRouterRule['condition'],
+    condition: rule.criteria?.condition as ContentRouterRule['condition'],
     tags: Array.isArray(rule.tags) ? rule.tags : [],
     search_on_add: rule.search_on_add ?? null,
     season_monitoring: rule.season_monitoring ?? null,

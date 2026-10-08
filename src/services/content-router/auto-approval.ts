@@ -9,27 +9,28 @@ import type { ContentRouterDeps } from './types.js'
 export interface AutoApprovalParams {
   item: ContentItem
   context: RoutingContext
-  applied: RoutingDetails
-  additionalApplied: RoutingDetails[]
+  /** Applied values where the add succeeded, the decided values where it failed. */
+  proposed: RoutingDetails
+  additional: RoutingDetails[]
   syncedInstances: number[] | undefined
 }
 
 function toApprovalRouting(
-  applied: RoutingDetails,
+  routing: RoutingDetails,
 ): NonNullable<RouterDecision['routing']> {
   return {
-    instanceId: applied.instanceId,
-    instanceType: applied.instanceType,
-    qualityProfile: applied.qualityProfile,
-    rootFolder: applied.rootFolder,
-    tags: applied.tags,
+    instanceId: routing.instanceId,
+    instanceType: routing.instanceType,
+    qualityProfile: routing.qualityProfile,
+    rootFolder: routing.rootFolder,
+    tags: routing.tags,
     priority: 50,
-    searchOnAdd: applied.searchOnAdd,
-    seasonMonitoring: applied.seasonMonitoring,
-    seriesType: applied.seriesType,
-    minimumAvailability: applied.minimumAvailability ?? undefined,
-    monitor: applied.monitor,
-    ruleId: applied.ruleId,
+    searchOnAdd: routing.searchOnAdd,
+    seasonMonitoring: routing.seasonMonitoring,
+    seriesType: routing.seriesType,
+    minimumAvailability: routing.minimumAvailability ?? undefined,
+    monitor: routing.monitor,
+    ruleId: routing.ruleId,
   }
 }
 
@@ -38,7 +39,7 @@ export async function createAutoApprovalRecord(
   params: AutoApprovalParams,
   deps: Pick<ContentRouterDeps, 'logger' | 'db' | 'progress' | 'notifications'>,
 ): Promise<void> {
-  const { item, context, applied, additionalApplied, syncedInstances } = params
+  const { item, context, proposed, additional, syncedInstances } = params
   const { logger } = deps
   try {
     if (context.syncing) {
@@ -67,16 +68,14 @@ export async function createAutoApprovalRecord(
     const userId = context.userId || 0
 
     const proposedRouting = {
-      ...toApprovalRouting(applied),
+      ...toApprovalRouting(proposed),
       syncedInstances:
         syncedInstances && syncedInstances.length > 0
           ? syncedInstances
           : undefined,
     }
     const additionalRouting =
-      additionalApplied.length > 0
-        ? additionalApplied.map(toApprovalRouting)
-        : undefined
+      additional.length > 0 ? additional.map(toApprovalRouting) : undefined
 
     const approvalRequest = await deps.db.createApprovalRequest({
       userId,
@@ -96,7 +95,7 @@ export async function createAutoApprovalRecord(
       },
       triggeredBy: 'content_criteria',
       approvalReason: 'Auto-added (no approval required)',
-      routerRuleId: applied.ruleId,
+      routerRuleId: proposed.ruleId,
     })
 
     const updatedRequest = await deps.db.updateApprovalRequest(

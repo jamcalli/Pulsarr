@@ -1,6 +1,10 @@
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
-import { routeMovie } from '@services/watchlist-workflow/routing/content-router.js'
+import {
+  type ApprovedRecords,
+  indexApprovedRecords,
+  routeMovie,
+} from '@services/watchlist-workflow/routing/content-router.js'
 import { WorkflowState } from '@services/watchlist-workflow/state.js'
 import type { ContentRoutingDeps } from '@services/watchlist-workflow/types.js'
 import type { FastifyInstance } from 'fastify'
@@ -22,7 +26,10 @@ import {
   seedUserQuota,
   seedUsers,
 } from '../../helpers/seeds/index.js'
-import { echoAppliedRadarr } from '../../mocks/applied-routing.js'
+import {
+  appliedRadarr,
+  echoAppliedRadarr,
+} from '../../mocks/applied-routing.js'
 
 describe('routeMovie with an approval record as the truth', () => {
   let fastify: FastifyInstance
@@ -45,7 +52,10 @@ describe('routeMovie with an approval record as the truth', () => {
       radarr_instance_id,
     }))
 
-  const route = (existingMovies: RadarrItem[]) =>
+  const route = (
+    existingMovies: RadarrItem[],
+    approvedRecords?: ApprovedRecords,
+  ) =>
     routeMovie(
       {
         tempItem: { title: radarrItem.title, key, type: 'movie', guids },
@@ -53,6 +63,7 @@ describe('routeMovie with an approval record as the truth', () => {
         userName: undefined,
         radarrItem,
         existingMovies,
+        approvedRecords,
         primaryUser: null,
       },
       deps,
@@ -112,6 +123,20 @@ describe('routeMovie with an approval record as the truth', () => {
       status: 'approved',
     })
 
+  const insertRadarrInstance = (id: number) =>
+    getTestDatabase()('radarr_instances').insert({
+      id,
+      name: `Radarr ${id}`,
+      base_url: `http://test-radarr-${id}:7878`,
+      api_key: `test_radarr_api_key_${id}`,
+      quality_profile: '1',
+      root_folder: `/data/movies${id}`,
+      is_default: false,
+      is_enabled: true,
+      tags: JSON.stringify([]),
+      synced_instances: JSON.stringify([]),
+    })
+
   const seedComedyRule = (id: number, instanceId: number) =>
     getTestDatabase()('router_rules').insert({
       id,
@@ -158,18 +183,7 @@ describe('routeMovie with an approval record as the truth', () => {
     await seedConfig(knex)
     await seedUsers(knex)
     await seedInstances(knex)
-    await knex('radarr_instances').insert({
-      id: 2,
-      name: 'Second Radarr',
-      base_url: 'http://test-radarr-2:7878',
-      api_key: 'test_radarr_api_key_2',
-      quality_profile: '1',
-      root_folder: '/data/movies2',
-      is_default: false,
-      is_enabled: true,
-      tags: JSON.stringify([]),
-      synced_instances: JSON.stringify([]),
-    })
+    await insertRadarrInstance(2)
     await seedComedyRule(50, 1)
     await seedComedyRule(51, 2)
     fastify.contentRouter.clearRouterRulesCache()
@@ -281,6 +295,59 @@ describe('routeMovie with an approval record as the truth', () => {
     expect(await route(presentIn())).toEqual({
       routed: false,
       skippedReason: 'exists-on-plex',
+    })
+  })
+
+  it('completes a record destination outside the current targets when every target has it', async () => {
+    await insertRadarrInstance(3)
+    await seedRecord(radarrRouting(1, '/stored-1'), [
+      radarrRouting(3, '/stored-3'),
+    ])
+    const approvedRecords = indexApprovedRecords(
+      await fastify.db.getAllApprovedApprovalRequests(),
+    )
+
+    const result = await route(presentIn(1, 2), approvedRecords)
+
+    expect(result).toEqual({ routed: true })
+    expect(routedInstanceIds()).toEqual([3])
+    expect(routeItemToRadarr.mock.calls[0][5]).toMatchObject({
+      rootFolder: '/stored-3',
+    })
+  })
+
+  it('does not re-add a record destination outside the current targets that has it', async () => {
+    await insertRadarrInstance(3)
+    await seedRecord(radarrRouting(1, '/stored-1'), [
+      radarrRouting(2, '/stored-2'),
+      radarrRouting(3, '/stored-3'),
+    ])
+
+    const result = await route(presentIn(1, 3))
+
+    expect(result).toEqual({ routed: true })
+    expect(routedInstanceIds()).toEqual([2])
+  })
+
+  it('completes a destination whose add failed on the first pass', async () => {
+    routeItemToRadarr.mockImplementation(
+      async (_item: unknown, _key: string, _userId: number, id: number) => {
+        if (id === 2) throw new Error('down')
+        return appliedRadarr({ instanceId: id })
+      },
+    )
+
+    expect(await route(presentIn())).toEqual({ routed: true })
+    expect(await getApprovalRequests()).toHaveLength(1)
+
+    routeItemToRadarr.mockClear()
+    routeItemToRadarr.mockImplementation(echoAppliedRadarr())
+
+    expect(await route(presentIn(1))).toEqual({ routed: true })
+    expect(routedInstanceIds()).toEqual([2])
+    expect(routeItemToRadarr.mock.calls[0][5]).toMatchObject({
+      rootFolder: '/data/comedy-2',
+      qualityProfile: 2,
     })
   })
 

@@ -1,3 +1,4 @@
+import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type {
@@ -31,12 +32,16 @@ export interface RouteContentResult {
     | 'no-valid-id'
 }
 
+export type ApprovedRecords = ReadonlyMap<string, ApprovalRequest>
+
 export interface RouteShowParams {
   tempItem: TemptRssWatchlistItem
   userId: number
   userName: string | undefined
   sonarrItem: SonarrItem
   existingSeries?: SonarrItem[]
+  approvedRecords?: ApprovedRecords
+  arrInstanceIds?: ReadonlySet<number>
   primaryUser: { id: number } | null
 }
 
@@ -46,7 +51,93 @@ export interface RouteMovieParams {
   userName: string | undefined
   radarrItem: RadarrItem
   existingMovies?: RadarrItem[]
+  approvedRecords?: ApprovedRecords
+  arrInstanceIds?: ReadonlySet<number>
   primaryUser: { id: number } | null
+}
+
+interface Destinations {
+  record: ApprovalRequest | null
+  destinationIds: number[]
+  checkIds: number[]
+}
+
+function approvedRecordKey(userId: number, contentKey: string): string {
+  return `${userId}:${contentKey}`
+}
+
+/** Indexes approved and auto-approved records so one sync run reads them once. */
+export function indexApprovedRecords(
+  records: ApprovalRequest[],
+): ApprovedRecords {
+  return new Map(
+    records.map((record) => [
+      approvedRecordKey(record.userId, record.contentKey),
+      record,
+    ]),
+  )
+}
+
+async function findApprovedRecord(
+  context: RoutingContext,
+  approvedRecords: ApprovedRecords | undefined,
+  deps: ContentRoutingDeps,
+): Promise<ApprovalRequest | null> {
+  if (approvedRecords) {
+    return (
+      approvedRecords.get(approvedRecordKey(context.userId, context.itemKey)) ??
+      null
+    )
+  }
+  const request = await deps.db.getApprovalRequestByContent(
+    context.userId,
+    context.itemKey,
+  )
+  return request?.status === 'approved' || request?.status === 'auto_approved'
+    ? request
+    : null
+}
+
+async function listArrInstanceIds(
+  contentType: RoutingContext['contentType'],
+  deps: ContentRoutingDeps,
+): Promise<ReadonlySet<number>> {
+  const instances =
+    contentType === 'movie'
+      ? await deps.radarrManager.getAllInstances()
+      : await deps.sonarrManager.getAllInstances()
+  return new Set(instances.map((instance) => instance.id))
+}
+
+/** A record's destinations on instances that still exist replace the current targets, and presence is checked over both sets. */
+async function resolveDestinations(
+  targetInstanceIds: number[],
+  context: RoutingContext,
+  known: Pick<RouteMovieParams, 'approvedRecords' | 'arrInstanceIds'>,
+  deps: ContentRoutingDeps,
+): Promise<Destinations> {
+  const record = await findApprovedRecord(context, known.approvedRecords, deps)
+  if (!record) {
+    return {
+      record,
+      destinationIds: targetInstanceIds,
+      checkIds: targetInstanceIds,
+    }
+  }
+  const instanceIds =
+    known.arrInstanceIds ??
+    (await listArrInstanceIds(context.contentType, deps))
+  const recorded = approvedDestinations(record)
+  const deleted = recorded.filter((id) => !instanceIds.has(id))
+  if (deleted.length > 0) {
+    deps.logger.debug(
+      { itemKey: context.itemKey, instanceIds: deleted },
+      'Dropping approval record destinations whose instance no longer exists',
+    )
+  }
+  const destinationIds = recorded.filter((id) => instanceIds.has(id))
+  const checkIds = [...new Set([...targetInstanceIds, ...destinationIds])]
+  return { record, destinationIds, checkIds }
 }
 
 interface ApiPresence {
@@ -58,10 +149,10 @@ interface ApiPresence {
 function findShowInBulkData(
   tempItem: TemptRssWatchlistItem,
   existingSeries: SonarrItem[],
-  targetInstanceIds: number[],
+  instanceIds: number[],
 ): number[] {
   const tempGuids = parseGuids(tempItem.guids)
-  return targetInstanceIds.filter((instanceId) =>
+  return instanceIds.filter((instanceId) =>
     existingSeries.some(
       (series) =>
         series.sonarr_instance_id === instanceId &&
@@ -73,10 +164,10 @@ function findShowInBulkData(
 function findMovieInBulkData(
   tempItem: TemptRssWatchlistItem,
   existingMovies: RadarrItem[],
-  targetInstanceIds: number[],
+  instanceIds: number[],
 ): number[] {
   const tempGuids = parseGuids(tempItem.guids)
-  return targetInstanceIds.filter((instanceId) =>
+  return instanceIds.filter((instanceId) =>
     existingMovies.some(
       (movie) =>
         movie.radarr_instance_id === instanceId &&
@@ -88,14 +179,14 @@ function findMovieInBulkData(
 // Caller must validate the TVDB ID before calling this
 async function findShowViaApi(
   tempItem: TemptRssWatchlistItem,
-  targetInstanceIds: number[],
+  instanceIds: number[],
   deps: ContentRoutingDeps,
 ): Promise<ApiPresence> {
   const tvdbId = extractTvdbId(parseGuids(tempItem.guids))
   const presentInstanceIds: number[] = []
   let excluded = false
 
-  for (const instanceId of targetInstanceIds) {
+  for (const instanceId of instanceIds) {
     const result = await deps.sonarrManager.seriesExistsByTvdbId(
       instanceId,
       tvdbId,
@@ -118,14 +209,14 @@ async function findShowViaApi(
 // Caller must validate the TMDB ID before calling this
 async function findMovieViaApi(
   tempItem: TemptRssWatchlistItem,
-  targetInstanceIds: number[],
+  instanceIds: number[],
   deps: ContentRoutingDeps,
 ): Promise<ApiPresence> {
   const tmdbId = extractTmdbId(parseGuids(tempItem.guids))
   const presentInstanceIds: number[] = []
   let excluded = false
 
-  for (const instanceId of targetInstanceIds) {
+  for (const instanceId of instanceIds) {
     const result = await deps.radarrManager.movieExistsByTmdbId(
       instanceId,
       tmdbId,
@@ -148,24 +239,21 @@ async function findMovieViaApi(
 async function completeFromApproval(
   item: ContentItem,
   context: RoutingContext,
+  { record, destinationIds }: Destinations,
   presentInstanceIds: number[],
   deps: ContentRoutingDeps,
 ): Promise<RoutingOutcome | null> {
-  const request = await deps.db.getApprovalRequestByContent(
-    context.userId,
-    context.itemKey,
-  )
-  if (request?.status !== 'approved' && request?.status !== 'auto_approved') {
+  if (!record) {
     return null
   }
-  const missingInstanceIds = approvedDestinations(request).filter(
+  const missingInstanceIds = destinationIds.filter(
     (instanceId) => !presentInstanceIds.includes(instanceId),
   )
   if (missingInstanceIds.length === 0) {
     return null
   }
   return await routeUsingApprovedDecision(
-    request,
+    record,
     item,
     context,
     deps,
@@ -275,20 +363,27 @@ export async function routeShow(
     return { routed: false, skippedReason: 'no-target' }
   }
 
+  const destinations = await resolveDestinations(
+    targetInstanceIds,
+    context,
+    params,
+    deps,
+  )
+
   let presentInstanceIds: number[]
   if (existingSeries) {
     presentInstanceIds = findShowInBulkData(
       tempItem,
       existingSeries,
-      targetInstanceIds,
+      destinations.checkIds,
     )
   } else {
-    const presence = await findShowViaApi(tempItem, targetInstanceIds, deps)
+    const presence = await findShowViaApi(tempItem, destinations.checkIds, deps)
 
     if (!presence.allChecked) {
       deps.logger.warn(
-        { title: tempItem.title, targetInstanceIds },
-        'Not every target Sonarr instance could be checked, skipping item',
+        { title: tempItem.title, instanceIds: destinations.checkIds },
+        'Not every Sonarr instance could be checked, skipping item',
       )
       return { routed: false, skippedReason: 'no-instances-available' }
     }
@@ -303,15 +398,13 @@ export async function routeShow(
   }
 
   if (presentInstanceIds.length > 0) {
-    const completion =
-      presentInstanceIds.length < targetInstanceIds.length
-        ? await completeFromApproval(
-            sonarrItem,
-            context,
-            presentInstanceIds,
-            deps,
-          )
-        : null
+    const completion = await completeFromApproval(
+      sonarrItem,
+      context,
+      destinations,
+      presentInstanceIds,
+      deps,
+    )
     if (!completion) {
       deps.logger.debug(
         `Show ${tempItem.title} already exists in Sonarr instance(s) ${presentInstanceIds.join(', ')}, skipping addition`,
@@ -405,20 +498,31 @@ export async function routeMovie(
     return { routed: false, skippedReason: 'no-target' }
   }
 
+  const destinations = await resolveDestinations(
+    targetInstanceIds,
+    context,
+    params,
+    deps,
+  )
+
   let presentInstanceIds: number[]
   if (existingMovies) {
     presentInstanceIds = findMovieInBulkData(
       tempItem,
       existingMovies,
-      targetInstanceIds,
+      destinations.checkIds,
     )
   } else {
-    const presence = await findMovieViaApi(tempItem, targetInstanceIds, deps)
+    const presence = await findMovieViaApi(
+      tempItem,
+      destinations.checkIds,
+      deps,
+    )
 
     if (!presence.allChecked) {
       deps.logger.warn(
-        { title: tempItem.title, targetInstanceIds },
-        'Not every target Radarr instance could be checked, skipping item',
+        { title: tempItem.title, instanceIds: destinations.checkIds },
+        'Not every Radarr instance could be checked, skipping item',
       )
       return { routed: false, skippedReason: 'no-instances-available' }
     }
@@ -433,15 +537,13 @@ export async function routeMovie(
   }
 
   if (presentInstanceIds.length > 0) {
-    const completion =
-      presentInstanceIds.length < targetInstanceIds.length
-        ? await completeFromApproval(
-            radarrItem,
-            context,
-            presentInstanceIds,
-            deps,
-          )
-        : null
+    const completion = await completeFromApproval(
+      radarrItem,
+      context,
+      destinations,
+      presentInstanceIds,
+      deps,
+    )
     if (!completion) {
       deps.logger.debug(
         `Movie ${tempItem.title} already exists in Radarr instance(s) ${presentInstanceIds.join(', ')}, skipping addition`,

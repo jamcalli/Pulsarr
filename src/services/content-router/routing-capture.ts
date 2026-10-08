@@ -56,3 +56,17 @@ export function settingsFromDecision(decision: RoutingDecision): RouteSettings {
     seriesType: decision.seriesType,
   }
 }
+
+/** The routing a decision asked for, recorded for an instance whose add did not happen. */
+export function decidedRouting(
+  decision: RoutingDecision,
+  instanceType: RoutingDetails['instanceType'],
+): RoutingDetails {
+  return {
+    instanceId: decision.instanceId,
+    instanceType,
+    ...settingsFromDecision(decision),
+    ruleId: decision.ruleId,
+    ruleName: decision.ruleName,
+  }
+}

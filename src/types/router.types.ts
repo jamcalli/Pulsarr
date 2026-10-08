@@ -147,6 +147,13 @@ export interface SonarrRouteSettings {
 
 export type RouteSettings = RadarrRouteSettings & SonarrRouteSettings
 
+/** The effective values the arr reported for an add, with tags as labels where the label is known. */
+export interface ArrAddedSettings {
+  rootFolder: string
+  qualityProfileId: number | string | null
+  tags: string[]
+}
+
 export interface AppliedRadarrRouting {
   instanceId: number
   instanceType: 'radarr'

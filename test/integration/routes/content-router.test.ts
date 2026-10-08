@@ -870,6 +870,20 @@ describe('Content Router Rules API', () => {
       const [rule] = res.json().rules
       expect(rule.condition.conditions[0].value).toEqual(value)
     })
+
+    it('lists a rule whose criteria is null', async () => {
+      await insertStoredRule({ name: 'Null Criteria', criteria: 'null' })
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/v1/content-router/rules',
+      })
+
+      expect(res.statusCode).toBe(200)
+      const [rule] = res.json().rules
+      expect(rule.name).toBe('Null Criteria')
+      expect(rule.condition).toBeUndefined()
+    })
   })
 
   describe('nested condition groups', () => {

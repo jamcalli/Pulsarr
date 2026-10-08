@@ -1,7 +1,13 @@
 import type { ApprovalStatus } from '@root/types/approval.types.js'
-import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type {
+  RadarrInstance,
+  Item as RadarrItem,
+} from '@root/types/radarr.types.js'
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
-import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import type {
+  SonarrInstance,
+  Item as SonarrItem,
+} from '@root/types/sonarr.types.js'
 import {
   routeMovie,
   routeShow,
@@ -52,12 +58,34 @@ function recordNaming(
   }
 }
 
+function radarrInstance(id: number): RadarrInstance {
+  return {
+    id,
+    name: `Radarr ${id}`,
+    baseUrl: 'http://radarr.test',
+    apiKey: 'key',
+    bypassIgnored: false,
+    tags: [],
+    isDefault: id === 1,
+  }
+}
+
+function sonarrInstance(id: number): SonarrInstance {
+  return {
+    ...radarrInstance(id),
+    name: `Sonarr ${id}`,
+    seasonMonitoring: 'all',
+    monitorNewItems: 'all',
+  }
+}
+
 function buildDeps(
   byInstance: ExistenceCheckResult[],
   record: RecordFake | null = null,
+  instanceIds = byInstance.map((_, index) => index + 1),
 ): ContentRoutingDeps {
-  const instanceIds = byInstance.map((_, index) => index + 1)
   const existence = async (instanceId: number) => byInstance[instanceId - 1]
+  const ids = byInstance.map((_, index) => index + 1)
   return createWorkflowDeps({
     db: {
       getApprovalRequestByContent: vi.fn().mockResolvedValue(record),
@@ -71,10 +99,12 @@ function buildDeps(
     },
     sonarrManager: {
       seriesExistsByTvdbId: vi.fn(existence),
+      getAllInstances: vi.fn(async () => ids.map(sonarrInstance)),
       routeItemToSonarr: vi.fn(echoAppliedSonarr()),
     },
     radarrManager: {
       movieExistsByTmdbId: vi.fn(existence),
+      getAllInstances: vi.fn(async () => ids.map(radarrInstance)),
       routeItemToRadarr: vi.fn(echoAppliedRadarr()),
     },
   })
@@ -336,11 +366,45 @@ describe.each(ROUTERS)('$contentType partial presence', ({ route, added }) => {
     expect(added(deps)).toEqual([])
   })
 
-  it('skips without reading the record when the API check finds every target', async () => {
-    const deps = buildDeps([FOUND, FOUND], recordNaming('approved', 1, 2, 3))
+  it('completes a record destination outside the targets when every target has it', async () => {
+    const deps = buildDeps(
+      [FOUND, FOUND, MISSING],
+      recordNaming('approved', 1, 2, 3),
+      [1, 2],
+    )
+
+    expect(await route(deps)).toEqual({ routed: true })
+    expect(added(deps).map((call) => call[3])).toEqual([3])
+    expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
+  })
+
+  it('does not re-add a record destination outside the targets that has it', async () => {
+    const deps = buildDeps(
+      [FOUND, MISSING, FOUND],
+      recordNaming('approved', 1, 2, 3),
+      [1, 2],
+    )
+
+    expect(await route(deps)).toEqual({ routed: true })
+    expect(added(deps).map((call) => call[3])).toEqual([2])
+  })
+
+  it('drops a record destination whose instance was deleted', async () => {
+    const deps = buildDeps([FOUND, MISSING], recordNaming('approved', 1, 2, 9))
+
+    expect(await route(deps)).toEqual({ routed: true })
+    expect(added(deps).map((call) => call[3])).toEqual([2])
+    const checked = [
+      ...vi.mocked(deps.sonarrManager.seriesExistsByTvdbId).mock.calls,
+      ...vi.mocked(deps.radarrManager.movieExistsByTmdbId).mock.calls,
+    ].map((call) => call[0])
+    expect(checked).not.toContain(9)
+  })
+
+  it('skips when every target has it and there is no record', async () => {
+    const deps = buildDeps([FOUND, FOUND])
 
     expect(await route(deps)).toEqual(exists)
-    expect(deps.db.getApprovalRequestByContent).not.toHaveBeenCalled()
     expect(deps.contentRouter.routeContent).not.toHaveBeenCalled()
   })
 

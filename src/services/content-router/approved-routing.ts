@@ -129,12 +129,14 @@ export async function routeUsingApprovedDecision(
         label,
         deps,
       )
-      if (primaryRouted) routedInstances.push(instanceId)
-      routingDetails.push({
-        ...detailsFromRouting(proposedRouting),
-        ruleId:
-          proposedRouting.ruleId ?? approvedRequest.routerRuleId ?? undefined,
-      })
+      if (primaryRouted) {
+        routedInstances.push(instanceId)
+        routingDetails.push({
+          ...detailsFromRouting(proposedRouting),
+          ruleId:
+            proposedRouting.ruleId ?? approvedRequest.routerRuleId ?? undefined,
+        })
+      }
     }
 
     for (const syncedId of proposedRouting.syncedInstances ?? []) {

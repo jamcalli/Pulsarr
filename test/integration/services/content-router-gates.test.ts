@@ -21,7 +21,10 @@ import {
   seedUsers,
   seedWatchlist,
 } from '../../helpers/seeds/index.js'
-import { echoAppliedRadarr } from '../../mocks/applied-routing.js'
+import {
+  appliedRadarr,
+  echoAppliedRadarr,
+} from '../../mocks/applied-routing.js'
 
 describe('routeContent gates', () => {
   let fastify: FastifyInstance
@@ -489,6 +492,29 @@ describe('routeContent gates', () => {
       expect(decision.approval.proposedRouting.syncedInstances).toEqual([2])
     })
 
+    it('keeps the primary on the record when only a synced instance took the add', async () => {
+      await seedSyncedInstance([2])
+      routeItemToRadarr.mockImplementation(
+        async (_item: unknown, _key: string, _userId: number, id: number) => {
+          if (id === 1) throw new Error('down')
+          return appliedRadarr({ instanceId: id })
+        },
+      )
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'synced-primary-failed-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([2])
+      const requests = await getApprovalRequests()
+      expect(requests).toHaveLength(1)
+      const decision = JSON.parse(requests[0].router_decision)
+      expect(decision.approval.proposedRouting.instanceId).toBe(1)
+      expect(decision.approval.proposedRouting.syncedInstances).toEqual([2])
+    })
+
     it('skips unknown synced instance ids', async () => {
       await seedSyncedInstance([2, 99])
 
@@ -933,6 +959,63 @@ describe('routeContent gates', () => {
       expect(decision.approval.additionalRouting).toEqual([
         expect.objectContaining({ instanceId: 2 }),
       ])
+    })
+
+    it('names a decided instance whose add failed with its rule settings', async () => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({ id: 50, order: 80, target_instance_id: 1 })
+      await seedComedyRule({
+        id: 51,
+        name: 'Comedy Second',
+        order: 60,
+        target_instance_id: 2,
+        root_folder: '/data/second',
+      })
+      routeItemToRadarr.mockImplementation(
+        async (_item: unknown, _key: string, _userId: number, id: number) => {
+          if (id === 2) throw new Error('down')
+          return appliedRadarr({ instanceId: id, rootFolder: '/applied' })
+        },
+      )
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-partial-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([1])
+      const requests = await getApprovalRequests()
+      expect(requests).toHaveLength(1)
+      const decision = JSON.parse(requests[0].router_decision)
+      expect(decision.approval.proposedRouting).toMatchObject({
+        instanceId: 1,
+        rootFolder: '/applied',
+        ruleId: 50,
+      })
+      expect(decision.approval.additionalRouting).toEqual([
+        expect.objectContaining({
+          instanceId: 2,
+          rootFolder: '/data/second',
+          ruleId: 51,
+        }),
+      ])
+    })
+
+    it('writes no record when every add fails', async () => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({ id: 50, order: 80, target_instance_id: 1 })
+      await seedComedyRule({ id: 51, order: 60, target_instance_id: 2 })
+      routeItemToRadarr.mockRejectedValue(new Error('down'))
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-failed-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([])
+      expect(await getApprovalRequests()).toHaveLength(0)
     })
   })
 

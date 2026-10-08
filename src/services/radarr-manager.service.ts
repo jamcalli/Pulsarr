@@ -269,7 +269,7 @@ export class RadarrManagerService {
       const targetMonitor =
         monitor ?? instance.monitor ?? ('movieOnly' as RadarrMonitorType)
 
-      await radarrService.addToRadarr(
+      const added = await radarrService.addToRadarr(
         radarrItem,
         targetRootFolder,
         targetQualityProfileId,
@@ -303,9 +303,9 @@ export class RadarrManagerService {
       return {
         instanceId: targetInstanceId,
         instanceType: 'radarr',
-        qualityProfile: targetQualityProfileId,
-        rootFolder: targetRootFolder,
-        tags: targetTags,
+        qualityProfile: parseQualityProfileId(added.qualityProfileId),
+        rootFolder: added.rootFolder,
+        tags: added.tags,
         searchOnAdd: targetSearchOnAdd,
         minimumAvailability: targetMinimumAvailability,
         monitor: targetMonitor,

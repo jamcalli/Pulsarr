@@ -1,5 +1,6 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
+import type { ArrAddedSettings } from '@root/types/router.types.js'
 import type {
   ExistenceCheckResult,
   HealthCheckResult,
@@ -953,7 +954,7 @@ export class SonarrService {
     overrideSeasonMonitoring?: string | null,
     overrideSeriesType?: SonarrSeriesType | null,
     overrideCreateSeasonFolders?: boolean | null,
-  ): Promise<number> {
+  ): Promise<ArrAddedSettings & { seriesId: number }> {
     const config = this.sonarrConfig
     try {
       // Check if searchOnAdd parameter or property exists and use it, otherwise default to true
@@ -990,11 +991,12 @@ export class SonarrService {
 
       // Collection for valid tag IDs (using Set to avoid duplicates)
       const tagIdsSet = new Set<string>()
+      let existingTags: Array<{ id: number; label: string }> = []
 
       // Process override tags if provided
       if (overrideTags && overrideTags.length > 0) {
         // Get all existing tags from Sonarr
-        const existingTags = await this.getTags()
+        existingTags = await this.getTags()
 
         // Process each tag from the override
         for (const tagInput of overrideTags) {
@@ -1036,7 +1038,7 @@ export class SonarrService {
           Array.isArray(config.sonarrTagIds) &&
           config.sonarrTagIds.length > 0
         ) {
-          const existingTags = await this.getTags()
+          existingTags = await this.getTags()
 
           for (const tagId of config.sonarrTagIds) {
             const stringTagId = tagId.toString()
@@ -1103,7 +1105,15 @@ export class SonarrService {
         },
         `Sent ${item.title} to Sonarr`,
       )
-      return createdSeries.id
+      const labelById = new Map(existingTags.map((t) => [t.id, t.label]))
+      return {
+        seriesId: createdSeries.id,
+        rootFolder: createdSeries.rootFolderPath ?? rootFolderPath,
+        qualityProfileId: createdSeries.qualityProfileId ?? qualityProfileId,
+        tags: (createdSeries.tags ?? tags.map(Number)).map(
+          (id) => labelById.get(id) ?? String(id),
+        ),
+      }
     } catch (err) {
       this.log.debug(
         { error: err, title: item.title },
