@@ -15,6 +15,10 @@ import type {
   SonarrItem,
 } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
+import {
+  PlaceholderResetError,
+  placeholderSonarrInstance,
+} from '@utils/arr-default-instance.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import {
@@ -598,6 +602,48 @@ export class SonarrManagerService {
     this.fastify.contentRouter.clearRouterRulesCache()
   }
 
+  private async resetToPlaceholder(current: SonarrInstance): Promise<void> {
+    const instances = await this.fastify.db.getAllSonarrInstances()
+    if (
+      instances.some(
+        (instance) =>
+          instance.id !== current.id &&
+          instance.apiKey !== ARR_API_KEY_PLACEHOLDER,
+      )
+    ) {
+      throw new PlaceholderResetError('Sonarr')
+    }
+
+    const oldService = this.sonarrServices.get(current.id)
+    if (oldService) {
+      try {
+        await oldService.removeWebhook()
+      } catch (error) {
+        this.log.error(
+          { error },
+          `Failed to remove webhook for instance ${current.id}`,
+        )
+      }
+    }
+
+    const placeholder = placeholderSonarrInstance()
+    const newId = await this.fastify.db.replaceSonarrInstance(
+      current.id,
+      placeholder,
+    )
+    this.sonarrServices.delete(current.id)
+    this.fastify.contentRouter.clearRouterRulesCache()
+
+    const placeholderService = new SonarrService(
+      this.baseLog,
+      this.appBaseUrl,
+      this.port,
+      this.fastify,
+    )
+    await placeholderService.initialize({ ...placeholder, id: newId })
+    this.sonarrServices.set(newId, placeholderService)
+  }
+
   async updateInstance(
     id: number,
     updates: Partial<SonarrInstance>,
@@ -610,6 +656,13 @@ export class SonarrManagerService {
       if (rejected !== undefined)
         throw new InvalidSeasonMonitoringError(rejected)
       const candidate = { ...current, ...updates }
+      if (
+        current.apiKey !== ARR_API_KEY_PLACEHOLDER &&
+        candidate.apiKey === ARR_API_KEY_PLACEHOLDER
+      ) {
+        await this.resetToPlaceholder(current)
+        return
+      }
       const oldService = this.sonarrServices.get(id)
 
       // Only treat changes to the target server endpoint as a "server change"
@@ -642,8 +695,16 @@ export class SonarrManagerService {
         )
         await sonarrService.initialize(candidate)
         // Only persist after successful init; cleanup on persist failure
+        let persistedId = id
         try {
-          await this.fastify.db.updateSonarrInstance(id, updates)
+          if (isPlaceholderToReal) {
+            persistedId = await this.fastify.db.replaceSonarrInstance(
+              id,
+              candidate,
+            )
+          } else {
+            await this.fastify.db.updateSonarrInstance(id, updates)
+          }
         } catch (dbErr) {
           this.log.error(
             { error: dbErr, instanceId: id },
@@ -661,10 +722,6 @@ export class SonarrManagerService {
 
         // Clean up old webhook from previous server (but not for placeholder transitions)
         // Skip cleanup when transitioning from placeholder credentials (no real webhook existed)
-        const toPlaceholder =
-          current.apiKey !== ARR_API_KEY_PLACEHOLDER &&
-          candidate.apiKey === ARR_API_KEY_PLACEHOLDER
-
         if (
           oldService &&
           serverChanged &&
@@ -678,18 +735,13 @@ export class SonarrManagerService {
               `Failed to cleanup old webhook for previous server of instance ${id}`,
             )
           }
-        } else if (oldService && toPlaceholder) {
-          // Remove webhook when transitioning to placeholder credentials
-          try {
-            await oldService.removeWebhook()
-          } catch (cleanupErr) {
-            this.log.warn(
-              { error: cleanupErr },
-              `Failed to cleanup webhook after transitioning ${id} to placeholder credentials`,
-            )
-          }
         }
-        this.sonarrServices.set(id, sonarrService)
+        if (persistedId !== id) {
+          this.sonarrServices.delete(id)
+          sonarrService.updateConfiguration({ ...candidate, id: persistedId })
+          this.fastify.contentRouter.clearRouterRulesCache()
+        }
+        this.sonarrServices.set(persistedId, sonarrService)
       } else {
         // Server unchanged - just update configuration, no webhook changes needed
         await this.fastify.db.updateSonarrInstance(id, updates)

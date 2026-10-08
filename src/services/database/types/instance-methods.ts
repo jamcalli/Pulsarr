@@ -60,6 +60,12 @@ declare module '@services/database.service.js' {
      */
     deleteSonarrInstance(id: number): Promise<void>
 
+    /** Deletes the instance and its references and inserts the replacement as default in one transaction, returning the new id. */
+    replaceSonarrInstance(
+      id: number,
+      replacement: Omit<SonarrInstance, 'id'>,
+    ): Promise<number>
+
     /**
      * Retrieves a Sonarr instance by transformed base URL identifier
      * Used for webhook routing where instanceId comes from URL transformation
@@ -125,6 +131,12 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to void when complete
      */
     deleteRadarrInstance(id: number): Promise<void>
+
+    /** Deletes the instance and its references and inserts the replacement as default in one transaction, returning the new id. */
+    replaceRadarrInstance(
+      id: number,
+      replacement: Omit<RadarrInstance, 'id'>,
+    ): Promise<number>
 
     /**
      * Retrieves a Radarr instance by transformed base URL identifier
