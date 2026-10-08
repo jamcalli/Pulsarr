@@ -12,6 +12,7 @@ import {
 import { build } from '../../helpers/app.js'
 import { getTestDatabase, resetDatabase } from '../../helpers/database.js'
 import { SEED_WATCHLIST_ITEMS, seedAll } from '../../helpers/seeds/index.js'
+import { appliedRadarr } from '../../mocks/applied-routing.js'
 
 describe('approval requests thumb', () => {
   let app: FastifyInstance
@@ -149,6 +150,183 @@ describe('approval requests thumb', () => {
 
       expect(res.statusCode).toBe(409)
       expect(res.json().message).toBe('Set routing before approving.')
+    })
+  })
+
+  describe('status transitions', () => {
+    const routedDecision = JSON.stringify({
+      action: 'route',
+      routing: { instanceId: 1, instanceType: 'radarr', priority: 1 },
+    })
+
+    const insertRouted = async (
+      contentKey: string,
+      row: {
+        status: string
+        approved_by?: number
+        approval_notes?: string
+      },
+    ): Promise<number> => {
+      const [inserted] = await getTestDatabase()('approval_requests')
+        .insert({
+          user_id: watchlistItem.user_id,
+          content_type: 'movie',
+          content_title: contentKey,
+          content_key: contentKey,
+          content_guids: watchlistItem.guids,
+          router_decision: routedDecision,
+          triggered_by: 'router_rule',
+          ...row,
+        })
+        .returning('id')
+      return inserted.id
+    }
+
+    const getRow = async (id: number) => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `/v1/approval/requests/${id}`,
+      })
+      return res.json().approvalRequest
+    }
+
+    beforeEach(() => {
+      vi.spyOn(app.radarrManager, 'checkInstancesHealth').mockResolvedValue({
+        available: [],
+        unavailable: [],
+      })
+      vi.spyOn(app.sonarrManager, 'checkInstancesHealth').mockResolvedValue({
+        available: [],
+        unavailable: [],
+      })
+    })
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('bulk approve fails an expired request and approves a pending one', async () => {
+      vi.spyOn(app.radarrManager, 'routeItemToRadarr').mockResolvedValue(
+        appliedRadarr(),
+      )
+      const expiredId = await insertRouted('expired-item', {
+        status: 'expired',
+      })
+      const pendingId = await insertRouted('pending-item', {
+        status: 'pending',
+      })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/approval/requests/bulk/approve',
+        payload: { requestIds: [expiredId, pendingId] },
+      })
+
+      expect(res.statusCode).toBe(200)
+      const { result } = res.json()
+      expect(result.successful).toBe(1)
+      expect(result.failed).toEqual([expiredId])
+      expect(result.errors).toEqual([
+        `Request ${expiredId}: Cannot approve request that is already expired`,
+      ])
+      expect((await getRow(expiredId)).status).toBe('expired')
+      expect((await getRow(expiredId)).approvedBy).toBeNull()
+      expect((await getRow(pendingId)).status).toBe('approved')
+    })
+
+    it('bulk reject fails an approved request and leaves it unchanged', async () => {
+      const approvedId = await insertRouted('approved-item', {
+        status: 'approved',
+        approved_by: 1,
+        approval_notes: 'looks good',
+      })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/approval/requests/bulk/reject',
+        payload: { requestIds: [approvedId], reason: 'nope' },
+      })
+
+      expect(res.statusCode).toBe(200)
+      const { result } = res.json()
+      expect(result.successful).toBe(0)
+      expect(result.failed).toEqual([approvedId])
+      expect(result.errors).toEqual([
+        `Request ${approvedId}: Cannot reject request that is already approved`,
+      ])
+      const row = await getRow(approvedId)
+      expect(row.status).toBe('approved')
+      expect(row.approvedBy).toBe(1)
+      expect(row.approvalNotes).toBe('looks good')
+    })
+
+    it('re-approving a rejected request whose routing fails keeps the denial', async () => {
+      vi.spyOn(app.radarrManager, 'routeItemToRadarr').mockRejectedValue(
+        new Error('radarr down'),
+      )
+      await getTestDatabase()('admin_users').insert({
+        id: 2,
+        username: 'second-admin',
+        password: 'unused',
+        email: 'second-admin@example.com',
+        role: 'admin',
+      })
+      const rejectedId = await insertRouted('rejected-item', {
+        status: 'rejected',
+        approved_by: 2,
+        approval_notes: 'not this one',
+      })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/v1/approval/requests/${rejectedId}/approve`,
+        payload: { notes: 'changed my mind' },
+      })
+
+      expect(res.statusCode).toBe(409)
+      const row = await getRow(rejectedId)
+      expect(row.status).toBe('rejected')
+      expect(row.approvedBy).toBe(2)
+      expect(row.approvalNotes).toBe('not this one')
+    })
+
+    it('approving a pending request whose routing fails rolls back to pending', async () => {
+      vi.spyOn(app.radarrManager, 'routeItemToRadarr').mockRejectedValue(
+        new Error('radarr down'),
+      )
+      const pendingId = await insertRouted('pending-item', {
+        status: 'pending',
+      })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/v1/approval/requests/${pendingId}/approve`,
+        payload: { notes: 'ship it' },
+      })
+
+      expect(res.statusCode).toBe(409)
+      const row = await getRow(pendingId)
+      expect(row.status).toBe('pending')
+      expect(row.approvedBy).toBeNull()
+      expect(row.approvalNotes).toBeNull()
+    })
+
+    it('PATCH routing on an approved request returns 409', async () => {
+      const approvedId = await insertRouted('approved-item', {
+        status: 'approved',
+        approved_by: 1,
+      })
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/v1/approval/requests/${approvedId}`,
+        payload: { approvalNotes: 'edit' },
+      })
+
+      expect(res.statusCode).toBe(409)
+      expect(res.json().message).toBe(
+        'Cannot modify routing for approved approval requests',
+      )
     })
   })
 })
