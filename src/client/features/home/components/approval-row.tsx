@@ -19,7 +19,7 @@ interface ApprovalRowProps {
 }
 
 export function ApprovalRow({ approval, onReview }: ApprovalRowProps) {
-  const { name } = useUserDirectory()(approval.userName)
+  const { name } = useUserDirectory().lookup(approval.userName)
   const trigger = triggerSummary(approval, name)
   const expiry = expiryLine(approval, Date.now())
 

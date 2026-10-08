@@ -32,7 +32,7 @@ function wrapper({ children }: { children: ReactNode }) {
   )
 }
 
-async function renderDirectory() {
+function mockUsers() {
   server.use(
     http.get('/v1/users/list', () =>
       HttpResponse.json({
@@ -42,7 +42,11 @@ async function renderDirectory() {
       }),
     ),
   )
-  const { result } = renderHook(() => useUserDirectory(), { wrapper })
+}
+
+async function renderDirectory() {
+  mockUsers()
+  const { result } = renderHook(() => useUserDirectory().lookup, { wrapper })
   await waitFor(() => expect(result.current('jamie').avatar).not.toBeNull())
   return result
 }
@@ -77,5 +81,16 @@ describe('useUserDirectory', () => {
   it('returns an unknown user as itself with no avatar', async () => {
     const result = await renderDirectory()
     expect(result.current('ghost')).toEqual({ name: 'ghost', avatar: null })
+  })
+
+  it('lists every user by display name', async () => {
+    mockUsers()
+    const { result } = renderHook(() => useUserDirectory().users, { wrapper })
+    await waitFor(() =>
+      expect(result.current).toEqual([
+        { id: 1, name: 'Mom' },
+        { id: 2, name: 'jamie' },
+      ]),
+    )
   })
 })

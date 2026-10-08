@@ -23,7 +23,8 @@ describe('NAV_SECTIONS', () => {
 
 describe('pageHref', () => {
   it('links to the first legacy URL until the page is rebuilt', () => {
-    expect(pageHref(NAV_PAGES.contentRouter)).toBe('/radarr/content-router')
+    const legacy: NavPage = { ...NAV_PAGES.contentRouter, rebuilt: false }
+    expect(pageHref(legacy)).toBe('/radarr/content-router')
   })
 
   it('links to the new URL once the page is rebuilt', () => {
@@ -47,6 +48,10 @@ describe('pageHref', () => {
 
   it('links Approval settings to its rebuilt page', () => {
     expect(pageHref(NAV_PAGES.approvalSettings)).toBe('/requests/settings')
+  })
+
+  it('links Content router to its rebuilt page', () => {
+    expect(pageHref(NAV_PAGES.contentRouter)).toBe('/library/content-router')
   })
 
   it('links the dashboard to the rebuilt home page', () => {

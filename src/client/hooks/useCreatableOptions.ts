@@ -1,15 +1,20 @@
 import { TagLabelSchema } from '@root/schemas/shared/tag-validation.schema'
 import { useState } from 'react'
+import type { z } from 'zod'
 import { apiErrorMessage } from '@/lib/tanstackApi'
 
 export interface CreatableOption {
   value: string
   label: string
+  description?: string
 }
 
 interface CreatableOptionsInput {
   options: ReadonlyArray<CreatableOption>
-  onCreate?: (label: string) => Promise<CreatableOption>
+  /** A synchronous result adds the option at once, a promise shows the pending state until it settles. */
+  onCreate?: (label: string) => Promise<CreatableOption> | CreatableOption
+  /** Validates the typed input before onCreate runs, Radarr's tag label rules unless given. */
+  createSchema?: z.ZodType<string, string>
   createLabel: (input: string) => string
   onCreated: (option: CreatableOption) => void
 }
@@ -20,6 +25,7 @@ export const CREATE_VALUE = '__create__'
 export function useCreatableOptions({
   options,
   onCreate,
+  createSchema = TagLabelSchema,
   createLabel,
   onCreated,
 }: CreatableOptionsInput) {
@@ -43,20 +49,28 @@ export function useCreatableOptions({
     )
   const values = known.map((option) => option.value)
 
+  const add = (option: CreatableOption) => {
+    setCreated((prev) => [...prev, option])
+    setQuery('')
+    onCreated(option)
+  }
+
   const create = async () => {
     if (!onCreate) return
-    const parsed = TagLabelSchema.safeParse(trimmed)
+    const parsed = createSchema.safeParse(trimmed)
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? 'Enter a valid tag.')
       return
     }
     setError(null)
+    const pending = onCreate(parsed.data)
+    if (!(pending instanceof Promise)) {
+      add(pending)
+      return
+    }
     setCreating(true)
     try {
-      const option = await onCreate(parsed.data)
-      setCreated((prev) => [...prev, option])
-      setQuery('')
-      onCreated(option)
+      add(await pending)
     } catch (createError) {
       setError(
         apiErrorMessage(createError) ?? 'Tag could not be created. Try again.',

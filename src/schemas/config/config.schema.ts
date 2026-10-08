@@ -1,10 +1,12 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { HttpUrlOptionalSchema } from '@root/schemas/common/url.schema.js'
+import { UserNamingSourceSchema } from '@root/schemas/common/user-naming-source.schema.js'
 import { PlexLabelSyncConfigSchema } from '@root/schemas/plex/label-sync-config.schema.js'
 import {
   RemovedTagPrefixSchema,
   TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
+import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
 import { DISCORD_WEBHOOK_HOSTS } from '@root/types/discord.types.js'
 import { z } from 'zod'
@@ -149,6 +151,25 @@ const ApprovalExpirationActionSchema = z.enum(['expire', 'auto_approve']).meta({
   description: 'What happens to a pending approval request when it expires',
 })
 
+const MaintainerrExclusionModeSchema = z.enum(['watchlisters', 'global']).meta({
+  id: 'MaintainerrExclusionMode',
+  description:
+    'Whether a Maintainerr exclusion applies to the watchlisting users or everyone',
+})
+
+const RemovedTagModeSchema = z.enum(['remove', 'keep', 'special-tag']).meta({
+  id: 'RemovedTagMode',
+  description: 'What happens to a user tag once that user drops the content',
+})
+
+const QuotaMonthEndSchema = z
+  .enum(['last-day', 'skip-month', 'next-month'])
+  .meta({
+    id: 'QuotaMonthEnd',
+    description:
+      'How a monthly quota resets when its reset day is past the end of a short month',
+  })
+
 const ExpirationOverrideHoursSchema = z
   .number()
   .min(APPROVAL_EXPIRATION_HOURS.min)
@@ -237,7 +258,7 @@ export const ConfigFullSchema = z
     // Maintainerr Config (maintainerrWebhookSecret is server-internal)
     maintainerrEnabled: z.boolean(),
     maintainerrUrl: z.string().optional(),
-    maintainerrExclusionMode: z.enum(['watchlisters', 'global']).optional(),
+    maintainerrExclusionMode: MaintainerrExclusionModeSchema.optional(),
     // Discord Config
     discordWebhookUrl: z.string().optional(),
     discordBotToken: z.string().optional(),
@@ -317,8 +338,8 @@ export const ConfigFullSchema = z
     // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
     // persistHistoricalTags: z.boolean(),
     tagPrefix: z.string(),
-    tagNamingSource: z.enum(['username', 'alias']),
-    removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
+    tagNamingSource: UserNamingSourceSchema,
+    removedTagMode: RemovedTagModeSchema,
     removedTagPrefix: z.string(),
     // Tag Migration Configuration
     tagMigration: TagMigrationSchema,
@@ -339,16 +360,12 @@ export const ConfigFullSchema = z
     newUserDefaultCanSync: z.boolean(),
     newUserDefaultRequiresApproval: z.boolean(),
     newUserDefaultMovieQuotaEnabled: z.boolean(),
-    newUserDefaultMovieQuotaType: z.enum([
-      'daily',
-      'weekly_rolling',
-      'monthly',
-    ]),
+    newUserDefaultMovieQuotaType: QuotaTypeSchema,
     newUserDefaultMovieQuotaLimit: z.number(),
     newUserDefaultMovieBypassApproval: z.boolean(),
     newUserDefaultMovieWatchlistCap: z.number().nullable(),
     newUserDefaultShowQuotaEnabled: z.boolean(),
-    newUserDefaultShowQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
+    newUserDefaultShowQuotaType: QuotaTypeSchema,
     newUserDefaultShowQuotaLimit: z.number(),
     newUserDefaultShowBypassApproval: z.boolean(),
     newUserDefaultShowWatchlistCap: z.number().nullable(),
@@ -363,7 +380,7 @@ export const ConfigFullSchema = z
       }),
       monthly: z.object({
         resetDay: z.number(),
-        handleMonthEnd: z.enum(['last-day', 'skip-month', 'next-month']),
+        handleMonthEnd: QuotaMonthEndSchema,
       }),
     }),
     approvalExpiration: ApprovalExpirationSchema,
@@ -394,7 +411,7 @@ export const ConfigUpdateSchema = z
     // Maintainerr Config (maintainerrWebhookSecret is server-internal)
     maintainerrEnabled: z.boolean().optional(),
     maintainerrUrl: HttpUrlOptionalSchema,
-    maintainerrExclusionMode: z.enum(['watchlisters', 'global']).optional(),
+    maintainerrExclusionMode: MaintainerrExclusionModeSchema.optional(),
     // Discord Config
     discordWebhookUrl: DiscordWebhookUrlSchema,
     discordBotToken: z.string().optional(),
@@ -476,7 +493,7 @@ export const ConfigUpdateSchema = z
     // Cleanup approval_requests when content is deleted
     deleteSyncCleanupApprovals: z.boolean().optional(),
     // Tag removal mode
-    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).optional(),
+    removedTagMode: RemovedTagModeSchema.optional(),
     // Plex Playlist Protection
     enablePlexPlaylistProtection: z.boolean().optional(),
     plexProtectionPlaylistName: z.string().optional(),
@@ -510,16 +527,12 @@ export const ConfigUpdateSchema = z
     newUserDefaultCanSync: z.boolean().optional(),
     newUserDefaultRequiresApproval: z.boolean().optional(),
     newUserDefaultMovieQuotaEnabled: z.boolean().optional(),
-    newUserDefaultMovieQuotaType: z
-      .enum(['daily', 'weekly_rolling', 'monthly'])
-      .optional(),
+    newUserDefaultMovieQuotaType: QuotaTypeSchema.optional(),
     newUserDefaultMovieQuotaLimit: z.number().min(1).max(1000).optional(),
     newUserDefaultMovieBypassApproval: z.boolean().optional(),
     newUserDefaultMovieWatchlistCap: z.number().min(1).nullable().optional(),
     newUserDefaultShowQuotaEnabled: z.boolean().optional(),
-    newUserDefaultShowQuotaType: z
-      .enum(['daily', 'weekly_rolling', 'monthly'])
-      .optional(),
+    newUserDefaultShowQuotaType: QuotaTypeSchema.optional(),
     newUserDefaultShowQuotaLimit: z.number().min(1).max(1000).optional(),
     newUserDefaultShowBypassApproval: z.boolean().optional(),
     newUserDefaultShowWatchlistCap: z.number().min(1).nullable().optional(),
@@ -543,9 +556,7 @@ export const ConfigUpdateSchema = z
         monthly: z
           .object({
             resetDay: z.number().min(1).max(31).optional(), // 1st to 31st
-            handleMonthEnd: z
-              .enum(['last-day', 'skip-month', 'next-month'])
-              .optional(),
+            handleMonthEnd: QuotaMonthEndSchema.optional(),
           })
           .optional(),
       })
@@ -564,7 +575,7 @@ export const ConfigUpdateSchema = z
     tagUsersInRadarr: z.boolean().optional(),
     cleanupOrphanedTags: z.boolean().optional(),
     tagPrefix: TagPrefixSchema.optional(),
-    tagNamingSource: z.enum(['username', 'alias']).optional(),
+    tagNamingSource: UserNamingSourceSchema.optional(),
     // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
     tagMigration: TagMigrationSchema,
   })

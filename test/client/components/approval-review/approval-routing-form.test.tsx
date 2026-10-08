@@ -1,3 +1,4 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -5,7 +6,6 @@ import { HttpResponse, http } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { ApprovalReviewCredenza } from '@/components/approval-review/approval-review-credenza'
 import { withRouting } from '@/lib/approval'
-import { ARR_API_KEY_PLACEHOLDER } from '@/lib/constants'
 import { setFormatLocale } from '@/lib/format'
 import { queryClient } from '@/lib/queryClient'
 import type { components } from '@/types/api.js'
@@ -99,6 +99,24 @@ describe('Approval routing form', () => {
     queryClient.clear()
     setFormatLocale(undefined)
     vi.unstubAllGlobals()
+  })
+
+  it('keeps concrete values with no instance default choice', async () => {
+    renderReview(makeApproval())
+    const { user, dialog } = await openForm('Edit routing')
+
+    expect(
+      within(dialog).getByText(
+        'Switching instance resets the fields below to its defaults.',
+      ),
+    ).toBeInTheDocument()
+    await user.click(within(dialog).getByLabelText('Quality profile'))
+    expect(
+      await screen.findByRole('option', { name: 'HD-1080p' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('option', { name: 'Use instance default' }),
+    ).not.toBeInTheDocument()
   })
 
   it('swaps the summary for the form with the current routing', async () => {
@@ -251,14 +269,18 @@ describe('Approval routing form', () => {
     expect(bodies).toEqual([])
   })
 
-  it('shows the not connected message for an instance without an API key', async () => {
-    renderReview(makeApproval(), [
-      sonarrInstance(1, 'Sonarr', true),
-      sonarrInstance(2, 'Sonarr 4K', false, ARR_API_KEY_PLACEHOLDER),
-    ])
-    const { user, dialog } = await openForm('Edit routing')
-
-    await pick(user, dialog, 'Instance', 'Sonarr 4K')
+  it('shows the not connected message when the stored instance has no API key', async () => {
+    renderReview(
+      makeApproval(
+        {},
+        { ...sonarrRouting, instanceId: 2, syncedInstances: [] },
+      ),
+      [
+        sonarrInstance(1, 'Sonarr', true),
+        sonarrInstance(2, 'Sonarr 4K', false, ARR_API_KEY_PLACEHOLDER),
+      ],
+    )
+    const { dialog } = await openForm('Edit routing')
 
     expect(
       await within(dialog).findByText(
@@ -268,6 +290,24 @@ describe('Approval routing form', () => {
     expect(
       within(dialog).getByRole('button', { name: 'Save routing' }),
     ).toBeDisabled()
+  })
+
+  it('never offers an unconfigured instance as a target or synced instance', async () => {
+    renderReview(makeApproval({}, { ...sonarrRouting, syncedInstances: [] }), [
+      sonarrInstance(1, 'Sonarr', true),
+      sonarrInstance(2, 'Sonarr 4K', false, ARR_API_KEY_PLACEHOLDER),
+    ])
+    const { user, dialog } = await openForm('Edit routing')
+
+    await user.click(within(dialog).getByLabelText('Instance'))
+    expect(
+      await screen.findByRole('option', { name: 'Sonarr (default)' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('option', { name: 'Sonarr 4K' }),
+    ).not.toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    expect(within(dialog).queryByText('Also send to')).not.toBeInTheDocument()
   })
 
   it('disables Save routing until a field changes', async () => {

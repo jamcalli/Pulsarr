@@ -5,6 +5,7 @@ import {
   canApprove,
   proposedRouting,
   type ReviewStage,
+  withoutAdditionalRouting,
   withRouting,
 } from '@/lib/approval'
 import { approvalRequestKeys, approvalRequestsKeys } from '@/lib/query-keys'
@@ -134,6 +135,15 @@ export function useApprovalReview(
       rejectMutation.mutate({
         params: { path: { id } },
         body: { reason: reason.trim() || undefined },
+      })
+    },
+    removeAdditionalRouting: (index: number) => {
+      resetErrors()
+      saveMutation.mutate({
+        params: { path: { id } },
+        body: {
+          proposedRouterDecision: withoutAdditionalRouting(approval, index),
+        },
       })
     },
     saveRouting: (next: ApprovalRouting) => {

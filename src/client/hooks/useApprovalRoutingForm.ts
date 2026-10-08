@@ -59,13 +59,20 @@ export function useApprovalRoutingForm({
   }, [dirty, reportRoutingDirty])
 
   const instanceId = Number(useStore(form.store, (s) => s.values.instanceId))
+  const seasonMonitoring = useStore(
+    form.store,
+    (s) => s.values.seasonMonitoring,
+  )
   const target = instances.findTarget(instanceId)
   const options = useArrInstanceOptions(type, instanceId, true)
   const rollingEnabled = config?.plexSessionMonitoring?.enabled ?? false
 
   function syncsWith(selected: ArrTarget | null): boolean {
+    const configuredDefault = instances.configuredDefault
     return (
-      (selected?.instance.isDefault ?? false) && instances.targets.length > 1
+      configuredDefault !== null &&
+      selected?.instance.id === configuredDefault.instance.id &&
+      instances.configuredTargets.length > 1
     )
   }
 
@@ -76,18 +83,18 @@ export function useApprovalRoutingForm({
     instanceId,
     options,
     showSynced: syncsWith(target),
-    instanceOptions: instances.targets.map(({ instance }) => ({
+    instanceOptions: instances.configuredTargets.map(({ instance }) => ({
       value: String(instance.id),
       label: instance.isDefault ? `${instance.name} (default)` : instance.name,
     })),
-    syncedOptions: instances.targets
+    syncedOptions: instances.configuredTargets
       .filter(({ instance }) => instance.id !== instanceId)
       .map(({ instance }) => ({
         value: String(instance.id),
         label: instance.name,
       })),
     seasonMonitoringOptions: seasonMonitoringOptions(
-      defaultValues.seasonMonitoring,
+      seasonMonitoring,
       rollingEnabled,
     ),
     switchInstance: (id: string) => {

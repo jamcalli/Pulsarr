@@ -3352,17 +3352,13 @@ export interface components {
          * @enum {string}
          */
         ConditionOperator: "equals" | "notEquals" | "contains" | "notContains" | "in" | "notIn" | "greaterThan" | "lessThan" | "between" | "regex";
-        /** @description Value shapes accepted by router conditions */
-        ConditionValue: string | number | boolean | string[] | number[] | (string | number)[] | {
-            rating?: number | number[] | {
-                min?: number;
-                max?: number;
-            };
-            votes?: number;
-        } | {
+        /** @description Inclusive numeric range, either bound may be left open */
+        ConditionRange: {
             min?: number;
             max?: number;
-        } | null;
+        };
+        /** @description Value shapes accepted by router conditions */
+        ConditionValue: string | number | boolean | string[] | number[] | (string | number)[] | components["schemas"]["ImdbConditionValue"] | components["schemas"]["ConditionRange"] | null;
         /**
          * @description Value shape a condition field or operator accepts
          * @enum {string}
@@ -3385,8 +3381,7 @@ export interface components {
             queueProcessDelaySeconds: number;
             maintainerrEnabled: boolean;
             maintainerrUrl?: string;
-            /** @enum {string} */
-            maintainerrExclusionMode?: "watchlisters" | "global";
+            maintainerrExclusionMode?: components["schemas"]["MaintainerrExclusionMode"];
             discordWebhookUrl?: string;
             discordBotToken?: string;
             discordClientId?: string;
@@ -3446,44 +3441,15 @@ export interface components {
             deleteSyncRequiredTagRegex: string;
             enablePlexPlaylistProtection: boolean;
             plexProtectionPlaylistName: string;
-            plexLabelSync: {
-                enabled: boolean;
-                labelPrefix: string;
-                /**
-                 * @default username
-                 * @enum {string}
-                 */
-                labelNamingSource: "username" | "alias";
-                concurrencyLimit: number;
-                cleanupOrphanedLabels: boolean;
-                /**
-                 * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
-                 * @enum {string}
-                 */
-                removedLabelMode: "remove" | "keep" | "special-label";
-                /**
-                 * @description Prefix for special labels indicating removed users
-                 * @default pulsarr:removed
-                 */
-                removedLabelPrefix?: string;
-                /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
-                autoResetOnScheduledSync: boolean;
-                tagSync: {
-                    enabled: boolean;
-                    syncRadarrTags: boolean;
-                    syncSonarrTags: boolean;
-                };
-            };
+            plexLabelSync: components["schemas"]["PlexLabelSyncConfigOutput"];
             selfRss?: string;
             friendsRss?: string;
             tagUsersInSonarr: boolean;
             tagUsersInRadarr: boolean;
             cleanupOrphanedTags: boolean;
             tagPrefix: string;
-            /** @enum {string} */
-            tagNamingSource: "username" | "alias";
-            /** @enum {string} */
-            removedTagMode: "remove" | "keep" | "special-tag";
+            tagNamingSource: components["schemas"]["UserNamingSource"];
+            removedTagMode: components["schemas"]["RemovedTagMode"];
             removedTagPrefix: string;
             tagMigration?: components["schemas"]["TagMigrationOutput"];
             plexSessionMonitoring?: {
@@ -3499,14 +3465,12 @@ export interface components {
             newUserDefaultCanSync: boolean;
             newUserDefaultRequiresApproval: boolean;
             newUserDefaultMovieQuotaEnabled: boolean;
-            /** @enum {string} */
-            newUserDefaultMovieQuotaType: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultMovieQuotaType: components["schemas"]["QuotaType"];
             newUserDefaultMovieQuotaLimit: number;
             newUserDefaultMovieBypassApproval: boolean;
             newUserDefaultMovieWatchlistCap: number | null;
             newUserDefaultShowQuotaEnabled: boolean;
-            /** @enum {string} */
-            newUserDefaultShowQuotaType: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultShowQuotaType: components["schemas"]["QuotaType"];
             newUserDefaultShowQuotaLimit: number;
             newUserDefaultShowBypassApproval: boolean;
             newUserDefaultShowWatchlistCap: number | null;
@@ -3520,8 +3484,7 @@ export interface components {
                 };
                 monthly: {
                     resetDay: number;
-                    /** @enum {string} */
-                    handleMonthEnd: "last-day" | "skip-month" | "next-month";
+                    handleMonthEnd: components["schemas"]["QuotaMonthEnd"];
                 };
             };
             approvalExpiration: components["schemas"]["ApprovalExpiration"];
@@ -3547,8 +3510,7 @@ export interface components {
             queueProcessDelaySeconds?: number;
             maintainerrEnabled?: boolean;
             maintainerrUrl?: string | "";
-            /** @enum {string} */
-            maintainerrExclusionMode?: "watchlisters" | "global";
+            maintainerrExclusionMode?: components["schemas"]["MaintainerrExclusionMode"];
             discordWebhookUrl?: string;
             discordBotToken?: string;
             discordClientId?: string;
@@ -3597,40 +3559,12 @@ export interface components {
             deleteSyncRequiredTagRegex?: string;
             deleteSyncTrackedOnly?: boolean;
             deleteSyncCleanupApprovals?: boolean;
-            /** @enum {string} */
-            removedTagMode?: "remove" | "keep" | "special-tag";
+            removedTagMode?: components["schemas"]["RemovedTagMode"];
             enablePlexPlaylistProtection?: boolean;
             plexProtectionPlaylistName?: string;
             plexServerUrl?: string | "";
             skipIfExistsOnPlex?: boolean;
-            plexLabelSync?: {
-                enabled: boolean;
-                labelPrefix: string;
-                /**
-                 * @default username
-                 * @enum {string}
-                 */
-                labelNamingSource?: "username" | "alias";
-                concurrencyLimit: number;
-                cleanupOrphanedLabels: boolean;
-                /**
-                 * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
-                 * @enum {string}
-                 */
-                removedLabelMode: "remove" | "keep" | "special-label";
-                /**
-                 * @description Prefix for special labels indicating removed users
-                 * @default pulsarr:removed
-                 */
-                removedLabelPrefix?: string;
-                /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
-                autoResetOnScheduledSync: boolean;
-                tagSync: {
-                    enabled: boolean;
-                    syncRadarrTags: boolean;
-                    syncSonarrTags: boolean;
-                };
-            };
+            plexLabelSync?: components["schemas"]["PlexLabelSyncConfig"];
             selfRss?: string;
             friendsRss?: string;
             _isReady?: boolean;
@@ -3647,14 +3581,12 @@ export interface components {
             newUserDefaultCanSync?: boolean;
             newUserDefaultRequiresApproval?: boolean;
             newUserDefaultMovieQuotaEnabled?: boolean;
-            /** @enum {string} */
-            newUserDefaultMovieQuotaType?: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultMovieQuotaType?: components["schemas"]["QuotaType"];
             newUserDefaultMovieQuotaLimit?: number;
             newUserDefaultMovieBypassApproval?: boolean;
             newUserDefaultMovieWatchlistCap?: number | null;
             newUserDefaultShowQuotaEnabled?: boolean;
-            /** @enum {string} */
-            newUserDefaultShowQuotaType?: "daily" | "weekly_rolling" | "monthly";
+            newUserDefaultShowQuotaType?: components["schemas"]["QuotaType"];
             newUserDefaultShowQuotaLimit?: number;
             newUserDefaultShowBypassApproval?: boolean;
             newUserDefaultShowWatchlistCap?: number | null;
@@ -3668,8 +3600,7 @@ export interface components {
                 };
                 monthly?: {
                     resetDay?: number;
-                    /** @enum {string} */
-                    handleMonthEnd?: "last-day" | "skip-month" | "next-month";
+                    handleMonthEnd?: components["schemas"]["QuotaMonthEnd"];
                 };
             };
             approvalExpiration?: components["schemas"]["ApprovalExpirationPayload"];
@@ -3678,8 +3609,7 @@ export interface components {
             tagUsersInRadarr?: boolean;
             cleanupOrphanedTags?: boolean;
             tagPrefix?: string;
-            /** @enum {string} */
-            tagNamingSource?: "username" | "alias";
+            tagNamingSource?: components["schemas"]["UserNamingSource"];
             tagMigration?: components["schemas"]["TagMigration"];
         };
         /** @description A watchlisted title with its watchlist count and identifiers. */
@@ -3772,6 +3702,11 @@ export interface components {
             max_days: number;
             count: number;
         };
+        /** @description IMDb rating comparison with an optional minimum vote count */
+        ImdbConditionValue: {
+            rating?: number | number[] | components["schemas"]["ConditionRange"];
+            votes?: number;
+        };
         /** @description Routed content on one arr instance by status and content type */
         InstanceBreakdown: {
             id: number;
@@ -3809,6 +3744,11 @@ export interface components {
          * @enum {string}
          */
         InstanceType: "radarr" | "sonarr";
+        /**
+         * @description Whether a Maintainerr exclusion applies to the watchlisting users or everyone
+         * @enum {string}
+         */
+        MaintainerrExclusionMode: "watchlisters" | "global";
         /** @description Result of the most recent Maintainerr reconcile */
         MaintainerrStatus: {
             /** @enum {string} */
@@ -3859,6 +3799,58 @@ export interface components {
             itemsUpdated: number;
             error?: string;
         };
+        /** @description How Plex labels are synced from user watchlists */
+        PlexLabelSyncConfig: {
+            enabled: boolean;
+            labelPrefix: string;
+            /** @default username */
+            labelNamingSource?: components["schemas"]["UserNamingSource"];
+            concurrencyLimit: number;
+            cleanupOrphanedLabels: boolean;
+            /**
+             * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
+             * @enum {string}
+             */
+            removedLabelMode: "remove" | "keep" | "special-label";
+            /**
+             * @description Prefix for special labels indicating removed users
+             * @default pulsarr:removed
+             */
+            removedLabelPrefix?: string;
+            /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
+            autoResetOnScheduledSync: boolean;
+            tagSync: {
+                enabled: boolean;
+                syncRadarrTags: boolean;
+                syncSonarrTags: boolean;
+            };
+        };
+        /** @description How Plex labels are synced from user watchlists */
+        PlexLabelSyncConfigOutput: {
+            enabled: boolean;
+            labelPrefix: string;
+            /** @default username */
+            labelNamingSource: components["schemas"]["UserNamingSource"];
+            concurrencyLimit: number;
+            cleanupOrphanedLabels: boolean;
+            /**
+             * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
+             * @enum {string}
+             */
+            removedLabelMode: "remove" | "keep" | "special-label";
+            /**
+             * @description Prefix for special labels indicating removed users
+             * @default pulsarr:removed
+             */
+            removedLabelPrefix?: string;
+            /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
+            autoResetOnScheduledSync: boolean;
+            tagSync: {
+                enabled: boolean;
+                syncRadarrTags: boolean;
+                syncSonarrTags: boolean;
+            };
+        };
         /** @description Ratings captured from stored Plex watchlist metadata. */
         PlexRatings: {
             imdb?: {
@@ -3869,6 +3861,11 @@ export interface components {
             rtAudience?: number;
             tmdb?: number;
         };
+        /**
+         * @description How a monthly quota resets when its reset day is past the end of a short month
+         * @enum {string}
+         */
+        QuotaMonthEnd: "last-day" | "skip-month" | "next-month";
         /**
          * @description Quota window, a calendar day, rolling 7 days, or calendar month
          * @enum {string}
@@ -3979,6 +3976,11 @@ export interface components {
             failed: number;
             instances: number;
         };
+        /**
+         * @description What happens to a user tag once that user drops the content
+         * @enum {string}
+         */
+        RemovedTagMode: "remove" | "keep" | "special-tag";
         /** @description Rolling monitored show entry (master record or per-user tracking row) */
         RollingMonitoredShow: {
             id: number;
@@ -4010,11 +4012,9 @@ export interface components {
         };
         /** @description Boolean grouping of router conditions, nestable to 20 levels */
         RouterConditionGroup: {
-            /** @enum {string} */
-            operator: "AND" | "OR";
+            operator: components["schemas"]["RouterGroupOperator"];
             conditions: (components["schemas"]["RouterCondition"] | {
-                /** @enum {string} */
-                operator: "AND" | "OR";
+                operator: components["schemas"]["RouterGroupOperator"];
                 conditions: unknown[];
                 /** @default false */
                 negate?: boolean;
@@ -4050,6 +4050,11 @@ export interface components {
                 additionalRouting?: components["schemas"]["ApprovalRoutingOutput"][];
             };
         };
+        /**
+         * @description How a condition group joins its children
+         * @enum {string}
+         */
+        RouterGroupOperator: "AND" | "OR";
         /** @description A stored content router rule */
         RouterRule: {
             name: string;
@@ -4065,24 +4070,14 @@ export interface components {
                     id: string | number;
                     name: string;
                 } | {
-                    rating?: number | number[] | {
-                        min?: number;
-                        max?: number;
-                    };
-                    votes?: number | number[] | {
-                        min?: number;
-                        max?: number;
-                    };
-                } | {
-                    min?: number;
-                    max?: number;
-                } | null;
+                    rating?: number | number[] | components["schemas"]["ConditionRange"];
+                    votes?: number | number[] | components["schemas"]["ConditionRange"];
+                } | components["schemas"]["ConditionRange"] | null;
                 /** @default false */
                 negate: boolean;
                 _cid?: string;
             } | {
-                /** @enum {string} */
-                operator: "AND" | "OR";
+                operator: components["schemas"]["RouterGroupOperator"];
                 conditions: ({
                     field: string;
                     operator: components["schemas"]["ConditionOperator"];
@@ -4093,24 +4088,14 @@ export interface components {
                         id: string | number;
                         name: string;
                     } | {
-                        rating?: number | number[] | {
-                            min?: number;
-                            max?: number;
-                        };
-                        votes?: number | number[] | {
-                            min?: number;
-                            max?: number;
-                        };
-                    } | {
-                        min?: number;
-                        max?: number;
-                    } | null;
+                        rating?: number | number[] | components["schemas"]["ConditionRange"];
+                        votes?: number | number[] | components["schemas"]["ConditionRange"];
+                    } | components["schemas"]["ConditionRange"] | null;
                     /** @default false */
                     negate: boolean;
                     _cid?: string;
                 } | {
-                    /** @enum {string} */
-                    operator: "AND" | "OR";
+                    operator: components["schemas"]["RouterGroupOperator"];
                     conditions: unknown[];
                     /** @default false */
                     negate: boolean;
@@ -4146,8 +4131,31 @@ export interface components {
             message: string;
             rules: components["schemas"]["RouterRule"][];
         };
-        /** @description Full router rule payload used to create or replace a rule */
+        /** @description Full router rule payload used to create a rule */
         RouterRulePayload: {
+            name: string;
+            target_type: components["schemas"]["InstanceType"];
+            target_instance_id: number | null;
+            condition?: components["schemas"]["RouterCondition"] | components["schemas"]["RouterConditionGroup"];
+            root_folder?: string | null;
+            quality_profile?: (number | string) | null;
+            tags?: string[];
+            order?: number;
+            enabled?: boolean;
+            search_on_add?: boolean | null;
+            /** @description Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error. */
+            season_monitoring?: components["schemas"]["SonarrSeasonMonitoringValue"] | null;
+            /** @description Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error. */
+            series_type?: components["schemas"]["SonarrSeriesType"] | null;
+            /** @description Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error. */
+            monitor?: components["schemas"]["RadarrMonitor"] | null;
+            always_require_approval?: boolean;
+            bypass_user_quotas?: boolean;
+            approval_reason?: string;
+            exclude_from_routing?: boolean;
+        };
+        /** @description Full router rule payload used to replace a rule. An order outside 1 to 100 is accepted only when it is the value already stored on the rule. */
+        RouterRuleReplacePayload: {
             name: string;
             target_type: components["schemas"]["InstanceType"];
             target_instance_id: number | null;
@@ -4175,6 +4183,102 @@ export interface components {
             message: string;
             rule: components["schemas"]["RouterRule"];
         };
+        /** @description Result of a router rule write that returns no rule */
+        RouterRuleSuccess: {
+            success: boolean;
+            message: string;
+        };
+        /** @description Turns a router rule on or off */
+        RouterRuleTogglePayload: {
+            enabled: boolean;
+        };
+        /** @description A configured Sonarr instance */
+        SonarrInstance: {
+            name: string;
+            /** Format: uri */
+            baseUrl: string;
+            apiKey: string;
+            qualityProfile?: string | number | null;
+            rootFolder?: string | null;
+            /** @default false */
+            bypassIgnored: boolean;
+            /** @default all */
+            seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"];
+            /** @default all */
+            monitorNewItems: components["schemas"]["SonarrMonitorNewItems"];
+            /** @default true */
+            searchOnAdd: boolean;
+            /** @default false */
+            createSeasonFolders: boolean;
+            /** @default [] */
+            tags: string[];
+            /** @default false */
+            isDefault: boolean;
+            syncedInstances?: number[];
+            /** @default standard */
+            seriesType: components["schemas"]["SonarrSeriesType"];
+            /** @default false */
+            skipDefaultRoutingWhenNoMatch: boolean;
+            id: number;
+        };
+        /** @description Id of the newly created Sonarr instance */
+        SonarrInstanceCreateResponse: {
+            id: number;
+        };
+        /** @description All configured Sonarr instances */
+        SonarrInstanceListResponse: components["schemas"]["SonarrInstance"][];
+        /** @description A new Sonarr instance, omitted settings take their defaults */
+        SonarrInstancePayload: {
+            name: string;
+            /** Format: uri */
+            baseUrl: string;
+            apiKey: string;
+            qualityProfile?: string | number | null;
+            rootFolder?: string | null;
+            /** @default false */
+            bypassIgnored?: boolean;
+            /** @default all */
+            seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
+            /** @default all */
+            monitorNewItems?: components["schemas"]["SonarrMonitorNewItems"];
+            /** @default true */
+            searchOnAdd?: boolean;
+            /** @default false */
+            createSeasonFolders?: boolean;
+            /** @default [] */
+            tags?: string[];
+            /** @default false */
+            isDefault?: boolean;
+            syncedInstances?: number[];
+            /** @default standard */
+            seriesType?: components["schemas"]["SonarrSeriesType"];
+            /** @default false */
+            skipDefaultRoutingWhenNoMatch?: boolean;
+        };
+        /** @description Partial Sonarr instance update, omitted fields keep their stored value */
+        SonarrInstanceUpdatePayload: {
+            name?: string;
+            /** Format: uri */
+            baseUrl?: string;
+            apiKey?: string;
+            qualityProfile?: string | number | null;
+            rootFolder?: string | null;
+            bypassIgnored?: boolean;
+            seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
+            monitorNewItems?: components["schemas"]["SonarrMonitorNewItems"];
+            searchOnAdd?: boolean;
+            createSeasonFolders?: boolean;
+            tags?: string[];
+            isDefault?: boolean;
+            syncedInstances?: number[];
+            seriesType?: components["schemas"]["SonarrSeriesType"];
+            skipDefaultRoutingWhenNoMatch?: boolean;
+        };
+        /**
+         * @description Whether Sonarr monitors seasons added to a series later
+         * @enum {string}
+         */
+        SonarrMonitorNewItems: "all" | "none";
         /**
          * @description Rolling monitoring strategy for a show
          * @enum {string}
@@ -4531,6 +4635,11 @@ export interface components {
             /** @description New username to set */
             newUsername: string;
         };
+        /**
+         * @description Which user name a per-user tag or label is built from
+         * @enum {string}
+         */
+        UserNamingSource: "username" | "alias";
         /** @description A user with their total watchlist item count in the range and its movie and show split */
         UserStat: {
             name: string;
@@ -5779,7 +5888,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        /** @description Full router rule payload used to create or replace a rule */
+        /** @description Full router rule payload used to create a rule */
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RouterRulePayload"];
@@ -6016,10 +6125,10 @@ export interface operations {
             };
             cookie?: never;
         };
-        /** @description Full router rule payload used to create or replace a rule */
+        /** @description Full router rule payload used to replace a rule. An order outside 1 to 100 is accepted only when it is the value already stored on the rule. */
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RouterRulePayload"];
+                "application/json": components["schemas"]["RouterRuleReplacePayload"];
             };
         };
         responses: {
@@ -6087,10 +6196,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["RouterRuleSuccess"];
                 };
             };
             /** @description Default Response */
@@ -6131,11 +6237,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Turns a router rule on or off */
         requestBody: {
             content: {
-                "application/json": {
-                    enabled: boolean;
-                };
+                "application/json": components["schemas"]["RouterRuleTogglePayload"];
             };
         };
         responses: {
@@ -6145,10 +6250,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["RouterRuleSuccess"];
                 };
             };
             /** @description Default Response */
@@ -10311,37 +10413,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        name: string;
-                        /** Format: uri */
-                        baseUrl: string;
-                        apiKey: string;
-                        qualityProfile?: string | number | null;
-                        rootFolder?: string | null;
-                        /** @default false */
-                        bypassIgnored: boolean;
-                        /** @default all */
-                        seasonMonitoring: components["schemas"]["SonarrSeasonMonitoringValue"];
-                        /**
-                         * @default all
-                         * @enum {string}
-                         */
-                        monitorNewItems: "all" | "none";
-                        /** @default true */
-                        searchOnAdd: boolean;
-                        /** @default false */
-                        createSeasonFolders: boolean;
-                        /** @default [] */
-                        tags: string[];
-                        /** @default false */
-                        isDefault: boolean;
-                        syncedInstances?: number[];
-                        /** @default standard */
-                        seriesType: components["schemas"]["SonarrSeriesType"];
-                        /** @default false */
-                        skipDefaultRoutingWhenNoMatch: boolean;
-                        id: number;
-                    }[];
+                    "application/json": components["schemas"]["SonarrInstanceListResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -10362,38 +10434,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description A new Sonarr instance, omitted settings take their defaults */
         requestBody: {
             content: {
-                "application/json": {
-                    name: string;
-                    /** Format: uri */
-                    baseUrl: string;
-                    apiKey: string;
-                    qualityProfile?: string | number | null;
-                    rootFolder?: string | null;
-                    /** @default false */
-                    bypassIgnored?: boolean;
-                    /** @default all */
-                    seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
-                    /**
-                     * @default all
-                     * @enum {string}
-                     */
-                    monitorNewItems?: "all" | "none";
-                    /** @default true */
-                    searchOnAdd?: boolean;
-                    /** @default false */
-                    createSeasonFolders?: boolean;
-                    /** @default [] */
-                    tags?: string[];
-                    /** @default false */
-                    isDefault?: boolean;
-                    syncedInstances?: number[];
-                    /** @default standard */
-                    seriesType?: components["schemas"]["SonarrSeriesType"];
-                    /** @default false */
-                    skipDefaultRoutingWhenNoMatch?: boolean;
-                };
+                "application/json": components["schemas"]["SonarrInstancePayload"];
             };
         };
         responses: {
@@ -10403,9 +10447,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        id: number;
-                    };
+                    "application/json": components["schemas"]["SonarrInstanceCreateResponse"];
                 };
             };
             /** @description Default Response */
@@ -10455,27 +10497,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Partial Sonarr instance update, omitted fields keep their stored value */
         requestBody: {
             content: {
-                "application/json": {
-                    name?: string;
-                    /** Format: uri */
-                    baseUrl?: string;
-                    apiKey?: string;
-                    qualityProfile?: string | number | null;
-                    rootFolder?: string | null;
-                    bypassIgnored?: boolean;
-                    seasonMonitoring?: components["schemas"]["SonarrSeasonMonitoringValue"];
-                    /** @enum {string} */
-                    monitorNewItems?: "all" | "none";
-                    searchOnAdd?: boolean;
-                    createSeasonFolders?: boolean;
-                    tags?: string[];
-                    isDefault?: boolean;
-                    syncedInstances?: number[];
-                    seriesType?: components["schemas"]["SonarrSeriesType"];
-                    skipDefaultRoutingWhenNoMatch?: boolean;
-                };
+                "application/json": components["schemas"]["SonarrInstanceUpdatePayload"];
             };
         };
         responses: {
@@ -14275,8 +14300,7 @@ export interface operations {
                         userId: number;
                         username: string | null;
                     };
-                    /** @enum {string} */
-                    triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
+                    triggeredBy: components["schemas"]["ApprovalTrigger"];
                     approvalReason: string | null;
                     pendingCount: number;
                     proposedRouting?: {
@@ -14380,8 +14404,7 @@ export interface operations {
                         userId: number | null;
                     };
                     approvalNotes?: string;
-                    /** @enum {string} */
-                    triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
+                    triggeredBy: components["schemas"]["ApprovalTrigger"];
                     createdAt: string;
                     resolvedAt: string;
                     routing?: {

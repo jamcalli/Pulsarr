@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
-export interface SegmentedOption<T extends string> {
+type SegmentValue = string | boolean | null
+
+export interface SegmentedOption<T extends SegmentValue> {
   value: T
   label: ReactNode
   /** Required when the label is an icon. */
   ariaLabel?: string
 }
 
-interface SegmentedControlProps<T extends string> {
+interface SegmentedControlProps<T extends SegmentValue> {
   value: T
   options: ReadonlyArray<SegmentedOption<T>>
   onValueChange: (next: T) => void
@@ -17,7 +19,7 @@ interface SegmentedControlProps<T extends string> {
   'aria-labelledby'?: string
 }
 
-export function SegmentedControl<T extends string>({
+export function SegmentedControl<T extends SegmentValue>({
   value,
   options,
   onValueChange,
@@ -30,17 +32,19 @@ export function SegmentedControl<T extends string>({
       variant="outline"
       size="sm"
       spacing={0}
-      value={[value]}
+      value={[String(value)]}
       disabled={disabled}
       onValueChange={(groupValue) => {
-        const next = options.find((option) => option.value === groupValue[0])
+        const next = options.find(
+          (option) => String(option.value) === groupValue[0],
+        )
         if (next && next.value !== value) onValueChange(next.value)
       }}
     >
       {options.map((option) => (
         <ToggleGroupItem
-          key={option.value}
-          value={option.value}
+          key={String(option.value)}
+          value={String(option.value)}
           aria-label={option.ariaLabel}
         >
           {option.label}

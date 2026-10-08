@@ -16,10 +16,16 @@ function TagsForm({
   initial = [],
   onSubmit,
   onCreate,
+  createSchema,
 }: {
   initial?: string[]
   onSubmit?: (tags: string[]) => void
-  onCreate?: (label: string) => Promise<{ value: string; label: string }>
+  onCreate?: (
+    label: string,
+  ) =>
+    | Promise<{ value: string; label: string }>
+    | { value: string; label: string }
+  createSchema?: z.ZodType<string, string>
 }) {
   const form = useAppForm({
     defaultValues: { tags: initial },
@@ -42,6 +48,7 @@ function TagsForm({
             options={options}
             emptyText="None"
             onCreate={onCreate}
+            createSchema={createSchema}
           />
         )}
       </form.AppField>
@@ -200,5 +207,32 @@ describe('TagsField', () => {
       await screen.findByRole('button', { name: 'Remove remux' }),
     ).toBeInTheDocument()
     expect(screen.queryByText('Creating tag...')).not.toBeInTheDocument()
+  })
+
+  it('adds a synchronous value at once under its own input schema', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn()
+    render(
+      <TagsForm
+        onSubmit={onSubmit}
+        createSchema={z.string().trim().min(1)}
+        onCreate={(label) => ({ value: label, label })}
+      />,
+    )
+
+    await user.type(screen.getByLabelText('Tags'), 'Science Fiction')
+    await user.click(
+      await screen.findByRole('option', {
+        name: 'Create tag "Science Fiction"',
+      }),
+    )
+
+    expect(
+      await screen.findByRole('button', { name: 'Remove Science Fiction' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Creating tag...')).not.toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(onSubmit).toHaveBeenCalledWith(['Science Fiction'])
   })
 })

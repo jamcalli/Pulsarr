@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { UserNamingSourceSchema } from '@root/schemas/common/user-naming-source.schema.js'
 import {
   RemovedTagPrefixSchema,
   TagPrefixSchema,
@@ -11,7 +12,7 @@ export const PlexLabelSyncConfigSchema = z
     enabled: z.boolean(),
     // Prefix for label naming (e.g., "pulsarr" results in "pulsarr:username")
     labelPrefix: TagPrefixSchema,
-    labelNamingSource: z.enum(['username', 'alias']).default('username'),
+    labelNamingSource: UserNamingSourceSchema.default('username'),
     // Maximum number of concurrent operations during processing
     concurrencyLimit: z
       .number()
@@ -21,21 +22,21 @@ export const PlexLabelSyncConfigSchema = z
     // Whether to clean up orphaned labels during cleanup operations
     cleanupOrphanedLabels: z.boolean(),
     // How to handle label cleanup when users are removed from content
-    removedLabelMode: z
-      .enum(['remove', 'keep', 'special-label'])
-      .describe(
+    removedLabelMode: z.enum(['remove', 'keep', 'special-label']).meta({
+      description:
         'How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label',
-      ),
+    }),
     // Prefix for special "removed" labels (only used in special-label mode)
     removedLabelPrefix: RemovedTagPrefixSchema.default('pulsarr:removed')
       .optional()
-      .describe('Prefix for special labels indicating removed users'),
+      .meta({
+        description: 'Prefix for special labels indicating removed users',
+      }),
     // Whether to automatically reset labels before syncs
-    autoResetOnScheduledSync: z
-      .boolean()
-      .describe(
+    autoResetOnScheduledSync: z.boolean().meta({
+      description:
         'Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode',
-      ),
+    }),
     // Tag syncing configuration
     tagSync: z.object({
       // Enable/disable tag syncing from Radarr/Sonarr instances
@@ -53,6 +54,10 @@ export const PlexLabelSyncConfigSchema = z
         'removedLabelPrefix required when removedLabelMode is "special-label"',
     },
   )
+  .meta({
+    id: 'PlexLabelSyncConfig',
+    description: 'How Plex labels are synced from user watchlists',
+  })
 
 export const PlexLabelSyncConfigResponseSchema = z.object({
   success: z.boolean(),

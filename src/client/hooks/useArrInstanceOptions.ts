@@ -1,7 +1,6 @@
 import { useArrInstances } from '@/hooks/useArrInstances'
 import { useMinLoading } from '@/hooks/useMinLoading'
-import type { ArrTarget } from '@/lib/approval'
-import { ARR_API_KEY_PLACEHOLDER } from '@/lib/constants'
+import { type ArrTarget, isConfiguredTarget } from '@/lib/approval'
 import { $api, apiErrorMessage } from '@/lib/tanstackApi'
 
 export function useArrInstanceOptions(
@@ -11,8 +10,7 @@ export function useArrInstanceOptions(
 ) {
   const instances = useArrInstances(type)
   const target = instanceId === null ? null : instances.findTarget(instanceId)
-  const connected =
-    target !== null && target.instance.apiKey !== ARR_API_KEY_PLACEHOLDER
+  const connected = target !== null && isConfiguredTarget(target)
   const notConnected = instances.hasData && instanceId !== null && !connected
 
   const params = { params: { query: { instanceId: instanceId ?? -1 } } }

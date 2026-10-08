@@ -97,7 +97,7 @@ function MediaBody({ item, open, approval, panel }: MediaBodyProps) {
     type: item.type,
   })
   const backdrop = metadata ? backdropUrl(metadata.details.backdrop_path) : null
-  const lookup = useUserDirectory()
+  const { lookup } = useUserDirectory()
   const context = mediaContext({
     displayName: (username) => lookup(username).name,
     request: item.request,

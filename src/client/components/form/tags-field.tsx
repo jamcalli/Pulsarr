@@ -1,7 +1,9 @@
 import { cn } from 'cn'
 import { Loader2, Plus } from 'lucide-react'
 import type { ComponentProps } from 'react'
+import type { z } from 'zod'
 import { FieldRow } from '@/components/form/field-row'
+import { OptionLabel } from '@/components/form/option-label'
 import {
   Combobox,
   ComboboxChip,
@@ -27,11 +29,13 @@ interface TagsFieldProps {
   description?: string
   disabled?: boolean
   orientation?: ComponentProps<typeof FieldRow>['orientation']
+  labelHidden?: boolean
   placeholder?: string
   emptyText?: string
   options: ReadonlyArray<CreatableOption>
   /** Enables the create row for unmatched input, and must reject with an Error carrying a display message. */
-  onCreate?: (label: string) => Promise<CreatableOption>
+  onCreate?: (label: string) => Promise<CreatableOption> | CreatableOption
+  createSchema?: z.ZodType<string, string>
   createLabel?: (input: string) => string
 }
 
@@ -44,10 +48,12 @@ export function TagsField({
   description,
   disabled,
   orientation = 'responsive',
+  labelHidden = false,
   placeholder,
   emptyText,
   options,
   onCreate,
+  createSchema,
   createLabel = defaultCreateLabel,
 }: TagsFieldProps) {
   const field = useFieldContext<string[]>()
@@ -55,6 +61,7 @@ export function TagsField({
   const creatable = useCreatableOptions({
     options,
     onCreate,
+    createSchema,
     createLabel,
     onCreated: (option) => {
       if (!field.state.value.includes(option.value)) {
@@ -63,6 +70,8 @@ export function TagsField({
     },
   })
   const { labelFor } = creatable
+  const descriptionFor = (value: string) =>
+    options.find((option) => option.value === value)?.description
   const errors = creatable.error
     ? [...field.state.meta.errors, { message: creatable.error }]
     : field.state.meta.errors
@@ -75,13 +84,16 @@ export function TagsField({
       description={description}
       disabled={disabled}
       orientation={orientation}
+      labelHidden={labelHidden}
       htmlFor={field.name}
       invalid={isInvalid}
     >
       <div
         className={cn(
           'flex flex-col gap-2',
-          orientation === 'responsive' && '@md/field-group:basis-72',
+          !labelHidden &&
+            orientation === 'responsive' &&
+            '@md/field-group:basis-72',
         )}
       >
         <Combobox
@@ -125,13 +137,18 @@ export function TagsField({
               )}
             </ComboboxValue>
           </ComboboxChips>
-          <ComboboxContent anchor={anchor}>
+          <ComboboxContent
+            anchor={anchor}
+            className={emptyText ? undefined : 'data-empty:hidden'}
+          >
             {emptyText && <ComboboxEmpty>{emptyText}</ComboboxEmpty>}
             <ComboboxList>
               {(value: string) => (
                 <ComboboxItem key={value} value={value}>
-                  {value === CREATE_VALUE && <Plus aria-hidden />}
-                  {labelFor(value)}
+                  <OptionLabel description={descriptionFor(value)}>
+                    {value === CREATE_VALUE && <Plus aria-hidden />}
+                    {labelFor(value)}
+                  </OptionLabel>
                 </ComboboxItem>
               )}
             </ComboboxList>

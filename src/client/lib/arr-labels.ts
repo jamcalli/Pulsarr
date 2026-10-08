@@ -21,7 +21,7 @@ export function arrTypeOf(
 }
 
 export const SERIES_TYPE_LABELS: Record<
-  NonNullable<ApprovalRouting['seriesType']>,
+  components['schemas']['SonarrSeriesType'],
   string
 > = {
   standard: 'Standard',

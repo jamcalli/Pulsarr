@@ -36,4 +36,21 @@ describe('FieldRow', () => {
 
     expect(screen.getByRole('group')).toHaveAttribute('data-disabled', 'true')
   })
+
+  it('keeps a hidden label as the accessible name and drops the description', () => {
+    render(
+      <FieldRow
+        label="Operator"
+        description="Not shown"
+        htmlFor="operator"
+        labelHidden
+      >
+        <input id="operator" />
+      </FieldRow>,
+    )
+
+    expect(screen.getByLabelText('Operator')).toHaveAttribute('id', 'operator')
+    expect(screen.getByText('Operator')).toHaveClass('sr-only')
+    expect(screen.queryByText('Not shown')).not.toBeInTheDocument()
+  })
 })

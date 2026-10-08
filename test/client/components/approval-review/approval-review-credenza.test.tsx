@@ -6,11 +6,16 @@ import { ApprovalReviewCredenza } from '@/components/approval-review/approval-re
 import { setFormatLocale } from '@/lib/format'
 import { queryClient } from '@/lib/queryClient'
 import type { components } from '@/types/api.js'
-import { makeApproval, mockApprovalEndpoints } from '../../approval-fixtures.js'
+import {
+  makeApproval,
+  mockApprovalEndpoints,
+  sonarrRouting,
+} from '../../approval-fixtures.js'
 import { server } from '../../setup.js'
 import { stubViewport } from '../../viewport.js'
 
 type ApprovalRequest = components['schemas']['ApprovalRequest']
+type RouterRule = components['schemas']['RouterRule']
 
 function renderReview(approval: ApprovalRequest) {
   mockApprovalEndpoints(approval)
@@ -23,6 +28,39 @@ function renderReview(approval: ApprovalRequest) {
       />
     </QueryClientProvider>,
   )
+}
+
+const anime4k: RouterRule = {
+  id: 12,
+  name: 'Anime 4K',
+  target_type: 'sonarr',
+  target_instance_id: 2,
+  order: 60,
+  created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: '2026-01-01T00:00:00.000Z',
+}
+
+function withAdditional(approval: ApprovalRequest): ApprovalRequest {
+  const decision = approval.proposedRouterDecision
+  return {
+    ...approval,
+    proposedRouterDecision: {
+      ...decision,
+      approval: decision.approval && {
+        ...decision.approval,
+        additionalRouting: [
+          {
+            ...sonarrRouting,
+            instanceId: 2,
+            qualityProfile: 8,
+            rootFolder: '/tv-2',
+            syncedInstances: undefined,
+            ruleId: 12,
+          },
+        ],
+      },
+    },
+  }
 }
 
 async function findDialog() {
@@ -181,6 +219,84 @@ describe('ApprovalReviewCredenza', () => {
       ).not.toBeInTheDocument()
     },
   )
+
+  it('lists each additional destination and removes one', async () => {
+    const user = userEvent.setup()
+    const approval = withAdditional(makeApproval())
+    const bodies: unknown[] = []
+    mockApprovalEndpoints(approval)
+    server.use(
+      http.get('/v1/content-router/rules', () =>
+        HttpResponse.json({ success: true, message: 'ok', rules: [anime4k] }),
+      ),
+      http.patch('/v1/approval/requests/:id', async ({ request }) => {
+        bodies.push(await request.json())
+        return HttpResponse.json({
+          success: true,
+          message: 'ok',
+          approvalRequest: makeApproval(),
+        })
+      }),
+    )
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ApprovalReviewCredenza
+          approvalId={approval.id}
+          open
+          onOpenChange={() => undefined}
+        />
+      </QueryClientProvider>,
+    )
+    const dialog = await findDialog()
+
+    expect(
+      await within(dialog).findByText('Other destinations'),
+    ).toBeInTheDocument()
+    const line = await within(dialog).findByRole('listitem')
+    await vi.waitFor(() =>
+      expect(line).toHaveTextContent('Sonarr 4K, Ultra-HD, /tv-2'),
+    )
+    expect(line).toHaveTextContent('Rule: Anime 4K')
+
+    await user.click(
+      within(line).getByRole('button', { name: 'Remove Sonarr 4K' }),
+    )
+
+    await vi.waitFor(() => expect(bodies).toHaveLength(1))
+    expect(bodies[0]).toMatchObject({
+      proposedRouterDecision: {
+        action: 'require_approval',
+        approval: { proposedRouting: sonarrRouting, additionalRouting: [] },
+      },
+    })
+    await vi.waitFor(() =>
+      expect(within(dialog).queryByRole('listitem')).not.toBeInTheDocument(),
+    )
+  })
+
+  it('lists where an approved request also went without remove controls', async () => {
+    const approval = withAdditional(makeApproval({ status: 'approved' }))
+    mockApprovalEndpoints(approval)
+    server.use(
+      http.get('/v1/content-router/rules', () =>
+        HttpResponse.json({ success: true, message: 'ok', rules: [anime4k] }),
+      ),
+    )
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ApprovalReviewCredenza
+          approvalId={approval.id}
+          open
+          onOpenChange={() => undefined}
+        />
+      </QueryClientProvider>,
+    )
+    const dialog = await findDialog()
+
+    const line = await within(dialog).findByRole('listitem')
+    await vi.waitFor(() => expect(line).toHaveTextContent('Rule: Anime 4K'))
+    expect(within(line).queryByRole('button')).not.toBeInTheDocument()
+  })
 
   it('shows the type placeholder when there is no poster', async () => {
     renderReview(makeApproval({ thumb: null }))

@@ -12,17 +12,31 @@ import {
 import { useFieldContext } from '@/lib/form-context'
 import { formatLocale, formatNumber, pluralize } from '@/lib/format'
 
-interface NumberFieldProps {
+type UnitProps =
+  | {
+      /** Singular noun for the value, pluralized from it unless `unitPlural` is given. */
+      unit: string
+      unitPlural?: string
+      unitSymbol?: never
+    }
+  | {
+      /** Rendered as-is after the value and never pluralized, for symbols such as `%` or `/10`. */
+      unitSymbol: string
+      unit?: never
+      unitPlural?: never
+    }
+  | { unit?: never; unitPlural?: never; unitSymbol?: never }
+
+type NumberFieldProps = UnitProps & {
   label: string
   description?: string
   disabled?: boolean
   orientation?: ComponentProps<typeof FieldRow>['orientation']
-  /** Singular noun for the value, pluralized from it unless `unitPlural` is given. */
-  unit: string
-  unitPlural?: string
+  labelHidden?: boolean
   min: number
   max: number
   step?: number
+  grouping?: boolean
 }
 
 export function NumberField({
@@ -30,15 +44,25 @@ export function NumberField({
   description,
   disabled,
   orientation = 'responsive',
+  labelHidden = false,
   unit,
   unitPlural,
+  unitSymbol,
   min,
   max,
   step = 1,
+  grouping = true,
 }: NumberFieldProps) {
   const field = useFieldContext<number | undefined>()
   const isInvalid = field.state.meta.errors.length > 0
   const errorId = `${field.name}-error`
+  const addon =
+    unit === undefined
+      ? unitSymbol
+      : pluralize(field.state.value ?? 0, unit, unitPlural)
+  const range = `${formatNumber(min)} to ${formatNumber(max)}`
+  const hint =
+    unit === undefined ? range : `${range} ${pluralize(max, unit, unitPlural)}`
 
   return (
     <FieldRow
@@ -46,13 +70,16 @@ export function NumberField({
       description={description}
       disabled={disabled}
       orientation={orientation}
+      labelHidden={labelHidden}
       htmlFor={field.name}
       invalid={isInvalid}
     >
       <div
         className={cn(
           'flex flex-col gap-2',
-          orientation === 'responsive' && '@md/field-group:basis-72',
+          !labelHidden &&
+            orientation === 'responsive' &&
+            '@md/field-group:basis-72',
         )}
       >
         <NumberFieldPrimitive.Root
@@ -61,6 +88,7 @@ export function NumberField({
           value={field.state.value ?? null}
           onValueChange={(next) => field.handleChange(next ?? undefined)}
           locale={formatLocale()}
+          format={grouping ? undefined : { useGrouping: false }}
           min={min}
           max={max}
           step={step}
@@ -74,19 +102,19 @@ export function NumberField({
               aria-invalid={isInvalid}
               aria-describedby={isInvalid ? errorId : undefined}
             />
-            <InputGroupAddon align="inline-end">
-              <InputGroupText>
-                {pluralize(field.state.value ?? 0, unit, unitPlural)}
-              </InputGroupText>
-            </InputGroupAddon>
+            {addon !== undefined && (
+              <InputGroupAddon align="inline-end">
+                <InputGroupText>{addon}</InputGroupText>
+              </InputGroupAddon>
+            )}
           </NumberFieldPrimitive.Group>
         </NumberFieldPrimitive.Root>
         {isInvalid ? (
           <FieldError id={errorId} errors={field.state.meta.errors} />
         ) : (
-          <p className="text-sm text-muted-foreground">
-            {`${formatNumber(min)} to ${formatNumber(max)} ${pluralize(max, unit, unitPlural)}`}
-          </p>
+          !labelHidden && (
+            <p className="text-sm text-muted-foreground">{hint}</p>
+          )
         )}
       </div>
     </FieldRow>

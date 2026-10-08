@@ -1,3 +1,4 @@
+import { cn } from 'cn'
 import type { ComponentProps, ReactNode } from 'react'
 import { FieldRow } from '@/components/form/field-row'
 import { FieldError } from '@/components/ui/field'
@@ -8,6 +9,7 @@ type TextFieldProps = {
   label: string
   description?: string
   disabled?: boolean
+  labelHidden?: boolean
   preview?: (value: string) => ReactNode
 } & Pick<
   ComponentProps<typeof Input>,
@@ -18,6 +20,7 @@ export function TextField({
   label,
   description,
   disabled,
+  labelHidden = false,
   preview,
   ...inputProps
 }: TextFieldProps) {
@@ -30,10 +33,16 @@ export function TextField({
       label={label}
       description={description}
       disabled={disabled}
+      labelHidden={labelHidden}
       htmlFor={field.name}
       invalid={isInvalid}
     >
-      <div className="flex flex-col gap-2 @md/field-group:basis-72">
+      <div
+        className={cn(
+          'flex flex-col gap-2',
+          !labelHidden && '@md/field-group:basis-72',
+        )}
+      >
         <Input
           {...inputProps}
           id={field.name}

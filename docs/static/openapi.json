@@ -966,6 +966,19 @@
         ],
         "description": "Comparison operator applied to a condition value"
       },
+      "ConditionRange": {
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Inclusive numeric range, either bound may be left open"
+      },
       "ConditionValue": {
         "anyOf": [
           {
@@ -999,51 +1012,10 @@
             }
           },
           {
-            "type": "object",
-            "properties": {
-              "rating": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "min": {
-                        "type": "number"
-                      },
-                      "max": {
-                        "type": "number"
-                      }
-                    },
-                    "additionalProperties": false
-                  }
-                ]
-              },
-              "votes": {
-                "type": "number"
-              }
-            },
-            "additionalProperties": false
+            "$ref": "#/components/schemas/ImdbConditionValue"
           },
           {
-            "type": "object",
-            "properties": {
-              "min": {
-                "type": "number"
-              },
-              "max": {
-                "type": "number"
-              }
-            },
-            "additionalProperties": false
+            "$ref": "#/components/schemas/ConditionRange"
           },
           {
             "type": "null"
@@ -1117,11 +1089,7 @@
             "type": "string"
           },
           "maintainerrExclusionMode": {
-            "type": "string",
-            "enum": [
-              "watchlisters",
-              "global"
-            ]
+            "$ref": "#/components/schemas/MaintainerrExclusionMode"
           },
           "discordWebhookUrl": {
             "type": "string"
@@ -1342,84 +1310,7 @@
             "type": "string"
           },
           "plexLabelSync": {
-            "type": "object",
-            "properties": {
-              "enabled": {
-                "type": "boolean"
-              },
-              "labelPrefix": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "^[a-zA-Z0-9_\\-:.]+$"
-              },
-              "labelNamingSource": {
-                "default": "username",
-                "type": "string",
-                "enum": [
-                  "username",
-                  "alias"
-                ]
-              },
-              "concurrencyLimit": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 20
-              },
-              "cleanupOrphanedLabels": {
-                "type": "boolean"
-              },
-              "removedLabelMode": {
-                "type": "string",
-                "enum": [
-                  "remove",
-                  "keep",
-                  "special-label"
-                ],
-                "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
-              },
-              "removedLabelPrefix": {
-                "description": "Prefix for special labels indicating removed users",
-                "default": "pulsarr:removed",
-                "type": "string",
-                "minLength": 1,
-                "pattern": "^[a-zA-Z0-9_\\-:.]+$"
-              },
-              "autoResetOnScheduledSync": {
-                "type": "boolean",
-                "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
-              },
-              "tagSync": {
-                "type": "object",
-                "properties": {
-                  "enabled": {
-                    "type": "boolean"
-                  },
-                  "syncRadarrTags": {
-                    "type": "boolean"
-                  },
-                  "syncSonarrTags": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "enabled",
-                  "syncRadarrTags",
-                  "syncSonarrTags"
-                ],
-                "additionalProperties": false
-              }
-            },
-            "required": [
-              "enabled",
-              "labelPrefix",
-              "labelNamingSource",
-              "concurrencyLimit",
-              "cleanupOrphanedLabels",
-              "removedLabelMode",
-              "autoResetOnScheduledSync",
-              "tagSync"
-            ],
-            "additionalProperties": false
+            "$ref": "#/components/schemas/PlexLabelSyncConfigOutput"
           },
           "selfRss": {
             "type": "string"
@@ -1440,19 +1331,10 @@
             "type": "string"
           },
           "tagNamingSource": {
-            "type": "string",
-            "enum": [
-              "username",
-              "alias"
-            ]
+            "$ref": "#/components/schemas/UserNamingSource"
           },
           "removedTagMode": {
-            "type": "string",
-            "enum": [
-              "remove",
-              "keep",
-              "special-tag"
-            ]
+            "$ref": "#/components/schemas/RemovedTagMode"
           },
           "removedTagPrefix": {
             "type": "string"
@@ -1508,12 +1390,7 @@
             "type": "boolean"
           },
           "newUserDefaultMovieQuotaType": {
-            "type": "string",
-            "enum": [
-              "daily",
-              "weekly_rolling",
-              "monthly"
-            ]
+            "$ref": "#/components/schemas/QuotaType"
           },
           "newUserDefaultMovieQuotaLimit": {
             "type": "number"
@@ -1531,12 +1408,7 @@
             "type": "boolean"
           },
           "newUserDefaultShowQuotaType": {
-            "type": "string",
-            "enum": [
-              "daily",
-              "weekly_rolling",
-              "monthly"
-            ]
+            "$ref": "#/components/schemas/QuotaType"
           },
           "newUserDefaultShowQuotaLimit": {
             "type": "number"
@@ -1588,12 +1460,7 @@
                     "type": "number"
                   },
                   "handleMonthEnd": {
-                    "type": "string",
-                    "enum": [
-                      "last-day",
-                      "skip-month",
-                      "next-month"
-                    ]
+                    "$ref": "#/components/schemas/QuotaMonthEnd"
                   }
                 },
                 "required": [
@@ -1763,11 +1630,7 @@
             ]
           },
           "maintainerrExclusionMode": {
-            "type": "string",
-            "enum": [
-              "watchlisters",
-              "global"
-            ]
+            "$ref": "#/components/schemas/MaintainerrExclusionMode"
           },
           "discordWebhookUrl": {
             "type": "string"
@@ -1967,12 +1830,7 @@
             "type": "boolean"
           },
           "removedTagMode": {
-            "type": "string",
-            "enum": [
-              "remove",
-              "keep",
-              "special-tag"
-            ]
+            "$ref": "#/components/schemas/RemovedTagMode"
           },
           "enablePlexPlaylistProtection": {
             "type": "boolean"
@@ -1995,81 +1853,7 @@
             "type": "boolean"
           },
           "plexLabelSync": {
-            "type": "object",
-            "properties": {
-              "enabled": {
-                "type": "boolean"
-              },
-              "labelPrefix": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "^[a-zA-Z0-9_\\-:.]+$"
-              },
-              "labelNamingSource": {
-                "default": "username",
-                "type": "string",
-                "enum": [
-                  "username",
-                  "alias"
-                ]
-              },
-              "concurrencyLimit": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 20
-              },
-              "cleanupOrphanedLabels": {
-                "type": "boolean"
-              },
-              "removedLabelMode": {
-                "type": "string",
-                "enum": [
-                  "remove",
-                  "keep",
-                  "special-label"
-                ],
-                "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
-              },
-              "removedLabelPrefix": {
-                "description": "Prefix for special labels indicating removed users",
-                "default": "pulsarr:removed",
-                "type": "string",
-                "minLength": 1,
-                "pattern": "^[a-zA-Z0-9_\\-:.]+$"
-              },
-              "autoResetOnScheduledSync": {
-                "type": "boolean",
-                "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
-              },
-              "tagSync": {
-                "type": "object",
-                "properties": {
-                  "enabled": {
-                    "type": "boolean"
-                  },
-                  "syncRadarrTags": {
-                    "type": "boolean"
-                  },
-                  "syncSonarrTags": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "enabled",
-                  "syncRadarrTags",
-                  "syncSonarrTags"
-                ]
-              }
-            },
-            "required": [
-              "enabled",
-              "labelPrefix",
-              "concurrencyLimit",
-              "cleanupOrphanedLabels",
-              "removedLabelMode",
-              "autoResetOnScheduledSync",
-              "tagSync"
-            ]
+            "$ref": "#/components/schemas/PlexLabelSyncConfig"
           },
           "selfRss": {
             "type": "string"
@@ -2133,12 +1917,7 @@
             "type": "boolean"
           },
           "newUserDefaultMovieQuotaType": {
-            "type": "string",
-            "enum": [
-              "daily",
-              "weekly_rolling",
-              "monthly"
-            ]
+            "$ref": "#/components/schemas/QuotaType"
           },
           "newUserDefaultMovieQuotaLimit": {
             "type": "number",
@@ -2163,12 +1942,7 @@
             "type": "boolean"
           },
           "newUserDefaultShowQuotaType": {
-            "type": "string",
-            "enum": [
-              "daily",
-              "weekly_rolling",
-              "monthly"
-            ]
+            "$ref": "#/components/schemas/QuotaType"
           },
           "newUserDefaultShowQuotaLimit": {
             "type": "number",
@@ -2224,12 +1998,7 @@
                     "maximum": 31
                   },
                   "handleMonthEnd": {
-                    "type": "string",
-                    "enum": [
-                      "last-day",
-                      "skip-month",
-                      "next-month"
-                    ]
+                    "$ref": "#/components/schemas/QuotaMonthEnd"
                   }
                 }
               }
@@ -2257,11 +2026,7 @@
             "pattern": "^[a-zA-Z0-9_\\-:.]+$"
           },
           "tagNamingSource": {
-            "type": "string",
-            "enum": [
-              "username",
-              "alias"
-            ]
+            "$ref": "#/components/schemas/UserNamingSource"
           },
           "tagMigration": {
             "$ref": "#/components/schemas/TagMigration"
@@ -2627,6 +2392,33 @@
         "additionalProperties": false,
         "description": "Days from grabbed to notified for a content type"
       },
+      "ImdbConditionValue": {
+        "type": "object",
+        "properties": {
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              },
+              {
+                "$ref": "#/components/schemas/ConditionRange"
+              }
+            ]
+          },
+          "votes": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false,
+        "description": "IMDb rating comparison with an optional minimum vote count"
+      },
       "InstanceBreakdown": {
         "type": "object",
         "properties": {
@@ -2756,6 +2548,14 @@
           "sonarr"
         ],
         "description": "Arr instance kind, radarr or sonarr"
+      },
+      "MaintainerrExclusionMode": {
+        "type": "string",
+        "enum": [
+          "watchlisters",
+          "global"
+        ],
+        "description": "Whether a Maintainerr exclusion applies to the watchlisting users or everyone"
       },
       "MaintainerrStatus": {
         "type": "object",
@@ -2935,6 +2735,157 @@
         "additionalProperties": false,
         "description": "Orphaned tag reference cleanup result for one instance"
       },
+      "PlexLabelSyncConfig": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "labelPrefix": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+          },
+          "labelNamingSource": {
+            "default": "username",
+            "$ref": "#/components/schemas/UserNamingSource"
+          },
+          "concurrencyLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "cleanupOrphanedLabels": {
+            "type": "boolean"
+          },
+          "removedLabelMode": {
+            "type": "string",
+            "enum": [
+              "remove",
+              "keep",
+              "special-label"
+            ],
+            "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
+          },
+          "removedLabelPrefix": {
+            "description": "Prefix for special labels indicating removed users",
+            "default": "pulsarr:removed",
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+          },
+          "autoResetOnScheduledSync": {
+            "type": "boolean",
+            "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
+          },
+          "tagSync": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "syncRadarrTags": {
+                "type": "boolean"
+              },
+              "syncSonarrTags": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "enabled",
+              "syncRadarrTags",
+              "syncSonarrTags"
+            ]
+          }
+        },
+        "required": [
+          "enabled",
+          "labelPrefix",
+          "concurrencyLimit",
+          "cleanupOrphanedLabels",
+          "removedLabelMode",
+          "autoResetOnScheduledSync",
+          "tagSync"
+        ],
+        "description": "How Plex labels are synced from user watchlists"
+      },
+      "PlexLabelSyncConfigOutput": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "labelPrefix": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+          },
+          "labelNamingSource": {
+            "default": "username",
+            "$ref": "#/components/schemas/UserNamingSource"
+          },
+          "concurrencyLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "cleanupOrphanedLabels": {
+            "type": "boolean"
+          },
+          "removedLabelMode": {
+            "type": "string",
+            "enum": [
+              "remove",
+              "keep",
+              "special-label"
+            ],
+            "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
+          },
+          "removedLabelPrefix": {
+            "description": "Prefix for special labels indicating removed users",
+            "default": "pulsarr:removed",
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+          },
+          "autoResetOnScheduledSync": {
+            "type": "boolean",
+            "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
+          },
+          "tagSync": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "syncRadarrTags": {
+                "type": "boolean"
+              },
+              "syncSonarrTags": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "enabled",
+              "syncRadarrTags",
+              "syncSonarrTags"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "enabled",
+          "labelPrefix",
+          "labelNamingSource",
+          "concurrencyLimit",
+          "cleanupOrphanedLabels",
+          "removedLabelMode",
+          "autoResetOnScheduledSync",
+          "tagSync"
+        ],
+        "additionalProperties": false,
+        "description": "How Plex labels are synced from user watchlists"
+      },
       "PlexRatings": {
         "type": "object",
         "properties": {
@@ -2969,6 +2920,15 @@
         },
         "additionalProperties": false,
         "description": "Ratings captured from stored Plex watchlist metadata."
+      },
+      "QuotaMonthEnd": {
+        "type": "string",
+        "enum": [
+          "last-day",
+          "skip-month",
+          "next-month"
+        ],
+        "description": "How a monthly quota resets when its reset day is past the end of a short month"
       },
       "QuotaType": {
         "type": "string",
@@ -3342,6 +3302,15 @@
         "additionalProperties": false,
         "description": "User tag removal counts for one arr type"
       },
+      "RemovedTagMode": {
+        "type": "string",
+        "enum": [
+          "remove",
+          "keep",
+          "special-tag"
+        ],
+        "description": "What happens to a user tag once that user drops the content"
+      },
       "RollingMonitoredShow": {
         "type": "object",
         "properties": {
@@ -3462,11 +3431,7 @@
         "type": "object",
         "properties": {
           "operator": {
-            "type": "string",
-            "enum": [
-              "AND",
-              "OR"
-            ]
+            "$ref": "#/components/schemas/RouterGroupOperator"
           },
           "conditions": {
             "maxItems": 20,
@@ -3480,11 +3445,7 @@
                   "type": "object",
                   "properties": {
                     "operator": {
-                      "type": "string",
-                      "enum": [
-                        "AND",
-                        "OR"
-                      ]
+                      "$ref": "#/components/schemas/RouterGroupOperator"
                     },
                     "conditions": {
                       "maxItems": 20,
@@ -3621,6 +3582,14 @@
         "additionalProperties": false,
         "description": "Router outcome for a request, holding the routing used on approval"
       },
+      "RouterGroupOperator": {
+        "type": "string",
+        "enum": [
+          "AND",
+          "OR"
+        ],
+        "description": "How a condition group joins its children"
+      },
       "RouterRule": {
         "type": "object",
         "properties": {
@@ -3738,16 +3707,7 @@
                                 }
                               },
                               {
-                                "type": "object",
-                                "properties": {
-                                  "min": {
-                                    "type": "number"
-                                  },
-                                  "max": {
-                                    "type": "number"
-                                  }
-                                },
-                                "additionalProperties": false
+                                "$ref": "#/components/schemas/ConditionRange"
                               }
                             ]
                           },
@@ -3763,16 +3723,7 @@
                                 }
                               },
                               {
-                                "type": "object",
-                                "properties": {
-                                  "min": {
-                                    "type": "number"
-                                  },
-                                  "max": {
-                                    "type": "number"
-                                  }
-                                },
-                                "additionalProperties": false
+                                "$ref": "#/components/schemas/ConditionRange"
                               }
                             ]
                           }
@@ -3780,16 +3731,7 @@
                         "additionalProperties": false
                       },
                       {
-                        "type": "object",
-                        "properties": {
-                          "min": {
-                            "type": "number"
-                          },
-                          "max": {
-                            "type": "number"
-                          }
-                        },
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/ConditionRange"
                       },
                       {
                         "type": "null"
@@ -3816,11 +3758,7 @@
                 "type": "object",
                 "properties": {
                   "operator": {
-                    "type": "string",
-                    "enum": [
-                      "AND",
-                      "OR"
-                    ]
+                    "$ref": "#/components/schemas/RouterGroupOperator"
                   },
                   "conditions": {
                     "type": "array",
@@ -3920,16 +3858,7 @@
                                           }
                                         },
                                         {
-                                          "type": "object",
-                                          "properties": {
-                                            "min": {
-                                              "type": "number"
-                                            },
-                                            "max": {
-                                              "type": "number"
-                                            }
-                                          },
-                                          "additionalProperties": false
+                                          "$ref": "#/components/schemas/ConditionRange"
                                         }
                                       ]
                                     },
@@ -3945,16 +3874,7 @@
                                           }
                                         },
                                         {
-                                          "type": "object",
-                                          "properties": {
-                                            "min": {
-                                              "type": "number"
-                                            },
-                                            "max": {
-                                              "type": "number"
-                                            }
-                                          },
-                                          "additionalProperties": false
+                                          "$ref": "#/components/schemas/ConditionRange"
                                         }
                                       ]
                                     }
@@ -3962,16 +3882,7 @@
                                   "additionalProperties": false
                                 },
                                 {
-                                  "type": "object",
-                                  "properties": {
-                                    "min": {
-                                      "type": "number"
-                                    },
-                                    "max": {
-                                      "type": "number"
-                                    }
-                                  },
-                                  "additionalProperties": false
+                                  "$ref": "#/components/schemas/ConditionRange"
                                 },
                                 {
                                   "type": "null"
@@ -3998,11 +3909,7 @@
                           "type": "object",
                           "properties": {
                             "operator": {
-                              "type": "string",
-                              "enum": [
-                                "AND",
-                                "OR"
-                              ]
+                              "$ref": "#/components/schemas/RouterGroupOperator"
                             },
                             "conditions": {
                               "type": "array",
@@ -4236,6 +4143,139 @@
           },
           "order": {
             "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "search_on_add": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "season_monitoring": {
+            "description": "Sonarr rules only - season monitoring mode applied when adding series. Sending this for Radarr rules returns a 400 error.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "series_type": {
+            "description": "Sonarr rules only - series type applied when adding series. Sending this for Radarr rules returns a 400 error.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SonarrSeriesType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "monitor": {
+            "description": "Radarr rules only - monitor mode applied when adding movies. Sending this for Sonarr rules returns a 400 error.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RadarrMonitor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "always_require_approval": {
+            "type": "boolean"
+          },
+          "bypass_user_quotas": {
+            "type": "boolean"
+          },
+          "approval_reason": {
+            "type": "string"
+          },
+          "exclude_from_routing": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "target_type",
+          "target_instance_id"
+        ],
+        "description": "Full router rule payload used to create a rule"
+      },
+      "RouterRuleReplacePayload": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_type": {
+            "$ref": "#/components/schemas/InstanceType"
+          },
+          "target_instance_id": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RouterCondition"
+              },
+              {
+                "$ref": "#/components/schemas/RouterConditionGroup"
+              }
+            ]
+          },
+          "root_folder": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quality_profile": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\d+$"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "order": {
+            "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           },
@@ -4299,7 +4339,7 @@
           "target_type",
           "target_instance_id"
         ],
-        "description": "Full router rule payload used to create or replace a rule"
+        "description": "Full router rule payload used to replace a rule. An order outside 1 to 100 is accepted only when it is the value already stored on the rule."
       },
       "RouterRuleResponse": {
         "type": "object",
@@ -4321,6 +4361,308 @@
         ],
         "additionalProperties": false,
         "description": "Response carrying a single router rule"
+      },
+      "RouterRuleSuccess": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ],
+        "additionalProperties": false,
+        "description": "Result of a router rule write that returns no rule"
+      },
+      "RouterRuleTogglePayload": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "description": "Turns a router rule on or off"
+      },
+      "SonarrInstance": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "baseUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "apiKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qualityProfile": {
+            "type": [
+              "string",
+              "number",
+              "null"
+            ]
+          },
+          "rootFolder": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bypassIgnored": {
+            "default": false,
+            "type": "boolean"
+          },
+          "seasonMonitoring": {
+            "default": "all",
+            "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+          },
+          "monitorNewItems": {
+            "default": "all",
+            "$ref": "#/components/schemas/SonarrMonitorNewItems"
+          },
+          "searchOnAdd": {
+            "default": true,
+            "type": "boolean"
+          },
+          "createSeasonFolders": {
+            "default": false,
+            "type": "boolean"
+          },
+          "tags": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isDefault": {
+            "default": false,
+            "type": "boolean"
+          },
+          "syncedInstances": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "seriesType": {
+            "default": "standard",
+            "$ref": "#/components/schemas/SonarrSeriesType"
+          },
+          "skipDefaultRoutingWhenNoMatch": {
+            "default": false,
+            "type": "boolean"
+          },
+          "id": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "baseUrl",
+          "apiKey",
+          "bypassIgnored",
+          "seasonMonitoring",
+          "monitorNewItems",
+          "searchOnAdd",
+          "createSeasonFolders",
+          "tags",
+          "isDefault",
+          "seriesType",
+          "skipDefaultRoutingWhenNoMatch",
+          "id"
+        ],
+        "additionalProperties": false,
+        "description": "A configured Sonarr instance"
+      },
+      "SonarrInstanceCreateResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false,
+        "description": "Id of the newly created Sonarr instance"
+      },
+      "SonarrInstanceListResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SonarrInstance"
+        },
+        "description": "All configured Sonarr instances"
+      },
+      "SonarrInstancePayload": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "baseUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "apiKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qualityProfile": {
+            "type": [
+              "string",
+              "number",
+              "null"
+            ]
+          },
+          "rootFolder": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bypassIgnored": {
+            "default": false,
+            "type": "boolean"
+          },
+          "seasonMonitoring": {
+            "default": "all",
+            "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+          },
+          "monitorNewItems": {
+            "default": "all",
+            "$ref": "#/components/schemas/SonarrMonitorNewItems"
+          },
+          "searchOnAdd": {
+            "default": true,
+            "type": "boolean"
+          },
+          "createSeasonFolders": {
+            "default": false,
+            "type": "boolean"
+          },
+          "tags": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isDefault": {
+            "default": false,
+            "type": "boolean"
+          },
+          "syncedInstances": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "seriesType": {
+            "default": "standard",
+            "$ref": "#/components/schemas/SonarrSeriesType"
+          },
+          "skipDefaultRoutingWhenNoMatch": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "baseUrl",
+          "apiKey"
+        ],
+        "description": "A new Sonarr instance, omitted settings take their defaults"
+      },
+      "SonarrInstanceUpdatePayload": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "baseUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "apiKey": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qualityProfile": {
+            "type": [
+              "string",
+              "number",
+              "null"
+            ]
+          },
+          "rootFolder": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bypassIgnored": {
+            "type": "boolean"
+          },
+          "seasonMonitoring": {
+            "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
+          },
+          "monitorNewItems": {
+            "$ref": "#/components/schemas/SonarrMonitorNewItems"
+          },
+          "searchOnAdd": {
+            "type": "boolean"
+          },
+          "createSeasonFolders": {
+            "type": "boolean"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "syncedInstances": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "seriesType": {
+            "$ref": "#/components/schemas/SonarrSeriesType"
+          },
+          "skipDefaultRoutingWhenNoMatch": {
+            "type": "boolean"
+          }
+        },
+        "description": "Partial Sonarr instance update, omitted fields keep their stored value"
+      },
+      "SonarrMonitorNewItems": {
+        "type": "string",
+        "enum": [
+          "all",
+          "none"
+        ],
+        "description": "Whether Sonarr monitors seasons added to a series later"
       },
       "SonarrRollingMonitoring": {
         "type": "string",
@@ -5823,6 +6165,14 @@
           "newUsername"
         ],
         "description": "Change the current admin username"
+      },
+      "UserNamingSource": {
+        "type": "string",
+        "enum": [
+          "username",
+          "alias"
+        ],
+        "description": "Which user name a per-user tag or label is built from"
       },
       "UserStat": {
         "type": "object",
@@ -7609,7 +7959,7 @@
               }
             }
           },
-          "description": "Full router rule payload used to create or replace a rule"
+          "description": "Full router rule payload used to create a rule"
         },
         "responses": {
           "201": {
@@ -7911,11 +8261,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RouterRulePayload"
+                "$ref": "#/components/schemas/RouterRuleReplacePayload"
               }
             }
           },
-          "description": "Full router rule payload used to create or replace a rule"
+          "description": "Full router rule payload used to replace a rule. An order outside 1 to 100 is accepted only when it is the value already stored on the rule."
         },
         "parameters": [
           {
@@ -8003,20 +8353,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RouterRuleSuccess"
                 }
               }
             }
@@ -8067,18 +8404,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "enabled": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "enabled"
-                ]
+                "$ref": "#/components/schemas/RouterRuleTogglePayload"
               }
             }
-          }
+          },
+          "description": "Turns a router rule on or off"
         },
         "parameters": [
           {
@@ -8096,20 +8426,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RouterRuleSuccess"
                 }
               }
             }
@@ -16167,105 +16484,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "baseUrl": {
-                        "type": "string",
-                        "format": "uri"
-                      },
-                      "apiKey": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "qualityProfile": {
-                        "type": [
-                          "string",
-                          "number",
-                          "null"
-                        ]
-                      },
-                      "rootFolder": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "bypassIgnored": {
-                        "default": false,
-                        "type": "boolean"
-                      },
-                      "seasonMonitoring": {
-                        "default": "all",
-                        "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
-                      },
-                      "monitorNewItems": {
-                        "default": "all",
-                        "type": "string",
-                        "enum": [
-                          "all",
-                          "none"
-                        ]
-                      },
-                      "searchOnAdd": {
-                        "default": true,
-                        "type": "boolean"
-                      },
-                      "createSeasonFolders": {
-                        "default": false,
-                        "type": "boolean"
-                      },
-                      "tags": {
-                        "default": [],
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      },
-                      "isDefault": {
-                        "default": false,
-                        "type": "boolean"
-                      },
-                      "syncedInstances": {
-                        "type": "array",
-                        "items": {
-                          "type": "number"
-                        }
-                      },
-                      "seriesType": {
-                        "default": "standard",
-                        "$ref": "#/components/schemas/SonarrSeriesType"
-                      },
-                      "skipDefaultRoutingWhenNoMatch": {
-                        "default": false,
-                        "type": "boolean"
-                      },
-                      "id": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "name",
-                      "baseUrl",
-                      "apiKey",
-                      "bypassIgnored",
-                      "seasonMonitoring",
-                      "monitorNewItems",
-                      "searchOnAdd",
-                      "createSeasonFolders",
-                      "tags",
-                      "isDefault",
-                      "seriesType",
-                      "skipDefaultRoutingWhenNoMatch",
-                      "id"
-                    ],
-                    "additionalProperties": false
-                  }
+                  "$ref": "#/components/schemas/SonarrInstanceListResponse"
                 }
               }
             }
@@ -16294,91 +16513,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "baseUrl": {
-                    "type": "string",
-                    "format": "uri"
-                  },
-                  "apiKey": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "qualityProfile": {
-                    "type": [
-                      "string",
-                      "number",
-                      "null"
-                    ]
-                  },
-                  "rootFolder": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "bypassIgnored": {
-                    "default": false,
-                    "type": "boolean"
-                  },
-                  "seasonMonitoring": {
-                    "default": "all",
-                    "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
-                  },
-                  "monitorNewItems": {
-                    "default": "all",
-                    "type": "string",
-                    "enum": [
-                      "all",
-                      "none"
-                    ]
-                  },
-                  "searchOnAdd": {
-                    "default": true,
-                    "type": "boolean"
-                  },
-                  "createSeasonFolders": {
-                    "default": false,
-                    "type": "boolean"
-                  },
-                  "tags": {
-                    "default": [],
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "isDefault": {
-                    "default": false,
-                    "type": "boolean"
-                  },
-                  "syncedInstances": {
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  "seriesType": {
-                    "default": "standard",
-                    "$ref": "#/components/schemas/SonarrSeriesType"
-                  },
-                  "skipDefaultRoutingWhenNoMatch": {
-                    "default": false,
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "name",
-                  "baseUrl",
-                  "apiKey"
-                ]
+                "$ref": "#/components/schemas/SonarrInstancePayload"
               }
             }
-          }
+          },
+          "description": "A new Sonarr instance, omitted settings take their defaults"
         },
         "responses": {
           "201": {
@@ -16386,18 +16525,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "exclusiveMinimum": 0,
-                      "maximum": 9007199254740991
-                    }
-                  },
-                  "required": [
-                    "id"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/SonarrInstanceCreateResponse"
                 }
               }
             }
@@ -16458,77 +16586,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "baseUrl": {
-                    "type": "string",
-                    "format": "uri"
-                  },
-                  "apiKey": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "qualityProfile": {
-                    "type": [
-                      "string",
-                      "number",
-                      "null"
-                    ]
-                  },
-                  "rootFolder": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "bypassIgnored": {
-                    "type": "boolean"
-                  },
-                  "seasonMonitoring": {
-                    "$ref": "#/components/schemas/SonarrSeasonMonitoringValue"
-                  },
-                  "monitorNewItems": {
-                    "type": "string",
-                    "enum": [
-                      "all",
-                      "none"
-                    ]
-                  },
-                  "searchOnAdd": {
-                    "type": "boolean"
-                  },
-                  "createSeasonFolders": {
-                    "type": "boolean"
-                  },
-                  "tags": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "isDefault": {
-                    "type": "boolean"
-                  },
-                  "syncedInstances": {
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  "seriesType": {
-                    "$ref": "#/components/schemas/SonarrSeriesType"
-                  },
-                  "skipDefaultRoutingWhenNoMatch": {
-                    "type": "boolean"
-                  }
-                }
+                "$ref": "#/components/schemas/SonarrInstanceUpdatePayload"
               }
             }
-          }
+          },
+          "description": "Partial Sonarr instance update, omitted fields keep their stored value"
         },
         "parameters": [
           {
@@ -23089,13 +23151,7 @@
                     "additionalProperties": false
                   },
                   "triggeredBy": {
-                    "type": "string",
-                    "enum": [
-                      "quota_exceeded",
-                      "router_rule",
-                      "manual_flag",
-                      "content_criteria"
-                    ]
+                    "$ref": "#/components/schemas/ApprovalTrigger"
                   },
                   "approvalReason": {
                     "type": [
@@ -23395,13 +23451,7 @@
                     "type": "string"
                   },
                   "triggeredBy": {
-                    "type": "string",
-                    "enum": [
-                      "quota_exceeded",
-                      "router_rule",
-                      "manual_flag",
-                      "content_criteria"
-                    ]
+                    "$ref": "#/components/schemas/ApprovalTrigger"
                   },
                   "createdAt": {
                     "type": "string"

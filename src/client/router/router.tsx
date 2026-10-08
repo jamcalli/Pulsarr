@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { PageSkeleton } from '@/components/page-header'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
+import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
@@ -14,6 +15,9 @@ const HomePage = lazy(() => import('@/features/home'))
 const UserTagsPage = lazy(() => import('@/features/users/pages/user-tags'))
 const ApprovalSettingsPage = lazy(
   () => import('@/features/requests/pages/approval-settings'),
+)
+const ContentRouterPage = lazy(
+  () => import('@/features/library/pages/content-router'),
 )
 const CreateUserPage = lazy(() => import('@/legacy/features/setup'))
 const PlexConfigurationPage = lazy(
@@ -123,6 +127,14 @@ export const router = createBrowserRouter(
                   }
                 >
                   <ApprovalSettingsPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'library/content-router',
+              element: (
+                <Suspense fallback={<ContentRouterSkeleton />}>
+                  <ContentRouterPage />
                 </Suspense>
               ),
             },

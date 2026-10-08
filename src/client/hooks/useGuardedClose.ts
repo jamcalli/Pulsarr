@@ -1,27 +1,15 @@
-import { useState } from 'react'
+import { useDirtyGuard } from '@/hooks/useDirtyGuard'
 
 /** Holds a close request for confirmation while the hosted content reports itself dirty. */
 export function useGuardedClose(onOpenChange: (open: boolean) => void) {
-  const [dirty, setDirty] = useState(false)
-  const [confirming, setConfirming] = useState(false)
+  const guard = useDirtyGuard()
 
   return {
-    setDirty,
+    setDirty: guard.setDirty,
     onOpenChange: (open: boolean) => {
-      if (!open && dirty) {
-        setConfirming(true)
-        return
-      }
-      onOpenChange(open)
+      if (open) onOpenChange(true)
+      else guard.run(() => onOpenChange(false))
     },
-    leaveDialog: {
-      open: confirming,
-      onStay: () => setConfirming(false),
-      onLeave: () => {
-        setConfirming(false)
-        setDirty(false)
-        onOpenChange(false)
-      },
-    },
+    leaveDialog: guard.leaveDialog,
   }
 }

@@ -87,7 +87,7 @@ function Shelf({
   onSelect,
   onIntent,
 }: ShelfProps) {
-  const lookup = useUserDirectory()
+  const { lookup } = useUserDirectory()
   const heading = <h3 className={SHELF_HEADING}>{title}</h3>
   const watchers = (item: RankedContent) =>
     (item.users ?? []).map((username) => ({ username, ...lookup(username) }))

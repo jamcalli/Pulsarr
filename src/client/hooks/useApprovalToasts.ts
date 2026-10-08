@@ -18,7 +18,7 @@ const BATCH_WINDOW_MS = 500
 export function useApprovalToasts(): void {
   const subscribeToType = useProgressStore((state) => state.subscribeToType)
   const navigate = useNavigate()
-  const lookup = useUserDirectory()
+  const { lookup } = useUserDirectory()
   const lookupRef = useRef(lookup)
 
   useEffect(() => {
