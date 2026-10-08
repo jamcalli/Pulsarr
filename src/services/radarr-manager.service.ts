@@ -1,3 +1,4 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type { WebhookResyncInstanceResult } from '@root/schemas/config/resync-arr-webhooks.schema.js'
 import type {
   MinimumAvailability,
@@ -8,6 +9,10 @@ import type {
   RadarrInstance,
   Item as RadarrItem,
 } from '@root/types/radarr.types.js'
+import type {
+  AppliedRadarrRouting,
+  RadarrRouteSettings,
+} from '@root/types/router.types.js'
 import type {
   ExistenceCheckResult,
   InstanceHealthResult,
@@ -204,13 +209,16 @@ export class RadarrManagerService {
     userId: number,
     instanceId?: number,
     syncing = false,
-    rootFolder?: string,
-    qualityProfile?: number | string | null,
-    tags?: string[],
-    searchOnAdd?: boolean | null,
-    minimumAvailability?: MinimumAvailability,
-    monitor?: RadarrMonitorType | null,
-  ): Promise<void> {
+    settings: RadarrRouteSettings = {},
+  ): Promise<AppliedRadarrRouting> {
+    const {
+      rootFolder,
+      qualityProfile,
+      tags,
+      searchOnAdd,
+      minimumAvailability,
+      monitor,
+    } = settings
     // If no specific instance is provided, try to get the default instance
     let targetInstanceId = instanceId
     if (targetInstanceId === undefined) {
@@ -235,6 +243,9 @@ export class RadarrManagerService {
       if (!instance) {
         throw new Error(`Radarr instance ${targetInstanceId} not found`)
       }
+      if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {
+        throw new Error(`Radarr instance "${instance.name}" is not set up`)
+      }
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
@@ -258,7 +269,7 @@ export class RadarrManagerService {
       const targetMonitor =
         monitor ?? instance.monitor ?? ('movieOnly' as RadarrMonitorType)
 
-      await radarrService.addToRadarr(
+      const added = await radarrService.addToRadarr(
         radarrItem,
         targetRootFolder,
         targetQualityProfileId,
@@ -288,6 +299,17 @@ export class RadarrManagerService {
         },
         'Successfully routed item to Radarr',
       )
+
+      return {
+        instanceId: targetInstanceId,
+        instanceType: 'radarr',
+        qualityProfile: parseQualityProfileId(added.qualityProfileId),
+        rootFolder: added.rootFolder,
+        tags: added.tags,
+        searchOnAdd: targetSearchOnAdd,
+        minimumAvailability: targetMinimumAvailability,
+        monitor: targetMonitor,
+      }
     } catch (error) {
       this.log.error(
         {
@@ -489,7 +511,8 @@ export class RadarrManagerService {
 
       // API key transitions
       const isPlaceholderToReal =
-        current.apiKey === 'placeholder' && candidate.apiKey !== 'placeholder'
+        current.apiKey === ARR_API_KEY_PLACEHOLDER &&
+        candidate.apiKey !== ARR_API_KEY_PLACEHOLDER
       const apiKeyChanged = current.apiKey !== candidate.apiKey
       const needsNewService =
         baseUrlChanged || isPlaceholderToReal || apiKeyChanged
@@ -524,9 +547,14 @@ export class RadarrManagerService {
         // Clean up old webhook only when server actually changed
         // Skip cleanup when transitioning from placeholder credentials (no real webhook existed)
         const toPlaceholder =
-          current.apiKey !== 'placeholder' && candidate.apiKey === 'placeholder'
+          current.apiKey !== ARR_API_KEY_PLACEHOLDER &&
+          candidate.apiKey === ARR_API_KEY_PLACEHOLDER
 
-        if (serverChanged && oldService && current.apiKey !== 'placeholder') {
+        if (
+          serverChanged &&
+          oldService &&
+          current.apiKey !== ARR_API_KEY_PLACEHOLDER
+        ) {
           try {
             await oldService.removeWebhook()
           } catch (cleanupErr) {
@@ -612,7 +640,7 @@ export class RadarrManagerService {
 
     return Promise.all(
       instances
-        .filter((instance) => instance.apiKey !== 'placeholder')
+        .filter((instance) => instance.apiKey !== ARR_API_KEY_PLACEHOLDER)
         .map((instance) =>
           limit(async (): Promise<WebhookResyncInstanceResult> => {
             // old service still holds the prior baseUrl/port, so this deletes the stale webhook name

@@ -1,3 +1,4 @@
+import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 export interface SonarrAddOptions {
   monitor: string | null
   searchForCutoffUnmetEpisodes: boolean | null
@@ -62,7 +63,7 @@ export interface SonarrPost {
   monitored: boolean
   monitorNewItems: 'all' | 'none'
   tags: string[]
-  seriesType?: 'standard' | 'anime' | 'daily'
+  seriesType?: SonarrSeriesType
   seasonFolder?: boolean
 }
 
@@ -136,7 +137,7 @@ export interface SonarrSeries {
   tmdbId?: number
   firstAired?: string
   lastAired?: string
-  seriesType?: 'standard' | 'anime' | 'daily'
+  seriesType?: SonarrSeriesType
   cleanTitle?: string
   imdbId?: string
   titleSlug?: string
@@ -260,7 +261,7 @@ export interface SonarrConfiguration {
   sonarrSeasonMonitoring: string
   sonarrMonitorNewItems?: 'all' | 'none'
   searchOnAdd?: boolean
-  sonarrSeriesType?: 'standard' | 'anime' | 'daily'
+  sonarrSeriesType?: SonarrSeriesType
   createSeasonFolders?: boolean
 }
 
@@ -278,7 +279,7 @@ export interface SonarrInstance {
   isDefault: boolean
   syncedInstances?: number[]
   searchOnAdd?: boolean
-  seriesType?: 'standard' | 'anime' | 'daily'
+  seriesType?: SonarrSeriesType
   createSeasonFolders?: boolean
   skipDefaultRoutingWhenNoMatch?: boolean
   data?: {

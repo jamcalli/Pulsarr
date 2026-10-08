@@ -1,3 +1,4 @@
+import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 import type { SonarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { SonarrInstance } from '@root/types/sonarr.types.js'
 import type { DatabaseService } from '@services/database.service.js'
@@ -32,8 +33,7 @@ function mapRowToSonarrInstance(
       [],
       'sonarr.synced_instances',
     ),
-    seriesType:
-      (row.series_type as 'standard' | 'anime' | 'daily') || 'standard',
+    seriesType: (row.series_type as SonarrSeriesType) || 'standard',
     skipDefaultRoutingWhenNoMatch: Boolean(
       row.skip_default_routing_when_no_match,
     ),

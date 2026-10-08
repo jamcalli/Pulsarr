@@ -1,3 +1,4 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type {
   MinimumAvailability,
   RadarrMonitorType,
@@ -16,6 +17,7 @@ import type {
   RootFolder,
   WebhookNotification,
 } from '@root/types/radarr.types.js'
+import type { ArrAddedSettings } from '@root/types/router.types.js'
 import type {
   ExistenceCheckResult,
   HealthCheckResult,
@@ -455,7 +457,7 @@ export class RadarrService {
     this.instanceId = instance.id
 
     // Skip webhook setup for placeholder credentials
-    if (instance.apiKey === 'placeholder') {
+    if (instance.apiKey === ARR_API_KEY_PLACEHOLDER) {
       this.log.info(
         `Basic initialization only for ${instance.name} (placeholder credentials)`,
       )
@@ -794,7 +796,7 @@ export class RadarrService {
     overrideSearchOnAdd?: boolean | null,
     overrideMinimumAvailability?: MinimumAvailability,
     overrideMonitor?: RadarrMonitorType | null,
-  ): Promise<void> {
+  ): Promise<ArrAddedSettings> {
     const config = this.radarrConfig
     try {
       const addOptions: RadarrAddOptions = {
@@ -821,11 +823,12 @@ export class RadarrService {
 
       // Collection for valid tag IDs (using Set to avoid duplicates)
       const tagIdsSet = new Set<string>()
+      let existingTags: Array<{ id: number; label: string }> = []
 
       // Process override tags if provided
       if (overrideTags && overrideTags.length > 0) {
         // Get all existing tags from Radarr
-        const existingTags = await this.getTags()
+        existingTags = await this.getTags()
 
         // Process each tag from the override
         for (const tagInput of overrideTags) {
@@ -867,7 +870,7 @@ export class RadarrService {
           Array.isArray(config.radarrTagIds) &&
           config.radarrTagIds.length > 0
         ) {
-          const existingTags = await this.getTags()
+          existingTags = await this.getTags()
 
           for (const tagId of config.radarrTagIds) {
             const stringTagId = tagId.toString()
@@ -906,7 +909,10 @@ export class RadarrService {
         monitored: shouldMonitor,
       }
 
-      await this.postToRadarr<void>('movie', movie)
+      const created = await this.postToRadarr<RadarrMovie | undefined>(
+        'movie',
+        movie,
+      )
       this.log.info(
         {
           title: item.title,
@@ -920,6 +926,14 @@ export class RadarrService {
         },
         `Sent ${item.title} to Radarr`,
       )
+      const labelById = new Map(existingTags.map((t) => [t.id, t.label]))
+      return {
+        rootFolder: created?.rootFolderPath ?? rootFolderPath,
+        qualityProfileId: created?.qualityProfileId ?? qualityProfileId,
+        tags: (created?.tags ?? tags.map(Number)).map(
+          (id) => labelById.get(id) ?? String(id),
+        ),
+      }
     } catch (err) {
       this.log.debug(
         { error: err, title: item.title },

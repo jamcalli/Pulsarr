@@ -43,7 +43,7 @@ function normalizeRulePayload(
     target_type: ruleData.target_type,
     // Exclude rules never route, so instance-scoped fields are cleared
     target_instance_id: excludeFromRouting ? null : ruleData.target_instance_id,
-    root_folder: excludeFromRouting ? null : ruleData.root_folder || null,
+    root_folder: excludeFromRouting ? null : (ruleData.root_folder ?? null),
     quality_profile: excludeFromRouting
       ? null
       : (ruleData.quality_profile ?? null),
@@ -95,9 +95,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const rules = await fastify.db.getAllRouterRules()
 
-        const formattedRules = rules.map((rule) =>
-          formatRule(rule, fastify.log),
-        )
+        const formattedRules = rules.map((rule) => formatRule(rule))
 
         return {
           success: true,
@@ -146,9 +144,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         const rules = await fastify.db.getRouterRulesByType(type, enabledOnly)
 
-        const formattedRules = rules.map((rule) =>
-          formatRule(rule, fastify.log),
-        )
+        const formattedRules = rules.map((rule) => formatRule(rule))
 
         return {
           success: true,
@@ -194,9 +190,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           instanceId,
         )
 
-        const formattedRules = rules.map((rule) =>
-          formatRule(rule, fastify.log),
-        )
+        const formattedRules = rules.map((rule) => formatRule(rule))
 
         return {
           success: true,
@@ -243,7 +237,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           return reply.notFound(`Router rule with ID ${id} not found`)
         }
 
-        const formattedRule = formatRule(rule, fastify.log)
+        const formattedRule = formatRule(rule)
 
         return {
           success: true,
@@ -286,9 +280,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         const rules = await fastify.db.getRouterRulesByTargetType(targetType)
 
-        const formattedRules = rules.map((rule) =>
-          formatRule(rule, fastify.log),
-        )
+        const formattedRules = rules.map((rule) => formatRule(rule))
 
         return {
           success: true,
@@ -343,7 +335,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         fastify.contentRouter.clearRouterRulesCache()
 
-        const formattedRule = formatRule(createdRule, fastify.log)
+        const formattedRule = formatRule(createdRule)
 
         reply.status(201)
         return {
@@ -425,7 +417,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         fastify.contentRouter.clearRouterRulesCache()
 
-        const formattedRule = formatRule(updatedRule, fastify.log)
+        const formattedRule = formatRule(updatedRule)
 
         return {
           success: true,

@@ -283,7 +283,7 @@ describe('evaluateRegexSafely', () => {
         'genre rule',
       )
 
-      expect(result).toBe(false)
+      expect(result).toBeNull()
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: unsafePattern },
         'Rejected unsafe regex in genre rule',
@@ -301,7 +301,7 @@ describe('evaluateRegexSafely', () => {
         'certification condition',
       )
 
-      expect(result).toBe(false)
+      expect(result).toBeNull()
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: unsafePattern },
         'Rejected unsafe regex in certification condition',
@@ -327,7 +327,7 @@ describe('evaluateRegexSafely', () => {
       const logger = createMockLogger()
       const result = evaluateRegexSafely('(test', 'test', logger, 'genre rule')
 
-      expect(result).toBe(false)
+      expect(result).toBeNull()
       // safe-regex2 catches this as unsafe, triggering a warn (not error)
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: '(test' },
@@ -339,7 +339,7 @@ describe('evaluateRegexSafely', () => {
       const logger = createMockLogger()
       const result = evaluateRegexSafely('[z-a]', 'test', logger, 'genre rule')
 
-      expect(result).toBe(false)
+      expect(result).toBeNull()
       // safe-regex2 catches this as unsafe, triggering a warn (not error)
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: '[z-a]' },
@@ -351,7 +351,7 @@ describe('evaluateRegexSafely', () => {
       const logger = createMockLogger()
       const result = evaluateRegexSafely('[abc', 'test', logger, 'genre rule')
 
-      expect(result).toBe(false)
+      expect(result).toBeNull()
       // safe-regex2 catches this as unsafe, triggering a warn (not error)
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: '[abc' },
@@ -363,7 +363,7 @@ describe('evaluateRegexSafely', () => {
       const logger = createMockLogger()
       const result = evaluateRegexSafely('*test', 'test', logger, 'genre rule')
 
-      expect(result).toBe(false)
+      expect(result).toBeNull()
       // safe-regex2 catches this as unsafe, triggering a warn (not error)
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: '*test' },
@@ -513,7 +513,7 @@ describe('evaluateRegexSafelyMultiple', () => {
         'genre rule',
       )
 
-      expect(result).toBe(false)
+      expect(result).toBeNull()
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: unsafePattern },
         'Rejected unsafe regex in genre rule',
@@ -547,7 +547,7 @@ describe('evaluateRegexSafelyMultiple', () => {
         'genre rule',
       )
 
-      expect(result).toBe(false)
+      expect(result).toBeNull()
       // safe-regex2 catches this as unsafe, triggering a warn (not error)
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: '(test' },

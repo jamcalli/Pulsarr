@@ -1,7 +1,9 @@
+import type { ComparisonOperator } from '@root/schemas/content-router/content-router.schema.js'
 import type {
   MinimumAvailability,
   RadarrMonitorType,
 } from '@root/schemas/radarr/add-options.schema.js'
+import type { SonarrSeriesType } from '@root/schemas/sonarr/series-type.schema.js'
 import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
@@ -46,7 +48,7 @@ export interface RouterRule {
   metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
   search_on_add?: boolean | null
   season_monitoring?: string | null
-  series_type?: 'standard' | 'anime' | 'daily' | null
+  series_type?: SonarrSeriesType | null
   monitor?: RadarrMonitorType | null
   // Actions - approval behavior
   always_require_approval?: boolean
@@ -88,7 +90,7 @@ export interface RoutingDecision {
   priority: number // Higher number = higher priority
   searchOnAdd?: boolean | null // Whether to automatically search when added
   seasonMonitoring?: string | null // For Sonarr: which seasons to monitor
-  seriesType?: 'standard' | 'anime' | 'daily' | null // For Sonarr: series type
+  seriesType?: SonarrSeriesType | null
   minimumAvailability?: MinimumAvailability
   monitor?: RadarrMonitorType | null
   /**
@@ -99,6 +101,9 @@ export interface RoutingDecision {
    * Name of the router rule that produced this decision (for logging)
    */
   ruleName?: string
+  alwaysRequireApproval?: boolean
+  bypassUserQuotas?: boolean
+  approvalReason?: string | null
 }
 
 /**
@@ -115,24 +120,64 @@ export interface RoutingDetails {
   minimumAvailability?: MinimumAvailability | null
   monitor?: RadarrMonitorType | null
   seasonMonitoring?: string | null
-  seriesType?: string | null
+  seriesType?: SonarrSeriesType | null
   ruleId?: number
   ruleName?: string
 }
 
+/** Null or absent means use the instance's value at routing time. */
+export interface RadarrRouteSettings {
+  rootFolder?: string | null
+  qualityProfile?: number | string | null
+  tags?: string[]
+  searchOnAdd?: boolean | null
+  minimumAvailability?: MinimumAvailability | null
+  monitor?: RadarrMonitorType | null
+}
+
+/** Null or absent means use the instance's value at routing time. */
+export interface SonarrRouteSettings {
+  rootFolder?: string | null
+  qualityProfile?: number | string | null
+  tags?: string[]
+  searchOnAdd?: boolean | null
+  seasonMonitoring?: string | null
+  seriesType?: SonarrSeriesType | null
+}
+
+export type RouteSettings = RadarrRouteSettings & SonarrRouteSettings
+
+/** The effective values the arr reported for an add, with tags as labels where the label is known. */
+export interface ArrAddedSettings {
+  rootFolder: string
+  qualityProfileId: number | string | null
+  tags: string[]
+}
+
+export interface AppliedRadarrRouting {
+  instanceId: number
+  instanceType: 'radarr'
+  qualityProfile: number | undefined
+  rootFolder: string | undefined
+  tags: string[]
+  searchOnAdd: boolean
+  minimumAvailability: MinimumAvailability
+  monitor: RadarrMonitorType
+}
+
+export interface AppliedSonarrRouting {
+  instanceId: number
+  instanceType: 'sonarr'
+  qualityProfile: number | undefined
+  rootFolder: string | undefined
+  tags: string[]
+  searchOnAdd: boolean
+  seasonMonitoring: string
+  seriesType: SonarrSeriesType
+}
+
 // Condition system types
 export type LogicalOperator = 'AND' | 'OR'
-export type ComparisonOperator =
-  | 'equals'
-  | 'notEquals'
-  | 'contains'
-  | 'notContains'
-  | 'greaterThan'
-  | 'lessThan'
-  | 'in'
-  | 'notIn'
-  | 'regex'
-  | 'between'
 
 // Base condition interface
 export interface Condition {
@@ -149,59 +194,4 @@ export interface ConditionGroup {
   conditions: Array<Condition | ConditionGroup>
   negate?: boolean
   _cid?: string
-}
-
-/**
- * Information about a supported field in a router evaluator
- */
-export interface FieldInfo {
-  name: string
-  description: string
-  valueTypes: string[]
-}
-
-/**
- * Information about a supported operator in a router evaluator
- */
-export interface OperatorInfo {
-  name: ComparisonOperator
-  description: string
-  valueTypes: string[]
-  valueFormat?: string // Additional hints about expected format
-}
-
-// Then extend the RoutingEvaluator interface with these properties:
-
-export interface RoutingEvaluator {
-  name: string
-  description: string
-  priority: number
-
-  // Rule type this evaluator handles (e.g., 'genre', 'imdb', 'streaming')
-  // Used by content-router to filter rules before passing to evaluator
-  ruleType: string
-
-  // Whether this evaluator can handle this content
-  canEvaluate(item: ContentItem, context: RoutingContext): Promise<boolean>
-
-  // For conditional evaluator support
-  evaluateCondition?(
-    condition: Condition | ConditionGroup,
-    item: ContentItem,
-    context: RoutingContext,
-  ): boolean
-
-  // Helps ContentRouterService determine which fields this evaluator handles
-  canEvaluateConditionField?(field: string): boolean
-
-  // New metadata properties for self-describing evaluators
-  supportedFields?: FieldInfo[]
-  supportedOperators?: Record<string, OperatorInfo[]>
-
-  // Content type this evaluator applies to ('radarr', 'sonarr', or 'both')
-  contentType?: 'radarr' | 'sonarr' | 'both'
-
-  // Optional helper methods can be defined in individual evaluators
-  // but they won't be called directly by the ContentRouterService
-  [key: string]: unknown
 }

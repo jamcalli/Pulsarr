@@ -1,3 +1,4 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type { ContentItem } from '@root/types/router.types.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { FastifyInstance } from 'fastify'
@@ -18,7 +19,12 @@ import {
   seedRouterRules,
   seedUserQuota,
   seedUsers,
+  seedWatchlist,
 } from '../../helpers/seeds/index.js'
+import {
+  appliedRadarr,
+  echoAppliedRadarr,
+} from '../../mocks/applied-routing.js'
 
 describe('routeContent gates', () => {
   let fastify: FastifyInstance
@@ -131,7 +137,7 @@ describe('routeContent gates', () => {
     await seedRouterRules(knex)
     fastify.contentRouter.clearRouterRulesCache()
 
-    routeItemToRadarr = vi.fn().mockResolvedValue(undefined)
+    routeItemToRadarr = vi.fn(echoAppliedRadarr())
     fastify.radarrManager.routeItemToRadarr =
       routeItemToRadarr as unknown as RadarrManagerService['routeItemToRadarr']
     fastify.notifications.sendWatchlistCapReached = vi.fn()
@@ -383,6 +389,71 @@ describe('routeContent gates', () => {
     })
   })
 
+  describe('rules fetch failure', () => {
+    const watchlistMovie: ContentItem = {
+      title: 'Night of the Living Dead',
+      type: 'movie',
+      guids: ['imdb:tt0063350', 'tmdb:10331'],
+      genres: ['Horror'],
+    }
+    const watchlistKey = '5d77683585719b001f3a3946'
+
+    const getWatchlistRow = () =>
+      getTestDatabase()('watchlist_items')
+        .where({ user_id: 1, key: watchlistKey })
+        .first()
+
+    beforeEach(async () => {
+      await seedWatchlist(getTestDatabase())
+      fastify.contentRouter.clearRouterRulesCache()
+    })
+
+    it('leaves the item unrouted and unmarked, then routes it on the next pass', async () => {
+      const before = await getWatchlistRow()
+      const getAllRouterRules = vi
+        .spyOn(fastify.db, 'getAllRouterRules')
+        .mockRejectedValueOnce(new Error('rules read failed'))
+
+      await expect(
+        fastify.contentRouter.routeContent(watchlistMovie, watchlistKey, {
+          userId: 1,
+          userName: 'Test User',
+        }),
+      ).rejects.toThrow('rules read failed')
+
+      expect(routeItemToRadarr).not.toHaveBeenCalled()
+      expect(await getApprovalRequests()).toHaveLength(0)
+      expect(await getQuotaUsageCount()).toBe(0)
+      const after = await getWatchlistRow()
+      expect(after.radarr_instance_id).toBeNull()
+      expect(after.status).toBe(before.status)
+
+      getAllRouterRules.mockRestore()
+      const retry = await fastify.contentRouter.routeContent(
+        watchlistMovie,
+        watchlistKey,
+        { userId: 1, userName: 'Test User' },
+      )
+      expect(retry.routedInstances).toEqual([1])
+    })
+
+    it('fails the target lookup instead of falling back to the default instance', async () => {
+      const getAllRouterRules = vi
+        .spyOn(fastify.db, 'getAllRouterRules')
+        .mockRejectedValueOnce(new Error('rules read failed'))
+
+      await expect(
+        fastify.contentRouter.getTargetInstances(watchlistMovie, {
+          userId: 1,
+          contentType: 'movie',
+          itemKey: watchlistKey,
+        }),
+      ).rejects.toThrow('rules read failed')
+
+      getAllRouterRules.mockRestore()
+    })
+  })
+
   describe('synced-instance default routing', () => {
     const seedSyncedInstance = async (
       syncedInstances: number[],
@@ -405,19 +476,40 @@ describe('routeContent gates', () => {
       expect(result.routedInstances).toEqual([1, 2])
       expect(routeItemToRadarr).toHaveBeenCalledTimes(2)
       const [primaryArgs, syncedArgs] = routeItemToRadarr.mock.calls
-      // Each instance is routed with its OWN defaults, not the primary's
+      // empty settings make the manager resolve each instance's own defaults
       expect(primaryArgs[3]).toBe(1)
-      expect(primaryArgs[5]).toBe('/data/movies')
-      expect(primaryArgs[9]).toBe('announced')
-      expect(primaryArgs[10]).toBe('movieOnly')
+      expect(primaryArgs[5]).toEqual({})
       expect(syncedArgs[3]).toBe(2)
-      expect(syncedArgs[5]).toBe('/data/movies2')
-      expect(syncedArgs[10]).toBe('none')
+      expect(syncedArgs[5]).toEqual({})
+      expect(result.routingDetails.map((d) => d.instanceId)).toEqual([1, 2])
 
       // The auto-approval record must label the tail as sync expansion
       const requests = await getApprovalRequests()
       expect(requests).toHaveLength(1)
       expect(requests[0].status).toBe('auto_approved')
+      const decision = JSON.parse(requests[0].router_decision)
+      expect(decision.approval.proposedRouting.instanceId).toBe(1)
+      expect(decision.approval.proposedRouting.syncedInstances).toEqual([2])
+    })
+
+    it('keeps the primary on the record when only a synced instance took the add', async () => {
+      await seedSyncedInstance([2])
+      routeItemToRadarr.mockImplementation(
+        async (_item: unknown, _key: string, _userId: number, id: number) => {
+          if (id === 1) throw new Error('down')
+          return appliedRadarr({ instanceId: id })
+        },
+      )
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'synced-primary-failed-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([2])
+      const requests = await getApprovalRequests()
+      expect(requests).toHaveLength(1)
       const decision = JSON.parse(requests[0].router_decision)
       expect(decision.approval.proposedRouting.instanceId).toBe(1)
       expect(decision.approval.proposedRouting.syncedInstances).toEqual([2])
@@ -469,19 +561,23 @@ describe('routeContent gates', () => {
       expect(result.routedInstances).toEqual([1])
       expect(routeItemToRadarr).toHaveBeenCalledTimes(1)
       const args = routeItemToRadarr.mock.calls[0]
-      // (item, key, userId, instanceId, syncing, rootFolder, profile, tags, searchOnAdd, minAvailability, monitor)
       expect(args[3]).toBe(1)
-      expect(args[5]).toBe('/data/comedy')
-      expect(args[6]).toBe(2)
-      expect(args[7]).toEqual([])
-      expect(Boolean(args[8])).toBe(true)
-      // Rules carry no minimumAvailability - the manager falls through to
-      // the instance default
-      expect(args[9]).toBeUndefined()
-      expect(args[10]).toBe('movieAndCollection')
+      expect(args[5]).toMatchObject({
+        rootFolder: '/data/comedy',
+        qualityProfile: 2,
+        tags: [],
+        minimumAvailability: undefined,
+        monitor: 'movieAndCollection',
+      })
+      expect(Boolean(args[5].searchOnAdd)).toBe(true)
 
       expect(result.routingDetails).toHaveLength(1)
       expect(result.routingDetails[0].instanceId).toBe(1)
+
+      const requests = await getApprovalRequests()
+      expect(requests).toHaveLength(1)
+      expect(requests[0].status).toBe('auto_approved')
+      expect(requests[0].router_rule_id).toBe(50)
     })
 
     it('creates a router_rule approval request without syncedInstances fan-out', async () => {
@@ -574,6 +670,54 @@ describe('routeContent gates', () => {
       expect(await getQuotaUsageCount()).toBe(1)
     })
 
+    it('consumes quota when approving a flagged user request', async () => {
+      await seedComedyRule()
+      await seedUserQuota(getTestDatabase(), {
+        user_id: 4,
+        content_type: 'movie',
+        quota_limit: 10,
+      })
+      await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'flagged-consume-key',
+        { userId: 4, userName: 'No Sync User' },
+      )
+      const [request] = await getApprovalRequests()
+
+      const approval = await fastify.approvalService.approveAndRoute(
+        request.id,
+        1,
+      )
+
+      expect(approval.success).toBe(true)
+      expect(await getQuotaUsageCount()).toBe(1)
+    })
+
+    it('skips quota when approving a flagged user request a matching rule bypasses', async () => {
+      await seedComedyRule({ bypass_user_quotas: true })
+      await seedUserQuota(getTestDatabase(), {
+        user_id: 4,
+        content_type: 'movie',
+        quota_limit: 10,
+      })
+      await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'flagged-bypass-key',
+        { userId: 4, userName: 'No Sync User' },
+      )
+      const [request] = await getApprovalRequests()
+      expect(request.triggered_by).toBe('manual_flag')
+
+      const approval = await fastify.approvalService.approveAndRoute(
+        request.id,
+        1,
+      )
+
+      expect(approval.success).toBe(true)
+      expect(routeItemToRadarr).toHaveBeenCalledTimes(1)
+      expect(await getQuotaUsageCount()).toBe(0)
+    })
+
     it('routes to multiple matched instances in priority order without duplicates', async () => {
       await insertSecondRadarrInstance()
       await seedComedyRule({ id: 50, order: 10, target_instance_id: 1 })
@@ -621,6 +765,323 @@ describe('routeContent gates', () => {
     })
   })
 
+  describe('several matching rules', () => {
+    const seedNoApprovalAndApprovalRules = async (
+      overrides: Record<string, unknown> = {},
+    ): Promise<void> => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({ id: 50, order: 80, target_instance_id: 1 })
+      await seedComedyRule({
+        id: 51,
+        name: 'Comedy Review',
+        order: 60,
+        target_instance_id: 2,
+        root_folder: '/data/review',
+        always_require_approval: true,
+        ...overrides,
+      })
+    }
+
+    it('requires approval when a lower matching rule demands it', async () => {
+      await seedNoApprovalAndApprovalRules()
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-approval-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([])
+      expect(routeItemToRadarr).not.toHaveBeenCalled()
+
+      const requests = await getApprovalRequests()
+      expect(requests).toHaveLength(1)
+      expect(requests[0].triggered_by).toBe('router_rule')
+      expect(requests[0].router_rule_id).toBe(51)
+
+      const decision = JSON.parse(requests[0].router_decision)
+      expect(decision.approval.proposedRouting.instanceId).toBe(1)
+      expect(decision.approval.proposedRouting.syncedInstances).toBeUndefined()
+      expect(decision.approval.additionalRouting).toEqual([
+        expect.objectContaining({ instanceId: 2, rootFolder: '/data/review' }),
+      ])
+    })
+
+    it('routes the approved request to every matched instance with its own settings', async () => {
+      await seedNoApprovalAndApprovalRules()
+      await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-approve-key',
+        { userId: 1, userName: 'Test User' },
+      )
+      const [request] = await getApprovalRequests()
+
+      const approval = await fastify.approvalService.approveAndRoute(
+        request.id,
+        1,
+      )
+
+      expect(approval.success).toBe(true)
+      expect(routeItemToRadarr).toHaveBeenCalledTimes(2)
+      const [primary, additional] = routeItemToRadarr.mock.calls
+      expect(primary[3]).toBe(1)
+      expect(primary[4]).toBe(false)
+      expect(primary[5]).toMatchObject({ rootFolder: '/data/comedy' })
+      expect(additional[3]).toBe(2)
+      expect(additional[4]).toBe(false)
+      expect(additional[5]).toMatchObject({ rootFolder: '/data/review' })
+    })
+
+    it('rolls the approval back when any instance fails', async () => {
+      await seedNoApprovalAndApprovalRules()
+      await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-rollback-key',
+        { userId: 1, userName: 'Test User' },
+      )
+      const [request] = await getApprovalRequests()
+      routeItemToRadarr
+        .mockImplementationOnce(echoAppliedRadarr())
+        .mockRejectedValueOnce(new Error('instance 2 down'))
+
+      const approval = await fastify.approvalService.approveAndRoute(
+        request.id,
+        1,
+        'looks good',
+      )
+
+      expect(approval).toMatchObject({ success: false, rolledBack: true })
+      expect(approval.error).toContain('Second Radarr (id 2)')
+      const [rolledBack] = await getApprovalRequests()
+      expect(rolledBack.status).toBe('pending')
+      expect(rolledBack.approval_notes).toBeNull()
+      expect(rolledBack.approved_by).toBeNull()
+      expect(await getQuotaUsageCount()).toBe(0)
+    })
+
+    it('approves when an instance already holds the item', async () => {
+      await seedNoApprovalAndApprovalRules()
+      await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-existing-key',
+        { userId: 1, userName: 'Test User' },
+      )
+      const [request] = await getApprovalRequests()
+      routeItemToRadarr
+        .mockImplementationOnce(echoAppliedRadarr())
+        .mockRejectedValueOnce(new Error('This movie has already been added'))
+
+      const approval = await fastify.approvalService.approveAndRoute(
+        request.id,
+        1,
+      )
+
+      expect(approval.success).toBe(true)
+      expect(routeItemToRadarr.mock.calls.map((call) => call[3])).toEqual([
+        1, 2,
+      ])
+      const [approved] = await getApprovalRequests()
+      expect(approved.status).toBe('approved')
+    })
+
+    it('replays an approved request to every matched instance', async () => {
+      await seedNoApprovalAndApprovalRules()
+      await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-replay-key',
+        { userId: 1, userName: 'Test User' },
+      )
+      await getTestDatabase()('approval_requests').update({
+        status: 'approved',
+      })
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-replay-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([1, 2])
+      expect(result.routingDetails).toEqual([
+        expect.objectContaining({ instanceId: 1, ruleId: 50 }),
+        expect.objectContaining({ instanceId: 2, ruleId: 51 }),
+      ])
+    })
+
+    it('honours a quota bypass set on a lower matching rule', async () => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({ id: 50, order: 80, target_instance_id: 1 })
+      await seedComedyRule({
+        id: 51,
+        name: 'Comedy Bypass',
+        order: 60,
+        target_instance_id: 2,
+        bypass_user_quotas: true,
+      })
+      await seedUserQuota(getTestDatabase(), {
+        user_id: 1,
+        content_type: 'movie',
+        quota_limit: 1,
+      })
+      await useUpQuota(1, 1)
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-bypass-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([1, 2])
+      expect(await getQuotaUsageCount()).toBe(1)
+    })
+
+    it('stores every applied routing on the auto-approval record', async () => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({ id: 50, order: 80, target_instance_id: 1 })
+      await seedComedyRule({
+        id: 51,
+        name: 'Comedy Second',
+        order: 60,
+        target_instance_id: 2,
+      })
+
+      await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-auto-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      const requests = await getApprovalRequests()
+      expect(requests).toHaveLength(1)
+      expect(requests[0].status).toBe('auto_approved')
+      const decision = JSON.parse(requests[0].router_decision)
+      expect(decision.approval.proposedRouting.instanceId).toBe(1)
+      expect(decision.approval.additionalRouting).toEqual([
+        expect.objectContaining({ instanceId: 2 }),
+      ])
+    })
+
+    it('names a decided instance whose add failed with its rule settings', async () => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({ id: 50, order: 80, target_instance_id: 1 })
+      await seedComedyRule({
+        id: 51,
+        name: 'Comedy Second',
+        order: 60,
+        target_instance_id: 2,
+        root_folder: '/data/second',
+      })
+      routeItemToRadarr.mockImplementation(
+        async (_item: unknown, _key: string, _userId: number, id: number) => {
+          if (id === 2) throw new Error('down')
+          return appliedRadarr({ instanceId: id, rootFolder: '/applied' })
+        },
+      )
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-partial-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([1])
+      const requests = await getApprovalRequests()
+      expect(requests).toHaveLength(1)
+      const decision = JSON.parse(requests[0].router_decision)
+      expect(decision.approval.proposedRouting).toMatchObject({
+        instanceId: 1,
+        rootFolder: '/applied',
+        ruleId: 50,
+      })
+      expect(decision.approval.additionalRouting).toEqual([
+        expect.objectContaining({
+          instanceId: 2,
+          rootFolder: '/data/second',
+          ruleId: 51,
+        }),
+      ])
+    })
+
+    it('writes no record when every add fails', async () => {
+      await insertSecondRadarrInstance()
+      await seedComedyRule({ id: 50, order: 80, target_instance_id: 1 })
+      await seedComedyRule({ id: 51, order: 60, target_instance_id: 2 })
+      routeItemToRadarr.mockRejectedValue(new Error('down'))
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'several-failed-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([])
+      expect(await getApprovalRequests()).toHaveLength(0)
+    })
+  })
+
+  describe('placeholder instances', () => {
+    const makeRadarrPlaceholder = (id: number) =>
+      getTestDatabase()('radarr_instances')
+        .where('id', id)
+        .update('api_key', ARR_API_KEY_PLACEHOLDER)
+
+    beforeEach(async () => {
+      await clearRouterRules()
+    })
+
+    it('skips a placeholder default without consuming quota', async () => {
+      await makeRadarrPlaceholder(1)
+      await seedUserQuota(getTestDatabase(), {
+        user_id: 1,
+        content_type: 'movie',
+        quota_limit: 5,
+      })
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'placeholder-default-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(result.routedInstances).toEqual([])
+      expect(routeItemToRadarr).not.toHaveBeenCalled()
+      expect(await getQuotaUsageCount()).toBe(0)
+      expect(await getApprovalRequests()).toHaveLength(0)
+    })
+
+    it('writes no approval request for a placeholder default', async () => {
+      await makeRadarrPlaceholder(1)
+
+      // Seed user 4 has requires_approval: true
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'placeholder-approval-key',
+        { userId: 4, userName: 'No Sync User' },
+      )
+
+      expect(result.routedInstances).toEqual([])
+      expect(await getApprovalRequests()).toHaveLength(0)
+    })
+
+    it('still sends an explicit placeholder rule target to the manager', async () => {
+      await insertSecondRadarrInstance({ api_key: ARR_API_KEY_PLACEHOLDER })
+      await seedComedyRule({ target_instance_id: 2 })
+      routeItemToRadarr.mockRejectedValue(
+        new Error('Radarr instance "Second Radarr" is not set up'),
+      )
+
+      const result = await fastify.contentRouter.routeContent(
+        comedyMovie,
+        'placeholder-rule-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      expect(routeItemToRadarr).toHaveBeenCalledTimes(1)
+      expect(routeItemToRadarr.mock.calls[0][3]).toBe(2)
+      expect(result.routedInstances).toEqual([])
+    })
+  })
+
   describe('sync operations (routeSyncTarget)', () => {
     const syncRoute = (item: ContentItem, key: string) =>
       fastify.contentRouter.routeContent(item, key, {
@@ -645,8 +1106,10 @@ describe('routeContent gates', () => {
       const args = routeItemToRadarr.mock.calls[0]
       expect(args[3]).toBe(2)
       expect(args[4]).toBe(true)
-      expect(args[5]).toBe('/data/comedy')
-      expect(args[10]).toBe('movieAndCollection')
+      expect(args[5]).toMatchObject({
+        rootFolder: '/data/comedy',
+        monitor: 'movieAndCollection',
+      })
 
       // Sync is internal data movement - no approval records, no quota
       expect(await getApprovalRequests()).toHaveLength(0)
@@ -699,8 +1162,7 @@ describe('routeContent gates', () => {
       const args = routeItemToRadarr.mock.calls[0]
       expect(args[3]).toBe(2)
       expect(args[4]).toBe(true)
-      // No settings passed - the manager resolves the instance's own defaults
-      expect(args[5]).toBeUndefined()
+      expect(args[5]).toEqual({})
       expect(await getQuotaUsageCount()).toBe(0)
     })
 
@@ -798,9 +1260,10 @@ describe('routeContent gates', () => {
       expect(result.routedInstances).toEqual([1])
       expect(routeItemToRadarr).toHaveBeenCalledTimes(1)
       const args = routeItemToRadarr.mock.calls[0]
-      expect(args[5]).toBe('/data/approved')
-      // The approved monitor value must reach the add call
-      expect(args[10]).toBe('none')
+      expect(args[5]).toMatchObject({
+        rootFolder: '/data/approved',
+        monitor: 'none',
+      })
     })
   })
 })

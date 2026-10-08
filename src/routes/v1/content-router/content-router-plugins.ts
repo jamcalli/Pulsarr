@@ -5,20 +5,9 @@ import {
 import {
   EvaluatorMetadataErrorSchema,
   EvaluatorMetadataResponseSchema,
-  type FieldInfo,
-  type OperatorInfo,
 } from '@schemas/content-router/evaluator-metadata.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
-
-interface EvaluatorMetadataWithContentType {
-  name: string
-  description: string
-  priority: number
-  supportedFields?: FieldInfo[]
-  supportedOperators?: Record<string, OperatorInfo[]>
-  contentType?: 'radarr' | 'sonarr' | 'both'
-}
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get router plugin information
@@ -71,21 +60,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const metadata =
-          fastify.contentRouter.getEvaluatorsMetadata() as EvaluatorMetadataWithContentType[]
-
-        const normalizedMetadata = metadata.map((evaluator) => ({
-          name: evaluator.name,
-          description: evaluator.description,
-          priority: evaluator.priority,
-          supportedFields: evaluator.supportedFields || [],
-          supportedOperators: evaluator.supportedOperators || {},
-          contentType: evaluator.contentType || 'both',
-        }))
-
         return {
           success: true,
-          evaluators: normalizedMetadata,
+          evaluators: fastify.contentRouter.getEvaluatorsMetadata(),
         }
       } catch (error) {
         logRouteError(fastify.log, request, error, {

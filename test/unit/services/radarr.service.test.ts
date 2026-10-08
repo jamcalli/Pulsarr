@@ -1,4 +1,4 @@
-import type { RadarrInstance } from '@root/types/radarr.types.js'
+import type { RadarrInstance, RadarrPost } from '@root/types/radarr.types.js'
 import { RadarrService } from '@services/radarr.service.js'
 import type { FastifyInstance } from 'fastify'
 import { HttpResponse, http } from 'msw'
@@ -139,5 +139,64 @@ describe('RadarrService.isTmdbIdExcluded', () => {
     )
 
     await expect(service.isTmdbIdExcluded(123)).rejects.toThrow()
+  })
+})
+
+describe('RadarrService.addToRadarr', () => {
+  let service: RadarrService
+  let posted: RadarrPost | undefined
+
+  beforeEach(async () => {
+    posted = undefined
+    service = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      {} as FastifyInstance,
+    )
+    await service.initialize({ ...INSTANCE, tags: ['5'] })
+    server.use(
+      http.get('http://radarr.test/api/v3/rootfolder', () =>
+        HttpResponse.json([{ id: 1, path: '/first' }]),
+      ),
+      http.get('http://radarr.test/api/v3/qualityprofile', () =>
+        HttpResponse.json([{ id: 3, name: 'HD' }]),
+      ),
+      http.get('http://radarr.test/api/v3/tag', () =>
+        HttpResponse.json([{ id: 5, label: 'kids' }]),
+      ),
+      http.post('http://radarr.test/api/v3/movie', async ({ request }) => {
+        posted = (await request.json()) as RadarrPost
+        return HttpResponse.json(
+          {
+            id: 1,
+            rootFolderPath: '/arr-root',
+            qualityProfileId: 8,
+            tags: [5, 7],
+          },
+          { status: 201 },
+        )
+      }),
+    )
+  })
+
+  it('sends the instance fallbacks and returns what the arr created', async () => {
+    const added = await service.addToRadarr(
+      { title: 'Movie', type: 'movie', guids: ['tmdb:1'] },
+      undefined,
+      undefined,
+      [],
+    )
+
+    expect(added).toEqual({
+      rootFolder: '/arr-root',
+      qualityProfileId: 8,
+      tags: ['kids', '7'],
+    })
+    expect(posted).toMatchObject({
+      rootFolderPath: '/first',
+      qualityProfileId: 3,
+      tags: ['5'],
+    })
   })
 })
