@@ -92,6 +92,50 @@ export async function getRadarrInstance(
   return mapRowToRadarrInstance.call(this, instance)
 }
 
+async function insertRadarrInstanceRow(
+  this: DatabaseService,
+  trx: Knex.Transaction,
+  instance: Omit<RadarrInstance, 'id'>,
+): Promise<number> {
+  if (instance.isDefault) {
+    await trx('radarr_instances')
+      .where('is_default', true)
+      .update('is_default', false)
+  }
+
+  const result = await trx('radarr_instances')
+    .insert({
+      name: instance.name || 'Default Radarr Instance',
+      base_url: instance.baseUrl,
+      api_key: instance.apiKey,
+      quality_profile: instance.qualityProfile,
+      root_folder: instance.rootFolder,
+      bypass_ignored: instance.bypassIgnored,
+      search_on_add: instance.searchOnAdd ?? true,
+      minimum_availability: this.normaliseMinimumAvailability(
+        instance.minimumAvailability,
+      ),
+      monitor: instance.monitor ?? 'movieOnly',
+      tags: Array.isArray(instance.tags)
+        ? JSON.stringify(instance.tags)
+        : instance.tags || JSON.stringify([]),
+      is_default: instance.isDefault ?? false,
+      is_enabled: true,
+      synced_instances: Array.isArray(instance.syncedInstances)
+        ? JSON.stringify(instance.syncedInstances)
+        : instance.syncedInstances || JSON.stringify([]),
+      skip_default_routing_when_no_match:
+        instance.skipDefaultRoutingWhenNoMatch ?? false,
+      created_at: this.timestamp,
+      updated_at: this.timestamp,
+    })
+    .returning('id')
+
+  const id = this.extractId(result)
+  this.log.info(`Radarr instance created with ID: ${id}`)
+  return id
+}
+
 /**
  * Creates a new Radarr instance in the database and returns its ID.
  *
@@ -104,45 +148,9 @@ export async function createRadarrInstance(
   this: DatabaseService,
   instance: Omit<RadarrInstance, 'id'>,
 ): Promise<number> {
-  return await this.knex.transaction(async (trx) => {
-    if (instance.isDefault) {
-      await trx('radarr_instances')
-        .where('is_default', true)
-        .update('is_default', false)
-    }
-
-    const result = await trx('radarr_instances')
-      .insert({
-        name: instance.name || 'Default Radarr Instance',
-        base_url: instance.baseUrl,
-        api_key: instance.apiKey,
-        quality_profile: instance.qualityProfile,
-        root_folder: instance.rootFolder,
-        bypass_ignored: instance.bypassIgnored,
-        search_on_add: instance.searchOnAdd ?? true,
-        minimum_availability: this.normaliseMinimumAvailability(
-          instance.minimumAvailability,
-        ),
-        monitor: instance.monitor ?? 'movieOnly',
-        tags: Array.isArray(instance.tags)
-          ? JSON.stringify(instance.tags)
-          : instance.tags || JSON.stringify([]),
-        is_default: instance.isDefault ?? false,
-        is_enabled: true,
-        synced_instances: Array.isArray(instance.syncedInstances)
-          ? JSON.stringify(instance.syncedInstances)
-          : instance.syncedInstances || JSON.stringify([]),
-        skip_default_routing_when_no_match:
-          instance.skipDefaultRoutingWhenNoMatch ?? false,
-        created_at: this.timestamp,
-        updated_at: this.timestamp,
-      })
-      .returning('id')
-
-    const id = this.extractId(result)
-    this.log.info(`Radarr instance created with ID: ${id}`)
-    return id
-  })
+  return await this.knex.transaction((trx) =>
+    insertRadarrInstanceRow.call(this, trx, instance),
+  )
 }
 
 /**
@@ -362,6 +370,24 @@ export async function deleteRadarrInstance(
     this.log.error({ error }, `Error deleting Radarr instance ${id}:`)
     throw error
   }
+}
+
+/** Deletes the instance with every reference to it and inserts the replacement as default in one transaction, returning the new id. */
+export async function replaceRadarrInstance(
+  this: DatabaseService,
+  id: number,
+  replacement: Omit<RadarrInstance, 'id'>,
+): Promise<number> {
+  const newId = await this.knex.transaction(async (trx) => {
+    await this.cleanupDeletedRadarrInstanceReferences(id, trx)
+    await trx('radarr_instances').where('id', id).delete()
+    return insertRadarrInstanceRow.call(this, trx, {
+      ...replacement,
+      isDefault: true,
+    })
+  })
+  this.log.info(`Replaced Radarr instance ${id} with instance ${newId}`)
+  return newId
 }
 
 /**

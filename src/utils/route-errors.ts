@@ -1,3 +1,4 @@
+import { PlaceholderResetError } from '@utils/arr-default-instance.js'
 import { InvalidSeasonMonitoringError } from '@utils/season-monitoring.js'
 import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify'
 
@@ -138,7 +139,10 @@ export function handleArrInstanceError(
 ): ReturnType<FastifyReply['send']> {
   const { service, defaultMessage } = options
 
-  if (error instanceof InvalidSeasonMonitoringError) {
+  if (
+    error instanceof InvalidSeasonMonitoringError ||
+    error instanceof PlaceholderResetError
+  ) {
     return reply.badRequest(error.message)
   }
 

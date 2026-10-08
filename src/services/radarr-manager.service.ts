@@ -18,6 +18,10 @@ import type {
   InstanceHealthResult,
 } from '@root/types/service-result.types.js'
 import { RadarrService } from '@services/radarr.service.js'
+import {
+  PlaceholderResetError,
+  placeholderRadarrInstance,
+} from '@utils/arr-default-instance.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import {
@@ -488,6 +492,48 @@ export class RadarrManagerService {
     this.fastify.contentRouter.clearRouterRulesCache()
   }
 
+  private async resetToPlaceholder(current: RadarrInstance): Promise<void> {
+    const instances = await this.fastify.db.getAllRadarrInstances()
+    if (
+      instances.some(
+        (instance) =>
+          instance.id !== current.id &&
+          instance.apiKey !== ARR_API_KEY_PLACEHOLDER,
+      )
+    ) {
+      throw new PlaceholderResetError('Radarr')
+    }
+
+    const oldService = this.radarrServices.get(current.id)
+    if (oldService) {
+      try {
+        await oldService.removeWebhook()
+      } catch (error) {
+        this.log.error(
+          { error },
+          `Failed to remove webhook for instance ${current.id}`,
+        )
+      }
+    }
+
+    const placeholder = placeholderRadarrInstance()
+    const newId = await this.fastify.db.replaceRadarrInstance(
+      current.id,
+      placeholder,
+    )
+    this.radarrServices.delete(current.id)
+    this.fastify.contentRouter.clearRouterRulesCache()
+
+    const placeholderService = new RadarrService(
+      this.baseLog,
+      this.appBaseUrl,
+      this.port,
+      this.fastify,
+    )
+    await placeholderService.initialize({ ...placeholder, id: newId })
+    this.radarrServices.set(newId, placeholderService)
+  }
+
   async updateInstance(
     id: number,
     updates: Partial<RadarrInstance>,
@@ -495,6 +541,13 @@ export class RadarrManagerService {
     const current = await this.fastify.db.getRadarrInstance(id)
     if (current) {
       const candidate = { ...current, ...updates }
+      if (
+        current.apiKey !== ARR_API_KEY_PLACEHOLDER &&
+        candidate.apiKey === ARR_API_KEY_PLACEHOLDER
+      ) {
+        await this.resetToPlaceholder(current)
+        return
+      }
       const oldService = this.radarrServices.get(id)
 
       // Only treat changes to the target server endpoint as a "server change"
@@ -527,8 +580,16 @@ export class RadarrManagerService {
         )
         await radarrService.initialize(candidate)
         // Only persist after successful init; cleanup on persist failure
+        let persistedId = id
         try {
-          await this.fastify.db.updateRadarrInstance(id, updates)
+          if (isPlaceholderToReal) {
+            persistedId = await this.fastify.db.replaceRadarrInstance(
+              id,
+              candidate,
+            )
+          } else {
+            await this.fastify.db.updateRadarrInstance(id, updates)
+          }
         } catch (dbErr) {
           this.log.error(
             { error: dbErr, instanceId: id },
@@ -546,10 +607,6 @@ export class RadarrManagerService {
 
         // Clean up old webhook only when server actually changed
         // Skip cleanup when transitioning from placeholder credentials (no real webhook existed)
-        const toPlaceholder =
-          current.apiKey !== ARR_API_KEY_PLACEHOLDER &&
-          candidate.apiKey === ARR_API_KEY_PLACEHOLDER
-
         if (
           serverChanged &&
           oldService &&
@@ -563,18 +620,13 @@ export class RadarrManagerService {
               `Failed to cleanup old webhook for previous server of instance ${id}`,
             )
           }
-        } else if (oldService && toPlaceholder) {
-          // Remove webhook when transitioning to placeholder credentials
-          try {
-            await oldService.removeWebhook()
-          } catch (cleanupErr) {
-            this.log.warn(
-              { error: cleanupErr },
-              `Failed to cleanup webhook after transitioning ${id} to placeholder credentials`,
-            )
-          }
         }
-        this.radarrServices.set(id, radarrService)
+        if (persistedId !== id) {
+          this.radarrServices.delete(id)
+          radarrService.updateConfiguration({ ...candidate, id: persistedId })
+          this.fastify.contentRouter.clearRouterRulesCache()
+        }
+        this.radarrServices.set(persistedId, radarrService)
       } else {
         // Server unchanged - just update configuration, no webhook changes needed
         try {
