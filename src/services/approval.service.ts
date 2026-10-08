@@ -10,6 +10,7 @@ import type { ApprovalMetadata } from '@root/types/progress.types.js'
 import type { RadarrItem } from '@root/types/radarr.types.js'
 import type { ContentItem, RouteSettings } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
+import { canTransitionApproval } from '@schemas/approval/approval.schema.js'
 import { settingsFromRouting } from '@services/content-router/approved-routing.js'
 import { isArrAlreadyAddedError } from '@utils/arr-error.js'
 import { getGuidMatchScore } from '@utils/guid-handler.js'
@@ -802,7 +803,7 @@ export class ApprovalService {
    * 1. Updates the request status to "approved" in the database
    * 2. Attempts to route the content to Radarr/Sonarr
    * 3. On success: emits SSE events and sends notifications
-   * 4. On failure: rolls back status to "pending" and clears approval metadata
+   * 4. On failure: restores the previous status, approver and notes
    *
    * @param requestId - The approval request ID
    * @param approvedBy - User ID of the approver (null for system/auto-approval)
@@ -815,8 +816,17 @@ export class ApprovalService {
     notes?: string,
   ): Promise<ApproveAndRouteResult> {
     try {
-      const pending = await this.fastify.db.getApprovalRequest(requestId)
-      if (pending && !routingFor(pending.proposedRouterDecision)) {
+      const current = await this.fastify.db.getApprovalRequest(requestId)
+      if (!current) {
+        return { success: false, error: `Request ${requestId} not found` }
+      }
+      if (!canTransitionApproval(current.status, 'approved')) {
+        return {
+          success: false,
+          error: `Cannot approve request that is already ${current.status}`,
+        }
+      }
+      if (!routingFor(current.proposedRouterDecision)) {
         return { success: false, error: 'Set routing before approving.' }
       }
 
@@ -838,12 +848,12 @@ export class ApprovalService {
       const routingResult = await this.processApprovedRequest(approvedRequest)
 
       if (!routingResult.success) {
-        // Step 3a: ROLLBACK - Revert status to pending and clear approval metadata
+        // Step 3a: ROLLBACK - Restore the pre-approval status, approver and notes
         try {
           await this.fastify.db.updateApprovalRequest(requestId, {
-            status: 'pending',
-            approvedBy: null,
-            approvalNotes: null,
+            status: current.status,
+            approvedBy: current.approvedBy ?? null,
+            approvalNotes: current.approvalNotes ?? null,
           })
         } catch (rollbackError) {
           this.log.error(
@@ -991,6 +1001,19 @@ export class ApprovalService {
 
     for (const id of requestIds) {
       try {
+        const current = await this.fastify.db.getApprovalRequest(id)
+        if (!current) {
+          results.failed.push(id)
+          results.errors.push(`Request ${id} not found`)
+          continue
+        }
+        if (!canTransitionApproval(current.status, 'rejected')) {
+          results.failed.push(id)
+          results.errors.push(
+            `Request ${id}: Cannot reject request that is already ${current.status}`,
+          )
+          continue
+        }
         const result = await this.fastify.db.rejectRequest(
           id,
           rejectedBy,

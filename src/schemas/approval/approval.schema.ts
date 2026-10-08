@@ -21,6 +21,28 @@ export const ApprovalStatusSchema = z
     description: 'Lifecycle state of an approval request',
   })
 
+export const APPROVAL_TRANSITIONS: Record<
+  ApprovalStatus,
+  readonly Extract<ApprovalStatus, 'approved' | 'rejected'>[]
+> = {
+  pending: ['approved', 'rejected'],
+  rejected: ['approved'],
+  approved: [],
+  expired: [],
+  auto_approved: [],
+}
+
+export function canTransitionApproval(
+  from: ApprovalStatus,
+  to: ApprovalStatus,
+): boolean {
+  return APPROVAL_TRANSITIONS[from].some((status) => status === to)
+}
+
+export function isApprovalEditable(status: ApprovalStatus): boolean {
+  return APPROVAL_TRANSITIONS[status].length > 0
+}
+
 export const ApprovalTriggerSchema = z
   .enum(['quota_exceeded', 'router_rule', 'manual_flag', 'content_criteria'])
   .meta({
@@ -284,6 +306,7 @@ export const BulkOperationResponseSchema = z.object({
 })
 
 // Type exports
+export type ApprovalStatus = z.infer<typeof ApprovalStatusSchema>
 export type RouterDecision = z.infer<typeof RouterDecisionSchema>
 export type ProposedRouting = NonNullable<
   NonNullable<RouterDecision['approval']>['proposedRouting']
