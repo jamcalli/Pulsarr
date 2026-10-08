@@ -35,6 +35,33 @@ export function isConfiguredTarget(target: ArrTarget): boolean {
   return target.instance.apiKey !== ARR_API_KEY_PLACEHOLDER
 }
 
+/** Every configured target, plus the stored one as a disabled "not connected" option when it is unusable, so a select always matches its saved value. */
+export function instanceOptions(
+  targets: readonly ArrTarget[],
+  storedId: number | null,
+): Array<{ value: string; label: string; disabled?: boolean }> {
+  const options = targets.filter(isConfiguredTarget).map(({ instance }) => ({
+    value: String(instance.id),
+    label: instance.isDefault ? `${instance.name} (default)` : instance.name,
+  }))
+  if (
+    storedId === null ||
+    options.some(({ value }) => value === String(storedId))
+  ) {
+    return options
+  }
+  const stored = targets.find(({ instance }) => instance.id === storedId)
+  const name = stored?.instance.name ?? `Instance ${storedId}`
+  return [
+    ...options,
+    {
+      value: String(storedId),
+      label: `${name} (not connected)`,
+      disabled: true,
+    },
+  ]
+}
+
 export const DEFAULT_ROUTE_PRIORITY = 50
 
 const TRIGGER_LABELS: Record<ApprovalTrigger, string> = {

@@ -3,7 +3,7 @@ import {
   ComparisonOperatorSchema,
   ConditionSchema,
   RouterGroupOperatorSchema,
-  RouterRulePrioritySchema,
+  routerRulePriorityFor,
 } from '@root/schemas/content-router/content-router.schema'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema'
 import { z } from 'zod'
@@ -47,24 +47,27 @@ const ConditionNodeSchema = z
     if (issue) ctx.addIssue({ code: 'custom', message: issue.message })
   })
 
-export const RouteFormSchema = z.object({
-  name: rule.name,
-  order: RouterRulePrioritySchema,
-  action: z.enum(['route', 'exclude']),
-  routing: z.object({
-    instanceId: z.string(),
-    qualityProfile: z.string().nullable(),
-    rootFolder: rule.root_folder.unwrap(),
-    tags: rule.tags.unwrap(),
-    searchOnAdd: rule.search_on_add.unwrap(),
-    seasonMonitoring: rule.season_monitoring.unwrap(),
-    seriesType: rule.series_type.unwrap(),
-    monitor: rule.monitor.unwrap(),
-  }),
-  always_require_approval: rule.always_require_approval.unwrap(),
-  approval_reason: rule.approval_reason.unwrap(),
-  bypass_user_quotas: rule.bypass_user_quotas.unwrap(),
-  conditions: z.array(
-    z.discriminatedUnion('kind', [GroupNodeSchema, ConditionNodeSchema]),
-  ),
-})
+/** The editor's schema for one rule, which keeps accepting the priority already stored on it. */
+export function routeFormSchema(storedOrder: number | null) {
+  return z.object({
+    name: rule.name,
+    order: routerRulePriorityFor(storedOrder),
+    action: z.enum(['route', 'exclude']),
+    routing: z.object({
+      instanceId: z.string(),
+      qualityProfile: z.string().nullable(),
+      rootFolder: rule.root_folder.unwrap(),
+      tags: rule.tags.unwrap(),
+      searchOnAdd: rule.search_on_add.unwrap(),
+      seasonMonitoring: rule.season_monitoring.unwrap(),
+      seriesType: rule.series_type.unwrap(),
+      monitor: rule.monitor.unwrap(),
+    }),
+    always_require_approval: rule.always_require_approval.unwrap(),
+    approval_reason: rule.approval_reason.unwrap(),
+    bypass_user_quotas: rule.bypass_user_quotas.unwrap(),
+    conditions: z.array(
+      z.discriminatedUnion('kind', [GroupNodeSchema, ConditionNodeSchema]),
+    ),
+  })
+}

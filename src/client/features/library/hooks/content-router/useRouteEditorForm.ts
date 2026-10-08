@@ -1,3 +1,4 @@
+import { RouterRulePrioritySchema } from '@root/schemas/content-router/content-router.schema'
 import { useStore } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -12,12 +13,13 @@ import {
   ruleFormValues,
   rulePayload,
 } from '@/features/library/lib/content-router/route-form'
-import { RouteFormSchema } from '@/features/library/lib/content-router/route-form.schema'
+import { routeFormSchema } from '@/features/library/lib/content-router/route-form.schema'
 import { useArrInstanceOptions } from '@/hooks/useArrInstanceOptions'
 import { useConfig } from '@/hooks/useConfig'
 import { useCreateArrTag } from '@/hooks/useCreateArrTag'
 import { useFormDirty } from '@/hooks/useFormDirty'
 import { withMinDuration } from '@/hooks/useMinLoading'
+import { instanceOptions } from '@/lib/approval'
 import { seasonMonitoringOptions } from '@/lib/arr-labels'
 import { submitThenBlurValidation, useAppForm } from '@/lib/form'
 import { mutationErrorMessage } from '@/lib/tanstackApi'
@@ -64,6 +66,8 @@ export function useRouteEditorForm({
     }),
   )
 
+  const [schema] = useState(() => routeFormSchema(rule?.order ?? null))
+
   const mutation = useMutation({
     mutationFn: (values: RouteFormValues) =>
       withMinDuration(
@@ -81,7 +85,7 @@ export function useRouteEditorForm({
   const form = useAppForm({
     defaultValues,
     validationLogic: submitThenBlurValidation,
-    validators: { onDynamic: RouteFormSchema },
+    validators: { onDynamic: schema },
     // The editor shows the error from the mutation, so this catch only ends the submit.
     onSubmit: ({ value }) =>
       mutation
@@ -111,6 +115,9 @@ export function useRouteEditorForm({
     form,
     dirty,
     isNew: rule === null,
+    priorityOutOfRange:
+      typeof rule?.order === 'number' &&
+      !RouterRulePrioritySchema.safeParse(rule.order).success,
     saving: mutation.isPending,
     errorMessage:
       mutation.isPending || !mutation.error
@@ -123,10 +130,10 @@ export function useRouteEditorForm({
     setNewEnabled,
     routing,
     createTag,
-    instanceOptions: instances.configuredTargets.map(({ instance }) => ({
-      value: String(instance.id),
-      label: instance.isDefault ? `${instance.name} (default)` : instance.name,
-    })),
+    instanceOptions: instanceOptions(
+      instances.targets,
+      rule?.target_instance_id ?? null,
+    ),
     seasonMonitoringOptions: seasonMonitoringOptions(
       seasonMonitoring,
       rollingEnabled,

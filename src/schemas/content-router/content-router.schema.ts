@@ -32,11 +32,24 @@ export const ROUTER_GROUP_MAX_DEPTH = 20
 const PRIORITY_RANGE_ERROR = `Priority must be ${ROUTER_RULE_PRIORITY.min} to ${ROUTER_RULE_PRIORITY.max}.`
 
 /** Required here, the payloads wrap it in `.optional()` because the server defaults a missing order. */
+const PRIORITY_REQUIRED_ERROR = 'Enter a priority.'
+
 export const RouterRulePrioritySchema = z
-  .number({ error: 'Enter a priority.' })
+  .number({ error: PRIORITY_REQUIRED_ERROR })
   .int({ error: 'Priority must be a whole number.' })
   .min(ROUTER_RULE_PRIORITY.min, { error: PRIORITY_RANGE_ERROR })
   .max(ROUTER_RULE_PRIORITY.max, { error: PRIORITY_RANGE_ERROR })
+
+/** Priority for one rule, where the order already stored on it passes even outside the range. */
+export function routerRulePriorityFor(stored: number | null) {
+  return z
+    .number({ error: PRIORITY_REQUIRED_ERROR })
+    .superRefine((order, ctx) => {
+      if (order === stored) return
+      const issue = RouterRulePrioritySchema.safeParse(order).error?.issues[0]
+      if (issue) ctx.addIssue({ code: 'custom', message: issue.message })
+    })
+}
 
 /**
  * Determines whether a value should be treated as "non-empty" for validation.

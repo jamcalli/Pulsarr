@@ -1,9 +1,12 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder'
 import {
+  type ArrTarget,
   approveBlockedReason,
   canApprove,
   decisionSummary,
   defaultRouting,
   expiryLine,
+  instanceOptions,
   proposedRouting,
   requestedLine,
   routingFacts,
@@ -388,6 +391,55 @@ describe('defaultRouting', () => {
       syncedInstances: undefined,
       seasonMonitoring: 'all',
       seriesType: 'anime',
+    })
+  })
+})
+
+describe('instanceOptions', () => {
+  const radarr = (
+    id: number,
+    name: string,
+    isDefault: boolean,
+    apiKey = 'key',
+  ): ArrTarget => ({
+    type: 'radarr',
+    instance: {
+      id,
+      name,
+      isDefault,
+      apiKey,
+      baseUrl: 'http://arr.local',
+      bypassIgnored: false,
+      searchOnAdd: true,
+      tags: [],
+      minimumAvailability: 'released',
+      monitor: 'movieOnly',
+      skipDefaultRoutingWhenNoMatch: false,
+    },
+  })
+  const targets = [
+    radarr(1, 'Radarr', true),
+    radarr(2, 'Radarr 4K', false, ARR_API_KEY_PLACEHOLDER),
+  ]
+
+  it('lists configured targets only when the stored one is usable', () => {
+    expect(instanceOptions(targets, 1)).toEqual([
+      { value: '1', label: 'Radarr (default)' },
+    ])
+  })
+
+  it('keeps an unconfigured stored target as a disabled option', () => {
+    expect(instanceOptions(targets, 2)).toEqual([
+      { value: '1', label: 'Radarr (default)' },
+      { value: '2', label: 'Radarr 4K (not connected)', disabled: true },
+    ])
+  })
+
+  it('names a deleted stored target by its id', () => {
+    expect(instanceOptions(targets, 9)).toContainEqual({
+      value: '9',
+      label: 'Instance 9 (not connected)',
+      disabled: true,
     })
   })
 })

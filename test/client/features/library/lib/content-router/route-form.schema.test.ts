@@ -1,6 +1,6 @@
 import { ROUTER_RULE_PRIORITY } from '@root/schemas/content-router/content-router.schema'
 import { conditionNodes } from '@/features/library/lib/content-router/route-form'
-import { RouteFormSchema } from '@/features/library/lib/content-router/route-form.schema'
+import { routeFormSchema } from '@/features/library/lib/content-router/route-form.schema'
 import { resolvers } from '../../content-router-fixtures.js'
 
 const { controlFor, blank } = resolvers()
@@ -38,15 +38,15 @@ function values(overrides: object = {}) {
   }
 }
 
-function messages(input: object) {
-  const result = RouteFormSchema.safeParse(input)
+function messages(input: object, storedOrder: number | null = null) {
+  const result = routeFormSchema(storedOrder).safeParse(input)
   return (result.error?.issues ?? []).map((issue) => ({
     path: issue.path.join('.'),
     message: issue.message,
   }))
 }
 
-describe('RouteFormSchema', () => {
+describe('routeFormSchema', () => {
   it('accepts a complete route', () => {
     expect(messages(values())).toEqual([])
   })
@@ -61,6 +61,13 @@ describe('RouteFormSchema', () => {
     ])
     expect(messages(values({ order: undefined }))).toEqual([
       { path: 'order', message: 'Enter a priority.' },
+    ])
+  })
+
+  it('keeps accepting the priority already stored on the rule', () => {
+    expect(messages(values({ order: 150 }), 150)).toEqual([])
+    expect(messages(values({ order: 149 }), 150)).toEqual([
+      { path: 'order', message: 'Priority must be 1 to 100.' },
     ])
   })
 

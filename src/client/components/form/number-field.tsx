@@ -37,6 +37,8 @@ type NumberFieldProps = UnitProps & {
   max: number
   step?: number
   grouping?: boolean
+  /** Typed values outside min and max are left for validation instead of clamped on blur. */
+  allowOutOfRange?: boolean
 }
 
 export function NumberField({
@@ -52,6 +54,7 @@ export function NumberField({
   max,
   step = 1,
   grouping = true,
+  allowOutOfRange = false,
 }: NumberFieldProps) {
   const field = useFieldContext<number | undefined>()
   const isInvalid = field.state.meta.errors.length > 0
@@ -91,6 +94,7 @@ export function NumberField({
           format={grouping ? undefined : { useGrouping: false }}
           min={min}
           max={max}
+          allowOutOfRange={allowOutOfRange}
           step={step}
           largeStep={10}
           disabled={disabled}

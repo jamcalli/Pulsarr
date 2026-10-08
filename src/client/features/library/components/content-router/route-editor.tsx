@@ -63,6 +63,7 @@ export function RouteEditor({
                 description={priorityDescription}
                 min={ROUTER_RULE_PRIORITY.min}
                 max={ROUTER_RULE_PRIORITY.max}
+                allowOutOfRange={editor.priorityOutOfRange}
               />
             )}
           </form.AppField>

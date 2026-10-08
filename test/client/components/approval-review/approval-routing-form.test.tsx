@@ -290,6 +290,9 @@ describe('Approval routing form', () => {
     expect(
       within(dialog).getByRole('button', { name: 'Save routing' }),
     ).toBeDisabled()
+    expect(
+      within(dialog).getByText('Sonarr 4K (not connected)'),
+    ).toBeInTheDocument()
   })
 
   it('never offers an unconfigured instance as a target or synced instance', async () => {
