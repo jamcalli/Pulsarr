@@ -1,4 +1,5 @@
 import { CircleCheck } from 'lucide-react'
+import { ApprovalAdditionalRouting } from '@/components/approval-review/approval-additional-routing'
 import { ApprovalRoutingForm } from '@/components/approval-review/approval-routing-form'
 import { FactList } from '@/components/fact-list'
 import { Badge } from '@/components/ui/badge'
@@ -111,6 +112,11 @@ export function ApprovalRoutingSummary({
     <section className="flex flex-col gap-3">
       {heading}
       <FactList facts={facts} />
+      <ApprovalAdditionalRouting
+        approval={approval}
+        review={review}
+        type={type}
+      />
       {review.routingSaved && (
         <p
           role="status"

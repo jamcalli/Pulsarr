@@ -12,6 +12,7 @@ import {
 } from '@schemas/content-router/content-router.schema.js'
 import { formatRule } from '@utils/content-router-formatter.js'
 import { logRouteError } from '@utils/route-errors.js'
+import { rejectedRouterRulePriority } from '@utils/router-rule-priority.js'
 import {
   invalidSeasonMonitoringMessage,
   rejectedSeasonMonitoring,
@@ -390,6 +391,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         )
         if (rejected !== undefined) {
           return reply.badRequest(invalidSeasonMonitoringMessage(rejected))
+        }
+
+        const rejectedPriority = rejectedRouterRulePriority(
+          request.body.order,
+          existingRule.order,
+        )
+        if (rejectedPriority !== undefined) {
+          return reply.badRequest(rejectedPriority)
         }
 
         if (!(await targetInstanceExists(fastify.db, request.body))) {

@@ -1,3 +1,4 @@
+import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder'
 import {
   MINIMUM_AVAILABILITY_LABELS,
   RADARR_MONITOR_LABELS,
@@ -21,8 +22,7 @@ type ApprovalTrigger = components['schemas']['ApprovalTrigger']
 type QuotaType = components['schemas']['QuotaType']
 type RadarrInstance =
   paths['/v1/radarr/instances']['get']['responses'][200]['content']['application/json'][number]
-type SonarrInstance =
-  paths['/v1/sonarr/instances']['get']['responses'][200]['content']['application/json'][number]
+type SonarrInstance = components['schemas']['SonarrInstance']
 
 export type ReviewStage = 'review' | 'edit' | 'deny'
 
@@ -30,7 +30,39 @@ export type ArrTarget =
   | { type: 'radarr'; instance: RadarrInstance }
   | { type: 'sonarr'; instance: SonarrInstance }
 
-const DEFAULT_PRIORITY = 50
+/** False for the unconfigured instance the server seeds, which can never receive content. */
+export function isConfiguredTarget(target: ArrTarget): boolean {
+  return target.instance.apiKey !== ARR_API_KEY_PLACEHOLDER
+}
+
+/** Every configured target, plus the stored one as a disabled "not connected" option when it is unusable, so a select always matches its saved value. */
+export function instanceOptions(
+  targets: readonly ArrTarget[],
+  storedId: number | null,
+): Array<{ value: string; label: string; disabled?: boolean }> {
+  const options = targets.filter(isConfiguredTarget).map(({ instance }) => ({
+    value: String(instance.id),
+    label: instance.isDefault ? `${instance.name} (default)` : instance.name,
+  }))
+  if (
+    storedId === null ||
+    options.some(({ value }) => value === String(storedId))
+  ) {
+    return options
+  }
+  const stored = targets.find(({ instance }) => instance.id === storedId)
+  const name = stored?.instance.name ?? `Instance ${storedId}`
+  return [
+    ...options,
+    {
+      value: String(storedId),
+      label: `${name} (not connected)`,
+      disabled: true,
+    },
+  ]
+}
+
+export const DEFAULT_ROUTE_PRIORITY = 50
 
 const TRIGGER_LABELS: Record<ApprovalTrigger, string> = {
   quota_exceeded: 'Quota exceeded',
@@ -82,6 +114,29 @@ export function withRouting(
       data: {},
       ...decision.approval,
       proposedRouting: routing,
+    },
+  }
+}
+
+/** Destinations stored besides the primary one, each routed on approval. */
+export function additionalRouting(decision: RouterDecision): ApprovalRouting[] {
+  return decision.approval?.additionalRouting ?? []
+}
+
+/** Drops one additional destination and keeps the rest of the stored decision. */
+export function withoutAdditionalRouting(
+  request: ApprovalRequest,
+  index: number,
+): RouterDecision {
+  const decision = request.proposedRouterDecision
+  if (!decision.approval) return decision
+  return {
+    ...decision,
+    approval: {
+      ...decision.approval,
+      additionalRouting: additionalRouting(decision).filter(
+        (_, position) => position !== index,
+      ),
     },
   }
 }
@@ -159,7 +214,7 @@ export function defaultRouting(target: ArrTarget): ApprovalRouting {
     qualityProfile: instance.qualityProfile ?? null,
     rootFolder: instance.rootFolder ?? null,
     tags: instance.tags,
-    priority: DEFAULT_PRIORITY,
+    priority: DEFAULT_ROUTE_PRIORITY,
     searchOnAdd: instance.searchOnAdd,
     syncedInstances: instance.syncedInstances?.length
       ? instance.syncedInstances

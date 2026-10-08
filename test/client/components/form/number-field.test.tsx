@@ -113,4 +113,51 @@ describe('NumberField', () => {
 
     expect(screen.getByLabelText('Expire after')).toBeDisabled()
   })
+
+  it('renders a unit symbol as given, without pluralizing it', () => {
+    function RatingForm() {
+      const form = useAppForm({ defaultValues: { rating: 7.5 } })
+      return (
+        <form.AppField name="rating">
+          {(field) => (
+            <field.NumberField
+              label="Rating"
+              labelHidden
+              unitSymbol="/10"
+              min={0}
+              max={10}
+              step={0.1}
+            />
+          )}
+        </form.AppField>
+      )
+    }
+    render(<RatingForm />)
+
+    expect(screen.getByLabelText('Rating')).toHaveValue('7.5')
+    expect(screen.getByText('/10')).toBeInTheDocument()
+    expect(screen.queryByText('0 to 10')).not.toBeInTheDocument()
+  })
+
+  it('leaves out the addon without a unit and the separator without grouping', () => {
+    function YearForm() {
+      const form = useAppForm({ defaultValues: { year: 2020 } })
+      return (
+        <form.AppField name="year">
+          {(field) => (
+            <field.NumberField
+              label="Year"
+              min={1900}
+              max={2100}
+              grouping={false}
+            />
+          )}
+        </form.AppField>
+      )
+    }
+    render(<YearForm />)
+
+    expect(screen.getByLabelText('Year')).toHaveValue('2020')
+    expect(screen.getByText('1,900 to 2,100')).toBeInTheDocument()
+  })
 })

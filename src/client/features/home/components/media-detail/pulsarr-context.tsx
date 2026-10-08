@@ -73,7 +73,7 @@ function Journey({ steps }: { steps: JourneyStep[] }) {
 
 export function PulsarrContext({ context }: { context: MediaContext }) {
   const { journey, instances, watchers } = context
-  const lookup = useUserDirectory()
+  const { lookup } = useUserDirectory()
   const empty = journey === null && watchers.length === 0
   const watcherPeople = watchers.map((username) => ({
     username,

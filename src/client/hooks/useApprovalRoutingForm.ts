@@ -6,7 +6,7 @@ import { useArrInstances } from '@/hooks/useArrInstances'
 import { useConfig } from '@/hooks/useConfig'
 import { useFormDirty } from '@/hooks/useFormDirty'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
-import { type ArrTarget, defaultRouting } from '@/lib/approval'
+import { type ArrTarget, defaultRouting, instanceOptions } from '@/lib/approval'
 import {
   ApprovalRoutingFormSchema,
   routingFormValues,
@@ -59,13 +59,20 @@ export function useApprovalRoutingForm({
   }, [dirty, reportRoutingDirty])
 
   const instanceId = Number(useStore(form.store, (s) => s.values.instanceId))
+  const seasonMonitoring = useStore(
+    form.store,
+    (s) => s.values.seasonMonitoring,
+  )
   const target = instances.findTarget(instanceId)
   const options = useArrInstanceOptions(type, instanceId, true)
   const rollingEnabled = config?.plexSessionMonitoring?.enabled ?? false
 
   function syncsWith(selected: ArrTarget | null): boolean {
+    const configuredDefault = instances.configuredDefault
     return (
-      (selected?.instance.isDefault ?? false) && instances.targets.length > 1
+      configuredDefault !== null &&
+      selected?.instance.id === configuredDefault.instance.id &&
+      instances.configuredTargets.length > 1
     )
   }
 
@@ -76,18 +83,15 @@ export function useApprovalRoutingForm({
     instanceId,
     options,
     showSynced: syncsWith(target),
-    instanceOptions: instances.targets.map(({ instance }) => ({
-      value: String(instance.id),
-      label: instance.isDefault ? `${instance.name} (default)` : instance.name,
-    })),
-    syncedOptions: instances.targets
+    instanceOptions: instanceOptions(instances.targets, initial.instanceId),
+    syncedOptions: instances.configuredTargets
       .filter(({ instance }) => instance.id !== instanceId)
       .map(({ instance }) => ({
         value: String(instance.id),
         label: instance.name,
       })),
     seasonMonitoringOptions: seasonMonitoringOptions(
-      defaultValues.seasonMonitoring,
+      seasonMonitoring,
       rollingEnabled,
     ),
     switchInstance: (id: string) => {

@@ -68,7 +68,7 @@ interface RequestViewProps {
 }
 
 function RequestList({ items, onSelect, onIntent }: RequestViewProps) {
-  const lookup = useUserDirectory()
+  const { lookup } = useUserDirectory()
   return (
     <ItemGroup className="gap-0">
       {items.map((item, index) => (
@@ -109,7 +109,7 @@ function RequestList({ items, onSelect, onIntent }: RequestViewProps) {
 }
 
 function RequestPosters({ items, onSelect, onIntent }: RequestViewProps) {
-  const lookup = useUserDirectory()
+  const { lookup } = useUserDirectory()
   return (
     <PosterRow>
       {items.map((item) => (

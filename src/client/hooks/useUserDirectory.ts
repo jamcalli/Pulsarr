@@ -8,7 +8,7 @@ interface DirectoryEntry {
   avatar: string | null
 }
 
-/** Resolves a Plex username to its admin-set alias (or the username itself) and avatar, case-insensitively. */
+/** `lookup` resolves a Plex username to its alias (or the username) and avatar case-insensitively, `users` lists every user by display name. */
 export function useUserDirectory() {
   const { data } = $api.useQuery('get', '/v1/users/list', undefined, {
     staleTime: USERS_STALE_MS,
@@ -25,11 +25,22 @@ export function useUserDirectory() {
     [data],
   )
 
-  return useCallback(
+  const users = useMemo(
+    () =>
+      (data?.users ?? []).map((user) => ({
+        id: user.id,
+        name: user.alias ?? user.name,
+      })),
+    [data],
+  )
+
+  const lookup = useCallback(
     (username: string) => {
       const entry = entries.get(username.toLowerCase())
       return { name: entry?.alias ?? username, avatar: entry?.avatar ?? null }
     },
     [entries],
   )
+
+  return { lookup, users }
 }

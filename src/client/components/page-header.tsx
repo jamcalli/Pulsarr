@@ -57,14 +57,20 @@ export function PageHeader({
   )
 }
 
+export function PageHeaderSkeleton() {
+  return (
+    <div className="flex flex-col gap-2">
+      <Skeleton className="h-4 w-20" />
+      <Skeleton className="h-9 w-56" />
+      <Skeleton className="h-5 w-80 max-w-full" />
+    </div>
+  )
+}
+
 export function PageSkeleton({ wide = false }: { wide?: boolean }) {
   return (
     <Page wide={wide}>
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-9 w-56" />
-        <Skeleton className="h-5 w-80 max-w-full" />
-      </div>
+      <PageHeaderSkeleton />
       <Skeleton className="h-48 w-full rounded-lg" />
     </Page>
   )

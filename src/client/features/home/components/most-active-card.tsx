@@ -65,7 +65,7 @@ function UserRows({
   users: UserStat[]
   topCount: number
 }) {
-  const lookup = useUserDirectory()
+  const { lookup } = useUserDirectory()
 
   return (
     <>

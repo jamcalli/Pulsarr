@@ -1105,4 +1105,68 @@ describe('Content Router Rules API', () => {
       expect(res.json().message).toBe('Target instance does not exist')
     })
   })
+
+  describe('priority bounds', () => {
+    it('rejects a new rule with an order outside 1 to 100', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...radarrRule, order: 101 },
+      })
+      expect(res.statusCode).toBe(400)
+    })
+
+    it('accepts the bounds themselves', async () => {
+      for (const order of [1, 100]) {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/v1/content-router/rules',
+          payload: { ...radarrRule, order },
+        })
+        expect(res.statusCode).toBe(201)
+        expect(res.json().rule.order).toBe(order)
+      }
+    })
+
+    it('rejects an update that moves an in-range order out of range', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: { ...radarrRule, order: 50 },
+      })
+      const res = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${createRes.json().rule.id}`,
+        payload: { ...radarrRule, order: 0 },
+      })
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toBe('Priority must be 1 to 100.')
+    })
+
+    it('keeps round-tripping an out-of-range order already stored on the rule', async () => {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/content-router/rules',
+        payload: radarrRule,
+      })
+      const id = createRes.json().rule.id
+      await getTestDatabase()('router_rules')
+        .where({ id })
+        .update({ order: 150 })
+
+      const getRes = await app.inject({
+        method: 'GET',
+        url: `/v1/content-router/rules/${id}`,
+      })
+      expect(getRes.json().rule.order).toBe(150)
+
+      const putRes = await app.inject({
+        method: 'PUT',
+        url: `/v1/content-router/rules/${id}`,
+        payload: { ...radarrRule, name: 'Renamed', order: 150 },
+      })
+      expect(putRes.statusCode).toBe(200)
+      expect(putRes.json().rule.order).toBe(150)
+    })
+  })
 })

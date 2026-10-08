@@ -6,7 +6,7 @@ import type { components } from '@/types/api.js'
 type ApprovalRequest = components['schemas']['ApprovalRequest']
 
 export function ApprovalTrigger({ approval }: { approval: ApprovalRequest }) {
-  const { name } = useUserDirectory()(approval.userName)
+  const { name } = useUserDirectory().lookup(approval.userName)
   const trigger = triggerSummary(approval, name)
   const expiry =
     approval.status === 'pending' ? expiryLine(approval, Date.now()) : null

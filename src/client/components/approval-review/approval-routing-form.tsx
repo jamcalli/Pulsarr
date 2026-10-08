@@ -1,11 +1,8 @@
-import {
-  MINIMUM_AVAILABILITY_LABELS,
-  RADARR_MONITOR_LABELS,
-} from '@root/schemas/radarr/add-options.schema'
 import { ApprovalRoutingFormSkeleton } from '@/components/approval-review/approval-review-skeleton'
 import { BusyLabel } from '@/components/busy-label'
 import { ErrorAlert } from '@/components/error-alert'
 import { LeaveDialog } from '@/components/leave-dialog'
+import { RoutingFields } from '@/components/routing-fields'
 import { Button } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
 import type { ApprovalReview } from '@/hooks/useApprovalReview'
@@ -14,7 +11,7 @@ import { useApprovalTarget } from '@/hooks/useApprovalTarget'
 import { useArrInstanceOptions } from '@/hooks/useArrInstanceOptions'
 import { useCreateArrTag } from '@/hooks/useCreateArrTag'
 import { type ArrTarget, defaultRouting } from '@/lib/approval'
-import { ARR_TYPE_LABELS, SERIES_TYPE_LABELS } from '@/lib/arr-labels'
+import { ARR_TYPE_LABELS } from '@/lib/arr-labels'
 import type { components } from '@/types/api.js'
 
 type ApprovalRequest = components['schemas']['ApprovalRequest']
@@ -22,10 +19,6 @@ type ApprovalRouting = components['schemas']['ApprovalRouting']
 
 const HELP =
   'Changes apply to this request only. Your instance defaults stay as they are.'
-
-function labelOptions(labels: Record<string, string>) {
-  return Object.entries(labels).map(([value, label]) => ({ value, label }))
-}
 
 interface ApprovalRoutingFormProps {
   approval: ApprovalRequest
@@ -112,121 +105,38 @@ function RoutingForm({ type, initial, unsaved, review }: RoutingFormProps) {
   const fieldsDisabled = busy || !options.connected || options.isLoading
   const saveDisabled = fieldsDisabled || !(dirty || unsaved)
 
-  const arrFields =
-    type === 'sonarr' ? (
-      <>
-        <form.AppField name="seasonMonitoring">
-          {(field) => (
-            <field.SelectField
-              label="Season monitoring"
-              orientation="vertical"
-              disabled={fieldsDisabled}
-              options={seasonMonitoringOptions}
-            />
-          )}
-        </form.AppField>
-        <form.AppField name="seriesType">
-          {(field) => (
-            <field.SegmentedField
-              label="Series type"
-              orientation="vertical"
-              disabled={fieldsDisabled}
-              options={labelOptions(SERIES_TYPE_LABELS)}
-            />
-          )}
-        </form.AppField>
-      </>
-    ) : (
-      <>
-        <form.AppField name="minimumAvailability">
-          {(field) => (
-            <field.SegmentedField
-              label="Minimum availability"
-              orientation="vertical"
-              disabled={fieldsDisabled}
-              options={labelOptions(MINIMUM_AVAILABILITY_LABELS)}
-            />
-          )}
-        </form.AppField>
-        <form.AppField name="monitor">
-          {(field) => (
-            <field.SelectField
-              label="Monitor"
-              orientation="vertical"
-              disabled={fieldsDisabled}
-              options={labelOptions(RADARR_MONITOR_LABELS)}
-            />
-          )}
-        </form.AppField>
-      </>
-    )
-
   return (
     <form.AppForm>
       <form.Form className="flex flex-col gap-4">
         <p className="text-muted-foreground">{HELP}</p>
         <FieldGroup className="gap-4">
-          <form.AppField
-            name="instanceId"
-            listeners={{ onChange: ({ value }) => switchInstance(value) }}
-          >
-            {(field) => (
-              <field.SelectField
-                label="Instance"
-                description="Switching instance resets the quality profile and root folder."
-                orientation="vertical"
-                disabled={busy}
-                options={instanceOptions}
-              />
-            )}
-          </form.AppField>
-          <ErrorAlert message={options.errorMessage} />
-          <form.AppField name="qualityProfile">
-            {(field) => (
-              <field.SelectField
-                label="Quality profile"
-                orientation="vertical"
-                disabled={fieldsDisabled}
-                options={options.qualityProfiles}
-              />
-            )}
-          </form.AppField>
-          <form.AppField name="rootFolder">
-            {(field) => (
-              <field.SelectField
-                label="Root folder"
-                orientation="vertical"
-                disabled={fieldsDisabled}
-                options={options.rootFolders}
-              />
-            )}
-          </form.AppField>
-          {arrFields}
-          <form.AppField name="searchOnAdd">
-            {(field) => (
-              <field.SwitchField
-                label="Search on add"
-                description={
-                  field.state.value
-                    ? 'Search as soon as it is added'
-                    : 'Add without searching'
-                }
-                disabled={fieldsDisabled}
-              />
-            )}
-          </form.AppField>
-          <form.AppField name="tags">
-            {(field) => (
-              <field.TagsField
-                label="Tags"
-                orientation="vertical"
-                disabled={fieldsDisabled}
-                emptyText="No tags on this instance"
-                options={options.tags}
-                onCreate={createTag}
-              />
-            )}
-          </form.AppField>
+          <RoutingFields
+            form={form}
+            fields={{
+              instanceId: 'instanceId',
+              qualityProfile: 'qualityProfile',
+              rootFolder: 'rootFolder',
+              tags: 'tags',
+              searchOnAdd: 'searchOnAdd',
+              seasonMonitoring: 'seasonMonitoring',
+              seriesType: 'seriesType',
+              monitor: 'monitor',
+              minimumAvailability: 'minimumAvailability',
+            }}
+            type={type}
+            orientation="vertical"
+            instanceOptions={instanceOptions}
+            qualityProfiles={options.qualityProfiles}
+            rootFolders={options.rootFolders}
+            tags={options.tags}
+            seasonMonitoringOptions={seasonMonitoringOptions}
+            errorMessage={options.errorMessage}
+            instanceDisabled={busy}
+            fieldsDisabled={fieldsDisabled}
+            showMinimumAvailability
+            onCreateTag={createTag}
+            onInstanceChange={switchInstance}
+          />
           {showSynced && (
             <form.AppField name="syncedInstances">
               {(field) => (

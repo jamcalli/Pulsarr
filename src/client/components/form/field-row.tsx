@@ -16,6 +16,8 @@ interface FieldRowProps {
   htmlFor?: string
   labelId?: string
   invalid?: boolean
+  /** Keeps the label for assistive tech only and drops the description, for controls in a dense row. */
+  labelHidden?: boolean
   children: ReactNode
 }
 
@@ -27,8 +29,29 @@ export function FieldRow({
   htmlFor,
   labelId,
   invalid,
+  labelHidden = false,
   children,
 }: FieldRowProps) {
+  if (labelHidden) {
+    return (
+      <Field
+        orientation="vertical"
+        data-invalid={invalid}
+        data-disabled={disabled}
+      >
+        {htmlFor ? (
+          <FieldLabel htmlFor={htmlFor} className="sr-only">
+            {label}
+          </FieldLabel>
+        ) : (
+          <FieldTitle id={labelId} className="sr-only">
+            {label}
+          </FieldTitle>
+        )}
+        {children}
+      </Field>
+    )
+  }
   return (
     <Field
       orientation={orientation}

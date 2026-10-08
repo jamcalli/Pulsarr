@@ -64,10 +64,13 @@ export const NAV_PAGES = {
   ]),
   radarr: page('Radarr', '/library/radarr', ['/radarr/instances']),
   sonarr: page('Sonarr', '/library/sonarr', ['/sonarr/instances']),
-  contentRouter: page('Content router', '/library/content-router', [
-    '/radarr/content-router',
-    '/sonarr/content-router',
-  ]),
+  contentRouter: {
+    ...page('Content router', '/library/content-router', [
+      '/radarr/content-router',
+      '/sonarr/content-router',
+    ]),
+    rebuilt: true,
+  },
   exclusions: page('Exclusions', '/library/exclusions', [
     '/utilities/watchlist-exclusions',
   ]),

@@ -1,5 +1,5 @@
 import { useMinLoading } from '@/hooks/useMinLoading'
-import type { ArrTarget } from '@/lib/approval'
+import { type ArrTarget, isConfiguredTarget } from '@/lib/approval'
 import { $api, apiErrorMessage } from '@/lib/tanstackApi'
 
 export function useArrInstances(type: ArrTarget['type']) {
@@ -20,9 +20,16 @@ export function useArrInstances(type: ArrTarget['type']) {
       ? (radarr.data ?? []).map((instance) => ({ type, instance }))
       : (sonarr.data ?? []).map((instance) => ({ type, instance }))
 
+  const defaultTarget =
+    targets.find(({ instance }) => instance.isDefault) ?? null
+
   return {
     targets,
-    defaultTarget: targets.find(({ instance }) => instance.isDefault) ?? null,
+    defaultTarget,
+    configuredTargets: targets.filter(isConfiguredTarget),
+    /** Null when there is no default or it is the unconfigured placeholder. */
+    configuredDefault:
+      defaultTarget && isConfiguredTarget(defaultTarget) ? defaultTarget : null,
     findTarget: (id: number) =>
       targets.find(({ instance }) => instance.id === id) ?? null,
     hasData: query.data !== undefined,
@@ -30,5 +37,6 @@ export function useArrInstances(type: ArrTarget['type']) {
     errorMessage: query.isError
       ? (apiErrorMessage(query.error) ?? 'Instances failed to load.')
       : null,
+    retry: () => void query.refetch(),
   }
 }

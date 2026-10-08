@@ -17,7 +17,7 @@ const STATUS_TONES: Record<ApprovalRequest['status'], StatusTone> = {
 }
 
 export function ApprovalIdentity({ approval }: { approval: ApprovalRequest }) {
-  const user = useUserDirectory()(approval.userName)
+  const user = useUserDirectory().lookup(approval.userName)
 
   return (
     <div className="flex items-start gap-4 md:pr-8">

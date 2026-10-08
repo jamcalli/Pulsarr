@@ -25,6 +25,10 @@ export function formatNumber(value: number, fractionDigits?: number): string {
   }).format(value)
 }
 
+export function formatUngrouped(value: number): string {
+  return new Intl.NumberFormat(locale, { useGrouping: false }).format(value)
+}
+
 export function formatCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -50,6 +54,10 @@ export function formatDateTime(value: Date | number): string {
     dateStyle: 'medium',
     timeStyle: 'medium',
   }).format(value)
+}
+
+export function compareText(a: string, b: string): number {
+  return new Intl.Collator(locale).compare(a, b)
 }
 
 /** A plain list of names or values, without "and" before the last one. */
