@@ -32,6 +32,7 @@ export interface ApprovalRequestRow {
   content_type: 'movie' | 'show'
   content_title: string
   content_key: string
+  thumb: string | null
   content_guids: string // JSON array string in DB
   router_decision: string // JSON object string in DB
   router_rule_id?: number | null
@@ -188,6 +189,7 @@ export interface CreateApprovalRequestData {
   contentType: 'movie' | 'show'
   contentTitle: string
   contentKey: string
+  thumb?: string
   contentGuids?: string[]
   routerDecision: RouterDecision
   routerRuleId?: number

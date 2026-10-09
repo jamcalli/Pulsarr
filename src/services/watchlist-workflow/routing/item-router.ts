@@ -67,6 +67,7 @@ export async function routeSingleItem(
     const sonarrItem: SonarrItem = {
       title: item.title,
       guids: parsedGuids,
+      thumb: tempItem.thumb,
       type: 'show',
       ended: false,
       genres: parsedGenres,
@@ -105,6 +106,7 @@ export async function routeSingleItem(
     const radarrItem: RadarrItem = {
       title: item.title,
       guids: parsedGuids,
+      thumb: tempItem.thumb,
       type: 'movie',
       genres: parsedGenres,
       imdb: item.ratings?.imdb,

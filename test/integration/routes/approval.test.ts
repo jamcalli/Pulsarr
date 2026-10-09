@@ -34,18 +34,7 @@ describe('approval requests thumb', () => {
     const knex = getTestDatabase()
     await seedAll(knex)
     app.config.authenticationMethod = 'disabled'
-
-    await knex('watchlist_items').insert({
-      user_id: 2,
-      title: watchlistItem.title,
-      key: watchlistItem.key,
-      type: watchlistItem.type,
-      thumb: 'https://example.com/other-user-poster.jpg',
-      guids: watchlistItem.guids,
-      genres: watchlistItem.genres,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    app.contentRouter.clearRouterRulesCache()
 
     const approvalBase = {
       user_id: watchlistItem.user_id,
@@ -60,6 +49,7 @@ describe('approval requests thumb', () => {
         ...approvalBase,
         content_title: watchlistItem.title,
         content_key: watchlistItem.key,
+        thumb: watchlistItem.thumb,
       })
       .returning('id')
     const [unmatched] = await knex('approval_requests')
@@ -71,9 +61,33 @@ describe('approval requests thumb', () => {
       .returning('id')
     matchedId = matched.id
     unmatchedId = unmatched.id
+
+    await knex('watchlist_items').where('key', watchlistItem.key).del()
   })
 
-  it('GET /v1/approval/requests returns the requester watchlist thumb without duplicating rows', async () => {
+  it('routing an item that needs approval stores its thumb on the request', async () => {
+    const thumb = '/drama-poster.jpg'
+    const result = await app.contentRouter.routeContent(
+      {
+        title: 'Thumb Drama',
+        type: 'movie',
+        guids: ['imdb:tt7777777', 'tmdb:77777'],
+        genres: ['Drama'],
+        thumb,
+      },
+      'thumb-drama-key',
+      { userId: 1, userName: 'test-user-primary' },
+    )
+
+    expect(result.routedInstances).toEqual([])
+    const row = await getTestDatabase()('approval_requests')
+      .where('content_key', 'thumb-drama-key')
+      .first()
+    expect(row?.status).toBe('pending')
+    expect(row?.thumb).toBe(thumb)
+  })
+
+  it('GET /v1/approval/requests returns the stored thumb after the watchlist row is gone', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/v1/approval/requests',
@@ -95,7 +109,7 @@ describe('approval requests thumb', () => {
     ).toBeNull()
   })
 
-  it('GET /v1/approval/requests/:id returns the thumb', async () => {
+  it('GET /v1/approval/requests/:id returns the stored thumb', async () => {
     const matchedRes = await app.inject({
       method: 'GET',
       url: `/v1/approval/requests/${matchedId}`,
