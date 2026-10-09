@@ -122,4 +122,38 @@ describe('checkRssFeeds', () => {
     expect(checkFriendsFeed).not.toHaveBeenCalled()
     expect(processRssFriendsItems).not.toHaveBeenCalled()
   })
+
+  it('skips the tick without touching the feeds while a safety-net check runs', async () => {
+    deps.state.isSafetyNetChecking = true
+
+    await checkRssFeeds(deps)
+
+    expect(checkSelfFeed).not.toHaveBeenCalled()
+    expect(checkFriendsFeed).not.toHaveBeenCalled()
+    expect(deps.state.rssChecksInFlight).toBe(0)
+  })
+
+  it('counts itself in flight for the whole check, including processing', async () => {
+    const seen: number[] = []
+    checkSelfFeed.mockImplementation(async () => {
+      seen.push(deps.state.rssChecksInFlight)
+      return { feed: 'self', changed: false, newItems: [], totalItems: 0 }
+    })
+    vi.mocked(processRssFriendsItems).mockImplementationOnce(async () => {
+      seen.push(deps.state.rssChecksInFlight)
+    })
+
+    await checkRssFeeds(deps)
+
+    expect(seen).toEqual([1, 1])
+    expect(deps.state.rssChecksInFlight).toBe(0)
+  })
+
+  it('clears its in-flight count when a check throws', async () => {
+    checkSelfFeed.mockRejectedValueOnce(new Error('boom'))
+
+    await checkRssFeeds(deps)
+
+    expect(deps.state.rssChecksInFlight).toBe(0)
+  })
 })

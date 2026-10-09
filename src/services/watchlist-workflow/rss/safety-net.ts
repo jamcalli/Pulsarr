@@ -46,15 +46,19 @@ export function getSafetyNetCycleMs(
  * Routes items the safety net found through the same path as ETag mode.
  * Items RSS already delivered are already linked to the user in the DB, so
  * only the adds RSS missed come back from routePolledItems.
+ *
+ * @param signal - the run the safety net was armed under; a check that finishes after a restart is dropped
  */
 export async function handleSafetyNetPollResult(
   result: EtagPollResult,
   deps: WorkflowDeps,
+  signal: AbortSignal = deps.state.signal,
 ): Promise<void> {
   if (!result.changed || result.newItems.length === 0) return
-  if (deps.state.signal.aborted) return
+  if (signal.aborted) return
 
   const user = await deps.db.getUser(result.userId)
+  if (signal.aborted) return
   if (!user) {
     deps.logger.warn(
       { userId: result.userId },
@@ -91,10 +95,10 @@ export async function handleSafetyNetPollResult(
  */
 export function createSafetyNetGate(
   deps: Pick<WorkflowDeps, 'state' | 'logger' | 'config'>,
+  signal: AbortSignal = deps.state.signal,
 ): (check: () => Promise<void>) => Promise<void> {
   return async (check) => {
     const { state } = deps
-    const { signal } = state
 
     if (signal.aborted || !deps.config.rssSafetyNetEnabled) return
     if (state.isReconciling) {
@@ -158,11 +162,11 @@ export async function startRssSafetyNet(deps: WorkflowDeps): Promise<boolean> {
   etagPoller.startStaggeredPolling(
     primaryUser.id,
     safetyNetUsers(deps),
-    (result) => handleSafetyNetPollResult(result, deps),
+    (result) => handleSafetyNetPollResult(result, deps, signal),
     async () => safetyNetUsers(deps),
     {
       getCycleMs: () => getSafetyNetCycleMs(deps.config),
-      runCheck: createSafetyNetGate(deps),
+      runCheck: createSafetyNetGate(deps, signal),
       label: 'RSS safety-net',
     },
   )
