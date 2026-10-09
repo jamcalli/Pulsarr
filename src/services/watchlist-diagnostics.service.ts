@@ -88,7 +88,7 @@ const STATUS_CODES: Record<WatchlistDiagnosticsErrorCode, number> = {
   not_configured: 400,
   busy: 429,
   cooldown: 429,
-  plex_rate_limited: 503,
+  plex_rate_limited: 429,
   plex_unavailable: 502,
 }
 

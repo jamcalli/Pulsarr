@@ -40,7 +40,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           429: WatchlistDiagnosticsErrorSchema,
           500: WatchlistDiagnosticsErrorSchema,
           502: WatchlistDiagnosticsErrorSchema,
-          503: WatchlistDiagnosticsErrorSchema,
         },
         tags: ['Watchlist Diagnostics'],
       },
@@ -98,10 +97,10 @@ function sendDiagnosticsError(
       return reply.badRequest(error.message)
     case 'busy':
     case 'cooldown':
-      return reply.tooManyRequests(error.message)
     case 'plex_rate_limited':
-      return reply.serviceUnavailable(error.message)
+      return reply.tooManyRequests(error.message)
     case 'plex_unavailable':
+      // 5xx messages are replaced with a generic one by the error handler
       return reply.badGateway(error.message)
   }
 }

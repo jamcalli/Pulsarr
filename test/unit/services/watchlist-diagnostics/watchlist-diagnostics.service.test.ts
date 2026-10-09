@@ -604,7 +604,7 @@ describe('WatchlistDiagnosticsService', () => {
       )
     })
 
-    it('maps an exhausted Plex rate limit to 503 with a retry hint', async () => {
+    it('maps an exhausted Plex rate limit to 429 with a retry hint', async () => {
       const error = new Error('Rate limit exceeded') as RateLimitError
       error.isRateLimitExhausted = true
       fetchLive.mockRejectedValue(error)
@@ -614,7 +614,7 @@ describe('WatchlistDiagnosticsService', () => {
       expect(result).toBeInstanceOf(WatchlistDiagnosticsError)
       expect(result).toMatchObject({
         code: 'plex_rate_limited',
-        statusCode: 503,
+        statusCode: 429,
         retryAfterSeconds: 60,
       })
     })
