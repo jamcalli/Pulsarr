@@ -176,6 +176,10 @@ interface PaginatedGraphQLOptions<TResponse extends GraphQLPageResponse> {
   label: string
   maxRetries?: number
   progressInfo?: ProgressInfo
+  /** Stop after this many pages; the result is then flagged as truncated */
+  maxPages?: number
+  /** Aborts the in-flight request and the delay between pages */
+  signal?: AbortSignal
   buildQuery: (cursor: string | null) => GraphQLQuery
   castResponse: (json: unknown) => TResponse
   getPage: (
@@ -183,12 +187,47 @@ interface PaginatedGraphQLOptions<TResponse extends GraphQLPageResponse> {
   ) => { nodes: unknown[]; pageInfo: PageInfo } | undefined
 }
 
+interface PaginatedResult<TNode> {
+  nodes: TNode[]
+  truncated: boolean
+}
+
+/** Resolves after `ms`, or rejects with the signal's reason once it aborts. */
+const abortableDelay = (ms: number, signal?: AbortSignal): Promise<void> =>
+  new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason)
+      return
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
+    const onAbort = () => {
+      clearTimeout(timer)
+      reject(signal?.reason)
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
+
 const paginatedGraphQLFetch = async <
   TResponse extends GraphQLPageResponse,
   TNode,
 >(
   options: PaginatedGraphQLOptions<TResponse>,
 ): Promise<TNode[]> => {
+  const { nodes } = await paginatedGraphQLFetchWithMeta<TResponse, TNode>(
+    options,
+  )
+  return nodes
+}
+
+const paginatedGraphQLFetchWithMeta = async <
+  TResponse extends GraphQLPageResponse,
+  TNode,
+>(
+  options: PaginatedGraphQLOptions<TResponse>,
+): Promise<PaginatedResult<TNode>> => {
   const url = 'https://community.plex.tv/api'
   const rateLimiter = PlexRateLimiter.getInstance()
   const maxRetries = options.maxRetries ?? 3
@@ -196,10 +235,14 @@ const paginatedGraphQLFetch = async <
   let cursor: string | null = null
   let hasMore = true
   let retryCount = 0
+  let pagesFetched = 0
+  let truncated = false
 
   while (hasMore) {
+    options.signal?.throwIfAborted()
     await rateLimiter.waitIfLimited(options.log, options.progressInfo)
 
+    const timeout = AbortSignal.timeout(PLEX_API_TIMEOUT_MS)
     let response: Response
     try {
       response = await fetch(url, {
@@ -210,9 +253,13 @@ const paginatedGraphQLFetch = async <
           'X-Plex-Token': options.token,
         },
         body: JSON.stringify(options.buildQuery(cursor)),
-        signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
+        signal: options.signal
+          ? AbortSignal.any([timeout, options.signal])
+          : timeout,
       })
     } catch (networkError) {
+      // A caller abort is final; only timeouts and network faults are retried
+      options.signal?.throwIfAborted()
       if (retryCount < maxRetries) {
         retryCount++
         const retryDelay = Math.min(1000 * 2 ** retryCount, 10000)
@@ -276,19 +323,98 @@ const paginatedGraphQLFetch = async <
     for (const node of page.nodes as TNode[]) {
       allNodes.push(node)
     }
+    pagesFetched++
 
     if (page.pageInfo.hasNextPage && page.pageInfo.endCursor) {
+      if (options.maxPages !== undefined && pagesFetched >= options.maxPages) {
+        truncated = true
+        hasMore = false
+        continue
+      }
       cursor = page.pageInfo.endCursor
       // Delay between pagination requests per Plex developer request
-      await new Promise((resolve) =>
-        setTimeout(resolve, 5_000 + Math.ceil(Math.random() * 10_000)),
+      await abortableDelay(
+        5_000 + Math.ceil(Math.random() * 10_000),
+        options.signal,
       )
     } else {
       hasMore = false
     }
   }
 
-  return allNodes
+  return { nodes: allNodes, truncated }
+}
+
+interface WatchlistNode {
+  id: string
+  title: string
+  type: string
+}
+
+const buildWatchlistQuery = (
+  watchlistId: string,
+  cursor: string | null,
+): GraphQLQuery => ({
+  query: `query GetWatchlistHub ($user: UserInput!, $first: PaginationInt!, $after: String) {
+          userV2(user: $user) {
+            ... on User {
+              watchlist(first: $first, after: $after) {
+                nodes {
+                  id
+                  title
+                  type
+                }
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
+              }
+            }
+          }
+        }`,
+  variables: {
+    user: { id: watchlistId },
+    first: 100,
+    after: cursor,
+  },
+})
+
+const getWatchlistPage = (res: PlexApiResponse, username: string) => {
+  const watchlist = res.data?.userV2?.watchlist
+  if (!watchlist) {
+    throw new Error(`Plex returned no watchlist payload for user ${username}`)
+  }
+  return watchlist
+}
+
+export interface FetchWatchlistNodesOptions {
+  token: string
+  log: FastifyBaseLogger
+  watchlistId: string
+  username: string
+  maxPages?: number
+  signal?: AbortSignal
+}
+
+/** Raw watchlist nodes with no DB fallback, for callers that must never write or guess. */
+export const fetchWatchlistNodes = async ({
+  token,
+  log,
+  watchlistId,
+  username,
+  maxPages,
+  signal,
+}: FetchWatchlistNodesOptions): Promise<PaginatedResult<WatchlistNode>> => {
+  return paginatedGraphQLFetchWithMeta<PlexApiResponse, WatchlistNode>({
+    token,
+    log,
+    label: `watchlist for user ${username}`,
+    maxPages,
+    signal,
+    buildQuery: (cursor) => buildWatchlistQuery(watchlistId, cursor),
+    castResponse: (json) => json as PlexApiResponse,
+    getPage: (res) => getWatchlistPage(res, username),
+  })
 }
 
 export interface GetWatchlistForUserOptions {
@@ -331,40 +457,9 @@ export const getWatchlistForUser = async ({
       label: `watchlist for user ${user.username}`,
       maxRetries,
       progressInfo,
-      buildQuery: (cursor) => ({
-        query: `query GetWatchlistHub ($user: UserInput!, $first: PaginationInt!, $after: String) {
-          userV2(user: $user) {
-            ... on User {
-              watchlist(first: $first, after: $after) {
-                nodes {
-                  id
-                  title
-                  type
-                }
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                }
-              }
-            }
-          }
-        }`,
-        variables: {
-          user: { id: watchlistId },
-          first: 100,
-          after: cursor,
-        },
-      }),
+      buildQuery: (cursor) => buildWatchlistQuery(watchlistId, cursor),
       castResponse: (json) => json as PlexApiResponse,
-      getPage: (res) => {
-        const watchlist = res.data?.userV2?.watchlist
-        if (!watchlist) {
-          throw new Error(
-            `Plex returned no watchlist payload for user ${user.username}`,
-          )
-        }
-        return watchlist
-      },
+      getPage: (res) => getWatchlistPage(res, user.username),
     })
 
     const currentTime = new Date().toISOString()
