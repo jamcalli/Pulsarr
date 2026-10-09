@@ -1423,59 +1423,7 @@
             ]
           },
           "quotaSettings": {
-            "type": "object",
-            "properties": {
-              "cleanup": {
-                "type": "object",
-                "properties": {
-                  "enabled": {
-                    "type": "boolean"
-                  },
-                  "retentionDays": {
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "enabled",
-                  "retentionDays"
-                ],
-                "additionalProperties": false
-              },
-              "weeklyRolling": {
-                "type": "object",
-                "properties": {
-                  "resetDays": {
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "resetDays"
-                ],
-                "additionalProperties": false
-              },
-              "monthly": {
-                "type": "object",
-                "properties": {
-                  "resetDay": {
-                    "type": "number"
-                  },
-                  "handleMonthEnd": {
-                    "$ref": "#/components/schemas/QuotaMonthEnd"
-                  }
-                },
-                "required": [
-                  "resetDay",
-                  "handleMonthEnd"
-                ],
-                "additionalProperties": false
-              }
-            },
-            "required": [
-              "cleanup",
-              "weeklyRolling",
-              "monthly"
-            ],
-            "additionalProperties": false
+            "$ref": "#/components/schemas/QuotaSettings"
           },
           "approvalExpiration": {
             "$ref": "#/components/schemas/ApprovalExpiration"
@@ -1964,45 +1912,7 @@
             ]
           },
           "quotaSettings": {
-            "type": "object",
-            "properties": {
-              "cleanup": {
-                "type": "object",
-                "properties": {
-                  "enabled": {
-                    "type": "boolean"
-                  },
-                  "retentionDays": {
-                    "type": "number",
-                    "minimum": 1,
-                    "maximum": 365
-                  }
-                }
-              },
-              "weeklyRolling": {
-                "type": "object",
-                "properties": {
-                  "resetDays": {
-                    "type": "number",
-                    "minimum": 1,
-                    "maximum": 365
-                  }
-                }
-              },
-              "monthly": {
-                "type": "object",
-                "properties": {
-                  "resetDay": {
-                    "type": "number",
-                    "minimum": 1,
-                    "maximum": 31
-                  },
-                  "handleMonthEnd": {
-                    "$ref": "#/components/schemas/QuotaMonthEnd"
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/schemas/QuotaSettingsPayload"
           },
           "approvalExpiration": {
             "$ref": "#/components/schemas/ApprovalExpirationPayload"
@@ -2930,6 +2840,120 @@
         ],
         "description": "How a monthly quota resets when its reset day is past the end of a short month"
       },
+      "QuotaSettings": {
+        "type": "object",
+        "properties": {
+          "cleanup": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "retentionDays": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "enabled",
+              "retentionDays"
+            ],
+            "additionalProperties": false
+          },
+          "weeklyRolling": {
+            "type": "object",
+            "properties": {
+              "resetDays": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "resetDays"
+            ],
+            "additionalProperties": false
+          },
+          "monthly": {
+            "type": "object",
+            "properties": {
+              "resetDay": {
+                "type": "number"
+              },
+              "handleMonthEnd": {
+                "$ref": "#/components/schemas/QuotaMonthEnd"
+              }
+            },
+            "required": [
+              "resetDay",
+              "handleMonthEnd"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "cleanup",
+          "weeklyRolling",
+          "monthly"
+        ],
+        "additionalProperties": false,
+        "description": "Quota settings, always returned with defaults filled in"
+      },
+      "QuotaSettingsPayload": {
+        "type": "object",
+        "properties": {
+          "cleanup": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "retentionDays": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 365
+              }
+            },
+            "required": [
+              "enabled",
+              "retentionDays"
+            ]
+          },
+          "weeklyRolling": {
+            "type": "object",
+            "properties": {
+              "resetDays": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 365
+              }
+            },
+            "required": [
+              "resetDays"
+            ]
+          },
+          "monthly": {
+            "type": "object",
+            "properties": {
+              "resetDay": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 31
+              },
+              "handleMonthEnd": {
+                "$ref": "#/components/schemas/QuotaMonthEnd"
+              }
+            },
+            "required": [
+              "resetDay",
+              "handleMonthEnd"
+            ]
+          }
+        },
+        "required": [
+          "cleanup",
+          "weeklyRolling",
+          "monthly"
+        ],
+        "description": "Writable quota settings. Send the whole object, it replaces the stored one."
+      },
       "QuotaType": {
         "type": "string",
         "enum": [
@@ -2937,7 +2961,7 @@
           "weekly_rolling",
           "monthly"
         ],
-        "description": "Quota window, a calendar day, rolling 7 days, or calendar month"
+        "description": "Quota window, the current day, a rolling run of days, or a monthly period from the configured reset day"
       },
       "RadarrMinimumAvailability": {
         "type": "string",

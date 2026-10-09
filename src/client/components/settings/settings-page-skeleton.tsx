@@ -4,12 +4,46 @@ import { Card, CardAction, CardHeader } from '@/components/ui/card'
 import { FieldGroup, FieldSeparator } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 
+/** `field` is a label row with its control, a radio draws its option cards below the label. */
+type RowShape = 'field' | { radio: number }
+
 interface SectionShape {
-  rows: number
+  rows: number | readonly RowShape[]
   pill?: boolean
 }
 
+function FieldRowSkeleton() {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-1 flex-col gap-2">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-4 w-72 max-w-full" />
+      </div>
+      <Skeleton className="h-8 w-20" />
+    </div>
+  )
+}
+
+function RadioRowSkeleton({ options }: { options: number }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-4 w-72 max-w-full" />
+      </div>
+      {Array.from({ length: options }, (_, option) => option).map((option) => (
+        <Skeleton key={`option-${option}`} className="h-16 w-full" />
+      ))}
+    </div>
+  )
+}
+
 function SectionSkeleton({ rows, pill = false }: SectionShape) {
+  const shapes: readonly RowShape[] =
+    typeof rows === 'number'
+      ? Array.from({ length: rows }, () => 'field')
+      : rows
+
   return (
     <Card>
       <CardHeader>
@@ -22,16 +56,14 @@ function SectionSkeleton({ rows, pill = false }: SectionShape) {
         )}
       </CardHeader>
       <FieldGroup className="gap-3.5 *:px-(--card-spacing)">
-        {Array.from({ length: rows }, (_, row) => row).map((row) => (
+        {shapes.map((shape, row) => (
           <Fragment key={`row-${row}`}>
             {row > 0 && <FieldSeparator />}
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex flex-1 flex-col gap-2">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-4 w-72 max-w-full" />
-              </div>
-              <Skeleton className="h-8 w-20" />
-            </div>
+            {shape === 'field' ? (
+              <FieldRowSkeleton />
+            ) : (
+              <RadioRowSkeleton options={shape.radio} />
+            )}
           </Fragment>
         ))}
       </FieldGroup>

@@ -1,5 +1,5 @@
 import { useScheduledConfigForm } from '@/features/requests/hooks/useScheduledConfigForm'
-import { ApprovalSettingsFormSchema } from '@/features/requests/lib/approval-settings-form.schema'
+import { QuotaSettingsFormSchema } from '@/features/requests/lib/quota-settings-form.schema'
 import type { ScheduleStatus } from '@/hooks/useSchedule'
 import type { components } from '@/types/api.js'
 
@@ -7,19 +7,17 @@ type Config = components['schemas']['Config']
 
 function toConfigValues(config: Config) {
   return {
-    approvalNotify: config.approvalNotify,
-    approvalExpiration: config.approvalExpiration,
+    quotaSettings: config.quotaSettings,
+    watchlistCapNotify: config.watchlistCapNotify,
+    watchlistCapNotifyUser: config.watchlistCapNotifyUser,
   }
 }
 
-export function useApprovalSettingsForm(
-  config: Config,
-  schedule: ScheduleStatus,
-) {
+export function useQuotaSettingsForm(config: Config, schedule: ScheduleStatus) {
   return useScheduledConfigForm({
     config,
     schedule,
     toValues: toConfigValues,
-    schema: ApprovalSettingsFormSchema,
+    schema: QuotaSettingsFormSchema,
   })
 }

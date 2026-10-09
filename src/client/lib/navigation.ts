@@ -53,7 +53,10 @@ export const NAV_PAGES = {
     ...page('Approval settings', '/requests/settings', ['/approvals/settings']),
     rebuilt: true,
   },
-  quotas: page('Quotas', '/requests/quotas', ['/approvals/quota-settings']),
+  quotas: {
+    ...page('Quotas', '/requests/quotas', ['/approvals/quota-settings']),
+    rebuilt: true,
+  },
   plexUsers: page('Plex users', '/users', ['/plex/users']),
   newUserDefaults: page('New user defaults', '/users/new-user-defaults', [
     '/utilities/new-user-defaults',

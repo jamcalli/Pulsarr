@@ -26,12 +26,12 @@ describe('quota-window', () => {
         monthlyResetDay: 1,
         monthEnd: 'last-day',
       })
-      expect(resolveQuotaWindowSettings({})).toEqual(settings())
     })
 
     it('reads stored values', () => {
       expect(
         resolveQuotaWindowSettings({
+          cleanup: { enabled: true, retentionDays: 90 },
           weeklyRolling: { resetDays: 14 },
           monthly: { resetDay: 31, handleMonthEnd: 'skip-month' },
         }),

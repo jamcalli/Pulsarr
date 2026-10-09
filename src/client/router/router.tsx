@@ -5,6 +5,7 @@ import { SettingsPageSkeleton } from '@/components/settings/settings-page-skelet
 import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
 import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
+import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
 import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
 import AuthenticatedLayout from '@/legacy/layouts/authenticated'
@@ -19,6 +20,9 @@ const ApprovalQueuePage = lazy(
 )
 const ApprovalSettingsPage = lazy(
   () => import('@/features/requests/pages/approval-settings'),
+)
+const QuotaSettingsPage = lazy(
+  () => import('@/features/requests/pages/quota-settings'),
 )
 const ContentRouterPage = lazy(
   () => import('@/features/library/pages/content-router'),
@@ -65,7 +69,7 @@ const LogViewerPage = lazy(
 const LegacyApprovalSettingsPage = lazy(
   () => import('@/legacy/features/requests/pages/approval-settings'),
 )
-const QuotaSettingsPage = lazy(
+const LegacyQuotaSettingsPage = lazy(
   () => import('@/legacy/features/requests/pages/quota-settings'),
 )
 const SonarrInstancesPage = lazy(
@@ -139,6 +143,18 @@ export const router = createBrowserRouter(
                   }
                 >
                   <ApprovalSettingsPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'requests/quotas',
+              element: (
+                <Suspense
+                  fallback={
+                    <SettingsPageSkeleton {...QUOTA_SETTINGS_SKELETON} />
+                  }
+                >
+                  <QuotaSettingsPage />
                 </Suspense>
               ),
             },
@@ -402,7 +418,7 @@ export const router = createBrowserRouter(
               element: (
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
-                    <QuotaSettingsPage />
+                    <LegacyQuotaSettingsPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),

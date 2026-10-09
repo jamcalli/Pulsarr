@@ -67,6 +67,9 @@ const LogLevelEnum = z.enum([
 
 export const APPROVAL_EXPIRATION_HOURS = { min: 1, max: 8760 } as const
 export const EXPIRED_APPROVAL_CLEANUP_DAYS = { min: 1, max: 365 } as const
+export const QUOTA_USAGE_RETENTION_DAYS = { min: 1, max: 365 } as const
+export const QUOTA_WEEKLY_ROLLING_DAYS = { min: 1, max: 365 } as const
+export const QUOTA_MONTHLY_RESET_DAY = { min: 1, max: 31 } as const
 
 const NotifyOptionEnum = z.enum([
   'none', // No notifications
@@ -238,6 +241,67 @@ const ApprovalExpirationPayloadSchema = z
       'Writable approval expiry and cleanup settings. Send the whole object, it replaces the stored one.',
   })
 
+const QuotaSettingsSchema = z
+  .object({
+    cleanup: z.object({
+      enabled: z.boolean(),
+      retentionDays: z.number(),
+    }),
+    weeklyRolling: z.object({
+      resetDays: z.number(),
+    }),
+    monthly: z.object({
+      resetDay: z.number(),
+      handleMonthEnd: QuotaMonthEndSchema,
+    }),
+  })
+  .meta({
+    id: 'QuotaSettings',
+    description: 'Quota settings, always returned with defaults filled in',
+  })
+
+const QuotaSettingsPayloadSchema = z
+  .object({
+    cleanup: z.object({
+      enabled: z.boolean(),
+      retentionDays: z
+        .number({ error: 'Enter a number of days.' })
+        .min(QUOTA_USAGE_RETENTION_DAYS.min)
+        .max(QUOTA_USAGE_RETENTION_DAYS.max),
+    }),
+    weeklyRolling: z.object({
+      resetDays: z
+        .number({ error: 'Enter a number of days.' })
+        .min(QUOTA_WEEKLY_ROLLING_DAYS.min)
+        .max(QUOTA_WEEKLY_ROLLING_DAYS.max),
+    }),
+    monthly: z.object({
+      resetDay: z
+        .number({ error: 'Enter a day of the month.' })
+        .min(QUOTA_MONTHLY_RESET_DAY.min)
+        .max(QUOTA_MONTHLY_RESET_DAY.max),
+      handleMonthEnd: QuotaMonthEndSchema,
+    }),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.cleanup.enabled) return
+    const minimumDays = longestQuotaWindowDays(
+      resolveQuotaWindowSettings(value),
+    )
+    if (value.cleanup.retentionDays < minimumDays) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Usage history must be kept for at least ${minimumDays} days so cleanup never removes requests that still count toward a quota.`,
+        path: ['cleanup', 'retentionDays'],
+      })
+    }
+  })
+  .meta({
+    id: 'QuotaSettingsPayload',
+    description:
+      'Writable quota settings. Send the whole object, it replaces the stored one.',
+  })
+
 // Schema for complete config (GET responses) - matches exactly what getConfig() returns
 export const ConfigFullSchema = z
   .object({
@@ -373,20 +437,7 @@ export const ConfigFullSchema = z
     newUserDefaultShowQuotaLimit: z.number(),
     newUserDefaultShowBypassApproval: z.boolean(),
     newUserDefaultShowWatchlistCap: z.number().nullable(),
-    // Quota System Configuration - getConfig() always returns this with defaults
-    quotaSettings: z.object({
-      cleanup: z.object({
-        enabled: z.boolean(),
-        retentionDays: z.number(),
-      }),
-      weeklyRolling: z.object({
-        resetDays: z.number(),
-      }),
-      monthly: z.object({
-        resetDay: z.number(),
-        handleMonthEnd: QuotaMonthEndSchema,
-      }),
-    }),
+    quotaSettings: QuotaSettingsSchema,
     approvalExpiration: ApprovalExpirationSchema,
     // Ready state
     _isReady: z.boolean().meta({
@@ -540,44 +591,7 @@ export const ConfigUpdateSchema = z
     newUserDefaultShowQuotaLimit: z.number().min(1).max(1000).optional(),
     newUserDefaultShowBypassApproval: z.boolean().optional(),
     newUserDefaultShowWatchlistCap: z.number().min(1).nullable().optional(),
-    // Quota System Configuration
-    quotaSettings: z
-      .object({
-        // Cleanup configuration
-        cleanup: z
-          .object({
-            enabled: z.boolean().optional(),
-            retentionDays: z.number().min(1).max(365).optional(), // 1 day to 1 year
-          })
-          .optional(),
-        // Weekly rolling quota configuration
-        weeklyRolling: z
-          .object({
-            resetDays: z.number().min(1).max(365).optional(), // 1 day to 1 year
-          })
-          .optional(),
-        // Monthly quota configuration
-        monthly: z
-          .object({
-            resetDay: z.number().min(1).max(31).optional(), // 1st to 31st
-            handleMonthEnd: QuotaMonthEndSchema.optional(),
-          })
-          .optional(),
-      })
-      .superRefine((value, ctx) => {
-        if (value.cleanup?.enabled === false) return
-        const minimumDays = longestQuotaWindowDays(
-          resolveQuotaWindowSettings(value),
-        )
-        if ((value.cleanup?.retentionDays ?? 90) < minimumDays) {
-          ctx.addIssue({
-            code: 'custom',
-            message: `Usage history must be kept for at least ${minimumDays} days so cleanup never removes requests that still count toward a quota.`,
-            path: ['cleanup', 'retentionDays'],
-          })
-        }
-      })
-      .optional(),
+    quotaSettings: QuotaSettingsPayloadSchema.optional(),
     approvalExpiration: ApprovalExpirationPayloadSchema.optional(),
     // TMDB Configuration
     tmdbRegion: z

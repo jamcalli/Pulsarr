@@ -3474,19 +3474,7 @@ export interface components {
             newUserDefaultShowQuotaLimit: number;
             newUserDefaultShowBypassApproval: boolean;
             newUserDefaultShowWatchlistCap: number | null;
-            quotaSettings: {
-                cleanup: {
-                    enabled: boolean;
-                    retentionDays: number;
-                };
-                weeklyRolling: {
-                    resetDays: number;
-                };
-                monthly: {
-                    resetDay: number;
-                    handleMonthEnd: components["schemas"]["QuotaMonthEnd"];
-                };
-            };
+            quotaSettings: components["schemas"]["QuotaSettings"];
             approvalExpiration: components["schemas"]["ApprovalExpiration"];
             /** @description Auto-start the watchlist workflow on next boot; surfaced as the Auto-Start toggle */
             _isReady: boolean;
@@ -3590,19 +3578,7 @@ export interface components {
             newUserDefaultShowQuotaLimit?: number;
             newUserDefaultShowBypassApproval?: boolean;
             newUserDefaultShowWatchlistCap?: number | null;
-            quotaSettings?: {
-                cleanup?: {
-                    enabled?: boolean;
-                    retentionDays?: number;
-                };
-                weeklyRolling?: {
-                    resetDays?: number;
-                };
-                monthly?: {
-                    resetDay?: number;
-                    handleMonthEnd?: components["schemas"]["QuotaMonthEnd"];
-                };
-            };
+            quotaSettings?: components["schemas"]["QuotaSettingsPayload"];
             approvalExpiration?: components["schemas"]["ApprovalExpirationPayload"];
             tmdbRegion?: string;
             tagUsersInSonarr?: boolean;
@@ -3866,8 +3842,36 @@ export interface components {
          * @enum {string}
          */
         QuotaMonthEnd: "last-day" | "skip-month" | "next-month";
+        /** @description Quota settings, always returned with defaults filled in */
+        QuotaSettings: {
+            cleanup: {
+                enabled: boolean;
+                retentionDays: number;
+            };
+            weeklyRolling: {
+                resetDays: number;
+            };
+            monthly: {
+                resetDay: number;
+                handleMonthEnd: components["schemas"]["QuotaMonthEnd"];
+            };
+        };
+        /** @description Writable quota settings. Send the whole object, it replaces the stored one. */
+        QuotaSettingsPayload: {
+            cleanup: {
+                enabled: boolean;
+                retentionDays: number;
+            };
+            weeklyRolling: {
+                resetDays: number;
+            };
+            monthly: {
+                resetDay: number;
+                handleMonthEnd: components["schemas"]["QuotaMonthEnd"];
+            };
+        };
         /**
-         * @description Quota window, a calendar day, rolling 7 days, or calendar month
+         * @description Quota window, the current day, a rolling run of days, or a monthly period from the configured reset day
          * @enum {string}
          */
         QuotaType: "daily" | "weekly_rolling" | "monthly";
