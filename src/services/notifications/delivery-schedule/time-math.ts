@@ -2,10 +2,9 @@
  * Time-of-day math for quiet hours and daily digests.
  *
  * Pure functions over `Intl` (no tz library). Wall-clock times are "HH:MM"
- * strings interpreted in an IANA time zone. DST follows Temporal's
- * "compatible" disambiguation: a wall time skipped by a spring-forward gap
- * resolves to the instant after the gap (02:30 → 03:30), and a wall time that
- * occurs twice on a fall-back day resolves to the earlier occurrence.
+ * strings interpreted in an IANA time zone. DST: a wall time skipped by a
+ * spring-forward gap resolves to the instant the gap ends (02:30 → 03:00), and
+ * a wall time that occurs twice on a fall-back day yields both instants.
  */
 
 const MINUTE_MS = 60_000
