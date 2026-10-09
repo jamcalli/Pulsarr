@@ -14153,6 +14153,549 @@
         }
       }
     },
+    "/v1/routing-failures": {
+      "get": {
+        "operationId": "getRoutingFailures",
+        "summary": "Get routing failures",
+        "tags": [
+          "Routing Failures"
+        ],
+        "description": "Retrieve watchlist items that failed to be added to Radarr or Sonarr, optionally filtered by user or category",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "query",
+            "name": "userId"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "arr_error",
+                "instance_unavailable",
+                "no_route",
+                "routing_error",
+                "missing_ids"
+              ]
+            },
+            "in": "query",
+            "name": "category"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "failures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "watchlist_item_id": {
+                            "type": "number"
+                          },
+                          "user_id": {
+                            "type": "number"
+                          },
+                          "username": {
+                            "type": "string"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "thumb": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "instance_type": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "radarr",
+                                  "sonarr"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "instance_id": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "instance_name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "category": {
+                            "type": "string",
+                            "enum": [
+                              "arr_error",
+                              "instance_unavailable",
+                              "no_route",
+                              "routing_error",
+                              "missing_ids"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "first_failed_at": {
+                            "type": "string"
+                          },
+                          "last_failed_at": {
+                            "type": "string"
+                          },
+                          "attempt_count": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "watchlist_item_id",
+                          "user_id",
+                          "username",
+                          "key",
+                          "title",
+                          "type",
+                          "thumb",
+                          "instance_type",
+                          "instance_id",
+                          "instance_name",
+                          "category",
+                          "message",
+                          "first_failed_at",
+                          "last_failed_at",
+                          "attempt_count"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "failures"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/routing-failures/retry": {
+      "post": {
+        "operationId": "retryRoutingFailures",
+        "summary": "Retry routing failures",
+        "tags": [
+          "Routing Failures"
+        ],
+        "description": "Route every failed watchlist item matching the filters again through the normal routing path. Without a category, items that only miss their IDs are left out.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "x-fastify-zod-openapi-optional": true,
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "arr_error",
+                      "instance_unavailable",
+                      "no_route",
+                      "routing_error",
+                      "missing_ids"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "attempted": {
+                          "type": "number"
+                        },
+                        "resolved": {
+                          "type": "number"
+                        },
+                        "stillFailing": {
+                          "type": "number"
+                        },
+                        "skipped": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "attempted",
+                        "resolved",
+                        "stillFailing",
+                        "skipped"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "result"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/routing-failures/summary": {
+      "get": {
+        "operationId": "getRoutingFailureSummary",
+        "summary": "Get routing failure summary",
+        "tags": [
+          "Routing Failures"
+        ],
+        "description": "Count failed watchlist items overall, per category and per user",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number"
+                        },
+                        "actionable": {
+                          "type": "number"
+                        },
+                        "byCategory": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string",
+                            "enum": [
+                              "arr_error",
+                              "instance_unavailable",
+                              "no_route",
+                              "routing_error",
+                              "missing_ids"
+                            ]
+                          },
+                          "additionalProperties": {
+                            "type": "number"
+                          },
+                          "required": [
+                            "arr_error",
+                            "instance_unavailable",
+                            "no_route",
+                            "routing_error",
+                            "missing_ids"
+                          ]
+                        },
+                        "byUser": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "userId": {
+                                "type": "number"
+                              },
+                              "total": {
+                                "type": "number"
+                              },
+                              "actionable": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "userId",
+                              "total",
+                              "actionable"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "actionable",
+                        "byCategory",
+                        "byUser"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/routing-failures/{watchlistItemId}/retry": {
+      "post": {
+        "operationId": "retryRoutingFailure",
+        "summary": "Retry routing failure",
+        "tags": [
+          "Routing Failures"
+        ],
+        "description": "Route one failed watchlist item again through the normal routing path",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "watchlistItemId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "attempted": {
+                          "type": "number"
+                        },
+                        "resolved": {
+                          "type": "number"
+                        },
+                        "stillFailing": {
+                          "type": "number"
+                        },
+                        "skipped": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "attempted",
+                        "resolved",
+                        "stillFailing",
+                        "skipped"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "result"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/scheduler/schedules": {
       "get": {
         "operationId": "getAllSchedules",
@@ -24330,6 +24873,10 @@
     {
       "name": "Watchlist Exclusions",
       "description": "Watchlist exclusion management endpoints"
+    },
+    {
+      "name": "Routing Failures",
+      "description": "Watchlist items that failed to reach Radarr or Sonarr, and their retry"
     },
     {
       "name": "Labels",

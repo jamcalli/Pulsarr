@@ -187,6 +187,11 @@ const createOpenapiConfig = (fastify: FastifyInstance, pathSuffix: string) => {
           description: 'Watchlist exclusion management endpoints',
         },
         {
+          name: 'Routing Failures',
+          description:
+            'Watchlist items that failed to reach Radarr or Sonarr, and their retry',
+        },
+        {
           name: 'Labels',
           description: 'Plex label synchronization and management endpoints',
         },

@@ -1416,6 +1416,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/routing-failures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get routing failures
+         * @description Retrieve watchlist items that failed to be added to Radarr or Sonarr, optionally filtered by user or category
+         */
+        get: operations["getRoutingFailures"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/routing-failures/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry routing failures
+         * @description Route every failed watchlist item matching the filters again through the normal routing path. Without a category, items that only miss their IDs are left out.
+         */
+        post: operations["retryRoutingFailures"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/routing-failures/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get routing failure summary
+         * @description Count failed watchlist items overall, per category and per user
+         */
+        get: operations["getRoutingFailureSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/routing-failures/{watchlistItemId}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry routing failure
+         * @description Route one failed watchlist item again through the normal routing path
+         */
+        post: operations["retryRoutingFailure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/scheduler/schedules": {
         parameters: {
             query?: never;
@@ -9230,6 +9310,262 @@ export interface operations {
                         success: boolean;
                         message: string;
                     };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getRoutingFailures: {
+        parameters: {
+            query?: {
+                userId?: number;
+                category?: "arr_error" | "instance_unavailable" | "no_route" | "routing_error" | "missing_ids";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        failures: {
+                            id: number;
+                            watchlist_item_id: number;
+                            user_id: number;
+                            username: string;
+                            key: string;
+                            title: string;
+                            type: string;
+                            thumb: string | null;
+                            instance_type: ("radarr" | "sonarr") | null;
+                            instance_id: number | null;
+                            instance_name: string | null;
+                            /** @enum {string} */
+                            category: "arr_error" | "instance_unavailable" | "no_route" | "routing_error" | "missing_ids";
+                            message: string;
+                            first_failed_at: string;
+                            last_failed_at: string;
+                            attempt_count: number;
+                        }[];
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    retryRoutingFailures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    userId?: number;
+                    /** @enum {string} */
+                    category?: "arr_error" | "instance_unavailable" | "no_route" | "routing_error" | "missing_ids";
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        result: {
+                            attempted: number;
+                            resolved: number;
+                            stillFailing: number;
+                            skipped: number;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getRoutingFailureSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        summary: {
+                            total: number;
+                            actionable: number;
+                            byCategory: {
+                                [key: string]: number;
+                            };
+                            byUser: {
+                                userId: number;
+                                total: number;
+                                actionable: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    retryRoutingFailure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                watchlistItemId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        result: {
+                            attempted: number;
+                            resolved: number;
+                            stillFailing: number;
+                            skipped: number;
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Rate limit exceeded */
