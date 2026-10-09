@@ -208,6 +208,10 @@ const data = {
           url: '/utilities/user-tags',
         },
         {
+          title: 'Watchlist Diagnostics',
+          url: '/utilities/watchlist-diagnostics',
+        },
+        {
           title: 'Watchlist Exclusions',
           url: '/utilities/watchlist-exclusions',
         },

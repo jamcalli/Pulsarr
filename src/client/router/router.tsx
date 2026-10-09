@@ -31,6 +31,9 @@ const ApiKeysPage = lazy(() => import('@/features/system/pages/api-keys'))
 const WatchlistExclusionsPage = lazy(
   () => import('@/features/users/pages/watchlist-exclusions'),
 )
+const WatchlistDiagnosticsPage = lazy(
+  () => import('@/features/users/pages/watchlist-diagnostics'),
+)
 const LogViewerPage = lazy(() => import('@/features/system/pages/log-viewer'))
 const ApprovalSettingsPage = lazy(
   () => import('@/features/requests/pages/approval-settings'),
@@ -281,6 +284,16 @@ export const router = createBrowserRouter(
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
                     <WatchlistExclusionsPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'watchlist-diagnostics',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <WatchlistDiagnosticsPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),
