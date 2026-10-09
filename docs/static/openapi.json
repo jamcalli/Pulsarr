@@ -807,6 +807,62 @@
           "notifyOnAvailability": {
             "type": "boolean"
           },
+          "notificationDelivery": {
+            "type": "object",
+            "properties": {
+              "digestMode": {
+                "type": "string",
+                "enum": [
+                  "off",
+                  "window",
+                  "daily"
+                ],
+                "description": "off = deliver immediately, window = coalesce for N minutes, daily = one digest at a fixed time"
+              },
+              "digestWindowMinutes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1440
+              },
+              "digestTime": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "quietHoursEnabled": {
+                "type": "boolean"
+              },
+              "quietHoursStart": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "quietHoursEnd": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "timezone": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": ""
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "digestMode",
+              "digestWindowMinutes",
+              "digestTime",
+              "quietHoursEnabled",
+              "quietHoursStart",
+              "quietHoursEnd",
+              "timezone"
+            ],
+            "additionalProperties": false,
+            "description": "Default quiet hours and digest batching for media-available user notifications"
+          },
           "pendingWebhookRetryInterval": {
             "type": "number",
             "description": "Pending webhook retry interval in seconds"
@@ -1270,6 +1326,7 @@
           "newEpisodeThreshold",
           "notifyOnUpdate",
           "notifyOnAvailability",
+          "notificationDelivery",
           "pendingWebhookRetryInterval",
           "pendingWebhookMaxAge",
           "pendingWebhookCleanupInterval",
@@ -1475,6 +1532,61 @@
           },
           "notifyOnAvailability": {
             "type": "boolean"
+          },
+          "notificationDelivery": {
+            "type": "object",
+            "properties": {
+              "digestMode": {
+                "type": "string",
+                "enum": [
+                  "off",
+                  "window",
+                  "daily"
+                ],
+                "description": "off = deliver immediately, window = coalesce for N minutes, daily = one digest at a fixed time"
+              },
+              "digestWindowMinutes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1440
+              },
+              "digestTime": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "quietHoursEnabled": {
+                "type": "boolean"
+              },
+              "quietHoursStart": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "quietHoursEnd": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "timezone": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": ""
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "digestMode",
+              "digestWindowMinutes",
+              "digestTime",
+              "quietHoursEnabled",
+              "quietHoursStart",
+              "quietHoursEnd",
+              "timezone"
+            ],
+            "description": "Default quiet hours and digest batching for media-available user notifications"
           },
           "pendingWebhookRetryInterval": {
             "type": "number"
@@ -19131,6 +19243,79 @@
                   },
                   "requires_approval": {
                     "type": "boolean"
+                  },
+                  "notify_digest_mode": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "off",
+                          "window",
+                          "daily"
+                        ],
+                        "description": "off = deliver immediately, window = coalesce for N minutes, daily = one digest at a fixed time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notify_digest_window_minutes": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1440
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notify_digest_time": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notify_quiet_hours_enabled": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  },
+                  "notify_quiet_hours_start": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notify_quiet_hours_end": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notify_timezone": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   }
                 },
                 "required": [
@@ -19230,6 +19415,79 @@
                           ]
                         },
                         "friend_created_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "notify_digest_mode": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "off",
+                                "window",
+                                "daily"
+                              ],
+                              "description": "off = deliver immediately, window = coalesce for N minutes, daily = one digest at a fixed time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_digest_window_minutes": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 1440
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_digest_time": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_quiet_hours_enabled": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "notify_quiet_hours_start": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_quiet_hours_end": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_timezone": {
                           "type": [
                             "string",
                             "null"
@@ -19438,6 +19696,79 @@
                       },
                       "requires_approval": {
                         "type": "boolean"
+                      },
+                      "notify_digest_mode": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "off",
+                              "window",
+                              "daily"
+                            ],
+                            "description": "off = deliver immediately, window = coalesce for N minutes, daily = one digest at a fixed time"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "notify_digest_window_minutes": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1440
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "notify_digest_time": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "notify_quiet_hours_enabled": {
+                        "type": [
+                          "boolean",
+                          "null"
+                        ]
+                      },
+                      "notify_quiet_hours_start": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "notify_quiet_hours_end": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "notify_timezone": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       }
                     }
                   }
@@ -19752,6 +20083,79 @@
                               "null"
                             ]
                           },
+                          "notify_digest_mode": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "off",
+                                  "window",
+                                  "daily"
+                                ],
+                                "description": "off = deliver immediately, window = coalesce for N minutes, daily = one digest at a fixed time"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "notify_digest_window_minutes": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1440
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "notify_digest_time": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "notify_quiet_hours_enabled": {
+                            "type": [
+                              "boolean",
+                              "null"
+                            ]
+                          },
+                          "notify_quiet_hours_start": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "notify_quiet_hours_end": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "notify_timezone": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
                           "created_at": {
                             "type": "string"
                           },
@@ -19903,6 +20307,79 @@
                             ]
                           },
                           "friend_created_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "notify_digest_mode": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "off",
+                                  "window",
+                                  "daily"
+                                ],
+                                "description": "off = deliver immediately, window = coalesce for N minutes, daily = one digest at a fixed time"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "notify_digest_window_minutes": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1440
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "notify_digest_time": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "notify_quiet_hours_enabled": {
+                            "type": [
+                              "boolean",
+                              "null"
+                            ]
+                          },
+                          "notify_quiet_hours_start": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "notify_quiet_hours_end": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "notify_timezone": {
                             "type": [
                               "string",
                               "null"
@@ -20547,6 +21024,79 @@
                   },
                   "requires_approval": {
                     "type": "boolean"
+                  },
+                  "notify_digest_mode": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "off",
+                          "window",
+                          "daily"
+                        ],
+                        "description": "off = deliver immediately, window = coalesce for N minutes, daily = one digest at a fixed time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notify_digest_window_minutes": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1440
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notify_digest_time": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notify_quiet_hours_enabled": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  },
+                  "notify_quiet_hours_start": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notify_quiet_hours_end": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notify_timezone": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   }
                 }
               }
@@ -20646,6 +21196,79 @@
                           ]
                         },
                         "friend_created_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "notify_digest_mode": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "off",
+                                "window",
+                                "daily"
+                              ],
+                              "description": "off = deliver immediately, window = coalesce for N minutes, daily = one digest at a fixed time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_digest_window_minutes": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 1440
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_digest_time": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_quiet_hours_enabled": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "notify_quiet_hours_start": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_quiet_hours_end": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_timezone": {
                           "type": [
                             "string",
                             "null"
@@ -20829,6 +21452,79 @@
                           ]
                         },
                         "friend_created_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "notify_digest_mode": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "off",
+                                "window",
+                                "daily"
+                              ],
+                              "description": "off = deliver immediately, window = coalesce for N minutes, daily = one digest at a fixed time"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_digest_window_minutes": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 1440
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_digest_time": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_quiet_hours_enabled": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "notify_quiet_hours_start": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_quiet_hours_end": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "notify_timezone": {
                           "type": [
                             "string",
                             "null"

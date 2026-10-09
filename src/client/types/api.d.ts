@@ -3292,6 +3292,20 @@ export interface components {
             /** @enum {string} */
             notifyOnUpdate: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
             notifyOnAvailability: boolean;
+            /** @description Default quiet hours and digest batching for media-available user notifications */
+            notificationDelivery: {
+                /**
+                 * @description off = deliver immediately, window = coalesce for N minutes, daily = one digest at a fixed time
+                 * @enum {string}
+                 */
+                digestMode: "off" | "window" | "daily";
+                digestWindowMinutes: number;
+                digestTime: string;
+                quietHoursEnabled: boolean;
+                quietHoursStart: string;
+                quietHoursEnd: string;
+                timezone: "" | string;
+            };
             /** @description Pending webhook retry interval in seconds */
             pendingWebhookRetryInterval: number;
             /** @description Pending webhook expiry age in minutes */
@@ -3459,6 +3473,20 @@ export interface components {
             /** @enum {string} */
             notifyOnUpdate?: "none" | "all" | "discord-only" | "apprise-only" | "webhook-only" | "dm-only";
             notifyOnAvailability?: boolean;
+            /** @description Default quiet hours and digest batching for media-available user notifications */
+            notificationDelivery?: {
+                /**
+                 * @description off = deliver immediately, window = coalesce for N minutes, daily = one digest at a fixed time
+                 * @enum {string}
+                 */
+                digestMode: "off" | "window" | "daily";
+                digestWindowMinutes: number;
+                digestTime: string;
+                quietHoursEnabled: boolean;
+                quietHoursStart: string;
+                quietHoursEnd: string;
+                timezone: "" | string;
+            };
             pendingWebhookRetryInterval?: number;
             pendingWebhookMaxAge?: number;
             pendingWebhookCleanupInterval?: number;
@@ -12166,6 +12194,13 @@ export interface operations {
                     notify_plex_mobile: boolean;
                     can_sync: boolean;
                     requires_approval: boolean;
+                    notify_digest_mode?: ("off" | "window" | "daily") | null;
+                    notify_digest_window_minutes?: number | null;
+                    notify_digest_time?: string | null;
+                    notify_quiet_hours_enabled?: boolean | null;
+                    notify_quiet_hours_start?: string | null;
+                    notify_quiet_hours_end?: string | null;
+                    notify_timezone?: string | null;
                 };
             };
         };
@@ -12196,6 +12231,13 @@ export interface operations {
                             avatar?: string | null;
                             display_name?: string | null;
                             friend_created_at?: string | null;
+                            notify_digest_mode?: ("off" | "window" | "daily") | null;
+                            notify_digest_window_minutes?: number | null;
+                            notify_digest_time?: string | null;
+                            notify_quiet_hours_enabled?: boolean | null;
+                            notify_quiet_hours_start?: string | null;
+                            notify_quiet_hours_end?: string | null;
+                            notify_timezone?: string | null;
                             created_at: string;
                             updated_at: string;
                         };
@@ -12296,6 +12338,13 @@ export interface operations {
                         notify_plex_mobile?: boolean;
                         can_sync?: boolean;
                         requires_approval?: boolean;
+                        notify_digest_mode?: ("off" | "window" | "daily") | null;
+                        notify_digest_window_minutes?: number | null;
+                        notify_digest_time?: string | null;
+                        notify_quiet_hours_enabled?: boolean | null;
+                        notify_quiet_hours_start?: string | null;
+                        notify_quiet_hours_end?: string | null;
+                        notify_timezone?: string | null;
                     };
                 };
             };
@@ -12470,6 +12519,13 @@ export interface operations {
                             avatar?: string | null;
                             display_name?: string | null;
                             friend_created_at?: string | null;
+                            notify_digest_mode?: ("off" | "window" | "daily") | null;
+                            notify_digest_window_minutes?: number | null;
+                            notify_digest_time?: string | null;
+                            notify_quiet_hours_enabled?: boolean | null;
+                            notify_quiet_hours_start?: string | null;
+                            notify_quiet_hours_end?: string | null;
+                            notify_timezone?: string | null;
                             created_at: string;
                             updated_at: string;
                         }[];
@@ -12531,6 +12587,13 @@ export interface operations {
                             avatar?: string | null;
                             display_name?: string | null;
                             friend_created_at?: string | null;
+                            notify_digest_mode?: ("off" | "window" | "daily") | null;
+                            notify_digest_window_minutes?: number | null;
+                            notify_digest_time?: string | null;
+                            notify_quiet_hours_enabled?: boolean | null;
+                            notify_quiet_hours_start?: string | null;
+                            notify_quiet_hours_end?: string | null;
+                            notify_timezone?: string | null;
                             created_at: string;
                             updated_at: string;
                             watchlist_count: number;
@@ -12967,6 +13030,13 @@ export interface operations {
                             avatar?: string | null;
                             display_name?: string | null;
                             friend_created_at?: string | null;
+                            notify_digest_mode?: ("off" | "window" | "daily") | null;
+                            notify_digest_window_minutes?: number | null;
+                            notify_digest_time?: string | null;
+                            notify_quiet_hours_enabled?: boolean | null;
+                            notify_quiet_hours_start?: string | null;
+                            notify_quiet_hours_end?: string | null;
+                            notify_timezone?: string | null;
                             created_at: string;
                             updated_at: string;
                         };
@@ -13024,6 +13094,13 @@ export interface operations {
                     notify_plex_mobile?: boolean;
                     can_sync?: boolean;
                     requires_approval?: boolean;
+                    notify_digest_mode?: ("off" | "window" | "daily") | null;
+                    notify_digest_window_minutes?: number | null;
+                    notify_digest_time?: string | null;
+                    notify_quiet_hours_enabled?: boolean | null;
+                    notify_quiet_hours_start?: string | null;
+                    notify_quiet_hours_end?: string | null;
+                    notify_timezone?: string | null;
                 };
             };
         };
@@ -13054,6 +13131,13 @@ export interface operations {
                             avatar?: string | null;
                             display_name?: string | null;
                             friend_created_at?: string | null;
+                            notify_digest_mode?: ("off" | "window" | "daily") | null;
+                            notify_digest_window_minutes?: number | null;
+                            notify_digest_time?: string | null;
+                            notify_quiet_hours_enabled?: boolean | null;
+                            notify_quiet_hours_start?: string | null;
+                            notify_quiet_hours_end?: string | null;
+                            notify_timezone?: string | null;
                             created_at: string;
                             updated_at: string;
                         };
