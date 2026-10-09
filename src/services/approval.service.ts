@@ -15,6 +15,7 @@ import { settingsFromRouting } from '@services/content-router/approved-routing.j
 import { isArrAlreadyAddedError } from '@utils/arr-error.js'
 import { getGuidMatchScore } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { resolveQuotaWindowSettings } from '@utils/quota-window.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 function routingFor(decision: RouterDecision): RouterDecision['routing'] {
@@ -668,6 +669,7 @@ export class ApprovalService {
           const quotaStatus = await this.fastify.db.getQuotaStatus(
             request.userId,
             request.contentType as 'movie' | 'show',
+            resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
           )
 
           // Edge case: If quota was removed entirely, auto-approve (no quota = no restriction)
@@ -772,6 +774,7 @@ export class ApprovalService {
     const quotaStatus = await this.fastify.db.getQuotaStatus(
       user.id,
       content.type,
+      resolveQuotaWindowSettings(this.fastify.config.quotaSettings),
     )
 
     return {

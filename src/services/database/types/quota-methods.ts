@@ -8,6 +8,7 @@ import type {
   UserQuotaConfig,
   UserQuotaConfigs,
 } from '@root/types/approval.types.js'
+import type { QuotaWindowSettings } from '@utils/quota-window.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
@@ -93,13 +94,14 @@ declare module '@services/database.service.js' {
      * @param userId - User ID
      * @param quotaType - Type of quota to calculate usage for
      * @param contentType - Optional content type filter
-     * @returns Promise resolving to the current usage count
+     * @returns Promise resolving to the usage count and the earliest counted request date
      */
     getCurrentQuotaUsage(
       userId: number,
       quotaType: QuotaType,
+      settings: QuotaWindowSettings,
       contentType?: 'movie' | 'show',
-    ): Promise<number>
+    ): Promise<{ count: number; earliest: string | null }>
 
     /**
      * Returns total watchlist item count for a user and content type (used for watchlist cap display)
@@ -121,6 +123,7 @@ declare module '@services/database.service.js' {
     getQuotaStatus(
       userId: number,
       contentType: 'movie' | 'show',
+      settings: QuotaWindowSettings,
     ): Promise<QuotaStatus | null>
 
     /**
@@ -131,6 +134,7 @@ declare module '@services/database.service.js' {
      */
     getBulkQuotaStatus(
       userIds: number[],
+      settings: QuotaWindowSettings,
       contentType?: 'movie' | 'show',
     ): Promise<Array<{ userId: number; quotaStatus: QuotaStatus | null }>>
 
@@ -142,6 +146,7 @@ declare module '@services/database.service.js' {
      */
     checkQuotaExceeded(
       userId: number,
+      settings: QuotaWindowSettings,
       contentType?: 'movie' | 'show',
     ): Promise<QuotaExceeded | null>
 
@@ -246,18 +251,6 @@ declare module '@services/database.service.js' {
     getLatestQuotaUsage(userId: number): Promise<QuotaUsage | null>
 
     /**
-     * Gets the next scheduled maintenance run time from the quota-maintenance schedule
-     * @returns Promise resolving to the next maintenance run date if available, undefined otherwise
-     */
-    getNextMaintenanceRun(): Promise<Date | undefined>
-
-    /**
-     * Gets the start date for weekly rolling quotas (7 days ago)
-     * @returns Promise resolving to the start date for weekly rolling quotas
-     */
-    getWeeklyRollingStartDate(): Promise<Date>
-
-    /**
      * Bulk deletes quotas for multiple users efficiently using database transactions and batching
      * @param userIds - Array of user IDs to delete quotas for
      * @returns Promise resolving to object containing processed count and failed user IDs
@@ -310,6 +303,7 @@ declare module '@services/database.service.js' {
       contentType: 'movie' | 'show',
       quotaType: QuotaType,
       quotaLimit: number,
+      settings: QuotaWindowSettings,
       requestDate?: Date,
     ): Promise<{
       consumed: boolean
