@@ -113,16 +113,13 @@ export function createRoutingFailureColumns({
           : (row.instance_name ?? `#${row.instance_id}`),
       header: () => <div>Instance</div>,
       cell: ({ row }) => {
-        const { instance_id, instance_name, instance_type } = row.original
+        const { instance_id, instance_name } = row.original
         if (instance_id === null) {
           return <span className="text-muted-foreground">-</span>
         }
         return (
           <div className="truncate max-w-37.5">
             {instance_name ?? `#${instance_id}`}
-            <span className="ml-1 text-xs text-muted-foreground capitalize">
-              {instance_type}
-            </span>
           </div>
         )
       },
@@ -138,7 +135,7 @@ export function createRoutingFailureColumns({
           <Tooltip>
             <TooltipTrigger asChild>
               <div
-                className={`truncate max-w-xs text-sm ${lowSeverity ? 'text-muted-foreground' : ''}`}
+                className={`truncate max-w-56 text-sm ${lowSeverity ? 'text-muted-foreground' : ''}`}
               >
                 {row.original.message || '-'}
               </div>
@@ -155,7 +152,7 @@ export function createRoutingFailureColumns({
     },
     {
       accessorKey: 'attempt_count',
-      header: sortableHeader('Attempts'),
+      header: () => <div className="text-center">Attempts</div>,
       cell: ({ row }) => (
         <div
           className="text-center font-medium"
@@ -185,6 +182,12 @@ export function createRoutingFailureColumns({
       enableHiding: false,
       header: () => <div className="flex justify-center">Actions</div>,
       cell: ({ row }) => {
+        // a retry cannot give an item the IDs it lacks
+        if (ROUTING_FAILURE_CATEGORY_META[row.original.category].lowSeverity) {
+          return (
+            <div className="flex justify-center text-muted-foreground">-</div>
+          )
+        }
         const isRetrying = retryingItemId === row.original.watchlist_item_id
         return (
           <div className="flex justify-center">
