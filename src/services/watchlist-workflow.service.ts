@@ -274,7 +274,8 @@ export class WatchlistWorkflowService {
     watchlistItemIds: number[],
   ): Promise<
     | { status: 'done'; result: RetryRoutingResult }
-    | { status: 'not_running' | 'busy' }
+    | { status: 'not_running' }
+    | { status: 'busy' }
   > {
     if (this.state.status !== 'running') return { status: 'not_running' }
     if (this.routingRetryInFlight) return { status: 'busy' }
