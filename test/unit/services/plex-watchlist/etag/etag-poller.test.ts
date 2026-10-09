@@ -101,3 +101,78 @@ describe('EtagPoller config access', () => {
     expect(tokens).toEqual(['token-new'])
   })
 })
+
+// The RSS safety net's Plex load is exactly what one checkUser call costs
+describe('EtagPoller per-check request cost', () => {
+  const GRAPHQL_URL = 'https://community.plex.tv/api'
+
+  function countRequests(state: { friendEtag: string; primaryEtag: string }) {
+    const requests: string[] = []
+    server.use(
+      http.get(WATCHLIST_URL, ({ request }) => {
+        const etag = state.primaryEtag
+        if (request.headers.get('If-None-Match') === etag) {
+          requests.push('primary:304')
+          return new HttpResponse(null, { status: 304 })
+        }
+        requests.push('primary:200')
+        return HttpResponse.json(
+          { MediaContainer: { Metadata: [] } },
+          { headers: { etag } },
+        )
+      }),
+      http.post(GRAPHQL_URL, async ({ request }) => {
+        const body = (await request.json()) as { query: string }
+        const size = /watchlist\(first: (\d+)\)/.exec(body.query)?.[1]
+        requests.push(`friend:first=${size}`)
+        return HttpResponse.json(
+          { data: { userV2: { watchlist: { nodes: [] } } } },
+          { headers: { etag: state.friendEtag } },
+        )
+      }),
+    )
+    return requests
+  }
+
+  const primary = { userId: 1, username: 'primary', isPrimary: true }
+  const friend = {
+    userId: 2,
+    username: 'friend',
+    watchlistId: 'wl-2',
+    isPrimary: false,
+  }
+
+  it('costs one conditional request for an unchanged primary watchlist', async () => {
+    const poller = new EtagPoller(
+      () => ({ plexTokens: ['t'] }) as Config,
+      createMockLogger(),
+    )
+    const requests = countRequests({ primaryEtag: 'W/"1"', friendEtag: '' })
+    await poller.establishBaseline(primary)
+    requests.length = 0
+
+    await poller.checkUser(primary)
+
+    expect(requests).toEqual(['primary:304'])
+  })
+
+  it('costs one 2-item query for an unchanged friend, two requests when changed', async () => {
+    const poller = new EtagPoller(
+      () => ({ plexTokens: ['t'] }) as Config,
+      createMockLogger(),
+    )
+    const state = { primaryEtag: '', friendEtag: 'W/"a"' }
+    const requests = countRequests(state)
+    await poller.establishBaseline(friend)
+    expect(requests).toEqual(['friend:first=50', 'friend:first=2'])
+    requests.length = 0
+
+    await poller.checkUser(friend)
+    expect(requests).toEqual(['friend:first=2'])
+    requests.length = 0
+
+    state.friendEtag = 'W/"b"'
+    await poller.checkUser(friend)
+    expect(requests).toEqual(['friend:first=2', 'friend:first=50'])
+  })
+})
