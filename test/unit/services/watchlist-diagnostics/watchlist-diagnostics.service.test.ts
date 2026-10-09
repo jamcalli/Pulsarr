@@ -44,6 +44,7 @@ interface Fixture {
   userExclusions: Array<Partial<WatchlistExclusion>>
   globalExclusions: Array<Partial<WatchlistExclusion>>
   movieCapExceeded: boolean
+  movieBypassApproval?: boolean
 }
 
 function row(overrides: Partial<StoredRow> & { id: number; key: string }) {
@@ -116,7 +117,7 @@ function createDb(fixture: Fixture) {
             currentUsage: 6,
             exceeded: true,
             resetDate: null,
-            bypassApproval: false,
+            bypassApproval: fixture.movieBypassApproval ?? false,
             watchlistCap: fixture.movieCapExceeded ? 2 : null,
             watchlistUsage: fixture.movieCapExceeded ? 3 : null,
             watchlistCapExceeded: fixture.movieCapExceeded,
@@ -425,6 +426,24 @@ describe('WatchlistDiagnosticsService', () => {
       const report = await service.run(2)
 
       expect(report.items[0].state).toBe('watchlist_cap')
+    })
+
+    it('ignores the watchlist cap when the quota bypasses approval, as the sync does', async () => {
+      const fixture = emptyFixture()
+      fixture.items = [row({ id: 1, key: 'k' })]
+      fixture.movieCapExceeded = true
+      fixture.movieBypassApproval = true
+      fetchLive.mockResolvedValue({
+        source: 'friend',
+        truncated: false,
+        items: [{ key: 'k', title: 'K', type: 'movie' }],
+      })
+
+      const { service } = createService(fixture)
+      const report = await service.run(2)
+
+      expect(report.items[0].state).toBe('not_routed')
+      expect(report.quotas.movie?.watchlistCapExceeded).toBe(true)
     })
 
     it('falls back to a placeholder name for a disabled instance', async () => {

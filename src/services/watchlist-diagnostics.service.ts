@@ -309,9 +309,10 @@ export class WatchlistDiagnosticsService {
           ? schedule.next_run.time
           : null,
     }
+    // The sync's cap gate (getActiveWatchlistCaps) ignores caps on quotas that bypass approval
     const capExceeded = {
-      movie: movieQuota?.watchlistCapExceeded ?? false,
-      show: showQuota?.watchlistCapExceeded ?? false,
+      movie: isCapEnforced(movieQuota),
+      show: isCapEnforced(showQuota),
     }
 
     const diff = diffWatchlist(live.items, stored)
@@ -551,6 +552,12 @@ function latest(values: Array<string | null>): string | null {
     }
   }
   return best
+}
+
+function isCapEnforced(
+  quota: Awaited<ReturnType<DiagnosticsDb['getQuotaStatus']>>,
+): boolean {
+  return Boolean(quota?.watchlistCapExceeded && !quota.bypassApproval)
 }
 
 function toQuotaSummary(
