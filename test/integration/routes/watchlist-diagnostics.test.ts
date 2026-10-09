@@ -164,7 +164,11 @@ describe('POST /v1/watchlist-diagnostics/users/:userId', () => {
       presence: 'plex_only',
       state: 'not_seen_yet',
     })
-    expect(byKey.get(NIGHT_OF_THE_LIVING_DEAD)?.presence).toBe('both')
+    expect(byKey.get(NIGHT_OF_THE_LIVING_DEAD)).toMatchObject({
+      presence: 'both',
+      watchlistItemId: 1,
+      ids: { tmdb: 10331, tvdb: 1831, imdb: 'tt0063350' },
+    })
     expect(byKey.get(NOSFERATU)).toMatchObject({
       presence: 'pulsarr_only',
       state: 'removed_from_plex',
