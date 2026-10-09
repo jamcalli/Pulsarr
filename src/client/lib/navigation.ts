@@ -58,9 +58,12 @@ export const NAV_PAGES = {
     rebuilt: true,
   },
   plexUsers: page('Plex users', '/users', ['/plex/users']),
-  newUserDefaults: page('New user defaults', '/users/new-user-defaults', [
-    '/utilities/new-user-defaults',
-  ]),
+  newUserDefaults: {
+    ...page('New user defaults', '/users/new-user-defaults', [
+      '/utilities/new-user-defaults',
+    ]),
+    rebuilt: true,
+  },
   userTags: {
     ...page('User tags', '/users/tags', ['/utilities/user-tags']),
     rebuilt: true,

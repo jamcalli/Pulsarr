@@ -6,6 +6,7 @@ import { ContentRouterSkeleton } from '@/features/library/components/content-rou
 import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
+import { NEW_USER_DEFAULTS_SKELETON } from '@/features/users/lib/new-user-defaults-skeleton'
 import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
 import AuthenticatedLayout from '@/legacy/layouts/authenticated'
@@ -15,6 +16,9 @@ import { NAV_PAGES, pageHref } from '@/lib/navigation'
 const LoginPage = lazy(() => import('@/features/auth'))
 const HomePage = lazy(() => import('@/features/home'))
 const UserTagsPage = lazy(() => import('@/features/users/pages/user-tags'))
+const NewUserDefaultsPage = lazy(
+  () => import('@/features/users/pages/new-user-defaults'),
+)
 const ApprovalQueuePage = lazy(
   () => import('@/features/requests/pages/approval-queue'),
 )
@@ -45,7 +49,7 @@ const DeleteSyncPage = lazy(
 const PlexNotificationsPage = lazy(
   () => import('@/legacy/features/system/pages/plex-notifications'),
 )
-const NewUserDefaultsPage = lazy(
+const LegacyNewUserDefaultsPage = lazy(
   () => import('@/legacy/features/users/pages/new-user-defaults'),
 )
 const PlexSessionMonitoringPage = lazy(
@@ -123,6 +127,18 @@ export const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<SettingsPageSkeleton sections={4} />}>
                   <UserTagsPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'users/new-user-defaults',
+              element: (
+                <Suspense
+                  fallback={
+                    <SettingsPageSkeleton {...NEW_USER_DEFAULTS_SKELETON} />
+                  }
+                >
+                  <NewUserDefaultsPage />
                 </Suspense>
               ),
             },
@@ -323,7 +339,7 @@ export const router = createBrowserRouter(
               element: (
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
-                    <NewUserDefaultsPage />
+                    <LegacyNewUserDefaultsPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),

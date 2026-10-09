@@ -4644,6 +4644,69 @@ export interface components {
          * @enum {string}
          */
         UserNamingSource: "username" | "alias";
+        /** @description A user quota for one content type */
+        UserQuota: {
+            userId: number;
+            contentType: components["schemas"]["ContentType"];
+            quotaType: components["schemas"]["QuotaType"];
+            quotaLimit: number;
+            bypassApproval: boolean;
+            watchlistCap: number | null;
+        };
+        /** @description Quotas to set on, or delete from, several users at once */
+        UserQuotaBulkOperationPayload: {
+            userIds: number[];
+            /** @enum {string} */
+            operation: "update" | "delete";
+            movieQuota?: components["schemas"]["UserQuotaPayload"];
+            showQuota?: components["schemas"]["UserQuotaPayload"];
+        };
+        /** @description Requests counted against a user quota on one day */
+        UserQuotaDailyStats: {
+            date: string;
+            movies: number;
+            shows: number;
+            total: number;
+        };
+        /** @description One content type quota for a user, switched on with its settings or switched off */
+        UserQuotaPayload: {
+            quotaType?: components["schemas"]["QuotaType"];
+            quotaLimit?: number;
+            bypassApproval?: boolean;
+            watchlistCap?: number | null;
+            enabled: boolean;
+        };
+        /** @description Current usage of a user quota against its limit and cap */
+        UserQuotaStatus: {
+            quotaType: components["schemas"]["QuotaType"];
+            quotaLimit: number;
+            currentUsage: number;
+            exceeded: boolean;
+            resetDate: string | null;
+            bypassApproval: boolean;
+            watchlistCap: number | null;
+            watchlistUsage: number | null;
+            watchlistCapExceeded: boolean;
+        };
+        /** @description One request counted against a user quota */
+        UserQuotaUsage: {
+            userId: number;
+            contentType: components["schemas"]["ContentType"];
+            /** @description Date as YYYY-MM-DD */
+            requestDate: string;
+        };
+        /** @description A user's movie and show quotas, each absent when not set */
+        UserQuotas: {
+            userId: number;
+            movieQuota?: components["schemas"]["UserQuota"];
+            showQuota?: components["schemas"]["UserQuota"];
+        };
+        /** @description Movie and show quotas to set for one user */
+        UserQuotasUpdatePayload: {
+            movieQuota?: components["schemas"]["UserQuotaPayload"];
+            showQuota?: components["schemas"]["UserQuotaPayload"];
+            autoApproveHeld?: boolean;
+        };
         /** @description A user with their total watchlist item count in the range and its movie and show split */
         UserStat: {
             name: string;
@@ -7969,12 +8032,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        dailyStats: {
-                            date: string;
-                            movies: number;
-                            shows: number;
-                            total: number;
-                        }[];
+                        dailyStats: components["schemas"]["UserQuotaDailyStats"][];
                     };
                 };
             };
@@ -8023,11 +8081,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        quotaUsage: {
-                            userId: number;
-                            contentType: components["schemas"]["ContentType"];
-                            requestDate: string;
-                        }[];
+                        quotaUsage: components["schemas"]["UserQuotaUsage"][];
                         total: number;
                         limit: number;
                         offset: number;
@@ -8115,14 +8169,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        userQuotas: {
-                            userId: number;
-                            contentType: components["schemas"]["ContentType"];
-                            quotaType: components["schemas"]["QuotaType"];
-                            quotaLimit: number;
-                            bypassApproval: boolean;
-                            watchlistCap: number | null;
-                        }[];
+                        userQuotas: components["schemas"]["UserQuota"][];
                     };
                 };
             };
@@ -8175,25 +8222,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        userQuotas: {
-                            userId: number;
-                            movieQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                            showQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                        };
+                        userQuotas: components["schemas"]["UserQuotas"];
                     };
                 };
             };
@@ -8233,27 +8262,10 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        /** @description Quotas to set on, or delete from, several users at once */
         requestBody: {
             content: {
-                "application/json": {
-                    userIds: number[];
-                    /** @enum {string} */
-                    operation: "update" | "delete";
-                    movieQuota?: {
-                        quotaType?: components["schemas"]["QuotaType"];
-                        quotaLimit?: number;
-                        bypassApproval?: boolean;
-                        watchlistCap?: number | null;
-                        enabled: boolean;
-                    };
-                    showQuota?: {
-                        quotaType?: components["schemas"]["QuotaType"];
-                        quotaLimit?: number;
-                        bypassApproval?: boolean;
-                        watchlistCap?: number | null;
-                        enabled: boolean;
-                    };
-                };
+                "application/json": components["schemas"]["UserQuotaBulkOperationPayload"];
             };
         };
         responses: {
@@ -8327,17 +8339,7 @@ export interface operations {
                         message: string;
                         quotaStatuses: {
                             userId: number;
-                            quotaStatus: {
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                currentUsage: number;
-                                exceeded: boolean;
-                                resetDate: string | null;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                                watchlistUsage: number | null;
-                                watchlistCapExceeded: boolean;
-                            } | null;
+                            quotaStatus: components["schemas"]["UserQuotaStatus"] | null;
                         }[];
                     };
                 };
@@ -8391,25 +8393,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        userQuotas: {
-                            userId: number;
-                            movieQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                            showQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                        };
+                        userQuotas: components["schemas"]["UserQuotas"];
                     };
                 };
             };
@@ -8507,25 +8491,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        userQuotas: {
-                            userId: number;
-                            movieQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                            showQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                        };
+                        userQuotas: components["schemas"]["UserQuotas"];
                     };
                 };
             };
@@ -8603,25 +8569,10 @@ export interface operations {
             };
             cookie?: never;
         };
+        /** @description Movie and show quotas to set for one user */
         requestBody: {
             content: {
-                "application/json": {
-                    movieQuota?: {
-                        quotaType?: components["schemas"]["QuotaType"];
-                        quotaLimit?: number;
-                        bypassApproval?: boolean;
-                        watchlistCap?: number | null;
-                        enabled: boolean;
-                    };
-                    showQuota?: {
-                        quotaType?: components["schemas"]["QuotaType"];
-                        quotaLimit?: number;
-                        bypassApproval?: boolean;
-                        watchlistCap?: number | null;
-                        enabled: boolean;
-                    };
-                    autoApproveHeld?: boolean;
-                };
+                "application/json": components["schemas"]["UserQuotasUpdatePayload"];
             };
         };
         responses: {
@@ -8634,25 +8585,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        userQuotas: {
-                            userId: number;
-                            movieQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                            showQuota?: {
-                                userId: number;
-                                contentType: components["schemas"]["ContentType"];
-                                quotaType: components["schemas"]["QuotaType"];
-                                quotaLimit: number;
-                                bypassApproval: boolean;
-                                watchlistCap: number | null;
-                            };
-                        };
+                        userQuotas: components["schemas"]["UserQuotas"];
                     };
                 };
             };
@@ -8698,17 +8631,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        quotaStatus: {
-                            quotaType: components["schemas"]["QuotaType"];
-                            quotaLimit: number;
-                            currentUsage: number;
-                            exceeded: boolean;
-                            resetDate: string | null;
-                            bypassApproval: boolean;
-                            watchlistCap: number | null;
-                            watchlistUsage: number | null;
-                            watchlistCapExceeded: boolean;
-                        } | null;
+                        quotaStatus: components["schemas"]["UserQuotaStatus"] | null;
                     };
                 };
             };
