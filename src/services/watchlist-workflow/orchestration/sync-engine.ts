@@ -293,6 +293,7 @@ export async function syncWatchlistItems(
               const sonarrItem: SonarrItem = {
                 title: tempItem.title,
                 guids: parsedGuids,
+                thumb: tempItem.thumb,
                 type: 'show',
                 ended: false,
                 genres: parsedGenres,
@@ -340,6 +341,7 @@ export async function syncWatchlistItems(
               const radarrItem: RadarrItem = {
                 title: tempItem.title,
                 guids: parsedGuids,
+                thumb: tempItem.thumb,
                 type: 'movie',
                 genres: parsedGenres,
                 imdb: item.ratings?.imdb,

@@ -82,6 +82,7 @@ export async function createAutoApprovalRecord(
       contentType: context.contentType as 'movie' | 'show',
       contentTitle: item.title,
       contentKey,
+      thumb: item.thumb,
       contentGuids: item.guids,
       routerDecision: {
         action: 'require_approval',
