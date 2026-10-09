@@ -37,6 +37,7 @@ export function ApprovalQueueTable({ page, rows }: ApprovalQueueTableProps) {
       rowSelection={page.selection}
       onRowSelectionChange={page.setSelection}
       onRowClick={(row) => page.openReview(row.id)}
+      frozen={page.stale}
     />
   )
 }

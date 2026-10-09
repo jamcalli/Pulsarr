@@ -38,6 +38,7 @@ export function useApprovalQueueList(state: QueueState) {
     total: list.data?.total ?? 0,
     stats: stats.data?.stats ?? null,
     isLoading: list.isLoading,
+    stale: list.isPlaceholderData,
     errorMessage:
       failed === null
         ? null

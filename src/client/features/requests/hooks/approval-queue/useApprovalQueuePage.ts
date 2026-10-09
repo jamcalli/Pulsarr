@@ -127,6 +127,7 @@ export function useApprovalQueuePage() {
     total: list.total,
     stats: list.stats,
     isLoading: list.isLoading,
+    stale: list.stale,
     errorMessage: list.errorMessage,
     retry: list.retry,
     filtered: hasFilters(state),

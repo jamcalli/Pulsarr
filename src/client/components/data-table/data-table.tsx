@@ -41,6 +41,8 @@ interface DataTableProps<TData> {
   rowSelection: RowSelectionState
   onRowSelectionChange: (next: RowSelectionState) => void
   onRowClick?: (row: TData) => void
+  /** Shows the rows without letting them be selected or opened, such as while the next page loads. */
+  frozen?: boolean
 }
 
 function SortHeader<TData>({ header }: { header: Header<TData, unknown> }) {
@@ -82,6 +84,7 @@ export function DataTable<TData>({
   rowSelection,
   onRowSelectionChange,
   onRowClick,
+  frozen = false,
 }: DataTableProps<TData>) {
   const allColumns = useMemo<ColumnDef<TData>[]>(
     () => [{ id: SELECT_ID, enableSorting: false }, ...columns],
@@ -110,7 +113,11 @@ export function DataTable<TData>({
 
   return (
     <Card className="gap-0 overflow-hidden py-0">
-      <Table aria-label={label}>
+      <Table
+        aria-label={label}
+        aria-busy={frozen || undefined}
+        className={cn('transition-opacity', frozen && 'opacity-60')}
+      >
         <TableHeader>
           {table.getHeaderGroups().map((group) => (
             <TableRow key={group.id} className="hover:bg-transparent">
@@ -123,6 +130,7 @@ export function DataTable<TData>({
                   {header.column.id === SELECT_ID ? (
                     <Checkbox
                       aria-label="Select all on this page"
+                      disabled={frozen}
                       checked={table.getIsAllPageRowsSelected()}
                       indeterminate={table.getIsSomePageRowsSelected()}
                       onCheckedChange={() =>
@@ -144,8 +152,12 @@ export function DataTable<TData>({
             <TableRow
               key={row.id}
               data-state={row.getIsSelected() ? 'selected' : undefined}
-              className={cn(onRowClick && 'cursor-pointer')}
-              onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+              className={cn(onRowClick && !frozen && 'cursor-pointer')}
+              onClick={
+                onRowClick && !frozen
+                  ? () => onRowClick(row.original)
+                  : undefined
+              }
             >
               {row.getVisibleCells().map((cell) => (
                 <TableCell
@@ -155,6 +167,7 @@ export function DataTable<TData>({
                   {cell.column.id === SELECT_ID ? (
                     <Checkbox
                       aria-label={`Select ${rowName(row.original)}`}
+                      disabled={frozen}
                       checked={row.getIsSelected()}
                       onClick={(event) => event.stopPropagation()}
                       onCheckedChange={(checked) => row.toggleSelected(checked)}

@@ -39,10 +39,12 @@ function Harness({
   initialSelection = {},
   onSort = () => undefined,
   onRowClick,
+  frozen,
 }: {
   initialSelection?: RowSelectionState
   onSort?: (next: SortingState) => void
   onRowClick?: (row: Row) => void
+  frozen?: boolean
 }) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'name', desc: false },
@@ -64,6 +66,7 @@ function Harness({
         rowSelection={selection}
         onRowSelectionChange={setSelection}
         onRowClick={onRowClick}
+        frozen={frozen}
       />
       <output>
         {Object.keys(selection)
@@ -130,5 +133,24 @@ describe('DataTable', () => {
 
     await user.click(screen.getByText('Gamma'))
     expect(onRowClick).toHaveBeenCalledWith(rows[2])
+  })
+
+  it('freezes selection and row clicks while frozen', async () => {
+    const user = userEvent.setup()
+    const onRowClick = vi.fn()
+    render(<Harness onRowClick={onRowClick} frozen />)
+
+    expect(screen.getByRole('table', { name: 'Things' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    )
+    expect(
+      screen.getByRole('checkbox', { name: 'Select all on this page' }),
+    ).toHaveAttribute('aria-disabled', 'true')
+    await user.click(screen.getByRole('checkbox', { name: 'Select Gamma' }))
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+
+    await user.click(screen.getByText('Gamma'))
+    expect(onRowClick).not.toHaveBeenCalled()
   })
 })
