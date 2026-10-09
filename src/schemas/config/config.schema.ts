@@ -254,7 +254,11 @@ export const ConfigFullSchema = z
     selfRss: z.string().optional(),
     friendsRss: z.string().optional(),
     rssSafetyNetEnabled: z.boolean(),
-    rssSafetyNetIntervalMinutes: RssSafetyNetIntervalSchema,
+    // Unbounded on read: a value from .env is stored as-is and clamped at runtime
+    rssSafetyNetIntervalMinutes: z.number().meta({
+      description:
+        'Minutes between RSS safety-net checks of the same user (RSS mode only)',
+    }),
     // Tagging Config
     tagUsersInSonarr: z.boolean(),
     tagUsersInRadarr: z.boolean(),

@@ -1026,9 +1026,7 @@
             "type": "boolean"
           },
           "rssSafetyNetIntervalMinutes": {
-            "type": "integer",
-            "minimum": 10,
-            "maximum": 120,
+            "type": "number",
             "description": "Minutes between RSS safety-net checks of the same user (RSS mode only)"
           },
           "tagUsersInSonarr": {
