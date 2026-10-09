@@ -5,18 +5,20 @@ export async function up(knex: Knex): Promise<void> {
     table.string('thumb').nullable()
   })
 
-  await knex.raw(`
-    UPDATE approval_requests
-    SET thumb = (
-      SELECT w.thumb FROM watchlist_items w
-      WHERE w.key = approval_requests.content_key
-        AND w.thumb IS NOT NULL
-        AND w.thumb <> ''
-      ORDER BY CASE WHEN w.user_id = approval_requests.user_id THEN 0 ELSE 1 END, w.id
-      LIMIT 1
-    )
-    WHERE thumb IS NULL
-  `)
+  await knex('approval_requests')
+    .whereNull('thumb')
+    .update({
+      thumb: knex('watchlist_items as w')
+        .select('w.thumb')
+        .where('w.key', knex.ref('approval_requests.content_key'))
+        .whereNotNull('w.thumb')
+        .whereNot('w.thumb', '')
+        .orderByRaw(
+          'CASE WHEN w.user_id = approval_requests.user_id THEN 0 ELSE 1 END',
+        )
+        .orderBy('w.id')
+        .limit(1),
+    })
 }
 
 export async function down(knex: Knex): Promise<void> {
