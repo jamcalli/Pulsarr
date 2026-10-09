@@ -9,6 +9,10 @@ import {
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
 import { DISCORD_WEBHOOK_HOSTS } from '@root/types/discord.types.js'
+import {
+  longestQuotaWindowDays,
+  resolveQuotaWindowSettings,
+} from '@root/utils/quota-window.js'
 import { z } from 'zod'
 
 // Max constants for validation
@@ -559,6 +563,19 @@ export const ConfigUpdateSchema = z
             handleMonthEnd: QuotaMonthEndSchema.optional(),
           })
           .optional(),
+      })
+      .superRefine((value, ctx) => {
+        if (value.cleanup?.enabled === false) return
+        const minimumDays = longestQuotaWindowDays(
+          resolveQuotaWindowSettings(value),
+        )
+        if ((value.cleanup?.retentionDays ?? 90) < minimumDays) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `Usage history must be kept for at least ${minimumDays} days so cleanup never removes requests that still count toward a quota.`,
+            path: ['cleanup', 'retentionDays'],
+          })
+        }
       })
       .optional(),
     approvalExpiration: ApprovalExpirationPayloadSchema.optional(),

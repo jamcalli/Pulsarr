@@ -20,6 +20,7 @@ import {
   UserQuotaGetResponseSchema,
   UserQuotaUpdateResponseSchema,
 } from '@schemas/quota/quota.schema.js'
+import { resolveQuotaWindowSettings } from '@utils/quota-window.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
@@ -465,7 +466,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         const { contentType } = request.query
 
         const quotaStatus = contentType
-          ? await fastify.db.getQuotaStatus(userId, contentType)
+          ? await fastify.db.getQuotaStatus(
+              userId,
+              contentType,
+              resolveQuotaWindowSettings(fastify.config.quotaSettings),
+            )
           : null
 
         return {
@@ -514,6 +519,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         const quotaStatuses = await fastify.db.getBulkQuotaStatus(
           userIds,
+          resolveQuotaWindowSettings(fastify.config.quotaSettings),
           contentType,
         )
 
