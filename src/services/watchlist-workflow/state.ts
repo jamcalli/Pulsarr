@@ -20,6 +20,10 @@ export class WorkflowState {
   rssMode = false
   isEtagFallbackActive = false
   isReconciling = false
+  // RSS checks and safety-net checks exclude each other so one add cannot be routed twice
+  rssChecksInFlight = 0
+  isSafetyNetChecking = false
+  isSafetyNetActive = false
   lastSuccessfulSyncTime = Date.now()
   etagPoller: EtagPoller | null = null
   rssFeedCache: RssFeedCacheManager | null = null

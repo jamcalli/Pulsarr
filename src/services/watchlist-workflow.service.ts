@@ -14,6 +14,11 @@ import { cleanupWorkflow } from './watchlist-workflow/lifecycle/workflow-stopper
 import { reconcile as reconcileModule } from './watchlist-workflow/orchestration/reconciler.js'
 import { checkRssFeeds } from './watchlist-workflow/rss/feed-poller.js'
 import {
+  getSafetyNetCycleMs,
+  startRssSafetyNet,
+  syncRssSafetyNet,
+} from './watchlist-workflow/rss/safety-net.js'
+import {
   WorkflowState,
   type WorkflowStatus,
 } from './watchlist-workflow/state.js'
@@ -194,6 +199,7 @@ export class WatchlistWorkflowService {
           () => void checkRssFeeds(this.deps),
           this.rssCheckIntervalMs,
         )
+        await startRssSafetyNet(this.deps)
       } else {
         this.log.debug('Starting ETag staggered polling')
         await startStaggeredPolling(this.deps)
@@ -206,6 +212,10 @@ export class WatchlistWorkflowService {
       if (this.state.isEtagFallbackActive) {
         this.log.info(
           'Watchlist workflow running in ETag mode (5-minute staggered polling, 2-hour full reconciliation)',
+        )
+      } else if (this.state.isSafetyNetActive) {
+        this.log.info(
+          `Watchlist workflow running in RSS mode (instant detection, ${getSafetyNetCycleMs(this.fastify.config) / 60_000}-minute safety net, 2-hour full reconciliation)`,
         )
       } else {
         this.log.info(
@@ -253,6 +263,11 @@ export class WatchlistWorkflowService {
     this.state.rssMode = false
 
     return true
+  }
+
+  /** Starts or stops the RSS safety net after its config changes; a no-op outside RSS mode. */
+  async syncRssSafetyNet(): Promise<void> {
+    return syncRssSafetyNet(this.deps)
   }
 
   async reconcile(options: { mode: 'full' | 'etag' }): Promise<void> {

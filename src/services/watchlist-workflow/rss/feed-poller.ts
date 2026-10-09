@@ -4,6 +4,12 @@ import { processRssSelfItems } from './self-processor.js'
 
 export async function checkRssFeeds(deps: WorkflowDeps): Promise<void> {
   const { signal } = deps.state
+  // The feed cache only advances when checked, so a skipped tick loses nothing
+  if (deps.state.isSafetyNetChecking) {
+    deps.logger.debug('RSS safety-net check in progress, skipping RSS tick')
+    return
+  }
+  deps.state.rssChecksInFlight++
   try {
     if (!deps.state.rssFeedCache) {
       deps.logger.warn('RSS feed cache not initialized, skipping check')
@@ -57,5 +63,7 @@ export async function checkRssFeeds(deps: WorkflowDeps): Promise<void> {
       },
       'Error checking RSS feeds',
     )
+  } finally {
+    deps.state.rssChecksInFlight--
   }
 }

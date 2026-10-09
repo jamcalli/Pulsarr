@@ -126,6 +126,8 @@ export async function getConfig(
     // Handle optional RSS fields
     selfRss: config.selfRss || undefined,
     friendsRss: config.friendsRss || undefined,
+    rssSafetyNetEnabled: Boolean(config.rssSafetyNetEnabled ?? false),
+    rssSafetyNetIntervalMinutes: config.rssSafetyNetIntervalMinutes ?? 30,
     // Handle optional Discord fields
     discordWebhookUrl: config.discordWebhookUrl || undefined,
     discordBotToken: config.discordBotToken || undefined,
@@ -333,6 +335,8 @@ export async function createConfig(
       // RSS fields
       selfRss: config.selfRss,
       friendsRss: config.friendsRss,
+      rssSafetyNetEnabled: config.rssSafetyNetEnabled ?? false,
+      rssSafetyNetIntervalMinutes: config.rssSafetyNetIntervalMinutes ?? 30,
       // Discord fields
       discordWebhookUrl: config.discordWebhookUrl,
       discordBotToken: config.discordBotToken,
@@ -519,6 +523,8 @@ const ALLOWED_COLUMNS = new Set([
   'skipIfExistsOnPlex',
   'selfRss',
   'friendsRss',
+  'rssSafetyNetEnabled',
+  'rssSafetyNetIntervalMinutes',
 
   // Content deletion settings
   'deletionMode',

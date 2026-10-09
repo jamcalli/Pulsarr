@@ -167,6 +167,18 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
+        // Handle RSS safety net toggle - the interval is read live each cycle
+        if ('rssSafetyNetEnabled' in safeConfigUpdate) {
+          try {
+            await fastify.watchlistWorkflow.syncRssSafetyNet()
+          } catch (error) {
+            fastify.log.error(
+              { error },
+              'Failed to apply RSS safety net setting after config update',
+            )
+          }
+        }
+
         // Handle TMDB region changes - clear provider cache
         if ('tmdbRegion' in safeConfigUpdate) {
           try {

@@ -21,6 +21,9 @@
  * - ~5-minute cycle time (faster for small user counts due to buffer)
  * - Users polled sequentially with even distribution
  * - ±10% jitter to prevent synchronization drift
+ *
+ * The same staggered loop also backs the RSS-mode safety net, which passes a
+ * longer cycle (never shorter than the 5-minute ETag cycle) and a check gate.
  */
 
 import type { Config } from '@root/types/config.types.js'
@@ -46,6 +49,23 @@ const STAGGERED_CYCLE_MS = 5 * 60 * 1000
 
 /** Jitter percentage for staggered polling (±10%) */
 const STAGGERED_JITTER_PERCENT = 0.1
+
+/** Optional tuning for a staggered polling loop; omitted fields keep the ETag-mode behaviour */
+export interface StaggeredPollingOptions {
+  /**
+   * Cycle length, read at the start of every cycle so config changes apply live.
+   * Clamped to at least the 5-minute ETag cycle, and users are spread evenly
+   * across the whole cycle, so each user is checked about once per cycle.
+   */
+  getCycleMs?: () => number
+  /**
+   * Wraps each user's check-and-notify step. The gate may skip the check
+   * entirely (for example while a full reconciliation holds the lock).
+   */
+  runCheck?: (check: () => Promise<void>) => Promise<void>
+  /** Name used in log lines */
+  label?: string
+}
 
 /**
  * ETag-based watchlist change detector.
@@ -83,6 +103,12 @@ export class EtagPoller {
 
   /** Callback for when a new polling cycle starts (for friend refresh) */
   private onCycleStartCallback: (() => Promise<EtagUserInfo[]>) | null = null
+
+  /** Options of the active staggered loop */
+  private staggeredOptions: StaggeredPollingOptions = {}
+
+  /** Bumped on every start/stop so callbacks of a previous loop cannot re-arm the timer */
+  private staggeredGeneration = 0
 
   // Read through the getter: the poller outlives config updates, which reassign fastify.config
   constructor(
@@ -303,12 +329,14 @@ export class EtagPoller {
    * @param friends - Initial list of friends to poll
    * @param onUserChanged - Callback when a user's watchlist has new items
    * @param onCycleStart - Callback at start of each cycle to refresh friend list
+   * @param options - Cycle length and check gate (defaults to the ETag-mode loop)
    */
   startStaggeredPolling(
     primaryUserId: number,
     friends: EtagUserInfo[],
     onUserChanged: (result: EtagPollResult) => Promise<void>,
     onCycleStart: () => Promise<EtagUserInfo[]>,
+    options: StaggeredPollingOptions = {},
   ): void {
     if (this.isStaggeredPollingActive) {
       this.log.warn('Staggered polling already active')
@@ -316,8 +344,10 @@ export class EtagPoller {
     }
 
     this.isStaggeredPollingActive = true
+    this.staggeredGeneration++
     this.onUserChangedCallback = onUserChanged
     this.onCycleStartCallback = onCycleStart
+    this.staggeredOptions = options
 
     // Store primary user separately for robustness during queue rebuilds
     this.staggeredPrimaryUser = {
@@ -330,13 +360,23 @@ export class EtagPoller {
     this.staggeredUserQueue = [this.staggeredPrimaryUser, ...friends]
     this.staggeredCurrentIndex = 0
 
-    this.log.info(
-      { userCount: this.staggeredUserQueue.length },
-      'Starting staggered ETag polling (5-minute cycles)',
-    )
+    if (options.getCycleMs) {
+      this.log.info(
+        {
+          userCount: this.staggeredUserQueue.length,
+          cycleMinutes: this.getCycleMs() / 60_000,
+        },
+        `Starting staggered ${options.label ?? 'ETag'} polling`,
+      )
+    } else {
+      this.log.info(
+        { userCount: this.staggeredUserQueue.length },
+        'Starting staggered ETag polling (5-minute cycles)',
+      )
+    }
 
     // Start the first cycle immediately
-    this.startNextCycle()
+    this.startNextCycle(this.staggeredGeneration)
   }
 
   /**
@@ -349,11 +389,13 @@ export class EtagPoller {
     }
 
     this.isStaggeredPollingActive = false
+    this.staggeredGeneration++
     this.staggeredPrimaryUser = null
     this.staggeredUserQueue = []
     this.staggeredCurrentIndex = 0
     this.onUserChangedCallback = null
     this.onCycleStartCallback = null
+    this.staggeredOptions = {}
 
     this.log.debug('Staggered polling stopped')
   }
@@ -411,13 +453,14 @@ export class EtagPoller {
    * Start a new polling cycle.
    * Refreshes friend list, rebalances timing, then begins sequential polling.
    */
-  private async startNextCycle(): Promise<void> {
-    if (!this.isStaggeredPollingActive) return
+  private async startNextCycle(generation: number): Promise<void> {
+    if (!this.isLoopCurrent(generation)) return
 
     // Refresh friend list at cycle start
     if (this.onCycleStartCallback) {
       try {
         const updatedFriends = await this.onCycleStartCallback()
+        if (!this.isLoopCurrent(generation)) return
 
         // Use stored primary user (more robust than searching queue)
         if (this.staggeredPrimaryUser) {
@@ -438,58 +481,94 @@ export class EtagPoller {
       }
     }
 
+    if (!this.isLoopCurrent(generation)) return
+
     // Reset to first user
     this.staggeredCurrentIndex = 0
 
     // Schedule first user check
-    this.scheduleNextUserCheck()
+    this.scheduleNextUserCheck(generation)
+  }
+
+  /** False once the loop that scheduled a callback has been stopped or replaced */
+  private isLoopCurrent(generation: number): boolean {
+    return (
+      this.isStaggeredPollingActive && generation === this.staggeredGeneration
+    )
+  }
+
+  private getCycleMs(): number {
+    const { getCycleMs } = this.staggeredOptions
+    if (!getCycleMs) return STAGGERED_CYCLE_MS
+    const requested = getCycleMs()
+    // Never poll a user more often than the ETag-mode cycle
+    return Number.isFinite(requested)
+      ? Math.max(STAGGERED_CYCLE_MS, requested)
+      : STAGGERED_CYCLE_MS
   }
 
   /**
    * Schedule the next user check with calculated interval and jitter.
    */
-  private scheduleNextUserCheck(): void {
-    if (!this.isStaggeredPollingActive) return
+  private scheduleNextUserCheck(generation: number): void {
+    if (!this.isLoopCurrent(generation)) return
 
+    const cycleMs = this.getCycleMs()
     const userCount = this.staggeredUserQueue.length
     if (userCount === 0) {
       // No users, just wait for next cycle
       this.staggeredTimer = setTimeout(
-        () => this.startNextCycle(),
-        STAGGERED_CYCLE_MS,
+        () => this.startNextCycle(generation),
+        cycleMs,
       )
       return
     }
 
-    // Calculate base interval: divide cycle time by (users + 1) to include buffer before next cycle
-    // For small user counts this results in faster cycles (e.g., 1 user = ~2.5 min cycles)
-    const baseInterval = STAGGERED_CYCLE_MS / (userCount + 1)
+    // ETag mode divides the cycle by (users + 1), which makes cycles faster for small
+    // user counts (e.g., 1 user = ~2.5 min cycles). A custom cycle is a per-user cadence,
+    // so it is split evenly: each user is checked once per cycle, never more often.
+    const baseInterval = this.staggeredOptions.getCycleMs
+      ? cycleMs / userCount
+      : cycleMs / (userCount + 1)
 
     // Apply jitter: ±10%
     const jitterRange = baseInterval * STAGGERED_JITTER_PERCENT
     const jitter = (Math.random() * 2 - 1) * jitterRange
     const interval = Math.max(1000, baseInterval + jitter) // Minimum 1 second
 
-    this.staggeredTimer = setTimeout(() => this.pollNextUser(), interval)
+    this.staggeredTimer = setTimeout(
+      () => this.pollNextUser(generation),
+      interval,
+    )
   }
 
   /**
    * Poll the next user in the queue.
    */
-  private async pollNextUser(): Promise<void> {
-    if (!this.isStaggeredPollingActive) return
+  private async pollNextUser(generation: number): Promise<void> {
+    if (!this.isLoopCurrent(generation)) return
 
     const user = this.staggeredUserQueue[this.staggeredCurrentIndex]
 
     if (user) {
-      try {
+      const onUserChanged = this.onUserChangedCallback
+      const check = async () => {
         const result = await this.checkUser(user)
 
         // Notify callback if there are changes
         if (result.changed && result.newItems.length > 0) {
-          if (this.onUserChangedCallback) {
-            await this.onUserChangedCallback(result)
+          if (onUserChanged) {
+            await onUserChanged(result)
           }
+        }
+      }
+
+      try {
+        const { runCheck } = this.staggeredOptions
+        if (runCheck) {
+          await runCheck(check)
+        } else {
+          await check()
         }
       } catch (error) {
         this.log.error(
@@ -498,18 +577,20 @@ export class EtagPoller {
         )
       }
 
+      // A stop or restart during the check owns the queue now
+      if (!this.isLoopCurrent(generation)) return
       this.staggeredCurrentIndex++
     }
 
     // Check if cycle is complete
     if (this.staggeredCurrentIndex >= this.staggeredUserQueue.length) {
       // Cycle complete, start next cycle
-      this.startNextCycle().catch((error) => {
+      this.startNextCycle(generation).catch((error) => {
         this.log.error({ error }, 'Error starting next polling cycle')
       })
     } else {
       // More users to check, schedule next
-      this.scheduleNextUserCheck()
+      this.scheduleNextUserCheck(generation)
     }
   }
 

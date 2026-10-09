@@ -330,6 +330,14 @@ const schema = {
       type: 'boolean',
       default: false,
     },
+    rssSafetyNetEnabled: {
+      type: 'boolean',
+      default: false,
+    },
+    rssSafetyNetIntervalMinutes: {
+      type: 'number',
+      default: 30,
+    },
     enablePlexPlaylistProtection: {
       type: 'boolean',
       default: false,

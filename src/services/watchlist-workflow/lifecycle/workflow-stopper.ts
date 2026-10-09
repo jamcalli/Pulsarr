@@ -30,6 +30,7 @@ export async function cleanupWorkflow(
     state.etagPoller.stopStaggeredPolling()
     state.etagPoller.clearCache()
   }
+  state.isSafetyNetActive = false
 
   if (state.rssFeedCache) {
     state.rssFeedCache.clearCaches()

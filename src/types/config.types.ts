@@ -226,6 +226,8 @@ export interface Config {
   // RSS Config
   selfRss?: string
   friendsRss?: string
+  rssSafetyNetEnabled?: boolean // RSS mode only: cheap staggered first-page check that catches adds the RSS feed missed
+  rssSafetyNetIntervalMinutes?: number // How often each user is checked by the RSS safety net (10-120, default 30)
   // Tagging Config
   tagUsersInSonarr: boolean
   tagUsersInRadarr: boolean

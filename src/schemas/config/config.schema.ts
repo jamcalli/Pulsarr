@@ -141,6 +141,21 @@ const PlexTokensSchema = z
   .array(z.string())
   .meta({ description: 'Plex authentication tokens' })
 
+// The safety net never checks a user more often than ETag mode's 5-minute cycle
+export const RSS_SAFETY_NET_MIN_MINUTES = 10
+export const RSS_SAFETY_NET_MAX_MINUTES = 120
+export const RSS_SAFETY_NET_DEFAULT_MINUTES = 30
+
+const RssSafetyNetIntervalSchema = z
+  .number()
+  .int()
+  .min(RSS_SAFETY_NET_MIN_MINUTES)
+  .max(RSS_SAFETY_NET_MAX_MINUTES)
+  .meta({
+    description:
+      'Minutes between RSS safety-net checks of the same user (RSS mode only)',
+  })
+
 // Schema for complete config (GET responses) - matches exactly what getConfig() returns
 export const ConfigFullSchema = z
   .object({
@@ -238,6 +253,8 @@ export const ConfigFullSchema = z
     // RSS Config
     selfRss: z.string().optional(),
     friendsRss: z.string().optional(),
+    rssSafetyNetEnabled: z.boolean(),
+    rssSafetyNetIntervalMinutes: RssSafetyNetIntervalSchema,
     // Tagging Config
     tagUsersInSonarr: z.boolean(),
     tagUsersInRadarr: z.boolean(),
@@ -431,6 +448,9 @@ export const ConfigUpdateSchema = z
     // RSS and other settings
     selfRss: z.string().optional(),
     friendsRss: z.string().optional(),
+    // RSS safety net - cheap staggered first-page check for adds the RSS feed missed
+    rssSafetyNetEnabled: z.boolean().optional(),
+    rssSafetyNetIntervalMinutes: RssSafetyNetIntervalSchema.optional(),
     _isReady: z.boolean().optional(),
     // Plex Session Monitoring
     plexSessionMonitoring: z

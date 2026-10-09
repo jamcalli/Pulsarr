@@ -20,7 +20,6 @@ export async function handleStaggeredPollResult(
   deps: WorkflowDeps,
 ): Promise<void> {
   if (!result.changed || result.newItems.length === 0) return
-  const { signal } = deps.state
 
   const user = await deps.db.getUser(result.userId)
   if (!user) {
@@ -39,6 +38,23 @@ export async function handleStaggeredPollResult(
     },
     'Staggered poll detected new items',
   )
+
+  await routePolledItems(result, user.name, deps)
+}
+
+/**
+ * Persists a poll result's new items and routes them (or queues them while instances are down).
+ * Items already on this user's watchlist in the DB are dropped by processItemsForUser, so an
+ * item another detection path already handled is not routed again.
+ *
+ * @returns the items that were new for this user and went on to routing or the deferred queue
+ */
+export async function routePolledItems(
+  result: EtagPollResult,
+  username: string,
+  deps: WorkflowDeps,
+): Promise<Item[]> {
+  const { signal } = deps.state
 
   const health = await checkInstanceHealth({
     sonarrManager: deps.sonarrManager,
@@ -77,7 +93,7 @@ export async function handleStaggeredPollResult(
       {
         user: {
           userId: result.userId,
-          username: user.name,
+          username,
           watchlistId: '',
         },
         items: tokenItems,
@@ -86,7 +102,7 @@ export async function handleStaggeredPollResult(
       deps.itemProcessorDeps,
     )
 
-    if (signal.aborted) return
+    if (signal.aborted) return []
 
     // Linked items need routing too: this user may have different router rules than the owner
     const allItemsToQueue: Item[] = [...processedItems, ...linkedItems]
@@ -97,14 +113,14 @@ export async function handleStaggeredPollResult(
         items: allItemsToQueue,
       })
     }
-    return
+    return allItemsToQueue
   }
 
   const { processedItems, linkedItems } = await processItemsForUser(
     {
       user: {
         userId: result.userId,
-        username: user.name,
+        username,
         watchlistId: '',
       },
       items: tokenItems,
@@ -113,15 +129,16 @@ export async function handleStaggeredPollResult(
     deps.itemProcessorDeps,
   )
 
-  if (signal.aborted) return
+  if (signal.aborted) return []
 
   const allItemsToRoute: Item[] = [...processedItems, ...linkedItems]
   if (allItemsToRoute.length > 0) {
     await routeEnrichedItemsForUser(result.userId, allItemsToRoute, deps)
-    if (signal.aborted) return
+    if (signal.aborted) return allItemsToRoute
     await updateAutoApprovalUserAttribution(deps)
     deps.state.scheduleDebouncedStatusSync(deps)
   }
+  return allItemsToRoute
 }
 
 /** Never throws; on abort or error it returns the friends already in the plexUuid cache. */
