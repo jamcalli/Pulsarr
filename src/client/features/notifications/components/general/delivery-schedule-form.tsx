@@ -41,8 +41,6 @@ interface DeliveryScheduleFormProps {
   isInitialized: boolean
 }
 
-const serverTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
-
 /**
  * Admin defaults for quiet hours and digest batching of media-available
  * notifications. Users inherit these unless overridden on the Users page.
@@ -254,7 +252,7 @@ export function DeliveryScheduleForm({
                   onBlur={field.onBlur}
                   value={field.value}
                   onChange={(value) => field.onChange(value ?? '')}
-                  placeholder={`Server time zone (${serverTimeZone})`}
+                  placeholder="Server time zone (TZ)"
                   disabled={disabled}
                 />
               </FormControl>

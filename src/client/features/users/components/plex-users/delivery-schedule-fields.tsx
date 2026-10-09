@@ -48,8 +48,8 @@ export function DeliveryScheduleFields({
     ...DEFAULT_NOTIFICATION_DELIVERY,
     ...config?.notificationDelivery,
   }
-  const defaultZone =
-    defaults.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+  // The server's zone isn't exposed to the client (the browser's may differ)
+  const defaultZone = defaults.timezone || 'server time zone'
 
   const digestMode = form.watch('notify_digest_mode') ?? defaults.digestMode
   const quietOverride = form.watch('notify_quiet_hours_enabled')
