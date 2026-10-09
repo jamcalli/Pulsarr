@@ -22,6 +22,7 @@ import {
   hasWebhooksForEvent,
 } from '@services/notifications/channels/native-webhook.js'
 import type { PlexMobileService } from '@services/notifications/channels/plex-mobile.service.js'
+import type { NotificationDeliveryScheduler } from '@services/notifications/delivery-schedule/delivery-scheduler.js'
 import type { DiscordBotService } from '@services/notifications/discord-bot/bot.service.js'
 import type { FastifyBaseLogger } from 'fastify'
 import pLimit from 'p-limit'
@@ -38,6 +39,8 @@ export interface MediaAvailableDeps {
   discordWebhook: DiscordWebhookService
   plexMobile: PlexMobileService
   apprise: AppriseService
+  // Quiet hours / digest batching; when absent everything is delivered now
+  deliveryScheduler?: NotificationDeliveryScheduler
 }
 
 /**
@@ -253,6 +256,19 @@ async function sendUserNotifications(
   mediaInfo: MediaInfo,
   isBulkRelease: boolean,
 ): Promise<void> {
+  // Deliver now, or hold for the user's quiet hours / digest window
+  if (
+    await deps.deliveryScheduler?.holdIfScheduled({
+      user: result.user,
+      notification: result.notification,
+      media: mediaInfo,
+      isBulkRelease,
+      watchlistItemKey: itemByUserId.get(result.user.id)?.key,
+    })
+  ) {
+    return
+  }
+
   if (result.user.notify_discord && result.user.discord_id) {
     await sendDiscordDm(
       deps,

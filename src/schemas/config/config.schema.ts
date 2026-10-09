@@ -1,5 +1,6 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { HttpUrlOptionalSchema } from '@root/schemas/common/url.schema.js'
+import { NotificationDeliveryDefaultsSchema } from '@root/schemas/notifications/delivery-schedule.schema.js'
 import { PlexLabelSyncConfigSchema } from '@root/schemas/plex/label-sync-config.schema.js'
 import {
   RemovedTagPrefixSchema,
@@ -199,6 +200,8 @@ export const ConfigFullSchema = z
     // Out-of-app notification channels for new Pulsarr releases
     notifyOnUpdate: UpdateNotifyEnum,
     notifyOnAvailability: z.boolean(),
+    // Quiet hours + digest batching defaults - getConfig() always returns this with defaults
+    notificationDelivery: NotificationDeliveryDefaultsSchema,
     // Pending Webhooks Config
     pendingWebhookRetryInterval: z
       .number()
@@ -385,6 +388,8 @@ export const ConfigUpdateSchema = z
     // lastNotifiedVersion is internal-only; only the user-facing setting here.
     notifyOnUpdate: UpdateNotifyEnum.optional(),
     notifyOnAvailability: z.boolean().optional(),
+    // Replaces the stored object wholesale, so the full object is required
+    notificationDelivery: NotificationDeliveryDefaultsSchema.optional(),
     // Pending Webhooks Config
     // How often to retry processing pending webhooks (in seconds)
     pendingWebhookRetryInterval: z.number().optional(),

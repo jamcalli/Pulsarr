@@ -1,4 +1,5 @@
 import type { ConfigFull } from '@root/schemas/config/config.schema.js'
+import { DEFAULT_NOTIFICATION_DELIVERY } from '@root/schemas/notifications/delivery-schedule.schema.js'
 import type { Config, SecretColumn } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
@@ -140,6 +141,16 @@ export async function getConfig(
     // Out-of-app update notifications
     notifyOnUpdate: config.notifyOnUpdate || 'none',
     notifyOnAvailability: Boolean(config.notifyOnAvailability ?? true),
+    notificationDelivery: {
+      ...DEFAULT_NOTIFICATION_DELIVERY,
+      ...(config.notificationDelivery
+        ? this.safeJsonParse(
+            config.notificationDelivery,
+            {},
+            'config.notificationDelivery',
+          )
+        : {}),
+    },
     // Handle pending webhook configuration
     pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
     pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -293,6 +304,9 @@ export async function createConfig(
       // Out-of-app update notifications
       notifyOnUpdate: config.notifyOnUpdate ?? 'none',
       notifyOnAvailability: config.notifyOnAvailability ?? true,
+      notificationDelivery: config.notificationDelivery
+        ? JSON.stringify(config.notificationDelivery)
+        : null,
       // Pending webhook configuration
       pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
       pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
@@ -487,6 +501,8 @@ const ALLOWED_COLUMNS = new Set([
   // bookkeeping written exclusively via setLastNotifiedVersion().
   'notifyOnUpdate',
   'notifyOnAvailability',
+  // Quiet hours + digest defaults (JSON column)
+  'notificationDelivery',
 
   // Pending webhooks
   'pendingWebhookRetryInterval',
@@ -587,6 +603,7 @@ const JSON_COLUMNS = new Set([
   'plexSessionMonitoring',
   'quotaSettings',
   'approvalExpiration',
+  'notificationDelivery',
   'plexLabelSync',
   'tagMigration',
 ])

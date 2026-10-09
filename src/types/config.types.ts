@@ -1,3 +1,7 @@
+import type {
+  DigestMode,
+  NotificationDeliveryDefaults,
+} from '@root/schemas/notifications/delivery-schedule.schema.js'
 import type { PlexLabelSyncConfig } from '@root/schemas/plex/label-sync-config.schema.js'
 
 export interface User {
@@ -17,6 +21,14 @@ export interface User {
   avatar?: string | null
   display_name?: string | null
   friend_created_at?: string | null
+  // Delivery schedule overrides; null inherits Config.notificationDelivery
+  notify_digest_mode?: DigestMode | null
+  notify_digest_window_minutes?: number | null
+  notify_digest_time?: string | null
+  notify_quiet_hours_enabled?: boolean | null
+  notify_quiet_hours_start?: string | null
+  notify_quiet_hours_end?: string | null
+  notify_timezone?: string | null
   created_at: string
   updated_at: string
 }
@@ -173,6 +185,8 @@ export interface Config {
   // Out-of-app update notifications
   notifyOnUpdate: UpdateNotifyOption
   notifyOnAvailability: boolean
+  // Default quiet hours + digest batching for media-available user notifications
+  notificationDelivery?: NotificationDeliveryDefaults
   // Pending Webhooks Config
   pendingWebhookRetryInterval: number
   pendingWebhookMaxAge: number
@@ -334,9 +348,11 @@ export type RawConfig = {
           ? string
           : K extends 'approvalExpiration'
             ? string
-            : K extends 'plexLabelSync'
+            : K extends 'notificationDelivery'
               ? string
-              : K extends 'tagMigration'
+              : K extends 'plexLabelSync'
                 ? string
-                : Config[K]
+                : K extends 'tagMigration'
+                  ? string
+                  : Config[K]
 }

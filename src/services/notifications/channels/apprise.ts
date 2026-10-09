@@ -7,6 +7,7 @@ import type { NotificationUser } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
   ApprovalNotification,
+  MediaDigestEntry,
   MediaNotification,
   UpdateAvailableRelease,
   WatchlistAdditionNotification,
@@ -20,6 +21,7 @@ import type { FastifyBaseLogger } from 'fastify'
 import {
   createApprovalNotificationHtml,
   createDeleteSyncNotificationHtml,
+  createMediaDigestHtml,
   createMediaNotificationHtml,
   createTestNotificationHtml,
   createUpdateAvailableNotificationHtml,
@@ -340,6 +342,53 @@ export async function sendMediaNotification(
   if (success) {
     log.info(
       `Apprise notification sent successfully to ${user.alias || user.name} for "${notification.title}"`,
+    )
+  }
+
+  return success
+}
+
+export async function sendMediaDigestNotification(
+  user: NotificationUser,
+  entries: MediaDigestEntry[],
+  deps: AppriseDeps,
+): Promise<boolean> {
+  const { log } = deps
+
+  if (!isAppriseEnabled(deps) || !user.apprise || entries.length === 0) {
+    return false
+  }
+
+  if (user.notify_apprise === false) {
+    log.debug(
+      `User ${user.name} has Apprise notifications disabled, skipping media digest`,
+    )
+    return false
+  }
+
+  // A lone title keeps its poster as an attachment, like a single notification
+  const attachment = entries.length === 1 ? entries[0].posterUrl : undefined
+
+  const success = await deliver(
+    user.apprise,
+    `media digest to user ${user.name}`,
+    () => {
+      const { htmlBody, textBody, title } = createMediaDigestHtml(entries)
+      return {
+        title,
+        body: textBody,
+        type: 'info',
+        format: 'text',
+        body_html: htmlBody,
+        ...(attachment ? { attachment } : {}),
+      }
+    },
+    deps,
+  )
+
+  if (success) {
+    log.info(
+      `Apprise media digest (${entries.length} titles) sent successfully to ${user.alias || user.name}`,
     )
   }
 

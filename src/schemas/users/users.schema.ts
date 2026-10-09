@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { UserDeliveryScheduleSchema } from '@root/schemas/notifications/delivery-schedule.schema.js'
 import { UserBaseSchema } from '@root/schemas/users/users-list.schema.js'
 import { z } from 'zod'
 
@@ -13,6 +14,7 @@ export const CreateUserSchema = z.object({
   notify_plex_mobile: z.boolean(),
   can_sync: z.boolean(),
   requires_approval: z.boolean(),
+  ...UserDeliveryScheduleSchema.shape,
 })
 
 export const UserResponseSchema = z.object({

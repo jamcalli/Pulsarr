@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { UserDeliveryScheduleSchema } from '@root/schemas/notifications/delivery-schedule.schema.js'
 import { z } from 'zod'
 
 export const UserBaseSchema = z.object({
@@ -18,6 +19,7 @@ export const UserBaseSchema = z.object({
   avatar: z.string().nullable().optional(),
   display_name: z.string().nullable().optional(),
   friend_created_at: z.string().nullable().optional(),
+  ...UserDeliveryScheduleSchema.shape,
   created_at: z.string(),
   updated_at: z.string(),
 })

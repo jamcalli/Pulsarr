@@ -28,6 +28,7 @@ import {
   dispatchWebhooks,
   PlexMobileService,
 } from './notifications/channels/index.js'
+import { NotificationDeliveryScheduler } from './notifications/delivery-schedule/index.js'
 import {
   type BotStatus,
   DiscordBotService,
@@ -51,6 +52,7 @@ export class NotificationService {
   private readonly _discordWebhook: DiscordWebhookService
   private readonly _plexMobile: PlexMobileService
   private readonly _apprise: AppriseService
+  private readonly _deliveryScheduler: NotificationDeliveryScheduler
 
   constructor(
     readonly baseLog: FastifyBaseLogger,
@@ -64,6 +66,14 @@ export class NotificationService {
     this._discordWebhook = new DiscordWebhookService(this.log, this.fastify)
     this._plexMobile = new PlexMobileService(this.log, this.fastify)
     this._apprise = new AppriseService(this.log, this.fastify)
+    this._deliveryScheduler = new NotificationDeliveryScheduler({
+      db: this.fastify.db,
+      logger: this.log,
+      getConfig: () => this.fastify.config,
+      discordBot: this._discordBot,
+      apprise: this._apprise,
+      plexMobile: this._plexMobile,
+    })
   }
 
   get discordBot(): DiscordBotService {
@@ -80,6 +90,10 @@ export class NotificationService {
 
   get apprise(): AppriseService {
     return this._apprise
+  }
+
+  get deliveryScheduler(): NotificationDeliveryScheduler {
+    return this._deliveryScheduler
   }
 
   getBotStatus(): BotStatus {
@@ -142,9 +156,19 @@ export class NotificationService {
     this._apprise.initialize().catch((error) => {
       this.log.error({ error }, 'Unexpected error in Apprise initialization')
     })
+
+    // Held notifications due while we were down go out once Apprise is probed
+    void this._apprise
+      .whenReady()
+      .then(() => this._deliveryScheduler.start())
+      .catch((error) => {
+        this.log.error({ error }, 'Failed to start notification digest flusher')
+      })
   }
 
   async shutdown(): Promise<void> {
+    await this._deliveryScheduler.stop()
+
     if (this._discordBot.getBotStatus() === 'running') {
       this.log.info('Stopping Discord bot during shutdown')
       await this._discordBot.stopBot()
@@ -281,6 +305,7 @@ export class NotificationService {
         discordWebhook: this._discordWebhook,
         plexMobile: this._plexMobile,
         apprise: this._apprise,
+        deliveryScheduler: this._deliveryScheduler,
       },
       mediaInfo,
       options,

@@ -19,6 +19,16 @@ export interface MediaNotification {
   }
 }
 
+/** One title in a coalesced media-available digest. */
+export interface MediaDigestEntry {
+  type: 'movie' | 'show'
+  title: string
+  // e.g. "S02E01–E08" or "Season 2"; absent for movies
+  detail?: string
+  posterUrl?: string
+  tmdbUrl?: string
+}
+
 export interface DiscordEmbed {
   title?: string
   description?: string

@@ -3,6 +3,7 @@ import type { NotificationUser } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
   ApprovalNotification,
+  MediaDigestEntry,
   MediaNotification,
   UpdateAvailableRelease,
   WatchlistAdditionNotification,
@@ -16,6 +17,7 @@ import {
   sendApprovalNotification as sendApproval,
   sendDeleteSyncNotification as sendDeleteSync,
   sendMediaNotification as sendMedia,
+  sendMediaDigestNotification as sendMediaDigest,
   sendPublicNotification as sendPublic,
   sendTestNotification as sendTest,
   sendUpdateAvailableNotification as sendUpdateAvailable,
@@ -73,6 +75,13 @@ export class AppriseService {
     notification: MediaNotification,
   ): Promise<boolean> {
     return sendMedia(user, notification, this.appriseDeps)
+  }
+
+  async sendMediaDigestNotification(
+    user: NotificationUser,
+    entries: MediaDigestEntry[],
+  ): Promise<boolean> {
+    return sendMediaDigest(user, entries, this.appriseDeps)
   }
 
   async sendApprovalNotification(

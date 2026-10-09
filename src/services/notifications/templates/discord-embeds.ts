@@ -2,6 +2,7 @@ import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
   DiscordEmbed,
   DiscordWebhookPayload,
+  MediaDigestEntry,
   MediaNotification,
   UpdateAvailableRelease,
 } from '@root/types/discord.types.js'
@@ -118,6 +119,85 @@ export function createMediaNotificationEmbed(
     }
   }
 
+  return embed
+}
+
+function escapeMarkdown(text: string): string {
+  return text.replace(/([\\*_~`|[\]])/g, '\\$1')
+}
+
+function digestLine(entry: MediaDigestEntry): string {
+  const emoji = entry.type === 'movie' ? '🎬' : '📺'
+  const title = escapeMarkdown(entry.title)
+  const name = entry.tmdbUrl ? `[${title}](${entry.tmdbUrl})` : title
+  return `${emoji} **${name}**${entry.detail ? ` — ${entry.detail}` : ''}`
+}
+
+/**
+ * Embed for a coalesced batch of media-available notifications: one title
+ * gets its own card with the episode summary, several titles get a list.
+ */
+export function createMediaDigestEmbed(
+  entries: MediaDigestEntry[],
+): DiscordEmbed {
+  if (entries.length === 1) {
+    const [entry] = entries
+    const emoji = entry.type === 'movie' ? '🎬' : '📺'
+    const fields: EmbedField[] = []
+    if (entry.detail) {
+      fields.push({
+        name: 'Episodes',
+        value: truncate(entry.detail, EMBED_FIELD_MAX),
+        inline: false,
+      })
+    }
+    if (entry.tmdbUrl) {
+      fields.push(tmdbField(entry.tmdbUrl))
+    }
+
+    const embed: DiscordEmbed = {
+      title: truncate(entry.title, EMBED_TITLE_MAX),
+      description:
+        entry.type === 'movie'
+          ? `Movie available to watch! ${emoji}`
+          : `New episodes available for ${entry.title}! ${emoji}`,
+      color: EMBED_COLOR,
+      timestamp: new Date().toISOString(),
+      fields,
+    }
+    if (entry.posterUrl) {
+      embed.image = { url: entry.posterUrl }
+    }
+    return embed
+  }
+
+  const lines: string[] = []
+  let length = 0
+  for (const [index, entry] of entries.entries()) {
+    const line = digestLine(entry)
+    const remaining = entries.length - index
+    const moreSuffix = `\n…and ${remaining} more`
+    // Leave room for the "and N more" line whenever entries remain after this
+    const budget =
+      EMBED_DESCRIPTION_MAX - (remaining > 1 ? moreSuffix.length : 0)
+    if (length + line.length + 1 > budget) {
+      lines.push(`…and ${remaining} more`)
+      break
+    }
+    lines.push(line)
+    length += line.length + 1
+  }
+
+  const embed: DiscordEmbed = {
+    title: `${entries.length} new titles available`,
+    description: lines.join('\n'),
+    color: EMBED_COLOR,
+    timestamp: new Date().toISOString(),
+  }
+  const poster = entries.find((entry) => entry.posterUrl)?.posterUrl
+  if (poster) {
+    embed.thumbnail = { url: poster }
+  }
   return embed
 }
 

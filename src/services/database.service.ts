@@ -65,6 +65,7 @@ import './database/types/analytics-methods.js'
 import './database/types/anime-methods.js'
 import './database/types/approval-methods.js'
 import './database/types/config-methods.js'
+import './database/types/held-notification-methods.js'
 import './database/types/instance-methods.js'
 import './database/types/junction-methods.js'
 import './database/types/notification-methods.js'
@@ -87,6 +88,7 @@ import * as apiKeyMethods from './database/methods/api-keys.js'
 import * as approvalMethods from './database/methods/approval.js'
 import * as configMethods from './database/methods/config.js'
 import * as dashboardMethods from './database/methods/dashboard.js'
+import * as heldNotificationMethods from './database/methods/held-notification.js'
 import * as junctionMethods from './database/methods/junction.js'
 import * as notificationMethods from './database/methods/notification.js'
 import * as plexLabelSyncMethods from './database/methods/plex-label-sync.js'
@@ -219,6 +221,7 @@ export class DatabaseService {
       approvalMethods,
       configMethods,
       dashboardMethods,
+      heldNotificationMethods,
       watchlistExclusionMethods,
       junctionMethods,
       notificationMethods,

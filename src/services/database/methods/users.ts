@@ -1,3 +1,4 @@
+import type { DigestMode } from '@root/schemas/notifications/delivery-schedule.schema.js'
 import type { User } from '@root/types/config.types.js'
 import type { AdminUser } from '@schemas/auth/auth.js'
 import type { DatabaseService } from '@services/database.service.js'
@@ -22,6 +23,13 @@ interface UserRow {
   avatar: string | null
   display_name: string | null
   friend_created_at: string | null
+  notify_digest_mode?: string | null
+  notify_digest_window_minutes?: number | null
+  notify_digest_time?: string | null
+  notify_quiet_hours_enabled?: boolean | number | null
+  notify_quiet_hours_start?: string | null
+  notify_quiet_hours_end?: string | null
+  notify_timezone?: string | null
   created_at: string
   updated_at: string
 }
@@ -52,6 +60,16 @@ export function mapRowToUser(row: UserRow): User {
     avatar: row.avatar,
     display_name: row.display_name,
     friend_created_at: row.friend_created_at,
+    notify_digest_mode: (row.notify_digest_mode as DigestMode | null) ?? null,
+    notify_digest_window_minutes: row.notify_digest_window_minutes ?? null,
+    notify_digest_time: row.notify_digest_time ?? null,
+    notify_quiet_hours_enabled:
+      row.notify_quiet_hours_enabled == null
+        ? null
+        : Boolean(row.notify_quiet_hours_enabled),
+    notify_quiet_hours_start: row.notify_quiet_hours_start ?? null,
+    notify_quiet_hours_end: row.notify_quiet_hours_end ?? null,
+    notify_timezone: row.notify_timezone ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }

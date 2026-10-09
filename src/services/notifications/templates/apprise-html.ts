@@ -1,6 +1,7 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
   ApprovalNotification,
+  MediaDigestEntry,
   MediaNotification,
   UpdateAvailableRelease,
   WatchlistAdditionNotification,
@@ -198,6 +199,64 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
   }
 
   return { htmlBody, textBody, title }
+}
+
+/**
+ * Apprise body for a coalesced batch of media-available notifications: one
+ * title gets a single card with the episode summary, several get one card each.
+ */
+export function createMediaDigestHtml(entries: MediaDigestEntry[]): {
+  htmlBody: string
+  textBody: string
+  title: string
+} {
+  const emojiFor = (entry: MediaDigestEntry) =>
+    entry.type === 'movie' ? '🎬' : '📺'
+
+  if (entries.length === 1) {
+    const [entry] = entries
+    const textHeading =
+      entry.type === 'movie' ? 'Movie Available' : 'New Episodes Available'
+    const htmlBody = htmlWrapper(
+      createPosterHtml(entry.posterUrl, entry.title) +
+        card(
+          heading(escapeHtml(entry.title)) +
+            (entry.detail
+              ? labelledParagraph('Episodes', escapeHtml(entry.detail))
+              : '') +
+            tmdbLink(entry.tmdbUrl),
+        ),
+    )
+
+    let textBody = `${textHeading}\n\n${entry.title}`
+    if (entry.detail) textBody += `\nEpisodes: ${entry.detail}`
+    if (entry.tmdbUrl) textBody += `\nTMDB: ${entry.tmdbUrl}`
+
+    return { htmlBody, textBody, title: `${emojiFor(entry)} ${entry.title}` }
+  }
+
+  const digestHeading = `${entries.length} New Titles Available`
+  const cards = entries
+    .map((entry) =>
+      card(
+        createPosterHtml(entry.posterUrl, entry.title, 120) +
+          heading(`${emojiFor(entry)} ${escapeHtml(entry.title)}`) +
+          (entry.detail ? paragraph(escapeHtml(entry.detail)) : '') +
+          tmdbLink(entry.tmdbUrl),
+      ),
+    )
+    .join('')
+  const htmlBody = htmlWrapper(pageHeading(digestHeading) + cards)
+
+  const textLines = entries.map((entry) => {
+    let line = `${emojiFor(entry)} ${entry.title}`
+    if (entry.detail) line += ` — ${entry.detail}`
+    if (entry.tmdbUrl) line += `\n   TMDB: ${entry.tmdbUrl}`
+    return line
+  })
+  const textBody = `${digestHeading}\n\n${textLines.join('\n')}`
+
+  return { htmlBody, textBody, title: `🍿 ${digestHeading}` }
 }
 
 export function createApprovalNotificationHtml(
