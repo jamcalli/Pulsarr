@@ -227,7 +227,11 @@ export function RoutingFailuresTable({
 
   const { pageSize, setPageSize } = useTablePagination('routing-failures', 10)
 
-  const columns = createRoutingFailureColumns({ onRetry, retryingItemId })
+  const columns = createRoutingFailureColumns({
+    onRetry,
+    retryingItemId,
+    isRetryingAll,
+  })
 
   const table = useReactTable({
     data,

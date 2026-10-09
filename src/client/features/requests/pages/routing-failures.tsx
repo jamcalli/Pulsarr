@@ -48,6 +48,10 @@ export function RoutingFailuresPage() {
       const result = await retryOne.mutateAsync(row.watchlist_item_id)
       if (result.result.resolved > 0) {
         toast.success(`"${row.title}" no longer fails to add`)
+      } else if (result.result.skipped > 0) {
+        toast.info(
+          `"${row.title}" was not retried because its user has sync disabled`,
+        )
       } else {
         toast.error(`"${row.title}" still fails to add`)
       }

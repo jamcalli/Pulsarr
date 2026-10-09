@@ -17,6 +17,8 @@ export type RoutingFailureRow = GetRoutingFailuresResponse['failures'][number]
 interface RoutingFailureColumnsProps {
   onRetry: (row: RoutingFailureRow) => void
   retryingItemId: number | null
+  /** Retries run one at a time on the server, so rows wait for a running Retry All. */
+  isRetryingAll: boolean
 }
 
 function formatDateTime(value: string): string {
@@ -58,6 +60,7 @@ const includesFilter = (
 export function createRoutingFailureColumns({
   onRetry,
   retryingItemId,
+  isRetryingAll,
 }: RoutingFailureColumnsProps): ColumnDef<RoutingFailureRow>[] {
   return [
     {
@@ -196,7 +199,7 @@ export function createRoutingFailureColumns({
               size="sm"
               className="h-8"
               onClick={() => onRetry(row.original)}
-              disabled={retryingItemId !== null}
+              disabled={retryingItemId !== null || isRetryingAll}
             >
               {isRetrying ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
