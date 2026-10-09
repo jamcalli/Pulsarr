@@ -58,6 +58,7 @@ import {
 } from '@/components/ui/tooltip'
 import { FriendStatusBadge } from '@/features/users/components/plex-users/friend-status-badge'
 import { QuotaStatusBadge } from '@/features/users/components/plex-users/quota-status-badge'
+import { RoutingFailureBadge } from '@/features/users/components/plex-users/routing-failure-badge'
 import { UserWatchlistSheet } from '@/features/users/components/plex-users/user-watchlist-sheet'
 import { useUserWatchlist } from '@/features/users/hooks/useUserWatchlist'
 import type { PlexUserTableRow } from '@/features/users/lib/types'
@@ -371,8 +372,11 @@ export default function UserTable({
         if (isNonFriend(row)) return NON_FRIEND_DASH
         const count = Number(row.getValue('watchlist_count'))
         return (
-          <div className="text-center font-medium">
+          <div className="flex items-center justify-center gap-1.5 font-medium">
             {count.toLocaleString()}
+            {row.original.id !== null && (
+              <RoutingFailureBadge userId={row.original.id} />
+            )}
           </div>
         )
       },

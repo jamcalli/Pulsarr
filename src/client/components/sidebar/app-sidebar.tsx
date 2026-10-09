@@ -30,6 +30,7 @@ import { LogoutAlert } from '@/components/sidebar/logout-alert'
 import { UserAvatarSkeleton } from '@/components/sidebar/user-avatar-skeleton'
 import { useTheme } from '@/components/theme-provider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import {
   Collapsible,
   CollapsibleContent,
@@ -60,6 +61,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { useRoutingFailureSummary } from '@/hooks/useRoutingFailureSummary'
 import {
   type PrefDef,
   parseBooleanRecord,
@@ -87,6 +89,11 @@ const data = {
         {
           title: 'Approvals',
           url: '/approvals',
+        },
+        {
+          title: 'Failed to Add',
+          url: '/approvals/routing-failures',
+          showRoutingFailureCount: true,
         },
         {
           title: 'Quota Settings',
@@ -270,6 +277,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   } = useSettings()
   const [showLogoutAlert, setShowLogoutAlert] = React.useState(false)
   const { currentUser, currentUserLoading } = useCurrentUser()
+  const { data: routingFailureData } = useRoutingFailureSummary()
+  const routingFailureCount = routingFailureData?.summary.actionable ?? 0
 
   // Memoized default sections to avoid recalculation
   const defaultSections = React.useMemo(
@@ -434,6 +443,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         onClick={(e) => handleNavigation(subItem.url, e)}
                       >
                         <span>{subItem.title}</span>
+                        {'showRoutingFailureCount' in subItem &&
+                          routingFailureCount > 0 && (
+                            <Badge
+                              variant="warn"
+                              className="ml-auto px-1.5 tabular-nums"
+                              aria-label={`${routingFailureCount} items failed to add`}
+                            >
+                              {routingFailureCount}
+                            </Badge>
+                          )}
                       </a>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
@@ -457,7 +476,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenuItem>
       ),
     )
-  }, [openSections, isActiveRoute, handleNavigation, toggleSection])
+  }, [
+    openSections,
+    isActiveRoute,
+    handleNavigation,
+    toggleSection,
+    routingFailureCount,
+  ])
 
   // Memoized help resources rendering
   const helpResourceItems = React.useMemo(() => {

@@ -35,6 +35,9 @@ const LogViewerPage = lazy(() => import('@/features/system/pages/log-viewer'))
 const ApprovalSettingsPage = lazy(
   () => import('@/features/requests/pages/approval-settings'),
 )
+const RoutingFailuresPage = lazy(
+  () => import('@/features/requests/pages/routing-failures'),
+)
 const QuotaSettingsPage = lazy(
   () => import('@/features/requests/pages/quota-settings'),
 )
@@ -306,6 +309,16 @@ export const router = createBrowserRouter(
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
                     <ApprovalsPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'routing-failures',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <RoutingFailuresPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),
