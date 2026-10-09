@@ -42,25 +42,14 @@ function applySearchFilter<T>(
 
 type ApprovalRequestJoinedRow = ApprovalRequestRow & {
   user_name: string | null
-  thumb: string | null
 }
 
-function selectWithUserAndThumb(
+function selectWithUser(
   query: Knex.QueryBuilder,
 ): Knex.QueryBuilder<ApprovalRequestRow, ApprovalRequestJoinedRow[]> {
   return query
-    .select(
-      'approval_requests.*',
-      'users.name as user_name',
-      'watchlist_items.thumb as thumb',
-    )
+    .select('approval_requests.*', 'users.name as user_name')
     .leftJoin('users', 'approval_requests.user_id', 'users.id')
-    .leftJoin('watchlist_items', function () {
-      this.on('watchlist_items.user_id', 'approval_requests.user_id').andOn(
-        'watchlist_items.key',
-        'approval_requests.content_key',
-      )
-    })
 }
 
 /**
@@ -122,6 +111,7 @@ export async function createApprovalRequest(
       content_type: data.contentType,
       content_title: data.contentTitle,
       content_key: data.contentKey,
+      thumb: data.thumb || null,
       content_guids: JSON.stringify(data.contentGuids || []),
       router_decision: JSON.stringify(data.routerDecision),
       router_rule_id: data.routerRuleId,
@@ -135,9 +125,7 @@ export async function createApprovalRequest(
     .returning('*')
 
   // Get the inserted row with username
-  const rowWithUsername = await selectWithUserAndThumb(
-    this.knex('approval_requests'),
-  )
+  const rowWithUsername = await selectWithUser(this.knex('approval_requests'))
     .where('approval_requests.id', row.id)
     .first()
 
@@ -158,7 +146,7 @@ export async function getApprovalRequest(
   this: DatabaseService,
   id: number,
 ): Promise<ApprovalRequest | null> {
-  const row = await selectWithUserAndThumb(this.knex('approval_requests'))
+  const row = await selectWithUser(this.knex('approval_requests'))
     .where('approval_requests.id', id)
     .first()
   return row ? mapRowToApprovalRequest.call(this, row) : null
@@ -176,7 +164,7 @@ export async function getApprovalRequestByContent(
   userId: number,
   contentKey: string,
 ): Promise<ApprovalRequest | null> {
-  const row = await selectWithUserAndThumb(this.knex('approval_requests'))
+  const row = await selectWithUser(this.knex('approval_requests'))
     .where('approval_requests.user_id', userId)
     .where('approval_requests.content_key', contentKey)
     .first()
@@ -216,9 +204,7 @@ export async function updateApprovalRequest(
   if (!row) return null
 
   // Get the updated row with username
-  const updatedRow = await selectWithUserAndThumb(
-    this.knex('approval_requests'),
-  )
+  const updatedRow = await selectWithUser(this.knex('approval_requests'))
     .where('approval_requests.id', id)
     .first()
 
@@ -283,7 +269,7 @@ export async function getPendingApprovalRequests(
   limit = 50,
   offset = 0,
 ): Promise<ApprovalRequest[]> {
-  let query = selectWithUserAndThumb(this.knex('approval_requests')).where(
+  let query = selectWithUser(this.knex('approval_requests')).where(
     'approval_requests.status',
     'pending',
   )
@@ -341,7 +327,7 @@ export async function getApprovalHistory(
     expiresAt: 'approval_requests.expires_at',
   }
 
-  let query = selectWithUserAndThumb(this.knex('approval_requests'))
+  let query = selectWithUser(this.knex('approval_requests'))
 
   if (userId) {
     if (Array.isArray(userId)) {
@@ -467,7 +453,7 @@ export async function getApprovalHistoryCount(
 export async function getExpiredPendingRequests(
   this: DatabaseService,
 ): Promise<ApprovalRequest[]> {
-  const rows = await selectWithUserAndThumb(this.knex('approval_requests'))
+  const rows = await selectWithUser(this.knex('approval_requests'))
     .where('approval_requests.status', 'pending')
     .where('approval_requests.expires_at', '<', this.timestamp)
     .whereNotNull('approval_requests.expires_at')
@@ -490,7 +476,7 @@ export async function getPendingRequestsByTrigger(
   trigger: ApprovalTrigger,
   userId?: number,
 ): Promise<ApprovalRequest[]> {
-  let query = selectWithUserAndThumb(this.knex('approval_requests'))
+  let query = selectWithUser(this.knex('approval_requests'))
     .where('approval_requests.status', 'pending')
     .where('approval_requests.triggered_by', trigger)
 
@@ -706,7 +692,7 @@ export async function getApprovalRequestsByCriteria(
     contentType?: 'movie' | 'show'
   },
 ): Promise<ApprovalRequest[]> {
-  let query = selectWithUserAndThumb(this.knex('approval_requests'))
+  let query = selectWithUser(this.knex('approval_requests'))
 
   if (criteria.userId !== undefined) {
     query = query.where('approval_requests.user_id', criteria.userId)
@@ -735,9 +721,10 @@ export async function getApprovalRequestsByCriteria(
 export async function getAllApprovedApprovalRequests(
   this: DatabaseService,
 ): Promise<ApprovalRequest[]> {
-  const rows = await selectWithUserAndThumb(
-    this.knex('approval_requests'),
-  ).whereIn('approval_requests.status', ['approved', 'auto_approved'])
+  const rows = await selectWithUser(this.knex('approval_requests')).whereIn(
+    'approval_requests.status',
+    ['approved', 'auto_approved'],
+  )
 
   return rows.map((row) => mapRowToApprovalRequest.call(this, row))
 }
@@ -808,7 +795,7 @@ export async function getApprovalRequestsByGuids(
   // Convert Set to Array for query
   const guidArray = Array.from(guids)
 
-  let query = selectWithUserAndThumb(this.knex('approval_requests')).where(
+  let query = selectWithUser(this.knex('approval_requests')).where(
     'approval_requests.content_type',
     contentType,
   )
@@ -868,7 +855,7 @@ export async function updateApprovalRequestAttribution(
   }
 
   // Get the updated record with user name
-  const row = await selectWithUserAndThumb(this.knex('approval_requests'))
+  const row = await selectWithUser(this.knex('approval_requests'))
     .where('approval_requests.id', id)
     .first()
 
@@ -888,7 +875,7 @@ export async function createApprovalRequestWithExpiredHandling(
 ): Promise<{ request: ApprovalRequest; isNewlyCreated: boolean }> {
   return await this.knex.transaction(async (trx) => {
     // Check for existing request with the same user_id and content_key
-    const existingRow = await selectWithUserAndThumb(trx('approval_requests'))
+    const existingRow = await selectWithUser(trx('approval_requests'))
       .where('approval_requests.user_id', data.userId)
       .where('approval_requests.content_key', data.contentKey)
       .first()
@@ -915,6 +902,7 @@ export async function createApprovalRequestWithExpiredHandling(
         content_type: data.contentType,
         content_title: data.contentTitle,
         content_key: data.contentKey,
+        thumb: data.thumb || null,
         content_guids: JSON.stringify(data.contentGuids || []),
         router_decision: JSON.stringify(data.routerDecision),
         router_rule_id: data.routerRuleId,
@@ -928,9 +916,7 @@ export async function createApprovalRequestWithExpiredHandling(
       .returning('*')
 
     // Get the inserted row with username
-    const rowWithUsername = await selectWithUserAndThumb(
-      trx('approval_requests'),
-    )
+    const rowWithUsername = await selectWithUser(trx('approval_requests'))
       .where('approval_requests.id', insertedRow.id)
       .first()
 

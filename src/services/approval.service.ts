@@ -240,6 +240,7 @@ export class ApprovalService {
       contentType: content.type,
       contentTitle: content.title,
       contentKey: contentKey,
+      thumb: content.thumb,
       contentGuids: content.guids,
       routerDecision,
       routerRuleId,

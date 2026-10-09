@@ -15,6 +15,7 @@ export interface ContentItem {
   type: 'movie' | 'show'
   guids: string[]
   genres?: string[]
+  thumb?: string
   metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse
   // Rating data - undefined: not fetched; null: known missing; value: present
   imdb?: {

@@ -163,6 +163,18 @@ describe('routeContent gates', () => {
       expect(requests[0].status).toBe('auto_approved')
     })
 
+    it('stores the item thumb on the auto-approval record', async () => {
+      await fastify.contentRouter.routeContent(
+        { ...comedyMovie, thumb: '/comedy-poster.jpg' },
+        'no-rules-thumb-key',
+        { userId: 1, userName: 'Test User' },
+      )
+
+      const requests = await getApprovalRequests()
+      expect(requests).toHaveLength(1)
+      expect(requests[0].thumb).toBe('/comedy-poster.jpg')
+    })
+
     it('consumes one quota slot on successful default routing', async () => {
       await seedUserQuota(getTestDatabase(), {
         user_id: 1,
