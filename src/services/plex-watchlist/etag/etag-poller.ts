@@ -551,14 +551,16 @@ export class EtagPoller {
     const user = this.staggeredUserQueue[this.staggeredCurrentIndex]
 
     if (user) {
-      const onUserChanged = this.onUserChangedCallback
       const check = async () => {
         const result = await this.checkUser(user)
 
+        // A loop stopped or replaced during the request drops its result
+        if (!this.isLoopCurrent(generation)) return
+
         // Notify callback if there are changes
         if (result.changed && result.newItems.length > 0) {
-          if (onUserChanged) {
-            await onUserChanged(result)
+          if (this.onUserChangedCallback) {
+            await this.onUserChangedCallback(result)
           }
         }
       }

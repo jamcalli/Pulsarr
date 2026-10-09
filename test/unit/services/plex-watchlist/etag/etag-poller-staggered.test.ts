@@ -355,5 +355,34 @@ describe('EtagPoller staggered polling', () => {
 
       poller.stopStaggeredPolling()
     })
+
+    it('drops the result of a check that finishes after stop, as before the safety net', async () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.5)
+      const { poller, checkUser } = createPoller()
+      let release: () => void = () => {}
+      checkUser.mockImplementationOnce(
+        (user) =>
+          new Promise((resolve) => {
+            release = () =>
+              resolve({
+                changed: true,
+                userId: user.userId,
+                isPrimary: user.isPrimary,
+                newItems: [{ id: 'new', title: 'New', type: 'movie' }],
+              })
+          }),
+      )
+      const onUserChanged = vi.fn().mockResolvedValue(undefined)
+
+      poller.startStaggeredPolling(1, [], onUserChanged, async () => [])
+      await vi.advanceTimersByTimeAsync(ETAG_CYCLE_MS / 2)
+      expect(checkUser).toHaveBeenCalledTimes(1)
+
+      poller.stopStaggeredPolling()
+      release()
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(onUserChanged).not.toHaveBeenCalled()
+    })
   })
 })
