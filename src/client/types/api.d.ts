@@ -2680,6 +2680,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/watchlist-diagnostics/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run watchlist diagnostics for a user
+         * @description Fetches the user's live Plex watchlist and explains, per item, why it is or is not in Radarr/Sonarr. Read-only: nothing is written or routed. Limited to one run at a time and one run per user per minute.
+         */
+        post: operations["runWatchlistDiagnostics"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/watchlist-exclusions": {
         parameters: {
             query?: never;
@@ -13167,6 +13187,172 @@ export interface operations {
             };
             /** @description Default Response */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    runWatchlistDiagnostics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        diagnostics: {
+                            user: {
+                                id: number;
+                                name: string;
+                                isPrimary: boolean;
+                                canSync: boolean;
+                                requiresApproval: boolean;
+                            };
+                            generatedAt: string;
+                            live: {
+                                /** @enum {string} */
+                                source: "self" | "friend";
+                                itemCount: number;
+                                truncated: boolean;
+                                maxItems: number;
+                            };
+                            workflow: {
+                                status: string;
+                                rssMode: boolean;
+                                nextReconciliationAt: string | null;
+                            };
+                            quotas: {
+                                movie: {
+                                    exceeded: boolean;
+                                    currentUsage: number;
+                                    quotaLimit: number;
+                                    bypassApproval: boolean;
+                                    watchlistCap: number | null;
+                                    watchlistUsage: number | null;
+                                    watchlistCapExceeded: boolean;
+                                } | null;
+                                show: {
+                                    exceeded: boolean;
+                                    currentUsage: number;
+                                    quotaLimit: number;
+                                    bypassApproval: boolean;
+                                    watchlistCap: number | null;
+                                    watchlistUsage: number | null;
+                                    watchlistCapExceeded: boolean;
+                                } | null;
+                            };
+                            summary: {
+                                onPlex: number;
+                                inPulsarr: number;
+                                plexOnly: number;
+                                pulsarrOnly: number;
+                                routed: number;
+                                needsAttention: number;
+                            };
+                            items: {
+                                key: string;
+                                title: string;
+                                type: string;
+                                /** @enum {string} */
+                                presence: "both" | "plex_only" | "pulsarr_only" | "not_checked";
+                                /** @enum {string} */
+                                state: "routed" | "not_seen_yet" | "removed_from_plex" | "excluded_global" | "excluded_user" | "unsupported_type" | "missing_ids" | "awaiting_approval" | "approval_rejected" | "approval_expired" | "approved_not_routed" | "sync_disabled" | "watchlist_cap" | "not_routed";
+                                reason: string;
+                                watchlistItemId: number | null;
+                                status: ("pending" | "requested" | "grabbed" | "notified") | null;
+                                addedAt: string | null;
+                                guids: string[];
+                                ids: {
+                                    tmdb: number | null;
+                                    tvdb: number | null;
+                                    imdb: string | null;
+                                };
+                                instances: {
+                                    /** @enum {string} */
+                                    arr: "radarr" | "sonarr";
+                                    instanceId: number;
+                                    instanceName: string;
+                                    /** @enum {string} */
+                                    status: "pending" | "requested" | "grabbed" | "notified";
+                                    isPrimary: boolean;
+                                    syncing: boolean;
+                                    lastNotifiedAt: string | null;
+                                }[];
+                                approval: {
+                                    id: number;
+                                    /** @enum {string} */
+                                    status: "pending" | "approved" | "rejected" | "expired" | "auto_approved";
+                                    /** @enum {string} */
+                                    triggeredBy: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
+                                    reason: string | null;
+                                    ruleName: string | null;
+                                    createdAt: string;
+                                } | null;
+                                exclusion: {
+                                    /** @enum {string} */
+                                    scope: "user" | "global";
+                                    excludedAt: string;
+                                } | null;
+                                lastNotifiedAt: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Default Response */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };

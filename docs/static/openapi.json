@@ -21074,6 +21074,613 @@
         }
       }
     },
+    "/v1/watchlist-diagnostics/users/{userId}": {
+      "post": {
+        "operationId": "runWatchlistDiagnostics",
+        "summary": "Run watchlist diagnostics for a user",
+        "tags": [
+          "Watchlist Diagnostics"
+        ],
+        "description": "Fetches the user's live Plex watchlist and explains, per item, why it is or is not in Radarr/Sonarr. Read-only: nothing is written or routed. Limited to one run at a time and one run per user per minute.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "userId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "diagnostics": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "number"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "isPrimary": {
+                              "type": "boolean"
+                            },
+                            "canSync": {
+                              "type": "boolean"
+                            },
+                            "requiresApproval": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "isPrimary",
+                            "canSync",
+                            "requiresApproval"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "generatedAt": {
+                          "type": "string"
+                        },
+                        "live": {
+                          "type": "object",
+                          "properties": {
+                            "source": {
+                              "type": "string",
+                              "enum": [
+                                "self",
+                                "friend"
+                              ]
+                            },
+                            "itemCount": {
+                              "type": "number"
+                            },
+                            "truncated": {
+                              "type": "boolean"
+                            },
+                            "maxItems": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "source",
+                            "itemCount",
+                            "truncated",
+                            "maxItems"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "workflow": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string"
+                            },
+                            "rssMode": {
+                              "type": "boolean"
+                            },
+                            "nextReconciliationAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "rssMode",
+                            "nextReconciliationAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "quotas": {
+                          "type": "object",
+                          "properties": {
+                            "movie": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "exceeded": {
+                                      "type": "boolean"
+                                    },
+                                    "currentUsage": {
+                                      "type": "number"
+                                    },
+                                    "quotaLimit": {
+                                      "type": "number"
+                                    },
+                                    "bypassApproval": {
+                                      "type": "boolean"
+                                    },
+                                    "watchlistCap": {
+                                      "type": [
+                                        "number",
+                                        "null"
+                                      ]
+                                    },
+                                    "watchlistUsage": {
+                                      "type": [
+                                        "number",
+                                        "null"
+                                      ]
+                                    },
+                                    "watchlistCapExceeded": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "exceeded",
+                                    "currentUsage",
+                                    "quotaLimit",
+                                    "bypassApproval",
+                                    "watchlistCap",
+                                    "watchlistUsage",
+                                    "watchlistCapExceeded"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "show": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "exceeded": {
+                                      "type": "boolean"
+                                    },
+                                    "currentUsage": {
+                                      "type": "number"
+                                    },
+                                    "quotaLimit": {
+                                      "type": "number"
+                                    },
+                                    "bypassApproval": {
+                                      "type": "boolean"
+                                    },
+                                    "watchlistCap": {
+                                      "type": [
+                                        "number",
+                                        "null"
+                                      ]
+                                    },
+                                    "watchlistUsage": {
+                                      "type": [
+                                        "number",
+                                        "null"
+                                      ]
+                                    },
+                                    "watchlistCapExceeded": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "exceeded",
+                                    "currentUsage",
+                                    "quotaLimit",
+                                    "bypassApproval",
+                                    "watchlistCap",
+                                    "watchlistUsage",
+                                    "watchlistCapExceeded"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "movie",
+                            "show"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "onPlex": {
+                              "type": "number"
+                            },
+                            "inPulsarr": {
+                              "type": "number"
+                            },
+                            "plexOnly": {
+                              "type": "number"
+                            },
+                            "pulsarrOnly": {
+                              "type": "number"
+                            },
+                            "routed": {
+                              "type": "number"
+                            },
+                            "needsAttention": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "onPlex",
+                            "inPulsarr",
+                            "plexOnly",
+                            "pulsarrOnly",
+                            "routed",
+                            "needsAttention"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string"
+                              },
+                              "presence": {
+                                "type": "string",
+                                "enum": [
+                                  "both",
+                                  "plex_only",
+                                  "pulsarr_only",
+                                  "not_checked"
+                                ]
+                              },
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "routed",
+                                  "not_seen_yet",
+                                  "removed_from_plex",
+                                  "excluded_global",
+                                  "excluded_user",
+                                  "unsupported_type",
+                                  "missing_ids",
+                                  "awaiting_approval",
+                                  "approval_rejected",
+                                  "approval_expired",
+                                  "approved_not_routed",
+                                  "sync_disabled",
+                                  "watchlist_cap",
+                                  "not_routed"
+                                ]
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "watchlistItemId": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "status": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "pending",
+                                      "requested",
+                                      "grabbed",
+                                      "notified"
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "addedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "guids": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "ids": {
+                                "type": "object",
+                                "properties": {
+                                  "tmdb": {
+                                    "type": [
+                                      "number",
+                                      "null"
+                                    ]
+                                  },
+                                  "tvdb": {
+                                    "type": [
+                                      "number",
+                                      "null"
+                                    ]
+                                  },
+                                  "imdb": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "tmdb",
+                                  "tvdb",
+                                  "imdb"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "instances": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "arr": {
+                                      "type": "string",
+                                      "enum": [
+                                        "radarr",
+                                        "sonarr"
+                                      ]
+                                    },
+                                    "instanceId": {
+                                      "type": "number"
+                                    },
+                                    "instanceName": {
+                                      "type": "string"
+                                    },
+                                    "status": {
+                                      "type": "string",
+                                      "enum": [
+                                        "pending",
+                                        "requested",
+                                        "grabbed",
+                                        "notified"
+                                      ]
+                                    },
+                                    "isPrimary": {
+                                      "type": "boolean"
+                                    },
+                                    "syncing": {
+                                      "type": "boolean"
+                                    },
+                                    "lastNotifiedAt": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "arr",
+                                    "instanceId",
+                                    "instanceName",
+                                    "status",
+                                    "isPrimary",
+                                    "syncing",
+                                    "lastNotifiedAt"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "approval": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "status": {
+                                        "type": "string",
+                                        "enum": [
+                                          "pending",
+                                          "approved",
+                                          "rejected",
+                                          "expired",
+                                          "auto_approved"
+                                        ]
+                                      },
+                                      "triggeredBy": {
+                                        "type": "string",
+                                        "enum": [
+                                          "quota_exceeded",
+                                          "router_rule",
+                                          "manual_flag",
+                                          "content_criteria"
+                                        ]
+                                      },
+                                      "reason": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "ruleName": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "createdAt": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "status",
+                                      "triggeredBy",
+                                      "reason",
+                                      "ruleName",
+                                      "createdAt"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "exclusion": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "scope": {
+                                        "type": "string",
+                                        "enum": [
+                                          "user",
+                                          "global"
+                                        ]
+                                      },
+                                      "excludedAt": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "scope",
+                                      "excludedAt"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "lastNotifiedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "title",
+                              "type",
+                              "presence",
+                              "state",
+                              "reason",
+                              "watchlistItemId",
+                              "status",
+                              "addedAt",
+                              "guids",
+                              "ids",
+                              "instances",
+                              "approval",
+                              "exclusion",
+                              "lastNotifiedAt"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "user",
+                        "generatedAt",
+                        "live",
+                        "workflow",
+                        "quotas",
+                        "summary",
+                        "items"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "diagnostics"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/watchlist-exclusions": {
       "post": {
         "operationId": "createWatchlistExclusion",
