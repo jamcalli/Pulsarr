@@ -72,6 +72,7 @@ import './database/types/plex-label-sync-methods.js'
 import './database/types/plex-label-tracking-methods.js'
 import './database/types/quota-methods.js'
 import './database/types/router-methods.js'
+import './database/types/routing-failure-methods.js'
 import './database/types/scheduler-methods.js'
 import './database/types/session-methods.js'
 import './database/types/user-methods.js'
@@ -94,6 +95,7 @@ import * as plexLabelTrackingMethods from './database/methods/plex-label-trackin
 import * as quotaMethods from './database/methods/quota.js'
 import * as radarrInstanceMethods from './database/methods/radarr-instance.js'
 import * as routerMethods from './database/methods/router.js'
+import * as routingFailureMethods from './database/methods/routing-failure.js'
 import * as schedulerMethods from './database/methods/schedule.js'
 import * as sessionMethods from './database/methods/session.js'
 import * as sonarrInstanceMethods from './database/methods/sonarr-instance.js'
@@ -227,6 +229,7 @@ export class DatabaseService {
       quotaMethods,
       radarrInstanceMethods,
       routerMethods,
+      routingFailureMethods,
       schedulerMethods,
       sessionMethods,
       sonarrInstanceMethods,

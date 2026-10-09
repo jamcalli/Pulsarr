@@ -4,6 +4,7 @@ import type {
   RoutingDecision,
   RoutingDetails,
 } from '@root/types/router.types.js'
+import type { RoutingFailureInput } from '@root/types/routing-failure.types.js'
 import { createAutoApprovalRecord } from './auto-approval.js'
 import {
   getDefaultRoutingDecisions,
@@ -12,6 +13,7 @@ import {
 import { enrichItemMetadata } from './enrichment.js'
 import { applyPreRoutingGates } from './gates.js'
 import {
+  collectArrFailure,
   decidedRouting,
   routeToArr,
   settingsFromDecision,
@@ -23,6 +25,7 @@ import {
   notRouted,
   type RouteContentOptions,
   type RoutingOutcome,
+  withFailures,
 } from './types.js'
 
 /** Rejects when routing state cannot be read, leaving the item unrouted for the next reconciliation. */
@@ -138,12 +141,14 @@ export async function routeContent(
       return notRouted()
     }
 
+    const defaultFailures: RoutingFailureInput[] = []
     const defaultRoutings = await routeUsingDefault(
       item,
       key,
       options.userId,
       options.syncing,
       deps,
+      defaultFailures,
     )
 
     const [primaryDecision, ...syncedDecisions] = defaultRoutingDecisions
@@ -163,10 +168,13 @@ export async function routeContent(
       )
     }
 
-    return {
-      routedInstances: defaultRoutings.map((routing) => routing.instanceId),
-      routingDetails: defaultRoutings,
-    }
+    return withFailures(
+      {
+        routedInstances: defaultRoutings.map((routing) => routing.instanceId),
+        routingDetails: defaultRoutings,
+      },
+      defaultFailures,
+    )
   }
 
   // rule-matched tails are independent targets, never sync expansion
@@ -187,6 +195,7 @@ export async function routeContent(
   }
 
   const routingDetails: RoutingDetails[] = []
+  const failures: RoutingFailureInput[] = []
   const decidedByInstance = new Map<number, RoutingDetails>()
 
   for (const decision of allDecisions) {
@@ -240,6 +249,7 @@ export async function routeContent(
         { error: routeError },
         `Error routing "${item.title}" to instance ${decision.instanceId}`,
       )
+      collectArrFailure(failures, routeError, decision.instanceId)
     }
   }
 
@@ -261,8 +271,11 @@ export async function routeContent(
     )
   }
 
-  return {
-    routedInstances: routingDetails.map((routing) => routing.instanceId),
-    routingDetails,
-  }
+  return withFailures(
+    {
+      routedInstances: routingDetails.map((routing) => routing.instanceId),
+      routingDetails,
+    },
+    failures,
+  )
 }

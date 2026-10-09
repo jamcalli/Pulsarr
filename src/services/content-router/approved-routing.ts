@@ -8,12 +8,18 @@ import type {
   RoutingContext,
   RoutingDetails,
 } from '@root/types/router.types.js'
+import type { RoutingFailureInput } from '@root/types/routing-failure.types.js'
 import { isArrAlreadyAddedError } from '@utils/arr-error.js'
-import { type ArrTarget, routeToArr } from './routing-capture.js'
+import {
+  type ArrTarget,
+  collectArrFailure,
+  routeToArr,
+} from './routing-capture.js'
 import {
   type ContentRouterDeps,
   notRouted,
   type RoutingOutcome,
+  withFailures,
 } from './types.js'
 
 type ApprovalRouting = NonNullable<RouterDecision['routing']>
@@ -52,6 +58,7 @@ async function replayToInstance(
   settings: RouteSettings,
   label: string,
   deps: Pick<ContentRouterDeps, 'logger' | 'radarrManager' | 'sonarrManager'>,
+  failures: RoutingFailureInput[],
 ): Promise<boolean> {
   const { logger } = deps
   const { item, instanceId } = target
@@ -72,6 +79,7 @@ async function replayToInstance(
       { error },
       `Failed to route approved content "${item.title}" to ${label} instance ${instanceId}`,
     )
+    collectArrFailure(failures, error, instanceId)
     return false
   }
 }
@@ -114,6 +122,7 @@ export async function routeUsingApprovedDecision(
 
     const routedInstances: number[] = []
     const routingDetails: RoutingDetails[] = []
+    const failures: RoutingFailureInput[] = []
     const instanceId = proposedRouting.instanceId
     const label = item.type === 'movie' ? 'Radarr' : 'Sonarr'
     const base = {
@@ -128,6 +137,7 @@ export async function routeUsingApprovedDecision(
         settingsFromRouting(proposedRouting),
         label,
         deps,
+        failures,
       )
       if (primaryRouted) {
         routedInstances.push(instanceId)
@@ -146,6 +156,7 @@ export async function routeUsingApprovedDecision(
         {},
         `synced ${label}`,
         deps,
+        failures,
       )
       if (syncedRouted) routedInstances.push(syncedId)
     }
@@ -161,13 +172,14 @@ export async function routeUsingApprovedDecision(
         settingsFromRouting(routing),
         label,
         deps,
+        failures,
       )
       if (!routed) continue
       routedInstances.push(routing.instanceId)
       routingDetails.push(detailsFromRouting(routing))
     }
 
-    return { routedInstances, routingDetails }
+    return withFailures({ routedInstances, routingDetails }, failures)
   } catch (error) {
     logger.error({ error }, 'Error routing using approved decision')
     return notRouted()

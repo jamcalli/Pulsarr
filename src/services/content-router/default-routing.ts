@@ -5,10 +5,11 @@ import type {
   RoutingDetails,
   TargetInstancesResult,
 } from '@root/types/router.types.js'
+import type { RoutingFailureInput } from '@root/types/routing-failure.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import type { FastifyBaseLogger } from 'fastify'
-import { routeToArr } from './routing-capture.js'
+import { collectArrFailure, routeToArr } from './routing-capture.js'
 import type { ContentRouterDeps } from './types.js'
 
 const INSTANCE_SOURCE = {
@@ -192,7 +193,7 @@ export async function getDefaultRoutingDecisions(
   })
 }
 
-/** Returns what each instance applied, skipping an instance whose add fails. */
+/** Returns what each instance applied, skipping an instance whose add fails and noting it in failures when given. */
 export async function routeUsingDefault(
   item: ContentItem,
   key: string,
@@ -202,6 +203,7 @@ export async function routeUsingDefault(
     ContentRouterDeps,
     'logger' | 'db' | 'radarrManager' | 'sonarrManager'
   >,
+  failures?: RoutingFailureInput[],
 ): Promise<RoutingDetails[]> {
   const { instanceIds } = await getDefaultInstanceIds(item.type, deps)
   const routings: RoutingDetails[] = []
@@ -220,6 +222,7 @@ export async function routeUsingDefault(
         { error },
         `Error routing "${item.title}" to ${INSTANCE_SOURCE[item.type].label} instance ${instanceId}`,
       )
+      collectArrFailure(failures, error, instanceId)
     }
   }
 

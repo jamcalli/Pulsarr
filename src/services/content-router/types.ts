@@ -1,5 +1,6 @@
 import type { Config } from '@root/types/config.types.js'
 import type { RoutingDetails } from '@root/types/router.types.js'
+import type { RoutingFailureInput } from '@root/types/routing-failure.types.js'
 import type { ApprovalService } from '@services/approval.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { NotificationService } from '@services/notification.service.js'
@@ -34,6 +35,8 @@ export interface RouteContentOptions {
 export interface RoutingOutcome {
   routedInstances: number[]
   routingDetails: RoutingDetails[]
+  /** Instances whose add failed, present only when at least one did. */
+  failures?: RoutingFailureInput[]
 }
 
 export type GateOutcome =
@@ -43,4 +46,12 @@ export type GateOutcome =
 
 export function notRouted(): RoutingOutcome {
   return { routedInstances: [], routingDetails: [] }
+}
+
+/** Attaches failures only when there are any, so a clean outcome keeps its shape. */
+export function withFailures(
+  outcome: RoutingOutcome,
+  failures: RoutingFailureInput[],
+): RoutingOutcome {
+  return failures.length > 0 ? { ...outcome, failures } : outcome
 }

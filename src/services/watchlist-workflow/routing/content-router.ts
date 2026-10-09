@@ -6,6 +6,7 @@ import type {
   RoutingContext,
   RoutingDetails,
 } from '@root/types/router.types.js'
+import type { RoutingFailureInput } from '@root/types/routing-failure.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import {
   approvedDestinations,
@@ -19,6 +20,7 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import type { ContentRoutingDeps } from '../types.js'
+import { type RoutingFailureKeys, trackRouting } from './failure-tracker.js'
 
 export interface RouteContentResult {
   routed: boolean
@@ -30,6 +32,8 @@ export interface RouteContentResult {
     | 'exists-on-plex'
     | 'no-instances-available'
     | 'no-valid-id'
+  /** Instances whose add failed, present only when at least one did. */
+  failures?: RoutingFailureInput[]
 }
 
 export type ApprovedRecords = ReadonlyMap<string, ApprovalRequest>
@@ -42,6 +46,7 @@ export interface RouteShowParams {
   existingSeries?: SonarrItem[]
   approvedRecords?: ApprovedRecords
   arrInstanceIds?: ReadonlySet<number>
+  routingFailureKeys?: RoutingFailureKeys
   primaryUser: { id: number } | null
 }
 
@@ -53,6 +58,7 @@ export interface RouteMovieParams {
   existingMovies?: RadarrItem[]
   approvedRecords?: ApprovedRecords
   arrInstanceIds?: ReadonlySet<number>
+  routingFailureKeys?: RoutingFailureKeys
   primaryUser: { id: number } | null
 }
 
@@ -314,7 +320,7 @@ async function reportRouted(
   userId: number,
   userName: string | undefined,
   contentType: 'show' | 'movie',
-  { routedInstances, routingDetails }: RoutingOutcome,
+  { routedInstances, routingDetails, failures }: RoutingOutcome,
   deps: ContentRoutingDeps,
 ): Promise<RouteContentResult> {
   if (routedInstances.length > 0 && userName) {
@@ -327,10 +333,49 @@ async function reportRouted(
       deps,
     )
   }
-  return { routed: routedInstances.length > 0 }
+  return {
+    routed: routedInstances.length > 0,
+    ...(failures && { failures }),
+  }
 }
 
-export async function routeShow(
+/** Routes a show and records any failure on its watchlist item, clearing it once routing succeeds or is skipped on purpose. */
+export function routeShow(
+  params: RouteShowParams,
+  deps: ContentRoutingDeps,
+): Promise<RouteContentResult> {
+  return trackRouting(
+    {
+      userId: params.userId,
+      key: params.tempItem.key,
+      title: params.tempItem.title,
+      contentType: 'show',
+      routingFailureKeys: params.routingFailureKeys,
+    },
+    () => routeShowOnce(params, deps),
+    deps,
+  )
+}
+
+/** Routes a movie and records any failure on its watchlist item, clearing it once routing succeeds or is skipped on purpose. */
+export function routeMovie(
+  params: RouteMovieParams,
+  deps: ContentRoutingDeps,
+): Promise<RouteContentResult> {
+  return trackRouting(
+    {
+      userId: params.userId,
+      key: params.tempItem.key,
+      title: params.tempItem.title,
+      contentType: 'movie',
+      routingFailureKeys: params.routingFailureKeys,
+    },
+    () => routeMovieOnce(params, deps),
+    deps,
+  )
+}
+
+async function routeShowOnce(
   params: RouteShowParams,
   deps: ContentRoutingDeps,
 ): Promise<RouteContentResult> {
@@ -471,7 +516,7 @@ export async function routeShow(
   return await reportRouted(tempItem, userId, userName, 'show', outcome, deps)
 }
 
-export async function routeMovie(
+async function routeMovieOnce(
   params: RouteMovieParams,
   deps: ContentRoutingDeps,
 ): Promise<RouteContentResult> {

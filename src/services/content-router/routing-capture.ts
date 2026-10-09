@@ -5,7 +5,9 @@ import type {
   RoutingDecision,
   RoutingDetails,
 } from '@root/types/router.types.js'
+import type { RoutingFailureInput } from '@root/types/routing-failure.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
+import { classifyArrError, isArrAlreadyAddedError } from '@utils/arr-error.js'
 import type { ContentRouterDeps } from './types.js'
 
 export interface ArrTarget {
@@ -69,4 +71,14 @@ export function decidedRouting(
     ruleId: decision.ruleId,
     ruleName: decision.ruleName,
   }
+}
+
+/** Notes a failed add, ignoring "already added" because the item is then present. */
+export function collectArrFailure(
+  failures: RoutingFailureInput[] | undefined,
+  error: unknown,
+  instanceId: number,
+): void {
+  if (!failures || isArrAlreadyAddedError(error)) return
+  failures.push({ ...classifyArrError(error), instanceId })
 }

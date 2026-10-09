@@ -16,6 +16,11 @@ import {
   routeMovie,
   routeShow,
 } from '../routing/content-router.js'
+import {
+  clearRoutingFailures,
+  missingIdFailure,
+  persistRoutingFailures,
+} from '../routing/failure-tracker.js'
 import type { WorkflowDeps } from '../types.js'
 
 export interface SyncResult {
@@ -162,12 +167,14 @@ export async function syncWatchlistItems(
       approvedRequests,
       sonarrInstances,
       radarrInstances,
+      routingFailureKeys,
     ] = await Promise.all([
       deps.sonarrManager.fetchAllSeries(),
       deps.radarrManager.fetchAllMovies(),
       deps.db.getAllApprovedApprovalRequests(),
       deps.sonarrManager.getAllInstances(),
       deps.radarrManager.getAllInstances(),
+      deps.db.getRoutingFailureKeys(),
     ])
     const approvedRecords = indexApprovedRecords(approvedRequests)
     const sonarrInstanceIds = new Set(sonarrInstances.map((i) => i.id))
@@ -262,6 +269,10 @@ export async function syncWatchlistItems(
               deps.logger.debug(
                 `Skipping item "${item.title}" for user ${numericUserId} due to exclusion`,
               )
+              await clearRoutingFailures(
+                { userId: numericUserId, key: item.key, routingFailureKeys },
+                deps,
+              )
               return { type: 'skipped', reason: 'exclusion' }
             }
 
@@ -281,6 +292,16 @@ export async function syncWatchlistItems(
               const tvdbId = extractTvdbId(parsedGuids)
 
               if (tvdbId === 0) {
+                await persistRoutingFailures(
+                  {
+                    userId: numericUserId,
+                    key: item.key,
+                    title: item.title,
+                    contentType: 'show',
+                  },
+                  [missingIdFailure('show')],
+                  deps,
+                )
                 return {
                   type: 'skipped',
                   reason: 'missing_id',
@@ -314,6 +335,7 @@ export async function syncWatchlistItems(
                   existingSeries,
                   approvedRecords,
                   arrInstanceIds: sonarrInstanceIds,
+                  routingFailureKeys,
                   primaryUser,
                 },
                 deps,
@@ -329,6 +351,16 @@ export async function syncWatchlistItems(
               const tmdbId = extractTmdbId(parsedGuids)
 
               if (tmdbId === 0) {
+                await persistRoutingFailures(
+                  {
+                    userId: numericUserId,
+                    key: item.key,
+                    title: item.title,
+                    contentType: 'movie',
+                  },
+                  [missingIdFailure('movie')],
+                  deps,
+                )
                 return {
                   type: 'skipped',
                   reason: 'missing_id',
@@ -359,6 +391,7 @@ export async function syncWatchlistItems(
                   existingMovies,
                   approvedRecords,
                   arrInstanceIds: radarrInstanceIds,
+                  routingFailureKeys,
                   primaryUser,
                 },
                 deps,

@@ -12,6 +12,10 @@ import { schedulePendingReconciliation } from './watchlist-workflow/lifecycle/sc
 import { initializeWorkflow } from './watchlist-workflow/lifecycle/workflow-starter.js'
 import { cleanupWorkflow } from './watchlist-workflow/lifecycle/workflow-stopper.js'
 import { reconcile as reconcileModule } from './watchlist-workflow/orchestration/reconciler.js'
+import {
+  type RetryRoutingResult,
+  retryRoutingFailures as retryRoutingFailuresModule,
+} from './watchlist-workflow/routing/failure-retry.js'
 import { checkRssFeeds } from './watchlist-workflow/rss/feed-poller.js'
 import {
   WorkflowState,
@@ -24,6 +28,8 @@ export class WatchlistWorkflowService {
   private readonly log: FastifyBaseLogger
 
   private readonly state = new WorkflowState()
+
+  private routingRetryInFlight = false
 
   constructor(
     readonly baseLog: FastifyBaseLogger,
@@ -261,5 +267,27 @@ export class WatchlistWorkflowService {
 
   async fetchWatchlists(): Promise<void> {
     return fetchWatchlistsModule(this.deps)
+  }
+
+  /** Routing needs a running workflow, and one retry runs at a time so a double click cannot double the load. */
+  async retryRoutingFailures(
+    watchlistItemIds: number[],
+  ): Promise<
+    | { status: 'done'; result: RetryRoutingResult }
+    | { status: 'not_running' | 'busy' }
+  > {
+    if (this.state.status !== 'running') return { status: 'not_running' }
+    if (this.routingRetryInFlight) return { status: 'busy' }
+
+    this.routingRetryInFlight = true
+    try {
+      const result = await retryRoutingFailuresModule(
+        watchlistItemIds,
+        this.deps,
+      )
+      return { status: 'done', result }
+    } finally {
+      this.routingRetryInFlight = false
+    }
   }
 }

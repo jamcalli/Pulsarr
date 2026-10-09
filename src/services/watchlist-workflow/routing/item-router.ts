@@ -16,6 +16,11 @@ import {
 } from '@utils/guid-handler.js'
 import type { ContentRoutingDeps, WorkflowDeps } from '../types.js'
 import { routeMovie, routeShow } from './content-router.js'
+import {
+  clearRoutingFailures,
+  missingIdFailure,
+  persistRoutingFailures,
+} from './failure-tracker.js'
 
 export interface RouteSingleItemParams {
   item: Item
@@ -24,6 +29,20 @@ export interface RouteSingleItemParams {
   primaryUser: { id: number } | null
   existingShows?: SonarrItem[]
   existingMovies?: RadarrItem[]
+}
+
+async function recordMissingIds(
+  item: Item,
+  userId: number,
+  contentType: string,
+  deps: ContentRoutingDeps,
+): Promise<void> {
+  if (contentType !== 'show' && contentType !== 'movie') return
+  await persistRoutingFailures(
+    { userId, key: item.key, title: item.title, contentType },
+    [missingIdFailure(contentType)],
+    deps,
+  )
 }
 
 export async function routeSingleItem(
@@ -42,6 +61,7 @@ export async function routeSingleItem(
       { userId, title: item.title },
       'Item has no GUIDs - skipping routing',
     )
+    await recordMissingIds(item, userId, normalizedType, deps)
     return false
   }
 
@@ -61,6 +81,7 @@ export async function routeSingleItem(
         { userId, title: item.title, guids: parsedGuids },
         'Show has no valid TVDB ID - skipping routing',
       )
+      await recordMissingIds(item, userId, normalizedType, deps)
       return false
     }
 
@@ -100,6 +121,7 @@ export async function routeSingleItem(
         { userId, title: item.title, guids: parsedGuids },
         'Movie has no valid TMDB ID - skipping routing',
       )
+      await recordMissingIds(item, userId, normalizedType, deps)
       return false
     }
 
@@ -179,6 +201,8 @@ export async function routeEnrichedItemsForUser(
         { userId, title: item.title },
         'Skipping enriched item due to exclusion',
       )
+      // an excluded item is skipped on purpose, so an earlier failure no longer applies
+      await clearRoutingFailures({ userId, key: item.key }, deps)
       continue
     }
 
