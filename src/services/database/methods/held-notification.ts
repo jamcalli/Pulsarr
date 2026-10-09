@@ -114,6 +114,23 @@ export async function getUserIdsWithDueHeldNotifications(
 }
 
 /**
+ * Returns the IDs of users with at least one unclaimed held notification,
+ * due or not.
+ *
+ * @returns Distinct user IDs, ascending
+ */
+export async function getUserIdsWithHeldNotifications(
+  this: DatabaseService,
+): Promise<number[]> {
+  const rows = await this.knex('held_notifications')
+    .distinct('user_id')
+    .whereNull('claimed_at')
+    .orderBy('user_id', 'asc')
+
+  return rows.map((row: { user_id: number }) => Number(row.user_id))
+}
+
+/**
  * Claims every unclaimed held notification of a user for delivery.
  *
  * The claim update only touches rows that are still unclaimed, so a row is

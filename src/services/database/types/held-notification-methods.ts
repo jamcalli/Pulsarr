@@ -19,6 +19,12 @@ declare module '@services/database.service.js' {
     getUserIdsWithDueHeldNotifications(now: Date): Promise<number[]>
 
     /**
+     * Returns the IDs of users with at least one unclaimed held
+     * notification, due or not.
+     */
+    getUserIdsWithHeldNotifications(): Promise<number[]>
+
+    /**
      * Claims every unclaimed held notification of a user for delivery and
      * returns the claimed rows. Rows already claimed are skipped, so two
      * concurrent claims never receive the same row.

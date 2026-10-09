@@ -439,6 +439,61 @@ describe('NotificationDeliveryScheduler', () => {
     })
   })
 
+  describe('schedule changes while held', () => {
+    it('releases held rows once the user turns batching off', async () => {
+      await setUserSchedule(DISCORD_USER, {
+        notify_digest_mode: 'daily',
+        notify_digest_time: '09:00',
+        notify_timezone: 'UTC',
+      })
+      const scheduler = createScheduler()
+      await scheduler.holdIfScheduled(
+        episodeRequest(DISCORD_USER, 'tvdb:1', 'Show X', 1, 1),
+      )
+
+      // Still scheduled: nothing goes out before the digest time
+      clock = T0 + MINUTE
+      expect(await scheduler.flushDue()).toBe(0)
+
+      await setUserSchedule(DISCORD_USER, { notify_digest_mode: 'off' })
+      clock = T0 + 2 * MINUTE
+      expect(await scheduler.flushDue()).toBe(1)
+
+      expect(channels.discordBot.sendDirectMessage).toHaveBeenCalledTimes(1)
+      expect(await heldRows()).toHaveLength(0)
+    })
+
+    it('releases held rows once the admin turns the default off', async () => {
+      notificationDelivery = { digestMode: 'window', digestWindowMinutes: 60 }
+      const scheduler = createScheduler()
+      await scheduler.holdIfScheduled(
+        episodeRequest(DISCORD_USER, 'tvdb:1', 'Show X', 1, 1),
+      )
+
+      notificationDelivery = { digestMode: 'off' }
+      clock = T0 + MINUTE
+      expect(await scheduler.flushDue()).toBe(1)
+      expect(await heldRows()).toHaveLength(0)
+    })
+
+    it('keeps holding while the schedule still applies', async () => {
+      await setUserSchedule(DISCORD_USER, {
+        notify_quiet_hours_enabled: true,
+        notify_quiet_hours_start: '10:00',
+        notify_quiet_hours_end: '14:00',
+        notify_timezone: 'UTC',
+      })
+      const scheduler = createScheduler()
+      await scheduler.holdIfScheduled(
+        episodeRequest(DISCORD_USER, 'tvdb:1', 'Show X', 1, 1),
+      )
+
+      clock = T0 + 30 * MINUTE
+      expect(await scheduler.flushDue()).toBe(0)
+      expect(await heldRows()).toHaveLength(1)
+    })
+  })
+
   describe('restart safety', () => {
     beforeEach(async () => {
       await setUserSchedule(DISCORD_USER, { notify_digest_mode: 'window' })

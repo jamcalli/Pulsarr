@@ -144,8 +144,9 @@ export class NotificationDeliveryScheduler {
   }
 
   /**
-   * Delivers every user's held notifications once any of them is due.
-   * Concurrent calls share the in-flight run.
+   * Delivers every user's held notifications once any of them is due, or
+   * once the user's schedule no longer holds notifications. Concurrent calls
+   * share the in-flight run.
    *
    * @returns Number of users a digest was delivered to
    */
@@ -164,9 +165,7 @@ export class NotificationDeliveryScheduler {
 
     let userIds: number[]
     try {
-      userIds = await db.getUserIdsWithDueHeldNotifications(
-        new Date(this.now()),
-      )
+      userIds = await this.getUserIdsToFlush()
     } catch (error) {
       logger.error({ error }, 'Failed to look up due held notifications')
       return 0
@@ -198,6 +197,41 @@ export class NotificationDeliveryScheduler {
     }
 
     return delivered
+  }
+
+  /**
+   * Users whose held rows are due, plus users whose schedule no longer holds
+   * notifications at all (they or the admin turned it off since), so their
+   * rows are released now rather than at the old delivery time.
+   */
+  private async getUserIdsToFlush(): Promise<number[]> {
+    const { db } = this.deps
+    const now = this.now()
+
+    const due = await db.getUserIdsWithDueHeldNotifications(new Date(now))
+    const dueSet = new Set(due)
+    const waiting = (await db.getUserIdsWithHeldNotifications()).filter(
+      (userId) => !dueSet.has(userId),
+    )
+    if (waiting.length === 0) return due
+
+    const defaults = this.deps.getConfig().notificationDelivery
+    const users = new Map(
+      (await db.getUsersByIds(waiting)).map((user) => [user.id, user]),
+    )
+    const released = waiting.filter((userId) => {
+      const user = users.get(userId)
+      // A missing user's rows are cleaned up by the flush
+      if (!user) return true
+      return (
+        computeDeliveryDecision(
+          now,
+          resolveDeliverySchedule(user, defaults),
+        ) === null
+      )
+    })
+
+    return [...due, ...released]
   }
 
   /** Sends a user's held rows on each of their enabled channels. */
