@@ -3,6 +3,7 @@ import {
   MINIMUM_AVAILABILITY_LABELS,
   RADARR_MONITOR_LABELS,
 } from '@root/schemas/radarr/add-options.schema'
+import type { StatusTone } from '@/components/status-pill'
 import { SERIES_TYPE_LABELS, seasonMonitoringLabel } from '@/lib/arr-labels'
 import { CONTENT_TYPE_LABELS } from '@/lib/content-type'
 import {
@@ -24,7 +25,7 @@ type RadarrInstance =
   paths['/v1/radarr/instances']['get']['responses'][200]['content']['application/json'][number]
 type SonarrInstance = components['schemas']['SonarrInstance']
 
-export type ReviewStage = 'review' | 'edit' | 'deny'
+export type ReviewStage = 'review' | 'edit' | 'deny' | 'delete'
 
 export type ArrTarget =
   | { type: 'radarr'; instance: RadarrInstance }
@@ -62,9 +63,18 @@ export function instanceOptions(
   ]
 }
 
+export const DELETE_REQUEST_NOTE =
+  "Deleting doesn't refuse anything. Waiting and denied titles can come back as new requests, and anything already sent to Radarr or Sonarr stays where it is."
+
+/** The stored ids as "imdb tt123, tmdb 456", or null when there are none. */
+export function guidsLine(guids: readonly string[]): string | null {
+  if (guids.length === 0) return null
+  return formatList(guids.map((guid) => guid.replace(':', ' ')))
+}
+
 export const DEFAULT_ROUTE_PRIORITY = 50
 
-const TRIGGER_LABELS: Record<ApprovalTrigger, string> = {
+export const TRIGGER_LABELS: Record<ApprovalTrigger, string> = {
   quota_exceeded: 'Quota exceeded',
   router_rule: 'Router rule',
   manual_flag: 'Manual flag',
@@ -85,6 +95,14 @@ export const APPROVAL_STATUS_LABELS: Record<ApprovalStatus, string> = {
   rejected: 'Denied',
   expired: 'Expired',
   auto_approved: 'Auto approved',
+}
+
+export const STATUS_TONES: Record<ApprovalStatus, StatusTone> = {
+  pending: 'pending',
+  approved: 'available',
+  auto_approved: 'available',
+  rejected: 'failed',
+  expired: 'off',
 }
 
 /** Mirrors the branch the server routes from on approve, so null means approve will be refused. */

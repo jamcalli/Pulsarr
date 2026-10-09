@@ -49,9 +49,7 @@ function LoadedReview({
           variant="standalone"
         />
       </ReviewBody>
-      {approval.status === 'pending' && (
-        <ApprovalReviewFooter review={review} />
-      )}
+      <ApprovalReviewFooter review={review} />
     </>
   )
 }

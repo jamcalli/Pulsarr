@@ -1,6 +1,11 @@
 import { cn } from 'cn'
+import { useState } from 'react'
 import { ChartLegend } from '@/components/chart-legend'
-import { ChartTooltip } from '@/components/chart-tooltip'
+import {
+  ChartTooltipTrigger,
+  createChartTooltipHandle,
+  SharedChartTooltip,
+} from '@/components/chart-tooltip'
 import { CHART_FILL, type ChartColor } from '@/lib/chart-colors'
 import { formatNumber, formatPercent } from '@/lib/format'
 
@@ -29,6 +34,7 @@ export function StackedBar({
   const sum = segments.reduce((acc, segment) => acc + segment.value, 0)
   const length = total ?? sum
   const visible = segments.filter((segment) => segment.value > 0)
+  const [handle] = useState(createChartTooltipHandle)
 
   return (
     <div className="flex flex-col gap-2">
@@ -37,12 +43,15 @@ export function StackedBar({
           visible.map((segment, index) => {
             const share = segment.value / sum
             return (
-              <ChartTooltip
+              <ChartTooltipTrigger
                 key={segment.label}
-                label={segment.label}
-                value={formatNumber(segment.value)}
-                detail={formatPercent(share)}
-                color={segment.color}
+                handle={handle}
+                payload={{
+                  label: segment.label,
+                  value: formatNumber(segment.value),
+                  detail: formatPercent(share),
+                  color: segment.color,
+                }}
                 render={
                   <button
                     type="button"
@@ -65,6 +74,7 @@ export function StackedBar({
             )
           })}
       </div>
+      <SharedChartTooltip handle={handle} />
       {showLegend && segments.length >= 2 && <ChartLegend items={segments} />}
     </div>
   )

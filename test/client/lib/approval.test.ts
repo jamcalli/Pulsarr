@@ -6,6 +6,7 @@ import {
   decisionSummary,
   defaultRouting,
   expiryLine,
+  guidsLine,
   instanceOptions,
   proposedRouting,
   requestedLine,
@@ -65,6 +66,18 @@ function makeRequest(
     ...overrides,
   }
 }
+
+describe('guidsLine', () => {
+  it('joins the stored ids with their source', () => {
+    expect(guidsLine(['imdb:tt4301160', 'tmdb:155537'])).toBe(
+      'imdb tt4301160, tmdb 155537',
+    )
+  })
+
+  it('is null when there are no ids', () => {
+    expect(guidsLine([])).toBeNull()
+  })
+})
 
 describe('proposedRouting', () => {
   it('reads routing for a route action', () => {

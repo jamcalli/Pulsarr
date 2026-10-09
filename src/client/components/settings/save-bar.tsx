@@ -1,7 +1,6 @@
-import { cn } from 'cn'
 import { CircleCheck } from 'lucide-react'
 import { BusyLabel } from '@/components/busy-label'
-import { ErrorAlert } from '@/components/error-alert'
+import { StickyActionBar } from '@/components/sticky-action-bar'
 import { Button } from '@/components/ui/button'
 
 interface SaveBarProps {
@@ -23,44 +22,38 @@ export function SaveBar({
   if (!dirty && !isSubmitting && !showSaved) return null
 
   return (
-    <div className="sticky bottom-4 z-10 flex flex-col gap-2">
-      <ErrorAlert message={errorMessage} />
-      <div
-        role="status"
-        className={cn(
-          'flex min-h-14 flex-wrap items-center justify-between gap-3 rounded-lg border-2 border-border px-4 py-3 text-primary-foreground shadow-shadow',
-          showSaved ? 'bg-ok' : 'bg-gold',
-        )}
-      >
-        {showSaved ? (
-          <span className="flex items-center gap-2 font-bold">
-            <CircleCheck className="size-4" aria-hidden />
-            Changes saved
-          </span>
-        ) : (
-          <>
-            <span className="font-bold">You have unsaved changes</span>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={isSubmitting}
-                onClick={onDiscard}
-              >
-                Discard
-              </Button>
-              <Button type="submit" size="sm" disabled={isSubmitting}>
-                <BusyLabel
-                  busy={isSubmitting}
-                  label="Save changes"
-                  busyLabel="Saving..."
-                />
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+    <StickyActionBar
+      mode={showSaved ? 'saved' : 'unsaved'}
+      errorMessage={errorMessage}
+    >
+      {showSaved ? (
+        <span className="flex items-center gap-2 font-bold">
+          <CircleCheck className="size-4" aria-hidden />
+          Changes saved
+        </span>
+      ) : (
+        <>
+          <span className="font-bold">You have unsaved changes</span>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isSubmitting}
+              onClick={onDiscard}
+            >
+              Discard
+            </Button>
+            <Button type="submit" size="sm" disabled={isSubmitting}>
+              <BusyLabel
+                busy={isSubmitting}
+                label="Save changes"
+                busyLabel="Saving..."
+              />
+            </Button>
+          </div>
+        </>
+      )}
+    </StickyActionBar>
   )
 }

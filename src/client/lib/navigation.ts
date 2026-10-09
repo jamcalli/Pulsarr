@@ -45,7 +45,10 @@ function page(
 
 export const NAV_PAGES = {
   dashboard: { ...page('Dashboard', '/', ['/dashboard']), rebuilt: true },
-  approvalQueue: page('Approval queue', '/requests', ['/approvals']),
+  approvalQueue: {
+    ...page('Approval queue', '/requests', ['/approvals']),
+    rebuilt: true,
+  },
   approvalSettings: {
     ...page('Approval settings', '/requests/settings', ['/approvals/settings']),
     rebuilt: true,

@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { PageSkeleton } from '@/components/page-header'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { ContentRouterSkeleton } from '@/features/library/components/content-router/content-router-skeleton'
+import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-queue/approval-queue-skeleton'
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
@@ -13,6 +14,9 @@ import { NAV_PAGES, pageHref } from '@/lib/navigation'
 const LoginPage = lazy(() => import('@/features/auth'))
 const HomePage = lazy(() => import('@/features/home'))
 const UserTagsPage = lazy(() => import('@/features/users/pages/user-tags'))
+const ApprovalQueuePage = lazy(
+  () => import('@/features/requests/pages/approval-queue'),
+)
 const ApprovalSettingsPage = lazy(
   () => import('@/features/requests/pages/approval-settings'),
 )
@@ -115,6 +119,14 @@ export const router = createBrowserRouter(
               element: (
                 <Suspense fallback={<SettingsPageSkeleton sections={4} />}>
                   <UserTagsPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'requests',
+              element: (
+                <Suspense fallback={<ApprovalQueueSkeleton />}>
+                  <ApprovalQueuePage />
                 </Suspense>
               ),
             },

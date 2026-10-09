@@ -8,15 +8,9 @@ import {
   ApprovalReviewSkeleton,
 } from '@/components/approval-review/approval-review-skeleton'
 import { Credenza, CredenzaContent, CredenzaTitle } from '@/components/credenza'
+import { EmptyState } from '@/components/empty-state'
 import { ErrorAlert } from '@/components/error-alert'
 import { LeaveDialog } from '@/components/leave-dialog'
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MediaAbout } from '@/features/home/components/media-detail/media-about'
 import {
@@ -68,18 +62,12 @@ function AboutSkeleton() {
 
 function NoDetails() {
   return (
-    <Empty className="border p-6">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <SearchX />
-        </EmptyMedia>
-        <EmptyTitle>No details available</EmptyTitle>
-        <EmptyDescription>
-          TMDB doesn't have a single entry for this title, so ratings, synopsis
-          and streaming info can't be shown.
-        </EmptyDescription>
-      </EmptyHeader>
-    </Empty>
+    <EmptyState
+      icon={<SearchX />}
+      title="No details available"
+      description="TMDB doesn't have a single entry for this title, so ratings, synopsis and streaming info can't be shown."
+      className="p-6"
+    />
   )
 }
 
