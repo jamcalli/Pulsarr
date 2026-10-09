@@ -567,6 +567,36 @@ describe('NotificationDeliveryScheduler', () => {
       expect(channels.discordBot.sendDirectMessage).toHaveBeenCalledTimes(1)
     })
 
+    it('does not start delivering after a shutdown that raced startup', async () => {
+      const scheduler = createScheduler()
+      await scheduler.holdIfScheduled(
+        episodeRequest(DISCORD_USER, 'tvdb:1', 'Show X', 1, 1),
+      )
+      clock = T0 + 15 * MINUTE
+
+      let finishCleanup: (count: number) => void = () => {}
+      const cleanupSpy = vi
+        .spyOn(app.db, 'deleteInterruptedHeldNotifications')
+        .mockImplementationOnce(
+          () =>
+            new Promise<number>((resolve) => {
+              finishCleanup = resolve
+            }),
+        )
+
+      const starting = scheduler.start()
+      // Shutdown arrives while startup is still clearing interrupted rows
+      await scheduler.stop()
+      finishCleanup(0)
+      await starting
+      cleanupSpy.mockRestore()
+
+      // Nothing was claimed after shutdown, so the row survives for next start
+      expect(channels.discordBot.sendDirectMessage).not.toHaveBeenCalled()
+      const [row] = await heldRows()
+      expect(row.claimed_at).toBeNull()
+    })
+
     it('gives each row to only one of two overlapping flushes', async () => {
       const scheduler = createScheduler()
       await scheduler.holdIfScheduled(

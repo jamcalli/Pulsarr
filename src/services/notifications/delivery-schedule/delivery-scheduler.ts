@@ -327,6 +327,9 @@ export class NotificationDeliveryScheduler {
       logger.error({ error }, 'Failed to clear interrupted held notifications')
     }
 
+    // Shutdown began while clearing; claiming rows now could strand them
+    if (this.stopped) return
+
     await this.flushDue()
 
     if (!this.timer && !this.stopped) {
