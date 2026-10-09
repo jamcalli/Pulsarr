@@ -27,9 +27,9 @@ export function ApprovalRoutingSummary({
     routing?.instanceId ?? null,
     routing !== null,
   )
-  const pending = approval.status === 'pending'
+  const editable = review.editable
   const canEdit =
-    pending &&
+    editable &&
     routing !== null &&
     review.stage === 'review' &&
     review.busy === null
@@ -46,7 +46,7 @@ export function ApprovalRoutingSummary({
     </div>
   )
 
-  if (pending && review.stage === 'edit') {
+  if (editable && review.stage === 'edit') {
     return (
       <section className="flex flex-col gap-3">
         {heading}
@@ -67,7 +67,7 @@ export function ApprovalRoutingSummary({
               approve.
             </p>
           </div>
-          {pending && (
+          {editable && (
             <Button
               variant="neutral"
               className="self-start"

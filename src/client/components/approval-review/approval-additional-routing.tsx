@@ -39,7 +39,7 @@ export function ApprovalAdditionalRouting({
     undefined,
     { enabled: entries.length > 0 },
   )
-  const removable = approval.status === 'pending'
+  const removable = review.editable
   const removeDisabled = review.busy !== null || review.stage !== 'review'
 
   if (entries.length === 0) return null

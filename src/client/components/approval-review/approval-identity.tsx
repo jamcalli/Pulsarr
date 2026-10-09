@@ -1,23 +1,21 @@
 import { CredenzaTitle } from '@/components/credenza'
 import { PosterFrame } from '@/components/poster-frame'
-import { StatusPill, type StatusTone } from '@/components/status-pill'
+import { StatusPill } from '@/components/status-pill'
 import { UserAvatar } from '@/components/user-avatar'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
-import { APPROVAL_STATUS_LABELS, requestedLine } from '@/lib/approval'
+import {
+  APPROVAL_STATUS_LABELS,
+  guidsLine,
+  requestedLine,
+  STATUS_TONES,
+} from '@/lib/approval'
 import type { components } from '@/types/api.js'
 
 type ApprovalRequest = components['schemas']['ApprovalRequest']
 
-const STATUS_TONES: Record<ApprovalRequest['status'], StatusTone> = {
-  pending: 'pending',
-  approved: 'available',
-  auto_approved: 'available',
-  rejected: 'failed',
-  expired: 'off',
-}
-
 export function ApprovalIdentity({ approval }: { approval: ApprovalRequest }) {
   const user = useUserDirectory().lookup(approval.userName)
+  const ids = guidsLine(approval.contentGuids)
 
   return (
     <div className="flex items-start gap-4 md:pr-8">
@@ -38,6 +36,9 @@ export function ApprovalIdentity({ approval }: { approval: ApprovalRequest }) {
           <UserAvatar name={user.name} avatar={user.avatar} size="sm" />
           {requestedLine(approval, user.name)}
         </p>
+        {ids && (
+          <p className="text-xs break-words text-muted-foreground">{ids}</p>
+        )}
       </div>
     </div>
   )

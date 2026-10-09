@@ -197,10 +197,9 @@ describe('ApprovalReviewCredenza', () => {
   it.each([
     ['approved', 'Approved', 'Where it went'],
     ['auto_approved', 'Auto approved', 'Where it went'],
-    ['rejected', 'Denied', 'Where it would have gone'],
     ['expired', 'Expired', 'Where it would have gone'],
   ] as const)(
-    'shows a %s request without a footer',
+    'shows a %s request with only delete in the footer',
     async (status, label, heading) => {
       renderReview(makeApproval({ status, approvalNotes: 'Kept for later' }))
       const dialog = await findDialog()
@@ -217,8 +216,127 @@ describe('ApprovalReviewCredenza', () => {
       expect(
         within(dialog).queryByLabelText(/for your records/),
       ).not.toBeInTheDocument()
+      expect(
+        within(dialog).getByRole('button', { name: 'Delete' }),
+      ).toBeEnabled()
     },
   )
+
+  it('deletes a request after confirming and closes', async () => {
+    const user = userEvent.setup()
+    const approval = makeApproval({ status: 'approved' })
+    mockApprovalEndpoints(approval)
+    let deleted = false
+    server.use(
+      http.delete('/v1/approval/requests/:id', () => {
+        deleted = true
+        return HttpResponse.json({ success: true, message: 'ok' })
+      }),
+    )
+    const onOpenChange = vi.fn()
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ApprovalReviewCredenza
+          approvalId={approval.id}
+          open
+          onOpenChange={onOpenChange}
+        />
+      </QueryClientProvider>,
+    )
+    const dialog = await findDialog()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
+    expect(within(dialog).getByText('Delete this request?')).toBeInTheDocument()
+    expect(
+      within(dialog).getByText(/Deleting doesn't refuse anything/),
+    ).toBeInTheDocument()
+    expect(deleted).toBe(false)
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Delete request' }),
+    )
+
+    await vi.waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(deleted).toBe(true)
+  })
+
+  it('cancels a delete without sending it', async () => {
+    const user = userEvent.setup()
+    renderReview(makeApproval())
+    const dialog = await findDialog()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
+    expect(within(dialog).getByText('Delete this request?')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+    expect(
+      within(dialog).queryByText('Delete this request?'),
+    ).not.toBeInTheDocument()
+    expect(
+      within(dialog).getByRole('button', { name: 'Approve' }),
+    ).toBeInTheDocument()
+  })
+
+  it('lists the stored ids under the requester', async () => {
+    renderReview(
+      makeApproval({
+        contentGuids: ['imdb:tt4301160', 'tmdb:155537', 'tvdb:401998'],
+      }),
+    )
+    const dialog = await findDialog()
+
+    expect(
+      within(dialog).getByText('imdb tt4301160, tmdb 155537, tvdb 401998'),
+    ).toBeInTheDocument()
+  })
+
+  it('offers a denied request approve with notes and no deny', async () => {
+    const user = userEvent.setup()
+    const approval = makeApproval({
+      status: 'rejected',
+      approvalNotes: 'Quota resets on the 1st',
+    })
+    mockApprovalEndpoints(approval)
+    const bodies: unknown[] = []
+    server.use(
+      http.post('/v1/approval/requests/:id/approve', async ({ request }) => {
+        bodies.push(await request.json())
+        return HttpResponse.json({
+          success: true,
+          message: 'ok',
+          approvalRequest: { ...approval, status: 'approved' },
+        })
+      }),
+    )
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ApprovalReviewCredenza
+          approvalId={approval.id}
+          open
+          onOpenChange={() => undefined}
+        />
+      </QueryClientProvider>,
+    )
+    const dialog = await findDialog()
+
+    expect(within(dialog).getByText('Decision')).toBeInTheDocument()
+    expect(
+      within(dialog).getByText('Quota resets on the 1st'),
+    ).toBeInTheDocument()
+    expect(
+      within(dialog).queryByRole('button', { name: 'Deny' }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(dialog).getByRole('button', { name: 'Edit routing' }),
+    ).toBeInTheDocument()
+
+    await user.type(
+      within(dialog).getByLabelText(/Notes \(for your records\)/),
+      'Second look',
+    )
+    await user.click(within(dialog).getByRole('button', { name: 'Approve' }))
+
+    await vi.waitFor(() => expect(bodies).toEqual([{ notes: 'Second look' }]))
+  })
 
   it('lists each additional destination and removes one', async () => {
     const user = userEvent.setup()

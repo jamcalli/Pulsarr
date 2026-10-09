@@ -1,18 +1,16 @@
 import { cn } from 'cn'
 import type * as React from 'react'
+import { ScrollFade } from '@/components/scroll-fade'
 
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
-    <div
-      data-slot="table-container"
-      className="relative w-full overflow-x-auto"
-    >
+    <ScrollFade className="w-full">
       <table
         data-slot="table"
         className={cn('w-full caption-bottom text-sm', className)}
         {...props}
       />
-    </div>
+    </ScrollFade>
   )
 }
 

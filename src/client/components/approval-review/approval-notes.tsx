@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { ApprovalPrompt } from '@/components/approval-review/approval-prompt'
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 import type { ApprovalReview } from '@/hooks/useApprovalReview'
@@ -65,17 +66,13 @@ export function ApprovalNotes({ approval, review }: ApprovalNotesProps) {
     : 'The request moves to your history as denied.'
 
   return (
-    <section className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h3 className="font-heading font-bold">Deny this request?</h3>
-        <p className="text-muted-foreground">{denySub}</p>
-      </div>
+    <ApprovalPrompt title="Deny this request?" description={denySub}>
       <RecordField
         label="Reason (for your records)"
         value={review.reason}
         onChange={review.setReason}
         disabled={busy}
       />
-    </section>
+    </ApprovalPrompt>
   )
 }

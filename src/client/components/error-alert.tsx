@@ -1,12 +1,19 @@
 import { CircleAlert } from 'lucide-react'
-import { Alert, AlertTitle } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
-export function ErrorAlert({ message }: { message: string | null }) {
+export function ErrorAlert({
+  message,
+  detail = null,
+}: {
+  message: string | null
+  detail?: string | null
+}) {
   if (!message) return null
   return (
     <Alert variant="destructive">
       <CircleAlert />
       <AlertTitle>{message}</AlertTitle>
+      {detail && <AlertDescription>{detail}</AlertDescription>}
     </Alert>
   )
 }

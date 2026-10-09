@@ -1,15 +1,7 @@
 import { CornerDownRight, Route } from 'lucide-react'
-import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
 import {
   ClosedRouteCard,
   OpenRouteCard,
@@ -44,29 +36,6 @@ interface RouteListProps {
   reportDirty: (dirty: boolean) => void
 }
 
-function RouteListEmpty({
-  title,
-  description,
-  children,
-}: {
-  title: string
-  description: string
-  children?: ReactNode
-}) {
-  return (
-    <Empty className="border">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <Route />
-        </EmptyMedia>
-        <EmptyTitle>{title}</EmptyTitle>
-        <EmptyDescription>{description}</EmptyDescription>
-      </EmptyHeader>
-      {children && <EmptyContent>{children}</EmptyContent>}
-    </Empty>
-  )
-}
-
 export function RouteList({
   type,
   routes,
@@ -98,7 +67,11 @@ export function RouteList({
   if (routes.length === 0 && !targets.hasInstance) {
     const empty = noInstanceCopy(type)
     return (
-      <RouteListEmpty title={empty.title} description={empty.description}>
+      <EmptyState
+        icon={<Route />}
+        title={empty.title}
+        description={empty.description}
+      >
         <Button
           variant="link"
           size="sm"
@@ -107,14 +80,18 @@ export function RouteList({
         >
           {empty.action}
         </Button>
-      </RouteListEmpty>
+      </EmptyState>
     )
   }
 
   if (routes.length === 0 && openKey !== 'new') {
     const empty = emptyCopy(type, targets.fallback)
     return (
-      <RouteListEmpty title={empty.title} description={empty.description} />
+      <EmptyState
+        icon={<Route />}
+        title={empty.title}
+        description={empty.description}
+      />
     )
   }
 

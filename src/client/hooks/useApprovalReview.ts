@@ -1,3 +1,7 @@
+import {
+  canTransitionApproval,
+  isApprovalEditable,
+} from '@root/schemas/approval/approval.schema'
 import { useState } from 'react'
 import { useMinLoadingMutation } from '@/hooks/useMinLoading'
 import {
@@ -8,7 +12,11 @@ import {
   withoutAdditionalRouting,
   withRouting,
 } from '@/lib/approval'
-import { approvalRequestKeys, approvalRequestsKeys } from '@/lib/query-keys'
+import {
+  approvalRequestKeys,
+  approvalRequestsKeys,
+  approvalStatsKeys,
+} from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
 import { $api, mutationErrorMessage } from '@/lib/tanstackApi'
 import type { components } from '@/types/api.js'
@@ -54,6 +62,18 @@ export function useApprovalReview(
       onSuccess: onDecided,
     }),
   )
+  const deleteMutation = useMinLoadingMutation(
+    $api.useMutation('delete', '/v1/approval/requests/{id}', {
+      onSuccess: () => {
+        options.onDecided?.()
+        queryClient.removeQueries({ queryKey: approvalRequestKeys.byId(id) })
+        return Promise.all([
+          queryClient.invalidateQueries({ queryKey: approvalRequestsKeys.all }),
+          queryClient.invalidateQueries({ queryKey: approvalStatsKeys.all }),
+        ])
+      },
+    }),
+  )
   const saveMutation = useMinLoadingMutation(
     $api.useMutation('patch', '/v1/approval/requests/{id}', {
       onSuccess: (data) => {
@@ -69,6 +89,7 @@ export function useApprovalReview(
   const resetErrors = () => {
     approveMutation.reset()
     rejectMutation.reset()
+    deleteMutation.reset()
     saveMutation.reset()
   }
   const changeStage = (next: ReviewStage) => {
@@ -80,9 +101,11 @@ export function useApprovalReview(
     ? 'approve'
     : rejectMutation.isPending
       ? 'deny'
-      : saveMutation.isPending
-        ? 'save'
-        : null
+      : deleteMutation.isPending
+        ? 'delete'
+        : saveMutation.isPending
+          ? 'save'
+          : null
   const routing = proposedRouting(approval.proposedRouterDecision)
   const errorMessage =
     busy !== null
@@ -97,12 +120,17 @@ export function useApprovalReview(
               rejectMutation.error,
               'Denial failed. Try again.',
             )
-          : saveMutation.error
+          : deleteMutation.error
             ? mutationErrorMessage(
-                saveMutation.error,
-                'Routing could not be saved. Try again.',
+                deleteMutation.error,
+                'The request was not deleted. Try again.',
               )
-            : null
+            : saveMutation.error
+              ? mutationErrorMessage(
+                  saveMutation.error,
+                  'Routing could not be saved. Try again.',
+                )
+              : null
 
   return {
     stage,
@@ -111,7 +139,12 @@ export function useApprovalReview(
     reason,
     setReason,
     busy,
-    canApprove: canApprove({ stage, routing, busy: busy !== null }),
+    editable: isApprovalEditable(approval.status),
+    canDeny: canTransitionApproval(approval.status, 'rejected'),
+    approvable: canTransitionApproval(approval.status, 'approved'),
+    canApprove:
+      canTransitionApproval(approval.status, 'approved') &&
+      canApprove({ stage, routing, busy: busy !== null }),
     approveBlockedReason: approveBlockedReason({ stage, routing }),
     errorMessage,
     routingSaved: saveMutation.isSuccess && busy !== 'save',
@@ -122,6 +155,12 @@ export function useApprovalReview(
     cancelDeny: () => {
       setReason('')
       changeStage('review')
+    },
+    startDelete: () => changeStage('delete'),
+    cancelDelete: () => changeStage('review'),
+    deleteRequest: () => {
+      resetErrors()
+      deleteMutation.mutate({ params: { path: { id } } })
     },
     approve: () => {
       resetErrors()

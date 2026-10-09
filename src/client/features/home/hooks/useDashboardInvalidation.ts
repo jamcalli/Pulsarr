@@ -1,5 +1,5 @@
 import type { QueryKey } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useApprovalEvents } from '@/hooks/useApprovalEvents'
 import {
   approvalRequestsKeys,
   approvalStatsKeys,
@@ -9,7 +9,6 @@ import {
   topUsersKeys,
 } from '@/lib/query-keys'
 import { queryClient } from '@/lib/queryClient'
-import { useProgressStore } from '@/stores/progressStore'
 
 const STATS_KEYS = [dashboardStatsKeys.all, topUsersKeys.all, topGenresKeys.all]
 
@@ -35,10 +34,5 @@ export function invalidateDashboard() {
 
 /** Refetches the dashboard queries whenever an approval event arrives on the progress stream. */
 export function useDashboardInvalidation(): void {
-  const subscribeToType = useProgressStore((state) => state.subscribeToType)
-
-  useEffect(
-    () => subscribeToType('approval', () => void invalidateDashboard()),
-    [subscribeToType],
-  )
+  useApprovalEvents(invalidateDashboard)
 }

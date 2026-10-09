@@ -58,7 +58,8 @@ export function ApprovalReviewSkeleton({
 
 export function ApprovalReviewFooterSkeleton() {
   return (
-    <div className="flex justify-end gap-2 p-4 pt-0 md:px-6 md:pb-6">
+    <div className="flex gap-2 p-4 pt-0 md:px-6 md:pb-6">
+      <Skeleton className="mr-auto h-10 w-24" />
       <Skeleton className="h-10 w-20" />
       <Skeleton className="h-10 w-24" />
     </div>
