@@ -190,6 +190,20 @@ Manage approvals directly from Discord:
 - **Batch Notifications**: Multiple requests grouped to reduce notification spam
 - **Mobile Friendly**: Complete approval workflow from Discord mobile app
 
+## Failed to Add
+
+When a watchlist item never makes it into Radarr or Sonarr, Pulsarr records why on **Approvals → Failed to Add**. The sidebar shows how many items need attention, and the **Plex → Users** table flags each user with failed items (click the flag to see them).
+
+| Reason | Meaning |
+|--------|---------|
+| **Rejected** | The instance refused the add, for example a mismatched TVDB ID, a missing root folder or an invalid quality profile |
+| **Unreachable** | The instance could not be reached or is not set up |
+| **No route** | No router rule matched and there is no usable default instance |
+| **Error** | Routing failed before an add was attempted; check the logs |
+| **Missing IDs** | The item has no TMDB/TVDB ID (common for webisodes and specials). It can never be added, needs no action, and is not counted |
+
+A failure clears itself as soon as a later attempt routes the item, finds it already in the instance, or skips it on purpose (exclusion, router rule). The periodic sync retries failed items on its own; **Retry** and **Retry All** run the same routing path immediately, so approval rules, quotas and exclusions still apply. Retry All follows the User and Reason filters when exactly one of each is selected, and skips Missing IDs items unless that reason is selected. Retries need the watchlist workflow to be running.
+
 ## Best Practices
 
 - Start with generous quotas and adjust based on usage
@@ -204,6 +218,7 @@ Manage approvals directly from Discord:
 |---------|----------|
 | **Quotas not resetting** | Check timezone configuration and cleanup settings |
 | **Approvals not routing** | Verify target instances are still available |
+| **Item never reached Radarr/Sonarr** | Check **Approvals → Failed to Add** for the reason, fix it, then retry |
 | **Missing notifications** | Confirm Discord/Apprise configuration |
 
 ## API Reference
