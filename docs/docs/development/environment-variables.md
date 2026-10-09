@@ -93,6 +93,8 @@ Ensure your network is secure when using `requiredExceptLocal`.
 | `plexProtectionPlaylistName` | Protection playlist name | `Do Not Delete` |
 | `selfRss` | Self RSS feed URL | None |
 | `friendsRss` | Friends RSS feed URL | None |
+| `rssSafetyNetEnabled` | RSS mode only: check each user for adds the RSS feed missed | `false` |
+| `rssSafetyNetIntervalMinutes` | Minutes between safety-net checks of the same user (10-120) | `30` |
 
 ## Notifications
 

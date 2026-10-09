@@ -1,4 +1,8 @@
 import {
+  RSS_SAFETY_NET_MAX_MINUTES,
+  RSS_SAFETY_NET_MIN_MINUTES,
+} from '@root/schemas/config/config.schema'
+import {
   Check,
   HelpCircle,
   Loader2,
@@ -57,6 +61,7 @@ import SetupModal from '@/features/system/components/plex-connection/setup-modal
 import { usePlexConnection } from '@/features/system/hooks/plex-connection/usePlexConnection'
 import { usePlexExistenceCheck } from '@/features/system/hooks/plex-connection/usePlexExistenceCheck'
 import { usePlexRssFeeds } from '@/features/system/hooks/plex-connection/usePlexRssFeeds'
+import { usePlexRssSafetyNet } from '@/features/system/hooks/plex-connection/usePlexRssSafetyNet'
 import { usePlexServerDiscovery } from '@/features/system/hooks/plex-connection/usePlexServerDiscovery'
 import { usePlexSetup } from '@/features/system/hooks/plex-connection/usePlexSetup'
 import { usePlexWatchlist } from '@/features/system/hooks/plex-connection/usePlexWatchlist'
@@ -109,6 +114,15 @@ export default function PlexConfigurationPage() {
     onSubmit: onExistenceCheckSubmit,
     handleCancel: handleExistenceCheckCancel,
   } = usePlexExistenceCheck()
+
+  // RSS safety net state
+  const {
+    form: safetyNetForm,
+    isSaving: isSafetyNetSaving,
+    onSubmit: onSafetyNetSubmit,
+    handleCancel: handleSafetyNetCancel,
+  } = usePlexRssSafetyNet()
+  const safetyNetEnabled = safetyNetForm.watch('rssSafetyNetEnabled')
 
   // Media query for mobile/desktop
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -454,6 +468,147 @@ export default function PlexConfigurationPage() {
                       </FormControl>
                     </FormItem>
                   </div>
+                </div>
+              </form>
+            </Form>
+
+            {/* RSS Safety Net Configuration */}
+            <Separator className="my-6" />
+            <Form {...safetyNetForm}>
+              <form
+                onSubmit={safetyNetForm.handleSubmit(onSafetyNetSubmit)}
+                className="space-y-4"
+              >
+                <div
+                  className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}
+                >
+                  <FormField
+                    control={safetyNetForm.control}
+                    name="rssSafetyNetEnabled"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={!config?.friendsRss && !config?.selfRss}
+                          />
+                        </FormControl>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground m-0">
+                            RSS safety net
+                          </FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  Plex's RSS feeds occasionally miss an add.
+                                  Without this, a missed item waits for the
+                                  2-hour full reconciliation.
+                                </p>
+                                <p>
+                                  When enabled, Pulsarr checks one user at a
+                                  time with a single lightweight request, each
+                                  user once per interval, and routes anything
+                                  the feed missed.
+                                </p>
+                                <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                  <strong>Note:</strong> Only applies with Plex
+                                  Pass (RSS mode). Without Plex Pass, every user
+                                  is already polled every 5 minutes.
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={safetyNetForm.control}
+                    name="rssSafetyNetIntervalMinutes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground m-0">
+                            Check each user every (minutes)
+                          </FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                How often each user's watchlist is checked (
+                                {RSS_SAFETY_NET_MIN_MINUTES}-
+                                {RSS_SAFETY_NET_MAX_MINUTES} minutes). Checks
+                                are spread across users, so the load stays the
+                                same per user no matter how many friends you
+                                have.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) => {
+                              const value =
+                                e.target.value === ''
+                                  ? 0
+                                  : Number(e.target.value)
+                              if (!Number.isNaN(value)) {
+                                field.onChange(value)
+                              }
+                            }}
+                            min={RSS_SAFETY_NET_MIN_MINUTES}
+                            max={RSS_SAFETY_NET_MAX_MINUTES}
+                            disabled={!safetyNetEnabled}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t border-border">
+                  {safetyNetForm.formState.isDirty && !isSafetyNetSaving && (
+                    <Button
+                      type="button"
+                      variant="cancel"
+                      onClick={handleSafetyNetCancel}
+                      disabled={isSafetyNetSaving}
+                      className="flex items-center gap-1"
+                    >
+                      <X className="h-4 w-4" />
+                      <span>Cancel</span>
+                    </Button>
+                  )}
+
+                  <Button
+                    type="submit"
+                    disabled={
+                      isSafetyNetSaving || !safetyNetForm.formState.isDirty
+                    }
+                    className="flex items-center gap-2"
+                    variant="bluenoShadow"
+                  >
+                    {isSafetyNetSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    <span>
+                      {isSafetyNetSaving ? 'Saving...' : 'Save Changes'}
+                    </span>
+                  </Button>
                 </div>
               </form>
             </Form>

@@ -1022,6 +1022,15 @@
           "friendsRss": {
             "type": "string"
           },
+          "rssSafetyNetEnabled": {
+            "type": "boolean"
+          },
+          "rssSafetyNetIntervalMinutes": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 120,
+            "description": "Minutes between RSS safety-net checks of the same user (RSS mode only)"
+          },
           "tagUsersInSonarr": {
             "type": "boolean"
           },
@@ -1294,6 +1303,8 @@
           "enablePlexPlaylistProtection",
           "plexProtectionPlaylistName",
           "plexLabelSync",
+          "rssSafetyNetEnabled",
+          "rssSafetyNetIntervalMinutes",
           "tagUsersInSonarr",
           "tagUsersInRadarr",
           "cleanupOrphanedTags",
@@ -1712,6 +1723,15 @@
           },
           "friendsRss": {
             "type": "string"
+          },
+          "rssSafetyNetEnabled": {
+            "type": "boolean"
+          },
+          "rssSafetyNetIntervalMinutes": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 120,
+            "description": "Minutes between RSS safety-net checks of the same user (RSS mode only)"
           },
           "_isReady": {
             "type": "boolean"

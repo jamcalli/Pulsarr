@@ -106,6 +106,19 @@ Pulsarr is a modern full-stack TypeScript application built for reliability and 
 6. Webhook-based import detection
 7. User notification delivery
 
+### Watchlist Detection
+
+| Mode | Detection | Full reconciliation |
+|------|-----------|---------------------|
+| **RSS** (Plex Pass) | Self and friends RSS feeds checked every ~10 seconds | Every 2 hours |
+| **Polling** (no Plex Pass) | One user at a time, cycling through all users about every 5 minutes | Every 2 hours |
+
+Plex's RSS feeds occasionally miss an add. In RSS mode such an item waits for the next full reconciliation. The optional **RSS safety net** (Plex > Configuration, off by default) closes that gap without making the reconciliation heavier: it checks one user at a time with a single lightweight request (a conditional request for your own watchlist, a 2-item query for each friend), each user once per interval (default 30 minutes, 10-120). It never runs alongside a full reconciliation, and an item RSS already delivered is never routed twice. When it catches something the feed missed it logs `RSS safety net caught watchlist items the RSS feed missed`.
+
+:::tip
+Prefer the safety net over shortening the 2-hour reconciliation. A full reconciliation pages through every user's whole watchlist, which is the load Plex asked API clients to keep low.
+:::
+
 ### Notification Flow
 
 1. Webhook received from Sonarr/Radarr

@@ -4,6 +4,10 @@ import type {
 } from '@root/types/plex.types.js'
 import { EtagPoller } from '@services/plex-watchlist/etag/etag-poller.js'
 import { RECONCILIATION_JOB_NAME } from '@services/watchlist-workflow/lifecycle/scheduler.js'
+import {
+  createSafetyNetGate,
+  handleSafetyNetPollResult,
+} from '@services/watchlist-workflow/rss/safety-net.js'
 import type { WorkflowState } from '@services/watchlist-workflow/state.js'
 import type { WorkflowDeps } from '@services/watchlist-workflow/types.js'
 import { WatchlistWorkflowService } from '@services/watchlist-workflow.service.js'
@@ -314,6 +318,276 @@ describe('watchlist workflow rss mode', { timeout: 30_000 }, () => {
 
     await service.stop()
     expect(service.getStatus()).toBe('stopped')
+  })
+})
+
+describe('watchlist workflow rss safety net', { timeout: 30_000 }, () => {
+  let app: FastifyInstance | undefined
+  let service: WatchlistWorkflowService | undefined
+
+  beforeAll(async () => {
+    await initializeTestDatabase()
+  })
+
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  afterEach(async () => {
+    await service?.stop()
+    service = undefined
+    await app?.close()
+    app = undefined
+  })
+
+  const MOVIE_KEY = 'missed-movie-key'
+  const movieMetadata = {
+    ratingKey: MOVIE_KEY,
+    key: `/library/metadata/${MOVIE_KEY}`,
+    title: 'Missed Movie',
+    type: 'movie',
+    Guid: [{ id: 'tmdb://515151' }],
+    Genre: [{ tag: 'Drama' }],
+  }
+
+  async function bootInRssMode(safetyNetEnabled: boolean) {
+    const knex = getTestDatabase()
+    await seedAll(knex)
+    await knex('configs').where({ id: 1 }).update({
+      _isReady: false,
+      selfRss: 'https://rss.test/self',
+      friendsRss: 'https://rss.test/friends',
+      rssSafetyNetEnabled: safetyNetEnabled,
+    })
+
+    useArrHandlers()
+
+    const selfFeed: RssWatchlistItem[] = []
+    const watchlist: (typeof movieMetadata)[] = []
+    let selfFeedFetches = 0
+    let watchlistRequests = 0
+    let guidLookups = 0
+
+    server.use(
+      http.get('https://rss.test/self', () => {
+        selfFeedFetches += 1
+        return HttpResponse.json({ items: selfFeed })
+      }),
+      http.get('https://rss.test/friends', () =>
+        HttpResponse.json({ items: [] }),
+      ),
+      http.get(
+        'https://discover.provider.plex.tv/library/sections/watchlist/all',
+        ({ request }) => {
+          watchlistRequests += 1
+          const etag = `W/"${watchlist.length}"`
+          if (request.headers.get('If-None-Match') === etag) {
+            return new HttpResponse(null, { status: 304 })
+          }
+          return HttpResponse.json(
+            {
+              MediaContainer: {
+                size: watchlist.length,
+                totalSize: watchlist.length,
+                Metadata: watchlist,
+              },
+            },
+            { headers: { etag } },
+          )
+        },
+      ),
+      http.get(
+        'https://discover.provider.plex.tv/library/metadata/matches',
+        () => {
+          guidLookups += 1
+          return HttpResponse.json({
+            MediaContainer: { Metadata: [movieMetadata] },
+          })
+        },
+      ),
+      http.get(
+        `https://discover.provider.plex.tv/library/metadata/${MOVIE_KEY}`,
+        () =>
+          HttpResponse.json({ MediaContainer: { Metadata: [movieMetadata] } }),
+      ),
+      http.get('http://test-radarr:7878/api/v3/movie/lookup', () =>
+        HttpResponse.json([]),
+      ),
+    )
+
+    const booted = await build()
+    await booted.ready()
+
+    vi.spyOn(booted.plexWatchlist, 'generateAndSaveRssFeeds').mockResolvedValue(
+      {
+        self: 'https://rss.test/self',
+        friends: 'https://rss.test/friends',
+      },
+    )
+    vi.spyOn(booted.plexWatchlist, 'checkFriendChanges').mockResolvedValue({
+      added: [],
+      removed: [],
+      userMap: new Map(),
+    })
+    const routeContent = vi
+      .spyOn(booted.contentRouter, 'routeContent')
+      .mockResolvedValue({ routedInstances: [], routingDetails: [] })
+
+    return {
+      booted,
+      routeContent,
+      selfFeed,
+      watchlist,
+      selfFeedFetches: () => selfFeedFetches,
+      watchlistRequests: () => watchlistRequests,
+      guidLookups: () => guidLookups,
+    }
+  }
+
+  function workflowDeps(workflow: WatchlistWorkflowService): WorkflowDeps {
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    return workflow['deps']
+  }
+
+  /** Runs one safety-net slot for the primary user exactly as the staggered loop does */
+  async function runPrimarySlot(workflow: WatchlistWorkflowService) {
+    const deps = workflowDeps(workflow)
+    const poller = deps.state.etagPoller
+    if (!poller) throw new Error('etag poller not created')
+    const primary = await deps.db.getPrimaryUser()
+    if (!primary) throw new Error('primary user missing')
+    await createSafetyNetGate(deps)(async () => {
+      const result = await poller.checkUser({
+        userId: primary.id,
+        username: primary.name,
+        isPrimary: true,
+      })
+      await handleSafetyNetPollResult(result, deps)
+    })
+  }
+
+  it('stays off by default in RSS mode', async () => {
+    const env = await bootInRssMode(false)
+    app = env.booted
+
+    service = new WatchlistWorkflowService(app.log, app, 50)
+    await service.startWorkflow()
+
+    expect(service.isRssMode()).toBe(true)
+    const state = workflowState(service)
+    expect(state.isSafetyNetActive).toBe(false)
+    expect(state.etagPoller?.isStaggeredPolling() ?? false).toBe(false)
+  })
+
+  it('routes an add the RSS feed missed once, and not again when RSS delivers it late', async () => {
+    const env = await bootInRssMode(true)
+    app = env.booted
+    const knex = getTestDatabase()
+
+    service = new WatchlistWorkflowService(app.log, app, 50)
+    await service.startWorkflow()
+
+    const state = workflowState(service)
+    expect(service.isRssMode()).toBe(true)
+    expect(state.isSafetyNetActive).toBe(true)
+    expect(state.etagPoller?.isStaggeredPolling()).toBe(true)
+
+    // An unchanged watchlist costs one conditional request answered with 304
+    const before = env.watchlistRequests()
+    await runPrimarySlot(service)
+    expect(env.watchlistRequests()).toBe(before + 1)
+    expect(env.routeContent).not.toHaveBeenCalled()
+
+    // The add lands on the watchlist but never shows up in the RSS feed
+    env.watchlist.unshift(movieMetadata)
+    await runPrimarySlot(service)
+
+    const rows = await knex('watchlist_items').where({ key: MOVIE_KEY })
+    expect(rows).toHaveLength(1)
+    expect(rows[0].user_id).toBe(1)
+    expect(env.routeContent).toHaveBeenCalledTimes(1)
+    expect(env.routeContent).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Missed Movie', type: 'movie' }),
+      MOVIE_KEY,
+      expect.objectContaining({ userId: 1 }),
+    )
+
+    // RSS finally delivers the same add
+    const fetchesBefore = env.selfFeedFetches()
+    env.selfFeed.push({
+      title: 'Missed Movie',
+      pubDate: '2026-01-01T00:00:00Z',
+      link: 'https://watch.plex.tv/movie/missed-movie',
+      guids: ['tmdb://515151'],
+      description: 'Added to the self watchlist',
+      category: 'movie',
+      credits: [],
+      keywords: ['Drama'],
+    })
+    await vi.waitFor(
+      () => {
+        expect(env.guidLookups()).toBeGreaterThan(0)
+        expect(env.selfFeedFetches()).toBeGreaterThan(fetchesBefore + 2)
+      },
+      { timeout: 10_000 },
+    )
+
+    expect(env.routeContent).toHaveBeenCalledTimes(1)
+    expect(
+      await knex('watchlist_items').where({ key: MOVIE_KEY }),
+    ).toHaveLength(1)
+
+    await service.stop()
+    expect(state.isSafetyNetActive).toBe(false)
+    expect(state.etagPoller?.isStaggeredPolling()).toBe(false)
+  })
+
+  it('arms and disarms live when the setting changes through the config API', async () => {
+    const env = await bootInRssMode(false)
+    app = env.booted
+    app.config.authenticationMethod = 'disabled'
+
+    // the config route talks to the app's own workflow instance
+    await app.watchlistWorkflow.startWorkflow()
+    const state = workflowState(app.watchlistWorkflow)
+    expect(state.isSafetyNetActive).toBe(false)
+
+    const enable = await app.inject({
+      method: 'PUT',
+      url: '/v1/config',
+      payload: { rssSafetyNetEnabled: true, rssSafetyNetIntervalMinutes: 45 },
+    })
+    expect(enable.statusCode).toBe(200)
+    expect(enable.json().config).toMatchObject({
+      rssSafetyNetEnabled: true,
+      rssSafetyNetIntervalMinutes: 45,
+    })
+    expect(state.isSafetyNetActive).toBe(true)
+    expect(state.etagPoller?.isStaggeredPolling()).toBe(true)
+
+    const disable = await app.inject({
+      method: 'PUT',
+      url: '/v1/config',
+      payload: { rssSafetyNetEnabled: false },
+    })
+    expect(disable.statusCode).toBe(200)
+    expect(state.isSafetyNetActive).toBe(false)
+    expect(state.etagPoller?.isStaggeredPolling()).toBe(false)
+
+    await app.watchlistWorkflow.stop()
+  })
+
+  it('rejects an interval below the 10-minute floor', async () => {
+    const env = await bootInRssMode(false)
+    app = env.booted
+    app.config.authenticationMethod = 'disabled'
+
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/v1/config',
+      payload: { rssSafetyNetIntervalMinutes: 5 },
+    })
+    expect(res.statusCode).toBe(400)
   })
 })
 

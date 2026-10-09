@@ -3355,6 +3355,9 @@ export interface components {
             };
             selfRss?: string;
             friendsRss?: string;
+            rssSafetyNetEnabled: boolean;
+            /** @description Minutes between RSS safety-net checks of the same user (RSS mode only) */
+            rssSafetyNetIntervalMinutes: number;
             tagUsersInSonarr: boolean;
             tagUsersInRadarr: boolean;
             cleanupOrphanedTags: boolean;
@@ -3523,6 +3526,9 @@ export interface components {
             };
             selfRss?: string;
             friendsRss?: string;
+            rssSafetyNetEnabled?: boolean;
+            /** @description Minutes between RSS safety-net checks of the same user (RSS mode only) */
+            rssSafetyNetIntervalMinutes?: number;
             _isReady?: boolean;
             plexSessionMonitoring?: {
                 enabled: boolean;
