@@ -246,6 +246,9 @@ describe('routeUsingApprovedDecision', () => {
 
     expect(result.routedInstances).toEqual([2])
     expect(result.routingDetails).toHaveLength(1)
+    expect(result.failures).toEqual([
+      { category: 'arr_error', message: 'down', instanceId: 5 },
+    ])
   })
 
   it('reports no details for a failed primary and keeps the additional target', async () => {
@@ -292,6 +295,24 @@ describe('routeUsingApprovedDecision', () => {
     )
 
     expect(result.routedInstances).toEqual([2])
+    expect(result.failures).toEqual([
+      { category: 'arr_error', message: 'down', instanceId: 3 },
+    ])
+  })
+
+  it('reports no failures when every replay succeeds', async () => {
+    const deps = createContentRouterDeps({
+      sonarrManager: { routeItemToSonarr: vi.fn(echoAppliedSonarr()) },
+    })
+
+    const result = await routeUsingApprovedDecision(
+      approved({ instanceId: 2, instanceType: 'sonarr', priority: 50 }),
+      show,
+      context,
+      deps,
+    )
+
+    expect(result).not.toHaveProperty('failures')
   })
 
   it('routes nothing when the approved request has no instance', async () => {

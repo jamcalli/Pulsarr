@@ -9408,7 +9408,7 @@ export interface operations {
                     userId?: number;
                     /** @enum {string} */
                     category?: "arr_error" | "instance_unavailable" | "no_route" | "routing_error" | "missing_ids";
-                };
+                } | null;
             };
         };
         responses: {

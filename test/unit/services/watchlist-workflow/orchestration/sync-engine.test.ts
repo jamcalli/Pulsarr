@@ -126,6 +126,9 @@ function createDeps() {
       getAllApprovedApprovalRequests: vi.fn(
         async (): Promise<ApprovalRequest[]> => [],
       ),
+      getRoutingFailureKeys: vi.fn(async () => new Set<string>()),
+      setRoutingFailures: vi.fn(async () => true),
+      clearRoutingFailures: vi.fn(async () => 0),
     },
     sonarrManager: {
       checkInstancesHealth: vi.fn(async () => ({
@@ -373,6 +376,47 @@ describe('syncWatchlistItems', () => {
     expect(routeMovie).not.toHaveBeenCalled()
   })
 
+  it('clears an earlier routing failure on an item that is now excluded', async () => {
+    parts.db.getAllMovieWatchlistItems.mockResolvedValue([movieItem()])
+    parts.db.getExclusionMap.mockResolvedValue(
+      new Map([['movie-key-1', new Set([PRIMARY_USER.id])]]),
+    )
+    parts.db.getRoutingFailureKeys.mockResolvedValue(
+      new Set([`${PRIMARY_USER.id}:movie-key-1`]),
+    )
+
+    await syncWatchlistItems(deps)
+
+    expect(parts.db.clearRoutingFailures).toHaveBeenCalledWith(
+      PRIMARY_USER.id,
+      'movie-key-1',
+    )
+  })
+
+  it('writes nothing for an excluded item with no recorded failure', async () => {
+    parts.db.getAllMovieWatchlistItems.mockResolvedValue([movieItem()])
+    parts.db.getExclusionMap.mockResolvedValue(
+      new Map([['movie-key-1', new Set([PRIMARY_USER.id])]]),
+    )
+
+    await syncWatchlistItems(deps)
+
+    expect(parts.db.clearRoutingFailures).not.toHaveBeenCalled()
+  })
+
+  it('passes the failed item index to every route call', async () => {
+    const keys = new Set([`${PRIMARY_USER.id}:movie-key-1`])
+    parts.db.getRoutingFailureKeys.mockResolvedValue(keys)
+    parts.db.getAllShowWatchlistItems.mockResolvedValue([showItem()])
+    parts.db.getAllMovieWatchlistItems.mockResolvedValue([movieItem()])
+
+    await syncWatchlistItems(deps)
+
+    expect(parts.db.getRoutingFailureKeys).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(routeShow).mock.calls[0][0].routingFailureKeys).toBe(keys)
+    expect(vi.mocked(routeMovie).mock.calls[0][0].routingFailureKeys).toBe(keys)
+  })
+
   it('skips items excluded globally', async () => {
     parts.db.getAllMovieWatchlistItems.mockResolvedValue([movieItem()])
     parts.db.getExclusionMap.mockResolvedValue(
@@ -398,6 +442,20 @@ describe('syncWatchlistItems', () => {
     expect(result.skippedDueToMissingIds).toBe(2)
     expect(routeShow).not.toHaveBeenCalled()
     expect(routeMovie).not.toHaveBeenCalled()
+  })
+
+  it('records an item missing its id as a low-severity routing failure', async () => {
+    parts.db.getAllShowWatchlistItems.mockResolvedValue([
+      showItem({ guids: ['tmdb:222'] }),
+    ])
+
+    await syncWatchlistItems(deps)
+
+    expect(parts.db.setRoutingFailures).toHaveBeenCalledWith(
+      PRIMARY_USER.id,
+      showItem().key,
+      [expect.objectContaining({ category: 'missing_ids' })],
+    )
   })
 
   it.each(ROUTING_SKIP_REASONS)(

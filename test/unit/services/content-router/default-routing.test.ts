@@ -1,5 +1,6 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
 import type { ContentItem } from '@root/types/router.types.js'
+import type { RoutingFailureInput } from '@root/types/routing-failure.types.js'
 import {
   getDefaultInstanceIds,
   getDefaultRoutingDecisions,
@@ -286,5 +287,47 @@ describe('routeUsingDefault', () => {
       routeUsingDefault(movieItem, 'key', 3, false, deps),
     ).rejects.toThrow('db')
     expect(routeItemToRadarr).not.toHaveBeenCalled()
+  })
+
+  it('notes each failed add in the failures collector', async () => {
+    const unreachable = new TypeError('fetch failed', {
+      cause: Object.assign(new Error('connect'), { code: 'ECONNREFUSED' }),
+    })
+    const routeItemToRadarr = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Root folder does not exist'))
+      .mockRejectedValueOnce(unreachable)
+      .mockRejectedValueOnce(new Error('This movie has already been added'))
+    const deps = createContentRouterDeps({
+      db: {
+        getDefaultRadarrInstance: vi
+          .fn()
+          .mockResolvedValue({ id: 1, name: 'Main', syncedInstances: [2, 3] }),
+        getAllRadarrInstances: vi
+          .fn()
+          .mockResolvedValue([
+            radarrInstance(1),
+            radarrInstance(2),
+            radarrInstance(3),
+          ]),
+      },
+      radarrManager: { routeItemToRadarr },
+    })
+    const failures: RoutingFailureInput[] = []
+
+    await routeUsingDefault(movieItem, 'key', 3, false, deps, failures)
+
+    expect(failures).toEqual([
+      {
+        category: 'arr_error',
+        message: 'Root folder does not exist',
+        instanceId: 1,
+      },
+      {
+        category: 'instance_unavailable',
+        message: 'fetch failed',
+        instanceId: 2,
+      },
+    ])
   })
 })

@@ -350,7 +350,10 @@ describe('routeMovie with an approval record as the truth', () => {
       },
     )
 
-    expect(await route(presentIn())).toEqual({ routed: true })
+    expect(await route(presentIn())).toEqual({
+      routed: true,
+      failures: [{ category: 'arr_error', message: 'down', instanceId: 2 }],
+    })
     expect(await getApprovalRequests()).toHaveLength(1)
 
     routeItemToRadarr.mockClear()

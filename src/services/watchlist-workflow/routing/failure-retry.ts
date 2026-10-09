@@ -16,9 +16,10 @@ type RetryOutcome = 'resolved' | 'stillFailing' | 'skipped'
 
 async function retryOne(
   watchlistItemId: number,
+  signal: AbortSignal,
   deps: ContentRoutingDeps,
 ): Promise<RetryOutcome> {
-  if (deps.state.signal.aborted) return 'skipped'
+  if (signal.aborted) return 'skipped'
 
   const item = await deps.db.getWatchlistItemById(watchlistItemId)
   if (!item) return 'skipped'
@@ -44,6 +45,7 @@ export async function retryRoutingFailures(
   deps: ContentRoutingDeps,
   concurrency = RETRY_CONCURRENCY,
 ): Promise<RetryRoutingResult> {
+  const { signal } = deps.state
   const limit = pLimit(concurrency)
   const result: RetryRoutingResult = {
     attempted: 0,
@@ -56,7 +58,7 @@ export async function retryRoutingFailures(
     [...new Set(watchlistItemIds)].map((id) =>
       limit(async (): Promise<RetryOutcome> => {
         try {
-          return await retryOne(id, deps)
+          return await retryOne(id, signal, deps)
         } catch (error) {
           deps.logger.error(
             { error, watchlistItemId: id },

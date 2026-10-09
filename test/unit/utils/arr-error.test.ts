@@ -1,4 +1,4 @@
-import { parseArrErrorMessage } from '@utils/arr-error.js'
+import { classifyArrError, parseArrErrorMessage } from '@utils/arr-error.js'
 import { describe, expect, it } from 'vitest'
 
 describe('arr-error', () => {
@@ -261,6 +261,81 @@ describe('arr-error', () => {
 
         expect(result).toBe('Tag with this label already exists')
       })
+    })
+  })
+})
+
+describe('classifyArrError', () => {
+  class HttpError extends Error {
+    constructor(
+      message: string,
+      public status: number,
+    ) {
+      super(message)
+    }
+  }
+
+  it('treats a validation rejection as an arr error', () => {
+    expect(
+      classifyArrError(
+        new HttpError('Radarr API error: Root folder does not exist', 400),
+      ),
+    ).toEqual({
+      category: 'arr_error',
+      message: 'Radarr API error: Root folder does not exist',
+    })
+  })
+
+  it('treats an unexpected server error as an arr error', () => {
+    expect(classifyArrError(new HttpError('boom', 500)).category).toBe(
+      'arr_error',
+    )
+  })
+
+  it.each([502, 503, 504])(
+    'treats a %i gateway status as unavailable',
+    (status) => {
+      expect(classifyArrError(new HttpError('gateway', status)).category).toBe(
+        'instance_unavailable',
+      )
+    },
+  )
+
+  it('treats a refused connection on the cause as unavailable', () => {
+    const error = new TypeError('fetch failed', {
+      cause: Object.assign(new Error('connect'), { code: 'ECONNREFUSED' }),
+    })
+    expect(classifyArrError(error)).toEqual({
+      category: 'instance_unavailable',
+      message: 'fetch failed',
+    })
+  })
+
+  it('treats a request timeout as unavailable', () => {
+    const error = new Error('The operation was aborted due to timeout')
+    error.name = 'TimeoutError'
+    expect(classifyArrError(error).category).toBe('instance_unavailable')
+  })
+
+  it('treats a DNS failure code on the error as unavailable', () => {
+    const error = Object.assign(new Error('getaddrinfo'), { code: 'ENOTFOUND' })
+    expect(classifyArrError(error).category).toBe('instance_unavailable')
+  })
+
+  it.each([
+    'Radarr service 3 not found',
+    'Sonarr instance 4 not found',
+    'Radarr instance "Main" is not set up',
+  ])('treats "%s" as unavailable', (message) => {
+    expect(classifyArrError(new Error(message)).category).toBe(
+      'instance_unavailable',
+    )
+  })
+
+  it('stringifies a non-Error throw as an arr error', () => {
+    expect(classifyArrError('nope')).toEqual({
+      category: 'arr_error',
+      message: 'nope',
     })
   })
 })

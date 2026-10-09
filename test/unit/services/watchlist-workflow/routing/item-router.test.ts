@@ -17,6 +17,7 @@ import {
 import {
   routeEnrichedItemsForUser,
   routeNewItemsForUser,
+  routeSingleItem,
 } from '@services/watchlist-workflow/routing/item-router.js'
 
 const USER_ID = 7
@@ -184,5 +185,87 @@ describe('routing after the run has ended', () => {
 
     expect(routeMovie).not.toHaveBeenCalled()
     expect(routeShow).not.toHaveBeenCalled()
+  })
+})
+
+describe('routing failure bookkeeping', () => {
+  let exclusionMap: Map<string, Set<number>>
+  let db: {
+    getUser: ReturnType<typeof vi.fn>
+    getPrimaryUser: ReturnType<typeof vi.fn>
+    getExclusionMap: ReturnType<typeof vi.fn>
+    setRoutingFailures: ReturnType<typeof vi.fn>
+    clearRoutingFailures: ReturnType<typeof vi.fn>
+  }
+  let deps: ContentRoutingDeps
+
+  beforeEach(() => {
+    vi.mocked(routeMovie).mockClear()
+    vi.mocked(routeShow).mockClear()
+    exclusionMap = new Map()
+    db = {
+      getUser: vi.fn(async () => USER),
+      getPrimaryUser: vi.fn(async () => PRIMARY_USER),
+      getExclusionMap: vi.fn(async () => exclusionMap),
+      setRoutingFailures: vi.fn(async () => true),
+      clearRoutingFailures: vi.fn(async () => 0),
+    }
+    deps = createWorkflowDeps({ db })
+  })
+
+  const route = (item: Item) =>
+    routeSingleItem(
+      { item, userId: USER_ID, userName: 'Tester', primaryUser: null },
+      deps,
+    )
+
+  it('records a movie with no TMDB ID as missing_ids', async () => {
+    expect(await route({ ...movieItem('m', 'M'), guids: ['imdb:tt1'] })).toBe(
+      false,
+    )
+
+    expect(routeMovie).not.toHaveBeenCalled()
+    expect(db.setRoutingFailures).toHaveBeenCalledWith(USER_ID, 'm', [
+      {
+        category: 'missing_ids',
+        message: 'No TMDB ID, so Radarr cannot add it',
+      },
+    ])
+  })
+
+  it('records a show with no TVDB ID as missing_ids', async () => {
+    await route({ ...movieItem('s', 'S'), type: 'show', guids: ['tmdb:1'] })
+
+    expect(routeShow).not.toHaveBeenCalled()
+    expect(db.setRoutingFailures).toHaveBeenCalledWith(USER_ID, 's', [
+      expect.objectContaining({ category: 'missing_ids' }),
+    ])
+  })
+
+  it('records an item with no GUIDs at all as missing_ids', async () => {
+    await route({ ...movieItem('g', 'G'), guids: [] })
+
+    expect(db.setRoutingFailures).toHaveBeenCalledWith(USER_ID, 'g', [
+      expect.objectContaining({ category: 'missing_ids' }),
+    ])
+  })
+
+  it('records nothing for an unknown content type', async () => {
+    await route({ ...movieItem('x', 'X'), type: 'episode', guids: [] })
+
+    expect(db.setRoutingFailures).not.toHaveBeenCalled()
+  })
+
+  it('clears an earlier failure on an item skipped by exclusion', async () => {
+    exclusionMap.set('excluded', new Set([USER_ID]))
+
+    await routeEnrichedItemsForUser(
+      USER_ID,
+      [movieItem('excluded', 'Excluded')],
+      deps,
+    )
+
+    expect(routeMovie).not.toHaveBeenCalled()
+    expect(db.clearRoutingFailures).toHaveBeenCalledWith(USER_ID, 'excluded')
   })
 })

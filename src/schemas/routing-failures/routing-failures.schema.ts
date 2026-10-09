@@ -59,13 +59,13 @@ export const RetryRoutingFailureParamsSchema = z.object({
   watchlistItemId: z.coerce.number().int().positive(),
 })
 
-// Without a category, retry-all leaves out items that only miss their IDs
+// An empty POST arrives as a null body; without a category, retry-all leaves out items that only miss their IDs
 export const RetryRoutingFailuresBodySchema = z
   .object({
     userId: z.number().int().positive().optional(),
     category: RoutingFailureCategorySchema.optional(),
   })
-  .optional()
+  .nullish()
 
 export const RetryRoutingFailuresResponseSchema = z.object({
   success: z.boolean(),
