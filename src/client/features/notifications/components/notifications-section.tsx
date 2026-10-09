@@ -3,6 +3,7 @@ import { Separator } from '@/components/ui/separator'
 import { AppriseForm } from '@/features/notifications/components/apprise/apprise-form'
 import { DiscordBotForm } from '@/features/notifications/components/discord/discord-bot-form'
 import { DiscordWebhookForm } from '@/features/notifications/components/discord/discord-webhook-form'
+import { DeliveryScheduleForm } from '@/features/notifications/components/general/delivery-schedule-form'
 import { GeneralSettingsForm } from '@/features/notifications/components/general/general-settings-form'
 import { PlexMobileForm } from '@/features/notifications/components/plex-mobile/plex-mobile-form'
 import { PublicContentForm } from '@/features/notifications/components/public-content/public-content-form'
@@ -93,6 +94,8 @@ export function NotificationsSection({
         </div>
         <div className="grid gap-4 mt-4">
           <GeneralSettingsForm isInitialized={isInitialized} />
+          <Separator className="my-2" />
+          <DeliveryScheduleForm isInitialized={isInitialized} />
         </div>
       </div>
 

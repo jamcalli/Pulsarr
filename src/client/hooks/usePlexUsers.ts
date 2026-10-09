@@ -337,6 +337,13 @@ export function useUpdateUser() {
           notify_plex_mobile: updates.notify_plex_mobile,
           can_sync: updates.can_sync,
           requires_approval: updates.requires_approval,
+          notify_digest_mode: updates.notify_digest_mode,
+          notify_digest_window_minutes: updates.notify_digest_window_minutes,
+          notify_digest_time: updates.notify_digest_time,
+          notify_quiet_hours_enabled: updates.notify_quiet_hours_enabled,
+          notify_quiet_hours_start: updates.notify_quiet_hours_start,
+          notify_quiet_hours_end: updates.notify_quiet_hours_end,
+          notify_timezone: updates.notify_timezone,
         },
       })
       if (error) throw error

@@ -28,6 +28,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
+import { DeliveryScheduleFields } from '@/features/users/components/plex-users/delivery-schedule-fields'
 import type { UserStatus } from '@/features/users/hooks/usePlexUser'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { UserWatchlistInfo } from '@/hooks/usePlexUsers'
@@ -245,6 +246,11 @@ const FormContent = React.memo(
               )}
             />
 
+            <DeliveryScheduleFields
+              form={form}
+              disabled={saveStatus !== 'idle'}
+            />
+
             <FormField
               control={form.control}
               name="can_sync"
@@ -370,6 +376,13 @@ export default function UserEditModal({
       notify_plex_mobile: false,
       can_sync: false,
       requires_approval: false,
+      notify_digest_mode: null,
+      notify_digest_window_minutes: null,
+      notify_digest_time: null,
+      notify_quiet_hours_enabled: null,
+      notify_quiet_hours_start: null,
+      notify_quiet_hours_end: null,
+      notify_timezone: null,
     },
   })
 
@@ -386,6 +399,13 @@ export default function UserEditModal({
         notify_plex_mobile: user.notify_plex_mobile,
         can_sync: user.can_sync,
         requires_approval: user.requires_approval,
+        notify_digest_mode: user.notify_digest_mode ?? null,
+        notify_digest_window_minutes: user.notify_digest_window_minutes ?? null,
+        notify_digest_time: user.notify_digest_time ?? null,
+        notify_quiet_hours_enabled: user.notify_quiet_hours_enabled ?? null,
+        notify_quiet_hours_start: user.notify_quiet_hours_start ?? null,
+        notify_quiet_hours_end: user.notify_quiet_hours_end ?? null,
+        notify_timezone: user.notify_timezone ?? null,
       })
     }
   }, [user, form])
@@ -448,7 +468,7 @@ export default function UserEditModal({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="sm:max-w-md"
+        className="sm:max-w-md max-h-[90vh] overflow-y-auto"
         onPointerDownOutside={(e) => {
           if (saveStatus === 'loading') {
             e.preventDefault()
