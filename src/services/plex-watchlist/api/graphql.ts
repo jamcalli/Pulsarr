@@ -11,6 +11,7 @@ import { parseGenres, parseGuids } from '@utils/guid-handler.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import {
+  abortableDelay,
   PLEX_API_TIMEOUT_MS,
   parseRetryAfter,
   type RateLimitError,
@@ -191,24 +192,6 @@ interface PaginatedResult<TNode> {
   nodes: TNode[]
   truncated: boolean
 }
-
-/** Resolves after `ms`, or rejects with the signal's reason once it aborts. */
-const abortableDelay = (ms: number, signal?: AbortSignal): Promise<void> =>
-  new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(signal.reason)
-      return
-    }
-    const timer = setTimeout(() => {
-      signal?.removeEventListener('abort', onAbort)
-      resolve()
-    }, ms)
-    const onAbort = () => {
-      clearTimeout(timer)
-      reject(signal?.reason)
-    }
-    signal?.addEventListener('abort', onAbort, { once: true })
-  })
 
 const paginatedGraphQLFetch = async <
   TResponse extends GraphQLPageResponse,

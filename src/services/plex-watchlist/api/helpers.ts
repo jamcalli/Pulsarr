@@ -31,3 +31,24 @@ export function parseRetryAfter(header: string | null): number | undefined {
   if (Number.isNaN(asDateMs)) return undefined
   return Math.ceil(Math.max(0, asDateMs - Date.now()) / 1000)
 }
+
+/** Resolves after `ms`, or rejects with the signal's reason once it aborts. */
+export const abortableDelay = (
+  ms: number,
+  signal?: AbortSignal,
+): Promise<void> =>
+  new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason)
+      return
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
+    const onAbort = () => {
+      clearTimeout(timer)
+      reject(signal?.reason)
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
