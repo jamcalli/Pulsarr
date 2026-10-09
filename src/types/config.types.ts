@@ -286,18 +286,18 @@ export interface Config {
   // Quota System Configuration
   quotaSettings?: {
     // Cleanup configuration
-    cleanup?: {
-      enabled?: boolean
-      retentionDays?: number
+    cleanup: {
+      enabled: boolean
+      retentionDays: number
     }
     // Weekly rolling quota configuration
-    weeklyRolling?: {
-      resetDays?: number
+    weeklyRolling: {
+      resetDays: number
     }
     // Monthly quota configuration
-    monthly?: {
-      resetDay?: number
-      handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
+    monthly: {
+      resetDay: number
+      handleMonthEnd: 'last-day' | 'skip-month' | 'next-month'
     }
   }
   // Approval System Configuration

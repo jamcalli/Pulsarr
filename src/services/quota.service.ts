@@ -442,8 +442,8 @@ export class QuotaService {
     await this.logQuotaStatus(now)
 
     // Cleanup old quota usage records based on configuration
-    if (config?.cleanup?.enabled !== false) {
-      const retentionDays = config?.cleanup?.retentionDays ?? 90
+    if (config?.cleanup.enabled !== false) {
+      const retentionDays = config?.cleanup.retentionDays ?? 90
       const cleanedCount =
         await this.fastify.db.cleanupOldQuotaUsage(retentionDays)
       if (cleanedCount > 0) {
@@ -453,7 +453,7 @@ export class QuotaService {
         )
       }
     } else {
-      const retentionDays = config?.cleanup?.retentionDays ?? 90
+      const retentionDays = config?.cleanup.retentionDays ?? 90
       this.log.debug(
         { retentionDays },
         'Quota cleanup disabled by configuration',

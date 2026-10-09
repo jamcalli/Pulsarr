@@ -13,6 +13,20 @@ export function formatTime(value: Date | number): string {
   return new Intl.DateTimeFormat(locale, { timeStyle: 'medium' }).format(value)
 }
 
+/** Weekday name for a cron day of the week, 0 is Sunday. */
+export function formatWeekday(day: number): string {
+  return new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(
+    new Date(2026, 0, 4 + day),
+  )
+}
+
+/** The clock time at the start of an hour of the day, 0 to 23. */
+export function formatHour(hour: number): string {
+  return new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(
+    new Date(2026, 0, 1, hour),
+  )
+}
+
 export function formatDate(value: Date | number): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(value)
 }

@@ -2,6 +2,7 @@ import {
   formatCount,
   formatCurrency,
   formatDateTime,
+  formatHour,
   formatLanguage,
   formatList,
   formatNumber,
@@ -9,6 +10,7 @@ import {
   formatRelative,
   formatRuntime,
   formatTime,
+  formatWeekday,
   formatYear,
   pluralize,
   setFormatLocale,
@@ -60,6 +62,24 @@ describe('format', () => {
     expect(formatRelative(now - 5 * minute, now)).toBe('5 minutes ago')
     expect(formatRelative(now - day, now)).toBe('yesterday')
     expect(formatRelative(new Date(now - 2 * day), now)).toBe('2 days ago')
+  })
+
+  it('names the start of an hour in the locale clock', () => {
+    setFormatLocale('en-US')
+    expect(formatHour(3)).toMatch(/^3:00\sAM$/)
+    expect(formatHour(15)).toMatch(/^3:00\sPM$/)
+    setFormatLocale('en-GB')
+    expect(formatHour(3)).toBe('03:00')
+    setFormatLocale('de-DE')
+    expect(formatHour(15)).toBe('15:00')
+  })
+
+  it('names a cron day of the week with Sunday as 0', () => {
+    setFormatLocale('en-US')
+    expect(formatWeekday(0)).toBe('Sunday')
+    expect(formatWeekday(6)).toBe('Saturday')
+    setFormatLocale('de-DE')
+    expect(formatWeekday(1)).toBe('Montag')
   })
 
   it('formats a ratio as a percent', () => {

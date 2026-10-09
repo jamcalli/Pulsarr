@@ -29,6 +29,7 @@ describe('Config quota settings validation', () => {
       payload: {
         quotaSettings: {
           cleanup: { enabled: true, retentionDays: 30 },
+          weeklyRolling: { resetDays: 7 },
           monthly: { resetDay: 31, handleMonthEnd: 'skip-month' },
         },
       },
@@ -40,11 +41,17 @@ describe('Config quota settings validation', () => {
     )
   })
 
-  it('applies default retention when cleanup is omitted', async () => {
+  it('rejects retention shorter than a long weekly rolling window', async () => {
     const res = await app.inject({
       method: 'PUT',
       url: '/v1/config',
-      payload: { quotaSettings: { weeklyRolling: { resetDays: 120 } } },
+      payload: {
+        quotaSettings: {
+          cleanup: { enabled: true, retentionDays: 90 },
+          weeklyRolling: { resetDays: 120 },
+          monthly: { resetDay: 1, handleMonthEnd: 'last-day' },
+        },
+      },
     })
 
     expect(res.statusCode).toBe(400)
@@ -59,6 +66,7 @@ describe('Config quota settings validation', () => {
         quotaSettings: {
           cleanup: { enabled: false, retentionDays: 1 },
           weeklyRolling: { resetDays: 30 },
+          monthly: { resetDay: 1, handleMonthEnd: 'last-day' },
         },
       },
     })
@@ -74,10 +82,25 @@ describe('Config quota settings validation', () => {
         quotaSettings: {
           cleanup: { enabled: true, retentionDays: 31 },
           weeklyRolling: { resetDays: 14 },
+          monthly: { resetDay: 1, handleMonthEnd: 'last-day' },
         },
       },
     })
 
     expect(res.statusCode).toBe(200)
+  })
+
+  it('rejects a partial quota settings payload', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/v1/config',
+      payload: {
+        quotaSettings: {
+          monthly: { resetDay: 15, handleMonthEnd: 'last-day' },
+        },
+      },
+    })
+
+    expect(res.statusCode).toBe(400)
   })
 })

@@ -1,6 +1,7 @@
 import {
-  APPROVAL_EXPIRATION_HOURS,
-  EXPIRED_APPROVAL_CLEANUP_DAYS,
+  QUOTA_MONTHLY_RESET_DAY,
+  QUOTA_USAGE_RETENTION_DAYS,
+  QUOTA_WEEKLY_ROLLING_DAYS,
 } from '@root/schemas/config/config.schema'
 import { useStore } from '@tanstack/react-form'
 import { ErrorAlert } from '@/components/error-alert'
@@ -11,42 +12,48 @@ import { ScheduledJobPanel } from '@/components/settings/scheduled-job-panel'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
 import { Button } from '@/components/ui/button'
-import { useApprovalSettingsForm } from '@/features/requests/hooks/approval-settings/useApprovalSettingsForm'
-import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
+import { useQuotaSettingsForm } from '@/features/requests/hooks/quota-settings/useQuotaSettingsForm'
 import { NOTIFY_OPTIONS } from '@/features/requests/lib/notify-options'
+import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
 import { useConfig } from '@/hooks/useConfig'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { useShowLoading } from '@/hooks/useMinLoading'
 import { type ScheduleStatus, useSchedule } from '@/hooks/useSchedule'
 import { NAV_PAGES } from '@/lib/navigation'
-import { intervalOptions } from '@/lib/schedule'
 import { withStoredOption } from '@/lib/select-options'
 import type { components } from '@/types/api.js'
 
 const SECTION = 'Requests'
-const TITLE = 'Approval settings'
+const TITLE = NAV_PAGES.quotas.label
 const DESCRIPTION =
-  'Decide when held requests expire, what happens to them, and who hears about them.'
-const SCHEDULE_NAME = 'approval-maintenance'
+  'Set when quotas reset, clean up old usage history and choose who hears when a watchlist reaches its cap.'
+const SCHEDULE_NAME = 'quota-maintenance'
 
-const EXPIRATION_ACTION_OPTIONS = [
+const MONTH_END_OPTIONS = [
   {
-    value: 'expire',
-    label: 'Mark as expired',
-    description: 'The request closes and nothing is sent to Sonarr or Radarr.',
+    value: 'last-day',
+    label: 'Reset on the last day',
+    description: 'A month without that day resets on its last day.',
   },
   {
-    value: 'auto_approve',
-    label: 'Approve automatically',
-    description: 'The request is approved and sent where it was routed.',
+    value: 'skip-month',
+    label: 'Skip that month',
+    description:
+      'A month without that day has no reset, so requests keep counting until the next one.',
+  },
+  {
+    value: 'next-month',
+    label: 'Reset on the 1st',
+    description:
+      'A month without that day resets on the 1st of the following month.',
   },
 ] as const satisfies Array<{
-  value: string
+  value: components['schemas']['QuotaMonthEnd']
   label: string
   description: string
 }>
 
-function ApprovalSettings({
+function QuotaSettings({
   config,
   schedule,
   run,
@@ -64,20 +71,21 @@ function ApprovalSettings({
     errorMessage,
     discard,
     submit,
-  } = useApprovalSettingsForm(config, schedule)
+  } = useQuotaSettingsForm(config, schedule)
   const guard = useLeaveGuard(dirty)
   const scheduleOn = useStore(
     scheduleForm.store,
     (state) => state.values.enabled,
   )
-  const expirationOn = useStore(
+  const cleanupOn = useStore(
     configForm.store,
-    (state) => state.values.approvalExpiration.enabled,
+    (state) => state.values.quotaSettings.cleanup.enabled,
   )
 
-  const savedExpression =
-    schedule.type === 'cron' ? schedule.config.expression : ''
-  const notifyOptions = withStoredOption(NOTIFY_OPTIONS, config.approvalNotify)
+  const notifyOptions = withStoredOption(
+    NOTIFY_OPTIONS,
+    config.watchlistCapNotify,
+  )
 
   return (
     <Page>
@@ -85,8 +93,8 @@ function ApprovalSettings({
       <configForm.AppForm>
         <configForm.Form className="flex flex-col gap-5" submit={submit}>
           <ScheduledJobPanel
-            title="Approval maintenance"
-            description="Expires requests nobody decided on and deletes old expired records."
+            title="Quota maintenance"
+            description="Deletes old usage history on a schedule."
             schedule={schedule}
             dirty={dirty}
             run={run}
@@ -101,82 +109,96 @@ function ApprovalSettings({
             </scheduleForm.AppField>
             <scheduleForm.AppField name="expression">
               {(field) => (
-                <field.SelectField
-                  label="Run every"
-                  description="How often it looks for requests to expire and records to delete."
-                  options={intervalOptions(savedExpression)}
+                <field.ScheduleField
+                  label="Run at"
+                  description="Starts on the hour, in the server's time zone."
                   disabled={!scheduleOn}
                 />
               )}
             </scheduleForm.AppField>
           </ScheduledJobPanel>
           <SettingsSection
-            title="Expiration"
-            description="What happens to requests nobody decides on."
+            title="Weekly rolling"
+            description="A weekly rolling quota counts requests over a sliding run of days."
           >
-            <configForm.AppField name="approvalExpiration.enabled">
-              {(field) => (
-                <field.SwitchField
-                  label="Expire approval requests"
-                  description="Close pending requests that wait too long for a decision."
-                />
-              )}
-            </configForm.AppField>
-            <configForm.AppField name="approvalExpiration.defaultExpirationHours">
+            <configForm.AppField name="quotaSettings.weeklyRolling.resetDays">
               {(field) => (
                 <field.NumberField
-                  label="Expire after"
-                  description="How long a request can wait before it expires."
-                  unit="hour"
-                  min={APPROVAL_EXPIRATION_HOURS.min}
-                  max={APPROVAL_EXPIRATION_HOURS.max}
-                  disabled={!expirationOn}
-                />
-              )}
-            </configForm.AppField>
-            <configForm.AppField name="approvalExpiration.expirationAction">
-              {(field) => (
-                <field.RadioField
-                  label="When a request expires"
-                  options={EXPIRATION_ACTION_OPTIONS}
-                  disabled={!expirationOn}
-                />
-              )}
-            </configForm.AppField>
-            <configForm.AppField name="approvalExpiration.autoApproveOnQuotaAvailable">
-              {(field) => (
-                <field.SwitchField
-                  label="Approve automatically when a quota resets"
-                  description="Approves requests held for quota, oldest first, once the user has room again."
+                  label="Count requests from the last"
+                  description="Includes today. A request stops counting this many days after it was made."
+                  unit="day"
+                  min={QUOTA_WEEKLY_ROLLING_DAYS.min}
+                  max={QUOTA_WEEKLY_ROLLING_DAYS.max}
                 />
               )}
             </configForm.AppField>
           </SettingsSection>
           <SettingsSection
-            title="Notifications"
-            description="Where admins hear about requests that need a decision."
+            title="Monthly"
+            description="A monthly quota resets at midnight server time on the day you choose."
           >
-            <configForm.AppField name="approvalNotify">
+            <configForm.AppField name="quotaSettings.monthly.resetDay">
+              {(field) => (
+                <field.NumberField
+                  label="Reset on day"
+                  description="The day of the month when usage starts over."
+                  min={QUOTA_MONTHLY_RESET_DAY.min}
+                  max={QUOTA_MONTHLY_RESET_DAY.max}
+                />
+              )}
+            </configForm.AppField>
+            <configForm.AppField name="quotaSettings.monthly.handleMonthEnd">
+              {(field) => (
+                <field.RadioField
+                  label="When a month is too short"
+                  description="Only matters when the reset day is the 29th or later."
+                  options={MONTH_END_OPTIONS}
+                />
+              )}
+            </configForm.AppField>
+          </SettingsSection>
+          <SettingsSection
+            title="Usage history"
+            description="Each request a quota counts is kept as a usage record."
+          >
+            <configForm.AppField name="quotaSettings.cleanup.enabled">
+              {(field) => (
+                <field.SwitchField
+                  label="Delete old usage history"
+                  description="Each maintenance run deletes records older than the retention period."
+                />
+              )}
+            </configForm.AppField>
+            <configForm.AppField name="quotaSettings.cleanup.retentionDays">
+              {(field) => (
+                <field.NumberField
+                  label="Keep usage history for"
+                  description="Keep it at least as long as your longest quota period so cleanup never removes a request that still counts."
+                  unit="day"
+                  min={QUOTA_USAGE_RETENTION_DAYS.min}
+                  max={QUOTA_USAGE_RETENTION_DAYS.max}
+                  disabled={!cleanupOn}
+                />
+              )}
+            </configForm.AppField>
+          </SettingsSection>
+          <SettingsSection
+            title="Watchlist cap notifications"
+            description="Who hears when a user's watchlist reaches its cap."
+          >
+            <configForm.AppField name="watchlistCapNotify">
               {(field) => (
                 <field.SelectField
-                  label="Send approval notifications to"
+                  label="Send cap notifications to"
                   options={notifyOptions}
                 />
               )}
             </configForm.AppField>
-          </SettingsSection>
-          <SettingsSection
-            title="Cleanup"
-            description="Keeps request history from growing forever."
-          >
-            <configForm.AppField name="approvalExpiration.cleanupExpiredDays">
+            <configForm.AppField name="watchlistCapNotifyUser">
               {(field) => (
-                <field.NumberField
-                  label="Delete expired records after"
-                  description="Expired requests older than this are removed from history."
-                  unit="day"
-                  min={EXPIRED_APPROVAL_CLEANUP_DAYS.min}
-                  max={EXPIRED_APPROVAL_CLEANUP_DAYS.max}
+                <field.SwitchField
+                  label="Notify the user"
+                  description="Also notifies the user who reached the cap by Discord direct message or Apprise, when they have those turned on."
                 />
               )}
             </configForm.AppField>
@@ -199,11 +221,11 @@ function ApprovalSettings({
   )
 }
 
-export default function ApprovalSettingsPage() {
+export default function QuotaSettingsPage() {
   const { config, error, initialize } = useConfig()
   const job = useSchedule(SCHEDULE_NAME, {
-    label: 'Approval maintenance',
-    page: NAV_PAGES.approvalSettings,
+    label: 'Quota maintenance',
+    page: NAV_PAGES.quotas,
   })
   const loaded = config !== null && job.schedule !== null
   const showLoading = useShowLoading(!loaded)
@@ -231,10 +253,8 @@ export default function ApprovalSettingsPage() {
     )
   }
   if (showLoading) {
-    return <SettingsPageSkeleton {...APPROVAL_SETTINGS_SKELETON} />
+    return <SettingsPageSkeleton {...QUOTA_SETTINGS_SKELETON} />
   }
   if (!config || !job.schedule) return null
-  return (
-    <ApprovalSettings config={config} schedule={job.schedule} run={job.run} />
-  )
+  return <QuotaSettings config={config} schedule={job.schedule} run={job.run} />
 }
