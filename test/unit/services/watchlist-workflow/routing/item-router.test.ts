@@ -190,26 +190,21 @@ describe('routing after the run has ended', () => {
 
 describe('routing failure bookkeeping', () => {
   let exclusionMap: Map<string, Set<number>>
-  let db: {
-    getUser: ReturnType<typeof vi.fn>
-    getPrimaryUser: ReturnType<typeof vi.fn>
-    getExclusionMap: ReturnType<typeof vi.fn>
-    setRoutingFailures: ReturnType<typeof vi.fn>
-    clearRoutingFailures: ReturnType<typeof vi.fn>
-  }
+  const makeDb = () => ({
+    getUser: vi.fn(async () => USER),
+    getPrimaryUser: vi.fn(async () => PRIMARY_USER),
+    getExclusionMap: vi.fn(async () => exclusionMap),
+    setRoutingFailures: vi.fn(async () => true),
+    clearRoutingFailures: vi.fn(async () => 0),
+  })
+  let db: ReturnType<typeof makeDb>
   let deps: ContentRoutingDeps
 
   beforeEach(() => {
     vi.mocked(routeMovie).mockClear()
     vi.mocked(routeShow).mockClear()
     exclusionMap = new Map()
-    db = {
-      getUser: vi.fn(async () => USER),
-      getPrimaryUser: vi.fn(async () => PRIMARY_USER),
-      getExclusionMap: vi.fn(async () => exclusionMap),
-      setRoutingFailures: vi.fn(async () => true),
-      clearRoutingFailures: vi.fn(async () => 0),
-    }
+    db = makeDb()
     deps = createWorkflowDeps({ db })
   })
 

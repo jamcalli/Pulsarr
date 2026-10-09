@@ -80,17 +80,15 @@ describe('failuresFromResult', () => {
 })
 
 describe('failure persistence', () => {
+  const makeDb = () => ({
+    setRoutingFailures: vi.fn(async () => true),
+    clearRoutingFailures: vi.fn(async () => 1),
+  })
   let deps: ContentRoutingDeps
-  let db: {
-    setRoutingFailures: ReturnType<typeof vi.fn>
-    clearRoutingFailures: ReturnType<typeof vi.fn>
-  }
+  let db: ReturnType<typeof makeDb>
 
   beforeEach(() => {
-    db = {
-      setRoutingFailures: vi.fn(async () => true),
-      clearRoutingFailures: vi.fn(async () => 1),
-    }
+    db = makeDb()
     deps = createWorkflowDeps({ db })
   })
 
