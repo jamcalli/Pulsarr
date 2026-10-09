@@ -6,6 +6,7 @@ import {
   describe,
   expect,
   it,
+  type MockInstance,
   vi,
 } from 'vitest'
 import { build } from '../../../../helpers/app.js'
@@ -20,8 +21,9 @@ const MOVIE = {
 
 describe('sendMediaAvailable with quiet hours / digests', () => {
   let app: FastifyInstance
-  let sendDirectMessage: ReturnType<typeof vi.fn>
-  let sendDirectMessageEmbed: ReturnType<typeof vi.fn>
+  let sendDirectMessage: MockInstance<
+    FastifyInstance['notifications']['discordBot']['sendDirectMessage']
+  >
 
   const heldRows = () => getTestDatabase()('held_notifications').select('*')
 
@@ -39,10 +41,10 @@ describe('sendMediaAvailable with quiet hours / digests', () => {
   beforeEach(async () => {
     await resetDatabase()
     await seedAll(getTestDatabase())
-    sendDirectMessage = vi.fn().mockResolvedValue(true)
-    sendDirectMessageEmbed = vi.fn().mockResolvedValue(true)
-    app.notifications.discordBot.sendDirectMessage = sendDirectMessage
-    app.notifications.discordBot.sendDirectMessageEmbed = sendDirectMessageEmbed
+    vi.restoreAllMocks()
+    sendDirectMessage = vi
+      .spyOn(app.notifications.discordBot, 'sendDirectMessage')
+      .mockResolvedValue(true)
   })
 
   it('delivers immediately when the feature is off (unchanged behaviour)', async () => {
@@ -135,9 +137,9 @@ describe('sendMediaAvailable with quiet hours / digests', () => {
     await getTestDatabase()('users')
       .where({ id: 1 })
       .update({ notify_digest_mode: 'window' })
-    const sendPublicNotification = vi.fn().mockResolvedValue(true)
-    app.notifications.discordWebhook.sendPublicNotification =
-      sendPublicNotification
+    const sendPublicNotification = vi
+      .spyOn(app.notifications.discordWebhook, 'sendPublicNotification')
+      .mockResolvedValue(true)
     const previous = app.config.publicContentNotifications
     await app.updateConfig({
       publicContentNotifications: {
