@@ -202,7 +202,7 @@ When a watchlist item never makes it into Radarr or Sonarr, Pulsarr records why 
 | **Error** | Routing failed before an add was attempted; check the logs |
 | **Missing IDs** | The item has no TMDB/TVDB ID (common for webisodes and specials). It can never be added, needs no action, and is not counted |
 
-A failure clears itself as soon as a later attempt routes the item, finds it already in the instance, or skips it on purpose (exclusion, router rule). The periodic sync retries failed items on its own; **Retry** and **Retry All** run the same routing path immediately, so approval rules, quotas and exclusions still apply. Retry All follows the User and Reason filters when exactly one of each is selected, and skips Missing IDs items unless that reason is selected. Retries need the watchlist workflow to be running.
+A failure clears itself as soon as a later attempt routes the item, finds it already in the instance, or skips it on purpose (exclusion, router rule). The periodic sync retries failed items on its own; **Retry** and **Retry All** run the same routing path immediately, so approval rules, quotas and exclusions still apply. When the filters select exactly one user or exactly one reason, Retry All is limited to it; it skips Missing IDs items unless that reason is selected. Retries need the watchlist workflow to be running.
 
 ## Best Practices
 
