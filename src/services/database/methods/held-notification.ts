@@ -196,24 +196,3 @@ export async function deleteInterruptedHeldNotifications(
 ): Promise<number> {
   return this.knex('held_notifications').whereNotNull('claimed_at').delete()
 }
-
-/**
- * Counts held notifications that are waiting for delivery.
- *
- * @param userId - Optionally restrict the count to one user
- * @returns Number of unclaimed held notifications
- */
-export async function countHeldNotifications(
-  this: DatabaseService,
-  userId?: number,
-): Promise<number> {
-  const result = await this.knex('held_notifications')
-    .whereNull('claimed_at')
-    .modify((qb) => {
-      if (userId !== undefined) qb.where({ user_id: userId })
-    })
-    .count('* as count')
-    .first()
-
-  return Number(result?.count ?? 0)
-}

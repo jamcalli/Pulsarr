@@ -48,10 +48,5 @@ declare module '@services/database.service.js' {
      * @returns Number of rows deleted
      */
     deleteInterruptedHeldNotifications(): Promise<number>
-
-    /**
-     * Counts held notifications that are waiting for delivery.
-     */
-    countHeldNotifications(userId?: number): Promise<number>
   }
 }

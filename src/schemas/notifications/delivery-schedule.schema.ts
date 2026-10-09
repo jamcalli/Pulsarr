@@ -56,9 +56,6 @@ export const NotificationDeliveryDefaultsSchema = z
       'Default quiet hours and digest batching for media-available user notifications',
   })
 
-export const NotificationDeliveryDefaultsUpdateSchema =
-  NotificationDeliveryDefaultsSchema.partial()
-
 /** Per-user overrides; null (or absent) inherits the admin default. */
 export const UserDeliveryScheduleSchema = z.object({
   notify_digest_mode: DigestModeSchema.nullable().optional(),
