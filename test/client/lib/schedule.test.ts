@@ -1,12 +1,13 @@
 import { setFormatLocale } from '@/lib/format'
 import {
-  cronForDayHour,
+  cronForDayTime,
   cronForIntervalHours,
   INTERVAL_HOURS,
   intervalOptions,
-  parseDayHourCron,
+  parseDayTimeCron,
   scheduleDayOptions,
-  scheduleHourOptions,
+  scheduleTimeOptions,
+  timeFromScheduleValue,
 } from '@/lib/schedule'
 
 describe('cronForIntervalHours', () => {
@@ -52,37 +53,88 @@ describe('intervalOptions', () => {
   })
 })
 
-describe('parseDayHourCron', () => {
-  it('reads the day and hour of a day and time schedule', () => {
-    expect(parseDayHourCron('0 2 * * *')).toEqual({ day: '*', hour: 2 })
-    expect(parseDayHourCron('0 23 * * 6')).toEqual({ day: '6', hour: 23 })
-    expect(parseDayHourCron('0 0 * * 0')).toEqual({ day: '0', hour: 0 })
+describe('parseDayTimeCron', () => {
+  it('reads five-field day and time schedules', () => {
+    expect(parseDayTimeCron('0 2 * * *')).toEqual({
+      day: '*',
+      hour: 2,
+      minute: 0,
+    })
+    expect(parseDayTimeCron('30 2 * * 0')).toEqual({
+      day: '0',
+      hour: 2,
+      minute: 30,
+    })
+    expect(parseDayTimeCron('45 23 * * 6')).toEqual({
+      day: '6',
+      hour: 23,
+      minute: 45,
+    })
   })
 
-  it('rejects anything the day and hour pickers cannot show', () => {
+  it('reads six-field schedules with a zero seconds field', () => {
+    expect(parseDayTimeCron('0 0 2 * * *')).toEqual({
+      day: '*',
+      hour: 2,
+      minute: 0,
+    })
+    expect(parseDayTimeCron('0 30 14 * * 3')).toEqual({
+      day: '3',
+      hour: 14,
+      minute: 30,
+    })
+  })
+
+  it('reads a minute off the 15-minute grid as a time', () => {
+    expect(parseDayTimeCron('7 2 * * *')).toEqual({
+      day: '*',
+      hour: 2,
+      minute: 7,
+    })
+  })
+
+  it('rejects anything the day and time pickers cannot show', () => {
     for (const expression of [
-      '30 2 * * 1',
       '0 */4 * * *',
+      '0 0 2 * * 1-5',
+      '15 0 2 * * *',
+      '*/5 0 2 * * *',
       '0 2 * * 1-5',
       '0 2,14 * * *',
       '0 2 1 * *',
       '0 2 * 6 *',
       '0 24 * * *',
+      '60 2 * * *',
+      '0 0 24 * * *',
+      '0 60 2 * * *',
       '0 2 * * 7',
       '0 2 * * MON',
-      '0 0 2 * * *',
+      '0 0 0 2 * * *',
       '',
     ]) {
-      expect(parseDayHourCron(expression)).toBeNull()
+      expect(parseDayTimeCron(expression)).toBeNull()
     }
   })
 
-  it('round-trips through cronForDayHour', () => {
-    expect(cronForDayHour({ day: '3', hour: 14 })).toBe('0 14 * * 3')
-    expect(parseDayHourCron(cronForDayHour({ day: '*', hour: 5 }))).toEqual({
-      day: '*',
-      hour: 5,
-    })
+  it('always builds five fields', () => {
+    expect(cronForDayTime({ day: '3', hour: 14, minute: 30 })).toBe(
+      '30 14 * * 3',
+    )
+    expect(cronForDayTime({ day: '*', hour: 0, minute: 0 })).toBe('0 0 * * *')
+  })
+
+  it('keeps the schedule through a parse and build round trip', () => {
+    for (const expression of [
+      '0 0 2 * * *',
+      '0 30 14 * * 3',
+      '30 2 * * 0',
+      '7 2 * * *',
+    ]) {
+      const schedule = parseDayTimeCron(expression)
+      expect(schedule).not.toBeNull()
+      if (!schedule) continue
+      expect(parseDayTimeCron(cronForDayTime(schedule))).toEqual(schedule)
+    }
   })
 })
 
@@ -111,12 +163,27 @@ describe('schedule picker options', () => {
     expect(options[1].label).toBe('Sunday')
   })
 
-  it('offers each hour on the hour in the locale clock', () => {
-    const options = scheduleHourOptions()
-    expect(options).toHaveLength(24)
-    expect(options[0].value).toBe('0')
+  it('offers every 15 minutes in the locale clock', () => {
+    const options = scheduleTimeOptions(null)
+    expect(options).toHaveLength(96)
     expect(options[0].label).toMatch(/^12:00\sAM$/)
+    expect(options[1].label).toMatch(/^12:15\sAM$/)
+    expect(timeFromScheduleValue(options[58].value)).toEqual({
+      hour: 14,
+      minute: 30,
+    })
     setFormatLocale('de-DE')
-    expect(scheduleHourOptions()[13].label).toBe('13:00')
+    expect(scheduleTimeOptions(null)[54].label).toBe('13:30')
+  })
+
+  it('adds a stored time off the grid as its own time', () => {
+    const options = scheduleTimeOptions({ hour: 2, minute: 7 })
+    expect(options).toHaveLength(97)
+    expect(options.at(-1)?.label).toMatch(/^2:07\sAM$/)
+    expect(timeFromScheduleValue(options.at(-1)?.value ?? '')).toEqual({
+      hour: 2,
+      minute: 7,
+    })
+    expect(scheduleTimeOptions({ hour: 2, minute: 30 })).toHaveLength(96)
   })
 })
