@@ -5,6 +5,11 @@
  * Helps determine if labels are managed by Pulsarr and what type of label they are.
  */
 
+import {
+  isAppUserTag,
+  isRemovedTag,
+} from '@services/user-tags/tag-operations/tag-predicate.js'
+
 export interface LabelValidationConfig {
   /** Label prefix for app-managed labels (e.g., "pulsarr") */
   labelPrefix: string
@@ -101,15 +106,8 @@ export function isUserTaggingSystemTag(
   tagPrefix: string = 'pulsarr-user',
   removedTagPrefix: string = 'pulsarr-removed',
 ): boolean {
-  const lowerTag = tagName.toLowerCase()
-  const lowerPrefix = tagPrefix.toLowerCase()
-  const lowerRemovedPrefix = removedTagPrefix.toLowerCase()
-
   return (
-    // Check for user tagging system tags with hyphen delimiter
-    lowerTag.startsWith(`${lowerPrefix}-`) ||
-    // Check for removed tag prefix
-    lowerTag.startsWith(lowerRemovedPrefix)
+    isAppUserTag(tagName, tagPrefix) || isRemovedTag(tagName, removedTagPrefix)
   )
 }
 

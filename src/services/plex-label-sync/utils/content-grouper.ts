@@ -18,6 +18,18 @@ import type { FastifyBaseLogger } from 'fastify'
  * @param logger - Logger instance
  * @returns Array of unique content items with their associated users
  */
+function addGuids(target: ContentWithUsers, guids: string[]): void {
+  for (const guid of guids) {
+    if (!target.allGuids.includes(guid)) target.allGuids.push(guid)
+  }
+}
+
+function mergeContent(target: ContentWithUsers, source: ContentWithUsers) {
+  addGuids(target, source.allGuids)
+  target.plexKey ??= source.plexKey
+  target.users.push(...source.users)
+}
+
 export async function groupWatchlistItemsByContent(
   watchlistItems: Array<{
     id: string | number
@@ -31,7 +43,9 @@ export async function groupWatchlistItemsByContent(
   logger: FastifyBaseLogger,
   namingSource: NamingSource = 'username',
 ): Promise<ContentWithUsers[]> {
-  const contentMap = new Map<string, ContentWithUsers>()
+  const result: ContentWithUsers[] = []
+  const contentByGuids = new Map<string, ContentWithUsers>()
+  const contentByPlexKey = new Map<string, ContentWithUsers>()
 
   // Get all unique user IDs to fetch usernames
   const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
@@ -69,12 +83,23 @@ export async function groupWatchlistItemsByContent(
       continue
     }
 
-    // Create content-type-aware grouping key using sorted GUIDs for consistent grouping
-    const sortedGuids = [...parsedGuids].sort()
-    const contentKey = `${item.type}-${JSON.stringify(sortedGuids)}`
+    const contentKey = `${item.type}-${JSON.stringify([...parsedGuids].sort())}`
+    const plexKey = item.key ? `${item.type}-${item.key}` : null
     const username = userMap.get(item.user_id) || `user_${item.user_id}`
 
-    const existingContentItem = contentMap.get(contentKey)
+    const byPlexKey = plexKey ? contentByPlexKey.get(plexKey) : undefined
+    const byGuids = contentByGuids.get(contentKey)
+    if (byPlexKey && byGuids && byPlexKey !== byGuids) {
+      mergeContent(byPlexKey, byGuids)
+      result.splice(result.indexOf(byGuids), 1)
+      for (const [key, value] of contentByGuids) {
+        if (value === byGuids) contentByGuids.set(key, byPlexKey)
+      }
+      for (const [key, value] of contentByPlexKey) {
+        if (value === byGuids) contentByPlexKey.set(key, byPlexKey)
+      }
+    }
+    const existingContentItem = byPlexKey ?? byGuids
     let contentItem: ContentWithUsers
 
     if (!existingContentItem) {
@@ -87,20 +112,18 @@ export async function groupWatchlistItemsByContent(
         plexKey: item.key,
         users: [],
       }
-      contentMap.set(contentKey, contentItem)
+      result.push(contentItem)
     } else {
-      // Merge GUIDs from additional items for the same content
-      const newGuids = parsedGuids.filter(
-        (guid) => !existingContentItem.allGuids.includes(guid),
-      )
-      existingContentItem.allGuids.push(...newGuids)
-
-      // Use the first non-null Plex key we find
-      if (!existingContentItem.plexKey && item.key) {
-        existingContentItem.plexKey = item.key
-      }
-
+      addGuids(existingContentItem, parsedGuids)
+      existingContentItem.plexKey ??= item.key
       contentItem = existingContentItem
+    }
+
+    if (!contentByGuids.has(contentKey)) {
+      contentByGuids.set(contentKey, contentItem)
+    }
+    if (plexKey && !contentByPlexKey.has(plexKey)) {
+      contentByPlexKey.set(plexKey, contentItem)
     }
 
     // Add user to this content
@@ -111,7 +134,6 @@ export async function groupWatchlistItemsByContent(
     })
   }
 
-  const result = Array.from(contentMap.values())
   logger.info(
     {
       watchlistItemCount: watchlistItems.length,

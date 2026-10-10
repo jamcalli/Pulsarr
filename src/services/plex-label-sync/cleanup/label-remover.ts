@@ -5,13 +5,18 @@
  */
 
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
+import type { PlexLabelTracking } from '@services/database/methods/plex-label-tracking.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
 import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
-import { isManagedLabel } from '../label-operations/index.js'
+import {
+  includesLabelIgnoreCase,
+  isManagedLabel,
+  isRemovedLabel,
+} from '../label-operations/index.js'
 
 /**
  * Dependencies required for label removal operations
@@ -138,8 +143,16 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
 
             // Get current labels and remove only Pulsarr-created labels
             const metadata = await deps.plexServer.getMetadata(ratingKey)
+            if (!metadata) {
+              itemResult.failed += labels.length
+              deps.logger.warn(
+                { ratingKey, labels },
+                `Could not read labels for rating key ${ratingKey}, keeping its tracking`,
+              )
+              return itemResult
+            }
             const currentLabels =
-              metadata?.Label?.map((label) => label.tag) || []
+              metadata.Label?.map((label) => label.tag) || []
 
             deps.logger.debug(
               {
@@ -316,8 +329,9 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
       }
     }
 
-    // Clean up tracking records from database
-    await deps.db.clearAllLabelTracking()
+    if (result.failed === 0) {
+      await deps.db.clearAllLabelTracking()
+    }
 
     deps.logger.info(result, 'Bulk Plex label removal completed')
 
@@ -454,8 +468,11 @@ export async function resetLabels(
 
       // Check if this tracking entry matches any current watchlist item
       for (const watchlistItem of items) {
-        // Only compare items from the same user and content type
-        if (trackingEntry.user_id !== watchlistItem.user_id) {
+        // A system row (NULL user) belongs to the item, so any user's watchlist entry matches it
+        if (
+          trackingEntry.user_id !== null &&
+          trackingEntry.user_id !== watchlistItem.user_id
+        ) {
           continue
         }
 
@@ -549,6 +566,27 @@ export async function resetLabels(
     let processedCount = 0
     let failedCount = 0
 
+    const orphanedIds = new Set(
+      orphanedEntries.map((entry) => entry.trackingId),
+    )
+    const remainingUserRows = (ratingKey: string) =>
+      allTrackingEntries.filter(
+        (row) =>
+          row.plex_rating_key === ratingKey &&
+          row.user_id !== null &&
+          !orphanedIds.has(row.id),
+      )
+    const labelsNoOneElseHolds = (
+      labels: string[],
+      remainingRows: PlexLabelTracking[],
+    ) =>
+      labels.filter(
+        (label) =>
+          !remainingRows.some((row) =>
+            includesLabelIgnoreCase(row.labels_applied, label),
+          ),
+      )
+
     if (deps.removedLabelMode === 'keep') {
       deps.logger.info(
         'Removal mode is "keep", preserving orphaned labels and tracking entries',
@@ -559,12 +597,23 @@ export async function resetLabels(
       // Remove labels from Plex and delete tracking entries
       for (const entry of orphanedEntries) {
         try {
-          // Remove labels from Plex
-          if (entry.labelsApplied.length > 0) {
-            await deps.plexServer.removeSpecificLabels(
+          const labelsToRemove = labelsNoOneElseHolds(
+            entry.labelsApplied,
+            remainingUserRows(entry.plexRatingKey),
+          )
+          if (
+            labelsToRemove.length > 0 &&
+            !(await deps.plexServer.removeSpecificLabels(
               entry.plexRatingKey,
-              entry.labelsApplied,
+              labelsToRemove,
+            ))
+          ) {
+            deps.logger.warn(
+              { ratingKey: entry.plexRatingKey, labelsToRemove },
+              `Failed to remove orphaned labels from rating key ${entry.plexRatingKey}, keeping its tracking`,
             )
+            failedCount++
+            continue
           }
 
           // Delete tracking entry
@@ -587,30 +636,70 @@ export async function resetLabels(
         }
       }
     } else if (deps.removedLabelMode === 'special-label') {
-      // Replace existing labels with special "removed" label
+      const removedLabel = deps.removedLabelPrefix || 'pulsarr:removed'
       for (const entry of orphanedEntries) {
+        // An orphaned system row is an item that already carries the marker
+        if (entry.user_id === null) {
+          processedCount++
+          continue
+        }
         try {
-          // Remove existing labels and apply special removed label
-          const removedLabel = deps.removedLabelPrefix || 'pulsarr:removed'
-          await deps.plexServer.updateLabels(entry.plexRatingKey, [
-            removedLabel,
-          ])
+          const currentLabels = await deps.plexServer.getCurrentLabels(
+            entry.plexRatingKey,
+          )
+          if (currentLabels === null) {
+            deps.logger.warn(
+              { ratingKey: entry.plexRatingKey },
+              `Could not read labels on rating key ${entry.plexRatingKey}, keeping its tracking`,
+            )
+            failedCount++
+            continue
+          }
 
-          // Delete the old orphaned tracking entry first
+          const remainingRows = remainingUserRows(entry.plexRatingKey)
+          const ownLabels = labelsNoOneElseHolds(
+            entry.labelsApplied,
+            remainingRows,
+          )
+          const keptLabels = currentLabels.filter(
+            (label) => !includesLabelIgnoreCase(ownLabels, label),
+          )
+          const applyMarker = remainingRows.length === 0
+          const finalLabels = applyMarker
+            ? [...new Set([...keptLabels, removedLabel])]
+            : keptLabels.filter(
+                (label) => !isRemovedLabel(label, deps.removedLabelPrefix),
+              )
+
+          if (
+            !(await deps.plexServer.updateLabels(
+              entry.plexRatingKey,
+              finalLabels,
+            ))
+          ) {
+            deps.logger.warn(
+              { ratingKey: entry.plexRatingKey },
+              `Failed to update labels on rating key ${entry.plexRatingKey}, keeping its tracking`,
+            )
+            failedCount++
+            continue
+          }
+
           await deps.db.cleanupUserContentTracking(
             entry.guids,
             entry.contentType,
-            entry.user_id || null,
+            entry.user_id,
           )
 
-          // Create new tracking entry with removed label
-          await deps.db.trackPlexLabels(
-            entry.guids,
-            entry.contentType,
-            null, // System operation for removed labels
-            entry.plexRatingKey,
-            [removedLabel],
-          )
+          if (applyMarker) {
+            await deps.db.trackPlexLabels(
+              entry.guids,
+              entry.contentType,
+              null,
+              entry.plexRatingKey,
+              [removedLabel],
+            )
+          }
 
           processedCount++
         } catch (error) {

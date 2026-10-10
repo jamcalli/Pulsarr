@@ -80,21 +80,21 @@ export async function getMetadata(
  * @param serverUrl - The Plex server base URL
  * @param token - Authentication token for API access
  * @param log - Logger instance for operation tracking
- * @returns Promise resolving to array of label strings, or empty array if none found
+ * @returns Promise resolving to array of label strings, empty when the item has none, or null when the read failed
  */
 export async function getCurrentLabels(
   ratingKey: string,
   serverUrl: string,
   token: string,
   log: FastifyBaseLogger,
-): Promise<string[]> {
+): Promise<string[] | null> {
   try {
     log.debug(`Fetching metadata for rating key ${ratingKey}`)
     const metadata = await getMetadata(ratingKey, serverUrl, token, log)
 
     if (!metadata) {
       log.warn(`No metadata found for rating key ${ratingKey}`)
-      return []
+      return null
     }
 
     if (!metadata.Label) {
@@ -124,7 +124,7 @@ export async function getCurrentLabels(
       { error },
       `Error getting current labels for rating key "${ratingKey}":`,
     )
-    return []
+    return null
   }
 }
 
@@ -262,6 +262,14 @@ export async function removeSpecificLabels(
       log,
     )
 
+    if (currentLabels === null) {
+      log.warn(
+        { labelsToRemove, ratingKey },
+        `Could not read current labels for rating key ${ratingKey}, nothing removed`,
+      )
+      return false
+    }
+
     log.debug(
       {
         currentLabels,
@@ -271,12 +279,9 @@ export async function removeSpecificLabels(
     )
 
     if (currentLabels.length === 0) {
-      log.warn(
-        {
-          labelsToRemove,
-          ratingKey,
-        },
-        `No current labels found for rating key ${ratingKey}, cannot remove labels that don't exist. This may indicate a metadata API issue or the labels have already been removed.`,
+      log.debug(
+        { labelsToRemove, ratingKey },
+        `No current labels on rating key ${ratingKey}, nothing to remove`,
       )
       return true
     }
