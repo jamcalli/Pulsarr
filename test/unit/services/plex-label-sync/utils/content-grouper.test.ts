@@ -488,6 +488,51 @@ describe('content-grouper', () => {
       expect(result[0].allGuids).toEqual(['tmdb:123', 'imdb:tt123', 'tvdb:999'])
     })
 
+    it('should merge groups when a later row links a Plex key and a GUID set', async () => {
+      vi.mocked(mockDb.getUsersByIds).mockResolvedValue([
+        createMockUser(1, 'alice'),
+        createMockUser(2, 'bob'),
+        createMockUser(3, 'carol'),
+      ])
+
+      const result = await groupWatchlistItemsByContent(
+        [
+          {
+            id: 100,
+            user_id: 1,
+            guids: ['tmdb:123'],
+            title: 'Test Movie',
+            type: 'movie',
+            key: 'plex-key-1',
+          },
+          {
+            id: 101,
+            user_id: 2,
+            guids: ['imdb:tt123'],
+            title: 'Test Movie',
+            type: 'movie',
+            key: 'plex-key-2',
+          },
+          {
+            id: 102,
+            user_id: 3,
+            guids: ['tmdb:123'],
+            title: 'Test Movie',
+            type: 'movie',
+            key: 'plex-key-2',
+          },
+        ],
+        mockDb,
+        mockLogger,
+      )
+
+      expect(result).toHaveLength(1)
+      expect(result[0].users.map((user) => user.user_id).sort()).toEqual([
+        1, 2, 3,
+      ])
+      expect(result[0].allGuids.sort()).toEqual(['imdb:tt123', 'tmdb:123'])
+    })
+
     it('should handle empty watchlist items array', async () => {
       vi.mocked(mockDb.getUsersByIds).mockResolvedValue([])
 

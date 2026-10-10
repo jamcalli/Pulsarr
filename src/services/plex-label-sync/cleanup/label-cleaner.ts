@@ -32,13 +32,6 @@ import { cleanupTrackingForItems } from '../tracking/content-tracker.js'
 /**
  * Helper function to check if two arrays contain the same elements (order-independent)
  */
-function arraysHaveSameElements(arr1: string[], arr2: string[]): boolean {
-  if (arr1.length !== arr2.length) return false
-  const sorted1 = [...arr1].sort()
-  const sorted2 = [...arr2].sort()
-  return sorted1.every((val, idx) => val === sorted2[idx])
-}
-
 function itemsWithoutFailedKeys<T extends { id: number }>(
   items: T[],
   ratingKeysByItemId: Map<number, string[]>,
@@ -496,6 +489,8 @@ async function handleSpecialLabelModeForDeletedItems(
   try {
     // Get all tracked labels for these watchlist items
     const trackedLabels: PlexLabelTracking[] = []
+    const usersByRatingKey = new Map<string, Set<number>>()
+    const ratingKeysByItemId = new Map<number, string[]>()
 
     for (const item of watchlistItems) {
       // Get the full watchlist item to access the guids
@@ -535,6 +530,16 @@ async function handleSpecialLabelModeForDeletedItems(
       )
       // Get all labels for this content (needed to check if other users still have it)
       trackedLabels.push(...labels)
+      ratingKeysByItemId.set(
+        item.id,
+        labels.map((label) => label.plex_rating_key),
+      )
+      for (const tracking of labels) {
+        const users =
+          usersByRatingKey.get(tracking.plex_rating_key) ?? new Set<number>()
+        users.add(item.user_id)
+        usersByRatingKey.set(tracking.plex_rating_key, users)
+      }
     }
 
     if (trackedLabels.length === 0) {
@@ -549,34 +554,6 @@ async function handleSpecialLabelModeForDeletedItems(
         labelsByRatingKey.get(tracking.plex_rating_key) || []
       existingLabels.push(...tracking.labels_applied)
       labelsByRatingKey.set(tracking.plex_rating_key, existingLabels)
-    }
-
-    // Build map of rating key -> users removing that specific content
-    // This prevents users removing one piece of content from affecting other content in the batch
-    const usersByRatingKey = new Map<string, Set<number>>()
-    const ratingKeysByItemId = new Map<number, string[]>()
-
-    for (const item of watchlistItems) {
-      const itemData = itemDataMap.get(item.id)
-      if (!itemData) continue
-      const itemRatingKeys: string[] = []
-      ratingKeysByItemId.set(item.id, itemRatingKeys)
-
-      // Find all rating keys for this item's content by matching GUIDs and content type
-      for (const tracking of trackedLabels) {
-        // Check if this tracking entry matches this item's content
-        if (
-          tracking.content_type === itemData.contentType &&
-          arraysHaveSameElements(tracking.content_guids, itemData.guids)
-        ) {
-          // This rating key belongs to this item's content
-          const usersForRatingKey =
-            usersByRatingKey.get(tracking.plex_rating_key) || new Set<number>()
-          usersForRatingKey.add(item.user_id)
-          usersByRatingKey.set(tracking.plex_rating_key, usersForRatingKey)
-          itemRatingKeys.push(tracking.plex_rating_key)
-        }
-      }
     }
 
     const concurrencyLimit = deps.config.concurrencyLimit || 5

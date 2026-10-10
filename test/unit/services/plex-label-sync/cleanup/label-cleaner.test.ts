@@ -655,6 +655,62 @@ describe('label-cleaner', () => {
         )
       })
 
+      it('should keep tracking when the write for an overlapping GUID row fails', async () => {
+        const depsSpecial = {
+          ...baseDeps,
+          removedLabelMode: 'special-label' as const,
+        }
+
+        const watchlistItems = [
+          {
+            id: 1,
+            title: 'Test Movie',
+            key: 'test-key-1',
+            user_id: 1,
+            guids: ['imdb:tt0111161'],
+            contentType: 'movie' as const,
+          },
+        ]
+
+        vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+          createMockUser(1, 'alice'),
+        ])
+        vi.mocked(mockDb.getWatchlistItemById).mockResolvedValue({
+          user_id: 1,
+          guids: ['imdb:tt0111161'],
+          type: 'movie',
+          title: 'Test Movie',
+          key: 'test-key-1',
+          status: 'grabbed',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        vi.mocked(mockDb.getTrackedLabelsForContent).mockResolvedValue([
+          {
+            id: 1,
+            content_guids: ['imdb:tt0111161', 'tmdb:278'],
+            content_type: 'movie',
+            user_id: 1,
+            plex_rating_key: '12345',
+            labels_applied: ['pulsarr:alice'],
+            synced_at: new Date().toISOString(),
+          },
+        ])
+        vi.mocked(mockPlexServer.getCurrentLabels).mockResolvedValue([
+          'pulsarr:alice',
+        ])
+        vi.mocked(mockPlexServer.updateLabels).mockResolvedValue(false)
+
+        await cleanupLabelsForWatchlistItems(watchlistItems, depsSpecial)
+
+        expect(mockPlexServer.updateLabels).toHaveBeenCalledWith(
+          '12345',
+          expect.arrayContaining(['pulsarr:removed']),
+        )
+        expect(mockDb.cleanupUserContentTracking).not.toHaveBeenCalled()
+        expect(mockDb.trackPlexLabels).not.toHaveBeenCalled()
+      })
+
       it('should remove only specific user label when other users remain', async () => {
         const depsSpecial = {
           ...baseDeps,

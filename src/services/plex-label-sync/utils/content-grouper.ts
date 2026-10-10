@@ -18,6 +18,18 @@ import type { FastifyBaseLogger } from 'fastify'
  * @param logger - Logger instance
  * @returns Array of unique content items with their associated users
  */
+function addGuids(target: ContentWithUsers, guids: string[]): void {
+  for (const guid of guids) {
+    if (!target.allGuids.includes(guid)) target.allGuids.push(guid)
+  }
+}
+
+function mergeContent(target: ContentWithUsers, source: ContentWithUsers) {
+  addGuids(target, source.allGuids)
+  target.plexKey ??= source.plexKey
+  target.users.push(...source.users)
+}
+
 export async function groupWatchlistItemsByContent(
   watchlistItems: Array<{
     id: string | number
@@ -75,9 +87,19 @@ export async function groupWatchlistItemsByContent(
     const plexKey = item.key ? `${item.type}-${item.key}` : null
     const username = userMap.get(item.user_id) || `user_${item.user_id}`
 
-    const existingContentItem =
-      (plexKey ? contentByPlexKey.get(plexKey) : undefined) ??
-      contentByGuids.get(contentKey)
+    const byPlexKey = plexKey ? contentByPlexKey.get(plexKey) : undefined
+    const byGuids = contentByGuids.get(contentKey)
+    if (byPlexKey && byGuids && byPlexKey !== byGuids) {
+      mergeContent(byPlexKey, byGuids)
+      result.splice(result.indexOf(byGuids), 1)
+      for (const [key, value] of contentByGuids) {
+        if (value === byGuids) contentByGuids.set(key, byPlexKey)
+      }
+      for (const [key, value] of contentByPlexKey) {
+        if (value === byGuids) contentByPlexKey.set(key, byPlexKey)
+      }
+    }
+    const existingContentItem = byPlexKey ?? byGuids
     let contentItem: ContentWithUsers
 
     if (!existingContentItem) {
@@ -92,17 +114,8 @@ export async function groupWatchlistItemsByContent(
       }
       result.push(contentItem)
     } else {
-      // Merge GUIDs from additional items for the same content
-      const newGuids = parsedGuids.filter(
-        (guid) => !existingContentItem.allGuids.includes(guid),
-      )
-      existingContentItem.allGuids.push(...newGuids)
-
-      // Use the first non-null Plex key we find
-      if (!existingContentItem.plexKey && item.key) {
-        existingContentItem.plexKey = item.key
-      }
-
+      addGuids(existingContentItem, parsedGuids)
+      existingContentItem.plexKey ??= item.key
       contentItem = existingContentItem
     }
 
