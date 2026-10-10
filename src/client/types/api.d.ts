@@ -1316,6 +1316,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/radarr/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Probe Radarr routing options
+         * @description Read quality profiles, root folders and tags from a Radarr instance with unsaved credentials
+         */
+        post: operations["probeRadarr"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/radarr/quality-profiles": {
         parameters: {
             query?: never;
@@ -1731,6 +1751,26 @@ export interface paths {
          * @description Delete a Sonarr instance configuration
          */
         delete: operations["deleteSonarrInstance"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sonarr/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Probe Sonarr routing options
+         * @description Read quality profiles, root folders and tags from a Sonarr instance with unsaved credentials
+         */
+        post: operations["probeSonarr"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3296,6 +3336,27 @@ export interface components {
          * @enum {string}
          */
         ApprovalTrigger: "quota_exceeded" | "router_rule" | "manual_flag" | "content_criteria";
+        /**
+         * @description Why a Radarr or Sonarr connection check failed
+         * @enum {string}
+         */
+        ArrConnectionFailureCode: "unreachable" | "auth" | "invalid" | "webhook_callback_failed";
+        /** @description Instance save rejected because the arr could not reach the Pulsarr webhook */
+        ArrInstanceConflict: {
+            /** @description HTTP status code */
+            statusCode: number;
+            /** @description HTTP status text */
+            error: string;
+            /** @description Error detail, replaced with a generic string for 5xx */
+            message: string;
+            code: components["schemas"]["ArrConnectionFailureCode"];
+        };
+        /** @description Radarr or Sonarr connection test result, code is null on success */
+        ArrTestConnectionResponse: {
+            success: boolean;
+            message: string;
+            code: components["schemas"]["ArrConnectionFailureCode"] | null;
+        };
         /** @description Outcome of testing or registering the Pulsarr webhook in one arr instance */
         ArrWebhookResult: {
             instanceId: number;
@@ -3880,6 +3941,27 @@ export interface components {
          * @enum {string}
          */
         RadarrMonitor: "movieOnly" | "movieAndCollection" | "none";
+        /** @description Quality profiles, root folders and tags read from Radarr with unsaved credentials */
+        RadarrProbeResponse: {
+            /** @constant */
+            success: true;
+            qualityProfiles: ({
+                id: number;
+                name: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            rootFolders: ({
+                id: number;
+                path: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            tags: {
+                id: number;
+                label: string;
+            }[];
+        };
         /** @description Ratings for a movie as reported by Radarr. */
         RadarrRatings: {
             imdb?: {
@@ -4295,6 +4377,27 @@ export interface components {
          * @enum {string}
          */
         SonarrMonitorNewItems: "all" | "none";
+        /** @description Quality profiles, root folders and tags read from Sonarr with unsaved credentials */
+        SonarrProbeResponse: {
+            /** @constant */
+            success: true;
+            qualityProfiles: ({
+                id: number;
+                name: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            rootFolders: ({
+                id: number;
+                path: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            tags: {
+                id: number;
+                label: string;
+            }[];
+        };
         /**
          * @description Rolling monitoring strategy for a show
          * @enum {string}
@@ -8829,6 +8932,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrInstanceConflict"];
+                };
+            };
             /** @description Rate limit exceeded */
             429: {
                 headers: {
@@ -8913,6 +9025,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrInstanceConflict"];
+                };
+            };
             /** @description Rate limit exceeded */
             429: {
                 headers: {
@@ -8953,6 +9074,60 @@ export interface operations {
             };
             /** @description Default Response */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    probeRadarr: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    baseUrl: string;
+                    apiKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarrProbeResponse"];
+                };
+            };
+            /** @description Default Response */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9213,10 +9388,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["ArrTestConnectionResponse"];
                 };
             };
             /** @description Rate limit exceeded */
@@ -10336,6 +10508,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrInstanceConflict"];
+                };
+            };
             /** @description Rate limit exceeded */
             429: {
                 headers: {
@@ -10406,6 +10587,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Default Response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrInstanceConflict"];
+                };
+            };
             /** @description Rate limit exceeded */
             429: {
                 headers: {
@@ -10446,6 +10636,60 @@ export interface operations {
             };
             /** @description Default Response */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Default Response */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    probeSonarr: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    baseUrl: string;
+                    apiKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Default Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SonarrProbeResponse"];
+                };
+            };
+            /** @description Default Response */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10706,10 +10950,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                    };
+                    "application/json": components["schemas"]["ArrTestConnectionResponse"];
                 };
             };
             /** @description Rate limit exceeded */

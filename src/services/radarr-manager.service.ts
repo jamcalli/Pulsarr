@@ -679,12 +679,26 @@ export class RadarrManagerService {
       this.log.error({ error }, 'Error testing Radarr connection')
       return {
         success: false,
+        code: 'unreachable',
         message:
           error instanceof Error
             ? error.message
             : 'Unknown error testing connection',
       }
     }
+  }
+
+  async probe(
+    baseUrl: string,
+    apiKey: string,
+  ): ReturnType<RadarrService['probe']> {
+    const tempService = new RadarrService(
+      this.baseLog,
+      this.appBaseUrl,
+      this.port,
+      this.fastify,
+    )
+    return tempService.probe(baseUrl, apiKey)
   }
 
   private async webhookResults(

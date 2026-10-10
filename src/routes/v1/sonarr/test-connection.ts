@@ -32,8 +32,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         )
 
         return {
-          success: result.success,
-          message: result.message,
+          ...result,
+          message: stripArrApiErrorPrefix('sonarr', result.message),
         }
       } catch (error) {
         logRouteError(fastify.log, request, error, {

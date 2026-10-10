@@ -1,3 +1,4 @@
+import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import { handleArrInstanceError, logRouteError } from '@utils/route-errors.js'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { describe, expect, it } from 'vitest'
@@ -215,6 +216,9 @@ describe('route-errors', () => {
         notFound: (msg: string) => ({ status: 404, message: msg }),
         badRequest: (msg: string) => ({ status: 400, message: msg }),
         internalServerError: (msg: string) => ({ status: 500, message: msg }),
+        code: (status: number) => ({
+          send: (body: object) => ({ status, body }),
+        }),
       } as unknown as FastifyReply
     }
 
@@ -238,50 +242,24 @@ describe('route-errors', () => {
       expect(result).toEqual({ status: 404, message: 'Resource not found' })
     })
 
-    it('should return badRequest for Unable to send test message', () => {
+    it('should return conflict with a code for webhook callback failures', () => {
       const reply = createMockReply()
-      const error = new Error('Unable to send test message to webhook')
+      const error = new WebhookCallbackError(
+        'Radarr API error: Unable to send test message: Connection refused',
+      )
       const result = handleArrInstanceError(error, reply, {
         service: 'radarr',
         defaultMessage: 'Failed',
       })
       expect(result).toEqual({
-        status: 400,
-        message: 'Unable to send test message to webhook',
+        status: 409,
+        body: {
+          statusCode: 409,
+          error: 'Conflict',
+          message: 'Unable to send test message: Connection refused',
+          code: 'webhook_callback_failed',
+        },
       })
-    })
-
-    it('should return badRequest for Unable to post to webhook', () => {
-      const reply = createMockReply()
-      const error = new Error('Unable to post to webhook')
-      const result = handleArrInstanceError(error, reply, {
-        service: 'radarr',
-        defaultMessage: 'Failed',
-      })
-      expect(result).toEqual({
-        status: 400,
-        message: 'Unable to post to webhook',
-      })
-    })
-
-    it('should return badRequest for Connection refused errors', () => {
-      const reply = createMockReply()
-      const error = new Error('Connection refused')
-      const result = handleArrInstanceError(error, reply, {
-        service: 'sonarr',
-        defaultMessage: 'Failed',
-      })
-      expect(result).toEqual({ status: 400, message: 'Connection refused' })
-    })
-
-    it('should return badRequest for Name does not resolve errors', () => {
-      const reply = createMockReply()
-      const error = new Error('Name does not resolve')
-      const result = handleArrInstanceError(error, reply, {
-        service: 'radarr',
-        defaultMessage: 'Failed',
-      })
-      expect(result).toEqual({ status: 400, message: 'Name does not resolve' })
     })
 
     it('should return badRequest for Cannot remove default errors', () => {
@@ -332,7 +310,7 @@ describe('route-errors', () => {
         defaultMessage: 'Failed',
       })
       expect(result).toEqual({
-        status: 400,
+        status: 500,
         message: 'Failed to save settings: Connection refused',
       })
     })

@@ -160,12 +160,26 @@ export class SonarrManagerService {
       this.log.error({ error }, 'Error testing Sonarr connection')
       return {
         success: false,
+        code: 'unreachable',
         message:
           error instanceof Error
             ? error.message
             : 'Unknown error testing connection',
       }
     }
+  }
+
+  async probe(
+    baseUrl: string,
+    apiKey: string,
+  ): ReturnType<SonarrService['probe']> {
+    const tempService = new SonarrService(
+      this.baseLog,
+      this.appBaseUrl,
+      this.port,
+      this.fastify,
+    )
+    return tempService.probe(baseUrl, apiKey)
   }
 
   async fetchAllSeries(bypassExclusions?: boolean): Promise<SonarrItem[]> {

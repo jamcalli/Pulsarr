@@ -1,3 +1,4 @@
+import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import { PlaceholderResetError } from '@utils/arr-default-instance.js'
 import { InvalidSeasonMonitoringError } from '@utils/season-monitoring.js'
 import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify'
@@ -139,6 +140,15 @@ export function handleArrInstanceError(
 ): ReturnType<FastifyReply['send']> {
   const { service, defaultMessage } = options
 
+  if (error instanceof WebhookCallbackError) {
+    return reply.code(409).send({
+      statusCode: 409,
+      error: 'Conflict',
+      message: stripArrApiErrorPrefix(service, error.message),
+      code: 'webhook_callback_failed',
+    })
+  }
+
   if (
     error instanceof InvalidSeasonMonitoringError ||
     error instanceof PlaceholderResetError
@@ -158,16 +168,6 @@ export function handleArrInstanceError(
     }
     if (error.message.includes('not found')) {
       return reply.notFound(userMessage)
-    }
-    // Webhook callback failures - detected by message patterns from *arr APIs
-    // Patterns: HTTP-level ("Unable to send test message") and connection-level errors
-    if (
-      error.message.includes('Unable to send test message') ||
-      error.message.includes('Unable to post to webhook') ||
-      error.message.includes('Connection refused') ||
-      error.message.includes('Name does not resolve')
-    ) {
-      return reply.badRequest(userMessage)
     }
     // Default instance validation errors from DB (e.g., "Cannot remove default status...")
     if (error.message.includes('Cannot remove default')) {

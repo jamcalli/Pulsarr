@@ -448,3 +448,95 @@ describe('SonarrService webhook setup', () => {
     })
   })
 })
+
+describe('SonarrService webhook definition', () => {
+  const fastify = {
+    server: { listening: true },
+    config: { basePath: '/', webhookSecret: 'secret' },
+  } as unknown as FastifyInstance
+
+  it('tests the same webhook definition that setupWebhook registers', async () => {
+    const bodies: { test?: object; create?: object } = {}
+    server.use(
+      http.get('http://sonarr.test/api/v3/system/status', () =>
+        HttpResponse.json({
+          appName: 'Sonarr',
+          version: '4.0.0',
+          branch: 'main',
+          authentication: 'forms',
+        }),
+      ),
+      http.get('http://sonarr.test/api/v3/notification', () =>
+        HttpResponse.json([]),
+      ),
+      http.post(
+        'http://sonarr.test/api/v3/notification/test',
+        async ({ request }) => {
+          bodies.test = (await request.json()) as object
+          return HttpResponse.json('{}')
+        },
+      ),
+      http.post(
+        'http://sonarr.test/api/v3/notification',
+        async ({ request }) => {
+          bodies.create = (await request.json()) as object
+          return HttpResponse.json({ id: 1 }, { status: 201 })
+        },
+      ),
+    )
+
+    const tester = new SonarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+    const result = await tester.testConnection('http://sonarr.test', 'key')
+    expect(result).toEqual({
+      success: true,
+      code: null,
+      message: 'Connection successful and webhook API accessible',
+    })
+
+    const registrar = new SonarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify,
+    )
+    await registrar.initialize({ ...INSTANCE, apiKey: 'key' })
+
+    expect(bodies.test).toBeDefined()
+    expect(bodies.test).toEqual(bodies.create)
+  })
+})
+
+describe('SonarrService.probe', () => {
+  it('reads the routing options with credentials and never initializes', async () => {
+    server.use(
+      http.get('http://sonarr.test/api/v3/qualityprofile', () =>
+        HttpResponse.json([{ id: 3, name: 'HD' }]),
+      ),
+      http.get('http://sonarr.test/api/v3/rootfolder', () =>
+        HttpResponse.json([{ id: 1, path: '/media' }]),
+      ),
+      http.get('http://sonarr.test/api/v3/tag', () =>
+        HttpResponse.json([{ id: 5, label: 'kids' }]),
+      ),
+    )
+    const service = new SonarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      {} as FastifyInstance,
+    )
+    const initialize = vi.spyOn(service, 'initialize')
+
+    await expect(service.probe('http://sonarr.test', 'key')).resolves.toEqual({
+      qualityProfiles: [{ id: 3, name: 'HD' }],
+      rootFolders: [{ id: 1, path: '/media' }],
+      tags: [{ id: 5, label: 'kids' }],
+    })
+    expect(initialize).not.toHaveBeenCalled()
+  })
+})

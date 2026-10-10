@@ -282,6 +282,34 @@ const arrWebhookHandlers = (['sonarr', 'radarr'] as const).flatMap((arr) => {
   ]
 })
 
+export const sonarrRootFolderHandler = http.get(
+  'http://test-sonarr:8989/api/v3/rootfolder',
+  () => {
+    return HttpResponse.json([])
+  },
+)
+
+export const radarrRootFolderHandler = http.get(
+  'http://test-radarr:7878/api/v3/rootfolder',
+  () => {
+    return HttpResponse.json([])
+  },
+)
+
+export const sonarrTagHandler = http.get(
+  'http://test-sonarr:8989/api/v3/tag',
+  () => {
+    return HttpResponse.json([])
+  },
+)
+
+export const radarrTagHandler = http.get(
+  'http://test-radarr:7878/api/v3/tag',
+  () => {
+    return HttpResponse.json([])
+  },
+)
+
 export const plexApiHandlers = [
   plexResourcesHandler,
   plexUsersHandler,
@@ -296,4 +324,9 @@ export const plexApiHandlers = [
   sonarrQualityProfileHandler,
   radarrQualityProfileHandler,
   ...arrWebhookHandlers,
+
+  sonarrRootFolderHandler,
+  radarrRootFolderHandler,
+  sonarrTagHandler,
+  radarrTagHandler,
 ]
