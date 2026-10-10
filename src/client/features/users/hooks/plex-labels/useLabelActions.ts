@@ -81,7 +81,8 @@ export function useLabelActions(
   return {
     actions,
     anyRunning: cleanup.running || remove.running,
-    removedSinceSync: remove.result?.data.success ?? false,
+    removedSinceSync:
+      remove.result?.data.success && remove.result.data.results.failed === 0,
     run: (id: Exclude<LabelActionId, 'remove'>) => ({ cleanup })[id].run(),
     runRemove: () => remove.run(),
   }

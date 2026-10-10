@@ -49,6 +49,7 @@ function mockEndpoints({
   scheduleStatus = 200,
   schedule = makeSchedule(),
   saved = plexLabelSync,
+  removeFailed = 0,
 } = {}) {
   const savedConfig = { plexLabelSync: saved }
   const configBodies: unknown[] = []
@@ -93,7 +94,7 @@ function mockEndpoints({
         success: true,
         message: 'Removed 9 Pulsarr labels from 7 items',
         mode: 'remove',
-        results: { processed: 7, removed: 9, failed: 0 },
+        results: { processed: 7, removed: 9, failed: removeFailed },
       })
     }),
   )
@@ -340,6 +341,22 @@ describe('PlexLabelsPage', () => {
     expect(
       screen.queryByText('Remove all Pulsarr labels to change the format.'),
     ).not.toBeInTheDocument()
+  })
+
+  it('keeps the format locked when some labels failed to be removed', async () => {
+    const user = userEvent.setup()
+    mockEndpoints({ removeFailed: 2 })
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Remove' }))
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Remove labels',
+      }),
+    )
+
+    expect(await screen.findByText('Labels removed')).toBeInTheDocument()
+    expect(screen.getByLabelText('Prefix')).toBeDisabled()
   })
 
   it('leaves a custom schedule untouched when saving other changes', async () => {

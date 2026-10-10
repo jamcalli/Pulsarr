@@ -61,8 +61,15 @@ export class PlexLabelSyncService {
     return this.fastify.db
   }
 
+  private get labelPrefix(): string {
+    return this.config.labelPrefix || PLEX_LABEL_SYNC_DEFAULTS.labelPrefix
+  }
+
   private get removedLabelPrefix(): string {
-    return this.config.removedLabelPrefix
+    return (
+      this.config.removedLabelPrefix ||
+      PLEX_LABEL_SYNC_DEFAULTS.removedLabelPrefix
+    )
   }
 
   async syncLabelsOnWebhook(webhook: WebhookPayload): Promise<boolean> {
@@ -74,7 +81,7 @@ export class PlexLabelSyncService {
       radarrManager: this.fastify.radarrManager,
       sonarrManager: this.fastify.sonarrManager,
       fastify: this.fastify,
-      labelPrefix: this.config.labelPrefix,
+      labelPrefix: this.labelPrefix,
       removedLabelPrefix: this.removedLabelPrefix,
       removedLabelMode: this.removedLabelMode,
       tagPrefix: this.fastify.config.tagPrefix || 'pulsarr-user',
@@ -165,7 +172,7 @@ export class PlexLabelSyncService {
       radarrManager: this.fastify.radarrManager,
       sonarrManager: this.fastify.sonarrManager,
       fastify: this.fastify,
-      labelPrefix: this.config.labelPrefix,
+      labelPrefix: this.labelPrefix,
       removedLabelPrefix: this.removedLabelPrefix,
       removedLabelMode: this.removedLabelMode,
       tagPrefix: this.fastify.config.tagPrefix || 'pulsarr-user',
@@ -262,7 +269,7 @@ export class PlexLabelSyncService {
       radarrManager: this.fastify.radarrManager,
       sonarrManager: this.fastify.sonarrManager,
       fastify: this.fastify,
-      labelPrefix: this.config.labelPrefix,
+      labelPrefix: this.labelPrefix,
       removedLabelPrefix: this.removedLabelPrefix,
       removedLabelMode: this.removedLabelMode,
       tagPrefix: this.fastify.config.tagPrefix || 'pulsarr-user',
@@ -282,7 +289,7 @@ export class PlexLabelSyncService {
       logger: this.log,
       config: this.config,
       fastify: this.fastify,
-      labelPrefix: this.config.labelPrefix,
+      labelPrefix: this.labelPrefix,
       removedLabelPrefix: this.removedLabelPrefix,
       removedLabelMode: this.removedLabelMode,
     })
@@ -306,7 +313,7 @@ export class PlexLabelSyncService {
         radarrManager: this.fastify.radarrManager,
         sonarrManager: this.fastify.sonarrManager,
         fastify: this.fastify,
-        labelPrefix: this.config.labelPrefix,
+        labelPrefix: this.labelPrefix,
         removedLabelPrefix: this.removedLabelPrefix,
         removedLabelMode: this.removedLabelMode,
         tagPrefix: this.fastify.config.tagPrefix || 'pulsarr-user',
@@ -332,7 +339,7 @@ export class PlexLabelSyncService {
       logger: this.log,
       config: this.config,
       fastify: this.fastify,
-      labelPrefix: this.config.labelPrefix,
+      labelPrefix: this.labelPrefix,
       removedLabelPrefix: this.removedLabelPrefix,
       removedLabelMode: this.removedLabelMode,
     })
