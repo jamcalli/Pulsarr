@@ -1,8 +1,9 @@
 import type { Knex } from 'knex'
+import { isPostgreSQL } from '../utils/clientDetection.js'
 
 // Postgres only: its unique index treats NULL user_ids as distinct, SQLite's upsert already finds the NULL row first
 export async function up(knex: Knex): Promise<void> {
-  if (knex.client.config.client !== 'pg') return
+  if (!isPostgreSQL(knex)) return
 
   // The surviving row takes every label the group tracked, or Pulsarr would forget labels it wrote
   await knex.raw(`
@@ -41,7 +42,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-  if (knex.client.config.client !== 'pg') return
+  if (!isPostgreSQL(knex)) return
 
   await knex.raw('DROP INDEX IF EXISTS plex_label_tracking_content_unique')
   await knex.raw(`
