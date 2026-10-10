@@ -46,7 +46,14 @@ export class PlexLabelSyncService {
   }
 
   private get config(): PlexLabelSyncConfig {
-    return this.fastify.config.plexLabelSync ?? PLEX_LABEL_SYNC_DEFAULTS
+    const stored = this.fastify.config.plexLabelSync ?? PLEX_LABEL_SYNC_DEFAULTS
+    return {
+      ...stored,
+      labelPrefix: stored.labelPrefix || PLEX_LABEL_SYNC_DEFAULTS.labelPrefix,
+      removedLabelPrefix:
+        stored.removedLabelPrefix ||
+        PLEX_LABEL_SYNC_DEFAULTS.removedLabelPrefix,
+    }
   }
 
   private get removedLabelMode(): PlexLabelSyncConfig['removedLabelMode'] {
@@ -62,14 +69,11 @@ export class PlexLabelSyncService {
   }
 
   private get labelPrefix(): string {
-    return this.config.labelPrefix || PLEX_LABEL_SYNC_DEFAULTS.labelPrefix
+    return this.config.labelPrefix
   }
 
   private get removedLabelPrefix(): string {
-    return (
-      this.config.removedLabelPrefix ||
-      PLEX_LABEL_SYNC_DEFAULTS.removedLabelPrefix
-    )
+    return this.config.removedLabelPrefix
   }
 
   async syncLabelsOnWebhook(webhook: WebhookPayload): Promise<boolean> {
