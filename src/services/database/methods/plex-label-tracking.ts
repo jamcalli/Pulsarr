@@ -117,7 +117,6 @@ export async function trackPlexLabelsBulk(
                 ).sort(),
               )
 
-              // Use PostgreSQL-specific atomic upsert with unique constraint
               this.log.debug(
                 {
                   guidsJson,
@@ -130,6 +129,7 @@ export async function trackPlexLabelsBulk(
                 'Executing PostgreSQL upsert',
               )
 
+              // Conflict target must match the plex_label_tracking_content_unique expression index exactly
               const result = await trx.raw(
                 `
                   INSERT INTO plex_label_tracking (
@@ -141,7 +141,7 @@ export async function trackPlexLabelsBulk(
                     synced_at
                   )
                   VALUES (?::jsonb, ?, ?, ?, ?::jsonb, ?)
-                  ON CONFLICT (md5(content_guids::text), user_id, content_type, plex_rating_key)
+                  ON CONFLICT (md5(content_guids::text), COALESCE(user_id, -1), content_type, plex_rating_key)
                   DO UPDATE SET
                     content_guids = excluded.content_guids,
                     plex_rating_key = excluded.plex_rating_key,
@@ -451,7 +451,7 @@ export async function untrackPlexLabelBulk(
                         '[]'::jsonb
                       ),
                       synced_at = ?
-                    WHERE user_id = ?
+                    WHERE user_id IS NOT DISTINCT FROM ?
                       AND plex_rating_key = ?
                       AND EXISTS (
                         SELECT 1 FROM jsonb_array_elements_text(content_guids) elem 
@@ -470,7 +470,7 @@ export async function untrackPlexLabelBulk(
                   ),
                   deleted_records AS (
                     DELETE FROM plex_label_tracking
-                    WHERE user_id = ?
+                    WHERE user_id IS NOT DISTINCT FROM ?
                       AND plex_rating_key = ?
                       AND EXISTS (
                         SELECT 1 FROM jsonb_array_elements_text(content_guids) elem 

@@ -31,7 +31,9 @@ export async function groupWatchlistItemsByContent(
   logger: FastifyBaseLogger,
   namingSource: NamingSource = 'username',
 ): Promise<ContentWithUsers[]> {
-  const contentMap = new Map<string, ContentWithUsers>()
+  const result: ContentWithUsers[] = []
+  const contentByGuids = new Map<string, ContentWithUsers>()
+  const contentByPlexKey = new Map<string, ContentWithUsers>()
 
   // Get all unique user IDs to fetch usernames
   const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
@@ -69,12 +71,13 @@ export async function groupWatchlistItemsByContent(
       continue
     }
 
-    // Create content-type-aware grouping key using sorted GUIDs for consistent grouping
-    const sortedGuids = [...parsedGuids].sort()
-    const contentKey = `${item.type}-${JSON.stringify(sortedGuids)}`
+    const contentKey = `${item.type}-${JSON.stringify([...parsedGuids].sort())}`
+    const plexKey = item.key ? `${item.type}-${item.key}` : null
     const username = userMap.get(item.user_id) || `user_${item.user_id}`
 
-    const existingContentItem = contentMap.get(contentKey)
+    const existingContentItem =
+      (plexKey ? contentByPlexKey.get(plexKey) : undefined) ??
+      contentByGuids.get(contentKey)
     let contentItem: ContentWithUsers
 
     if (!existingContentItem) {
@@ -87,7 +90,7 @@ export async function groupWatchlistItemsByContent(
         plexKey: item.key,
         users: [],
       }
-      contentMap.set(contentKey, contentItem)
+      result.push(contentItem)
     } else {
       // Merge GUIDs from additional items for the same content
       const newGuids = parsedGuids.filter(
@@ -103,6 +106,13 @@ export async function groupWatchlistItemsByContent(
       contentItem = existingContentItem
     }
 
+    if (!contentByGuids.has(contentKey)) {
+      contentByGuids.set(contentKey, contentItem)
+    }
+    if (plexKey && !contentByPlexKey.has(plexKey)) {
+      contentByPlexKey.set(plexKey, contentItem)
+    }
+
     // Add user to this content
     contentItem.users.push({
       user_id: item.user_id,
@@ -111,7 +121,6 @@ export async function groupWatchlistItemsByContent(
     })
   }
 
-  const result = Array.from(contentMap.values())
   logger.info(
     {
       watchlistItemCount: watchlistItems.length,
