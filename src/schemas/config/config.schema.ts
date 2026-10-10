@@ -1,7 +1,10 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { HttpUrlOptionalSchema } from '@root/schemas/common/url.schema.js'
 import { UserNamingSourceSchema } from '@root/schemas/common/user-naming-source.schema.js'
-import { PlexLabelSyncConfigSchema } from '@root/schemas/plex/label-sync-config.schema.js'
+import {
+  PlexLabelSyncConfigPayloadSchema,
+  PlexLabelSyncConfigSchema,
+} from '@root/schemas/plex/label-sync-config.schema.js'
 import {
   RemovedTagPrefixSchema,
   TagPrefixSchema,
@@ -398,7 +401,6 @@ export const ConfigFullSchema = z
     deleteSyncRequiredTagRegex: z.string(),
     enablePlexPlaylistProtection: z.boolean(),
     plexProtectionPlaylistName: z.string(),
-    // Plex Label Sync Configuration - getConfig() always returns this with defaults
     plexLabelSync: PlexLabelSyncConfigSchema,
     // RSS Config
     selfRss: z.string().optional(),
@@ -561,8 +563,7 @@ export const ConfigUpdateSchema = z
     // Primary token user: checks ALL accessible servers (owned + shared)
     // Friend/other users: checks ONLY the owned server (no access tokens for shared)
     skipIfExistsOnPlex: z.boolean().optional(),
-    // Plex Label Sync Configuration - nested object following complex config pattern
-    plexLabelSync: PlexLabelSyncConfigSchema.optional(),
+    plexLabelSync: PlexLabelSyncConfigPayloadSchema.optional(),
     // RSS and other settings
     selfRss: z.string().optional(),
     friendsRss: z.string().optional(),

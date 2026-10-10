@@ -111,7 +111,7 @@ function QuotaSettings({
               {(field) => (
                 <field.ScheduleField
                   label="Run at"
-                  description="Starts on the hour, in the server's time zone."
+                  description="In the server's time zone."
                   disabled={!scheduleOn}
                 />
               )}
@@ -173,7 +173,7 @@ function QuotaSettings({
               {(field) => (
                 <field.NumberField
                   label="Keep usage history for"
-                  description="Keep it at least as long as your longest quota period so cleanup never removes a request that still counts."
+                  description="At least your longest quota period, or cleanup deletes requests that still count."
                   unit="day"
                   min={QUOTA_USAGE_RETENTION_DAYS.min}
                   max={QUOTA_USAGE_RETENTION_DAYS.max}
@@ -198,7 +198,7 @@ function QuotaSettings({
               {(field) => (
                 <field.SwitchField
                   label="Notify the user"
-                  description="Also notifies the user who reached the cap by Discord direct message or Apprise, when they have those turned on."
+                  description="Also notifies the user by Discord or Apprise, if they use them."
                 />
               )}
             </configForm.AppField>

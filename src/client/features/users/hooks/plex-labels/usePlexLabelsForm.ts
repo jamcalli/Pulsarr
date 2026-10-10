@@ -1,4 +1,4 @@
-import { ApprovalSettingsFormSchema } from '@/features/requests/lib/approval-settings-form.schema'
+import { PlexLabelsFormSchema } from '@/features/users/lib/plex-labels-form.schema'
 import type { ScheduleStatus } from '@/hooks/useSchedule'
 import { useScheduledConfigForm } from '@/hooks/useScheduledConfigForm'
 import type { components } from '@/types/api.js'
@@ -6,20 +6,14 @@ import type { components } from '@/types/api.js'
 type Config = components['schemas']['Config']
 
 function toConfigValues(config: Config) {
-  return {
-    approvalNotify: config.approvalNotify,
-    approvalExpiration: config.approvalExpiration,
-  }
+  return { plexLabelSync: config.plexLabelSync }
 }
 
-export function useApprovalSettingsForm(
-  config: Config,
-  schedule: ScheduleStatus,
-) {
+export function usePlexLabelsForm(config: Config, schedule: ScheduleStatus) {
   return useScheduledConfigForm({
     config,
     schedule,
     toValues: toConfigValues,
-    schema: ApprovalSettingsFormSchema,
+    schema: PlexLabelsFormSchema,
   })
 }

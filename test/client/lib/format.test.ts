@@ -2,7 +2,6 @@ import {
   formatCount,
   formatCurrency,
   formatDateTime,
-  formatHour,
   formatLanguage,
   formatList,
   formatNumber,
@@ -11,6 +10,7 @@ import {
   formatRelative,
   formatRuntime,
   formatTime,
+  formatTimeOfDay,
   formatWeekday,
   formatYear,
   pluralize,
@@ -84,14 +84,14 @@ describe('format', () => {
     expect(formatRelative(new Date(now - 2 * day), now)).toBe('2 days ago')
   })
 
-  it('names the start of an hour in the locale clock', () => {
+  it('names a time of day in the locale clock', () => {
     setFormatLocale('en-US')
-    expect(formatHour(3)).toMatch(/^3:00\sAM$/)
-    expect(formatHour(15)).toMatch(/^3:00\sPM$/)
+    expect(formatTimeOfDay(3, 0)).toMatch(/^3:00\sAM$/)
+    expect(formatTimeOfDay(15, 45)).toMatch(/^3:45\sPM$/)
     setFormatLocale('en-GB')
-    expect(formatHour(3)).toBe('03:00')
+    expect(formatTimeOfDay(3, 15)).toBe('03:15')
     setFormatLocale('de-DE')
-    expect(formatHour(15)).toBe('15:00')
+    expect(formatTimeOfDay(15, 0)).toBe('15:00')
   })
 
   it('names a cron day of the week with Sunday as 0', () => {

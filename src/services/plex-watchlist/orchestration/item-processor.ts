@@ -1,3 +1,4 @@
+import { PLEX_LABEL_CONCURRENCY } from '@root/schemas/plex/label-sync-config.schema.js'
 import type { Config } from '@root/types/config.types.js'
 import type {
   Friend,
@@ -180,8 +181,7 @@ export async function processAndSaveNewItems(
 
           const itemMap = new Map(itemsToInsert.map((item) => [item.key, item]))
 
-          const concurrencyLimit = config.plexLabelSync?.concurrencyLimit || 5
-          const limit = pLimit(concurrencyLimit)
+          const limit = pLimit(PLEX_LABEL_CONCURRENCY)
 
           const syncResults = await Promise.allSettled(
             insertedResults.map(({ id, key }) =>

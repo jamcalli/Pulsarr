@@ -184,7 +184,6 @@ export const SEED_CONFIGS = [
       enabled: false,
       labelPrefix: 'pulsarr',
       labelNamingSource: 'username',
-      concurrencyLimit: 5,
       cleanupOrphanedLabels: false,
       removedLabelMode: 'keep',
       removedLabelPrefix: 'pulsarr:removed',

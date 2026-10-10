@@ -10,10 +10,12 @@ import {
 } from '@/components/ui/select'
 import { useFieldContext } from '@/lib/form-context'
 import {
-  cronForDayHour,
-  parseDayHourCron,
+  cronForDayTime,
+  parseDayTimeCron,
   scheduleDayOptions,
-  scheduleHourOptions,
+  scheduleTimeOptions,
+  scheduleTimeValue,
+  timeFromScheduleValue,
 } from '@/lib/schedule'
 import { withStoredOption } from '@/lib/select-options'
 
@@ -33,11 +35,11 @@ export function ScheduleField({
   const field = useFieldContext<string>()
   const labelId = `${field.name}-label`
   const expression = field.state.value
-  const schedule = parseDayHourCron(expression)
+  const schedule = parseDayTimeCron(expression)
   const dayOptions = scheduleDayOptions()
   const custom = schedule || expression === '' ? null : expression
   const dayItems = withStoredOption(dayOptions, custom, `Custom: ${custom}`)
-  const hourItems = scheduleHourOptions()
+  const timeItems = scheduleTimeOptions(schedule)
 
   const selects = [
     {
@@ -49,19 +51,28 @@ export function ScheduleField({
         const day = dayOptions.find((option) => option.value === next)
         if (!day) return
         field.handleChange(
-          cronForDayHour({ day: day.value, hour: schedule?.hour ?? 0 }),
+          cronForDayTime({
+            day: day.value,
+            hour: schedule?.hour ?? 0,
+            minute: schedule?.minute ?? 0,
+          }),
         )
       },
     },
     {
-      ariaLabel: 'Hour',
-      placeholder: 'Pick an hour',
-      items: hourItems,
-      value: schedule ? String(schedule.hour) : null,
+      ariaLabel: 'Time',
+      placeholder: 'Pick a time',
+      items: timeItems,
+      value: schedule
+        ? scheduleTimeValue(schedule.hour, schedule.minute)
+        : null,
       onChange: (next: string | null) => {
         if (next === null) return
         field.handleChange(
-          cronForDayHour({ day: schedule?.day ?? '*', hour: Number(next) }),
+          cronForDayTime({
+            day: schedule?.day ?? '*',
+            ...timeFromScheduleValue(next),
+          }),
         )
       },
     },

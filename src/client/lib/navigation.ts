@@ -68,9 +68,10 @@ export const NAV_PAGES = {
     ...page('User tags', '/users/tags', ['/utilities/user-tags']),
     rebuilt: true,
   },
-  plexLabels: page('Plex labels', '/users/plex-labels', [
-    '/utilities/plex-labels',
-  ]),
+  plexLabels: {
+    ...page('Plex labels', '/users/plex-labels', ['/utilities/plex-labels']),
+    rebuilt: true,
+  },
   radarr: page('Radarr', '/library/radarr', ['/radarr/instances']),
   sonarr: page('Sonarr', '/library/sonarr', ['/sonarr/instances']),
   contentRouter: {

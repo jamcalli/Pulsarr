@@ -1,6 +1,10 @@
 import crypto from 'node:crypto'
 import { resolve } from 'node:path'
 import env from '@fastify/env'
+import {
+  PLEX_LABEL_SYNC_DEFAULTS,
+  type PlexLabelSyncConfig,
+} from '@root/schemas/plex/label-sync-config.schema.js'
 import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import type { Config, RawConfig } from '@root/types/config.types.js'
@@ -55,24 +59,6 @@ const DEFAULT_APPROVAL_EXPIRATION = {
   expirationAction: 'expire' as const,
   autoApproveOnQuotaAvailable: false,
   cleanupExpiredDays: 30,
-}
-
-const DEFAULT_PLEX_LABEL_SYNC = {
-  enabled: false,
-  labelPrefix: 'pulsarr',
-  labelNamingSource: 'username',
-  concurrencyLimit: 5,
-  cleanupOrphanedLabels: false,
-  removedLabelMode: 'remove' as const,
-  removedLabelPrefix: 'pulsarr:removed',
-  autoResetOnScheduledSync: false,
-  scheduleTime: undefined,
-  dayOfWeek: '*',
-  tagSync: {
-    enabled: false,
-    syncRadarrTags: true,
-    syncSonarrTags: true,
-  },
 }
 
 const schema = {
@@ -519,7 +505,7 @@ const schema = {
     // Plex Label Sync Configuration - nested object following complex config pattern
     plexLabelSync: {
       type: 'string',
-      default: JSON.stringify(DEFAULT_PLEX_LABEL_SYNC),
+      default: JSON.stringify(PLEX_LABEL_SYNC_DEFAULTS),
     },
   },
 }
@@ -617,29 +603,17 @@ export default fp(
         : DEFAULT_APPROVAL_EXPIRATION,
       plexLabelSync: (() => {
         const parsed = rawConfig.plexLabelSync
-          ? safeJsonParse<{
-              enabled?: boolean
-              labelPrefix?: string
-              concurrencyLimit?: number
-              cleanupOrphanedLabels?: boolean
-              removedLabelMode?: 'remove' | 'keep' | 'special-label'
-              removedLabelPrefix?: string
-              autoResetOnScheduledSync?: boolean
-              scheduleTime?: string
-              dayOfWeek?: string
-              tagSync?: {
-                enabled?: boolean
-                syncRadarrTags?: boolean
-                syncSonarrTags?: boolean
-              }
-            }>(rawConfig.plexLabelSync as string, {}, 'plexLabelSync')
+          ? safeJsonParse<Partial<PlexLabelSyncConfig>>(
+              rawConfig.plexLabelSync as string,
+              {},
+              'plexLabelSync',
+            )
           : {}
         return {
-          ...DEFAULT_PLEX_LABEL_SYNC,
+          ...PLEX_LABEL_SYNC_DEFAULTS,
           ...parsed,
-          // Handle nested tagSync object separately to preserve defaults
           tagSync: {
-            ...DEFAULT_PLEX_LABEL_SYNC.tagSync,
+            ...PLEX_LABEL_SYNC_DEFAULTS.tagSync,
             ...(parsed.tagSync ?? {}),
           },
         }

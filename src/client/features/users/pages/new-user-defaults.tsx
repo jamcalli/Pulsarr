@@ -41,7 +41,7 @@ function NewUserDefaults({
               {(field) => (
                 <field.SwitchField
                   label="Sync watchlists"
-                  description="Requests what new users add to their watchlists. Turn off to add users without syncing them."
+                  description="Request what new users watchlist. Turn off to add them without syncing."
                 />
               )}
             </form.AppField>

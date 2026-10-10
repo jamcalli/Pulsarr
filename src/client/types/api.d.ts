@@ -3347,6 +3347,19 @@ export interface components {
                 [key: string]: components["schemas"]["OrphanedTagRefInstanceResult"];
             };
         };
+        /** @description Result of a label cleanup: expired pending syncs and orphaned labels removed */
+        CleanupPlexLabelsResponse: {
+            success: boolean;
+            message: string;
+            pending: {
+                removed: number;
+                failed: number;
+            };
+            orphaned: {
+                removed: number;
+                failed: number;
+            };
+        };
         /**
          * @description Comparison operator applied to a condition value
          * @enum {string}
@@ -3441,7 +3454,7 @@ export interface components {
             deleteSyncRequiredTagRegex: string;
             enablePlexPlaylistProtection: boolean;
             plexProtectionPlaylistName: string;
-            plexLabelSync: components["schemas"]["PlexLabelSyncConfigOutput"];
+            plexLabelSync: components["schemas"]["PlexLabelSyncConfig"];
             selfRss?: string;
             friendsRss?: string;
             tagUsersInSonarr: boolean;
@@ -3552,7 +3565,7 @@ export interface components {
             plexProtectionPlaylistName?: string;
             plexServerUrl?: string | "";
             skipIfExistsOnPlex?: boolean;
-            plexLabelSync?: components["schemas"]["PlexLabelSyncConfig"];
+            plexLabelSync?: components["schemas"]["PlexLabelSyncConfigPayload"];
             selfRss?: string;
             friendsRss?: string;
             _isReady?: boolean;
@@ -3775,25 +3788,14 @@ export interface components {
             itemsUpdated: number;
             error?: string;
         };
-        /** @description How Plex labels are synced from user watchlists */
+        /** @description How Plex labels are synced from user watchlists, always returned with defaults filled in */
         PlexLabelSyncConfig: {
             enabled: boolean;
             labelPrefix: string;
-            /** @default username */
-            labelNamingSource?: components["schemas"]["UserNamingSource"];
-            concurrencyLimit: number;
+            labelNamingSource: components["schemas"]["UserNamingSource"];
             cleanupOrphanedLabels: boolean;
-            /**
-             * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
-             * @enum {string}
-             */
-            removedLabelMode: "remove" | "keep" | "special-label";
-            /**
-             * @description Prefix for special labels indicating removed users
-             * @default pulsarr:removed
-             */
-            removedLabelPrefix?: string;
-            /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
+            removedLabelMode: components["schemas"]["RemovedLabelMode"];
+            removedLabelPrefix: string;
             autoResetOnScheduledSync: boolean;
             tagSync: {
                 enabled: boolean;
@@ -3801,25 +3803,14 @@ export interface components {
                 syncSonarrTags: boolean;
             };
         };
-        /** @description How Plex labels are synced from user watchlists */
-        PlexLabelSyncConfigOutput: {
+        /** @description Writable Plex label sync settings. Send the whole object, it replaces the stored one. */
+        PlexLabelSyncConfigPayload: {
             enabled: boolean;
             labelPrefix: string;
-            /** @default username */
             labelNamingSource: components["schemas"]["UserNamingSource"];
-            concurrencyLimit: number;
             cleanupOrphanedLabels: boolean;
-            /**
-             * @description How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label
-             * @enum {string}
-             */
-            removedLabelMode: "remove" | "keep" | "special-label";
-            /**
-             * @description Prefix for special labels indicating removed users
-             * @default pulsarr:removed
-             */
-            removedLabelPrefix?: string;
-            /** @description Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode */
+            removedLabelMode: components["schemas"]["RemovedLabelMode"];
+            removedLabelPrefix: string;
             autoResetOnScheduledSync: boolean;
             tagSync: {
                 enabled: boolean;
@@ -3957,6 +3948,18 @@ export interface components {
             success: boolean;
             items: components["schemas"]["RecentRequestItem"][];
         };
+        /** @description Result of removing every Pulsarr label from Plex */
+        RemovePlexLabelsResponse: {
+            success: boolean;
+            message: string;
+            /** @constant */
+            mode: "remove";
+            results: {
+                processed: number;
+                removed: number;
+                failed: number;
+            };
+        };
         /** @description Options for removing user tags */
         RemoveTagsPayload: {
             /** @default false */
@@ -3980,6 +3983,11 @@ export interface components {
             failed: number;
             instances: number;
         };
+        /**
+         * @description What happens to a user label once that user drops the content
+         * @enum {string}
+         */
+        RemovedLabelMode: "remove" | "keep" | "special-label";
         /**
          * @description What happens to a user tag once that user drops the content
          * @enum {string}
@@ -4332,6 +4340,19 @@ export interface components {
             min_days: number;
             max_days: number;
             count: number;
+        };
+        /** @description Result of a full label sync. Pending counts items not in Plex yet. */
+        SyncPlexLabelsResponse: {
+            success: boolean;
+            message: string;
+            /** @constant */
+            mode: "sync";
+            results: {
+                processed: number;
+                updated: number;
+                failed: number;
+                pending: number;
+            };
         };
         /** @description Result of syncing user tags onto Sonarr and Radarr content */
         SyncTaggingResponse: {
@@ -6364,18 +6385,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        pending: {
-                            removed: number;
-                            failed: number;
-                        };
-                        orphaned: {
-                            removed: number;
-                            failed: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["CleanupPlexLabelsResponse"];
                 };
             };
             /** @description Default Response */
@@ -6422,17 +6432,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @constant */
-                        mode: "remove";
-                        results: {
-                            processed: number;
-                            removed: number;
-                            failed: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["RemovePlexLabelsResponse"];
                 };
             };
             /** @description Default Response */
@@ -6479,18 +6479,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @constant */
-                        mode: "sync";
-                        results: {
-                            processed: number;
-                            updated: number;
-                            failed: number;
-                            pending: number;
-                        };
-                    };
+                    "application/json": components["schemas"]["SyncPlexLabelsResponse"];
                 };
             };
             /** @description Default Response */

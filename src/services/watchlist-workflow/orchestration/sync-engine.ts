@@ -1,3 +1,4 @@
+import { PLEX_LABEL_CONCURRENCY } from '@root/schemas/plex/label-sync-config.schema.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
@@ -219,11 +220,10 @@ export async function syncWatchlistItems(
       }
     }
 
-    const concurrencyLimit = deps.config.plexLabelSync?.concurrencyLimit || 5
-    const limit = pLimit(concurrencyLimit)
+    const limit = pLimit(PLEX_LABEL_CONCURRENCY)
 
     deps.logger.debug(
-      `Processing ${allWatchlistItems.length} watchlist items with concurrency limit of ${concurrencyLimit}`,
+      `Processing ${allWatchlistItems.length} watchlist items with concurrency limit of ${PLEX_LABEL_CONCURRENCY}`,
     )
 
     const processingResults = await Promise.allSettled(

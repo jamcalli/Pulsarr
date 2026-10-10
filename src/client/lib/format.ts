@@ -20,10 +20,10 @@ export function formatWeekday(day: number): string {
   )
 }
 
-/** The clock time at the start of an hour of the day, 0 to 23. */
-export function formatHour(hour: number): string {
+/** The clock time for an hour 0 to 23 and a minute 0 to 59. */
+export function formatTimeOfDay(hour: number, minute: number): string {
   return new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(
-    new Date(2026, 0, 1, hour),
+    new Date(2026, 0, 1, hour, minute),
   )
 }
 

@@ -112,7 +112,7 @@ describe('QuotaSettingsPage', () => {
     expect(screen.getByRole('combobox', { name: 'Day' })).toHaveTextContent(
       'Every day',
     )
-    expect(screen.getByRole('combobox', { name: 'Hour' })).toHaveTextContent(
+    expect(screen.getByRole('combobox', { name: 'Time' })).toHaveTextContent(
       /^2:00\sAM/,
     )
     expect(
@@ -215,7 +215,7 @@ describe('QuotaSettingsPage', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Run now' })).toBeDisabled()
     expect(screen.getByRole('combobox', { name: 'Day' })).toBeDisabled()
-    expect(screen.getByRole('combobox', { name: 'Hour' })).toBeDisabled()
+    expect(screen.getByRole('combobox', { name: 'Time' })).toBeDisabled()
   })
 
   it('locks Run now while the page has unsaved changes', async () => {
@@ -257,6 +257,28 @@ describe('QuotaSettingsPage', () => {
     expect(screen.getByRole('combobox', { name: 'Day' })).toHaveTextContent(
       'Custom: 30 2 * * 1-5',
     )
+  })
+
+  it('shows a schedule with minutes as its day and time', async () => {
+    const user = userEvent.setup()
+    const { scheduleBodies } = mockEndpoints({
+      schedule: makeSchedule({ expression: '30 2 * * 0' }),
+    })
+    renderPage()
+
+    expect(
+      await screen.findByRole('combobox', { name: 'Day' }),
+    ).toHaveTextContent('Sunday')
+    expect(screen.getByRole('combobox', { name: 'Time' })).toHaveTextContent(
+      /^2:30\sAM/,
+    )
+    await user.click(screen.getByRole('switch', { name: 'Run on a schedule' }))
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(scheduleBodies).toEqual([
+      { type: 'cron', config: { expression: '30 2 * * 0' }, enabled: false },
+    ])
   })
 
   it('saves the whole quota settings object with new monthly values', async () => {

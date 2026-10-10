@@ -222,14 +222,13 @@ approvalExpiration='{"enabled":false,"defaultExpirationHours":72,"expirationActi
 ### Plex Label Sync
 
 ```env
-plexLabelSync='{"enabled":false,"labelPrefix":"pulsarr","concurrencyLimit":5,"cleanupOrphanedLabels":false,"removedLabelMode":"remove","removedLabelPrefix":"pulsarr:removed","autoResetOnScheduledSync":false,"tagSync":{"enabled":false,"syncRadarrTags":true,"syncSonarrTags":true}}'
+plexLabelSync='{"enabled":false,"labelPrefix":"pulsarr","cleanupOrphanedLabels":false,"removedLabelMode":"remove","removedLabelPrefix":"pulsarr:removed","autoResetOnScheduledSync":false,"tagSync":{"enabled":false,"syncRadarrTags":true,"syncSonarrTags":true}}'
 ```
 
 | Field | Description | Default |
 |-------|-------------|---------|
 | `enabled` | Enable label sync | `false` |
 | `labelPrefix` | Prefix for user labels | `pulsarr` |
-| `concurrencyLimit` | Max concurrent operations (1-20) | `5` |
 | `cleanupOrphanedLabels` | Remove labels for deleted users | `false` |
 | `removedLabelMode` | `remove`, `keep`, `special-label` | `remove` |
 | `removedLabelPrefix` | Special removal label prefix | `pulsarr:removed` |

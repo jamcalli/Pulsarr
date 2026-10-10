@@ -1,4 +1,8 @@
 import type { ConfigFull } from '@root/schemas/config/config.schema.js'
+import {
+  PLEX_LABEL_SYNC_DEFAULTS,
+  type PlexLabelSyncConfig,
+} from '@root/schemas/plex/label-sync-config.schema.js'
 import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import type { Config, SecretColumn } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
@@ -180,40 +184,19 @@ export async function getConfig(
       config.plexProtectionPlaylistName || 'Do Not Delete',
     plexServerUrl: config.plexServerUrl || undefined,
     skipIfExistsOnPlex: Boolean(config.skipIfExistsOnPlex ?? false),
-    // Plex Label Sync configuration - nested object following complex config pattern
     plexLabelSync: (() => {
       const parsed = config.plexLabelSync
-        ? this.safeJsonParse<{
-            enabled?: boolean
-            labelPrefix?: string
-            labelNamingSource?: 'username' | 'alias'
-            concurrencyLimit?: number
-            cleanupOrphanedLabels?: boolean
-            removedLabelMode?: 'remove' | 'keep' | 'special-label'
-            removedLabelPrefix?: string
-            autoResetOnScheduledSync?: boolean
-            tagSync?: {
-              enabled?: boolean
-              syncRadarrTags?: boolean
-              syncSonarrTags?: boolean
-            }
-          }>(config.plexLabelSync, {}, 'config.plexLabelSync')
+        ? this.safeJsonParse<Partial<PlexLabelSyncConfig>>(
+            config.plexLabelSync,
+            {},
+            'config.plexLabelSync',
+          )
         : {}
       return {
-        enabled: false,
-        labelPrefix: 'pulsarr',
-        labelNamingSource: 'username' as const,
-        concurrencyLimit: 5,
-        cleanupOrphanedLabels: false,
-        removedLabelMode: 'remove' as const,
-        removedLabelPrefix: 'pulsarr:removed',
-        autoResetOnScheduledSync: false,
+        ...PLEX_LABEL_SYNC_DEFAULTS,
         ...parsed,
-        // Handle nested tagSync object separately to preserve defaults
         tagSync: {
-          enabled: false,
-          syncRadarrTags: true,
-          syncSonarrTags: true,
+          ...PLEX_LABEL_SYNC_DEFAULTS.tagSync,
           ...(parsed.tagSync ?? {}),
         },
       }
@@ -353,28 +336,17 @@ export async function createConfig(
       tagMigration: config.tagMigration
         ? JSON.stringify(config.tagMigration)
         : null,
-      // Plex Label Sync Configuration - only include actual schema fields
       plexLabelSync: config.plexLabelSync
         ? JSON.stringify({
-            enabled: config.plexLabelSync.enabled ?? false,
-            labelPrefix: config.plexLabelSync.labelPrefix || 'pulsarr',
-            labelNamingSource:
-              config.plexLabelSync.labelNamingSource || 'username',
-            concurrencyLimit: config.plexLabelSync.concurrencyLimit ?? 5,
-            cleanupOrphanedLabels:
-              config.plexLabelSync.cleanupOrphanedLabels ?? false,
-            removedLabelMode: config.plexLabelSync.removedLabelMode || 'remove',
-            removedLabelPrefix:
-              config.plexLabelSync.removedLabelPrefix || 'pulsarr:removed',
+            enabled: config.plexLabelSync.enabled,
+            labelPrefix: config.plexLabelSync.labelPrefix,
+            labelNamingSource: config.plexLabelSync.labelNamingSource,
+            cleanupOrphanedLabels: config.plexLabelSync.cleanupOrphanedLabels,
+            removedLabelMode: config.plexLabelSync.removedLabelMode,
+            removedLabelPrefix: config.plexLabelSync.removedLabelPrefix,
             autoResetOnScheduledSync:
-              config.plexLabelSync.autoResetOnScheduledSync ?? false,
-            tagSync: {
-              enabled: config.plexLabelSync.tagSync?.enabled ?? false,
-              syncRadarrTags:
-                config.plexLabelSync.tagSync?.syncRadarrTags ?? true,
-              syncSonarrTags:
-                config.plexLabelSync.tagSync?.syncSonarrTags ?? true,
-            },
+              config.plexLabelSync.autoResetOnScheduledSync,
+            tagSync: config.plexLabelSync.tagSync,
           })
         : null,
       // Plex Session Monitoring

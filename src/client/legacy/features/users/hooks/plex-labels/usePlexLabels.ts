@@ -6,7 +6,7 @@ import type {
 } from '@root/schemas/labels/plex-labels.schema'
 import {
   type PlexLabelSyncConfig,
-  PlexLabelSyncConfigSchema,
+  PlexLabelSyncConfigPayloadSchema,
 } from '@root/schemas/plex/label-sync-config.schema'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 import { useMutation } from '@tanstack/react-query'
@@ -27,7 +27,7 @@ import { parseCronExpression } from '@/lib/utils'
 
 // Form-only schedule fields: the full sync schedule persists through the
 // scheduler API as a cron expression, not through config
-const PlexLabelsFormSchema = PlexLabelSyncConfigSchema.safeExtend({
+const PlexLabelsFormSchema = PlexLabelSyncConfigPayloadSchema.safeExtend({
   scheduleTime: z.date().optional(),
   dayOfWeek: z.string(),
 })
@@ -172,7 +172,6 @@ export function usePlexLabels() {
       enabled: false,
       labelPrefix: 'pulsarr',
       labelNamingSource: 'username',
-      concurrencyLimit: 5,
       cleanupOrphanedLabels: false,
       removedLabelMode: 'remove',
       removedLabelPrefix: 'pulsarr:removed',
@@ -194,7 +193,6 @@ export function usePlexLabels() {
         enabled: plexLabelSyncConfig.enabled,
         labelPrefix: plexLabelSyncConfig.labelPrefix,
         labelNamingSource: plexLabelSyncConfig.labelNamingSource || 'username',
-        concurrencyLimit: plexLabelSyncConfig.concurrencyLimit || 5,
         cleanupOrphanedLabels:
           plexLabelSyncConfig.cleanupOrphanedLabels || false,
         removedLabelMode: plexLabelSyncConfig.removedLabelMode || 'remove',

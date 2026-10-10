@@ -9,7 +9,10 @@ import type {
   RadarrMovieWithTags,
   SonarrSeriesWithTags,
 } from '@root/types/plex-label-sync.types.js'
-import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
+import {
+  PLEX_LABEL_CONCURRENCY,
+  type PlexLabelSyncConfig,
+} from '@schemas/plex/label-sync-config.schema.js'
 import type { PlexLabelTracking } from '@services/database/methods/plex-label-tracking.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
@@ -371,8 +374,7 @@ export async function cleanupLabelsForWatchlistItems(
     )
 
     // Remove labels from Plex content
-    const concurrencyLimit = deps.config.concurrencyLimit || 5
-    const limit = pLimit(concurrencyLimit)
+    const limit = pLimit(PLEX_LABEL_CONCURRENCY)
     let removedCount = 0
 
     const failedKeys = new Set<string>()
@@ -556,8 +558,7 @@ async function handleSpecialLabelModeForDeletedItems(
       labelsByRatingKey.set(tracking.plex_rating_key, existingLabels)
     }
 
-    const concurrencyLimit = deps.config.concurrencyLimit || 5
-    const limit = pLimit(concurrencyLimit)
+    const limit = pLimit(PLEX_LABEL_CONCURRENCY)
     let processedCount = 0
     const failedKeys = new Set<string>()
 
@@ -1030,8 +1031,7 @@ export async function cleanupOrphanedPlexLabels(
     )
 
     // Step 4: Remove orphaned labels from Plex content
-    const concurrencyLimit = deps.config.concurrencyLimit || 5
-    const limit = pLimit(concurrencyLimit)
+    const limit = pLimit(PLEX_LABEL_CONCURRENCY)
     const successfulOrphanedOperations: Array<{
       plexRatingKey: string
       orphanedLabels: string[]

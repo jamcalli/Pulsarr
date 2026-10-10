@@ -7,6 +7,7 @@ import { ApprovalQueueSkeleton } from '@/features/requests/components/approval-q
 import { APPROVAL_SETTINGS_SKELETON } from '@/features/requests/lib/approval-settings-skeleton'
 import { QUOTA_SETTINGS_SKELETON } from '@/features/requests/lib/quota-settings-skeleton'
 import { NEW_USER_DEFAULTS_SKELETON } from '@/features/users/lib/new-user-defaults-skeleton'
+import { PLEX_LABELS_SKELETON } from '@/features/users/lib/plex-labels-skeleton'
 import AppLayout from '@/layouts/app'
 import RootLayout from '@/layouts/root'
 import AuthenticatedLayout from '@/legacy/layouts/authenticated'
@@ -19,6 +20,7 @@ const UserTagsPage = lazy(() => import('@/features/users/pages/user-tags'))
 const NewUserDefaultsPage = lazy(
   () => import('@/features/users/pages/new-user-defaults'),
 )
+const PlexLabelsPage = lazy(() => import('@/features/users/pages/plex-labels'))
 const ApprovalQueuePage = lazy(
   () => import('@/features/requests/pages/approval-queue'),
 )
@@ -58,7 +60,7 @@ const PlexSessionMonitoringPage = lazy(
 const LegacyUserTagsPage = lazy(
   () => import('@/legacy/features/users/pages/user-tags'),
 )
-const PlexLabelsPage = lazy(
+const LegacyPlexLabelsPage = lazy(
   () => import('@/legacy/features/users/pages/plex-labels'),
 )
 const ApiKeysPage = lazy(
@@ -139,6 +141,16 @@ export const router = createBrowserRouter(
                   }
                 >
                   <NewUserDefaultsPage />
+                </Suspense>
+              ),
+            },
+            {
+              path: 'users/plex-labels',
+              element: (
+                <Suspense
+                  fallback={<SettingsPageSkeleton {...PLEX_LABELS_SKELETON} />}
+                >
+                  <PlexLabelsPage />
                 </Suspense>
               ),
             },
@@ -369,7 +381,7 @@ export const router = createBrowserRouter(
               element: (
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
-                    <PlexLabelsPage />
+                    <LegacyPlexLabelsPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),

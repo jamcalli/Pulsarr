@@ -726,53 +726,6 @@ export function PlexLabelsPage() {
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="concurrencyLimit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center">
-                          <FormLabel className="text-foreground">
-                            Concurrency Limit
-                          </FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Maximum number of concurrent operations when
-                                processing labels. Lower values reduce server
-                                load but take longer. Recommended: 5-10.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={1}
-                            max={20}
-                            {...field}
-                            onChange={(e) => {
-                              const raw = e.target.value
-                              const num = Number.parseInt(raw, 10)
-                              const next =
-                                raw === '' || Number.isNaN(num)
-                                  ? undefined
-                                  : Math.max(1, Math.min(20, num))
-                              field.onChange(next)
-                            }}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Number of concurrent operations (1-20, default: 5)
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
               </div>
 

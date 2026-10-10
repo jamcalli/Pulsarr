@@ -950,6 +950,57 @@
         "additionalProperties": false,
         "description": "Result of removing references to deleted tags, keyed by instance"
       },
+      "CleanupPlexLabelsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "pending": {
+            "type": "object",
+            "properties": {
+              "removed": {
+                "type": "number"
+              },
+              "failed": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "removed",
+              "failed"
+            ],
+            "additionalProperties": false
+          },
+          "orphaned": {
+            "type": "object",
+            "properties": {
+              "removed": {
+                "type": "number"
+              },
+              "failed": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "removed",
+              "failed"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "pending",
+          "orphaned"
+        ],
+        "additionalProperties": false,
+        "description": "Result of a label cleanup: expired pending syncs and orphaned labels removed"
+      },
       "ConditionOperator": {
         "type": "string",
         "enum": [
@@ -1310,7 +1361,7 @@
             "type": "string"
           },
           "plexLabelSync": {
-            "$ref": "#/components/schemas/PlexLabelSyncConfigOutput"
+            "$ref": "#/components/schemas/PlexLabelSyncConfig"
           },
           "selfRss": {
             "type": "string"
@@ -1801,7 +1852,7 @@
             "type": "boolean"
           },
           "plexLabelSync": {
-            "$ref": "#/components/schemas/PlexLabelSyncConfig"
+            "$ref": "#/components/schemas/PlexLabelSyncConfigPayload"
           },
           "selfRss": {
             "type": "string"
@@ -2654,115 +2705,22 @@
             "type": "boolean"
           },
           "labelPrefix": {
-            "type": "string",
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+            "type": "string"
           },
           "labelNamingSource": {
-            "default": "username",
             "$ref": "#/components/schemas/UserNamingSource"
-          },
-          "concurrencyLimit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 20
           },
           "cleanupOrphanedLabels": {
             "type": "boolean"
           },
           "removedLabelMode": {
-            "type": "string",
-            "enum": [
-              "remove",
-              "keep",
-              "special-label"
-            ],
-            "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
+            "$ref": "#/components/schemas/RemovedLabelMode"
           },
           "removedLabelPrefix": {
-            "description": "Prefix for special labels indicating removed users",
-            "default": "pulsarr:removed",
-            "type": "string",
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+            "type": "string"
           },
           "autoResetOnScheduledSync": {
-            "type": "boolean",
-            "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
-          },
-          "tagSync": {
-            "type": "object",
-            "properties": {
-              "enabled": {
-                "type": "boolean"
-              },
-              "syncRadarrTags": {
-                "type": "boolean"
-              },
-              "syncSonarrTags": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "enabled",
-              "syncRadarrTags",
-              "syncSonarrTags"
-            ]
-          }
-        },
-        "required": [
-          "enabled",
-          "labelPrefix",
-          "concurrencyLimit",
-          "cleanupOrphanedLabels",
-          "removedLabelMode",
-          "autoResetOnScheduledSync",
-          "tagSync"
-        ],
-        "description": "How Plex labels are synced from user watchlists"
-      },
-      "PlexLabelSyncConfigOutput": {
-        "type": "object",
-        "properties": {
-          "enabled": {
             "type": "boolean"
-          },
-          "labelPrefix": {
-            "type": "string",
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9_\\-:.]+$"
-          },
-          "labelNamingSource": {
-            "default": "username",
-            "$ref": "#/components/schemas/UserNamingSource"
-          },
-          "concurrencyLimit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 20
-          },
-          "cleanupOrphanedLabels": {
-            "type": "boolean"
-          },
-          "removedLabelMode": {
-            "type": "string",
-            "enum": [
-              "remove",
-              "keep",
-              "special-label"
-            ],
-            "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
-          },
-          "removedLabelPrefix": {
-            "description": "Prefix for special labels indicating removed users",
-            "default": "pulsarr:removed",
-            "type": "string",
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9_\\-:.]+$"
-          },
-          "autoResetOnScheduledSync": {
-            "type": "boolean",
-            "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
           },
           "tagSync": {
             "type": "object",
@@ -2789,14 +2747,74 @@
           "enabled",
           "labelPrefix",
           "labelNamingSource",
-          "concurrencyLimit",
           "cleanupOrphanedLabels",
           "removedLabelMode",
+          "removedLabelPrefix",
           "autoResetOnScheduledSync",
           "tagSync"
         ],
         "additionalProperties": false,
-        "description": "How Plex labels are synced from user watchlists"
+        "description": "How Plex labels are synced from user watchlists, always returned with defaults filled in"
+      },
+      "PlexLabelSyncConfigPayload": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "labelPrefix": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+          },
+          "labelNamingSource": {
+            "$ref": "#/components/schemas/UserNamingSource"
+          },
+          "cleanupOrphanedLabels": {
+            "type": "boolean"
+          },
+          "removedLabelMode": {
+            "$ref": "#/components/schemas/RemovedLabelMode"
+          },
+          "removedLabelPrefix": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+          },
+          "autoResetOnScheduledSync": {
+            "type": "boolean"
+          },
+          "tagSync": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "syncRadarrTags": {
+                "type": "boolean"
+              },
+              "syncSonarrTags": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "enabled",
+              "syncRadarrTags",
+              "syncSonarrTags"
+            ]
+          }
+        },
+        "required": [
+          "enabled",
+          "labelPrefix",
+          "labelNamingSource",
+          "cleanupOrphanedLabels",
+          "removedLabelMode",
+          "removedLabelPrefix",
+          "autoResetOnScheduledSync",
+          "tagSync"
+        ],
+        "description": "Writable Plex label sync settings. Send the whole object, it replaces the stored one."
       },
       "PlexRatings": {
         "type": "object",
@@ -3255,6 +3273,49 @@
         "additionalProperties": false,
         "description": "Recent requests for the dashboard, newest first"
       },
+      "RemovePlexLabelsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "const": "remove"
+          },
+          "results": {
+            "type": "object",
+            "properties": {
+              "processed": {
+                "type": "number"
+              },
+              "removed": {
+                "type": "number"
+              },
+              "failed": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "processed",
+              "removed",
+              "failed"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "mode",
+          "results"
+        ],
+        "additionalProperties": false,
+        "description": "Result of removing every Pulsarr label from Plex"
+      },
       "RemoveTagsPayload": {
         "type": "object",
         "properties": {
@@ -3327,6 +3388,15 @@
         ],
         "additionalProperties": false,
         "description": "User tag removal counts for one arr type"
+      },
+      "RemovedLabelMode": {
+        "type": "string",
+        "enum": [
+          "remove",
+          "keep",
+          "special-label"
+        ],
+        "description": "What happens to a user label once that user drops the content"
       },
       "RemovedTagMode": {
         "type": "string",
@@ -4874,6 +4944,53 @@
         ],
         "additionalProperties": false,
         "description": "Aggregate days spent moving between two watchlist statuses for a content type."
+      },
+      "SyncPlexLabelsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "const": "sync"
+          },
+          "results": {
+            "type": "object",
+            "properties": {
+              "processed": {
+                "type": "number"
+              },
+              "updated": {
+                "type": "number"
+              },
+              "failed": {
+                "type": "number"
+              },
+              "pending": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "processed",
+              "updated",
+              "failed",
+              "pending"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "mode",
+          "results"
+        ],
+        "additionalProperties": false,
+        "description": "Result of a full label sync. Pending counts items not in Plex yet."
       },
       "SyncTaggingResponse": {
         "type": "object",
@@ -8747,54 +8864,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "pending": {
-                      "type": "object",
-                      "properties": {
-                        "removed": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "removed",
-                        "failed"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "orphaned": {
-                      "type": "object",
-                      "properties": {
-                        "removed": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "removed",
-                        "failed"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "pending",
-                    "orphaned"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/CleanupPlexLabelsResponse"
                 }
               }
             }
@@ -8846,46 +8916,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "mode": {
-                      "type": "string",
-                      "const": "remove"
-                    },
-                    "results": {
-                      "type": "object",
-                      "properties": {
-                        "processed": {
-                          "type": "number"
-                        },
-                        "removed": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "processed",
-                        "removed",
-                        "failed"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "mode",
-                    "results"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/RemovePlexLabelsResponse"
                 }
               }
             }
@@ -8937,50 +8968,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "mode": {
-                      "type": "string",
-                      "const": "sync"
-                    },
-                    "results": {
-                      "type": "object",
-                      "properties": {
-                        "processed": {
-                          "type": "number"
-                        },
-                        "updated": {
-                          "type": "number"
-                        },
-                        "failed": {
-                          "type": "number"
-                        },
-                        "pending": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "processed",
-                        "updated",
-                        "failed",
-                        "pending"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "mode",
-                    "results"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/SyncPlexLabelsResponse"
                 }
               }
             }
