@@ -11,6 +11,7 @@ import type { components } from '@/types/api.js'
 import {
   makeApproval,
   mockApprovalEndpoints,
+  mockQuotaConfig,
 } from '../../../approval-fixtures.js'
 import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
@@ -190,6 +191,7 @@ describe('ApprovalQueuePage', () => {
   beforeEach(() => {
     setFormatLocale('en-US')
     stubViewport({ mobile: false })
+    mockQuotaConfig()
     // keeps subscribers from opening the progress EventSource
     useProgressStore.setState({ isConnecting: true, systemStatusCache: {} })
   })

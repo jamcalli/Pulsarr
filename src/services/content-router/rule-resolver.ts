@@ -1,3 +1,4 @@
+import { DEFAULT_ROUTE_PRIORITY } from '@root/schemas/content-router/content-router.schema.js'
 import type {
   Condition,
   ConditionGroup,
@@ -108,7 +109,7 @@ export function evaluateRules(
       qualityProfile: rule.quality_profile,
       rootFolder: rule.root_folder,
       tags: rule.tags || [],
-      priority: rule.order ?? 50,
+      priority: rule.order ?? DEFAULT_ROUTE_PRIORITY,
       searchOnAdd: rule.search_on_add,
       seasonMonitoring: rule.season_monitoring,
       seriesType: rule.series_type,

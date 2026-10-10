@@ -1,3 +1,7 @@
+import {
+  QUOTA_DEFAULTS,
+  QUOTA_REQUEST_LIMIT,
+} from '@root/schemas/shared/quota-limits.js'
 import type {
   CreateUserQuotaData,
   QuotaStatus,
@@ -103,8 +107,10 @@ export class QuotaService {
       defaults.push({
         userId,
         contentType: 'movie',
-        quotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
-        quotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+        quotaType:
+          config.newUserDefaultMovieQuotaType ?? QUOTA_DEFAULTS.quotaType,
+        quotaLimit:
+          config.newUserDefaultMovieQuotaLimit ?? QUOTA_DEFAULTS.limit,
         bypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
         watchlistCap: config.newUserDefaultMovieWatchlistCap ?? null,
       })
@@ -114,8 +120,9 @@ export class QuotaService {
       defaults.push({
         userId,
         contentType: 'show',
-        quotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
-        quotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+        quotaType:
+          config.newUserDefaultShowQuotaType ?? QUOTA_DEFAULTS.quotaType,
+        quotaLimit: config.newUserDefaultShowQuotaLimit ?? QUOTA_DEFAULTS.limit,
         bypassApproval: config.newUserDefaultShowBypassApproval ?? false,
         watchlistCap: config.newUserDefaultShowWatchlistCap ?? null,
       })
@@ -154,8 +161,8 @@ export class QuotaService {
       if (data.quotaLimit < 0) {
         errors.push('Quota limit cannot be negative')
       }
-      if (data.quotaLimit > 1000) {
-        errors.push('Quota limit cannot exceed 1000')
+      if (data.quotaLimit > QUOTA_REQUEST_LIMIT.max) {
+        errors.push(`Quota limit cannot exceed ${QUOTA_REQUEST_LIMIT.max}`)
       }
     }
 

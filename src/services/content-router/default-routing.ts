@@ -1,4 +1,5 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import { DEFAULT_ROUTE_PRIORITY } from '@root/schemas/content-router/content-router.schema.js'
 import type {
   ContentItem,
   RoutingDecision,
@@ -184,7 +185,7 @@ export async function getDefaultRoutingDecisions(
           parseQualityProfileId(source.qualityProfile)?.toString() || null,
         rootFolder: source.rootFolder || null,
         tags: source.tags || [],
-        priority: 50,
+        priority: DEFAULT_ROUTE_PRIORITY,
         searchOnAdd: source.searchOnAdd ?? true,
         ...source.typeFields,
       },

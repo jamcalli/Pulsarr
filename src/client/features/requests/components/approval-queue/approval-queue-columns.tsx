@@ -4,6 +4,7 @@ import { PosterFrame } from '@/components/poster-frame'
 import { StatusPill } from '@/components/status-pill'
 import { UserAvatar } from '@/components/user-avatar'
 import type { QueueTab } from '@/features/requests/lib/approval-queue/queue-state'
+import { useConfig } from '@/hooks/useConfig'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
 import {
   APPROVAL_STATUS_LABELS,
@@ -53,11 +54,9 @@ function RequesterCell({ userName }: { userName: string }) {
 
 function TriggerCell({ approval }: { approval: ApprovalRequest }) {
   const { name } = useUserDirectory().lookup(approval.userName)
-  return (
-    <span className="text-pretty text-muted-foreground">
-      {triggerSummary(approval, name).line}
-    </span>
-  )
+  const { config } = useConfig()
+  const { line } = triggerSummary(approval, name, config?.quotaSettings ?? null)
+  return <span className="text-pretty text-muted-foreground">{line}</span>
 }
 
 function ExpiresCell({ approval }: { approval: ApprovalRequest }) {

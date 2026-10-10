@@ -1868,7 +1868,7 @@
             "$ref": "#/components/schemas/QuotaType"
           },
           "newUserDefaultMovieQuotaLimit": {
-            "type": "number",
+            "type": "integer",
             "minimum": 1,
             "maximum": 1000
           },
@@ -1878,8 +1878,9 @@
           "newUserDefaultMovieWatchlistCap": {
             "anyOf": [
               {
-                "type": "number",
-                "minimum": 1
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
               },
               {
                 "type": "null"
@@ -1893,7 +1894,7 @@
             "$ref": "#/components/schemas/QuotaType"
           },
           "newUserDefaultShowQuotaLimit": {
-            "type": "number",
+            "type": "integer",
             "minimum": 1,
             "maximum": 1000
           },
@@ -1903,8 +1904,9 @@
           "newUserDefaultShowWatchlistCap": {
             "anyOf": [
               {
-                "type": "number",
-                "minimum": 1
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
               },
               {
                 "type": "null"
@@ -6197,6 +6199,249 @@
           "alias"
         ],
         "description": "Which user name a per-user tag or label is built from"
+      },
+      "UserQuota": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number"
+          },
+          "contentType": {
+            "$ref": "#/components/schemas/ContentType"
+          },
+          "quotaType": {
+            "$ref": "#/components/schemas/QuotaType"
+          },
+          "quotaLimit": {
+            "type": "number"
+          },
+          "bypassApproval": {
+            "type": "boolean"
+          },
+          "watchlistCap": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "userId",
+          "contentType",
+          "quotaType",
+          "quotaLimit",
+          "bypassApproval",
+          "watchlistCap"
+        ],
+        "additionalProperties": false,
+        "description": "A user quota for one content type"
+      },
+      "UserQuotaBulkOperationPayload": {
+        "type": "object",
+        "properties": {
+          "userIds": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "update",
+              "delete"
+            ]
+          },
+          "movieQuota": {
+            "$ref": "#/components/schemas/UserQuotaPayload"
+          },
+          "showQuota": {
+            "$ref": "#/components/schemas/UserQuotaPayload"
+          }
+        },
+        "required": [
+          "userIds",
+          "operation"
+        ],
+        "description": "Quotas to set on, or delete from, several users at once"
+      },
+      "UserQuotaDailyStats": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "movies": {
+            "type": "number"
+          },
+          "shows": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "movies",
+          "shows",
+          "total"
+        ],
+        "additionalProperties": false,
+        "description": "Requests counted against a user quota on one day"
+      },
+      "UserQuotaPayload": {
+        "type": "object",
+        "properties": {
+          "quotaType": {
+            "$ref": "#/components/schemas/QuotaType"
+          },
+          "quotaLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "bypassApproval": {
+            "type": "boolean"
+          },
+          "watchlistCap": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "description": "One content type quota for a user, switched on with its settings or switched off"
+      },
+      "UserQuotaStatus": {
+        "type": "object",
+        "properties": {
+          "quotaType": {
+            "$ref": "#/components/schemas/QuotaType"
+          },
+          "quotaLimit": {
+            "type": "number"
+          },
+          "currentUsage": {
+            "type": "number"
+          },
+          "exceeded": {
+            "type": "boolean"
+          },
+          "resetDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bypassApproval": {
+            "type": "boolean"
+          },
+          "watchlistCap": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "watchlistUsage": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "watchlistCapExceeded": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "quotaType",
+          "quotaLimit",
+          "currentUsage",
+          "exceeded",
+          "resetDate",
+          "bypassApproval",
+          "watchlistCap",
+          "watchlistUsage",
+          "watchlistCapExceeded"
+        ],
+        "additionalProperties": false,
+        "description": "Current usage of a user quota against its limit and cap"
+      },
+      "UserQuotaUsage": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number"
+          },
+          "contentType": {
+            "$ref": "#/components/schemas/ContentType"
+          },
+          "requestDate": {
+            "type": "string",
+            "description": "Date as YYYY-MM-DD"
+          }
+        },
+        "required": [
+          "userId",
+          "contentType",
+          "requestDate"
+        ],
+        "additionalProperties": false,
+        "description": "One request counted against a user quota"
+      },
+      "UserQuotas": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number"
+          },
+          "movieQuota": {
+            "$ref": "#/components/schemas/UserQuota"
+          },
+          "showQuota": {
+            "$ref": "#/components/schemas/UserQuota"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "additionalProperties": false,
+        "description": "A user's movie and show quotas, each absent when not set"
+      },
+      "UserQuotasUpdatePayload": {
+        "type": "object",
+        "properties": {
+          "movieQuota": {
+            "$ref": "#/components/schemas/UserQuotaPayload"
+          },
+          "showQuota": {
+            "$ref": "#/components/schemas/UserQuotaPayload"
+          },
+          "autoApproveHeld": {
+            "type": "boolean"
+          }
+        },
+        "description": "Movie and show quotas to set for one user"
       },
       "UserStat": {
         "type": "object",
@@ -11589,28 +11834,7 @@
                     "dailyStats": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "date": {
-                            "type": "string"
-                          },
-                          "movies": {
-                            "type": "number"
-                          },
-                          "shows": {
-                            "type": "number"
-                          },
-                          "total": {
-                            "type": "number"
-                          }
-                        },
-                        "required": [
-                          "date",
-                          "movies",
-                          "shows",
-                          "total"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/UserQuotaDailyStats"
                       }
                     }
                   },
@@ -11724,24 +11948,7 @@
                     "quotaUsage": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "userId": {
-                            "type": "number"
-                          },
-                          "contentType": {
-                            "$ref": "#/components/schemas/ContentType"
-                          },
-                          "requestDate": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "userId",
-                          "contentType",
-                          "requestDate"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/UserQuotaUsage"
                       }
                     },
                     "total": {
@@ -11878,8 +12085,9 @@
                     "$ref": "#/components/schemas/QuotaType"
                   },
                   "quotaLimit": {
-                    "type": "number",
-                    "minimum": 1
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
                   },
                   "bypassApproval": {
                     "default": false,
@@ -11888,8 +12096,9 @@
                   "watchlistCap": {
                     "anyOf": [
                       {
-                        "type": "number",
-                        "minimum": 1
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 10000
                       },
                       {
                         "type": "null"
@@ -11921,86 +12130,7 @@
                       "type": "string"
                     },
                     "userQuotas": {
-                      "type": "object",
-                      "properties": {
-                        "userId": {
-                          "type": "number"
-                        },
-                        "movieQuota": {
-                          "type": "object",
-                          "properties": {
-                            "userId": {
-                              "type": "number"
-                            },
-                            "contentType": {
-                              "$ref": "#/components/schemas/ContentType"
-                            },
-                            "quotaType": {
-                              "$ref": "#/components/schemas/QuotaType"
-                            },
-                            "quotaLimit": {
-                              "type": "number"
-                            },
-                            "bypassApproval": {
-                              "type": "boolean"
-                            },
-                            "watchlistCap": {
-                              "type": [
-                                "number",
-                                "null"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "userId",
-                            "contentType",
-                            "quotaType",
-                            "quotaLimit",
-                            "bypassApproval",
-                            "watchlistCap"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "showQuota": {
-                          "type": "object",
-                          "properties": {
-                            "userId": {
-                              "type": "number"
-                            },
-                            "contentType": {
-                              "$ref": "#/components/schemas/ContentType"
-                            },
-                            "quotaType": {
-                              "$ref": "#/components/schemas/QuotaType"
-                            },
-                            "quotaLimit": {
-                              "type": "number"
-                            },
-                            "bypassApproval": {
-                              "type": "boolean"
-                            },
-                            "watchlistCap": {
-                              "type": [
-                                "number",
-                                "null"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "userId",
-                            "contentType",
-                            "quotaType",
-                            "quotaLimit",
-                            "bypassApproval",
-                            "watchlistCap"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "userId"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/UserQuotas"
                     }
                   },
                   "required": [
@@ -12069,39 +12199,7 @@
                     "userQuotas": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "userId": {
-                            "type": "number"
-                          },
-                          "contentType": {
-                            "$ref": "#/components/schemas/ContentType"
-                          },
-                          "quotaType": {
-                            "$ref": "#/components/schemas/QuotaType"
-                          },
-                          "quotaLimit": {
-                            "type": "number"
-                          },
-                          "bypassApproval": {
-                            "type": "boolean"
-                          },
-                          "watchlistCap": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
-                          }
-                        },
-                        "required": [
-                          "userId",
-                          "contentType",
-                          "quotaType",
-                          "quotaLimit",
-                          "bypassApproval",
-                          "watchlistCap"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/UserQuota"
                       }
                     }
                   },
@@ -12151,97 +12249,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "userIds": {
-                    "minItems": 1,
-                    "maxItems": 100,
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    }
-                  },
-                  "operation": {
-                    "type": "string",
-                    "enum": [
-                      "update",
-                      "delete"
-                    ]
-                  },
-                  "movieQuota": {
-                    "type": "object",
-                    "properties": {
-                      "quotaType": {
-                        "$ref": "#/components/schemas/QuotaType"
-                      },
-                      "quotaLimit": {
-                        "type": "number",
-                        "minimum": 1,
-                        "maximum": 1000
-                      },
-                      "bypassApproval": {
-                        "type": "boolean"
-                      },
-                      "watchlistCap": {
-                        "anyOf": [
-                          {
-                            "type": "number",
-                            "minimum": 1
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "enabled": {
-                        "type": "boolean"
-                      }
-                    },
-                    "required": [
-                      "enabled"
-                    ]
-                  },
-                  "showQuota": {
-                    "type": "object",
-                    "properties": {
-                      "quotaType": {
-                        "$ref": "#/components/schemas/QuotaType"
-                      },
-                      "quotaLimit": {
-                        "type": "number",
-                        "minimum": 1,
-                        "maximum": 1000
-                      },
-                      "bypassApproval": {
-                        "type": "boolean"
-                      },
-                      "watchlistCap": {
-                        "anyOf": [
-                          {
-                            "type": "number",
-                            "minimum": 1
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "enabled": {
-                        "type": "boolean"
-                      }
-                    },
-                    "required": [
-                      "enabled"
-                    ]
-                  }
-                },
-                "required": [
-                  "userIds",
-                  "operation"
-                ]
+                "$ref": "#/components/schemas/UserQuotaBulkOperationPayload"
               }
             }
-          }
+          },
+          "description": "Quotas to set on, or delete from, several users at once"
         },
         "responses": {
           "200": {
@@ -12367,63 +12379,7 @@
                           "quotaStatus": {
                             "anyOf": [
                               {
-                                "type": "object",
-                                "properties": {
-                                  "quotaType": {
-                                    "$ref": "#/components/schemas/QuotaType"
-                                  },
-                                  "quotaLimit": {
-                                    "type": "number"
-                                  },
-                                  "currentUsage": {
-                                    "type": "number"
-                                  },
-                                  "exceeded": {
-                                    "type": "boolean"
-                                  },
-                                  "resetDate": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "format": "date-time",
-                                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "bypassApproval": {
-                                    "type": "boolean"
-                                  },
-                                  "watchlistCap": {
-                                    "type": [
-                                      "number",
-                                      "null"
-                                    ]
-                                  },
-                                  "watchlistUsage": {
-                                    "type": [
-                                      "number",
-                                      "null"
-                                    ]
-                                  },
-                                  "watchlistCapExceeded": {
-                                    "type": "boolean"
-                                  }
-                                },
-                                "required": [
-                                  "quotaType",
-                                  "quotaLimit",
-                                  "currentUsage",
-                                  "exceeded",
-                                  "resetDate",
-                                  "bypassApproval",
-                                  "watchlistCap",
-                                  "watchlistUsage",
-                                  "watchlistCapExceeded"
-                                ],
-                                "additionalProperties": false
+                                "$ref": "#/components/schemas/UserQuotaStatus"
                               },
                               {
                                 "type": "null"
@@ -12515,86 +12471,7 @@
                       "type": "string"
                     },
                     "userQuotas": {
-                      "type": "object",
-                      "properties": {
-                        "userId": {
-                          "type": "number"
-                        },
-                        "movieQuota": {
-                          "type": "object",
-                          "properties": {
-                            "userId": {
-                              "type": "number"
-                            },
-                            "contentType": {
-                              "$ref": "#/components/schemas/ContentType"
-                            },
-                            "quotaType": {
-                              "$ref": "#/components/schemas/QuotaType"
-                            },
-                            "quotaLimit": {
-                              "type": "number"
-                            },
-                            "bypassApproval": {
-                              "type": "boolean"
-                            },
-                            "watchlistCap": {
-                              "type": [
-                                "number",
-                                "null"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "userId",
-                            "contentType",
-                            "quotaType",
-                            "quotaLimit",
-                            "bypassApproval",
-                            "watchlistCap"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "showQuota": {
-                          "type": "object",
-                          "properties": {
-                            "userId": {
-                              "type": "number"
-                            },
-                            "contentType": {
-                              "$ref": "#/components/schemas/ContentType"
-                            },
-                            "quotaType": {
-                              "$ref": "#/components/schemas/QuotaType"
-                            },
-                            "quotaLimit": {
-                              "type": "number"
-                            },
-                            "bypassApproval": {
-                              "type": "boolean"
-                            },
-                            "watchlistCap": {
-                              "type": [
-                                "number",
-                                "null"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "userId",
-                            "contentType",
-                            "quotaType",
-                            "quotaLimit",
-                            "bypassApproval",
-                            "watchlistCap"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "userId"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/UserQuotas"
                     }
                   },
                   "required": [
@@ -12647,8 +12524,9 @@
                     "$ref": "#/components/schemas/QuotaType"
                   },
                   "quotaLimit": {
-                    "type": "number",
-                    "minimum": 1
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
                   },
                   "bypassApproval": {
                     "type": "boolean"
@@ -12656,8 +12534,9 @@
                   "watchlistCap": {
                     "anyOf": [
                       {
-                        "type": "number",
-                        "minimum": 1
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 10000
                       },
                       {
                         "type": "null"
@@ -12694,86 +12573,7 @@
                       "type": "string"
                     },
                     "userQuotas": {
-                      "type": "object",
-                      "properties": {
-                        "userId": {
-                          "type": "number"
-                        },
-                        "movieQuota": {
-                          "type": "object",
-                          "properties": {
-                            "userId": {
-                              "type": "number"
-                            },
-                            "contentType": {
-                              "$ref": "#/components/schemas/ContentType"
-                            },
-                            "quotaType": {
-                              "$ref": "#/components/schemas/QuotaType"
-                            },
-                            "quotaLimit": {
-                              "type": "number"
-                            },
-                            "bypassApproval": {
-                              "type": "boolean"
-                            },
-                            "watchlistCap": {
-                              "type": [
-                                "number",
-                                "null"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "userId",
-                            "contentType",
-                            "quotaType",
-                            "quotaLimit",
-                            "bypassApproval",
-                            "watchlistCap"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "showQuota": {
-                          "type": "object",
-                          "properties": {
-                            "userId": {
-                              "type": "number"
-                            },
-                            "contentType": {
-                              "$ref": "#/components/schemas/ContentType"
-                            },
-                            "quotaType": {
-                              "$ref": "#/components/schemas/QuotaType"
-                            },
-                            "quotaLimit": {
-                              "type": "number"
-                            },
-                            "bypassApproval": {
-                              "type": "boolean"
-                            },
-                            "watchlistCap": {
-                              "type": [
-                                "number",
-                                "null"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "userId",
-                            "contentType",
-                            "quotaType",
-                            "quotaLimit",
-                            "bypassApproval",
-                            "watchlistCap"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "userId"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/UserQuotas"
                     }
                   },
                   "required": [
@@ -12965,79 +12765,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "movieQuota": {
-                    "type": "object",
-                    "properties": {
-                      "quotaType": {
-                        "$ref": "#/components/schemas/QuotaType"
-                      },
-                      "quotaLimit": {
-                        "type": "number",
-                        "minimum": 1
-                      },
-                      "bypassApproval": {
-                        "type": "boolean"
-                      },
-                      "watchlistCap": {
-                        "anyOf": [
-                          {
-                            "type": "number",
-                            "minimum": 1
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "enabled": {
-                        "type": "boolean"
-                      }
-                    },
-                    "required": [
-                      "enabled"
-                    ]
-                  },
-                  "showQuota": {
-                    "type": "object",
-                    "properties": {
-                      "quotaType": {
-                        "$ref": "#/components/schemas/QuotaType"
-                      },
-                      "quotaLimit": {
-                        "type": "number",
-                        "minimum": 1
-                      },
-                      "bypassApproval": {
-                        "type": "boolean"
-                      },
-                      "watchlistCap": {
-                        "anyOf": [
-                          {
-                            "type": "number",
-                            "minimum": 1
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "enabled": {
-                        "type": "boolean"
-                      }
-                    },
-                    "required": [
-                      "enabled"
-                    ]
-                  },
-                  "autoApproveHeld": {
-                    "type": "boolean"
-                  }
-                }
+                "$ref": "#/components/schemas/UserQuotasUpdatePayload"
               }
             }
-          }
+          },
+          "description": "Movie and show quotas to set for one user"
         },
         "parameters": [
           {
@@ -13064,86 +12796,7 @@
                       "type": "string"
                     },
                     "userQuotas": {
-                      "type": "object",
-                      "properties": {
-                        "userId": {
-                          "type": "number"
-                        },
-                        "movieQuota": {
-                          "type": "object",
-                          "properties": {
-                            "userId": {
-                              "type": "number"
-                            },
-                            "contentType": {
-                              "$ref": "#/components/schemas/ContentType"
-                            },
-                            "quotaType": {
-                              "$ref": "#/components/schemas/QuotaType"
-                            },
-                            "quotaLimit": {
-                              "type": "number"
-                            },
-                            "bypassApproval": {
-                              "type": "boolean"
-                            },
-                            "watchlistCap": {
-                              "type": [
-                                "number",
-                                "null"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "userId",
-                            "contentType",
-                            "quotaType",
-                            "quotaLimit",
-                            "bypassApproval",
-                            "watchlistCap"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "showQuota": {
-                          "type": "object",
-                          "properties": {
-                            "userId": {
-                              "type": "number"
-                            },
-                            "contentType": {
-                              "$ref": "#/components/schemas/ContentType"
-                            },
-                            "quotaType": {
-                              "$ref": "#/components/schemas/QuotaType"
-                            },
-                            "quotaLimit": {
-                              "type": "number"
-                            },
-                            "bypassApproval": {
-                              "type": "boolean"
-                            },
-                            "watchlistCap": {
-                              "type": [
-                                "number",
-                                "null"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "userId",
-                            "contentType",
-                            "quotaType",
-                            "quotaLimit",
-                            "bypassApproval",
-                            "watchlistCap"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "userId"
-                      ],
-                      "additionalProperties": false
+                      "$ref": "#/components/schemas/UserQuotas"
                     }
                   },
                   "required": [
@@ -13221,63 +12874,7 @@
                     "quotaStatus": {
                       "anyOf": [
                         {
-                          "type": "object",
-                          "properties": {
-                            "quotaType": {
-                              "$ref": "#/components/schemas/QuotaType"
-                            },
-                            "quotaLimit": {
-                              "type": "number"
-                            },
-                            "currentUsage": {
-                              "type": "number"
-                            },
-                            "exceeded": {
-                              "type": "boolean"
-                            },
-                            "resetDate": {
-                              "anyOf": [
-                                {
-                                  "type": "string",
-                                  "format": "date-time",
-                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ]
-                            },
-                            "bypassApproval": {
-                              "type": "boolean"
-                            },
-                            "watchlistCap": {
-                              "type": [
-                                "number",
-                                "null"
-                              ]
-                            },
-                            "watchlistUsage": {
-                              "type": [
-                                "number",
-                                "null"
-                              ]
-                            },
-                            "watchlistCapExceeded": {
-                              "type": "boolean"
-                            }
-                          },
-                          "required": [
-                            "quotaType",
-                            "quotaLimit",
-                            "currentUsage",
-                            "exceeded",
-                            "resetDate",
-                            "bypassApproval",
-                            "watchlistCap",
-                            "watchlistUsage",
-                            "watchlistCapExceeded"
-                          ],
-                          "additionalProperties": false
+                          "$ref": "#/components/schemas/UserQuotaStatus"
                         },
                         {
                           "type": "null"

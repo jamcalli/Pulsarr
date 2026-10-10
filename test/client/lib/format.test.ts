@@ -6,6 +6,7 @@ import {
   formatLanguage,
   formatList,
   formatNumber,
+  formatOrdinal,
   formatPercent,
   formatRelative,
   formatRuntime,
@@ -25,6 +26,25 @@ describe('format', () => {
     expect(formatCount(2686, 'tagged item')).toBe('2,686 tagged items')
     expect(formatCount(0, 'instance')).toBe('0 instances')
     expect(formatCount(3, 'child', 'children')).toBe('3 children')
+  })
+
+  it('writes English ordinals with a locale-formatted number', () => {
+    setFormatLocale('en-US')
+    expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 28].map(formatOrdinal)).toEqual(
+      [
+        '1st',
+        '2nd',
+        '3rd',
+        '4th',
+        '11th',
+        '12th',
+        '13th',
+        '21st',
+        '22nd',
+        '23rd',
+        '28th',
+      ],
+    )
   })
 
   it('picks the word alone for a value shown elsewhere', () => {

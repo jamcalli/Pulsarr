@@ -23,6 +23,7 @@ import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema
 import { z } from 'zod'
 
 export const ROUTER_RULE_PRIORITY = { min: 1, max: 100 } as const
+export const DEFAULT_ROUTE_PRIORITY = 50
 
 export const ROUTER_GROUP_MAX_CONDITIONS = 20
 

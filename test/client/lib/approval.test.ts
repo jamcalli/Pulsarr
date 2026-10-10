@@ -22,6 +22,13 @@ type ApprovalRequest = components['schemas']['ApprovalRequest']
 type RouterDecision = ApprovalRequest['proposedRouterDecision']
 type ApprovalQuotaData = components['schemas']['ApprovalQuotaData']
 type ApprovalRouting = components['schemas']['ApprovalRouting']
+type QuotaSettings = components['schemas']['QuotaSettings']
+
+const quotaSettings: QuotaSettings = {
+  cleanup: { enabled: true, retentionDays: 90 },
+  weeklyRolling: { resetDays: 10 },
+  monthly: { resetDay: 15, handleMonthEnd: 'last-day' },
+}
 
 const routing = {
   instanceId: 1,
@@ -158,8 +165,8 @@ describe('triggerSummary', () => {
 
   it.each([
     ['daily', 'Daily', 'today'],
-    ['weekly_rolling', 'Weekly', 'in the last 7 days'],
-    ['monthly', 'Monthly', 'this month'],
+    ['weekly_rolling', 'Weekly rolling', 'in the last 10 days'],
+    ['monthly', 'Monthly', 'since the 15th'],
   ] as const)(
     'names the %s quota without counting this request',
     (quotaType, period, window) => {
@@ -170,7 +177,7 @@ describe('triggerSummary', () => {
           quotaLimit: 5,
         }),
       })
-      expect(triggerSummary(request, 'sarah')).toEqual({
+      expect(triggerSummary(request, 'sarah', quotaSettings)).toEqual({
         kind: 'Quota exceeded',
         line: `${period} quota: 5 of 5 shows used`,
         reason: `sarah has requested 5 shows ${window}.`,
@@ -187,18 +194,31 @@ describe('triggerSummary', () => {
         quotaLimit: 1,
       }),
     })
-    expect(triggerSummary(request, 'dad')).toEqual({
+    expect(triggerSummary(request, 'dad', quotaSettings)).toEqual({
       kind: 'Quota exceeded',
       line: 'Monthly quota: 1 of 1 movie used',
-      reason: 'dad has requested 1 movie this month.',
+      reason: 'dad has requested 1 movie since the 15th.',
     })
+  })
+
+  it('names a neutral window until the quota settings load', () => {
+    const request = makeRequest({
+      proposedRouterDecision: decisionWithData({
+        quotaType: 'weekly_rolling',
+        quotaUsage: 6,
+        quotaLimit: 5,
+      }),
+    })
+    expect(triggerSummary(request, 'sarah', null).reason).toBe(
+      'sarah has requested 5 shows in the current period.',
+    )
   })
 
   it('falls back to the stored reason when quota data is missing', () => {
     const request = makeRequest({
       proposedRouterDecision: decisionWithData({ quotaType: 'daily' }),
     })
-    expect(triggerSummary(request, 'sarah')).toEqual({
+    expect(triggerSummary(request, 'sarah', quotaSettings)).toEqual({
       kind: 'Quota exceeded',
       line: 'weekly_rolling quota exceeded (6/5)',
       reason: null,
@@ -214,7 +234,7 @@ describe('triggerSummary', () => {
         'router_rule',
       ),
     })
-    expect(triggerSummary(request, 'sarah')).toEqual({
+    expect(triggerSummary(request, 'sarah', quotaSettings)).toEqual({
       kind: 'Router rule',
       line: 'Rule: Kids',
       reason: null,
@@ -230,7 +250,9 @@ describe('triggerSummary', () => {
         'router_rule',
       ),
     })
-    expect(triggerSummary(request, 'sarah').reason).toBe('R rated content')
+    expect(triggerSummary(request, 'sarah', quotaSettings).reason).toBe(
+      'R rated content',
+    )
   })
 
   it('falls back when the router rule name is missing', () => {
@@ -239,7 +261,7 @@ describe('triggerSummary', () => {
       approvalReason: 'Custom',
       proposedRouterDecision: decisionWithData({}, 'router_rule'),
     })
-    expect(triggerSummary(request, 'sarah')).toEqual({
+    expect(triggerSummary(request, 'sarah', quotaSettings)).toEqual({
       kind: 'Router rule',
       line: 'Custom',
       reason: null,
@@ -255,7 +277,7 @@ describe('triggerSummary', () => {
         'manual_flag',
       ),
     })
-    expect(triggerSummary(request, 'kids')).toEqual({
+    expect(triggerSummary(request, 'kids', quotaSettings)).toEqual({
       kind: 'Manual flag',
       line: 'Every request from kids needs approval',
       reason: null,
@@ -268,7 +290,7 @@ describe('triggerSummary', () => {
       approvalReason: 'Approval required',
       proposedRouterDecision: decisionWithData({}, 'manual_flag'),
     })
-    expect(triggerSummary(request, 'sarah')).toEqual({
+    expect(triggerSummary(request, 'sarah', quotaSettings)).toEqual({
       kind: 'Manual flag',
       line: 'Approval required',
       reason: null,
@@ -284,11 +306,15 @@ describe('triggerSummary', () => {
       triggerSummary(
         makeRequest({ ...base, approvalReason: 'Auto-added' }),
         'sarah',
+        quotaSettings,
       ),
     ).toEqual({ kind: 'Content criteria', line: 'Auto-added', reason: null })
     expect(
-      triggerSummary(makeRequest({ ...base, approvalReason: null }), 'sarah')
-        .line,
+      triggerSummary(
+        makeRequest({ ...base, approvalReason: null }),
+        'sarah',
+        quotaSettings,
+      ).line,
     ).toBe('Content criteria')
   })
 })

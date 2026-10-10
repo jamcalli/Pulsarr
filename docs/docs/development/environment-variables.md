@@ -163,11 +163,11 @@ Ensure your network is secure when using `requiredExceptLocal`.
 | `newUserDefaultRequiresApproval` | Default approval requirement | `false` |
 | `newUserDefaultMovieQuotaEnabled` | Enable movie quotas | `false` |
 | `newUserDefaultMovieQuotaType` | `daily`, `weekly_rolling`, `monthly` | `monthly` |
-| `newUserDefaultMovieQuotaLimit` | Movie quota limit | `10` |
+| `newUserDefaultMovieQuotaLimit` | Movie quota limit, a whole number from 1 to 1000 | `10` |
 | `newUserDefaultMovieBypassApproval` | Auto-approve when exceeded | `false` |
 | `newUserDefaultShowQuotaEnabled` | Enable show quotas | `false` |
 | `newUserDefaultShowQuotaType` | `daily`, `weekly_rolling`, `monthly` | `monthly` |
-| `newUserDefaultShowQuotaLimit` | Show quota limit | `10` |
+| `newUserDefaultShowQuotaLimit` | Show quota limit, a whole number from 1 to 1000 | `10` |
 | `newUserDefaultShowBypassApproval` | Auto-approve when exceeded | `false` |
 
 ## JSON Configuration Variables

@@ -6,6 +6,10 @@ import {
   RemovedTagPrefixSchema,
   TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
+import {
+  QuotaLimitSchema,
+  WatchlistCapSchema,
+} from '@root/schemas/shared/quota-limits.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { isRegexPatternSafe } from '@root/schemas/shared/regex-validation.schema.js'
 import { DISCORD_WEBHOOK_HOSTS } from '@root/types/discord.types.js'
@@ -583,14 +587,14 @@ export const ConfigUpdateSchema = z
     newUserDefaultRequiresApproval: z.boolean().optional(),
     newUserDefaultMovieQuotaEnabled: z.boolean().optional(),
     newUserDefaultMovieQuotaType: QuotaTypeSchema.optional(),
-    newUserDefaultMovieQuotaLimit: z.number().min(1).max(1000).optional(),
+    newUserDefaultMovieQuotaLimit: QuotaLimitSchema.optional(),
     newUserDefaultMovieBypassApproval: z.boolean().optional(),
-    newUserDefaultMovieWatchlistCap: z.number().min(1).nullable().optional(),
+    newUserDefaultMovieWatchlistCap: WatchlistCapSchema.nullable().optional(),
     newUserDefaultShowQuotaEnabled: z.boolean().optional(),
     newUserDefaultShowQuotaType: QuotaTypeSchema.optional(),
-    newUserDefaultShowQuotaLimit: z.number().min(1).max(1000).optional(),
+    newUserDefaultShowQuotaLimit: QuotaLimitSchema.optional(),
     newUserDefaultShowBypassApproval: z.boolean().optional(),
-    newUserDefaultShowWatchlistCap: z.number().min(1).nullable().optional(),
+    newUserDefaultShowWatchlistCap: WatchlistCapSchema.nullable().optional(),
     quotaSettings: QuotaSettingsPayloadSchema.optional(),
     approvalExpiration: ApprovalExpirationPayloadSchema.optional(),
     // TMDB Configuration

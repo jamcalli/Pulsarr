@@ -1,79 +1,104 @@
 import { ContentTypeSchema } from '@root/schemas/common/content-type.schema.js'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import {
+  QuotaLimitSchema,
+  WatchlistCapSchema,
+} from '@root/schemas/shared/quota-limits.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { z } from 'zod'
 
-// Shared quota field definitions
 const QuotaFieldsSchema = z.object({
   quotaType: QuotaTypeSchema.optional(),
-  quotaLimit: z.number().min(1).optional(),
+  quotaLimit: QuotaLimitSchema.optional(),
   bypassApproval: z.boolean().optional(),
-  watchlistCap: z.number().min(1).nullable().optional(),
+  watchlistCap: WatchlistCapSchema.nullable().optional(),
 })
 
 const EnabledQuotaSchema = QuotaFieldsSchema.extend({
   enabled: z.boolean(),
+}).meta({
+  id: 'UserQuotaPayload',
+  description:
+    'One content type quota for a user, switched on with its settings or switched off',
 })
 
-const EnabledQuotaCappedSchema = EnabledQuotaSchema.extend({
-  quotaLimit: z.number().min(1).max(1000).optional(),
-})
-
-// User quota schemas
 export const CreateUserQuotaSchema = z.object({
   userId: z.number(),
   quotaType: QuotaTypeSchema,
-  quotaLimit: z.number().min(1),
+  quotaLimit: QuotaLimitSchema,
   bypassApproval: z.boolean().default(false),
-  watchlistCap: z.number().min(1).nullable().optional(),
+  watchlistCap: WatchlistCapSchema.nullable().optional(),
 })
 
 export const UpdateUserQuotaSchema = QuotaFieldsSchema
 
-// Schema for updating specific content type quota
 export const UpdateSpecificQuotaSchema = QuotaFieldsSchema.extend({
   contentType: ContentTypeSchema,
 })
 
-// Schema for updating separate movie and show quotas
-export const UpdateSeparateQuotasSchema = z.object({
-  movieQuota: EnabledQuotaSchema.optional(),
-  showQuota: EnabledQuotaSchema.optional(),
-  autoApproveHeld: z.boolean().optional(),
-})
+export const UpdateSeparateQuotasSchema = z
+  .object({
+    movieQuota: EnabledQuotaSchema.optional(),
+    showQuota: EnabledQuotaSchema.optional(),
+    autoApproveHeld: z.boolean().optional(),
+  })
+  .meta({
+    id: 'UserQuotasUpdatePayload',
+    description: 'Movie and show quotas to set for one user',
+  })
 
-export const UserQuotaResponseSchema = z.object({
-  userId: z.number(),
-  contentType: ContentTypeSchema,
-  quotaType: QuotaTypeSchema,
-  quotaLimit: z.number(),
-  bypassApproval: z.boolean(),
-  watchlistCap: z.number().nullable(),
-})
+export const UserQuotaResponseSchema = z
+  .object({
+    userId: z.number(),
+    contentType: ContentTypeSchema,
+    quotaType: QuotaTypeSchema,
+    quotaLimit: z.number(),
+    bypassApproval: z.boolean(),
+    watchlistCap: z.number().nullable(),
+  })
+  .meta({
+    id: 'UserQuota',
+    description: 'A user quota for one content type',
+  })
 
-export const UserQuotasResponseSchema = z.object({
-  userId: z.number(),
-  movieQuota: UserQuotaResponseSchema.optional(),
-  showQuota: UserQuotaResponseSchema.optional(),
-})
+export const UserQuotasResponseSchema = z
+  .object({
+    userId: z.number(),
+    movieQuota: UserQuotaResponseSchema.optional(),
+    showQuota: UserQuotaResponseSchema.optional(),
+  })
+  .meta({
+    id: 'UserQuotas',
+    description: "A user's movie and show quotas, each absent when not set",
+  })
 
-export const QuotaStatusResponseSchema = z.object({
-  quotaType: QuotaTypeSchema,
-  quotaLimit: z.number(),
-  currentUsage: z.number(),
-  exceeded: z.boolean(),
-  resetDate: z.iso.datetime().nullable(),
-  bypassApproval: z.boolean(),
-  watchlistCap: z.number().nullable(),
-  watchlistUsage: z.number().nullable(),
-  watchlistCapExceeded: z.boolean(),
-})
+export const QuotaStatusResponseSchema = z
+  .object({
+    quotaType: QuotaTypeSchema,
+    quotaLimit: z.number(),
+    currentUsage: z.number(),
+    exceeded: z.boolean(),
+    resetDate: z.iso.datetime().nullable(),
+    bypassApproval: z.boolean(),
+    watchlistCap: z.number().nullable(),
+    watchlistUsage: z.number().nullable(),
+    watchlistCapExceeded: z.boolean(),
+  })
+  .meta({
+    id: 'UserQuotaStatus',
+    description: 'Current usage of a user quota against its limit and cap',
+  })
 
-export const QuotaUsageResponseSchema = z.object({
-  userId: z.number(),
-  contentType: ContentTypeSchema,
-  requestDate: z.string(), // YYYY-MM-DD format
-})
+export const QuotaUsageResponseSchema = z
+  .object({
+    userId: z.number(),
+    contentType: ContentTypeSchema,
+    requestDate: z.string().meta({ description: 'Date as YYYY-MM-DD' }),
+  })
+  .meta({
+    id: 'UserQuotaUsage',
+    description: 'One request counted against a user quota',
+  })
 
 export const QuotaUserIdParamsSchema = z.object({
   userId: z.coerce.number(),
@@ -99,12 +124,17 @@ export const GetDailyStatsQuerySchema = z.object({
   days: z.coerce.number().min(1).max(365).default(30),
 })
 
-export const DailyStatsResponseSchema = z.object({
-  date: z.string(),
-  movies: z.number(),
-  shows: z.number(),
-  total: z.number(),
-})
+export const DailyStatsResponseSchema = z
+  .object({
+    date: z.string(),
+    movies: z.number(),
+    shows: z.number(),
+    total: z.number(),
+  })
+  .meta({
+    id: 'UserQuotaDailyStats',
+    description: 'Requests counted against a user quota on one day',
+  })
 
 export const GetUsersWithQuotasResponseSchema = z.object({
   success: z.boolean(),
@@ -167,7 +197,6 @@ export const QuotaSuccessResponseSchema = z.object({
   message: z.string(),
 })
 
-// Pending held count response schema
 export const PendingHeldCountResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
@@ -175,13 +204,17 @@ export const PendingHeldCountResponseSchema = z.object({
   showCount: z.number(),
 })
 
-// Bulk quota operation schemas
-export const BulkQuotaOperationSchema = z.object({
-  userIds: z.array(z.number()).min(1).max(100),
-  operation: z.enum(['update', 'delete']),
-  movieQuota: EnabledQuotaCappedSchema.optional(),
-  showQuota: EnabledQuotaCappedSchema.optional(),
-})
+export const BulkQuotaOperationSchema = z
+  .object({
+    userIds: z.array(z.number()).min(1).max(100),
+    operation: z.enum(['update', 'delete']),
+    movieQuota: EnabledQuotaSchema.optional(),
+    showQuota: EnabledQuotaSchema.optional(),
+  })
+  .meta({
+    id: 'UserQuotaBulkOperationPayload',
+    description: 'Quotas to set on, or delete from, several users at once',
+  })
 
 export const BulkQuotaOperationResponseSchema = z.object({
   success: z.boolean(),
@@ -190,7 +223,6 @@ export const BulkQuotaOperationResponseSchema = z.object({
   failedIds: z.array(z.number()).optional(),
 })
 
-// Type exports
 export type CreateUserQuota = z.infer<typeof CreateUserQuotaSchema>
 export type UpdateUserQuota = z.infer<typeof UpdateUserQuotaSchema>
 export type UpdateSpecificQuota = z.infer<typeof UpdateSpecificQuotaSchema>
@@ -233,5 +265,4 @@ export type PendingHeldCountResponse = z.infer<
   typeof PendingHeldCountResponseSchema
 >
 
-// Re-export shared error schema with domain-specific alias
 export { ErrorSchema as QuotaErrorSchema }

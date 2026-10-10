@@ -121,6 +121,21 @@ export function formatCount(
   return `${formatNumber(value)} ${pluralize(value, singular, plural)}`
 }
 
+const ORDINAL_SUFFIXES: Record<Intl.LDMLPluralRule, string> = {
+  zero: 'th',
+  one: 'st',
+  two: 'nd',
+  few: 'rd',
+  many: 'th',
+  other: 'th',
+}
+
+/** English ordinal like "15th", so it takes English plural rules whatever the locale. */
+export function formatOrdinal(value: number): string {
+  const rule = new Intl.PluralRules('en', { type: 'ordinal' }).select(value)
+  return `${formatNumber(value)}${ORDINAL_SUFFIXES[rule]}`
+}
+
 const RELATIVE_UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
   ['year', 365 * 24 * 60 * 60],
   ['month', 30 * 24 * 60 * 60],

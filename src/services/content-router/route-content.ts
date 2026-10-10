@@ -1,3 +1,4 @@
+import { DEFAULT_ROUTE_PRIORITY } from '@root/schemas/content-router/content-router.schema.js'
 import type {
   ContentItem,
   RoutingContext,
@@ -211,7 +212,7 @@ export async function routeContent(
         instanceId: decision.instanceId,
         ruleId: decision.ruleId,
         ruleName: decision.ruleName,
-        priority: decision.priority ?? 50,
+        priority: decision.priority ?? DEFAULT_ROUTE_PRIORITY,
       },
       `Routing "${item.title}" to instance ID ${decision.instanceId}${ruleInfo}`,
     )

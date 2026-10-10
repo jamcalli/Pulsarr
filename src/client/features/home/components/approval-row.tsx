@@ -10,6 +10,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import type { PendingApproval } from '@/features/home/hooks/usePendingApprovals'
+import { useConfig } from '@/hooks/useConfig'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
 import { expiryLine, requestedLine, triggerSummary } from '@/lib/approval'
 
@@ -20,7 +21,8 @@ interface ApprovalRowProps {
 
 export function ApprovalRow({ approval, onReview }: ApprovalRowProps) {
   const { name } = useUserDirectory().lookup(approval.userName)
-  const trigger = triggerSummary(approval, name)
+  const { config } = useConfig()
+  const trigger = triggerSummary(approval, name, config?.quotaSettings ?? null)
   const expiry = expiryLine(approval, Date.now())
 
   return (

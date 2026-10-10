@@ -1,6 +1,8 @@
 import crypto from 'node:crypto'
 import { resolve } from 'node:path'
 import env from '@fastify/env'
+import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
+import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import type { Config, RawConfig } from '@root/types/config.types.js'
 import { resolveDataDir } from '@utils/data-dir.js'
 import type { FastifyInstance } from 'fastify'
@@ -472,12 +474,12 @@ const schema = {
     },
     newUserDefaultMovieQuotaType: {
       type: 'string',
-      enum: ['daily', 'weekly_rolling', 'monthly'],
-      default: 'monthly',
+      enum: QuotaTypeSchema.options,
+      default: QUOTA_DEFAULTS.quotaType,
     },
     newUserDefaultMovieQuotaLimit: {
       type: 'number',
-      default: 10,
+      default: QUOTA_DEFAULTS.limit,
     },
     newUserDefaultMovieBypassApproval: {
       type: 'boolean',
@@ -489,12 +491,12 @@ const schema = {
     },
     newUserDefaultShowQuotaType: {
       type: 'string',
-      enum: ['daily', 'weekly_rolling', 'monthly'],
-      default: 'monthly',
+      enum: QuotaTypeSchema.options,
+      default: QUOTA_DEFAULTS.quotaType,
     },
     newUserDefaultShowQuotaLimit: {
       type: 'number',
-      default: 10,
+      default: QUOTA_DEFAULTS.limit,
     },
     newUserDefaultShowBypassApproval: {
       type: 'boolean',
