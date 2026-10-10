@@ -1,3 +1,4 @@
+import { WATCHLIST_CAP_SUGGESTED } from '@root/schemas/shared/quota-limits'
 import type { MediaDefaultsValues } from '@/features/users/components/new-user-defaults/media-defaults-section'
 import { NewUserDefaultsFormSchema } from '@/features/users/lib/new-user-defaults-form.schema'
 import { useConfigForm } from '@/hooks/useConfigForm'
@@ -13,8 +14,6 @@ interface NewUserDefaultsValues {
   show: MediaDefaultsValues
 }
 
-const DEFAULT_WATCHLIST_CAP = 100
-
 function toMediaValues(config: Config, media: 'Movie' | 'Show') {
   const cap = config[`newUserDefault${media}WatchlistCap`]
   return {
@@ -23,7 +22,7 @@ function toMediaValues(config: Config, media: 'Movie' | 'Show') {
     limit: config[`newUserDefault${media}QuotaLimit`],
     bypassApproval: config[`newUserDefault${media}BypassApproval`],
     capOn: cap !== null,
-    cap: cap ?? DEFAULT_WATCHLIST_CAP,
+    cap: cap ?? WATCHLIST_CAP_SUGGESTED,
   }
 }
 

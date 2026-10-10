@@ -9,6 +9,7 @@ import {
   ContentRouterRuleSuccessSchema,
   ContentRouterRuleToggleSchema,
   ContentRouterRuleUpdateSchema,
+  DEFAULT_ROUTE_PRIORITY,
 } from '@schemas/content-router/content-router.schema.js'
 import { formatRule } from '@utils/content-router-formatter.js'
 import { logRouteError } from '@utils/route-errors.js'
@@ -49,7 +50,7 @@ function normalizeRulePayload(
       ? null
       : (ruleData.quality_profile ?? null),
     tags: excludeFromRouting ? [] : ruleData.tags || [],
-    order: ruleData.order ?? 50,
+    order: ruleData.order ?? DEFAULT_ROUTE_PRIORITY,
     enabled: ruleData.enabled ?? true,
     search_on_add: ruleData.search_on_add ?? null,
     season_monitoring: ruleData.season_monitoring ?? null,

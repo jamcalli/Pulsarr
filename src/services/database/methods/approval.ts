@@ -1,3 +1,4 @@
+import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import type {
   ApprovalRequest,
   ApprovalRequestRow,
@@ -610,7 +611,7 @@ export async function getUserApprovalStats(
     pendingRequests: 0,
     currentQuotaUsage: 0,
     quotaLimit: quotaInfo?.quota_limit || 0,
-    quotaType: quotaInfo?.quota_type || 'monthly',
+    quotaType: quotaInfo?.quota_type || QUOTA_DEFAULTS.quotaType,
     bypassApproval: Boolean(quotaInfo?.bypass_approval),
   }
 

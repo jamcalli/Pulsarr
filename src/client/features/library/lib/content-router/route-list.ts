@@ -1,5 +1,5 @@
+import { DEFAULT_ROUTE_PRIORITY } from '@root/schemas/content-router/content-router.schema'
 import type { RouteType } from '@/features/library/lib/content-router/condition-fields'
-import { DEFAULT_ROUTE_PRIORITY } from '@/lib/approval'
 import { ARR_TYPE_LABELS } from '@/lib/arr-labels'
 import { formatList } from '@/lib/format'
 import type { components } from '@/types/api.js'

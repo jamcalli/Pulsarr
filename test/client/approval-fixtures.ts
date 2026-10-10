@@ -84,6 +84,24 @@ function instanceIdOf(request: Request): number {
   return Number(new URL(request.url).searchParams.get('instanceId'))
 }
 
+/** Serves the config the trigger copy reads, a 10 day rolling week and a monthly reset on the 15th. */
+export function mockQuotaConfig() {
+  server.use(
+    http.get('/v1/config', () =>
+      HttpResponse.json({
+        success: true,
+        config: {
+          quotaSettings: {
+            cleanup: { enabled: true, retentionDays: 90 },
+            weeklyRolling: { resetDays: 10 },
+            monthly: { resetDay: 15, handleMonthEnd: 'last-day' },
+          },
+        },
+      }),
+    ),
+  )
+}
+
 /** Serves every request the review panel makes, with `approval` behind the by-id route. */
 export function mockApprovalEndpoints(
   approval: ApprovalRequest,

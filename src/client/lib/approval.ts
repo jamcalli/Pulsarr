@@ -1,4 +1,5 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder'
+import { DEFAULT_ROUTE_PRIORITY } from '@root/schemas/content-router/content-router.schema'
 import {
   MINIMUM_AVAILABILITY_LABELS,
   RADARR_MONITOR_LABELS,
@@ -14,13 +15,14 @@ import {
   formatRelative,
   pluralize,
 } from '@/lib/format'
+import { QUOTA_TYPE_LABELS, quotaWindowPhrase } from '@/lib/quota'
 import type { components, paths } from '@/types/api.js'
 
 type ApprovalRequest = components['schemas']['ApprovalRequest']
 type RouterDecision = ApprovalRequest['proposedRouterDecision']
 type ApprovalRouting = NonNullable<RouterDecision['routing']>
 type ApprovalTrigger = components['schemas']['ApprovalTrigger']
-type QuotaType = components['schemas']['QuotaType']
+type QuotaSettings = components['schemas']['QuotaSettings']
 type RadarrInstance =
   paths['/v1/radarr/instances']['get']['responses'][200]['content']['application/json'][number]
 type SonarrInstance = components['schemas']['SonarrInstance']
@@ -72,19 +74,11 @@ export function guidsLine(guids: readonly string[]): string | null {
   return formatList(guids.map((guid) => guid.replace(':', ' ')))
 }
 
-export const DEFAULT_ROUTE_PRIORITY = 50
-
 export const TRIGGER_LABELS: Record<ApprovalTrigger, string> = {
   quota_exceeded: 'Quota exceeded',
   router_rule: 'Router rule',
   manual_flag: 'Manual flag',
   content_criteria: 'Content criteria',
-}
-
-const QUOTA_PERIODS: Record<QuotaType, { label: string; window: string }> = {
-  daily: { label: 'Daily', window: 'today' },
-  weekly_rolling: { label: 'Weekly', window: 'in the last 7 days' },
-  monthly: { label: 'Monthly', window: 'this month' },
 }
 
 type ApprovalStatus = ApprovalRequest['status']
@@ -162,6 +156,7 @@ export function withoutAdditionalRouting(
 export function triggerSummary(
   approval: ApprovalRequest,
   userName: string,
+  quotaSettings: QuotaSettings | null,
 ): { kind: string; line: string; reason: string | null } {
   const kind = TRIGGER_LABELS[approval.triggeredBy]
   const data = approval.proposedRouterDecision.approval?.data
@@ -176,14 +171,13 @@ export function triggerSummary(
       ) {
         return fallback
       }
-      const period = QUOTA_PERIODS[data.quotaType]
       const noun = approval.contentType === 'movie' ? 'movie' : 'show'
       // Stored usage already counts the request awaiting approval.
       const used = data.quotaUsage - 1
       return {
         kind,
-        line: `${period.label} quota: ${formatNumber(used)} of ${formatNumber(data.quotaLimit)} ${pluralize(data.quotaLimit, noun)} used`,
-        reason: `${userName} has requested ${formatCount(used, noun)} ${period.window}.`,
+        line: `${QUOTA_TYPE_LABELS[data.quotaType]} quota: ${formatNumber(used)} of ${formatNumber(data.quotaLimit)} ${pluralize(data.quotaLimit, noun)} used`,
+        reason: `${userName} has requested ${formatCount(used, noun)} ${quotaWindowPhrase(data.quotaType, quotaSettings)}.`,
       }
     }
     case 'router_rule': {

@@ -9,6 +9,7 @@ import type { components } from '@/types/api.js'
 import {
   makeApproval,
   mockApprovalEndpoints,
+  mockQuotaConfig,
   sonarrRouting,
 } from '../../approval-fixtures.js'
 import { server } from '../../setup.js'
@@ -72,6 +73,7 @@ describe('ApprovalReviewCredenza', () => {
   beforeEach(() => {
     setFormatLocale('en-US')
     stubViewport({ mobile: false })
+    mockQuotaConfig()
   })
 
   afterEach(() => {
@@ -92,7 +94,12 @@ describe('ApprovalReviewCredenza', () => {
       within(dialog).getByText('Show, requested by sarah, 2 hours ago'),
     ).toBeInTheDocument()
     expect(
-      within(dialog).getByText('Weekly quota: 5 of 5 shows used'),
+      within(dialog).getByText('Weekly rolling quota: 5 of 5 shows used'),
+    ).toBeInTheDocument()
+    expect(
+      await within(dialog).findByText(
+        'sarah has requested 5 shows in the last 10 days.',
+      ),
     ).toBeInTheDocument()
     expect(within(dialog).getByText('Where it will go')).toBeInTheDocument()
     expect(await within(dialog).findByText('HD-1080p')).toBeInTheDocument()

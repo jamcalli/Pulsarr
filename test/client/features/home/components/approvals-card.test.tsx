@@ -11,6 +11,7 @@ import type { components } from '@/types/api.js'
 import {
   makeApproval,
   mockApprovalEndpoints,
+  mockQuotaConfig,
 } from '../../../approval-fixtures.js'
 import { server } from '../../../setup.js'
 import { stubViewport } from '../../../viewport.js'
@@ -55,6 +56,7 @@ describe('ApprovalsCard', () => {
   beforeEach(() => {
     setFormatLocale('en-US')
     stubViewport({ mobile: false })
+    mockQuotaConfig()
   })
 
   afterEach(() => {
@@ -79,7 +81,7 @@ describe('ApprovalsCard', () => {
       within(row).getByText('Show, requested by sarah, 2 hours ago'),
     ).toBeInTheDocument()
     expect(
-      within(row).getByText('Weekly quota: 5 of 5 shows used'),
+      within(row).getByText('Weekly rolling quota: 5 of 5 shows used'),
     ).toBeInTheDocument()
     expect(within(row).getByText('Expires in 3 hours')).toBeInTheDocument()
     expect(screen.getByText('12')).toBeInTheDocument()

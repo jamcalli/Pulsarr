@@ -1,3 +1,4 @@
+import { DEFAULT_ROUTE_PRIORITY } from '@root/schemas/content-router/content-router.schema'
 import type { Condition, ConditionGroup } from '@root/types/router.types'
 import type { RoutingFieldValues } from '@/components/routing-fields'
 import {
@@ -22,7 +23,6 @@ import {
   storedScalar,
   type ValueControl,
 } from '@/features/library/lib/content-router/value-control'
-import { DEFAULT_ROUTE_PRIORITY } from '@/lib/approval'
 import type { components } from '@/types/api.js'
 
 type RouterRule = components['schemas']['RouterRule']

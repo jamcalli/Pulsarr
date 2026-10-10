@@ -1,5 +1,7 @@
 import { ApprovalTriggerSchema } from '@root/schemas/approval/approval.schema'
+import { ContentTypeSchema } from '@root/schemas/common/content-type.schema'
 import { APPROVAL_STATUS_LABELS, TRIGGER_LABELS } from '@/lib/approval'
+import { CONTENT_TYPE_PLURAL_LABELS } from '@/lib/content-type'
 import type { components, paths } from '@/types/api.js'
 
 type ApprovalTrigger = components['schemas']['ApprovalTrigger']
@@ -64,10 +66,10 @@ export const HISTORY_STATUS_OPTIONS: ReadonlyArray<{
 export const CONTENT_TYPE_FILTER_OPTIONS: ReadonlyArray<{
   value: ContentType
   label: string
-}> = [
-  { value: 'movie', label: 'Movies' },
-  { value: 'show', label: 'Shows' },
-]
+}> = ContentTypeSchema.options.map((value) => ({
+  value,
+  label: CONTENT_TYPE_PLURAL_LABELS[value],
+}))
 
 export const TRIGGER_FILTER_OPTIONS: ReadonlyArray<{
   value: ApprovalTrigger

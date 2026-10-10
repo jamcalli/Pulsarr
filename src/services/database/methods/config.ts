@@ -1,4 +1,5 @@
 import type { ConfigFull } from '@root/schemas/config/config.schema.js'
+import { QUOTA_DEFAULTS } from '@root/schemas/shared/quota-limits.js'
 import type { Config, SecretColumn } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
@@ -105,8 +106,9 @@ export async function getConfig(
       config.newUserDefaultMovieQuotaEnabled ?? false,
     ),
     newUserDefaultMovieQuotaType:
-      config.newUserDefaultMovieQuotaType || 'monthly',
-    newUserDefaultMovieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+      config.newUserDefaultMovieQuotaType || QUOTA_DEFAULTS.quotaType,
+    newUserDefaultMovieQuotaLimit:
+      config.newUserDefaultMovieQuotaLimit ?? QUOTA_DEFAULTS.limit,
     newUserDefaultMovieBypassApproval: Boolean(
       config.newUserDefaultMovieBypassApproval ?? false,
     ),
@@ -116,8 +118,9 @@ export async function getConfig(
       config.newUserDefaultShowQuotaEnabled ?? false,
     ),
     newUserDefaultShowQuotaType:
-      config.newUserDefaultShowQuotaType || 'monthly',
-    newUserDefaultShowQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+      config.newUserDefaultShowQuotaType || QUOTA_DEFAULTS.quotaType,
+    newUserDefaultShowQuotaLimit:
+      config.newUserDefaultShowQuotaLimit ?? QUOTA_DEFAULTS.limit,
     newUserDefaultShowBypassApproval: Boolean(
       config.newUserDefaultShowBypassApproval ?? false,
     ),
@@ -397,8 +400,9 @@ export async function createConfig(
       newUserDefaultMovieQuotaEnabled:
         config.newUserDefaultMovieQuotaEnabled ?? false,
       newUserDefaultMovieQuotaType:
-        config.newUserDefaultMovieQuotaType || 'monthly',
-      newUserDefaultMovieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+        config.newUserDefaultMovieQuotaType || QUOTA_DEFAULTS.quotaType,
+      newUserDefaultMovieQuotaLimit:
+        config.newUserDefaultMovieQuotaLimit ?? QUOTA_DEFAULTS.limit,
       newUserDefaultMovieBypassApproval:
         config.newUserDefaultMovieBypassApproval ?? false,
       newUserDefaultMovieWatchlistCap:
@@ -406,8 +410,9 @@ export async function createConfig(
       newUserDefaultShowQuotaEnabled:
         config.newUserDefaultShowQuotaEnabled ?? false,
       newUserDefaultShowQuotaType:
-        config.newUserDefaultShowQuotaType || 'monthly',
-      newUserDefaultShowQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+        config.newUserDefaultShowQuotaType || QUOTA_DEFAULTS.quotaType,
+      newUserDefaultShowQuotaLimit:
+        config.newUserDefaultShowQuotaLimit ?? QUOTA_DEFAULTS.limit,
       newUserDefaultShowBypassApproval:
         config.newUserDefaultShowBypassApproval ?? false,
       newUserDefaultShowWatchlistCap:

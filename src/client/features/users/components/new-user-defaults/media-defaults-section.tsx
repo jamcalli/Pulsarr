@@ -1,10 +1,14 @@
 import {
+  QUOTA_DEFAULTS,
   QUOTA_REQUEST_LIMIT,
   WATCHLIST_CAP_ITEMS,
+  WATCHLIST_CAP_SUGGESTED,
 } from '@root/schemas/shared/quota-limits'
+import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema'
 import { useStore } from '@tanstack/react-form'
 import { SettingsSection } from '@/components/settings/settings-section'
 import { withFieldGroup } from '@/lib/form'
+import { QUOTA_TYPE_LABELS } from '@/lib/quota'
 import type { components } from '@/types/api.js'
 
 type QuotaType = components['schemas']['QuotaType']
@@ -18,19 +22,18 @@ export interface MediaDefaultsValues {
   cap?: number
 }
 
-const QUOTA_TYPE_OPTIONS = [
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly_rolling', label: 'Weekly rolling' },
-  { value: 'monthly', label: 'Monthly' },
-] as const satisfies Array<{ value: QuotaType; label: string }>
+const QUOTA_TYPE_OPTIONS = QuotaTypeSchema.options.map((value) => ({
+  value,
+  label: QUOTA_TYPE_LABELS[value],
+}))
 
 const DEFAULT_VALUES: MediaDefaultsValues = {
   quotaOn: false,
-  quotaType: 'monthly',
-  limit: 10,
+  quotaType: QUOTA_DEFAULTS.quotaType,
+  limit: QUOTA_DEFAULTS.limit,
   bypassApproval: false,
   capOn: false,
-  cap: 100,
+  cap: WATCHLIST_CAP_SUGGESTED,
 }
 
 const DEFAULT_PROPS = { title: '', description: '', unit: '' }

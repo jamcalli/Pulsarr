@@ -1,4 +1,5 @@
 import { ApprovalExpiry } from '@/components/approval-review/approval-expiry'
+import { useConfig } from '@/hooks/useConfig'
 import { useUserDirectory } from '@/hooks/useUserDirectory'
 import { expiryLine, triggerSummary } from '@/lib/approval'
 import type { components } from '@/types/api.js'
@@ -7,7 +8,8 @@ type ApprovalRequest = components['schemas']['ApprovalRequest']
 
 export function ApprovalTrigger({ approval }: { approval: ApprovalRequest }) {
   const { name } = useUserDirectory().lookup(approval.userName)
-  const trigger = triggerSummary(approval, name)
+  const { config } = useConfig()
+  const trigger = triggerSummary(approval, name, config?.quotaSettings ?? null)
   const expiry =
     approval.status === 'pending' ? expiryLine(approval, Date.now()) : null
 
