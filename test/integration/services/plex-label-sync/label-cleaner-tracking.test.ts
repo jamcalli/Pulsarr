@@ -816,6 +816,47 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
       expect(validTracking).toHaveLength(1)
     })
 
+    it('should keep the removed marker through orphan cleanup', async () => {
+      const knex = getTestDatabase()
+
+      await knex('plex_label_tracking').insert({
+        content_guids: JSON.stringify(['imdb:tt0111161']),
+        content_type: 'movie',
+        user_id: null,
+        plex_rating_key: '12345',
+        labels_applied: JSON.stringify(['pulsarr:removed']),
+      })
+
+      const mockGetMetadata = vi.fn()
+      const mockUpdateLabels = vi.fn().mockResolvedValue(true)
+      app.plexServerService.getMetadata = mockGetMetadata
+      app.plexServerService.updateLabels = mockUpdateLabels
+
+      const result = await cleanupOrphanedPlexLabels(undefined, undefined, {
+        plexServer: app.plexServerService,
+        db: app.db,
+        logger: app.log,
+        config: {
+          ...app.config.plexLabelSync,
+          enabled: true,
+          cleanupOrphanedLabels: true,
+        } as PlexLabelSyncConfig,
+        radarrManager: app.radarrManager,
+        sonarrManager: app.sonarrManager,
+        fastify: app,
+        labelPrefix: 'pulsarr',
+        removedLabelPrefix: 'pulsarr:removed',
+        removedLabelMode: 'special-label',
+        tagPrefix: 'pulsarr:user',
+        removedTagPrefix: 'pulsarr:removed',
+      })
+
+      expect(result).toEqual({ removed: 0, failed: 0 })
+      expect(mockUpdateLabels).not.toHaveBeenCalled()
+      const markerRows = await knex('plex_label_tracking').whereNull('user_id')
+      expect(markerRows).toHaveLength(1)
+    })
+
     it('should handle tag sync when detecting orphaned labels', async () => {
       const knex = getTestDatabase()
 

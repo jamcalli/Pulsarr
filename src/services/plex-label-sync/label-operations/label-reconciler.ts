@@ -256,7 +256,15 @@ export async function reconcileLabelsForSingleItem(
 ): Promise<LabelReconciliationResult> {
   try {
     const metadata = await deps.plexServer.getMetadata(ratingKey)
-    const currentLabels = metadata?.Label?.map((label) => label.tag) || []
+    if (!metadata) {
+      return {
+        success: false,
+        labelsAdded: 0,
+        labelsRemoved: 0,
+        error: 'Failed to read current labels from Plex',
+      }
+    }
+    const currentLabels = metadata.Label?.map((label) => label.tag) || []
 
     const { finalLabels, specialRemovedLabel } = computeFinalLabels({
       currentLabels,

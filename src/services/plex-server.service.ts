@@ -1670,7 +1670,7 @@ export class PlexServerService {
     return getMetadata(ratingKey, serverUrl, token, this.log)
   }
 
-  async getCurrentLabels(ratingKey: string): Promise<string[]> {
+  async getCurrentLabels(ratingKey: string): Promise<string[] | null> {
     const serverUrl = await this.getPlexServerUrl()
     const token = this.config.plexTokens?.[0] || ''
     return getCurrentLabels(ratingKey, serverUrl, token, this.log)
