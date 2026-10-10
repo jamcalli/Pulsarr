@@ -25,6 +25,7 @@ interface ActionRowProps {
   disabled: boolean
   running: boolean
   onRun: () => void
+  unavailableReason?: string | null
   progress?: ActionProgress[]
   result?: ReactNode
   errorMessage?: string | null
@@ -39,6 +40,7 @@ export function ActionRow({
   disabled,
   running,
   onRun,
+  unavailableReason = null,
   progress,
   result,
   errorMessage = null,
@@ -50,7 +52,14 @@ export function ActionRow({
       <Item className="p-0">
         <ItemContent>
           <ItemTitle>{title}</ItemTitle>
-          <ItemDescription>{description}</ItemDescription>
+          <ItemDescription className="line-clamp-none">
+            {description}
+          </ItemDescription>
+          {unavailableReason && (
+            <ItemDescription className="line-clamp-none">
+              {unavailableReason}
+            </ItemDescription>
+          )}
         </ItemContent>
         <ItemActions>
           <Button

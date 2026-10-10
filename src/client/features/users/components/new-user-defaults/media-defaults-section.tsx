@@ -59,7 +59,7 @@ export const MediaDefaultsSection = withFieldGroup({
           {(field) => (
             <field.SelectField
               label="Quota period"
-              description="When usage starts over. The Quotas page sets the weekly rolling days and the monthly reset day."
+              description="Set rolling days and the monthly reset day on Quotas."
               options={QUOTA_TYPE_OPTIONS}
               disabled={!quotaOn}
             />
@@ -80,7 +80,7 @@ export const MediaDefaultsSection = withFieldGroup({
           {(field) => (
             <field.SwitchField
               label="Bypass approval over the limit"
-              description="Requests over the limit are added without approval and the watchlist cap is ignored. Require approval still holds every request."
+              description="Over-limit requests skip approval and the cap. Require approval still applies."
               disabled={!quotaOn}
             />
           )}

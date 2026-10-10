@@ -2,6 +2,7 @@ import type {
   ActionResultRow,
   ActionResultStat,
 } from '@/components/settings/action-results'
+import { failedStat } from '@/lib/action-state'
 import { ARR_TYPE_LABELS } from '@/lib/arr-labels'
 import type { components } from '@/types/api.js'
 
@@ -23,10 +24,6 @@ function perTarget<T>(
   ]
 }
 
-function failed(label: string, value: number): ActionResultStat {
-  return { label, value, destructive: true }
-}
-
 function orphanStats(
   stats: Schemas['TagCleanupStats'] | undefined,
 ): ActionResultStat[] {
@@ -34,7 +31,7 @@ function orphanStats(
   return [
     { label: 'Orphans removed', value: stats.removed },
     { label: 'Orphans skipped', value: stats.skipped },
-    failed('Orphans failed', stats.failed),
+    failedStat('Orphans failed', stats.failed),
   ]
 }
 
@@ -45,7 +42,7 @@ export function createResultRows(
     { label: 'Created', value: stats.created },
     { label: 'Skipped', value: stats.skipped },
     { label: 'Instances', value: stats.instances },
-    failed('Failed', stats.failed),
+    failedStat('Failed', stats.failed),
   ])
 }
 
@@ -55,7 +52,7 @@ export function syncResultRows(
   return perTarget(response, (stats, target) => [
     { label: 'Tagged', value: stats.tagged },
     { label: 'Skipped', value: stats.skipped },
-    failed('Failed', stats.failed),
+    failedStat('Failed', stats.failed),
     ...orphanStats(response.orphanedCleanup?.[target]),
   ])
 }
@@ -67,7 +64,7 @@ export function cleanupResultRows(
     { label: 'Removed', value: stats.removed },
     { label: 'Skipped', value: stats.skipped },
     { label: 'Instances', value: stats.instances },
-    failed('Failed', stats.failed),
+    failedStat('Failed', stats.failed),
   ])
 }
 
@@ -79,6 +76,6 @@ export function removeResultRows(
     { label: 'Tags removed', value: stats.tagsRemoved },
     { label: 'Tags deleted', value: stats.tagsDeleted },
     { label: 'Instances', value: stats.instances },
-    failed('Failed', stats.failed),
+    failedStat('Failed', stats.failed),
   ])
 }

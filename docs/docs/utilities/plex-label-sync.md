@@ -28,7 +28,6 @@ Automatically synchronize Plex labels based on user watchlists and content reque
 |---------|-------------|
 | **Enable Label Sync** | Toggle feature on/off |
 | **Label Prefix** | Customize prefix for user labels (default: "pulsarr") |
-| **Concurrency Limit** | Control processing speed (1-20, default: 5) |
 
 ### Cleanup Settings
 
@@ -74,7 +73,7 @@ Automatically synchronize Plex labels based on user watchlists and content reque
 |---------|----------|
 | **Labels not appearing** | Verify Plex connection/permissions; check content exists in Plex; confirm prefix config |
 | **Webhook updates not working** | Verify Arr webhook config; check endpoint URL; review logs |
-| **Performance issues** | Reduce concurrency limit; schedule during off-peak; enable orphaned cleanup |
+| **Performance issues** | Schedule during off-peak; enable orphaned cleanup |
 
 ## Best Practices
 

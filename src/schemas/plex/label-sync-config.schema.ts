@@ -1,4 +1,3 @@
-import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { UserNamingSourceSchema } from '@root/schemas/common/user-naming-source.schema.js'
 import {
   RemovedTagPrefixSchema,
@@ -6,85 +5,69 @@ import {
 } from '@root/schemas/shared/prefix-validation.schema.js'
 import { z } from 'zod'
 
-export const PlexLabelSyncConfigSchema = z
-  .object({
-    // Enable/disable the entire label sync feature
-    enabled: z.boolean(),
-    // Prefix for label naming (e.g., "pulsarr" results in "pulsarr:username")
-    labelPrefix: TagPrefixSchema,
-    labelNamingSource: UserNamingSourceSchema.default('username'),
-    // Maximum number of concurrent operations during processing
-    concurrencyLimit: z
-      .number()
-      .int()
-      .min(1, { error: 'Must be at least 1' })
-      .max(20, { error: 'Must be at most 20' }),
-    // Whether to clean up orphaned labels during cleanup operations
-    cleanupOrphanedLabels: z.boolean(),
-    // How to handle label cleanup when users are removed from content
-    removedLabelMode: z.enum(['remove', 'keep', 'special-label']).meta({
-      description:
-        'How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label',
-    }),
-    // Prefix for special "removed" labels (only used in special-label mode)
-    removedLabelPrefix: RemovedTagPrefixSchema.default('pulsarr:removed')
-      .optional()
-      .meta({
-        description: 'Prefix for special labels indicating removed users',
-      }),
-    // Whether to automatically reset labels before syncs
-    autoResetOnScheduledSync: z.boolean().meta({
-      description:
-        'Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode',
-    }),
-    // Tag syncing configuration
-    tagSync: z.object({
-      // Enable/disable tag syncing from Radarr/Sonarr instances
-      enabled: z.boolean(),
-      // Whether to sync tags from Radarr instances
-      syncRadarrTags: z.boolean(),
-      // Whether to sync tags from Sonarr instances
-      syncSonarrTags: z.boolean(),
-    }),
-  })
-  .refine(
-    (v) => v.removedLabelMode !== 'special-label' || v.removedLabelPrefix,
-    {
-      message:
-        'removedLabelPrefix required when removedLabelMode is "special-label"',
-    },
-  )
+const RemovedLabelModeSchema = z
+  .enum(['remove', 'keep', 'special-label'])
   .meta({
-    id: 'PlexLabelSyncConfig',
-    description: 'How Plex labels are synced from user watchlists',
+    id: 'RemovedLabelMode',
+    description:
+      'What happens to a user label once that user drops the content',
   })
 
-export const PlexLabelSyncConfigResponseSchema = z.object({
-  success: z.boolean(),
-  config: PlexLabelSyncConfigSchema,
+const PlexLabelTagSyncSchema = z.object({
+  enabled: z.boolean(),
+  syncRadarrTags: z.boolean(),
+  syncSonarrTags: z.boolean(),
 })
 
-// Schema for API endpoints that configure label sync
-export const plexLabelSyncConfigSchema = {
-  summary: 'Configure Plex label sync settings',
-  operationId: 'configurePlexLabelSync',
-  description:
-    'Configure how Plex labels are synchronized based on user watchlists and content routing',
-  tags: ['Plex'],
-  body: PlexLabelSyncConfigSchema,
-  response: {
-    200: PlexLabelSyncConfigResponseSchema,
-    400: ErrorSchema,
-    500: ErrorSchema,
+export const PlexLabelSyncConfigSchema = z
+  .object({
+    enabled: z.boolean(),
+    labelPrefix: z.string(),
+    labelNamingSource: UserNamingSourceSchema,
+    cleanupOrphanedLabels: z.boolean(),
+    removedLabelMode: RemovedLabelModeSchema,
+    removedLabelPrefix: z.string(),
+    autoResetOnScheduledSync: z.boolean(),
+    tagSync: PlexLabelTagSyncSchema,
+  })
+  .meta({
+    id: 'PlexLabelSyncConfig',
+    description:
+      'How Plex labels are synced from user watchlists, always returned with defaults filled in',
+  })
+
+export const PlexLabelSyncConfigPayloadSchema = z
+  .object({
+    enabled: z.boolean(),
+    labelPrefix: TagPrefixSchema,
+    labelNamingSource: UserNamingSourceSchema,
+    cleanupOrphanedLabels: z.boolean(),
+    removedLabelMode: RemovedLabelModeSchema,
+    removedLabelPrefix: RemovedTagPrefixSchema,
+    autoResetOnScheduledSync: z.boolean(),
+    tagSync: PlexLabelTagSyncSchema,
+  })
+  .meta({
+    id: 'PlexLabelSyncConfigPayload',
+    description:
+      'Writable Plex label sync settings. Send the whole object, it replaces the stored one.',
+  })
+
+export const PLEX_LABEL_CONCURRENCY = 5
+
+export type PlexLabelSyncConfig = z.infer<typeof PlexLabelSyncConfigSchema>
+
+export const PLEX_LABEL_SYNC_DEFAULTS: PlexLabelSyncConfig = {
+  enabled: false,
+  labelPrefix: 'pulsarr',
+  labelNamingSource: 'username',
+  cleanupOrphanedLabels: false,
+  removedLabelMode: 'remove',
+  removedLabelPrefix: 'pulsarr:removed',
+  autoResetOnScheduledSync: false,
+  tagSync: {
+    enabled: false,
+    syncRadarrTags: true,
+    syncSonarrTags: true,
   },
 }
-
-// Inferred TypeScript types
-export type PlexLabelSyncConfig = z.infer<typeof PlexLabelSyncConfigSchema>
-export type PlexLabelSyncConfigResponse = z.infer<
-  typeof PlexLabelSyncConfigResponseSchema
->
-
-// Re-export shared error schema with domain-specific alias
-export { ErrorSchema as PlexLabelSyncConfigErrorSchema }
-export type PlexLabelSyncConfigError = z.infer<typeof ErrorSchema>

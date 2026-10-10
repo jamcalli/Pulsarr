@@ -1,5 +1,3 @@
-import type { ActionResultRow } from '@/components/settings/action-results'
-import type { ActionProgress } from '@/components/settings/action-row'
 import { invalidateTagStatus } from '@/features/users/hooks/user-tags/useTagStatus'
 import {
   cleanupResultRows,
@@ -10,6 +8,11 @@ import {
 import { withMinDuration } from '@/hooks/useMinLoading'
 import { useOperation } from '@/hooks/useOperation'
 import { useProgress } from '@/hooks/useProgress'
+import {
+  type ActionState,
+  toActionProgress,
+  toActionResult,
+} from '@/lib/action-state'
 import { ARR_TYPE_LABELS } from '@/lib/arr-labels'
 import { NAV_PAGES } from '@/lib/navigation'
 import type { OperationMeta } from '@/lib/operation-toasts'
@@ -22,28 +25,6 @@ type SavedTagging = Pick<
   components['schemas']['Config'],
   'tagUsersInSonarr' | 'tagUsersInRadarr' | 'cleanupOrphanedTags'
 >
-
-interface TagActionState {
-  running: boolean
-  available: boolean
-  errorMessage: string | null
-  result: { ranAt: number; rows: ActionResultRow[] } | null
-  progress?: ActionProgress[]
-}
-
-function toActionProgress(
-  name: string,
-  { progress, message }: ReturnType<typeof useProgress>,
-): ActionProgress {
-  return { name, percent: Math.round(progress), message: message || undefined }
-}
-
-function resultRows<T>(
-  result: { ranAt: number; data: T } | null,
-  toRows: (data: T) => ActionResultRow[],
-): TagActionState['result'] {
-  return result && { ranAt: result.ranAt, rows: toRows(result.data) }
-}
 
 function operation(label: string): OperationMeta {
   return { label, page: NAV_PAGES.userTags }
@@ -127,33 +108,40 @@ export function useTagActions(saved: SavedTagging) {
   const anyRunning =
     create.running || sync.running || cleanup.running || remove.running
 
-  const actions: Record<TagActionId, TagActionState> = {
+  const taggingReason = taggingOn
+    ? null
+    : 'Turn on Tag shows in Sonarr or Tag movies in Radarr and save first.'
+  const cleanupReason = saved.cleanupOrphanedTags
+    ? null
+    : 'Turn on Clean up orphaned tags on sync and save first.'
+
+  const actions: Record<TagActionId, ActionState> = {
     sync: {
       running: sync.running,
-      available: taggingOn,
+      unavailableReason: taggingReason,
       errorMessage: sync.errorMessage,
-      result: resultRows(sync.result, syncResultRows),
+      result: toActionResult(sync.result, syncResultRows),
       progress: targets.map((target) =>
         toActionProgress(target.name, target.tagging),
       ),
     },
     create: {
       running: create.running,
-      available: taggingOn,
+      unavailableReason: taggingReason,
       errorMessage: create.errorMessage,
-      result: resultRows(create.result, createResultRows),
+      result: toActionResult(create.result, createResultRows),
     },
     cleanup: {
       running: cleanup.running,
-      available: saved.cleanupOrphanedTags,
+      unavailableReason: cleanupReason,
       errorMessage: cleanup.errorMessage,
-      result: resultRows(cleanup.result, cleanupResultRows),
+      result: toActionResult(cleanup.result, cleanupResultRows),
     },
     remove: {
       running: remove.running,
-      available: taggingOn,
+      unavailableReason: taggingReason,
       errorMessage: remove.errorMessage,
-      result: resultRows(remove.result, removeResultRows),
+      result: toActionResult(remove.result, removeResultRows),
       progress: targets.map((target) =>
         toActionProgress(target.name, target.removal),
       ),

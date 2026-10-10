@@ -7,7 +7,10 @@
  */
 
 import type { SyncResult } from '@root/types/plex-label-sync.types.js'
-import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
+import {
+  PLEX_LABEL_CONCURRENCY,
+  type PlexLabelSyncConfig,
+} from '@schemas/plex/label-sync-config.schema.js'
 import type { PendingLabelSyncWithPlexKeys } from '@services/database/methods/plex-label-sync.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
@@ -130,8 +133,7 @@ export async function processPendingLabelSyncs(
 
     const contentGroups = groupPendingSyncsByContent(pendingSyncs)
 
-    const concurrencyLimit = deps.config.concurrencyLimit || 5
-    const limit = pLimit(concurrencyLimit)
+    const limit = pLimit(PLEX_LABEL_CONCURRENCY)
 
     const groupResults = await Promise.allSettled(
       Array.from(contentGroups.values()).map((group) =>

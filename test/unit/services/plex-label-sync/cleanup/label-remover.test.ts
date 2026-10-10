@@ -57,7 +57,6 @@ describe('label-remover', () => {
       enabled: true,
       labelPrefix: 'pulsarr',
       labelNamingSource: 'username' as const,
-      concurrencyLimit: 5,
       cleanupOrphanedLabels: true,
       removedLabelMode: 'remove',
       removedLabelPrefix: 'pulsarr:removed',

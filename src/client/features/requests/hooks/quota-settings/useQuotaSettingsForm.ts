@@ -1,6 +1,6 @@
-import { useScheduledConfigForm } from '@/features/requests/hooks/useScheduledConfigForm'
 import { QuotaSettingsFormSchema } from '@/features/requests/lib/quota-settings-form.schema'
 import type { ScheduleStatus } from '@/hooks/useSchedule'
+import { useScheduledConfigForm } from '@/hooks/useScheduledConfigForm'
 import type { components } from '@/types/api.js'
 
 type Config = components['schemas']['Config']

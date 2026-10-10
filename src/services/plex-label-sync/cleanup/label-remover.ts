@@ -4,7 +4,11 @@
  * Handles bulk removal of all app-managed labels and label reset operations.
  */
 
-import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
+import {
+  PLEX_LABEL_CONCURRENCY,
+  PLEX_LABEL_SYNC_DEFAULTS,
+  type PlexLabelSyncConfig,
+} from '@schemas/plex/label-sync-config.schema.js'
 import type { PlexLabelTracking } from '@services/database/methods/plex-label-tracking.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
@@ -105,9 +109,7 @@ export async function removeAllLabels(deps: LabelRemoverDeps): Promise<{
       })
     }
 
-    // Process label removal in parallel with configurable concurrency limit
-    const concurrencyLimit = deps.config.concurrencyLimit || 5
-    const limit = pLimit(concurrencyLimit)
+    const limit = pLimit(PLEX_LABEL_CONCURRENCY)
     let processedCount = 0
     const ratingKeyEntries = Array.from(labelsByRatingKey.entries())
     const successfulCleanupOperations: Array<{
@@ -636,7 +638,8 @@ export async function resetLabels(
         }
       }
     } else if (deps.removedLabelMode === 'special-label') {
-      const removedLabel = deps.removedLabelPrefix || 'pulsarr:removed'
+      const removedLabel =
+        deps.removedLabelPrefix || PLEX_LABEL_SYNC_DEFAULTS.removedLabelPrefix
       for (const entry of orphanedEntries) {
         // An orphaned system row is an item that already carries the marker
         if (entry.user_id === null) {

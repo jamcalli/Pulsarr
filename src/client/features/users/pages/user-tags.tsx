@@ -4,14 +4,13 @@ import { ErrorAlert } from '@/components/error-alert'
 import { InlineCode } from '@/components/inline-code'
 import { LeaveDialog } from '@/components/leave-dialog'
 import { Page, PageHeader } from '@/components/page-header'
-import { ActionResults } from '@/components/settings/action-results'
-import { ActionRow } from '@/components/settings/action-row'
+import { ActionsSection } from '@/components/settings/actions-section'
 import { SaveBar } from '@/components/settings/save-bar'
 import { SettingsPageSkeleton } from '@/components/settings/settings-page-skeleton'
 import { SettingsSection } from '@/components/settings/settings-section'
 import { StatusPill } from '@/components/status-pill'
 import { Button } from '@/components/ui/button'
-import { AliasReadinessCredenza } from '@/features/users/components/user-tags/alias-readiness-credenza'
+import { AliasReadinessCredenza } from '@/features/users/components/alias-readiness-credenza'
 import { RemoveTagsDialog } from '@/features/users/components/user-tags/remove-tags-dialog'
 import {
   type TagActionId,
@@ -23,6 +22,10 @@ import { useConfig } from '@/hooks/useConfig'
 import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { useShowLoading } from '@/hooks/useMinLoading'
 import { formatCount } from '@/lib/format'
+import {
+  SAMPLE_USER_NAMES,
+  USER_NAMING_SOURCE_OPTIONS,
+} from '@/lib/user-naming'
 import type { components } from '@/types/api.js'
 
 const TITLE = 'User tags'
@@ -67,13 +70,6 @@ const ACTION_ROWS: Array<{
     busyLabel: 'Removing...',
   },
 ]
-
-const NAMING_OPTIONS = [
-  { value: 'username', label: 'Username' },
-  { value: 'alias', label: 'Alias' },
-] as const satisfies Array<{ value: string; label: string }>
-
-const SAMPLE_NAMES = { username: 'jamie', alias: 'jj' } as const
 
 const REMOVED_TAG_OPTIONS = [
   { value: 'remove', label: 'Remove the tag' },
@@ -131,7 +127,9 @@ function UserTagsSettings({
             type="button"
             variant="link"
             size="sm"
-            disabled={actionsBlocked || !actions.remove.available}
+            disabled={
+              actionsBlocked || actions.remove.unavailableReason !== null
+            }
             onClick={() => setRemove({ open: true, deleteDefinitions: true })}
           >
             Delete tags
@@ -159,50 +157,19 @@ function UserTagsSettings({
       />
       <form.AppForm>
         <form.Form className="flex flex-col gap-5">
-          <SettingsSection
-            title="Run now"
-            description="These use your saved settings."
-            lock={
-              dirty
-                ? {
-                    reason:
-                      'Save or discard your changes before running these.',
-                  }
-                : undefined
-            }
-          >
-            {ACTION_ROWS.map(({ id, ...row }) => {
-              const action = actions[id]
-              return (
-                <ActionRow
-                  key={id}
-                  title={row.title}
-                  description={row.description}
-                  buttonLabel={row.buttonLabel}
-                  busyLabel={row.busyLabel}
-                  variant={id === 'remove' ? 'destructive' : 'default'}
-                  disabled={actionsBlocked || !action.available}
-                  running={action.running}
-                  onRun={
-                    id === 'remove'
-                      ? () =>
-                          setRemove({ open: true, deleteDefinitions: false })
-                      : () => run(id)
-                  }
-                  progress={action.progress}
-                  result={
-                    action.result && (
-                      <ActionResults
-                        ranAt={action.result.ranAt}
-                        rows={action.result.rows}
-                      />
-                    )
-                  }
-                  errorMessage={action.errorMessage}
-                />
-              )
-            })}
-          </SettingsSection>
+          <ActionsSection
+            dirty={dirty}
+            actions={ACTION_ROWS.map(({ id, ...row }) => ({
+              ...row,
+              id,
+              destructive: id === 'remove',
+              state: actions[id],
+              onRun:
+                id === 'remove'
+                  ? () => setRemove({ open: true, deleteDefinitions: false })
+                  : () => run(id),
+            }))}
+          />
           <SettingsSection title="Where to tag">
             <form.AppField name="tagUsersInSonarr">
               {(field) => (
@@ -233,7 +200,7 @@ function UserTagsSettings({
                     <>
                       Tags look like{' '}
                       <InlineCode>
-                        {`${prefix || 'pulsarr-user'}-${SAMPLE_NAMES[namingSource]}`}
+                        {`${prefix || 'pulsarr-user'}-${SAMPLE_USER_NAMES[namingSource]}`}
                       </InlineCode>
                     </>
                   )}
@@ -245,7 +212,7 @@ function UserTagsSettings({
                 <field.SegmentedField
                   label="Name from"
                   description="Users without an alias fall back to their Plex username."
-                  options={NAMING_OPTIONS}
+                  options={USER_NAMING_SOURCE_OPTIONS}
                   disabled={status.locked}
                   onBeforeChange={(next) => {
                     if (next !== 'alias') return true
@@ -268,18 +235,16 @@ function UserTagsSettings({
                 />
               )}
             </form.AppField>
-            {removedTagMode === 'special-tag' && (
-              <form.AppField name="removedTagPrefix">
-                {(field) => (
-                  <field.TextField
-                    label="Removed tag"
-                    type="text"
-                    placeholder="pulsarr-removed"
-                    disabled={status.locked}
-                  />
-                )}
-              </form.AppField>
-            )}
+            <form.AppField name="removedTagPrefix">
+              {(field) => (
+                <field.TextField
+                  label="Removed tag"
+                  type="text"
+                  placeholder="pulsarr-removed"
+                  disabled={status.locked || removedTagMode !== 'special-tag'}
+                />
+              )}
+            </form.AppField>
             <form.AppField name="cleanupOrphanedTags">
               {(field) => (
                 <field.SwitchField
