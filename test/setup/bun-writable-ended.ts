@@ -1,9 +1,6 @@
 import { ServerResponse } from 'node:http'
 
-// Bun skips setting writableEnded when end() runs without a socket handle,
-// which is how light-my-request builds responses. Fastify reads it via
-// reply.sent, so inject() runs the route handler even after a hook replied.
-// Remove once https://github.com/oven-sh/bun/issues/25632 ships.
+// Bun leaves writableEnded unset when end() runs without a socket, so inject() would keep running a route after a hook replied (oven-sh/bun#25632)
 const originalEnd = ServerResponse.prototype.end
 
 Object.defineProperty(ServerResponse.prototype, 'end', {

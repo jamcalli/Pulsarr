@@ -1,9 +1,5 @@
 import type { User } from '@root/types/config.types.js'
 
-/**
- * Creates a mock User object with sensible defaults.
- * Only id and name vary between most test scenarios.
- */
 export function createMockUser(
   id: number,
   name?: string | null,
