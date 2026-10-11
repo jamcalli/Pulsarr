@@ -30,7 +30,7 @@ export function invalidateConfig() {
  * Persists config updates and writes the server's response straight into
  * the config query cache. Throws the parsed error body on failure.
  */
-export async function updateConfig(updates: ConfigUpdate): Promise<void> {
+export async function updateConfig(updates: ConfigUpdate) {
   const { data, error } = await apiFetch.PUT('/v1/config', { body: updates })
   if (error) throw error
 
@@ -39,6 +39,7 @@ export async function updateConfig(updates: ConfigUpdate): Promise<void> {
       ? { ...prev, config: { ...prev.config, ...data.config } }
       : { success: true, config: data.config },
   )
+  return data
 }
 
 export async function refreshRssFeeds(): Promise<void> {

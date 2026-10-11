@@ -1,4 +1,5 @@
 import { ARR_API_KEY_PLACEHOLDER } from '@root/schemas/common/arr-placeholder.js'
+import { WebhookCallbackError } from '@root/types/arr-connection.types.js'
 import type {
   RadarrInstance,
   Item as RadarrItem,
@@ -319,7 +320,9 @@ describe('RadarrManagerService.resyncWebhooks', () => {
 
     const results = await manager.resyncWebhooks()
 
-    expect(results).toEqual([expect.objectContaining({ success: true })])
+    expect(results).toEqual([
+      expect.objectContaining({ success: true, code: null }),
+    ])
     expect(removeWebhook).toHaveBeenCalledOnce()
     expect(initialize.mock.invocationCallOrder[0]).toBeLessThan(
       removeWebhook.mock.invocationCallOrder[0],
@@ -331,7 +334,9 @@ describe('RadarrManagerService.resyncWebhooks', () => {
     // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
     const oldService = manager['radarrServices'].get(1)
     initialize.mockRejectedValue(
-      new Error('Failed to create webhook: Unable to send test message'),
+      new WebhookCallbackError(
+        'Failed to create webhook: Unable to send test message',
+      ),
     )
 
     const results = await manager.resyncWebhooks()
@@ -339,6 +344,7 @@ describe('RadarrManagerService.resyncWebhooks', () => {
     expect(results).toEqual([
       expect.objectContaining({
         success: false,
+        code: 'callback_failed',
         message: 'Failed to create webhook: Unable to send test message',
       }),
     ])
@@ -353,5 +359,108 @@ describe('RadarrManagerService.resyncWebhooks', () => {
 
     expect(results).toEqual([expect.objectContaining({ success: true })])
     expect(removeWebhook).not.toHaveBeenCalled()
+  })
+
+  it('codes any other failure as unreachable', async () => {
+    initialize.mockRejectedValue(new Error('fetch failed'))
+
+    const results = await manager.resyncWebhooks()
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        success: false,
+        code: 'unreachable',
+        message: 'fetch failed',
+      }),
+    ])
+  })
+})
+
+describe('RadarrManagerService.testWebhookAddress', () => {
+  let manager: RadarrManagerService
+  let fastify: Partial<FastifyInstance>
+  let testWebhookCallback: Mock<RadarrService['testWebhookCallback']>
+
+  beforeEach(() => {
+    const db: Partial<DatabaseService> = {
+      getAllRadarrInstances: vi.fn<DatabaseService['getAllRadarrInstances']>(
+        async () => [
+          INSTANCE,
+          { ...INSTANCE, id: 2, name: 'Down' },
+          { ...INSTANCE, id: 3, apiKey: ARR_API_KEY_PLACEHOLDER },
+        ],
+      ),
+    }
+    fastify = {
+      db: db as DatabaseService,
+      config: {
+        baseUrl: 'http://localhost',
+        port: 3003,
+      } as FastifyInstance['config'],
+    }
+    manager = new RadarrManagerService(
+      createMockLogger(),
+      fastify as FastifyInstance,
+    )
+    testWebhookCallback = vi
+      .spyOn(RadarrService.prototype, 'testWebhookCallback')
+      .mockResolvedValue()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('tests every real instance and skips placeholders', async () => {
+    const results = await manager.testWebhookAddress('http://new-host', 4004)
+
+    expect(results).toEqual([
+      expect.objectContaining({ instanceId: 1, success: true, code: null }),
+      expect.objectContaining({ instanceId: 2, success: true, code: null }),
+    ])
+    expect(
+      testWebhookCallback.mock.calls.map(([instance]) => instance.id),
+    ).toEqual([1, 2])
+  })
+
+  it('codes a rejected callback apart from an unreachable arr', async () => {
+    testWebhookCallback.mockImplementation(async (instance) => {
+      throw instance.id === 1
+        ? new WebhookCallbackError('Unable to send test message')
+        : new Error('fetch failed')
+    })
+
+    const results = await manager.testWebhookAddress('http://new-host', 4004)
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        instanceId: 1,
+        success: false,
+        code: 'callback_failed',
+        message: 'Unable to send test message',
+      }),
+      expect.objectContaining({
+        instanceId: 2,
+        success: false,
+        code: 'unreachable',
+        message: 'fetch failed',
+      }),
+    ])
+  })
+
+  it('leaves the service map untouched', async () => {
+    const existing = new RadarrService(
+      createMockLogger(),
+      'http://localhost',
+      3003,
+      fastify as FastifyInstance,
+    )
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member does not compile
+    manager['radarrServices'].set(1, existing)
+
+    await manager.testWebhookAddress('http://new-host', 4004)
+
+    expect(manager.getRadarrService(1)).toBe(existing)
+    expect(manager.getRadarrService(2)).toBeUndefined()
   })
 })
